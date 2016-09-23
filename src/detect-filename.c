@@ -34,6 +34,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-file.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -69,6 +70,17 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_FILEMATCH,
+            DetectFileInspectHttp);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_FILEMATCH,
+            DetectFileInspectHttp);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_FILEMATCH,
+            DetectFileInspectSmtp);
 
 	SCLogDebug("registering filename rule option");
     return;

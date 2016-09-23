@@ -53,7 +53,12 @@ static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Fl
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
-
+static int DetectEngineAptEventInspect(ThreadVars *tv,
+                                DetectEngineCtx *de_ctx,
+                                DetectEngineThreadCtx *det_ctx,
+                                Signature *s, Flow *f, uint8_t flags,
+                                void *alstate,
+                                void *tx, uint64_t tx_id);
 /**
  * \brief Registers the keyword handlers for the "app-layer-event" keyword.
  */
@@ -69,7 +74,60 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_UNKNOWN,
+            SIG_FLAG_TOSERVER, DETECT_SM_LIST_APP_EVENT,
+            DetectEngineAptEventInspect);
+    DetectAppLayerInspectEngineRegister(ALPROTO_UNKNOWN,
+            SIG_FLAG_TOCLIENT, DETECT_SM_LIST_APP_EVENT,
+            DetectEngineAptEventInspect);
+
     return;
+}
+
+static int DetectEngineAptEventInspect(ThreadVars *tv,
+                                DetectEngineCtx *de_ctx,
+                                DetectEngineThreadCtx *det_ctx,
+                                Signature *s, Flow *f, uint8_t flags,
+                                void *alstate,
+                                void *tx, uint64_t tx_id)
+{
+    AppLayerDecoderEvents *decoder_events = NULL;
+    int r = 0;
+    AppProto alproto;
+    SigMatch *sm;
+    DetectAppLayerEventData *aled = NULL;
+
+    alproto = f->alproto;
+    decoder_events = AppLayerParserGetEventsByTx(f->proto, alproto, alstate, tx_id);
+    if (decoder_events == NULL)
+        goto end;
+
+    for (sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT]; sm != NULL; sm = sm->next) {
+        aled = (DetectAppLayerEventData *)sm->ctx;
+        KEYWORD_PROFILING_START;
+        if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+            continue;
+        }
+
+        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
+        goto end;
+    }
+
+    r = 1;
+
+ end:
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) ==
+            AppLayerParserGetStateProgressCompletionStatus(alproto, flags))
+        {
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        } else {
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        }
+    }
 }
 
 

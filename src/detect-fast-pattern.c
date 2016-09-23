@@ -56,8 +56,22 @@ SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
  * \param list_id SM list id.
  * \param priority Priority for this list.
  */
-static void SupportFastPatternForSigMatchList(int list_id, int priority)
+void SupportFastPatternForSigMatchList(int list_id, int priority)
 {
+    SCFPSupportSMList *ip = NULL;
+    /* insertion point - ip */
+    for (SCFPSupportSMList *tmp = sm_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
+        if (list_id == tmp->list_id) {
+            SCLogDebug("SM list already registered.");
+            return;
+        }
+
+        if (priority <= tmp->priority)
+            break;
+
+        ip = tmp;
+    }
+
     if (sm_fp_support_smlist_list == NULL) {
         SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
         if (unlikely(new == NULL))
@@ -69,20 +83,6 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
         sm_fp_support_smlist_list = new;
 
         return;
-    }
-
-    /* insertion point - ip */
-    SCFPSupportSMList *ip = NULL;
-    for (SCFPSupportSMList *tmp = sm_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
-        if (list_id == tmp->list_id) {
-            SCLogError(SC_ERR_FATAL, "SM list already registered.");
-            exit(EXIT_FAILURE);
-        }
-
-        if (priority <= tmp->priority)
-            break;
-
-        ip = tmp;
     }
 
     SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
@@ -99,13 +99,6 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
         ip->next = new;
     }
 
-    for (SCFPSupportSMList *tmp = new->next; tmp != NULL; tmp = tmp->next) {
-        if (list_id == tmp->list_id) {
-            SCLogError(SC_ERR_FATAL, "SM list already registered.");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     return;
 }
 
@@ -114,31 +107,9 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
  */
 void SupportFastPatternForSigMatchTypes(void)
 {
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCBDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_FILEDATA, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRHDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_UMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRUDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHHDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRHHDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HUADMATCH, 2);
-
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HMDMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH, 3);
 
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_TLSSNI_MATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_TLSISSUER_MATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_TLSSUBJECT_MATCH, 2);
+    /* other types are handled by DetectMpmAppLayerRegister() */
 
 #if 0
     SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
@@ -209,14 +180,16 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL) {
+        s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL &&
+        s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
                      "uricontent, http_client_body, http_server_body, http_header, "
                      "http_raw_header, http_method, http_cookie, "
                      "http_raw_uri, http_stat_msg, http_stat_code, "
-                     "http_user_agent, http_host, http_raw_host, dns_query, "
+                     "http_user_agent, http_host, http_raw_host, "
+                     "http_request_line, dns_query, "
                      "tls_sni, tls_cert_issuer or tls_cert_subject option");
         return -1;
     }
@@ -236,6 +209,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH],
@@ -514,488 +488,6 @@ int DetectFastPatternTest04(void)
 
  end:
     SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a fast_pattern is used in the mpm phase.
- */
-int DetectFastPatternTest05(void)
-{
-    uint8_t *buf = (uint8_t *) "Oh strin1.  But what "
-        "strin2.  This is strings3.  We strins_str4. we "
-        "have strins_string5";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; fast_pattern; "
-                               "content:\"strings_str4\"; content:\"strings_string5\"; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) != 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
-    UTHFreePackets(&p, 1);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a fast_pattern is used in the mpm phase.
- */
-int DetectFastPatternTest06(void)
-{
-    uint8_t *buf = (uint8_t *) "Oh this is a string1.  But what is this with "
-        "string2.  This is strings3.  We have strings_str4.  We also have "
-        "strings_string5";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; fast_pattern; "
-                               "content:\"strings_str4\"; content:\"strings_string5\"; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) != 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
-    UTHFreePackets(&p, 1);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a fast_pattern is used in the mpm phase, when the payload
- *       doesn't contain the fast_pattern string within it.
- */
-int DetectFastPatternTest07(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  now here comes our "
-        "dark knight strings_string5.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; fast_pattern; "
-                               "content:\"strings_str4\"; content:\"strings_string5\"; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
-    UTHFreePackets(&p, 1);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a fast_pattern is used in the mpm phase and that we get
- *       exactly 1 match for the mpm phase.
- */
-int DetectFastPatternTest08(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  now here comes our "
-        "dark knight strings3.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("de_ctx init: ");
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; fast_pattern; "
-                               "content:\"strings_str4\"; content:\"strings_string5\"; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
-    if (r != 1) {
-        printf("expected 1, got %"PRIu32": ", r);
-        goto end;
-    }
-
-    result = 1;
-end:
-    UTHFreePackets(&p, 1);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-/**
- * \test Checks that a fast_pattern is used in the mpm phase, when the payload
- *       doesn't contain the fast_pattern string within it.
- */
-int DetectFastPatternTest09(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  no_strings4 _imp now here "
-        "comes our dark knight strings3.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; "
-                               "content:\"strings4_imp\"; fast_pattern; "
-                               "content:\"strings_string5\"; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
-    UTHFreePackets(&p, 1);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a the SigInit chooses the fast_pattern with better pattern
- *       strength, when we have multiple fast_patterns in the Signature.  Also
- *       checks that we get a match for the fast_pattern from the mpm phase.
- */
-int DetectFastPatternTest10(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  strings4_imp now here "
-        "comes our dark knight strings5.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("de_ctx init: ");
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; "
-                               "content:\"strings4_imp\"; fast_pattern; "
-                               "content:\"strings_string5\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
-    if (r != 1) {
-        printf("expected 1, got %"PRIu32": ", r);
-        goto end;
-    }
-
-    result = 1;
-end:
-    UTHFreePackets(&p, 1);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a the SigInit chooses the fast_pattern with better pattern
- *       strength, when we have multiple fast_patterns in the Signature.  Also
- *       checks that we get no matches for the fast_pattern from the mpm phase.
- */
-int DetectFastPatternTest11(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  strings5_imp now here "
-        "comes our dark knight strings5.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; "
-                               "content:\"strings4_imp\"; fast_pattern; "
-                               "content:\"strings_string5\"; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
-        result = 1;
-
-
-end:
-    UTHFreePackets(&p, 1);
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-    return result;
-}
-
-/**
- * \test Checks that we don't get a match for the mpm phase.
- */
-int DetectFastPatternTest12(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  strings5_imp now here "
-        "comes our dark knight strings5.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; "
-                               "content:\"strings4_imp\"; "
-                               "content:\"strings_string5\"; sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
-        result = 1;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-
-end:
-    UTHFreePackets(&p, 1);
-    DetectEngineCtxFree(de_ctx);
-    return result;
-}
-
-/**
- * \test Checks that a the SigInit chooses the fast_pattern with a better
- *       strength from the available patterns, when we don't specify a
- *       fast_pattern.  We also check that we get a match from the mpm
- *       phase.
- */
-int DetectFastPatternTest13(void)
-{
-    uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
-        "right now, all the way to hangover.  right.  strings5_imp now here "
-        "comes our dark knight strings_string5.  Yes here is our dark knight";
-    uint16_t buflen = strlen((char *)buf);
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("de_ctx init: ");
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; "
-                               "content:\"strings4_imp\"; "
-                               "content:\"strings_string5\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
-    if (r != 1) {
-        printf("expected 1 result, got %"PRIu32": ", r);
-        goto end;
-    }
-
-    result = 1;
-end:
-    UTHFreePackets(&p, 1);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -19430,15 +18922,6 @@ void DetectFastPatternRegisterTests(void)
     UtRegisterTest("DetectFastPatternTest02", DetectFastPatternTest02);
     UtRegisterTest("DetectFastPatternTest03", DetectFastPatternTest03);
     UtRegisterTest("DetectFastPatternTest04", DetectFastPatternTest04);
-    UtRegisterTest("DetectFastPatternTest05", DetectFastPatternTest05);
-    UtRegisterTest("DetectFastPatternTest06", DetectFastPatternTest06);
-    UtRegisterTest("DetectFastPatternTest07", DetectFastPatternTest07);
-    UtRegisterTest("DetectFastPatternTest08", DetectFastPatternTest08);
-    UtRegisterTest("DetectFastPatternTest09", DetectFastPatternTest09);
-    UtRegisterTest("DetectFastPatternTest10", DetectFastPatternTest10);
-    UtRegisterTest("DetectFastPatternTest11", DetectFastPatternTest11);
-    UtRegisterTest("DetectFastPatternTest12", DetectFastPatternTest12);
-    UtRegisterTest("DetectFastPatternTest13", DetectFastPatternTest13);
     UtRegisterTest("DetectFastPatternTest14", DetectFastPatternTest14);
     UtRegisterTest("DetectFastPatternTest15", DetectFastPatternTest15);
     UtRegisterTest("DetectFastPatternTest16", DetectFastPatternTest16);

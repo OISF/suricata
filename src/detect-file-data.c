@@ -34,6 +34,9 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
+#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-hsbd.h"
+
 #include "flow.h"
 #include "flow-var.h"
 #include "flow-util.h"
@@ -59,6 +62,20 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
+
+    DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_FILEDATA, 2,
+            PrefilterTxSmtpFiledataRegister);
+    DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_FILEDATA, 2,
+            PrefilterTxHttpResponseBodyRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_FILEDATA,
+            DetectEngineInspectHttpServerBody);
+    DetectAppLayerInspectEngineRegister(ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_FILEDATA,
+            DetectEngineInspectSMTPFiledata);
 }
 
 /**

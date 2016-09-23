@@ -29,6 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-itype.h"
 
@@ -50,6 +51,8 @@ static int DetectITypeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
 
+static int PrefilterSetupIType(SigGroupHead *sgh);
+static _Bool PrefilterITypeIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for itype: keyword
@@ -64,7 +67,41 @@ void DetectITypeRegister (void)
     sigmatch_table[DETECT_ITYPE].Free = DetectITypeFree;
     sigmatch_table[DETECT_ITYPE].RegisterTests = DetectITypeRegisterTests;
 
+    sigmatch_table[DETECT_ITYPE].SupportsPrefilter = PrefilterITypeIsPrefilterable;
+    sigmatch_table[DETECT_ITYPE].SetupPrefilter = PrefilterSetupIType;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+#define DETECT_ITYPE_EQ   PREFILTER_U8HASH_MODE_EQ   /**< "equal" operator */
+#define DETECT_ITYPE_LT   PREFILTER_U8HASH_MODE_LT   /**< "less than" operator */
+#define DETECT_ITYPE_GT   PREFILTER_U8HASH_MODE_GT   /**< "greater than" operator */
+#define DETECT_ITYPE_RN   PREFILTER_U8HASH_MODE_RA   /**< "range" operator */
+
+typedef struct DetectITypeData_ {
+    uint8_t type1;
+    uint8_t type2;
+
+    uint8_t mode;
+} DetectITypeData;
+
+static inline int ITypeMatch(const uint8_t ptype, const uint8_t mode,
+                             const uint8_t dtype1, const uint8_t dtype2)
+{
+    switch (mode) {
+        case DETECT_ITYPE_EQ:
+            return (ptype == dtype1) ? 1 : 0;
+
+        case DETECT_ITYPE_LT:
+            return (ptype < dtype1) ? 1 : 0;
+
+        case DETECT_ITYPE_GT:
+            return (ptype > dtype1) ? 1 : 0;
+
+        case DETECT_ITYPE_RN:
+            return (ptype > dtype1 && ptype < dtype2) ? 1 : 0;
+    }
+    return 0;
 }
 
 /**
@@ -80,38 +117,21 @@ void DetectITypeRegister (void)
  */
 int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    uint8_t pitype;
-    const DetectITypeData *itd = (const DetectITypeData *)ctx;
-
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    uint8_t pitype;
     if (PKT_IS_ICMPV4(p)) {
         pitype = ICMPV4_GET_TYPE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         pitype = ICMPV6_GET_TYPE(p);
     } else {
         /* Packet not ICMPv4 nor ICMPv6 */
-        return ret;
+        return 0;
     }
 
-    switch(itd->mode) {
-        case DETECT_ITYPE_EQ:
-            ret = (pitype == itd->type1) ? 1 : 0;
-            break;
-        case DETECT_ITYPE_LT:
-            ret = (pitype < itd->type1) ? 1 : 0;
-            break;
-        case DETECT_ITYPE_GT:
-            ret = (pitype > itd->type1) ? 1 : 0;
-            break;
-        case DETECT_ITYPE_RN:
-            ret = (pitype > itd->type1 && pitype < itd->type2) ? 1 : 0;
-            break;
-    }
-
-    return ret;
+    const DetectITypeData *itd = (const DetectITypeData *)ctx;
+    return ITypeMatch(pitype, itd->mode, itd->type1, itd->type2);
 }
 
 /**
@@ -261,6 +281,76 @@ void DetectITypeFree(void *ptr)
 {
     DetectITypeData *itd = (DetectITypeData *)ptr;
     SCFree(itd);
+}
+
+/* prefilter code
+ *
+ * Prefilter uses the U8Hash logic, where we setup a 256 entry array
+ * for each ICMP type. Each array element has the list of signatures
+ * that need to be inspected. */
+
+static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
+{
+    if (PKT_IS_PSEUDOPKT(p)) {
+        SCReturn;
+    }
+
+    uint8_t pitype;
+    if (PKT_IS_ICMPV4(p)) {
+        pitype = ICMPV4_GET_TYPE(p);
+    } else if (PKT_IS_ICMPV6(p)) {
+        pitype = ICMPV6_GET_TYPE(p);
+    } else {
+        /* Packet not ICMPv4 nor ICMPv6 */
+        return;
+    }
+
+    const PrefilterPacketU8HashCtx *h = pectx;
+    const SigsArray *sa = h->array[pitype];
+    if (sa) {
+        PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
+    }
+}
+
+static void
+PrefilterPacketITypeSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectITypeData *a = smctx;
+    v->u8[0] = a->mode;
+    v->u8[1] = a->type1;
+    v->u8[2] = a->type2;
+}
+
+static _Bool
+PrefilterPacketITypeCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectITypeData *a = smctx;
+    if (v.u8[0] == a->mode &&
+        v.u8[1] == a->type1 &&
+        v.u8[2] == a->type2)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupIType(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ITYPE,
+            PrefilterPacketITypeSet,
+            PrefilterPacketITypeCompare,
+            PrefilterPacketITypeMatch);
+}
+
+static _Bool PrefilterITypeIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ITYPE:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS

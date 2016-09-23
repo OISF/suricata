@@ -29,6 +29,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -60,6 +62,9 @@ static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Si
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFlagsFree(void *);
 
+static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
+static int PrefilterSetupTcpFlags(SigGroupHead *sgh);
+
 /**
  * \brief Registration function for flags: keyword
  */
@@ -72,7 +77,52 @@ void DetectFlagsRegister (void)
     sigmatch_table[DETECT_FLAGS].Free  = DetectFlagsFree;
     sigmatch_table[DETECT_FLAGS].RegisterTests = FlagsRegisterTests;
 
+    sigmatch_table[DETECT_FLAGS].SupportsPrefilter = PrefilterTcpFlagsIsPrefilterable;
+    sigmatch_table[DETECT_FLAGS].SetupPrefilter = PrefilterSetupTcpFlags;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
+                             const uint8_t dflags, const uint8_t iflags)
+{
+    if (!dflags && pflags) {
+        if(modifier == MODIFIER_NOT) {
+            SCReturnInt(1);
+        }
+
+        SCReturnInt(0);
+    }
+
+    const uint8_t flags = pflags & iflags;
+
+    switch (modifier) {
+        case MODIFIER_ANY:
+            if ((flags & dflags) > 0) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(0);
+
+        case MODIFIER_PLUS:
+            if (((flags & dflags) == dflags)) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(0);
+
+        case MODIFIER_NOT:
+            if ((flags & dflags) != dflags) {
+                SCReturnInt(1);
+            }
+            SCReturnInt(0);
+
+        default:
+            SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"", flags, dflags);
+            if (flags == dflags) {
+                SCReturnInt(1);
+            }
+    }
+
+    SCReturnInt(0);
 }
 
 /**
@@ -92,52 +142,14 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 {
     SCEnter();
 
-    uint8_t flags = 0;
-    const DetectFlagsData *de = (const DetectFlagsData *)ctx;
-
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
         SCReturnInt(0);
     }
 
-    flags = p->tcph->th_flags;
+    const DetectFlagsData *de = (const DetectFlagsData *)ctx;
+    const uint8_t flags = p->tcph->th_flags;
 
-    if (!de->flags && flags) {
-        if(de->modifier == MODIFIER_NOT) {
-            SCReturnInt(1);
-        }
-
-        SCReturnInt(0);
-    }
-
-    flags &= de->ignored_flags;
-
-    switch (de->modifier) {
-        case MODIFIER_ANY:
-            if ((flags & de->flags) > 0) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        case MODIFIER_PLUS:
-            if (((flags & de->flags) == de->flags)) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        case MODIFIER_NOT:
-            if ((flags & de->flags) != de->flags) {
-                SCReturnInt(1);
-            }
-            SCReturnInt(0);
-
-        default:
-            SCLogDebug("flags %"PRIu8" and de->flags %"PRIu8"",flags,de->flags);
-            if (flags == de->flags) {
-                SCReturnInt(1);
-            }
-    }
-
-    SCReturnInt(0);
+    return FlagsMatch(flags, de->modifier, de->flags, de->ignored_flags);
 }
 
 /**
@@ -538,6 +550,67 @@ int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
         }
     }
     return 0;
+}
+
+static void
+PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
+        SCReturn;
+    }
+
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
+    const uint8_t flags = p->tcph->th_flags;
+    if (FlagsMatch(flags, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
+    {
+        SCLogDebug("packet matches TCP flags %02x", ctx->v1.u8[1]);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketFlagsSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectFlagsData *a = smctx;
+    v->u8[0] = a->modifier;
+    v->u8[1] = a->flags;
+    v->u8[2] = a->ignored_flags;
+    SCLogDebug("v->u8[0] = %02x", v->u8[0]);
+}
+
+static _Bool
+PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectFlagsData *a = smctx;
+    if (v.u8[0] == a->modifier &&
+        v.u8[1] == a->flags &&
+        v.u8[2] == a->ignored_flags)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupTcpFlags(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_FLAGS,
+            PrefilterPacketFlagsSet,
+            PrefilterPacketFlagsCompare,
+            PrefilterPacketFlagsMatch);
+
+}
+
+static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FLAGS:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 /*

@@ -24,6 +24,9 @@
 #ifndef __DETECT_ENGINE_PAYLOAD_H__
 #define __DETECT_ENGINE_PAYLOAD_H__
 
+int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectPacketPayload(DetectEngineCtx *,
         DetectEngineThreadCtx *, Signature *, Flow *, Packet *);
 int DetectEngineInspectStreamPayload(DetectEngineCtx *,

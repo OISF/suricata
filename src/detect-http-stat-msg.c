@@ -59,6 +59,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-stat-msg.h"
+#include "detect-engine-hsmd.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 
@@ -85,6 +86,14 @@ void DetectHttpStatMsgRegister (void)
 
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("http_stat_msg", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HSMDMATCH, 3,
+            PrefilterTxHttpStatMsgRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HSMDMATCH,
+            DetectEngineInspectHttpStatMsg);
 }
 
 /**

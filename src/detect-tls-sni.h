@@ -27,7 +27,6 @@
 #include "app-layer-ssl.h"
 
 void DetectTlsSniRegister(void);
-uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                SSLState *ssl_state, uint8_t flags);
+uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, SSLState *ssl_state);
 
 #endif /* __DETECT_TLS_SNI_H__ */

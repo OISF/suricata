@@ -55,6 +55,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 #include "detect-http-client-body.h"
+#include "detect-engine-hcbd.h"
 #include "stream-tcp.h"
 
 int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, char *);
@@ -77,6 +78,14 @@ void DetectHttpClientBodyRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_PAYLOAD ;
+
+    DetectMpmAppLayerRegister("http_client_body", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HCBDMATCH, 2,
+            PrefilterTxHttpRequestBodyRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HCBDMATCH,
+            DetectEngineInspectHttpClientBody);
 }
 
 static void DetectHttpClientBodySetupCallback(Signature *s)

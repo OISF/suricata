@@ -179,6 +179,7 @@ PktProfiling *SCProfilePacketStart(void);
 
 #define PACKET_PROFILING_RESET(p)                                   \
     if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        SCFree((p)->profile->prefilter.engines);                    \
         SCFree((p)->profile);                                       \
         (p)->profile = NULL;                                        \
     }
@@ -274,6 +275,34 @@ PktProfiling *SCProfilePacketStart(void);
         SCProfilingSghUpdateCounter((det_ctx), (sgh));              \
     }
 
+#define PROFILING_PREFILTER_RESET(p, detectsize) \
+    if (profiling_packets_enabled  && (p)->profile != NULL) {       \
+        if ((p)->profile->prefilter.size != ((detectsize) + 1)) {   \
+            if ((p)->profile->prefilter.engines != NULL)            \
+                SCFree((p)->profile->prefilter.engines);            \
+            (p)->profile->prefilter.engines =                       \
+                SCCalloc((detectsize)+1, sizeof(PktProfilingPrefilterEngine)); \
+            (p)->profile->prefilter.size = (detectsize)+1;\
+        } else {                                                    \
+            memset((p)->profile->prefilter.engines, 0x00,           \
+                ((detectsize)+1 * sizeof(PktProfilingPrefilterEngine))); \
+        }                                                           \
+    }                                                               \
+
+#define PROFILING_PREFILTER_START(p) \
+    uint64_t ticks_start = 0; \
+    if (profiling_packets_enabled  && (p)->profile != NULL) {       \
+        ticks_start = UtilCpuGetTicks();                            \
+    }                                                               \
+
+#define PROFILING_PREFILTER_END(p, profile_id) \
+    if (profiling_packets_enabled && (p)->profile != NULL &&        \
+        ticks_start)                                                \
+    {                                                               \
+        uint64_t ticks_end = UtilCpuGetTicks();                     \
+        (p)->profile->prefilter.engines[(profile_id)].ticks_spent += (ticks_end - ticks_start);    \
+        ticks_start = 0;                                            \
+    }                                                               \
 
 void SCProfilingRulesGlobalInit(void);
 void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
@@ -337,6 +366,10 @@ void SCProfilingDump(void);
 
 #define FLOWWORKER_PROFILING_START(p, id)
 #define FLOWWORKER_PROFILING_END(p, id)
+
+#define PROFILING_PREFILTER_RESET(p, detectsize)
+#define PROFILING_PREFILTER_START(p)
+#define PROFILING_PREFILTER_END(p, profile_id)
 
 #endif /* PROFILING */
 
