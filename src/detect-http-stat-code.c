@@ -90,6 +90,10 @@ void DetectHttpStatCodeRegister (void)
     DetectMpmAppLayerRegister("http_stat_code", SIG_FLAG_TOCLIENT,
             DETECT_SM_LIST_HSCDMATCH, 4,
             PrefilterTxHttpStatCodeRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HSCDMATCH,
+            DetectEngineInspectHttpStatCode);
 }
 
 /**
