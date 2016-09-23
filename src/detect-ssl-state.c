@@ -710,7 +710,7 @@ static int DetectSslStateTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER | STREAM_START, chello_buf,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER | STREAM_START, chello_buf,
                             chello_buf_len);
     FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
@@ -729,7 +729,7 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 5));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
                             shello_buf_len);
     FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
@@ -749,7 +749,7 @@ static int DetectSslStateTest07(void)
     PASS;
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_change_cipher_spec_buf,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_change_cipher_spec_buf,
                             client_change_cipher_spec_buf_len);
     FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
@@ -764,7 +764,7 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 4));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_change_cipher_spec_buf,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_change_cipher_spec_buf,
                             server_change_cipher_spec_buf_len);
     FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
@@ -779,7 +779,7 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 4));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, toserver_app_data_buf,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, toserver_app_data_buf,
                             toserver_app_data_buf_len);
     FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
