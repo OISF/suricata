@@ -35,6 +35,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-tls-cert-validity.h"
+#include "detect-engine-tls.h"
 
 #include "flow.h"
 #include "flow-util.h"
@@ -93,6 +94,10 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].RegisterTests = TlsNotAfterRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_TLSVALIDITY_MATCH,
+            DetectEngineInspectTlsValidity);
 }
 
 /**

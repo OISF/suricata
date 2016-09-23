@@ -75,6 +75,11 @@ void DetectTlsSubjectRegister(void)
     DetectMpmAppLayerRegister("tls_cert_subject", SIG_FLAG_TOCLIENT,
             DETECT_SM_LIST_TLSSUBJECT_MATCH, 2,
             PrefilterTxTlsSubjectRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_TLSSUBJECT_MATCH,
+            DetectEngineInspectTlsSubject);
+
 }
 
 /**
