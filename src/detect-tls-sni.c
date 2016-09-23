@@ -114,7 +114,6 @@ static int DetectTlsSniTest01(void)
                       0x0A, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x2E, 0x63,
                       0x6F, 0x6D, };
 
-    int result = 0;
     Flow f;
     SSLState *ssl_state = NULL;
     Packet *p = NULL;
@@ -146,61 +145,41 @@ static int DetectTlsSniTest01(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
+
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls_sni option\"; "
                               "tls_sni; content:\"google.com\"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, buf, sizeof(buf));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
     FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     ssl_state = f.alstate;
-    if (ssl_state == NULL) {
-        printf("no ssl state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(ssl_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert, but it should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+
+    PASS;
 }
 
 /**
@@ -226,7 +205,6 @@ static int DetectTlsSniTest02(void)
                       0x0A, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x2E, 0x63,
                       0x6F, 0x6D, };
 
-    int result = 0;
     Flow f;
     SSLState *ssl_state = NULL;
     Packet *p = NULL;
@@ -258,9 +236,8 @@ static int DetectTlsSniTest02(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
+
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
@@ -268,65 +245,40 @@ static int DetectTlsSniTest02(void)
                               "(msg:\"Test tls_sni option\"; "
                               "tls_sni; content:\"google\"; nocase; "
                               "pcre:\"/google\\.com$/i\"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls_sni option\"; "
                               "tls_sni; content:\"google\"; nocase; "
                               "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, buf, sizeof(buf));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
     FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     ssl_state = f.alstate;
-    if (ssl_state == NULL) {
-        printf("no ssl state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(ssl_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert, but it should have: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+    FAIL_IF_NOT(PacketAlertCheck(p, 2));
 
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("sig 2 didn't alert, but it should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+
+    PASS;
 }
 
 #endif
