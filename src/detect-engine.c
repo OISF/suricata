@@ -46,7 +46,6 @@
 
 #include "detect-engine-uri.h"
 #include "detect-engine-hrhd.h"
-#include "detect-engine-hscd.h"
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
 #include "detect-engine-tls.h"
@@ -151,9 +150,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HSCDMATCH,
-          DetectEngineInspectHttpStatCode },
         /* Modbus */
         { ALPROTO_MODBUS,
           DETECT_SM_LIST_MODBUS_MATCH,
