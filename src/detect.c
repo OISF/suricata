@@ -4132,6 +4132,48 @@ void SigTableSetup(void)
     DetectSeqRegister();
     DetectContentRegister();
     DetectUricontentRegister();
+
+    /* NOTE: the order of these currently affects inspect
+     * engine registration order and ultimately the order
+     * of inspect engines in the rule. Which in turn affects
+     * state keeping */
+    DetectHttpUriRegister();
+    DetectHttpRequestLineRegister();
+    DetectHttpClientBodyRegister();
+    DetectHttpResponseLineRegister();
+    DetectHttpServerBodyRegister();
+    DetectHttpHeaderRegister();
+    DetectHttpRawHeaderRegister();
+    DetectHttpMethodRegister();
+    DetectHttpCookieRegister();
+    DetectHttpRawUriRegister();
+
+    DetectFilenameRegister();
+    DetectFileextRegister();
+    DetectFilestoreRegister();
+    DetectFilemagicRegister();
+    DetectFileMd5Register();
+    DetectFileSha1Register();
+    DetectFileSha256Register();
+    DetectFilesizeRegister();
+
+    DetectHttpUARegister();
+    DetectHttpHHRegister();
+    DetectHttpHRHRegister();
+
+    DetectHttpStatMsgRegister();
+    DetectHttpStatCodeRegister();
+
+    DetectDnsQueryRegister();
+    DetectModbusRegister();
+
+    DetectTlsSniRegister();
+    DetectTlsIssuerRegister();
+    DetectTlsSubjectRegister();
+
+    DetectAppLayerEventRegister();
+    /* end of order dependent regs */
+
     DetectPcreRegister();
     DetectDepthRegister();
     DetectNocaseRegister();
@@ -4179,54 +4221,25 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
-    DetectHttpCookieRegister();
-    DetectHttpMethodRegister();
-    DetectHttpStatMsgRegister();
     DetectTlsRegister();
     DetectTlsVersionRegister();
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
-    DetectHttpHeaderRegister();
-    DetectHttpRawHeaderRegister();
-    DetectHttpClientBodyRegister();
-    DetectHttpServerBodyRegister();
-    DetectHttpUriRegister();
-    DetectHttpRawUriRegister();
     DetectAsn1Register();
     DetectSshVersionRegister();
     DetectSshSoftwareVersionRegister();
     DetectSslStateRegister();
-    DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
     DetectByteExtractRegister();
     DetectFiledataRegister();
     DetectPktDataRegister();
-    DetectFilenameRegister();
-    DetectFileextRegister();
-    DetectFilestoreRegister();
-    DetectFilemagicRegister();
-    DetectFileMd5Register();
-    DetectFileSha1Register();
-    DetectFileSha256Register();
-    DetectFilesizeRegister();
-    DetectAppLayerEventRegister();
-    DetectHttpUARegister();
-    DetectHttpHHRegister();
-    DetectHttpHRHRegister();
     DetectLuaRegister();
     DetectIPRepRegister();
-    DetectDnsQueryRegister();
-    DetectTlsSniRegister();
-    DetectTlsIssuerRegister();
-    DetectTlsSubjectRegister();
-    DetectModbusRegister();
     DetectAppLayerProtocolRegister();
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplateBufferRegister();
-    DetectHttpRequestLineRegister();
-    DetectHttpResponseLineRegister();
 }
 
 void SigTableRegisterTests(void)
