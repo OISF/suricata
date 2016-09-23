@@ -47,7 +47,6 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
-#include "detect-engine-modbus.h"
 #include "detect-engine-template.h"
 
 #include "detect-engine.h"
@@ -123,10 +122,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_SMTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectSmtp },
-        /* Modbus */
-        { ALPROTO_MODBUS,
-          DETECT_SM_LIST_MODBUS_MATCH,
-          DetectEngineInspectModbus },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
@@ -137,10 +132,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
-        /* Modbus */
-        { ALPROTO_MODBUS,
-          DETECT_SM_LIST_MODBUS_MATCH,
-          DetectEngineInspectModbus },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
