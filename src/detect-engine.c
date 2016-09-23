@@ -101,23 +101,29 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
-void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
-                                             uint16_t dir,
-                                             int32_t sm_list,
-                                             int (*Callback)(ThreadVars *tv,
-                                                             DetectEngineCtx *de_ctx,
-                                                             DetectEngineThreadCtx *det_ctx,
-                                                             Signature *sig, Flow *f,
-                                                             uint8_t flags, void *alstate,
-                                                             void *tx, uint64_t tx_id))
+void DetectAppLayerInspectEngineRegister(AppProto alproto,
+        uint32_t dir, int32_t sm_list,
+        int (*Callback)(ThreadVars *tv,
+            DetectEngineCtx *de_ctx,
+            DetectEngineThreadCtx *det_ctx,
+            Signature *sig, Flow *f,
+            uint8_t flags, void *alstate,
+            void *tx, uint64_t tx_id))
 {
     if ((alproto >= ALPROTO_FAILED) ||
-        (dir > 1) ||
+        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
         (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
         exit(EXIT_FAILURE);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
     }
 
     DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
@@ -126,7 +132,7 @@ void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
     }
     memset(new_engine, 0, sizeof(*new_engine));
     new_engine->alproto = alproto;
-    new_engine->dir = dir;
+    new_engine->dir = direction;
     new_engine->sm_list = sm_list;
     new_engine->Callback = Callback;
 
@@ -140,28 +146,6 @@ void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
 
         t->next = new_engine;
     }
-    return;
-}
-
-void DetectAppLayerInspectEngineRegister(AppProto alproto,
-        uint32_t dir, int32_t sm_list,
-        int (*Callback)(ThreadVars *tv,
-            DetectEngineCtx *de_ctx,
-            DetectEngineThreadCtx *det_ctx,
-            Signature *sig, Flow *f,
-            uint8_t flags, void *alstate,
-            void *tx, uint64_t tx_id))
-{
-    BUG_ON(!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT));
-
-    int direction;
-    if (dir == SIG_FLAG_TOSERVER) {
-        direction = 0;
-    } else {
-        direction = 1;
-    }
-
-    DetectEngineRegisterAppInspectionEngine(alproto, direction, sm_list, Callback);
 }
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
