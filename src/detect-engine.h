@@ -73,23 +73,11 @@ int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
  * \brief Registers an app inspection engine.
  *
  * \param alproto App layer protocol for which we will register the engine.
- * \param direction The direction for the engine.  0 - toserver; 1- toclient.
+ * \param direction The direction for the engine: SIG_FLAG_TOSERVER or
+ *                  SIG_FLAG_TOCLIENT
  * \param sm_list The SigMatch list against which the engine works.
- * \param inspect_flags The inspection flags to be used by de_state
- *                      against the engine.
- * \param match_flags The match flags to be used by de_state in tandem with
- *                    the inpsect_flags.
  * \param Callback The engine callback.
  */
-void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
-                                             uint16_t dir,
-                                             int32_t sm_list,
-                                             int (*Callback)(ThreadVars *tv,
-                                                             DetectEngineCtx *de_ctx,
-                                                             DetectEngineThreadCtx *det_ctx,
-                                                             Signature *sig, Flow *f,
-                                                             uint8_t flags, void *alstate,
-                                                             void *tx, uint64_t tx_id));
 void DetectAppLayerInspectEngineRegister(AppProto alproto,
                                  uint32_t dir,
                                  int32_t sm_list,
