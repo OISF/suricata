@@ -2336,8 +2336,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     AppLayerHtpNeedFileInspection();
 
-    DetectEngineRegisterAppInspectionEngines();
-
     StorageFinalize();
 
     TmModuleRunInit();

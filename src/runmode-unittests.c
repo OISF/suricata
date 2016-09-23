@@ -181,8 +181,6 @@ void RunUnittests(int list_unittests, char *regex_arg)
 
     RegisterAllModules();
 
-    DetectEngineRegisterAppInspectionEngines();
-
     HostBitInitCtx();
 
     StorageFinalize();
