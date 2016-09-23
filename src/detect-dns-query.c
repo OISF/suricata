@@ -81,6 +81,17 @@ void DetectDnsQueryRegister (void)
             DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2,
             PrefilterTxDnsQueryRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+            DetectEngineInspectDnsQueryName);
+
+    /* register these generic engines from here for now */
+    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_DNSREQUEST_MATCH,
+            DetectEngineInspectDnsRequest);
+    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_DNSRESPONSE_MATCH,
+            DetectEngineInspectDnsResponse);
 }
 
 
