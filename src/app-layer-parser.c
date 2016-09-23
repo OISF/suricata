@@ -807,8 +807,12 @@ uint64_t AppLayerParserGetTxCnt(uint8_t ipproto, AppProto alproto, void *alstate
 {
     SCEnter();
     uint64_t r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-               StateGetTxCnt(alstate);
+
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTxCnt != NULL) {
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+                   StateGetTxCnt(alstate);
+    }
+
     SCReturnCT(r, "uint64_t");
 }
 
