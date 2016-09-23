@@ -75,6 +75,10 @@ void DetectTlsIssuerRegister(void)
     DetectMpmAppLayerRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT,
             DETECT_SM_LIST_TLSISSUER_MATCH, 2,
             PrefilterTxTlsIssuerRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_TLSISSUER_MATCH,
+            DetectEngineInspectTlsIssuer);
 }
 
 
