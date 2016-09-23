@@ -47,7 +47,6 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
-#include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-template.h"
 
@@ -120,13 +119,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
-        /* DNS */
-        { ALPROTO_DNS,
-          DETECT_SM_LIST_DNSQUERYNAME_MATCH,
-          DetectEngineInspectDnsQueryName },
-        { ALPROTO_DNS,
-          DETECT_SM_LIST_DNSREQUEST_MATCH,
-          DetectEngineInspectDnsRequest },
         /* SMTP */
         { ALPROTO_SMTP,
           DETECT_SM_LIST_FILEMATCH,
@@ -149,9 +141,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_MODBUS,
           DETECT_SM_LIST_MODBUS_MATCH,
           DetectEngineInspectModbus },
-        { ALPROTO_DNS,
-          DETECT_SM_LIST_DNSRESPONSE_MATCH,
-          DetectEngineInspectDnsResponse },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
