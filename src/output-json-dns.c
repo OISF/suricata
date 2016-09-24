@@ -59,6 +59,11 @@
 #define LOG_QUERIES    BIT_U64(0)
 #define LOG_ANSWERS    BIT_U64(1)
 
+#define LOG_TO_SERVER  LOG_QUERIES
+#define LOG_TO_CLIENT  LOG_ANSWERS
+
+/* Should split these into separate flags fields when we run out of bits below.
+ */
 #define LOG_A          BIT_U64(2)
 #define LOG_NS         BIT_U64(3)
 #define LOG_MD         BIT_U64(4)
@@ -119,6 +124,15 @@
 #define LOG_URI        BIT_U64(59)
 
 #define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS))
+
+typedef enum {
+    DNS_DISCRETE, /* the classic style of an event per question and answer */
+    DNS_SPLIT,    /* one event per request, one event per response */
+    DNS_UNIFIED   /* one event containing request and response */
+} DnsOutputMode;
+
+
+#define ALL_FILTERS     ~0UL
 
 typedef enum {
     DNS_RRTYPE_A = 0,
@@ -247,7 +261,8 @@ static struct {
 
 typedef struct LogDnsFileCtx_ {
     LogFileCtx *file_ctx;
-    uint64_t flags; /** Store mode */
+    DnsOutputMode mode;   /** output mode */
+    uint64_t filter; /** filter bits */
 } LogDnsFileCtx;
 
 typedef struct LogDnsLogThread_ {
@@ -258,129 +273,129 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
-static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
+static int DNSRRTypeEnabled(uint16_t type, uint64_t filters)
 {
-    if (likely(flags == ~0UL)) {
+    if (likely(filters == ALL_FILTERS)) {
         return 1;
     }
 
     switch (type) {
         case DNS_RECORD_TYPE_A:
-            return ((flags & LOG_A) != 0) ? 1 : 0;
+            return ((filters & LOG_A) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NS:
-            return ((flags & LOG_NS) != 0) ? 1 : 0;
+            return ((filters & LOG_NS) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MD:
-            return ((flags & LOG_MD) != 0) ? 1 : 0;
+            return ((filters & LOG_MD) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MF:
-            return ((flags & LOG_MF) != 0) ? 1 : 0;
+            return ((filters & LOG_MF) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_CNAME:
-            return ((flags & LOG_CNAME) != 0) ? 1 : 0;
+            return ((filters & LOG_CNAME) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_SOA:
-            return ((flags & LOG_SOA) != 0) ? 1 : 0;
+            return ((filters & LOG_SOA) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MB:
-            return ((flags & LOG_MB) != 0) ? 1 : 0;
+            return ((filters & LOG_MB) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MG:
-            return ((flags & LOG_MG) != 0) ? 1 : 0;
+            return ((filters & LOG_MG) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MR:
-            return ((flags & LOG_MR) != 0) ? 1 : 0;
+            return ((filters & LOG_MR) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NULL:
-            return ((flags & LOG_NULL) != 0) ? 1 : 0;
+            return ((filters & LOG_NULL) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_WKS:
-            return ((flags & LOG_WKS) != 0) ? 1 : 0;
+            return ((filters & LOG_WKS) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_PTR:
-            return ((flags & LOG_PTR) != 0) ? 1 : 0;
+            return ((filters & LOG_PTR) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_HINFO:
-            return ((flags & LOG_HINFO) != 0) ? 1 : 0;
+            return ((filters & LOG_HINFO) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MINFO:
-            return ((flags & LOG_MINFO) != 0) ? 1 : 0;
+            return ((filters & LOG_MINFO) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MX:
-            return ((flags & LOG_MX) != 0) ? 1 : 0;
+            return ((filters & LOG_MX) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_TXT:
-            return ((flags & LOG_TXT) != 0) ? 1 : 0;
+            return ((filters & LOG_TXT) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_RP:
-            return ((flags & LOG_RP) != 0) ? 1 : 0;
+            return ((filters & LOG_RP) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_AFSDB:
-            return ((flags & LOG_AFSDB) != 0) ? 1 : 0;
+            return ((filters & LOG_AFSDB) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_X25:
-            return ((flags & LOG_X25) != 0) ? 1 : 0;
+            return ((filters & LOG_X25) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_ISDN:
-            return ((flags & LOG_ISDN) != 0) ? 1 : 0;
+            return ((filters & LOG_ISDN) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_RT:
-            return ((flags & LOG_RT) != 0) ? 1 : 0;
+            return ((filters & LOG_RT) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NSAP:
-            return ((flags & LOG_NSAP) != 0) ? 1 : 0;
+            return ((filters & LOG_NSAP) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NSAPPTR:
-            return ((flags & LOG_NSAPPTR) != 0) ? 1 : 0;
+            return ((filters & LOG_NSAPPTR) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_SIG:
-            return ((flags & LOG_SIG) != 0) ? 1 : 0;
+            return ((filters & LOG_SIG) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_KEY:
-            return ((flags & LOG_KEY) != 0) ? 1 : 0;
+            return ((filters & LOG_KEY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_PX:
-            return ((flags & LOG_PX) != 0) ? 1 : 0;
+            return ((filters & LOG_PX) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_GPOS:
-            return ((flags & LOG_GPOS) != 0) ? 1 : 0;
+            return ((filters & LOG_GPOS) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_AAAA:
-            return ((flags & LOG_AAAA) != 0) ? 1 : 0;
+            return ((filters & LOG_AAAA) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_LOC:
-            return ((flags & LOG_LOC) != 0) ? 1 : 0;
+            return ((filters & LOG_LOC) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NXT:
-            return ((flags & LOG_NXT) != 0) ? 1 : 0;
+            return ((filters & LOG_NXT) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_SRV:
-            return ((flags & LOG_SRV) != 0) ? 1 : 0;
+            return ((filters & LOG_SRV) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_ATMA:
-            return ((flags & LOG_ATMA) != 0) ? 1 : 0;
+            return ((filters & LOG_ATMA) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NAPTR:
-            return ((flags & LOG_NAPTR) != 0) ? 1 : 0;
+            return ((filters & LOG_NAPTR) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_KX:
-            return ((flags & LOG_KX) != 0) ? 1 : 0;
+            return ((filters & LOG_KX) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_CERT:
-            return ((flags & LOG_CERT) != 0) ? 1 : 0;
+            return ((filters & LOG_CERT) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_A6:
-            return ((flags & LOG_A6) != 0) ? 1 : 0;
+            return ((filters & LOG_A6) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_DNAME:
-            return ((flags & LOG_DNAME) != 0) ? 1 : 0;
+            return ((filters & LOG_DNAME) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_OPT:
-            return ((flags & LOG_OPT) != 0) ? 1 : 0;
+            return ((filters & LOG_OPT) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_APL:
-            return ((flags & LOG_APL) != 0) ? 1 : 0;
+            return ((filters & LOG_APL) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_DS:
-            return ((flags & LOG_DS) != 0) ? 1 : 0;
+            return ((filters & LOG_DS) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_SSHFP:
-            return ((flags & LOG_SSHFP) != 0) ? 1 : 0;
+            return ((filters & LOG_SSHFP) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_IPSECKEY:
-            return ((flags & LOG_IPSECKEY) != 0) ? 1 : 0;
+            return ((filters & LOG_IPSECKEY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_RRSIG:
-            return ((flags & LOG_RRSIG) != 0) ? 1 : 0;
+            return ((filters & LOG_RRSIG) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NSEC:
-            return ((flags & LOG_NSEC) != 0) ? 1 : 0;
+            return ((filters & LOG_NSEC) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_DNSKEY:
-            return ((flags & LOG_DNSKEY) != 0) ? 1 : 0;
+            return ((filters & LOG_DNSKEY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_DHCID:
-            return ((flags & LOG_DHCID) != 0) ? 1 : 0;
+            return ((filters & LOG_DHCID) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NSEC3:
-            return ((flags & LOG_NSEC3) != 0) ? 1 : 0;
+            return ((filters & LOG_NSEC3) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_NSEC3PARAM:
-            return ((flags & LOG_NSEC3PARAM) != 0) ? 1 : 0;
+            return ((filters & LOG_NSEC3PARAM) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_TLSA:
-            return ((flags & LOG_TLSA) != 0) ? 1 : 0;
+            return ((filters & LOG_TLSA) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_HIP:
-            return ((flags & LOG_HIP) != 0) ? 1 : 0;
+            return ((filters & LOG_HIP) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_CDS:
-            return ((flags & LOG_CDS) != 0) ? 1 : 0;
+            return ((filters & LOG_CDS) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_CDNSKEY:
-            return ((flags & LOG_CDNSKEY) != 0) ? 1 : 0;
+            return ((filters & LOG_CDNSKEY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_SPF:
-            return ((flags & LOG_SPF) != 0) ? 1 : 0;
+            return ((filters & LOG_SPF) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_TKEY:
-            return ((flags & LOG_TKEY) != 0) ? 1 : 0;
+            return ((filters & LOG_TKEY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_TSIG:
-            return ((flags & LOG_TSIG) != 0) ? 1 : 0;
+            return ((filters & LOG_TSIG) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_MAILA:
-            return ((flags & LOG_MAILA) != 0) ? 1 : 0;
+            return ((filters & LOG_MAILA) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_ANY:
-            return ((flags & LOG_ANY) != 0) ? 1 : 0;
+            return ((filters & LOG_ANY) != 0) ? 1 : 0;
         case DNS_RECORD_TYPE_URI:
-            return ((flags & LOG_URI) != 0) ? 1 : 0;
+            return ((filters & LOG_URI) != 0) ? 1 : 0;
         default:
             return 0;
     }
@@ -554,7 +569,8 @@ static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry)
     return js;
 }
 
-void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
+/* Fills JSON object with DNS Transaction information */
+void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 {
 
     if (unlikely(js == NULL))
@@ -580,7 +596,7 @@ void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
                json_t *entryjs = FailureJson(tx, query);
                if (entryjs)
-                   json_array_append_new(arrjs, entryjs); 
+                   json_array_append(arrjs, entryjs);
             }
 
             if (json_array_size(arrjs) > 0)
@@ -593,7 +609,7 @@ void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
        if (likely(flags & LOG_ANSWERS) != 0) {
            if (TAILQ_EMPTY(&tx->answer_list)) {
-   	       json_object_set_new(js, "info", json_string("empty answer"));
+               json_object_set_new(js, "info", json_string("empty answer"));
            }
 
            /* list of answers */
@@ -601,21 +617,21 @@ void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
            /* foreach answer */
            DNSAnswerEntry *entry = NULL;
-               TAILQ_FOREACH(entry, &tx->answer_list, next) {
+           TAILQ_FOREACH(entry, &tx->answer_list, next) {
 
-                  if (! likely(DNSRRTypeEnabled(entry->type, flags)))
-		      continue;
+              if (! likely(DNSRRTypeEnabled(entry->type, flags)))
+                  continue;
 
-                  json_t *entryjs = AnswerJson(tx, entry);
-   	          if (entryjs) {
-                      json_array_append_new(ansarrjs, entryjs); 
-   	          }
+              json_t *entryjs = AnswerJson(tx, entry);
+              if (entryjs) {
+                  json_array_append(ansarrjs, entryjs);
+              }
            }
            if (json_array_size(ansarrjs) > 0)
-   	       json_object_set_new(js, "answers", ansarrjs);
+               json_object_set_new(js, "answers", ansarrjs);
        }
 
-   } 
+   }
 
    if (likely(flags & LOG_QUERIES) != 0) {
        /* list of queries */
@@ -630,7 +646,7 @@ void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
            json_t *entryjs = QueryJson(tx, entry);
            if (entryjs) {
-               json_array_append_new(qarrjs, entryjs); 
+               json_array_append(qarrjs, entryjs);
            }
        }
 
@@ -640,35 +656,123 @@ void JsonDnsLogTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
 }
 
-static void OutputLogTransactionJSON(LogDnsLogThread *td, json_t *js, DNSTransaction *tx, uint64_t flags) __attribute__((nonnull));
-static void OutputLogTransactionJSON(LogDnsLogThread *td, json_t *js, DNSTransaction *tx, uint64_t flags) {
+static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
+
+/* Outputs to file log the DNS transaction with using configured output style */
+static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) {
+
 
     json_t *tjs = json_object();
-    if (unlikely(tjs == NULL))
+    if (unlikely(tjs == NULL)) {
         return;
+    }
 
+    /* Fill tjs with all parts of DNS transaction */
+    FillsDNSTransactionJSON(tjs, tx, flags);
 
-    /* Fill js */
-
-
-    JsonDnsLogTransactionJSON(tjs, tx, flags);
-
-    if (json_object_size(tjs) < 1 )
+    /* Nothing to write */
+    if (json_object_size(tjs) < 1 ) {
+        json_decref(tjs);
         return;
+    }
 
-    json_object_set_new(js, "dns", tjs);
+    /* Outputs a single event containing request and response */
+    if (style == DNS_UNIFIED) {
 
-    /* reset */
-    MemBufferReset(td->buffer);
+        /* dns node */
+        json_object_set_new(js, "dns", tjs);
 
-    /* dns */
-    OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        /* reset */
+        MemBufferReset(buffer);
+        OutputJSONBuffer(js, file_ctx, &buffer);
+        json_decref(tjs);
 
-    json_object_del(tjs, "dns");
-    
+        return;
+    }
+
+
+   /* Not unified style */
+   if (! tx->replied) {
+
+   /* Queries output part */
+    json_t *queries = json_object_get(tjs, "queries");
+
+    if (queries && json_array_size(queries) == 1 ) {
+        json_object_set_new(js, "dns", json_array_get(queries, 0));
+
+        /* reset */
+        MemBufferReset(buffer);
+        OutputJSONBuffer(js, file_ctx, &buffer);
+
+    }
+
+       json_decref(tjs);
+       return;
+   }
+
+   /* Answers output part */
+    json_t *answers = json_object_get(tjs, "answers");
+
+    /* No answers to output */
+    if (answers == NULL || json_array_size(answers) < 1 ) {
+       json_decref(tjs);
+       return;
+    }
+
+    /* Make a copy of event json for answers base */
+    json_t * cloned = json_deep_copy(js);
+
+    if (unlikely(cloned == NULL)) {
+       json_decref(tjs);
+       return;
+    }
+
+    /*  split: one event per request, one event per response */
+    if (style == DNS_SPLIT && cloned) {
+        json_object_set_new(cloned, "dns", answers);
+
+        /* reset */
+        MemBufferReset(buffer);
+        OutputJSONBuffer(cloned, file_ctx, &buffer);
+        json_decref(cloned);
+        json_decref(tjs);
+        return;
+    }
+
+    /* # discrete: the classic style of an event per question and answer */
+    /* This is the historical log format */
+    if (style == DNS_DISCRETE) {
+
+        size_t sz = json_array_size(answers);
+        json_t *value = NULL;
+        json_t *copy = NULL;
+
+        /* Log each answer separately */
+        //json_array_foreach(answers, index, value) {
+        for (size_t index = 0; index < sz; ++index) {
+
+            value = json_array_get(answers, index);
+
+            if ( ! value )
+                continue;
+
+            json_object_set_new(cloned, "dns", value);
+
+            /* reset */
+            MemBufferReset(buffer);
+            OutputJSONBuffer(cloned, file_ctx, &buffer);
+            copy = json_deep_copy(js);
+            json_decref(cloned);
+            cloned = copy;
+
+        }
+        json_decref(tjs);
+        json_decref(copy);
+    }
 
 }
 
+/* Makes the Json output for an alert */
 void JsonDnsLogJSON(json_t * js,  DNSState *dns_state) {
 
     if (unlikely(js == NULL))
@@ -677,9 +781,29 @@ void JsonDnsLogJSON(json_t * js,  DNSState *dns_state) {
     if (unlikely(dns_state == NULL))
         return;
 
-    uint64_t flags = 0xFFFFFFFFFFFFFFFF;
 
-    JsonDnsLogTransactionJSON(js,dns_state->curr, flags);
+    FillsDNSTransactionJSON(js,dns_state->curr, ALL_FILTERS);
+
+}
+
+/* Logs a DNS Event to Json to output log */
+static void JsonDnsLogger(LogDnsLogThread *td, DNSTransaction *tx, const Packet *p, uint64_t filters)
+{
+    json_t *js = NULL;
+
+    if (! td || ! td->dnslog_ctx)
+       return;
+
+    if (likely(td->dnslog_ctx->filter & filters) != 0) {
+        js = CreateJSONHeader(p, 0, "dns");
+        if (unlikely(js == NULL))
+            return ;
+
+        OutputLogTransactionJSON(td->dnslog_ctx->file_ctx,
+                td->buffer, js, tx, td->dnslog_ctx->filter, td->dnslog_ctx->mode);
+
+        json_decref(js);
+    }
 
 }
 
@@ -691,20 +815,12 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 {
     SCEnter();
 
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
-    json_t *js;
-
-    if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
-
-        OutputLogTransactionJSON(td, js, tx, dnslog_ctx->flags);
-
-        json_decref(js);
-    }
+    JsonDnsLogger(
+        (LogDnsLogThread *)thread_data,
+        (DNSTransaction *) txptr,
+        p,
+        LOG_TO_SERVER
+    );
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -716,20 +832,12 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 {
     SCEnter();
 
-    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
-    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
-    json_t *js;
-
-    if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
-
-        OutputLogTransactionJSON(td, js, tx, dnslog_ctx->flags);
-
-        json_decref(js);
-    }
+    JsonDnsLogger(
+        (LogDnsLogThread *) thread_data,
+        (DNSTransaction *) txptr,
+        p,
+        LOG_TO_CLIENT
+    );
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -795,28 +903,41 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
 
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
-    dnslog_ctx->flags = ~0UL;
+    dnslog_ctx->filter = ALL_FILTERS;
+    dnslog_ctx->mode = DNS_DISCRETE;
 
     if (conf) {
         const char *query = ConfNodeLookupChildValue(conf, "query");
         if (query != NULL) {
             if (ConfValIsTrue(query)) {
-                dnslog_ctx->flags |= LOG_QUERIES;
+                dnslog_ctx->filter |= LOG_QUERIES;
             } else {
-                dnslog_ctx->flags &= ~LOG_QUERIES;
+                dnslog_ctx->filter &= ~LOG_QUERIES;
+            }
+        }
+        const char *style = ConfNodeLookupChildValue(conf, "style");
+        if (style != NULL) {
+            if (strcasecmp(style, "unified")==0) {
+                dnslog_ctx->mode = DNS_UNIFIED;
+            } else if (strcasecmp(style, "split")==0) {
+                dnslog_ctx->mode = DNS_SPLIT;
+            } else if (strcasecmp(style, "discrete")==0) {
+                dnslog_ctx->mode = DNS_DISCRETE;
+            } else {
+                SCLogError(SC_ERR_FATAL, "Invalid logging style for DNS Events.");
             }
         }
         const char *response = ConfNodeLookupChildValue(conf, "answer");
         if (response != NULL) {
             if (ConfValIsTrue(response)) {
-                dnslog_ctx->flags |= LOG_ANSWERS;
+                dnslog_ctx->filter |= LOG_ANSWERS;
             } else {
-                dnslog_ctx->flags &= ~LOG_ANSWERS;
+                dnslog_ctx->filter &= ~LOG_ANSWERS;
             }
         }
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
-            dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
+            dnslog_ctx->filter &= ~LOG_ALL_RRTYPES;
             ConfNode *field;
             TAILQ_FOREACH(field, &custom->head, next)
             {
@@ -828,7 +949,7 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
                         if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
                                        field->val) == 0)
                         {
-                            dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
+                            dnslog_ctx->filter |= dns_rrtype_fields[f].flags;
                             break;
                         }
                     }
