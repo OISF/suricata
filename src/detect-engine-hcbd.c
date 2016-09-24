@@ -385,17 +385,17 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
         p->flowflags |= FLOW_PKT_ESTABLISHED;
         p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
-        SCMutexLock(&f.m);
+        FLOWLOCK_WRLOCK(&f);
         int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, b->direction,
                 (uint8_t *)b->input,
                 b->input_size ? b->input_size : strlen((const char *)b->input));
         if (r != 0) {
             printf("toserver chunk %d returned %" PRId32 ", expected 0: ", i+1, r);
             result = 0;
-            SCMutexUnlock(&f.m);
+            FLOWLOCK_UNLOCK(&f);
             goto end;
         }
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
 
         /* do detect */
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

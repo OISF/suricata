@@ -1511,15 +1511,15 @@ static int AppLayerParserTest01(void)
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
                            testbuf, testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     if (!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         printf("flag should have been set, but is not: ");
@@ -1564,16 +1564,16 @@ static int AppLayerParserTest02(void)
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
         result = 0;
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
         goto end;
     }
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
  end:
     AppLayerParserRestoreParserTable();
