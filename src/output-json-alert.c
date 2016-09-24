@@ -289,14 +289,23 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (json_output_ctx->flags & LOG_JSON_DNS) {
             if (p->flow != NULL) {
-                FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* dns alert */
                 if (proto == ALPROTO_DNS)
                     AlertJsonDns(p->flow, js);
 
-                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_DNS) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* dns alert */
+                if (proto == ALPROTO_DNS)
+                    AlertJsonDns(p->flow, js);
+
             }
         }
 
