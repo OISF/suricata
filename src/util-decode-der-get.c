@@ -38,6 +38,7 @@
 #include "util-decode-der-get.h"
 
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
+static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
 
 static const char *Oid2ShortStr(const char *oid)
@@ -70,6 +71,68 @@ static const char *Oid2ShortStr(const char *oid)
         return "DC";
 
     return "unknown";
+}
+
+static time_t GentimeToTime(char *gentime)
+{
+    time_t time;
+    struct tm tm;
+
+    /* GeneralizedTime values MUST be expressed in Greenwich Mean Time
+     * (Zulu) and MUST include seconds (rfc5280 4.1.2.5.2). It MUST NOT
+     * include fractional seconds. It should therefore be on the format
+     * YYYYmmddHHMMSSZ. */
+    if (strlen(gentime) != 15)
+        goto error;
+
+    tm.tm_gmtoff = 0;
+    strptime(gentime, "%Y%m%d%H%M%SZ", &tm);
+    time = SCMkTimeUtc(&tm);
+
+    if (time < 0)
+        goto error;
+
+    return time;
+
+error:
+    return -1;
+}
+
+static time_t UtctimeToTime(char *utctime)
+{
+    time_t time;
+    unsigned int year;
+    char yy[2];
+    char buf[20];
+
+    /* UTCTime values MUST be expressed in Greenwich Mean Time (Zulu)
+     * and MUST include seconds (rfc5280 4.1.2.5.1). It should
+     * therefore be on the format YYmmddHHMMSSZ. */
+    if (strlen(utctime) != 13)
+        goto error;
+
+    /* UTCTime use two digits to represent the year. The year field (YY)
+     * should be interpreted as 19YY when it is greater than or equal to
+     * 50. If it is less than 50 it should be interpreted as 20YY.
+     * Because of this, GeneralizedTime must be used for dates in the
+     * year 2050 or later. */
+    strlcpy(yy, utctime, sizeof(yy));
+    year = strtol(yy, NULL, 10);
+    if (year >= 50)
+        snprintf(buf, sizeof(buf), "%i%s", 19, utctime);
+    else if (year < 50)
+        snprintf(buf, sizeof(buf), "%i%s", 20, utctime);
+    else
+        goto error;
+
+    time = GentimeToTime(buf);
+    if (time == -1)
+        goto error;
+
+    return time;
+
+error:
+    return -1;
 }
 
 /**
@@ -127,6 +190,57 @@ const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index,
         *errcode = 0;
 
     return node;
+}
+
+int Asn1DerGetValidity(const Asn1Generic *cert, time_t *not_before,
+                       time_t *not_after, uint32_t *errcode)
+{
+    const Asn1Generic *node, *it;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    node = Asn1DerGet(cert, SEQ_IDX_VALIDITY, sizeof(SEQ_IDX_VALIDITY), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto validity_error;
+
+    it = node->data;
+    if (it == NULL || it->str == NULL)
+        goto validity_error;
+
+    if (it->type == ASN1_UTCTIME)
+        *not_before = UtctimeToTime(it->str);
+    else if (it->type == ASN1_GENERALIZEDTIME)
+        *not_before = GentimeToTime(it->str);
+    else
+        goto validity_error;
+
+    if (*not_before == -1)
+        goto validity_error;
+
+    if (node->next == NULL)
+        goto validity_error;
+
+    it = node->next->data;
+
+    if (it == NULL || it->str == NULL)
+        goto validity_error;
+
+    if (it->type == ASN1_UTCTIME)
+        *not_after = UtctimeToTime(it->str);
+    else if (it->type == ASN1_GENERALIZEDTIME)
+        *not_after = GentimeToTime(it->str);
+    else
+        goto validity_error;
+
+    if (*not_after == -1)
+        goto validity_error;
+
+    rc = 0;
+
+validity_error:
+    return rc;
 }
 
 int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length,
