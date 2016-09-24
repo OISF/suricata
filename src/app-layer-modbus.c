@@ -1718,6 +1718,7 @@ static int ModbusParserTest01(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -1783,6 +1784,7 @@ static int ModbusParserTest02(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -1970,6 +1972,7 @@ static int ModbusParserTest04(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -2391,6 +2394,7 @@ static int ModbusParserTest09(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -2486,6 +2490,7 @@ static int ModbusParserTest10(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -2741,6 +2746,7 @@ static int ModbusParserTest13(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
@@ -2806,6 +2812,7 @@ static int ModbusParserTest14(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
 
