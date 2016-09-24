@@ -382,6 +382,26 @@ void PacketDefragPktSetupParent(Packet *parent)
     DecodeSetNoPayloadInspectionFlag(parent);
 }
 
+void PacketBypassCallback(Packet *p)
+{
+    /* Don't try to bypass if flow is already out or
+     * if we have failed to do it once */
+    int state = SC_ATOMIC_GET(p->flow->flow_state);
+    if ((state == FLOW_STATE_BYPASSED) ||
+           (p->flow->flags & FLOW_BYPASS_FAILED)) {
+        return;
+    }
+
+    if (p->BypassPacketsFlow) {
+        /* only set bypassed state if succesful */
+        FlowUpdateState(p->flow, FLOW_STATE_BYPASSED);
+
+        p->BypassPacketsFlow(p);
+    } else {
+        p->flow->flags |= FLOW_BYPASS_FAILED;
+    }
+}
+
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */

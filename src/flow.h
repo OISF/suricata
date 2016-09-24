@@ -77,7 +77,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** alproto detect done.  Right now we need it only for udp */
 #define FLOW_ALPROTO_DETECT_DONE          0x00004000
 
-// vacany 1x
+/** we have tried bypass but we did fail */
+#define FLOW_BYPASS_FAILED                0x00010000
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00008000
@@ -190,6 +191,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_END_FLAG_TIMEOUT           0x10
 #define FLOW_END_FLAG_FORCED            0x20
 #define FLOW_END_FLAG_SHUTDOWN          0x40
+#define FLOW_END_FLAG_STATE_BYPASSED    0x80
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -425,6 +427,7 @@ enum FlowState {
     FLOW_STATE_NEW = 0,
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
+    FLOW_STATE_BYPASSED,
 };
 
 typedef struct FlowProtoTimeout_ {
