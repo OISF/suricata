@@ -547,6 +547,27 @@ static void StatsMerge(PcapLogData *dst, PcapLogData *src)
     dst->profile_data_size += src->profile_data_size;
 }
 
+static void PcapLogDataFree(PcapLogData *pl)
+{
+
+    PcapFileName *pf;
+    while ((pf = TAILQ_FIRST(&pl->pcap_file_list)) != NULL) {
+        TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+        PcapFileNameFree(pf);
+    }
+    if (pl == g_pcap_data) {
+        for (int i = 0; i < MAX_TOKS; i++) {
+            if (pl->filename_parts[i] != NULL) {
+                SCFree(pl->filename_parts[i]);
+            }
+        }
+    }
+    SCFree(pl->h);
+    SCFree(pl->filename);
+    SCFree(pl->prefix);
+    SCFree(pl);
+}
+
 /**
  *  \brief Thread deinit function.
  *
@@ -579,6 +600,11 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
             pl->reported = 1;
         }
     }
+
+    if (pl != g_pcap_data) {
+        PcapLogDataFree(pl);
+    }
+
     SCFree(td);
     return TM_ECODE_OK;
 }
@@ -902,6 +928,7 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
     TAILQ_FOREACH(pf, &pl->pcap_file_list, next) {
         SCLogDebug("PCAP files left at exit: %s\n", pf->filename);
     }
+    PcapLogDataFree(pl);
     SCFree(output_ctx);
     return;
 }
