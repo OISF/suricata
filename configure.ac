@@ -2216,6 +2216,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+  eBPF support:                            ${enable_ebpf}
 
   Rust support (experimental):             ${enable_rust}
   Experimental Rust parsers:               ${enable_rust_experimental}
