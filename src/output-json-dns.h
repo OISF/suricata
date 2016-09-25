@@ -40,6 +40,6 @@ void JsonDnsLogJSON(json_t *js, DNSState *tx);
 
 #ifdef UNITTESTS
 void OutputJsonDnsRegisterTests (void);
-#endif
+#endif /*UNITTESTS */
 
 #endif /* __OUTPUT_JSON_DNS_H__ */

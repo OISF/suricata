@@ -141,7 +141,7 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     return;
 }
 
-static void AlertJsonDns(const Flow *f, json_t *js)
+void AlertJsonDns(const Flow *f, json_t *js)
 {
     DNSState *dns_state = (DNSState *)FlowGetAppState(f);
     if (dns_state) {
