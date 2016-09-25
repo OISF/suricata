@@ -50,6 +50,7 @@
 
 #include "output-json.h"
 
+
 #ifdef HAVE_LIBJANSSON
 
 /* we can do query logging as well, but it's disabled for now as the
@@ -573,15 +574,18 @@ static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry)
 void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 {
 
-    if (unlikely(js == NULL))
+    if (unlikely(js == NULL)) {
         return;
+    }
 
-    if (unlikely(tx == NULL))
+    if (unlikely(tx == NULL)) {
         return;
+    }
 
     if (tx->reply_lost) {
        json_object_set_new(js, "info", json_string("reply lost"));
     }
+
 
     if (tx->rcode) {
         if (likely(flags & LOG_QUERIES) != 0) {
@@ -591,17 +595,20 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
             DNSQueryEntry *query = NULL;
             TAILQ_FOREACH(query, &tx->query_list, next) {
 
-               if (! likely(DNSRRTypeEnabled(query->type, flags)))
-	           continue;
+               if (! likely(DNSRRTypeEnabled(query->type, flags))) {
+                   continue;
+               }
 
                json_t *entryjs = FailureJson(tx, query);
-               if (entryjs)
-                   json_array_append(arrjs, entryjs);
+               if (entryjs) {
+                   json_array_append_new(arrjs, entryjs);
+               }
             }
 
             if (json_array_size(arrjs) > 0)
                 json_object_set_new(js, "fail", arrjs);
         }
+
     }
 
    /* if answer */
@@ -624,7 +631,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
               json_t *entryjs = AnswerJson(tx, entry);
               if (entryjs) {
-                  json_array_append(ansarrjs, entryjs);
+                  json_array_append_new(ansarrjs, entryjs);
               }
            }
            if (json_array_size(ansarrjs) > 0)
@@ -646,7 +653,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
            json_t *entryjs = QueryJson(tx, entry);
            if (entryjs) {
-               json_array_append(qarrjs, entryjs);
+               json_array_append_new(qarrjs, entryjs);
            }
        }
 
@@ -656,15 +663,14 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
 }
 
-static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
+static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
 
 /* Outputs to file log the DNS transaction with using configured output style */
-static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) {
-
+static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) {
 
     json_t *tjs = json_object();
     if (unlikely(tjs == NULL)) {
-        return;
+        return tjs;
     }
 
     /* Fill tjs with all parts of DNS transaction */
@@ -672,8 +678,7 @@ static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, js
 
     /* Nothing to write */
     if (json_object_size(tjs) < 1 ) {
-        json_decref(tjs);
-        return;
+        return tjs;
     }
 
     /* Outputs a single event containing request and response */
@@ -685,46 +690,41 @@ static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, js
         /* reset */
         MemBufferReset(buffer);
         OutputJSONBuffer(js, file_ctx, &buffer);
-        json_decref(tjs);
 
-        return;
+
+        return tjs;
     }
 
+    /* Not unified style */
+    if (! tx->replied) {
 
-   /* Not unified style */
-   if (! tx->replied) {
+        /* Queries output part */
+        json_t *queries = json_object_get(tjs, "queries");
 
-   /* Queries output part */
-    json_t *queries = json_object_get(tjs, "queries");
+        if (queries && json_array_size(queries) == 1 ) {
+            json_object_set_new(js, "dns", json_array_get(queries, 0));
 
-    if (queries && json_array_size(queries) == 1 ) {
-        json_object_set_new(js, "dns", json_array_get(queries, 0));
+            /* reset */
+            MemBufferReset(buffer);
+            OutputJSONBuffer(js, file_ctx, &buffer);
+        }
 
-        /* reset */
-        MemBufferReset(buffer);
-        OutputJSONBuffer(js, file_ctx, &buffer);
-
+        return tjs;
     }
-
-       json_decref(tjs);
-       return;
-   }
 
    /* Answers output part */
     json_t *answers = json_object_get(tjs, "answers");
 
     /* No answers to output */
     if (answers == NULL || json_array_size(answers) < 1 ) {
-       json_decref(tjs);
-       return;
+       return tjs;
     }
 
     /* Make a copy of event json for answers base */
     json_t * cloned = json_deep_copy(js);
 
     if (unlikely(cloned == NULL)) {
-       json_decref(tjs);
-       return;
+       return tjs;
     }
 
     /*  split: one event per request, one event per response */
@@ -735,8 +735,7 @@ static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, js
         MemBufferReset(buffer);
         OutputJSONBuffer(cloned, file_ctx, &buffer);
         json_decref(cloned);
-        json_decref(tjs);
-        return;
+        return tjs;
     }
 
     /* # discrete: the classic style of an event per question and answer */
@@ -770,6 +769,8 @@ static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, js
         json_decref(copy);
     }
 
+    return tjs;
+
 }
 
 /* Makes the Json output for an alert */
@@ -799,9 +800,10 @@ static void JsonDnsLogger(LogDnsLogThread *td, DNSTransaction *tx, const Packet 
         if (unlikely(js == NULL))
             return ;
 
-        OutputLogTransactionJSON(td->dnslog_ctx->file_ctx,
+        json_t * tjs = OutputLogTransactionJSON(td->dnslog_ctx->file_ctx,
                 td->buffer, js, tx, td->dnslog_ctx->filter, td->dnslog_ctx->mode);
 
+        json_decref(tjs);
         json_decref(js);
     }
 
@@ -1073,3 +1075,331 @@ void JsonDnsLogRegister (void)
 }
 
 #endif
+
+/************************************Unittests*******************************/
+
+#ifdef UNITTESTS
+#include "threads.h"
+
+#include "flow-util.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+#define JSON_DNS_OUTPUT_UNITTEST_DUMP_ENABLE 0
+
+#define JSON_DNS_OUTPUT_UNITTEST_DUMP(js)           \
+{                                                   \
+  if (JSON_DNS_OUTPUT_UNITTEST_DUMP_ENABLE) {       \
+    printf("\n ---------------- \n");               \
+    json_dumpf(js, stdout, JSON_INDENT(2));         \
+    printf("\n ---------------- \n");               \
+  }                                                 \
+}
+
+
+#define FAIL_IF_STR_DIFFERS(left, right)             \
+{                                                    \
+    const char * l = left;                           \
+    const char * r = right;                          \
+    FAIL_IF(l == NULL);                              \
+    FAIL_IF(r == NULL);                              \
+    int i = strncasecmp(l, r, strlen(l));            \
+    FAIL_IF(i != 0 );                                \
+}
+
+/* google.com */
+static uint8_t bufQuery[] = {
+   0x10, 0x32, 0x01, 0x00, 0x00, 0x01,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,
+   0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,
+   0x00, 0x10, 0x00, 0x01,
+};
+
+/* response google.com */
+static uint8_t bufResponse[] = {
+    0x10, 0x32,                             /* tx id */
+    0x81, 0x80,                             /* flags: resp, recursion desired, recusion available */
+    0x00, 0x01,                             /* 1 query */
+    0x00, 0x01,                             /* 1 answer */
+    0x00, 0x00, 0x00, 0x00,                 /* no auth rr, additional rr */
+    /* query record */
+    0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C,     /* name */
+    0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00,     /* name cont */
+    0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
+    /* answer */
+    0xc0, 0x0c,                             /* ref to name in query above */
+    0x00, 0x01, 0x00, 0x01,                 /* type a, class in */
+    0x00, 0x01, 0x40, 0xef,                 /* ttl */
+    0x00, 0x04,                             /* data len */
+    0x01, 0x02, 0x03, 0x04 };               /* addr */
+
+static DNSState *MakesDNSStateFromRequest(Flow *f, uint8_t *input, uint32_t input_len) {
+
+    /* Create a DNS state */
+    DNSState *dns_state = DNSStateAlloc();
+    FAIL_IF(dns_state == NULL);
+
+    /* Create App Layer Parser State */
+    AppLayerParserState *pstate = AppLayerParserStateAlloc();
+    FAIL_IF(pstate== NULL);
+
+    /* Parses the DNS UDP Request */
+    FAIL_IF ( DNSUDPRequestParse(f, dns_state, pstate, input, input_len, NULL) == -1 );
+
+    AppLayerParserStateFree(pstate);
+
+    return dns_state;
+}
+
+static DNSState *MakesDNSStateFromRequestAndResponse(Flow *f,
+        uint8_t *request, uint32_t request_len, uint8_t *response, uint32_t response_len) {
+
+    /* Create a DNS state */
+    DNSState *dns_state = DNSStateAlloc();
+    FAIL_IF(dns_state == NULL);
+
+    /* Create App Layer Parser State */
+    AppLayerParserState *pstate = AppLayerParserStateAlloc();
+    FAIL_IF(pstate== NULL);
+
+    /* Parses the DNS UDP Request */
+    FAIL_IF ( DNSUDPRequestParse(f, dns_state, pstate, request, request_len, NULL) == -1 );
+    FAIL_IF ( DNSUDPResponseParse(f, dns_state, pstate, response, response_len, NULL) == -1 );
+
+    AppLayerParserStateFree(pstate);
+
+    return dns_state;
+}
+
+/**
+ *  \test Tests the JSON Output for a DNS Query with DNS_DISCRETE style
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int OutputJsonDnsQueryDiscreteTest01 (void)
+{
+
+    /* Create the file context */
+    LogFileCtx *file_ctx = LogFileNewCtx();
+    FAIL_IF(file_ctx == NULL);
+
+    /* Create memory butffer */
+    MemBuffer * buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    FAIL_IF(buffer == NULL);
+
+    /* Create DNS file context */
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    FAIL_IF(dnslog_ctx == NULL);
+
+    /* Configure DNS file context configuration options */
+    dnslog_ctx->mode = DNS_DISCRETE;
+    dnslog_ctx->filter &= LOG_ALL_RRTYPES;
+
+    /* Create a DNS packet for tests */
+    Packet *p = UTHBuildPacketReal(bufQuery, sizeof(bufQuery), IPPROTO_UDP,
+                          "192.168.1.5", "192.168.1.1", 41424, 53);
+    FAIL_IF(p == NULL);
+
+    /* Create flow */
+    Flow f;
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    f.alproto = ALPROTO_DNS;
+
+    /* Create a DNS state from the flow and query */
+    DNSState *dns_state = MakesDNSStateFromRequest(&f, bufQuery, sizeof(bufQuery));
+
+    /* Create a JSON object for output */
+    json_t *js = CreateJSONHeader(p, 0, "dns");
+    FAIL_IF(js == NULL);
+
+    FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(js, "event_type") ));
+
+    /* Outputs JSON */
+    json_t *tjs = OutputLogTransactionJSON(file_ctx, buffer, js, TAILQ_FIRST(&dns_state->tx_list), ALL_FILTERS, DNS_DISCRETE);
+    FAIL_IF(tjs == NULL);
+
+    JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
+
+    /* Check output format */
+    json_t *dns = json_object_get(js, "dns");
+    FAIL_IF (dns == NULL);
+
+    /* Check string values */
+    FAIL_IF_STR_DIFFERS("query",      json_string_value( json_object_get(dns, "type") ));
+    FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(dns, "rrname") ));
+    FAIL_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(dns, "rrtype")));
+
+    /* Free some stuff */
+    json_decref(tjs);
+    json_decref(js);
+    DNSStateFree(dns_state);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    SCFree(dnslog_ctx);
+    MemBufferFree(buffer);
+    LogFileFreeCtx(file_ctx);
+
+    PASS;
+}
+
+/**
+ *  \test Tests the JSON Output for a DNS Response with DNS_UNIFIED style
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int OutputJsonDnsResponseUnifiedTest02 (void)
+{
+
+    /* Create the file context */
+    LogFileCtx *file_ctx = LogFileNewCtx();
+    FAIL_IF(file_ctx == NULL);
+
+    /* Create memory butffer */
+    MemBuffer * buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    FAIL_IF(buffer == NULL);
+
+    /* Create DNS file context */
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    FAIL_IF(dnslog_ctx == NULL);
+
+    /* Configure DNS file context configuration options */
+    dnslog_ctx->mode = DNS_UNIFIED;
+    dnslog_ctx->filter &= LOG_ALL_RRTYPES;
+
+    /* Create a DNS packets for tests */
+    Packet *p1 = NULL, *p2 = NULL;
+    p1 = UTHBuildPacketReal(bufQuery, sizeof(bufQuery), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1", 41424, 53);
+
+    p2 = UTHBuildPacketReal(bufResponse, sizeof(bufResponse), IPPROTO_UDP,
+                           "192.168.1.1", "192.168.1.5", 53, 41424);
+
+    FAIL_IF(p1 == NULL);
+    FAIL_IF(p2 == NULL);
+
+    /* Create flow */
+    Flow f;
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->pcap_cnt = 1;
+
+    p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
+    p2->flowflags |= FLOW_PKT_TOCLIENT;
+    p2->pcap_cnt = 2;
+
+    /* Create a DNS state from the flow and response */
+    DNSState *dns_state =  MakesDNSStateFromRequestAndResponse(&f,
+            bufQuery, sizeof(bufQuery), bufResponse, sizeof(bufResponse));
+
+    /* Create a JSON object for output */
+    json_t *js = CreateJSONHeader(p2, 0, "dns");
+    FAIL_IF(js == NULL);
+
+
+    /* Outputs JSON */
+    json_t *tjs = OutputLogTransactionJSON(file_ctx, buffer, js, TAILQ_FIRST(&dns_state->tx_list), ALL_FILTERS, DNS_UNIFIED);
+
+    FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(js, "event_type") ));
+
+    json_t *dns = json_object_get(js, "dns");
+    FAIL_IF (dns == NULL);
+
+    /* Check queries and answers arrays */
+    json_t *queries = json_object_get(dns, "queries");
+    json_t *answers = json_object_get(dns, "answers");
+
+    FAIL_IF(queries == NULL);
+    FAIL_IF(answers == NULL);
+    FAIL_IF (! json_is_array(queries));
+    FAIL_IF (! json_is_array(answers));
+    FAIL_IF(json_array_size(queries) != 1);
+    FAIL_IF(json_array_size(answers) != 1);
+
+    json_t *query = json_array_get(queries, 0);
+    json_t *answer = json_array_get(answers, 0);
+
+    FAIL_IF(query == NULL);
+    FAIL_IF(answer == NULL);
+
+	JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
+
+/*
+  {
+	"type": "query",
+	"id": 4146,
+	"rrname": "google.com",
+	"rrtype": "TXT",
+	"tx_id": 4146
+  }
+
+*/
+
+    /* Check string values */
+    FAIL_IF_STR_DIFFERS("query",      json_string_value( json_object_get(query, "type") ));
+    FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(query, "rrname") ));
+    FAIL_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(query, "rrtype")));
+
+/*
+ {
+    "rrtype": "A",
+    "type": "answer",
+    "id": 4146,
+    "rrname": "google.com",
+    "rcode": "NOERROR",
+    "ttl": 16623,
+    "rdata": "1.2.3.4"
+  }
+*/
+
+    /* Check string values */
+    FAIL_IF_STR_DIFFERS("answer",     json_string_value( json_object_get(answer, "type") ));
+    FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(answer, "rrname") ));
+    FAIL_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(answer, "rcode") ));
+    FAIL_IF_STR_DIFFERS("A",          json_string_value( json_object_get(answer, "rrtype")));
+    FAIL_IF_STR_DIFFERS("1.2.3.4",    json_string_value( json_object_get(answer, "rdata")));
+    FAIL_IF( 16623 !=                json_integer_value( json_object_get(answer, "ttl")));
+    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(answer, "id")));
+
+    /* Free some stuff */
+    json_decref(tjs);
+    json_decref(js);
+    DNSStateFree(dns_state);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+    SCFree(dnslog_ctx);
+    MemBufferFree(buffer);
+    LogFileFreeCtx(file_ctx);
+
+    PASS;
+}
+
+/**
+ *  \brief   Function to register DNS output JSON Tests
+ */
+void OutputJsonDnsRegisterTests (void)
+{
+    UtRegisterTest("OutputJsonDnsQueryDiscreteTest01 -- Tests discrete query", OutputJsonDnsQueryDiscreteTest01);
+    UtRegisterTest("OutputJsonDnsResponseUnifiedTest02 -- Tests unified response", OutputJsonDnsResponseUnifiedTest02);
+}
+#endif /* UNITTESTS */

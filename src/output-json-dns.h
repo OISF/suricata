@@ -38,4 +38,8 @@ void JsonDnsLogJSON(json_t *js, DNSState *tx);
 void JsonDnsLogJSON(json_t *js, DNSState *tx);
 #endif
 
+#ifdef UNITTESTS
+void OutputJsonDnsRegisterTests (void);
+#endif
+
 #endif /* __OUTPUT_JSON_DNS_H__ */
