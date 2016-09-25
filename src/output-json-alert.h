@@ -32,5 +32,9 @@ void JsonAlertLogRegister(void);
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
 #endif /* HAVE_LIBJANSSON */
 
+#ifdef UNITTESTS
+void AlertJsonDns(const Flow *f, json_t *js);
+#endif /*UNITTESTS */
+
 #endif /* __OUTPUT_JSON_ALERT_H__ */
 

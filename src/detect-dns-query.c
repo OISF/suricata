@@ -254,10 +254,10 @@ static int DetectDnsQueryTest02(void)
     p1 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
                            "192.168.1.5", "192.168.1.1",
                            41424, 53);
-    p2 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
-                           "192.168.1.5", "192.168.1.1",
-                           41424, 53);
-    p3 = UTHBuildPacketReal(buf1, sizeof(buf1), IPPROTO_UDP,
+    p2 = UTHBuildPacketReal(buf2, sizeof(buf2), IPPROTO_UDP,
+                           "192.168.1.1", "192.168.5.1",
+                           53, 41424);
+    p3 = UTHBuildPacketReal(buf3, sizeof(buf3), IPPROTO_UDP,
                            "192.168.1.5", "192.168.1.1",
                            41424, 53);
 

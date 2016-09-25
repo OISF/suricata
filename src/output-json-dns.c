@@ -783,7 +783,7 @@ void JsonDnsLogJSON(json_t * js,  DNSState *dns_state) {
         return;
 
 
-    FillsDNSTransactionJSON(js,dns_state->curr, ALL_FILTERS);
+    FillsDNSTransactionJSON(js, dns_state->curr, ALL_FILTERS);
 
 }
 
@@ -1087,6 +1087,7 @@ void JsonDnsLogRegister (void)
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "output-json-alert.h"
 
 #define JSON_DNS_OUTPUT_UNITTEST_DUMP_ENABLE 0
 
@@ -1108,6 +1109,16 @@ void JsonDnsLogRegister (void)
     FAIL_IF(r == NULL);                              \
     int i = strncasecmp(l, r, strlen(l));            \
     FAIL_IF(i != 0 );                                \
+}
+
+#define JUMP_IF_STR_DIFFERS(left, right, label)      \
+{                                                    \
+    const char * l = left;                           \
+    const char * r = right;                          \
+    FAIL_IF(l == NULL);                              \
+    FAIL_IF(r == NULL);                              \
+    int i = strncasecmp(l, r, strlen(l));            \
+    if (i != 0) goto label;                          \
 }
 
 /* google.com */
@@ -1393,6 +1404,210 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
 
     PASS;
 }
+/**
+ *  \test Tests the JSON Output for a DNS Alert with DNS_UNIFIED style
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
+{
+
+    int result = 0;
+    Flow f;
+    DNSState *dns_state = NULL;
+    Packet *p1 = NULL, *p2 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+
+    p1 = UTHBuildPacketReal(bufQuery, sizeof(bufQuery), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1",
+                           41424, 53);
+    p2 = UTHBuildPacketReal(bufResponse, sizeof(bufResponse), IPPROTO_UDP,
+                           "192.168.1.1", "192.168.5.1",
+                           53, 41424);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+    f.alproto = ALPROTO_DNS;
+
+    p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->pcap_cnt = 1;
+
+    p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
+    p2->flowflags |= FLOW_PKT_TOCLIENT;
+    p2->pcap_cnt = 2;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = DEFAULT_MPM;
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Test dns_query option\"; "
+                              "dns_query; content:\"google.com\"; nocase; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Test dns_query option\"; "
+                              "dns_query; content:\"google.net\"; nocase; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, bufQuery, sizeof(bufQuery));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    dns_state = f.alstate;
+    if (dns_state == NULL) {
+        printf("no dns state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("(p1) sig 1 didn't alert, but it should have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p1, 2)) {
+        printf("(p1) sig 2 did alert, but it should not have: ");
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT, bufResponse, sizeof(bufResponse));
+    if (r != 0) {
+        printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("(p2) sig 1 alerted, but it should not have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p2, 2)) {
+        printf("(p2) sig 2 alerted, but it should not have: ");
+        goto end;
+    }
+
+    json_t *js = CreateJSONHeader((Packet *)p2, 0, "alert");
+    if (unlikely(js == NULL)) {
+        goto end;
+    }
+
+    AlertJsonDns(&f, js);
+
+    JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
+
+    JUMP_IF_STR_DIFFERS("alert",      json_string_value( json_object_get(js, "event_type") ), end);
+
+    json_t *dns = json_object_get(js, "dns");
+    FAIL_IF (dns == NULL);
+
+    /* Check queries and answers arrays */
+    json_t *queries = json_object_get(dns, "queries");
+    json_t *answers = json_object_get(dns, "answers");
+
+    FAIL_IF(queries == NULL);
+    FAIL_IF(answers == NULL);
+    FAIL_IF (! json_is_array(queries));
+    FAIL_IF (! json_is_array(answers));
+    FAIL_IF(json_array_size(queries) != 1);
+    FAIL_IF(json_array_size(answers) != 1);
+
+    json_t *query = json_array_get(queries, 0);
+    json_t *answer = json_array_get(answers, 0);
+
+    FAIL_IF(query == NULL);
+    FAIL_IF(answer == NULL);
+
+	JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
+
+/*
+  {
+	"type": "query",
+	"id": 4146,
+	"rrname": "google.com",
+	"rrtype": "TXT",
+	"tx_id": 4146
+  }
+
+*/
+
+    /* Check string values */
+    JUMP_IF_STR_DIFFERS("query",      json_string_value( json_object_get(query, "type")), end);
+    JUMP_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(query, "rrname")), end);
+    JUMP_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(query, "rrtype")), end);
+
+/*
+ {
+    "rrtype": "A",
+    "type": "answer",
+    "id": 4146,
+    "rrname": "google.com",
+    "rcode": "NOERROR",
+    "ttl": 16623,
+    "rdata": "1.2.3.4"
+  }
+*/
+
+    /* Check string values */
+    JUMP_IF_STR_DIFFERS("answer",     json_string_value( json_object_get(answer, "type")), end);
+    JUMP_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(answer, "rrname")), end);
+    JUMP_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(answer, "rcode")), end);
+    JUMP_IF_STR_DIFFERS("A",          json_string_value( json_object_get(answer, "rrtype")), end);
+    JUMP_IF_STR_DIFFERS("1.2.3.4",    json_string_value( json_object_get(answer, "rdata")), end);
+    FAIL_IF( 16623 !=                json_integer_value( json_object_get(answer, "ttl")));
+    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(answer, "id")));
+
+
+    result = 1;
+
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p1);
+    UTHFreePacket(p2);
+    return result;
+
+}
 
 /**
  *  \brief   Function to register DNS output JSON Tests
@@ -1401,5 +1616,6 @@ void OutputJsonDnsRegisterTests (void)
 {
     UtRegisterTest("OutputJsonDnsQueryDiscreteTest01 -- Tests discrete query", OutputJsonDnsQueryDiscreteTest01);
     UtRegisterTest("OutputJsonDnsResponseUnifiedTest02 -- Tests unified response", OutputJsonDnsResponseUnifiedTest02);
+    UtRegisterTest("OutputJsonDnsResponseUnifiedAlertTest03 -- Tests unified response", OutputJsonDnsResponseUnifiedAlertTest03);
 }
 #endif /* UNITTESTS */
