@@ -239,28 +239,36 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
-        f->todstpktcnt++;
-        f->todstbytecnt += GET_PKT_LEN(p);
         p->flowflags = FLOW_PKT_TOSERVER;
-        if (!(f->flags & FLOW_TO_DST_SEEN)) {
+        if (!f->todstpktcnt) {
             if (FlowUpdateSeenFlag(p)) {
-                f->flags |= FLOW_TO_DST_SEEN;
                 p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+                /* don't start incrementing individual flow counter
+                 * on icmp error */
+                f->todstpktcnt++;
+                f->todstbytecnt += GET_PKT_LEN(p);
             }
+        } else {
+            f->todstpktcnt++;
+            f->todstbytecnt += GET_PKT_LEN(p);
         }
     } else {
-        f->tosrcpktcnt++;
-        f->tosrcbytecnt += GET_PKT_LEN(p);
         p->flowflags = FLOW_PKT_TOCLIENT;
-        if (!(f->flags & FLOW_TO_SRC_SEEN)) {
+        if (!f->tosrcpktcnt) {
             if (FlowUpdateSeenFlag(p)) {
-                f->flags |= FLOW_TO_SRC_SEEN;
                 p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+                /* don't start incrementing individual flow counter
+                 * on icmp error */
+                f->tosrcpktcnt++;
+                f->tosrcbytecnt += GET_PKT_LEN(p);
             }
+        } else {
+            f->tosrcpktcnt++;
+            f->tosrcbytecnt += GET_PKT_LEN(p);
         }
     }
 
-    if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
+    if (f->tosrcpktcnt && f->todstpktcnt) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
