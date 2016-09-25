@@ -661,6 +661,10 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
         else if (state == FLOW_STATE_CLOSED)
             f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+        else if (state == FLOW_STATE_CAPTURE_BYPASSED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
+        else if (state == FLOW_STATE_LOCAL_BYPASSED)
+            f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
 
         f->flow_end_flags |= FLOW_END_FLAG_FORCED;
 
