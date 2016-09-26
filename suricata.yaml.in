@@ -1055,7 +1055,8 @@ vlan:
 # of that flow). The value of "established" is the amount of
 # seconds that the engine will wait to free the flow if it spend that amount
 # without receiving new packets or closing the connection. "closed" is the
-# amount of time to wait after a flow is closed (usually zero).
+# amount of time to wait after a flow is closed (usually zero). "bypassed" is
+# equivalent as "established" for bypassed flows.
 #
 # There's an emergency mode that will become active under attack circumstances,
 # making the engine to check flow status faster. This configuration variables
@@ -1069,26 +1070,34 @@ flow-timeouts:
     new: 30
     established: 300
     closed: 0
+    bypassed: 100
     emergency-new: 10
     emergency-established: 100
     emergency-closed: 0
+    emergency-bypassed: 50
   tcp:
     new: 60
     established: 600
     closed: 60
+    bypassed: 100
     emergency-new: 5
     emergency-established: 100
-    emergency-closed: 10
+    emergency-closed: 10 
+    emergency-bypassed: 50
   udp:
     new: 30
     established: 300
+    bypassed: 100
     emergency-new: 10
     emergency-established: 100
+    emergency-bypassed: 50
   icmp:
     new: 30
     established: 300
+    bypassed: 100
     emergency-new: 10
     emergency-established: 100
+    emergency-bypassed: 50
 
 # Stream engine settings. Here the TCP stream tracking and reassembly
 # engine is configured.

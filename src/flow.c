@@ -498,34 +498,36 @@ void FlowInitFlowProto(void)
 {
     FlowTimeoutsInit();
 
-#define SET_DEFAULTS(p, n, e, c, ne, ee, ce)        \
-    flow_timeouts_normal[(p)].new_timeout = (n);    \
-    flow_timeouts_normal[(p)].est_timeout = (e);    \
-    flow_timeouts_normal[(p)].closed_timeout = (c); \
-    flow_timeouts_emerg[(p)].new_timeout = (ne);    \
-    flow_timeouts_emerg[(p)].est_timeout = (ee);    \
-    flow_timeouts_emerg[(p)].closed_timeout = (ce);
+#define SET_DEFAULTS(p, n, e, c, b, ne, ee, ce, be)     \
+    flow_timeouts_normal[(p)].new_timeout = (n);     \
+    flow_timeouts_normal[(p)].est_timeout = (e);     \
+    flow_timeouts_normal[(p)].closed_timeout = (c);  \
+    flow_timeouts_normal[(p)].bypassed_timeout = (b); \
+    flow_timeouts_emerg[(p)].new_timeout = (ne);     \
+    flow_timeouts_emerg[(p)].est_timeout = (ee);     \
+    flow_timeouts_emerg[(p)].closed_timeout = (ce); \
+    flow_timeouts_emerg[(p)].bypassed_timeout = (be); \
 
     SET_DEFAULTS(FLOW_PROTO_DEFAULT,
                 FLOW_DEFAULT_NEW_TIMEOUT, FLOW_DEFAULT_EST_TIMEOUT,
-                    FLOW_DEFAULT_CLOSED_TIMEOUT,
+                    FLOW_DEFAULT_CLOSED_TIMEOUT, FLOW_DEFAULT_BYPASSED_TIMEOUT,
                 FLOW_DEFAULT_EMERG_NEW_TIMEOUT, FLOW_DEFAULT_EMERG_EST_TIMEOUT,
-                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT);
+                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
     SET_DEFAULTS(FLOW_PROTO_TCP,
                 FLOW_IPPROTO_TCP_NEW_TIMEOUT, FLOW_IPPROTO_TCP_EST_TIMEOUT,
-                    FLOW_DEFAULT_CLOSED_TIMEOUT,
+                    FLOW_DEFAULT_CLOSED_TIMEOUT, FLOW_IPPROTO_TCP_BYPASSED_TIMEOUT,
                 FLOW_IPPROTO_TCP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_TCP_EMERG_EST_TIMEOUT,
-                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT);
+                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
     SET_DEFAULTS(FLOW_PROTO_UDP,
                 FLOW_IPPROTO_UDP_NEW_TIMEOUT, FLOW_IPPROTO_UDP_EST_TIMEOUT,
-                    FLOW_DEFAULT_CLOSED_TIMEOUT,
+                    FLOW_DEFAULT_CLOSED_TIMEOUT, FLOW_IPPROTO_UDP_BYPASSED_TIMEOUT,
                 FLOW_IPPROTO_UDP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_UDP_EMERG_EST_TIMEOUT,
-                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT);
+                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
     SET_DEFAULTS(FLOW_PROTO_ICMP,
                 FLOW_IPPROTO_ICMP_NEW_TIMEOUT, FLOW_IPPROTO_ICMP_EST_TIMEOUT,
-                    FLOW_DEFAULT_CLOSED_TIMEOUT,
+                    FLOW_DEFAULT_CLOSED_TIMEOUT, FLOW_IPPROTO_ICMP_BYPASSED_TIMEOUT,
                 FLOW_IPPROTO_ICMP_EMERG_NEW_TIMEOUT, FLOW_IPPROTO_ICMP_EMERG_EST_TIMEOUT,
-                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT);
+                    FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT, FLOW_DEFAULT_EMERG_BYPASSED_TIMEOUT);
 
     flow_freefuncs[FLOW_PROTO_DEFAULT].Freefunc = NULL;
     flow_freefuncs[FLOW_PROTO_TCP].Freefunc = NULL;
@@ -536,9 +538,11 @@ void FlowInitFlowProto(void)
     const char *new = NULL;
     const char *established = NULL;
     const char *closed = NULL;
+    const char *bypassed = NULL;
     const char *emergency_new = NULL;
     const char *emergency_established = NULL;
     const char *emergency_closed = NULL;
+    const char *emergency_bypassed = NULL;
 
     ConfNode *flow_timeouts = ConfGetNode("flow-timeouts");
     if (flow_timeouts != NULL) {
@@ -551,11 +555,14 @@ void FlowInitFlowProto(void)
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
             closed = ConfNodeLookupChildValue(proto, "closed");
+            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
             emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
                 "emergency-established");
             emergency_closed = ConfNodeLookupChildValue(proto,
                 "emergency-closed");
+            emergency_bypassed = ConfNodeLookupChildValue(proto,
+                "emergency-bypassed");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
@@ -573,6 +580,13 @@ void FlowInitFlowProto(void)
                                         closed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_DEFAULT].closed_timeout = configval;
+            }
+            if (bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(bypassed),
+                                            bypassed) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
@@ -594,6 +608,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_DEFAULT].closed_timeout = configval;
             }
+            if (emergency_bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_bypassed),
+                                            emergency_bypassed) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_DEFAULT].bypassed_timeout = configval;
+            }
         }
 
         /* TCP. */
@@ -602,11 +623,14 @@ void FlowInitFlowProto(void)
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
             closed = ConfNodeLookupChildValue(proto, "closed");
+            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
             emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
                 "emergency-established");
             emergency_closed = ConfNodeLookupChildValue(proto,
                 "emergency-closed");
+            emergency_bypassed = ConfNodeLookupChildValue(proto,
+                "emergency-bypassed");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
@@ -624,6 +648,13 @@ void FlowInitFlowProto(void)
                                         closed) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_TCP].closed_timeout = configval;
+            }
+            if (bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(bypassed),
+                                            bypassed) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_TCP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
@@ -645,6 +676,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_TCP].closed_timeout = configval;
             }
+            if (emergency_bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_bypassed),
+                                            emergency_bypassed) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_TCP].bypassed_timeout = configval;
+            }
         }
 
         /* UDP. */
@@ -652,9 +690,13 @@ void FlowInitFlowProto(void)
         if (proto != NULL) {
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
+            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
             emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
                 "emergency-established");
+            emergency_bypassed = ConfNodeLookupChildValue(proto,
+                "emergency-bypassed");
+
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
 
@@ -665,6 +707,13 @@ void FlowInitFlowProto(void)
                                         established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_UDP].est_timeout = configval;
+            }
+            if (bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(bypassed),
+                                            bypassed) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_UDP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
@@ -679,6 +728,13 @@ void FlowInitFlowProto(void)
 
                 flow_timeouts_emerg[FLOW_PROTO_UDP].est_timeout = configval;
             }
+            if (emergency_bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_bypassed),
+                                            emergency_bypassed) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
+            }
         }
 
         /* ICMP. */
@@ -686,9 +742,12 @@ void FlowInitFlowProto(void)
         if (proto != NULL) {
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
+            bypassed = ConfNodeLookupChildValue(proto, "bypassed");
             emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
                 "emergency-established");
+            emergency_bypassed = ConfNodeLookupChildValue(proto,
+                "emergency-bypassed");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
@@ -700,6 +759,13 @@ void FlowInitFlowProto(void)
                                         established) > 0) {
 
                 flow_timeouts_normal[FLOW_PROTO_ICMP].est_timeout = configval;
+            }
+            if (bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(bypassed),
+                                            bypassed) > 0) {
+
+                flow_timeouts_normal[FLOW_PROTO_ICMP].bypassed_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
@@ -713,6 +779,13 @@ void FlowInitFlowProto(void)
                                         emergency_established) > 0) {
 
                 flow_timeouts_emerg[FLOW_PROTO_ICMP].est_timeout = configval;
+            }
+            if (emergency_bypassed != NULL &&
+                    ByteExtractStringUint32(&configval, 10,
+                                            strlen(emergency_bypassed),
+                                            emergency_bypassed) > 0) {
+
+                flow_timeouts_emerg[FLOW_PROTO_UDP].bypassed_timeout = configval;
             }
         }
     }
