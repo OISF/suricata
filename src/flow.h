@@ -434,6 +434,7 @@ typedef struct FlowProtoTimeout_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t closed_timeout;
+    uint32_t bypassed_timeout;
 } FlowProtoTimeout;
 
 typedef struct FlowProtoFreeFunc_ {
