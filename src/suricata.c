@@ -119,6 +119,7 @@
 #include "app-layer-dns-tcp.h"
 #include "app-layer-ssh.h"
 #include "app-layer-ftp.h"
+#include "app-layer-pop3.h"
 #include "app-layer-smtp.h"
 #include "app-layer-smb.h"
 #include "app-layer-modbus.h"
@@ -1152,6 +1153,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-ssh", required_argument, 0 , 0},
         {"afl-ftp-request", required_argument, 0 , 0},
         {"afl-ftp", required_argument, 0 , 0},
+        {"afl-pop3-request", required_argument, 0 , 0},
+        {"afl-pop3", required_argument, 0 , 0},
         {"afl-smtp-request", required_argument, 0 , 0},
         {"afl-smtp", required_argument, 0 , 0},
         {"afl-smb-request", required_argument, 0 , 0},
@@ -1384,7 +1387,22 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerParserSetup();
                 RegisterFTPParsers();
                 exit(AppLayerParserFromFile(ALPROTO_FTP, optarg));
-
+            } else if(strcmp((long_opts[option_index]).name, "afl-pop3-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                AppLayerParserSetup();
+                RegisterPOP3Parsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_POP3, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-pop3") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                AppLayerParserSetup();
+                RegisterPOP3Parsers();
+                exit(AppLayerParserFromFile(ALPROTO_POP3, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
