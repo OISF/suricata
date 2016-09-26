@@ -42,6 +42,8 @@
 
 #include "util-validate.h"
 
+#include "flow-util.h"
+
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
 typedef struct FlowWorkerThreadData_ {
@@ -66,6 +68,13 @@ typedef struct FlowWorkerThreadData_ {
  */
 static inline void FlowUpdate(Packet *p)
 {
+
+    int state = SC_ATOMIC_GET(p->flow->flow_state);
+
+    if (state != FLOW_STATE_CAPTURE_BYPASSED) {
+        /* update the last seen timestamp of this flow */
+        COPY_TIMESTAMP(&p->ts,&p->flow->lastts);
+    }
     FlowHandlePacketUpdate(p->flow, p);
 }
 
