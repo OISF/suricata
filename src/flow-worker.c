@@ -97,6 +97,8 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
     if (OutputLoggerThreadInit(tv, initdata, &fw->output_thread) != TM_ECODE_OK) {
         return TM_ECODE_FAILED;
     }
+ 
+    AppLayerRegisterThreadCounters(tv);
 
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueue));
