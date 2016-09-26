@@ -42,6 +42,8 @@
 
 #include "util-validate.h"
 
+#include "flow-util.h"
+
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
 typedef struct FlowWorkerThreadData_ {
