@@ -67,8 +67,6 @@
 
 #include "output-flow.h"
 
-#define FLOW_BYPASSED_TIMEOUT   5
-
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
