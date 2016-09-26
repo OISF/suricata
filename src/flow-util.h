@@ -136,6 +136,8 @@
 #define FLOW_CHECK_MEMCAP(size) \
     ((((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)(size)) <= flow_config.memcap))
 
+#define FLOW_BYPASSED_TIMEOUT 6
+
 Flow *FlowAlloc(void);
 Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);
