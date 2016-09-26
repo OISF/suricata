@@ -204,7 +204,6 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
             timeout = flow_timeouts[f->protomap].new_timeout;
             break;
         case FLOW_STATE_ESTABLISHED:
-        case FLOW_STATE_LOCAL_BYPASSED:
             timeout = flow_timeouts[f->protomap].est_timeout;
             break;
         case FLOW_STATE_CLOSED:
@@ -212,6 +211,9 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
             break;
         case FLOW_STATE_CAPTURE_BYPASSED:
             timeout = FLOW_BYPASSED_TIMEOUT;
+            break;
+        case FLOW_STATE_LOCAL_BYPASSED:
+            timeout = flow_timeouts[f->protomap].bypassed_timeout;
             break;
     }
     return timeout;
