@@ -66,9 +66,18 @@ typedef struct FlowWorkerThreadData_ {
  *
  *  Handle flow creation/lookup
  */
-static inline void FlowUpdate(Packet *p)
+static inline TmEcode FlowUpdate(Packet *p)
 {
     FlowHandlePacketUpdate(p->flow, p);
+
+    int state = SC_ATOMIC_GET(p->flow->flow_state);
+    switch (state) {
+        case FLOW_STATE_CAPTURE_BYPASSED:
+        case FLOW_STATE_LOCAL_BYPASSED:
+            return TM_ECODE_DONE;
+        default:
+            return TM_ECODE_OK;
+    }
 }
 
 static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
@@ -157,7 +166,10 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         FlowHandlePacket(tv, fw->dtv, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-            FlowUpdate(p);
+            if (FlowUpdate(p) == TM_ECODE_DONE) {
+                FLOWLOCK_UNLOCK(p->flow);
+                return TM_ECODE_OK;
+            }
         }
         /* Flow is now LOCKED */
 
