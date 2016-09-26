@@ -74,6 +74,12 @@ static inline void FlowUpdate(Packet *p)
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&p->flow->lastts);
+    } else {
+        /* still seeing packet, we downgrade to local bypass */
+        if (p->ts.tv_sec - p->flow->lastts.tv_sec > FLOW_TIMEOUT / 2) {
+            COPY_TIMESTAMP(&p->ts,&p->flow->lastts);
+            FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
+        }
     }
     FlowHandlePacketUpdate(p->flow, p);
 }
