@@ -373,7 +373,10 @@ static int DetectEngineSMTPFiledataTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, mimemsg, mimemsg_len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
+                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                                mimemsg,
+                                mimemsg_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         FLOWLOCK_UNLOCK(&f);
@@ -506,13 +509,15 @@ static int DetectEngineSMTPFiledataTest03(void)
 
     FLOWLOCK_WRLOCK(&f);
     int r = 0;
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg1, mimemsg1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
+                            STREAM_TOSERVER, mimemsg1, mimemsg1_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg2, mimemsg2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
+                            STREAM_TOSERVER, mimemsg2, mimemsg2_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         FLOWLOCK_UNLOCK(&f);

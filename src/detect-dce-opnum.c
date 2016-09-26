@@ -1161,8 +1161,9 @@ static int DetectDceOpnumTestParse08(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
-                            dcerpc_bind, dcerpc_bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, dcerpc_bind,
+                            dcerpc_bind_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         FLOWLOCK_UNLOCK(&f);
@@ -1177,8 +1178,9 @@ static int DetectDceOpnumTestParse08(void)
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            dcerpc_bindack, dcerpc_bindack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, dcerpc_bindack,
+                            dcerpc_bindack_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         FLOWLOCK_UNLOCK(&f);
@@ -1187,8 +1189,9 @@ static int DetectDceOpnumTestParse08(void)
     FLOWLOCK_UNLOCK(&f);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_EOF,
-                            dcerpc_request, dcerpc_request_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_EOF, dcerpc_request,
+                            dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         FLOWLOCK_UNLOCK(&f);
@@ -1700,8 +1703,9 @@ static int DetectDceOpnumTestParse09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
-                            dcerpc_request, dcerpc_request_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, dcerpc_request,
+                            dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         FLOWLOCK_UNLOCK(&f);

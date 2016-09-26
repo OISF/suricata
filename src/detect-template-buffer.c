@@ -127,8 +127,8 @@ static int DetectTemplateBufferTest(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    AppLayerParserParse(alp_tctx, &f, ALPROTO_TEMPLATE, STREAM_TOSERVER,
-        request, sizeof(request));
+    AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE,
+                        STREAM_TOSERVER, request, sizeof(request));
     FLOWLOCK_UNLOCK(&f);
 
     /* Check that we have app-layer state. */

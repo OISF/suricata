@@ -109,6 +109,11 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
  */
 void AppLayerDestroyCtxThread(AppLayerThreadCtx *tctx);
 
+/**
+ * \brief Registers per flow counters for all protocols
+ *
+ */
+void AppLayerRegisterThreadCounters(ThreadVars *tv);
 
 /***** Profiling *****/
 
@@ -137,5 +142,7 @@ void AppLayerRegisterGlobalCounters(void);
 #ifdef UNITTESTS
 void AppLayerUnittestsRegister(void);
 #endif
+
+void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step);
 
 #endif

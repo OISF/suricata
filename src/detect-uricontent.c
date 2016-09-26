@@ -219,8 +219,10 @@ static int HTTPUriTest01(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                            STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                            httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -287,8 +289,10 @@ static int HTTPUriTest02(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                            STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                            httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -357,8 +361,10 @@ static int HTTPUriTest03(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                            STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                            httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -428,8 +434,10 @@ static int HTTPUriTest04(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                            STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                            httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
         goto end;
@@ -586,7 +594,8 @@ static int DetectUriSigTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -701,7 +710,8 @@ static int DetectUriSigTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -725,7 +735,8 @@ static int DetectUriSigTest03(void)
 
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
     FLOWLOCK_UNLOCK(&f);
@@ -1053,7 +1064,8 @@ static int DetectUriSigTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1193,7 +1205,8 @@ static int DetectUriSigTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1315,7 +1328,8 @@ static int DetectUriSigTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
