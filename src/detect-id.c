@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-id.h"
 #include "flow.h"
@@ -54,6 +55,9 @@ static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
+static int PrefilterSetupId(SigGroupHead *sgh);
+static _Bool PrefilterIdIsPrefilterable(const Signature *s);
+
 /**
  * \brief Registration function for keyword: id
  */
@@ -66,6 +70,9 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
     sigmatch_table[DETECT_ID].Free  = DetectIdFree;
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
+
+    sigmatch_table[DETECT_ID].SupportsPrefilter = PrefilterIdIsPrefilterable;
+    sigmatch_table[DETECT_ID].SetupPrefilter = PrefilterSetupId;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
@@ -227,6 +234,63 @@ void DetectIdFree(void *ptr)
 {
     DetectIdData *id_d = (DetectIdData *)ptr;
     SCFree(id_d);
+}
+
+/* prefilter code */
+
+static void
+PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {
+        return;
+    }
+
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
+    if (IPV4_GET_IPID(p) == ctx->v1.u16[0])
+    {
+        SCLogDebug("packet matches IP id %u", ctx->v1.u16[0]);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketIdSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectIdData *a = smctx;
+    v->u16[0] = a->id;
+}
+
+static _Bool
+PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectIdData *a = smctx;
+    if (v.u16[0] == a->id)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupId(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_ID,
+        PrefilterPacketIdSet,
+        PrefilterPacketIdCompare,
+        PrefilterPacketIdMatch);
+}
+
+static _Bool PrefilterIdIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ID:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

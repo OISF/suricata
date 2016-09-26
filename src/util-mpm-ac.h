@@ -188,7 +188,7 @@ int MpmCudaBufferDeSetup(void);
 void SCACCudaStartDispatcher(void);
 void SCACCudaKillDispatcher(void);
 uint32_t  SCACCudaPacketResultsProcessing(Packet *p, const MpmCtx *mpm_ctx,
-                                          PatternMatcherQueue *pmq);
+                                          PrefilterRuleStore *pmq);
 void DetermineCudaStateTableSize(DetectEngineCtx *de_ctx);
 
 void CudaReleasePacket(Packet *p);

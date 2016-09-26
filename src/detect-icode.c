@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -29,6 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-icode.h"
 
@@ -50,6 +51,8 @@ static int DetectICodeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
 
+static int PrefilterSetupICode(SigGroupHead *sgh);
+static _Bool PrefilterICodeIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for icode: keyword
@@ -64,7 +67,41 @@ void DetectICodeRegister (void)
     sigmatch_table[DETECT_ICODE].Free = DetectICodeFree;
     sigmatch_table[DETECT_ICODE].RegisterTests = DetectICodeRegisterTests;
 
+    sigmatch_table[DETECT_ICODE].SupportsPrefilter = PrefilterICodeIsPrefilterable;
+    sigmatch_table[DETECT_ICODE].SetupPrefilter = PrefilterSetupICode;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+#define DETECT_ICODE_EQ   PREFILTER_U8HASH_MODE_EQ   /**< "equal" operator */
+#define DETECT_ICODE_LT   PREFILTER_U8HASH_MODE_LT   /**< "less than" operator */
+#define DETECT_ICODE_GT   PREFILTER_U8HASH_MODE_GT   /**< "greater than" operator */
+#define DETECT_ICODE_RN   PREFILTER_U8HASH_MODE_RA   /**< "range" operator */
+
+typedef struct DetectICodeData_ {
+    uint8_t code1;
+    uint8_t code2;
+
+    uint8_t mode;
+} DetectICodeData;
+
+static inline int ICodeMatch(const uint8_t pcode, const uint8_t mode,
+                             const uint8_t dcode1, const uint8_t dcode2)
+{
+    switch (mode) {
+        case DETECT_ICODE_EQ:
+            return (pcode == dcode1) ? 1 : 0;
+
+        case DETECT_ICODE_LT:
+            return (pcode < dcode1) ? 1 : 0;
+
+        case DETECT_ICODE_GT:
+            return (pcode > dcode1) ? 1 : 0;
+
+        case DETECT_ICODE_RN:
+            return (pcode > dcode1 && pcode < dcode2) ? 1 : 0;
+    }
+    return 0;
 }
 
 /**
@@ -80,38 +117,21 @@ void DetectICodeRegister (void)
  */
 int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    uint8_t picode;
-    const DetectICodeData *icd = (const DetectICodeData *)ctx;
-
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    uint8_t picode;
     if (PKT_IS_ICMPV4(p)) {
         picode = ICMPV4_GET_CODE(p);
     } else if (PKT_IS_ICMPV6(p)) {
         picode = ICMPV6_GET_CODE(p);
     } else {
         /* Packet not ICMPv4 nor ICMPv6 */
-        return ret;
+        return 0;
     }
 
-    switch(icd->mode) {
-        case DETECT_ICODE_EQ:
-            ret = (picode == icd->code1) ? 1 : 0;
-            break;
-        case DETECT_ICODE_LT:
-            ret = (picode < icd->code1) ? 1 : 0;
-            break;
-        case DETECT_ICODE_GT:
-            ret = (picode > icd->code1) ? 1 : 0;
-            break;
-        case DETECT_ICODE_RN:
-            ret = (picode >= icd->code1 && picode <= icd->code2) ? 1 : 0;
-            break;
-    }
-
-    return ret;
+    const DetectICodeData *icd = (const DetectICodeData *)ctx;
+    return ICodeMatch(picode, icd->mode, icd->code1, icd->code2);
 }
 
 /**
@@ -261,6 +281,72 @@ void DetectICodeFree(void *ptr)
 {
     DetectICodeData *icd = (DetectICodeData *)ptr;
     SCFree(icd);
+}
+
+/* prefilter code */
+
+static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
+{
+    if (PKT_IS_PSEUDOPKT(p)) {
+        SCReturn;
+    }
+
+    uint8_t picode;
+    if (PKT_IS_ICMPV4(p)) {
+        picode = ICMPV4_GET_CODE(p);
+    } else if (PKT_IS_ICMPV6(p)) {
+        picode = ICMPV6_GET_CODE(p);
+    } else {
+        /* Packet not ICMPv4 nor ICMPv6 */
+        return;
+    }
+
+    const PrefilterPacketU8HashCtx *h = pectx;
+    const SigsArray *sa = h->array[picode];
+    if (sa) {
+        PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
+    }
+}
+
+static void
+PrefilterPacketICodeSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectICodeData *a = smctx;
+    v->u8[0] = a->mode;
+    v->u8[1] = a->code1;
+    v->u8[2] = a->code2;
+}
+
+static _Bool
+PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectICodeData *a = smctx;
+    if (v.u8[0] == a->mode &&
+        v.u8[1] == a->code1 &&
+        v.u8[2] == a->code2)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupICode(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ICODE,
+            PrefilterPacketICodeSet,
+            PrefilterPacketICodeCompare,
+            PrefilterPacketICodeMatch);
+}
+
+static _Bool PrefilterICodeIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ICODE:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS

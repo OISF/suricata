@@ -27,7 +27,5 @@
 #include "app-layer-dns-common.h"
 
 void DetectDnsQueryRegister (void);
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  DNSState *dns_state, uint8_t flags, void *txv, uint64_t tx_id);
 
 #endif /* __DETECT_DNS_QUERY_H__ */

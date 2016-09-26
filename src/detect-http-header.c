@@ -57,6 +57,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-header.h"
+#include "detect-engine-hhd.h"
 #include "stream-tcp.h"
 
 int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
@@ -79,6 +80,20 @@ void DetectHttpHeaderRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
+
+    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHDMATCH, 2,
+            PrefilterTxHttpRequestHeadersRegister);
+    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HHDMATCH, 2,
+            PrefilterTxHttpResponseHeadersRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHDMATCH,
+            DetectEngineInspectHttpHeader);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HHDMATCH,
+            DetectEngineInspectHttpHeader);
 
     return;
 }

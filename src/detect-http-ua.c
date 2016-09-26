@@ -57,6 +57,7 @@
 #include "app-layer-htp.h"
 #include "stream-tcp.h"
 #include "detect-http-ua.h"
+#include "detect-engine-hua.h"
 
 int DetectHttpUASetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpUARegisterTests(void);
@@ -78,6 +79,14 @@ void DetectHttpUARegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_PAYLOAD ;
+
+    DetectMpmAppLayerRegister("http_user_agent", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HUADMATCH, 2,
+            PrefilterTxUARegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HUADMATCH,
+            DetectEngineInspectHttpUA);
 
     return;
 }

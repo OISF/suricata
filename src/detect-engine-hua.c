@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * \brief Handle HTTP user agent match
  *
@@ -40,6 +41,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -59,55 +61,49 @@
 #include "detect-engine-hua.h"
 #include "util-validate.h"
 
-/**
- * \brief Http user agent match -- searches for one pattern per signature.
+/** \brief HTTP UA Mpm prefilter callback
  *
- * \param det_ctx    Detection engine thread ctx.
- * \param ua         User-Agent to inspect.
- * \param ua_len     User-Agent buffer length.
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *ua, const uint32_t ua_len,
-        const uint8_t flags)
+static void PrefilterTxUA(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
-
-    if (ua_len >= det_ctx->sgh->mpm_huad_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, ua, ua_len);
-    }
-
-    SCReturnUInt(ret);
-}
-
-int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *txv, uint64_t idx)
-{
-    uint32_t cnt = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     htp_tx_t *tx = (htp_tx_t *)txv;
+
     if (tx->request_headers == NULL)
-        goto end;
+        return;
 
     htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
                                                       "User-Agent");
-    if (h == NULL) {
-        SCLogDebug("HTTP user agent header not present in this request");
-        goto end;
+    if (h == NULL || h->value == NULL) {
+        SCLogDebug("HTTP UA header not present in this request");
+        return;
     }
-    cnt = HttpUAPatternSearch(det_ctx,
-                              (const uint8_t *)bstr_ptr(h->value),
-                              bstr_len(h->value), flags);
- end:
-    return cnt;
+
+    const uint32_t buffer_len = bstr_len(h->value);
+    const uint8_t *buffer = bstr_ptr(h->value);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxUA,
+        ALPROTO_HTTP, HTP_REQUEST_HEADERS,
+        mpm_ctx, NULL, "http_user_agent");
 }
 
 /**
@@ -146,7 +142,7 @@ int DetectEngineInspectHttpUA(ThreadVars *tv,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HUAD, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 

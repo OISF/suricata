@@ -154,7 +154,7 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
 
 typedef struct SMTPThreadCtx_ {
     MpmThreadCtx *smtp_mpm_thread_ctx;
-    PatternMatcherQueue *pmq;
+    PrefilterRuleStore *pmq;
 } SMTPThreadCtx;
 
 #define SMTP_MPM DEFAULT_MPM

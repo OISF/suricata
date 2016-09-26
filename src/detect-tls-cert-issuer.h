@@ -27,7 +27,5 @@
 #include "app-layer-ssl.h"
 
 void DetectTlsIssuerRegister(void);
-uint32_t DetectTlsIssuerInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   SSLState *ssl_state, uint8_t flags);
 
 #endif /* __DETECT_TLS_ISSUER_H__ */

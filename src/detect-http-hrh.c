@@ -57,6 +57,7 @@
 #include "app-layer-htp.h"
 #include "stream-tcp.h"
 #include "detect-http-hrh.h"
+#include "detect-engine-hrhhd.h"
 
 int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpHRHRegisterTests(void);
@@ -77,6 +78,14 @@ void DetectHttpHRHRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].flags |= SIGMATCH_PAYLOAD ;
+
+    DetectMpmAppLayerRegister("http_raw_host", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHHDMATCH, 2,
+            PrefilterTxHostnameRawRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHHDMATCH,
+            DetectEngineInspectHttpHRH);
 
     return;
 }

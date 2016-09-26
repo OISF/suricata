@@ -24,7 +24,9 @@
 #ifndef __DETECT_ENGINE_URICONTENT_H__
 #define __DETECT_ENGINE_URICONTENT_H__
 
-int DetectEngineInspectPacketUris(ThreadVars *tv,
+int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
+int DetectEngineInspectHttpUri(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,

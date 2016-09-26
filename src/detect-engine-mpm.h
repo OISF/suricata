@@ -40,9 +40,6 @@ void DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
 uint32_t PatternStrength(uint8_t *, uint16_t);
 
 uint16_t PatternMatchDefaultMatcher(void);
-uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *, Packet *);
-uint32_t PacketPatternSearch(DetectEngineThreadCtx *, Packet *);
-uint32_t StreamPatternSearch(DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
@@ -82,6 +79,19 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum
  * \retval -1 On failure.
  */
 int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
+
+/** \brief register an app layer keyword for mpm
+ *  \param name keyword name
+ *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
+ *  \param sm_list list that contains the keyword's sigmatches
+ *  \param PrefilterRegister Prefilter api registration function
+ *
+ *  \note direction must be set to either toserver or toclient.
+ *        If both are needed, register the keyword twice.
+ */
+void DetectMpmAppLayerRegister(const char *name,
+        int direction, int sm_list, int priority,
+        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

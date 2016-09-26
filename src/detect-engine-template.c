@@ -47,13 +47,13 @@ int DetectEngineInspectTemplateBuffer(ThreadVars *tv, DetectEngineCtx *de_ctx,
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s,
             s->sm_lists[DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH], f,
             tx->request_buffer, tx->request_buffer_len, 0,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_TEMPLATE_BUFFER, NULL);
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
     else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s,
             s->sm_lists[DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH], f,
             tx->response_buffer, tx->response_buffer_len, 0,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_TEMPLATE_BUFFER, NULL);
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
 
     SCLogNotice("Returning %d.", ret);

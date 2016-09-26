@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * \brief Handle HTTP host header.
  *        HHHD - Http Host Header Data
@@ -41,6 +42,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -60,53 +62,43 @@
 #include "detect-engine-hhhd.h"
 #include "util-validate.h"
 
-/**
- * \brief Http host header match -- searches for one pattern per signature.
+/** \brief HTTP Host Mpm prefilter callback
  *
- * \param det_ctx    Detection engine thread ctx.
- * \param hh     Host header to inspect.
- * \param hh_len Host header buffer length.
- * \param flags  Flags
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *hh, const uint32_t hh_len,
-        const uint8_t flags)
+static void PrefilterTxHostname(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
+    if (tx->request_hostname == NULL)
+        return;
 
-    if (hh_len >= det_ctx->sgh->mpm_hhhd_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, hh, hh_len);
+    const uint32_t buffer_len = bstr_len(tx->request_hostname);
+    const uint8_t *buffer = bstr_ptr(tx->request_hostname);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
-
-    SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *txv, uint64_t idx)
+int PrefilterTxHostnameRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    uint32_t cnt = 0;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->request_hostname == NULL)
-        goto end;
-    const uint8_t *hname = (const uint8_t *)bstr_ptr(tx->request_hostname);
-    if (hname == NULL)
-        goto end;
-    const uint32_t hname_len = bstr_len(tx->request_hostname);
+    SCEnter();
 
-    cnt = HttpHHPatternSearch(det_ctx, hname, hname_len, flags);
-
- end:
-    return cnt;
+    return PrefilterAppendTxEngine(sgh, PrefilterTxHostname,
+        ALPROTO_HTTP, HTP_REQUEST_HEADERS,
+        mpm_ctx, NULL, "http_host");
 }
 
 /**
@@ -144,7 +136,7 @@ int DetectEngineInspectHttpHH(ThreadVars *tv,
                                           f,
                                           hname, hname_len,
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HHHD, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 

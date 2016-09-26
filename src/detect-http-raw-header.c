@@ -57,6 +57,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-raw-header.h"
+#include "detect-engine-hrhd.h"
 #include "stream-tcp.h"
 
 int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, char *);
@@ -78,6 +79,19 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_PAYLOAD;
 
+    DetectMpmAppLayerRegister("http_raw_header", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHDMATCH, 2,
+            PrefilterTxRequestHeadersRawRegister);
+    DetectMpmAppLayerRegister("http_raw_header", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HRHDMATCH, 2,
+            PrefilterTxResponseHeadersRawRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHDMATCH,
+            DetectEngineInspectHttpRawHeader);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HRHDMATCH,
+            DetectEngineInspectHttpRawHeader);
     return;
 }
 

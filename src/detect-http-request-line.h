@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,20 +15,15 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ * \file
  *
- *  \author Victor Julien <victor@inliniac.net>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_HRL_H__
-#define __DETECT_ENGINE_HRL_H__
+#ifndef __DETECT_HTTP_REQUEST_LINE_H__
+#define __DETECT_HTTP_REQUEST_LINE_H__
 
-int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *tx, uint64_t tx_id);
-void HttpRequestLineRegisterTests(void);
+void DetectHttpRequestLineRegister(void);
 
-#endif /* __DETECT_ENGINE_HRL_H__ */
+#endif /* __DETECT_HTTP_REQUEST_LINE_H__ */

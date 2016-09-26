@@ -2336,8 +2336,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     AppLayerHtpNeedFileInspection();
 
-    DetectEngineRegisterAppInspectionEngines();
-
     StorageFinalize();
 
     TmModuleRunInit();
@@ -2399,7 +2397,6 @@ int main(int argc, char **argv)
     /* By default use IDS mode, but if nfq or ipfw
      * are specified, IPS mode will overwrite this */
     EngineModeSetIDS();
-
 
 #ifdef OS_WIN32
     /* service initialization */

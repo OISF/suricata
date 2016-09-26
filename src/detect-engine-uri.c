@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -49,67 +50,43 @@
 #include "app-layer-protos.h"
 #include "util-validate.h"
 
-/** \brief Uri Pattern match -- searches for one pattern per signature.
+/** \brief HTTP URI Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
  *  \param p packet to inspect
- *
- *  \retval ret number of matches
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *uri, const uint16_t uri_len,
-        const uint8_t flags)
+static void PrefilterTxUri(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
-
-    if (uri_len >= det_ctx->sgh->mpm_uri_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_uri_ctx_ts,
-                    &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
-    }
-
-    //PrintRawDataFp(stdout, uri, uri_len);
-
-    SCReturnUInt(ret);
-}
-
-/**
- *  \brief Run the pattern matcher against the uri(s)
- *
- *  We run against _all_ uri(s) we have as the pattern matcher will
- *  flag each sig that has a match. We need to do this for all uri(s)
- *  to not miss possible events.
- *
- *  \param f locked flow
- *  \param htp_state initialized htp state
- *
- *  \warning Make sure the flow/state is locked
- *  \todo what should we return? Just the fact that we matched?
- */
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags,
-                                    void *txv, uint64_t idx)
-{
-    SCEnter();
-
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    uint32_t cnt = 0;
 
     if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL)
-        goto end;
-    cnt = UriPatternSearch(det_ctx, (const uint8_t *)
-                           bstr_ptr(tx_ud->request_uri_normalized),
-                           bstr_len(tx_ud->request_uri_normalized),
-                           flags);
+        return;
 
-end:
-    SCReturnUInt(cnt);
+    const uint32_t uri_len = bstr_len(tx_ud->request_uri_normalized);
+    const uint8_t *uri = bstr_ptr(tx_ud->request_uri_normalized);
+
+    if (uri_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
+    }
+}
+
+int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxUri,
+        ALPROTO_HTTP, HTP_REQUEST_LINE,
+        mpm_ctx, NULL, "http_uri");
 }
 
 /**
@@ -127,7 +104,7 @@ end:
  * \retval 1 match.
  * \retval 2 Sig can't match.
  */
-int DetectEngineInspectPacketUris(ThreadVars *tv,
+int DetectEngineInspectHttpUri(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
@@ -159,7 +136,7 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
