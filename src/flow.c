@@ -228,6 +228,13 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts, &f->lastts);
+    } else {
+        /* still seeing packet, we downgrade to local bypass */
+        if (p->ts.tv_sec - f->lastts.tv_sec > FLOW_BYPASSED_TIMEOUT / 2) {
+            SCLogDebug("Downgrading flow to local bypass");
+            COPY_TIMESTAMP(&p->ts, &f->lastts);
+            FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
+        }
     }
 
     /* update flags and counters */
