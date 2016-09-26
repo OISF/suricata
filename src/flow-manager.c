@@ -67,6 +67,8 @@
 
 #include "output-flow.h"
 
+#define FLOW_TIMEOUT    5
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -108,6 +110,7 @@ typedef struct FlowTimeoutCounters_ {
     uint32_t new;
     uint32_t est;
     uint32_t clo;
+    uint32_t byp;
     uint32_t tcp_reuse;
 
     uint32_t flows_checked;
@@ -208,6 +211,9 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
         case FLOW_STATE_CLOSED:
             timeout = flow_timeouts[f->protomap].closed_timeout;
             break;
+        case FLOW_STATE_BYPASSED:
+            timeout = FLOW_TIMEOUT;
+            break;
     }
     return timeout;
 }
@@ -258,6 +264,15 @@ static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
     }
 
     int server = 0, client = 0;
+
+    int state = SC_ATOMIC_GET(f->flow_state);
+    if (state == FLOW_STATE_BYPASSED)  {
+        if (FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
+            FlowForceReassemblyForFlow(f, server, client);
+        }
+        return 1;
+    }
+
     if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
             FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
         FlowForceReassemblyForFlow(f, server, client);
@@ -343,6 +358,8 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
                 f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
             else if (state == FLOW_STATE_CLOSED)
                 f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+            else if (state == FLOW_STATE_BYPASSED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
 
             if (emergency)
                 f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
@@ -369,6 +386,9 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
                     break;
                 case FLOW_STATE_CLOSED:
                     counters->clo++;
+                    break;
+                case FLOW_STATE_BYPASSED:
+                    counters->byp++;
                     break;
             }
             counters->flows_removed++;
@@ -545,6 +565,7 @@ typedef struct FlowManagerThreadData_ {
     uint16_t flow_mgr_cnt_clo;
     uint16_t flow_mgr_cnt_new;
     uint16_t flow_mgr_cnt_est;
+    uint16_t flow_mgr_cnt_byp;
     uint16_t flow_mgr_spare;
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
@@ -595,6 +616,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     ftd->flow_mgr_cnt_clo = StatsRegisterCounter("flow_mgr.closed_pruned", t);
     ftd->flow_mgr_cnt_new = StatsRegisterCounter("flow_mgr.new_pruned", t);
     ftd->flow_mgr_cnt_est = StatsRegisterCounter("flow_mgr.est_pruned", t);
+    ftd->flow_mgr_cnt_est = StatsRegisterCounter("flow_mgr.bypassed_pruned", t);
     ftd->flow_mgr_spare = StatsRegisterCounter("flow.spare", t);
     ftd->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
     ftd->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
@@ -681,7 +703,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             FlowUpdateSpareFlows();
 
         /* try to time out flows */
-        FlowTimeoutCounters counters = { 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,};
+        FlowTimeoutCounters counters = { 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,0};
         FlowTimeoutHash(&ts, 0 /* check all */, ftd->min, ftd->max, &counters);
 
 
@@ -701,6 +723,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_clo, (uint64_t)counters.clo);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_new, (uint64_t)counters.new);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_est, (uint64_t)counters.est);
+        StatsAddUI64(th_v, ftd->flow_mgr_cnt_byp, (uint64_t)counters.byp);
         StatsAddUI64(th_v, ftd->flow_tcp_reuse, (uint64_t)counters.tcp_reuse);
 
         StatsSetUI64(th_v, ftd->flow_mgr_flows_checked, (uint64_t)counters.flows_checked);
@@ -1353,7 +1376,7 @@ static int FlowMgrTest05 (void)
     struct timeval ts;
     TimeGet(&ts);
     /* try to time out flows */
-    FlowTimeoutCounters counters = { 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,};
+    FlowTimeoutCounters counters = { 0, 0, 0, 0, 0,0,0,0,0,0,0,0,0,0,0};
     FlowTimeoutHash(&ts, 0 /* check all */, 0, flow_config.hash_size, &counters);
 
     if (flow_recycle_q.len > 0) {

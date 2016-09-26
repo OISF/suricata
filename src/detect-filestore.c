@@ -63,6 +63,7 @@ static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, Signature *, SigMatch *);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilestoreFree(void *);
+static void DetectFilestoreRegisterTests(void);
 
 /**
  * \brief Registration function for keyword: filestore
@@ -75,7 +76,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].FileMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
     sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
-    sigmatch_table[DETECT_FILESTORE].RegisterTests = NULL;
+    sigmatch_table[DETECT_FILESTORE].RegisterTests = DetectFilestoreRegisterTests;
     sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
@@ -291,6 +292,13 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
+    /* filestore and bypass keywords can't work together */
+    if (s->flags & SIG_FLAG_BYPASS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "filestore can't work with bypass keyword");
+        return -1;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -407,4 +415,40 @@ static void DetectFilestoreFree(void *ptr)
     if (ptr != NULL) {
         SCFree(ptr);
     }
+}
+
+#ifdef UNITTESTS
+/*
+ * The purpose of this test is to confirm that
+ * filestore and bypass keywords can't
+ * can't work together
+ */
+static int DetectFilestoreTest01(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(bypass; filestore; "
+                               "content:\"message\"; http_host; "
+                               "sid:1;)");
+    FAIL_IF_NOT_NULL(de_ctx->sig_list);
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+#endif /* UNITTESTS */
+
+void DetectFilestoreRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("DetectFilestoreTest01", DetectFilestoreTest01);
+#endif /* UNITTESTS */
 }
