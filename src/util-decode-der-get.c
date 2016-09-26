@@ -120,10 +120,8 @@ static time_t UtctimeToTime(char *utctime)
     year = strtol(yy, NULL, 10);
     if (year >= 50)
         snprintf(buf, sizeof(buf), "%i%s", 19, utctime);
-    else if (year < 50)
-        snprintf(buf, sizeof(buf), "%i%s", 20, utctime);
     else
-        goto error;
+        snprintf(buf, sizeof(buf), "%i%s", 20, utctime);
 
     time = GentimeToTime(buf);
     if (time == -1)
