@@ -419,16 +419,20 @@ static int DetectSslVersionTestDetect01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, sslbuf1, ssllen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf2, ssllen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf3, ssllen3);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf4, ssllen4);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -506,16 +510,20 @@ static int DetectSslVersionTestDetect02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, sslbuf1, ssllen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf2, ssllen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf3, ssllen3);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf4, ssllen4);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 
@@ -599,16 +607,20 @@ static int DetectSslVersionTestDetect03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, sslbuf1, ssllen1);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf2, ssllen2);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf3, ssllen3);
     FAIL_IF(r != 0);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+                            sslbuf4, ssllen4);
     FAIL_IF(r != 0);
     FLOWLOCK_UNLOCK(&f);
 

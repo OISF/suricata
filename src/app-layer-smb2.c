@@ -641,7 +641,9 @@ int SMB2ParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB2,
+                                STREAM_TOSERVER | STREAM_EOF, smb2buf,
+                                smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
