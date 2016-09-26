@@ -1725,8 +1725,9 @@ static int ModbusParserTest01(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    readCoilsReq, sizeof(readCoilsReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, readCoilsReq,
+                                sizeof(readCoilsReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1750,8 +1751,9 @@ static int ModbusParserTest01(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                    readCoilsRsp, sizeof(readCoilsRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, readCoilsRsp,
+                            sizeof(readCoilsRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1791,8 +1793,9 @@ static int ModbusParserTest02(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    writeMultipleRegistersReq, sizeof(writeMultipleRegistersReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, writeMultipleRegistersReq,
+                                sizeof(writeMultipleRegistersReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1820,8 +1823,9 @@ static int ModbusParserTest02(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                            writeMultipleRegistersRsp, sizeof(writeMultipleRegistersRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, writeMultipleRegistersRsp,
+                            sizeof(writeMultipleRegistersRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1890,8 +1894,10 @@ static int ModbusParserTest03(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                readWriteMultipleRegistersReq, sizeof(readWriteMultipleRegistersReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                readWriteMultipleRegistersReq,
+                                sizeof(readWriteMultipleRegistersReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1923,8 +1929,9 @@ static int ModbusParserTest03(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                readWriteMultipleRegistersRsp, sizeof(readWriteMultipleRegistersRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, readWriteMultipleRegistersRsp,
+                            sizeof(readWriteMultipleRegistersRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -1979,8 +1986,9 @@ static int ModbusParserTest04(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                        forceListenOnlyMode, sizeof(forceListenOnlyMode));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, forceListenOnlyMode,
+                                sizeof(forceListenOnlyMode));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2058,8 +2066,9 @@ static int ModbusParserTest05(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                invalidProtocolIdReq, sizeof(invalidProtocolIdReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, invalidProtocolIdReq,
+                                sizeof(invalidProtocolIdReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2144,8 +2153,9 @@ static int ModbusParserTest06(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                    readCoilsRsp, sizeof(readCoilsRsp));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOCLIENT, readCoilsRsp,
+                                sizeof(readCoilsRsp));
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2230,9 +2240,10 @@ static int ModbusParserTest07(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    invalidLengthWriteMultipleRegistersReq,
-                                    sizeof(invalidLengthWriteMultipleRegistersReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                invalidLengthWriteMultipleRegistersReq,
+                                sizeof(invalidLengthWriteMultipleRegistersReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2317,8 +2328,9 @@ static int ModbusParserTest08(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    readCoilsReq, sizeof(readCoilsReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, readCoilsReq,
+                                sizeof(readCoilsReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2342,8 +2354,9 @@ static int ModbusParserTest08(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                readCoilsErrorRsp, sizeof(readCoilsErrorRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, readCoilsErrorRsp,
+                            sizeof(readCoilsErrorRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2401,16 +2414,16 @@ static int ModbusParserTest09(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    input, input_len - part2_len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, input, input_len - part2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                        input, input_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOSERVER, input, input_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2438,16 +2451,16 @@ static int ModbusParserTest09(void) {
     input = readCoilsRsp;
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                input, input_len - part2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, input, input_len - part2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                input, input_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, input, input_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2497,8 +2510,8 @@ static int ModbusParserTest10(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    input, input_len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, input, input_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2541,8 +2554,8 @@ static int ModbusParserTest10(void) {
     memcpy(input + sizeof(readCoilsRsp), writeMultipleRegistersRsp, sizeof(writeMultipleRegistersRsp));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                input, sizeof(input_len));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, input, sizeof(input_len));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2608,9 +2621,10 @@ static int ModbusParserTest11(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    exceededLengthWriteMultipleRegistersReq,
-                                    sizeof(exceededLengthWriteMultipleRegistersReq) + 65523 /* header.length - 7 */ * sizeof(uint8_t));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                exceededLengthWriteMultipleRegistersReq,
+                                sizeof(exceededLengthWriteMultipleRegistersReq) + 65523 * sizeof(uint8_t));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2695,9 +2709,10 @@ static int ModbusParserTest12(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    invalidLengthPDUWriteMultipleRegistersReq,
-                                    sizeof(invalidLengthPDUWriteMultipleRegistersReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                invalidLengthPDUWriteMultipleRegistersReq,
+                                sizeof(invalidLengthPDUWriteMultipleRegistersReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2753,8 +2768,9 @@ static int ModbusParserTest13(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    maskWriteRegisterReq, sizeof(maskWriteRegisterReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, maskWriteRegisterReq,
+                                sizeof(maskWriteRegisterReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2778,8 +2794,9 @@ static int ModbusParserTest13(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                maskWriteRegisterRsp, sizeof(maskWriteRegisterRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, maskWriteRegisterRsp,
+                            sizeof(maskWriteRegisterRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2819,8 +2836,9 @@ static int ModbusParserTest14(void) {
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    writeSingleRegisterReq, sizeof(writeSingleRegisterReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, writeSingleRegisterReq,
+                                sizeof(writeSingleRegisterReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2844,8 +2862,9 @@ static int ModbusParserTest14(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                writeSingleRegisterRsp, sizeof(writeSingleRegisterRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, writeSingleRegisterRsp,
+                            sizeof(writeSingleRegisterRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2914,9 +2933,9 @@ static int ModbusParserTest15(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                    invalidMaskWriteRegisterReq,
-                                    sizeof(invalidMaskWriteRegisterReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER, invalidMaskWriteRegisterReq,
+                                sizeof(invalidMaskWriteRegisterReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -2946,8 +2965,9 @@ static int ModbusParserTest15(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                maskWriteRegisterRsp, sizeof(maskWriteRegisterRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, maskWriteRegisterRsp,
+                            sizeof(maskWriteRegisterRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -3023,8 +3043,10 @@ static int ModbusParserTest16(void) {
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
-                                invalidWriteSingleRegisterReq, sizeof(invalidWriteSingleRegisterReq));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                invalidWriteSingleRegisterReq,
+                                sizeof(invalidWriteSingleRegisterReq));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
@@ -3055,8 +3077,9 @@ static int ModbusParserTest16(void) {
     }
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
-                                writeSingleRegisterRsp, sizeof(writeSingleRegisterRsp));
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                            STREAM_TOCLIENT, writeSingleRegisterRsp,
+                            sizeof(writeSingleRegisterRsp));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);

@@ -391,8 +391,9 @@ static int DetectTlsIssuerTest02(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                                client_hello, sizeof(client_hello));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, client_hello,
+                                sizeof(client_hello));
     FLOWLOCK_UNLOCK(&f);
 
     FAIL_IF(r != 0);
@@ -405,7 +406,7 @@ static int DetectTlsIssuerTest02(void)
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
     FLOWLOCK_UNLOCK(&f);
 
@@ -416,7 +417,7 @@ static int DetectTlsIssuerTest02(void)
     FAIL_IF(PacketAlertCheck(p2, 1));
 
     FLOWLOCK_WRLOCK(&f);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
     FLOWLOCK_UNLOCK(&f);
 

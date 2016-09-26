@@ -1107,8 +1107,9 @@ int ValidityTestDetect01(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                                client_hello, sizeof(client_hello));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, client_hello,
+                                sizeof(client_hello));
     SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
@@ -1122,7 +1123,7 @@ int ValidityTestDetect01(void)
     FAIL_IF(PacketAlertCheck(p1, 2));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
     SCMutexUnlock(&f.m);
 
@@ -1134,7 +1135,7 @@ int ValidityTestDetect01(void)
     FAIL_IF(PacketAlertCheck(p2, 2));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
     SCMutexUnlock(&f.m);
 

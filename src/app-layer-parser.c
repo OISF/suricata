@@ -913,7 +913,7 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -1314,7 +1314,8 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
             }
             //PrintRawDataFp(stdout, buffer, result);
 
-            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags,
+                                      buffer, result);
             if (done)
                 break;
         }
@@ -1397,7 +1398,8 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
             }
             //PrintRawDataFp(stdout, buffer, result);
 
-            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags,
+                                      buffer, result);
             if (done)
                 break;
         }
@@ -1519,8 +1521,9 @@ static int AppLayerParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(f);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
-                           testbuf, testlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
+                                STREAM_TOSERVER | STREAM_EOF, testbuf,
+                                testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
         FLOWLOCK_UNLOCK(f);
@@ -1572,8 +1575,9 @@ static int AppLayerParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     FLOWLOCK_WRLOCK(f);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
-                          testlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST,
+                                STREAM_TOSERVER | STREAM_EOF, testbuf,
+                                testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
         result = 0;

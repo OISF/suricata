@@ -159,7 +159,8 @@ static int DetectTlsSniTest01(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, buf, sizeof(buf));
     FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
@@ -257,7 +258,8 @@ static int DetectTlsSniTest02(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, buf, sizeof(buf));
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, buf, sizeof(buf));
     FLOWLOCK_UNLOCK(&f);
     FAIL_IF(r != 0);
 
