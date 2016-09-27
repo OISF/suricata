@@ -55,9 +55,14 @@
 
 #include "util-profiling.h"
 
-#ifdef PROFILING
-static int PrefilterStoreGetId(const char *name);
-#endif
+typedef struct PrefilterStore_ {
+    const char *name;
+    void (*FreeFunc)(void *);
+    uint32_t id;
+} PrefilterStore;
+
+static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *));
+static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id);
 
 static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 {
@@ -124,12 +129,14 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
                 goto next;
 
             PROFILING_PREFILTER_START(p);
-            engine->PrefilterTx(det_ctx, engine->pectx,
+            engine->cb.PrefilterTx(det_ctx, engine->pectx,
                     p, p->flow, tx, idx, flags);
-            PROFILING_PREFILTER_END(p, engine->profile_id);
+            PROFILING_PREFILTER_END(p, engine->gid);
         next:
-            engine = engine->next;
-        } while (engine);
+            if (engine->is_last)
+                break;
+            engine++;
+        } while (1);
     }
 }
 
@@ -138,7 +145,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 {
     SCEnter();
 
-    PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->profile_prefilter_maxid);
+    PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->prefilter_maxid);
 
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
@@ -146,11 +153,13 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         PrefilterEngine *engine = sgh->pkt_engines;
         do {
             PROFILING_PREFILTER_START(p);
-            engine->Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->profile_id);
+            engine->cb.Prefilter(det_ctx, p, engine->pectx);
+            PROFILING_PREFILTER_END(p, engine->gid);
 
-            engine = engine->next;
-        } while (engine != NULL);
+            if (engine->is_last)
+                break;
+            engine++;
+        } while (1);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PKT);
     }
 
@@ -160,12 +169,14 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         PrefilterEngine *engine = sgh->payload_engines;
-        while (engine) {
+        while (1) {
             PROFILING_PREFILTER_START(p);
-            engine->Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->profile_id);
+            engine->cb.Prefilter(det_ctx, p, engine->pectx);
+            PROFILING_PREFILTER_END(p, engine->gid);
 
-            engine = engine->next;
+            if (engine->is_last)
+                break;
+            engine++;
         }
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PAYLOAD);
     }
@@ -198,7 +209,7 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
     if (sgh == NULL || Prefilter == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
     memset(e, 0x00, sizeof(*e));
@@ -207,10 +218,10 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
     e->pectx = pectx;
     e->Free = FreeFunc;
 
-    if (sgh->pkt_engines == NULL) {
-        sgh->pkt_engines = e;
+    if (sgh->init->pkt_engines == NULL) {
+        sgh->init->pkt_engines = e;
     } else {
-        PrefilterEngine *t = sgh->pkt_engines;
+        PrefilterEngineList *t = sgh->init->pkt_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -219,11 +230,8 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
         e->id = t->id + 1;
     }
 
-#ifdef PROFILING
-    sgh->engines_cnt = e->id;
     e->name = name;
-    e->profile_id = PrefilterStoreGetId(e->name);
-#endif
+    e->gid = PrefilterStoreGetId(e->name, e->Free);
     return 0;
 }
 
@@ -235,7 +243,7 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
     if (sgh == NULL || Prefilter == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
     memset(e, 0x00, sizeof(*e));
@@ -244,10 +252,10 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
     e->pectx = pectx;
     e->Free = FreeFunc;
 
-    if (sgh->payload_engines == NULL) {
-        sgh->payload_engines = e;
+    if (sgh->init->payload_engines == NULL) {
+        sgh->init->payload_engines = e;
     } else {
-        PrefilterEngine *t = sgh->payload_engines;
+        PrefilterEngineList *t = sgh->init->payload_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -256,11 +264,8 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
         e->id = t->id + 1;
     }
 
-#ifdef PROFILING
-    sgh->engines_cnt = e->id;
     e->name = name;
-    e->profile_id = PrefilterStoreGetId(e->name);
-#endif
+    e->gid = PrefilterStoreGetId(e->name, e->Free);
     return 0;
 }
 
@@ -275,7 +280,7 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
     if (sgh == NULL || PrefilterTx == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
+    PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
     memset(e, 0x00, sizeof(*e));
@@ -286,10 +291,10 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
     e->tx_min_progress = tx_min_progress;
     e->Free = FreeFunc;
 
-    if (sgh->tx_engines == NULL) {
-        sgh->tx_engines = e;
+    if (sgh->init->tx_engines == NULL) {
+        sgh->init->tx_engines = e;
     } else {
-        PrefilterEngine *t = sgh->tx_engines;
+        PrefilterEngineList *t = sgh->init->tx_engines;
         while (t->next != NULL) {
             t = t->next;
         }
@@ -297,30 +302,61 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
         t->next = e;
         e->id = t->id + 1;
     }
-#ifdef PROFILING
-    sgh->tx_engines_cnt = e->id;
+
     e->name = name;
-    e->profile_id = PrefilterStoreGetId(e->name);
-#endif
+    e->gid = PrefilterStoreGetId(e->name, e->Free);
     return 0;
 }
 
-static void PrefilterFreeEngine(PrefilterEngine *e)
+static void PrefilterFreeEngineList(PrefilterEngineList *e)
 {
-    if (e->Free) {
+    if (e->Free && e->pectx) {
         e->Free(e->pectx);
     }
     SCFreeAligned(e);
 }
 
-void PrefilterFreeEngines(PrefilterEngine *list)
+void PrefilterFreeEnginesList(PrefilterEngineList *list)
+{
+    PrefilterEngineList *t = list;
+
+    while (t != NULL) {
+        PrefilterEngineList *next = t->next;
+        PrefilterFreeEngineList(t);
+        t = next;
+    }
+}
+
+static void PrefilterFreeEngines(PrefilterEngine *list)
 {
     PrefilterEngine *t = list;
 
-    while (t != NULL) {
-        PrefilterEngine *next = t->next;
-        PrefilterFreeEngine(t);
-        t = next;
+    while (1) {
+        const PrefilterStore *s = PrefilterStoreGetStore(t->gid);
+        if (s && s->FreeFunc && t->pectx) {
+            s->FreeFunc(t->pectx);
+        }
+
+        if (t->is_last)
+            break;
+        t++;
+    }
+    SCFreeAligned(list);
+}
+
+void PrefilterCleanupRuleGroup(SigGroupHead *sgh)
+{
+    if (sgh->pkt_engines) {
+        PrefilterFreeEngines(sgh->pkt_engines);
+        sgh->pkt_engines = NULL;
+    }
+    if (sgh->payload_engines) {
+        PrefilterFreeEngines(sgh->payload_engines);
+        sgh->payload_engines = NULL;
+    }
+    if (sgh->tx_engines) {
+        PrefilterFreeEngines(sgh->tx_engines);
+        sgh->tx_engines = NULL;
     }
 }
 
@@ -338,34 +374,89 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
 
-#ifdef PROFILING
-    PrefilterEngine *e;
-    uint32_t engines = 0;
-    uint32_t tx_engines = 0;
+    /* we have lists of engines in sgh->init now. Lets setup the
+     * match arrays */
+    PrefilterEngineList *el;
+    if (sgh->init->pkt_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
+            cnt++;
+            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
+        }
+        sgh->pkt_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->pkt_engines == NULL) {
+            return;
+        }
+        memset(sgh->pkt_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
-    for (e = sgh->pkt_engines ; e != NULL; e = e->next) {
-        engines++;
-        de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        PrefilterEngine *e = sgh->pkt_engines;
+        for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
+            e->id = el->id;
+            e->cb.Prefilter = el->Prefilter;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            if (el->next == NULL) {
+                e->is_last = TRUE;
+            }
+            e++;
+        }
     }
-    for (e = sgh->payload_engines ; e != NULL; e = e->next) {
-        engines++;
-        de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+    if (sgh->init->payload_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
+            cnt++;
+            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
+        }
+        sgh->payload_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->payload_engines == NULL) {
+            return;
+        }
+        memset(sgh->payload_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        PrefilterEngine *e = sgh->payload_engines;
+        for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
+            e->id = el->id;
+            e->cb.Prefilter = el->Prefilter;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            if (el->next == NULL) {
+                e->is_last = TRUE;
+            }
+            e++;
+        }
     }
-    for (e = sgh->tx_engines ; e != NULL; e = e->next) {
-        tx_engines++;
-        de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+    if (sgh->init->tx_engines != NULL) {
+        uint32_t cnt = 0;
+        for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
+            cnt++;
+            de_ctx->prefilter_maxid = MAX(de_ctx->prefilter_maxid, el->gid);
+        }
+        sgh->tx_engines = SCMallocAligned(cnt * sizeof(PrefilterEngine), CLS);
+        if (sgh->tx_engines == NULL) {
+            return;
+        }
+        memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
+
+        PrefilterEngine *e = sgh->tx_engines;
+        for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
+            e->id = el->id;
+            e->alproto = el->alproto;
+            e->tx_min_progress = el->tx_min_progress;
+            e->cb.PrefilterTx = el->PrefilterTx;
+            e->pectx = el->pectx;
+            el->pectx = NULL; // e now owns the ctx
+            e->gid = el->gid;
+            if (el->next == NULL) {
+                e->is_last = TRUE;
+            }
+            e++;
+        }
     }
-    SCLogDebug("SGH %p: engines %u tx_engines %u", sgh, engines, tx_engines);
-#endif
 }
 
-#ifdef PROFILING
 /* hash table for assigning a unique id to each engine type. */
-
-typedef struct PrefilterStore_ {
-    const char *name;
-    uint32_t id;
-} PrefilterStore;
 
 static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
@@ -421,9 +512,9 @@ static void PrefilterInit(void)
     SCMutexUnlock(&g_prefilter_mutex);
 }
 
-static int PrefilterStoreGetId(const char *name)
+static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *))
 {
-    PrefilterStore ctx = { name, 0 };
+    PrefilterStore ctx = { name, FreeFunc, 0 };
 
     if (g_prefilter_hash_table == NULL) {
         PrefilterInit();
@@ -445,6 +536,7 @@ static int PrefilterStoreGetId(const char *name)
     }
 
     actx->name = name;
+    actx->FreeFunc = FreeFunc;
     actx->id = g_prefilter_id++;
     SCLogDebug("prefilter engine %s has profile id %u", actx->name, actx->id);
 
@@ -458,6 +550,25 @@ static int PrefilterStoreGetId(const char *name)
     int r = actx->id;
     SCMutexUnlock(&g_prefilter_mutex);
     return r;
+}
+
+/** \warning slow */
+static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id)
+{
+    const PrefilterStore *store = NULL;
+    SCMutexLock(&g_prefilter_mutex);
+    if (g_prefilter_hash_table != NULL) {
+        HashListTableBucket *hb = HashListTableGetListHead(g_prefilter_hash_table);
+        for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
+            PrefilterStore *ctx = HashListTableGetListData(hb);
+            if (ctx->id == id) {
+                store = ctx;
+                break;
+            }
+        }
+    }
+    SCMutexUnlock(&g_prefilter_mutex);
+    return store;
 }
 
 /** \warning slow */
@@ -478,4 +589,3 @@ const char *PrefilterStoreGetName(const uint32_t id)
     SCMutexUnlock(&g_prefilter_mutex);
     return name;
 }
-#endif /* PROFILING */

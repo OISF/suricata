@@ -723,8 +723,8 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
-    uint32_t profile_prefilter_maxid;
 #endif
+    uint32_t prefilter_maxid;
 
     char config_prefix[64];
 
@@ -1019,7 +1019,7 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
-typedef struct PrefilterEngine_ {
+typedef struct PrefilterEngineList_ {
     uint16_t id;
 
     /** App Proto this engine applies to: only used with Tx Engines */
@@ -1037,15 +1037,39 @@ typedef struct PrefilterEngine_ {
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags);
 
-    struct PrefilterEngine_ *next;
+    struct PrefilterEngineList_ *next;
 
     /** Free function for pectx data. If NULL the memory is not freed. */
     void (*Free)(void *pectx);
 
     const char *name;
-#ifdef PROFILING
-    uint32_t profile_id;
-#endif
+    /* global id for this prefilter */
+    uint32_t gid;
+} PrefilterEngineList;
+
+typedef struct PrefilterEngine_ {
+    uint16_t id;
+
+    /** App Proto this engine applies to: only used with Tx Engines */
+    AppProto alproto;
+    /** Minimal Tx progress we need before running the engine. Only used
+     *  with Tx Engine */
+    int tx_min_progress;
+
+    /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
+     *  for other engines. */
+    void *pectx;
+
+    union {
+        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
+                Packet *p, Flow *f, void *tx,
+                const uint64_t idx, const uint8_t flags);
+    } cb;
+
+    /* global id for this prefilter */
+    uint32_t gid;
+    int is_last;
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {
@@ -1059,6 +1083,10 @@ typedef struct SigGroupHeadInitData_ {
     int whitelist;          /**< try to make this group a unique one */
 
     MpmCtx **app_mpms;
+
+    PrefilterEngineList *pkt_engines;
+    PrefilterEngineList *payload_engines;
+    PrefilterEngineList *tx_engines;
 
     /* port ptr */
     struct DetectPort_ *port;
@@ -1086,11 +1114,6 @@ typedef struct SigGroupHead_ {
     PrefilterEngine *pkt_engines;
     PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
-
-#ifdef PROFILING
-    uint32_t engines_cnt;
-    uint32_t tx_engines_cnt;
-#endif
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
