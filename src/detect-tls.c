@@ -653,13 +653,20 @@ static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_
 
     int ret = 0;
 
-    if (ssl_state->server_connp.cert0_fingerprint != NULL) {
+    SSLStateConnp *connp = NULL;
+    if (flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (connp->cert0_fingerprint != NULL) {
         SCLogDebug("TLS: Fingerprint is [%s], looking for [%s]\n",
-                   ssl_state->server_connp.cert0_fingerprint,
+                   connp->cert0_fingerprint,
                    tls_data->fingerprint);
 
         if (tls_data->fingerprint &&
-            (strstr(ssl_state->server_connp.cert0_fingerprint,
+            (strstr(connp->cert0_fingerprint,
                     tls_data->fingerprint) != NULL)) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
