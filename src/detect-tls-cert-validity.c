@@ -148,13 +148,13 @@ static int DetectTlsValidityMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     if (cert_epoch == 0)
         SCReturnInt(0);
 
-    if (dd->mode == DETECT_TLS_VALIDITY_EQ && cert_epoch == dd->epoch)
+    if ((dd->mode & DETECT_TLS_VALIDITY_EQ) && cert_epoch == dd->epoch)
         ret = 1;
-    else if (dd->mode == DETECT_TLS_VALIDITY_LT && cert_epoch <= dd->epoch)
+    else if ((dd->mode & DETECT_TLS_VALIDITY_LT) && cert_epoch <= dd->epoch)
         ret = 1;
-    else if (dd->mode == DETECT_TLS_VALIDITY_GT && cert_epoch >= dd->epoch)
+    else if ((dd->mode & DETECT_TLS_VALIDITY_GT) && cert_epoch >= dd->epoch)
         ret = 1;
-    else if (dd->mode == DETECT_TLS_VALIDITY_RA &&
+    else if ((dd->mode & DETECT_TLS_VALIDITY_RA) &&
             cert_epoch >= dd->epoch && cert_epoch <= dd->epoch2)
         ret = 1;
 
@@ -315,26 +315,28 @@ static DetectTlsValidityData *DetectTlsValidityParse (char *rawstr)
 
     dd->epoch = 0;
     dd->epoch2 = 0;
-    dd->mode = DETECT_TLS_VALIDITY_EQ;
+    dd->mode = 0;
 
     if (strlen(mode) > 0) {
         if (mode[0] == '<')
-            dd->mode = DETECT_TLS_VALIDITY_LT;
+            dd->mode |= DETECT_TLS_VALIDITY_LT;
         else if (mode[0] == '>')
-            dd->mode = DETECT_TLS_VALIDITY_GT;
-        else
-            dd->mode = DETECT_TLS_VALIDITY_EQ;
+            dd->mode |= DETECT_TLS_VALIDITY_GT;
     }
 
     if (strlen(range) > 0) {
         if (strcmp("<>", range) == 0)
-            dd->mode = DETECT_TLS_VALIDITY_RA;
+            dd->mode |= DETECT_TLS_VALIDITY_RA;
     }
 
     if (strlen(range) != 0 && strlen(mode) != 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
                    "Range specified but mode also set");
         goto error;
+    }
+
+    if (dd->mode == 0) {
+        dd->mode |= DETECT_TLS_VALIDITY_EQ;
     }
 
     /* set the first value */
@@ -344,7 +346,7 @@ static DetectTlsValidityData *DetectTlsValidityParse (char *rawstr)
 
     /* set the second value if specified */
     if (strlen(value2) > 0) {
-        if (dd->mode != DETECT_TLS_VALIDITY_RA) {
+        if (!(dd->mode & DETECT_TLS_VALIDITY_RA)) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Multiple tls validity values specified but mode is not range");
             goto error;
