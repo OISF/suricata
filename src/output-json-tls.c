@@ -160,7 +160,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
             ssl_state->server_connp.cert0_subject == NULL)
         return 0;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "tls");
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "tls");
     if (unlikely(js == NULL))
         return 0;
 
