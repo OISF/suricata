@@ -1582,7 +1582,7 @@ int ExpiredTestDetect01(void)
 #endif /* UNITTESTS */
 
 /**
- * \brief Register unit tests for tls_notbefore.
+ * \brief Register unit tests for tls_cert_notbefore.
  */
 void TlsNotBeforeRegisterTests(void)
 {
@@ -1604,7 +1604,7 @@ void TlsNotBeforeRegisterTests(void)
 }
 
 /**
- * \brief Register unit tests for tls_notafter.
+ * \brief Register unit tests for tls_cert_notafter.
  */
 void TlsNotAfterRegisterTests(void)
 {
