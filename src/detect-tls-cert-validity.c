@@ -1254,11 +1254,9 @@ int ValidityTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
                                 STREAM_TOSERVER, client_hello,
                                 sizeof(client_hello));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1270,10 +1268,8 @@ int ValidityTestDetect01(void)
     FAIL_IF(PacketAlertCheck(p1, 1));
     FAIL_IF(PacketAlertCheck(p1, 2));
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1282,10 +1278,8 @@ int ValidityTestDetect01(void)
     FAIL_IF(PacketAlertCheck(p2, 1));
     FAIL_IF(PacketAlertCheck(p2, 2));
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1294,14 +1288,13 @@ int ValidityTestDetect01(void)
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
     FAIL_IF_NOT(PacketAlertCheck(p3, 2));
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    FAIL_IF_NULL(alp_tctx);
+    FAIL_IF_NULL(det_ctx);
+    FAIL_IF_NULL(de_ctx);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -1593,10 +1586,9 @@ int ExpiredTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                                client_hello, sizeof(client_hello));
-    SCMutexUnlock(&f.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, client_hello,
+                                sizeof(client_hello));
 
     FAIL_IF(r != 0);
 
@@ -1607,10 +1599,8 @@ int ExpiredTestDetect01(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1618,10 +1608,8 @@ int ExpiredTestDetect01(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1629,14 +1617,13 @@ int ExpiredTestDetect01(void)
 
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    FAIL_IF_NULL(alp_tctx);
+    FAIL_IF_NULL(det_ctx);
+    FAIL_IF_NULL(de_ctx);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -1913,10 +1900,9 @@ int ValidTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
-                                client_hello, sizeof(client_hello));
-    SCMutexUnlock(&f.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS,
+                                STREAM_TOSERVER, client_hello,
+                                sizeof(client_hello));
 
     FAIL_IF(r != 0);
 
@@ -1927,10 +1913,8 @@ int ValidTestDetect01(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1938,10 +1922,8 @@ int ValidTestDetect01(void)
 
     FAIL_IF(PacketAlertCheck(p2, 1));
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
-    SCMutexUnlock(&f.m);
 
     FAIL_IF(r != 0);
 
@@ -1949,14 +1931,13 @@ int ValidTestDetect01(void)
 
     FAIL_IF_NOT(PacketAlertCheck(p3, 1));
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    FAIL_IF_NULL(alp_tctx);
+    FAIL_IF_NULL(det_ctx);
+    FAIL_IF_NULL(de_ctx);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
