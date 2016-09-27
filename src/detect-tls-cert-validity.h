@@ -32,6 +32,9 @@
 /* Used by tls_cert_expired */
 #define DETECT_TLS_VALIDITY_EX (1<<4) /* expired */
 
+/* Used by tls_cert_valid */
+#define DETECT_TLS_VALIDITY_VA (1<<5) /* valid */
+
 #define DETECT_TLS_TYPE_NOTBEFORE 0
 #define DETECT_TLS_TYPE_NOTAFTER  1
 
