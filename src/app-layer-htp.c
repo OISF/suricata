@@ -1918,6 +1918,24 @@ void HTPFreeConfig(void)
     SCReturn;
 }
 
+static int HTPCallbackRequestHasTrailer(htp_tx_t *tx)
+{
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        htud->request_has_trailers = 1;
+    }
+    return HTP_OK;
+}
+
+static int HTPCallbackResponseHasTrailer(htp_tx_t *tx)
+{
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        htud->response_has_trailers = 1;
+    }
+    return HTP_OK;
+}
+
 /**
  *  \brief  callback for request to store the recent incoming request
             in to the recent_in_tx for the given htp state
@@ -2141,6 +2159,9 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
     htp_config_register_response_header_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
     htp_config_register_response_trailer_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
+
+    htp_config_register_request_trailer(cfg_prec->cfg, HTPCallbackRequestHasTrailer);
+    htp_config_register_response_trailer(cfg_prec->cfg, HTPCallbackResponseHasTrailer);
 
     htp_config_register_request_body_data(cfg_prec->cfg, HTPCallbackRequestBodyData);
     htp_config_register_response_body_data(cfg_prec->cfg, HTPCallbackResponseBodyData);
