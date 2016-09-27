@@ -45,6 +45,8 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
 
 void PrefilterFreeEngines(PrefilterEngine *list);
 
+void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
+
 #ifdef PROFILING
 const char *PrefilterStoreGetName(const uint32_t id);
 #endif

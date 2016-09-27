@@ -3787,37 +3787,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
-        BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
-
-        if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO) {
-            int i = 0;
-            for (i = 0; i < DETECT_TBLSIZE; i++)
-            {
-                if (sigmatch_table[i].SetupPrefilter != NULL) {
-                    sigmatch_table[i].SetupPrefilter(sgh);
-                }
-            }
-        }
-
-#ifdef PROFILING
-        PrefilterEngine *e;
-        uint32_t engines = 0;
-        uint32_t tx_engines = 0;
-
-        for (e = sgh->pkt_engines ; e != NULL; e = e->next) {
-            engines++;
-            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
-        }
-        for (e = sgh->payload_engines ; e != NULL; e = e->next) {
-            engines++;
-            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
-        }
-        for (e = sgh->tx_engines ; e != NULL; e = e->next) {
-            tx_engines++;
-            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
-        }
-        SCLogDebug("SGH %p: engines %u tx_engines %u", sgh, engines, tx_engines);
-#endif
+        PrefilterSetupRuleGroup(de_ctx, sgh);
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
