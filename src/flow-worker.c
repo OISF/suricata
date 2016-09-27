@@ -42,6 +42,8 @@
 
 #include "util-validate.h"
 
+#include "flow-util.h"
+
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
 typedef struct FlowWorkerThreadData_ {
@@ -64,8 +66,19 @@ typedef struct FlowWorkerThreadData_ {
  *
  *  Handle flow creation/lookup
  */
-static inline void FlowUpdate(Packet *p)
+static inline void FlowUpdate(Packet *p, int state)
+
 {
+    if (state != FLOW_STATE_CAPTURE_BYPASSED) {
+        /* update the last seen timestamp of this flow */
+        COPY_TIMESTAMP(&p->ts,&p->flow->lastts);
+    } else {
+        /* still seeing packet, we downgrade to local bypass */
+        if (p->ts.tv_sec - p->flow->lastts.tv_sec > FLOW_BYPASSED_TIMEOUT / 2) {
+            COPY_TIMESTAMP(&p->ts,&p->flow->lastts);
+            FlowUpdateState(p->flow, FLOW_STATE_LOCAL_BYPASSED);
+        }
+    }
     FlowHandlePacketUpdate(p->flow, p);
 }
 
@@ -155,7 +168,16 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         FlowHandlePacket(tv, fw->dtv, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-            FlowUpdate(p);
+            int state = SC_ATOMIC_GET(p->flow->flow_state);
+            FlowUpdate(p, state);
+            switch (state) {
+                case FLOW_STATE_CAPTURE_BYPASSED:
+                case FLOW_STATE_LOCAL_BYPASSED:
+                    FLOWLOCK_UNLOCK(p->flow);
+                    return TM_ECODE_OK;
+                default:
+                    break;
+            }
         }
         /* Flow is now LOCKED */
 
