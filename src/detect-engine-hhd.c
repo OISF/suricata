@@ -250,6 +250,37 @@ static void PrefilterTxHttpRequestHeaders(DetectEngineThreadCtx *det_ctx,
     }
 }
 
+static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+
+    if (tx->request_headers == NULL)
+        return;
+    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
+    /* if the request wasn't flagged as having a trailer, we skip */
+    if (htud && !htud->request_has_trailers)
+        return;
+
+    HtpState *htp_state = f->alstate;
+    uint32_t buffer_len = 0;
+    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
+                                                    NULL, det_ctx,
+                                                    f, htp_state,
+                                                    flags,
+                                                    &buffer_len);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
 int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
@@ -259,7 +290,7 @@ int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
         mpm_ctx, NULL, "http_header (request)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
+    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestTrailers,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER,
         mpm_ctx, NULL, "http_header (request)");
 }
@@ -299,6 +330,37 @@ static void PrefilterTxHttpResponseHeaders(DetectEngineThreadCtx *det_ctx,
     }
 }
 
+static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+
+    if (tx->response_headers == NULL)
+        return;
+    const HtpTxUserData *htud = (const HtpTxUserData *)htp_tx_get_user_data(tx);
+    /* if the request wasn't flagged as having a trailer, we skip */
+    if (htud && !htud->response_has_trailers)
+        return;
+
+    HtpState *htp_state = f->alstate;
+    uint32_t buffer_len = 0;
+    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
+                                                    NULL, det_ctx,
+                                                    f, htp_state,
+                                                    flags,
+                                                    &buffer_len);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
 int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
@@ -308,7 +370,7 @@ int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
         mpm_ctx, NULL, "http_header (response)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
+    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseTrailers,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER,
         mpm_ctx, NULL, "http_header (response)");
 }
