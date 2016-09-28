@@ -122,6 +122,7 @@
 #include "app-layer-smtp.h"
 #include "app-layer-smb.h"
 #include "app-layer-modbus.h"
+#include "app-layer-enip.h"
 
 #include "util-decode-der.h"
 #include "util-radix-tree.h"
@@ -1158,6 +1159,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-smb", required_argument, 0 , 0},
         {"afl-modbus-request", required_argument, 0 , 0},
         {"afl-modbus", required_argument, 0 , 0},
+        {"afl-enip-request", required_argument, 0 , 0},
+        {"afl-enip", required_argument, 0 , 0},
         {"afl-mime", required_argument, 0 , 0},
 
         {"afl-decoder-ppp", required_argument, 0 , 0},
@@ -1428,6 +1431,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerParserSetup();
                 RegisterModbusParsers();
                 exit(AppLayerParserFromFile(ALPROTO_MODBUS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-enip-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterENIPTCPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_ENIP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-enip") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterENIPTCPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_ENIP, optarg));
 #endif
 #ifdef AFLFUZZ_MIME
             } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
