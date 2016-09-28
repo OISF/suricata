@@ -402,8 +402,8 @@ static int DNSRRTypeEnabled(uint16_t type, uint64_t filters)
     }
 }
 
-static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry) __attribute__((nonnull));
-static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry)
+static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry, DnsOutputMode style) __attribute__((nonnull));
+static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry, DnsOutputMode style)
 {
 
     json_t *js = json_object();
@@ -412,10 +412,9 @@ static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry)
     }
 
     /* type */
-    json_object_set_new(js, "type", json_string("query"));
+    if (style != DNS_UNIFIED)
+        json_object_set_new(js, "type", json_string("query"));
 
-    /* id */
-    json_object_set_new(js, "id", json_integer(tx->tx_id));
 
     /* query */
     char *c;
@@ -430,14 +429,11 @@ static json_t * QueryJson(DNSTransaction *tx, DNSQueryEntry *entry)
     DNSCreateTypeString(entry->type, record, sizeof(record));
     json_object_set_new(js, "rrtype", json_string(record));
 
-    /* tx id (tx counter) */
-    json_object_set_new(js, "tx_id", json_integer(tx->tx_id));
-
     return js;
 }
 
-static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry) __attribute__((nonnull));
-static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry)
+static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry, DnsOutputMode style) __attribute__((nonnull));
+static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry, DnsOutputMode style)
 {
    json_t *js = json_object();
 
@@ -445,15 +441,9 @@ static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry)
         return NULL;
 
     /* type */
-    json_object_set_new(js, "type", json_string("answer"));
-
-    /* id */
-    json_object_set_new(js, "id", json_integer(tx->tx_id));
-
-    /* rcode */
-    char rcode[16] = "";
-    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-    json_object_set_new(js, "rcode", json_string(rcode));
+    if (style == DNS_DISCRETE) {
+        json_object_set_new(js, "type", json_string("answer"));
+    }
 
     /* we are logging an answer RR */
     if (entry != NULL) {
@@ -540,8 +530,8 @@ static json_t * AnswerJson(DNSTransaction *tx, DNSAnswerEntry *entry)
 }
 
 
-static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry) __attribute__((nonnull));
-static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry)
+static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry, DnsOutputMode style) __attribute__((nonnull));
+static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry, DnsOutputMode style)
 {
     json_t *js = json_object();
     if (unlikely(js == NULL)) {
@@ -549,15 +539,9 @@ static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry)
     }
 
     /* type */
-    json_object_set_new(js, "type", json_string("answer"));
-
-    /* id */
-    json_object_set_new(js, "id", json_integer(tx->tx_id));
-
-    /* rcode */
-    char rcode[16] = "";
-    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-    json_object_set_new(js, "rcode", json_string(rcode));
+    if (style == DNS_DISCRETE) {
+        json_object_set_new(js, "type", json_string("answer"));
+    }
 
     /* no answer RRs, use query for rname */
     char *c;
@@ -571,7 +555,7 @@ static json_t *FailureJson(DNSTransaction *tx, DNSQueryEntry *entry)
 }
 
 /* Fills JSON object with DNS Transaction information */
-void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
+void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags, DnsOutputMode style)
 {
 
     if (unlikely(js == NULL)) {
@@ -586,8 +570,16 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
        json_object_set_new(js, "info", json_string("reply lost"));
     }
 
+    /* rcode */
+    char rcode[16] = "";
+    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+    json_object_set_new(js, "rcode", json_string(rcode));
+
+    /* tx_id */
+    json_object_set_new(js, "tx_id", json_integer(tx->tx_id));
 
     if (tx->rcode) {
+
         if (likely(flags & LOG_QUERIES) != 0) {
 
             json_t *arrjs = json_array();
@@ -599,7 +591,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
                    continue;
                }
 
-               json_t *entryjs = FailureJson(tx, query);
+               json_t *entryjs = FailureJson(tx, query, style);
                if (entryjs) {
                    json_array_append_new(arrjs, entryjs);
                }
@@ -613,6 +605,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
 
    /* if answer */
    if (tx->replied) {
+   
 
        if (likely(flags & LOG_ANSWERS) != 0) {
            if (TAILQ_EMPTY(&tx->answer_list)) {
@@ -629,7 +622,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
               if (! likely(DNSRRTypeEnabled(entry->type, flags)))
                   continue;
 
-              json_t *entryjs = AnswerJson(tx, entry);
+              json_t *entryjs = AnswerJson(tx, entry, style);
               if (entryjs) {
                   json_array_append_new(ansarrjs, entryjs);
               }
@@ -651,7 +644,7 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags)
            if (! likely(DNSRRTypeEnabled(entry->type, flags)))
 	       continue;
 
-           json_t *entryjs = QueryJson(tx, entry);
+           json_t *entryjs = QueryJson(tx, entry, style);
            if (entryjs) {
                json_array_append_new(qarrjs, entryjs);
            }
@@ -674,7 +667,7 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
     }
 
     /* Fill tjs with all parts of DNS transaction */
-    FillsDNSTransactionJSON(tjs, tx, flags);
+    FillsDNSTransactionJSON(tjs, tx, flags, style);
 
     /* Nothing to write */
     if (json_object_size(tjs) < 1 ) {
@@ -684,6 +677,7 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
     /* Outputs a single event containing request and response */
     if (style == DNS_UNIFIED) {
 
+        json_object_set_new(tjs, "type", json_string("unified"));
         /* dns node */
         json_object_set_new(js, "dns", tjs);
 
@@ -729,7 +723,13 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
 
     /*  split: one event per request, one event per response */
     if (style == DNS_SPLIT && cloned) {
-        json_object_set_new(cloned, "dns", answers);
+        json_t *ajs = json_object();
+        if (unlikely(ajs == NULL)) {
+            return tjs;
+        }
+
+        json_object_set_new(ajs, "answers", answers);
+        json_object_set_new(cloned, "dns", ajs);
 
         /* reset */
         MemBufferReset(buffer);
@@ -783,7 +783,7 @@ void JsonDnsLogJSON(json_t * js,  DNSState *dns_state) {
         return;
 
 
-    FillsDNSTransactionJSON(js, dns_state->curr, ALL_FILTERS);
+    FillsDNSTransactionJSON(js, dns_state->curr, ALL_FILTERS, DNS_UNIFIED);
 
 }
 
@@ -1327,13 +1327,19 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
     FAIL_IF(js == NULL);
 
 
+
     /* Outputs JSON */
     json_t *tjs = OutputLogTransactionJSON(file_ctx, buffer, js, TAILQ_FIRST(&dns_state->tx_list), ALL_FILTERS, DNS_UNIFIED);
-
+    JSON_DNS_OUTPUT_UNITTEST_DUMP(tjs);
     FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(js, "event_type") ));
 
     json_t *dns = json_object_get(js, "dns");
     FAIL_IF (dns == NULL);
+
+    /* "type": "unified", */
+    FAIL_IF_STR_DIFFERS("unified",      json_string_value( json_object_get(dns, "type") ));
+    FAIL_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(dns, "rcode") ));
+    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(dns, "tx_id")));
 
     /* Check queries and answers arrays */
     json_t *queries = json_object_get(dns, "queries");
@@ -1356,8 +1362,6 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
 
 /*
   {
-	"type": "query",
-	"id": 4146,
 	"rrname": "google.com",
 	"rrtype": "TXT",
 	"tx_id": 4146
@@ -1366,30 +1370,23 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
 */
 
     /* Check string values */
-    FAIL_IF_STR_DIFFERS("query",      json_string_value( json_object_get(query, "type") ));
     FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(query, "rrname") ));
     FAIL_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(query, "rrtype")));
 
 /*
  {
     "rrtype": "A",
-    "type": "answer",
-    "id": 4146,
     "rrname": "google.com",
-    "rcode": "NOERROR",
     "ttl": 16623,
     "rdata": "1.2.3.4"
   }
 */
 
     /* Check string values */
-    FAIL_IF_STR_DIFFERS("answer",     json_string_value( json_object_get(answer, "type") ));
     FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(answer, "rrname") ));
-    FAIL_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(answer, "rcode") ));
     FAIL_IF_STR_DIFFERS("A",          json_string_value( json_object_get(answer, "rrtype")));
     FAIL_IF_STR_DIFFERS("1.2.3.4",    json_string_value( json_object_get(answer, "rdata")));
     FAIL_IF( 16623 !=                json_integer_value( json_object_get(answer, "ttl")));
-    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(answer, "id")));
 
     /* Free some stuff */
     json_decref(tjs);
@@ -1472,7 +1469,7 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, bufQuery, sizeof(bufQuery));
+    int r = AppLayerParserParse(&tv, alp_tctx, &f, ALPROTO_DNS, STREAM_TOSERVER, bufQuery, sizeof(bufQuery));
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1499,7 +1496,7 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT, bufResponse, sizeof(bufResponse));
+    r = AppLayerParserParse(&tv, alp_tctx, &f, ALPROTO_DNS, STREAM_TOCLIENT, bufResponse, sizeof(bufResponse));
     if (r != 0) {
         printf("toserver client 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1532,6 +1529,8 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
 
     json_t *dns = json_object_get(js, "dns");
     FAIL_IF (dns == NULL);
+    JUMP_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(dns, "rcode")), end);
+    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(dns, "tx_id")));
 
     /* Check queries and answers arrays */
     json_t *queries = json_object_get(dns, "queries");
@@ -1550,12 +1549,9 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
     FAIL_IF(query == NULL);
     FAIL_IF(answer == NULL);
 
-	JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
 
 /*
   {
-	"type": "query",
-	"id": 4146,
 	"rrname": "google.com",
 	"rrtype": "TXT",
 	"tx_id": 4146
@@ -1564,30 +1560,23 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
 */
 
     /* Check string values */
-    JUMP_IF_STR_DIFFERS("query",      json_string_value( json_object_get(query, "type")), end);
     JUMP_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(query, "rrname")), end);
     JUMP_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(query, "rrtype")), end);
 
 /*
  {
     "rrtype": "A",
-    "type": "answer",
-    "id": 4146,
     "rrname": "google.com",
-    "rcode": "NOERROR",
     "ttl": 16623,
     "rdata": "1.2.3.4"
   }
 */
 
     /* Check string values */
-    JUMP_IF_STR_DIFFERS("answer",     json_string_value( json_object_get(answer, "type")), end);
     JUMP_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(answer, "rrname")), end);
-    JUMP_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(answer, "rcode")), end);
     JUMP_IF_STR_DIFFERS("A",          json_string_value( json_object_get(answer, "rrtype")), end);
     JUMP_IF_STR_DIFFERS("1.2.3.4",    json_string_value( json_object_get(answer, "rdata")), end);
     FAIL_IF( 16623 !=                json_integer_value( json_object_get(answer, "ttl")));
-    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(answer, "id")));
 
 
     result = 1;
