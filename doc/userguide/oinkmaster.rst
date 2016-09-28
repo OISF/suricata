@@ -23,7 +23,7 @@ Oinkmaster has to know where the rules an be found. These rules can be found at:
 
 ::
 
-  http://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz
+  https://rules.emergingthreats.net/open/suricata-3.2/emerging.rules.tar.gz
 
 open oinkmaster.conf to add this link by entering:
 
