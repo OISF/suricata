@@ -5,7 +5,7 @@ Syntax:
 
 ::
 
-  luajit:[!]<scriptfilename>;
+  lua:[!]<scriptfilename>;
 
 The script filename will be appended to your default rules location.
 
