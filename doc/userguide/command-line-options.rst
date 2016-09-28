@@ -3,14 +3,15 @@ Command Line Options
 
 .. toctree::
 
-You can use command line options in two ways. Using only one line
-followed by one character or using two lines followed by a word, like
-this:
+Suricata's command line options:
 
-::
+.. option:: -h
 
-  -a
-  --long-option
+   Display a brief usage overview.
+
+.. option:: -V
+
+   Displays the version of Suricata.
 
 .. option:: -c <path>
 
@@ -20,8 +21,13 @@ this:
 .. option::  -i <interface>
 
    After the -i option you can enter the interface card you would like
-   to use to sniff packets from.  It concerns sniffing packets with
-   libpcap in the pcap live mode.
+   to use to sniff packets from.  This option will try to use the best
+   capture method available.
+
+.. option:: -v
+
+   The -v option enables more verbosity of Suricata's output. Supply
+   multiple times for more verbosity.
 
 .. option::  -r <filename.pcap>
 
@@ -32,7 +38,12 @@ this:
 .. option:: -s <filename.rules>
 
    With the -s option you can set a file with signatures, which will
-   be loaded together with the rules set in yaml.
+   be loaded together with the rules set in the yaml.
+
+.. option:: -S <filename.rules>
+
+   With the -S option you can set a file with signatures, which will
+   be loaded exclusively, regardless of the rules set in the yaml.
 
 .. option:: -l <directory>
 
@@ -71,8 +82,36 @@ this:
 
 For more information about runmodes see: :doc:`performance/runmodes`
 
+.. option:: --build-info
+
+   Gives an overview of the configure and build options that were
+   supplied to Suricata's build process at compile time.
+
+Capture Options
+~~~~~~~~~~~~~~~
+
+.. option:: --af-packet
+.. option:: --af-packet=<device>
+
+   Enable capture of packet using AF_PACKET on Linux. If no device is
+   supplied, the list of devices from the af-packet section in the
+   yaml is used.
+
+.. option:: --netmap
+.. option:: --netmap=<device>
+
+   Enable capture of packet using NETMAP on FreeBSD or Linux. If no
+   device is supplied, the list of devices from the af-packet section
+   in the yaml is used.
+
 Unit Tests
 ~~~~~~~~~~
+
+Builtin unittests are only available if Suricata has been built with
+--enable-unittests.
+
+Running unittests does not take a configuration file. Use -l to supply
+an output directory.
 
 .. option:: -u
 
@@ -95,9 +134,3 @@ Unit Tests
    will stop immediately after one test fails so you can see directly
    where it went wrong.
 
-PF_RING options
-~~~~~~~~~~~~~~~
-
-In order to use PF_RING-enabled libpcap, you must start suricata with
-the --pfring-int= switch or it will not invoke the PF_RING
-enhancements in libpcap.
