@@ -7,7 +7,6 @@ EXTRA_DIST = \
 	initscripts.rst \
 	public-data-sets.rst \
 	what-is-suricata.rst \
-	dropping-privileges.rst \
 	make-sense-alerts.rst \
 	setting-up-ipsinline-for-linux.rst \
 	capture-hardware \

@@ -8,3 +8,4 @@ Configuration
    snort-to-suricata
    log-rotation
    multi-tenant
+   dropping-privileges

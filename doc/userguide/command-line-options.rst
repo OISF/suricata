@@ -3,8 +3,6 @@ Command Line Options
 
 .. toctree::
 
-   dropping-privileges
-
 You can use command line options in two ways. Using only one line
 followed by one character or using two lines followed by a word, like
 this:
