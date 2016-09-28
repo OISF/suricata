@@ -15,8 +15,7 @@ Suricata's command line options:
 
 .. option:: -c <path>
 
-   The -c option the most important option. After -c you can enter the
-   path to the location of suricata.yaml.
+   Select suricata.yaml configuration file.
 
 .. option::  -i <interface>
 
@@ -62,23 +61,13 @@ Suricata's command line options:
    able to use the console for other tasks without disturbing the
    engine running.
 
-.. option:: --list-app-layer-protos
-
-   List supported app layer protocols.
-
-.. option:: --list-keywords[=all|csv|<kword>]
-
-   List keywords implemented by the engine
-
-.. option:: --list-runmodes
-
-   The option --list-runmodes lists all possible runmodes.
-
 .. option:: --runmode <runmode>
 
-   (in combination with the command line opion -i or -r) With
-   the --runmode option you can set the runmode that you would like to
-   use. This command line option can override the yaml runmode option.
+   With the --runmode option you can set the runmode that you would
+   like to use. This command line option can override the yaml
+   runmode option.
+
+   Runmodes are: workers, autofp and single.
 
 For more information about runmodes see: :doc:`performance/runmodes`
 
@@ -101,8 +90,31 @@ Capture Options
 .. option:: --netmap=<device>
 
    Enable capture of packet using NETMAP on FreeBSD or Linux. If no
-   device is supplied, the list of devices from the af-packet section
+   device is supplied, the list of devices from the netmap section
    in the yaml is used.
+
+Advanced Options
+~~~~~~~~~~~~~~~~
+
+.. option:: --dump-config
+
+   Displays a list of key value pairs with Suricata's configuration.
+
+.. option:: --set <key>=<value>
+
+   Override any configuration option.
+
+.. option:: --list-app-layer-protos
+
+   List supported app layer protocols.
+
+.. option:: --list-keywords[=all|csv|<kword>]
+
+   List keywords implemented by the engine
+
+.. option:: --list-runmodes
+
+   The option --list-runmodes lists all possible runmodes.
 
 Unit Tests
 ~~~~~~~~~~
