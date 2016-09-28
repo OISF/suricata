@@ -3,13 +3,13 @@ Performance
 
 .. toctree::
 
-   high-performance-config
+   runmodes
+   packet-capture
    tuning-considerations
+   hyperscan
+   high-performance-config
    statistics
+   ignoring-traffic
    packet-profiling
    rule-profiling
-   runmodes
    tcmalloc
-   ignoring-traffic
-   hyperscan
-   packet-capture
