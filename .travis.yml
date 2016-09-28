@@ -32,6 +32,7 @@ addons:
       - libjansson-dev
       - libevent-dev
       - libevent-pthreads-2.0-5
+      - linux-headers 
     # Now define the default set of packages which is those above, and
     # libjansson.
     packages: &packages
