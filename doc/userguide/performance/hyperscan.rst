@@ -1,16 +1,39 @@
-Hyperscan guide for Ubuntu
-==========================
+Hyperscan
+=========
 
 Introduction
-============
+~~~~~~~~~~~~
 
 "Hyperscan is a high-performance multiple regex matching library." https://01.org/hyperscan
 
 In Suricata it can be used to perform multi pattern matching (mpm). Support was implemented by Justin Viiret and Jim Xu from Intel: https://github.com/inliniac/suricata/pull/1965, https://redmine.openinfosecfoundation.org/issues/1704
 
+Compilation
+~~~~~~~~~~~
 
-Installation
-============
+It's possible to pass --with-libhs-includes=/usr/local/include/hs/ --with-libhs-libraries=/usr/local/lib/, although by default this shouldn't be necessary. Suricata should pick up Hyperscan's pkg-config file automagically.
+
+When Suricata's compilation succeeded, you should have:
+
+::
+
+
+  suricata --build-info|grep Hyperscan
+    Hyperscan support:                       yes
+
+
+Using Hyperscan
+~~~~~~~~~~~~~~~
+
+To use the hyperscan support edit your suricata.yaml. Change the mpm-algo and spm-algo values to 'hs'.
+
+Alternatively, use this commandline option: --set mpm-algo=hs --set spm-algo=hs
+
+
+
+
+Ubuntu Hyperscan Installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To use Suricata with Hyperscan support, install dependencies:
 
@@ -35,7 +58,7 @@ On Ubuntu 15.10 or 16.04+, simply do:
 
 
 Trusty
-~~~~~~
+------
 
 Trusty has 1.57, so it's too old. We can grab a newer libboost version, but we *don't* install it system wide. It's only the headers we care about during compilation of Hyperscan.
 
@@ -111,28 +134,3 @@ Note that you may have to add /usr/local/lib to your ld search path
   echo "/usr/local/lib" | sudo tee --append /etc/ld.so.conf.d/usrlocal.conf
   sudo ldconfig
 
-Suricata
---------
-
-Compilation
-~~~~~~~~~~~
-
-Suricata's installation is now quite standard.
-
-It's possible to pass --with-libhs-includes=/usr/local/include/hs/ --with-libhs-libraries=/usr/local/lib/, although by default this shouldn't be necessary. Suricata should pick up Hyperscan's pkg-config file automagically.
-
-When Suricata's compilation succeeded, you should have:
-
-::
-
-
-  suricata --build-info|grep Hyperscan
-    Hyperscan support:                       yes
-
-
-Using Hyperscan
-~~~~~~~~~~~~~~~
-
-To use the hyperscan support edit your suricata.yaml and change the mpm-algo value to 'hs'.
-
-Alternatively, use this commandline option: --set mpm-algo=hs

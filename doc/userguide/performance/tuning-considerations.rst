@@ -15,7 +15,7 @@ Suggested setting: 1000 or higher. Max is ~65000.
 mpm-algo: <ac|hs|ac-bs|ac-ks>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Controls the pattern matcher algorithm. AC is the default. On supported platforms, :doc:`performance/hyperscan` is the best option.
+Controls the pattern matcher algorithm. AC is the default. On supported platforms, :doc:`performance/Hyperscan` is the best option.
 
 detect.profile: <low|medium|high|custom>
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
