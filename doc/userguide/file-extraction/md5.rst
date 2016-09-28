@@ -3,125 +3,6 @@
 Storing MD5s checksums
 ======================
 
-In this particular example we are using: Ubuntu 14.04 LTS
-
-Also - we are using the latest git master (git installation)
-
-Make sure you have libnss and libnspr installed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-::
-
-
-  root@LTS-64-1:~/Work/tmp/oisf# dpkg -l |grep libnss
-  ii  libnss-mdns:amd64                                     0.10-6                                              amd64        NSS module for Multicast DNS name resolution
-  ii  libnss3:amd64                                         2:3.17.4-0ubuntu0.14.04.1                           amd64        Network Security Service libraries
-  ii  libnss3-1d:amd64                                      2:3.17.4-0ubuntu0.14.04.1                           amd64        Network Security Service libraries - transitional package
-  ii  libnss3-dev:amd64                                     2:3.17.4-0ubuntu0.14.04.1                           amd64        Development files for the Network Security Service libraries
-  ii  libnss3-nssdb                                         2:3.17.4-0ubuntu0.14.04.1                           all          Network Security Security libraries - shared databases
-  ii  libnss3-tools                                         2:3.17.4-0ubuntu0.14.04.1                           amd64        Network Security Service tools
-
-
-
-::
-
-
-  root@LTS-64-1:~/Work/tmp/oisf# dpkg -l |grep libnspr
-  ii  libnspr4:amd64                                        2:4.10.7-0ubuntu0.14.04.1                           amd64        NetScape Portable Runtime Library
-  ii  libnspr4-dev                                          2:4.10.7-0ubuntu0.14.04.1                           amd64        Development files for the NetScape Portable Runtime library
-
-If not install them:
-
-::
-
-
-  apt-get install libnss3-dev libnspr4-dev
-
-**Note:** Fedora users need to install the following:
-
-::
-
-
-  nss-util
-  nss-util-devel
-  nss-devel
-  nspr-devel
-  nspr
-
-Get the Suricata code
-~~~~~~~~~~~~~~~~~~~~~
-
-Execute:
-
-::
-
-
-  git clone git://phalanx.openinfosecfoundation.org/oisf.git && cd oisf
-  git clone https://github.com/OISF/libhtp.git -b 0.5.x
-
-Building Suricata
-~~~~~~~~~~~~~~~~~~
-
-You have to compile/install suri like this in order to enable MD5s:
-
-::
-
-
-  ./autogen.sh
-  ./configure --with-libnss-libraries=/usr/lib --with-libnss-includes=/usr/include/nss/ --with-libnspr-libraries=/usr/lib --with-libnspr-includes=/usr/include/nspr
-  make clean
-  make
-  sudo make install
-
-
-Output of configure:
-
-
-::
-
-
-  Suricata Configuration:
-     AF_PACKET support:                       yes
-     PF_RING support:                         no
-     NFQueue support:                         no
-     IPFW support:                            no
-     DAG enabled:                             no
-     Napatech enabled:                        no
-
-     libnss support:                          yes
-     libnspr support:                         yes
-     Prelude support:                         no
-     PCRE jit:                                no
-
-This is what is important to have:
-
-::
-
-
-  libnss support:                          yes
-  libnspr support:                         yes
-
-Confirm everything is built correctly:
-
-
-::
-
-
-  # suricata --build-info
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:502) <Info> (SCPrintBuildInfo) -- This is Suricata version 1.3dev (rev e6dea5c)
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:575) <Info> (SCPrintBuildInfo) -- Features: PCAP_SET_BUFF LIBPCAP_VERSION_MAJOR=1 AF_PACKET HAVE_PACKET_FANOUT LIBCAP_NG LIBNET1.1 HAVE_HTP_URI_NORMALIZE_HOOK HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW HAVE_NSS
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:589) <Info> (SCPrintBuildInfo) -- 32-bits, Little-endian architecture
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:591) <Info> (SCPrintBuildInfo) -- GCC version 4.4.5, C version 199901
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:597) <Info> (SCPrintBuildInfo) -- __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:600) <Info> (SCPrintBuildInfo) -- __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:603) <Info> (SCPrintBuildInfo) -- __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:606) <Info> (SCPrintBuildInfo) -- __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:613) <Info> (SCPrintBuildInfo) -- compiled with -fstack-protector
-  [10010] 1/5/2012 -- 11:16:23 - (suricata.c:619) <Info> (SCPrintBuildInfo) -- compiled with _FORTIFY_SOURCE=2
-
-Make sure we have **HAVE_NSS** in the **Features** line.
-
 Configuration
 ~~~~~~~~~~~~~
 
@@ -194,7 +75,7 @@ For the purpose of testing we use this rule only in a file.rules (a test/example
 
 This rule above will save all the file data for files that are opened/downloaded through HTTP
 
-Start Suricta (-S option loads ONLY the specified rule file, with disregard if any other rules that are enabled in suricata.yaml):
+Start Suricata (-S option loads ONLY the specified rule file, with disregard if any other rules that are enabled in suricata.yaml):
 
 
 ::
@@ -203,12 +84,7 @@ Start Suricta (-S option loads ONLY the specified rule file, with disregard if a
   suricata -c /etc/suricata/suricata.yaml -S file.rules -i eth0
 
 
-I tried that link (Cisco Prod Brochure PDF, just googled "Cisco PDF"):
-
-* http://www.cisco.com/c/en/us/products/routers/3800-series-integrated-services-routers-isr/index.html
-
-and in file directory (/var/log/suricata/files) I got the meta data:
-
+Meta data:
 
 
 ::
@@ -263,4 +139,3 @@ If you would like to log MD5s for everything and anything that passes through th
       force-magic: yes   # force logging magic on all logged files
       force-md5: yes     # force logging of md5 checksums
 
-This is in short what is needed to have MD5s logged.

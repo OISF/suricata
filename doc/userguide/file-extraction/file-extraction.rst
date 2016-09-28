@@ -1,19 +1,10 @@
 File Extraction
 ===============
 
-.. toctree::
-
-   md5
-   filemd5-and-whiteblacklisting-with-md5
-   public-sha1-md5-data-sets
-
-Starting with Suricata version 1.2 it's possible to extract files from HTTP sessions as well as match on file name, extension and "magic".
-
-
 Architecture
 ~~~~~~~~~~~~
 
-The file extraction code works on top of the HTTP parser which itself is largely a wrapper for libhtp. The HTTP parser takes care of dechunking and unzipping the request and/or response data if necessary. The HTTP parser runs on top of the stream reassembly engine.
+The file extraction code works on top of the HTTP and SMTP parsers. The HTTP parser takes care of dechunking and unzipping the request and/or response data if necessary. The HTTP/SMTP parsers runs on top of the stream reassembly engine.
 
 This means that settings in the stream engine, reassembly engine and the HTTP parser all affect the workings of the file extraction.
 
@@ -30,53 +21,6 @@ Settings
 *libhtp.default-config.request-body-limit* / *libhtp.server-config.<config>.request-body-limit* controls how much of the HTTP request body is tracked for inspection by the http_client_body keyword, but also used to limit file inspection. A value of 0 means unlimited.
 
 *libhtp.default-config.response-body-limit* / *libhtp.server-config.<config>.response-body-limit* is like the request body limit, only it applies to the HTTP response body.
-
-NIC offloading
-~~~~~~~~~~~~~~
-
-NIC offloading should be disabled:
-
-::
-
-
-  apt-get install ethtool
-
-
-::
-
-
-  ethtool -k eth3
-
-  Offload parameters for eth3:
-  rx-checksumming: off
-  tx-checksumming: off
-  scatter-gather: off
-  tcp-segmentation-offload: off
-  udp-fragmentation-offload: off
-  generic-segmentation-offload: off
-  generic-receive-offload: off
-  large-receive-offload: off
-  rx-vlan-offload: off
-  tx-vlan-offload: off
-
-Everything should be OFF. If it is not here is how you can disable it:
-
-
-::
-
-
-  ethtool -K eth3 tso off
-  ethtool -K eth3 gro off
-  ethtool -K eth3 lro off
-  ethtool -K eth3 gso off
-  ethtool -K eth3 rx off
-  ethtool -K eth3 tx off
-  ethtool -K eth3 sg off
-  ethtool -K eth3 rxvlan off
-  ethtool -K eth3 txvlan off
-
-NOTICE the difference between small k and a BIG K !!
-Please make sure you choose the appropriate interface name (eth0,eth1,eth5...)
 
 
 Output
@@ -148,3 +92,10 @@ MD5
 ~~~
 
 Suricata can calculate MD5 checksums of files on the fly and log them. See :doc:`md5` for an explanation on how to enable this.
+
+
+.. toctree::
+
+   md5
+   public-sha1-md5-data-sets
+
