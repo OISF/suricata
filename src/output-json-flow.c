@@ -219,6 +219,24 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         state = "established";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_CLOSED)
         state = "closed";
+    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED) {
+        state = "bypassed";
+        int flow_state = SC_ATOMIC_GET(f->flow_state);
+        switch (flow_state) {
+            case FLOW_STATE_LOCAL_BYPASSED:
+                json_object_set_new(hjs, "bypass",
+                        json_string("local"));
+                break;
+            case FLOW_STATE_CAPTURE_BYPASSED:
+                json_object_set_new(hjs, "bypass",
+                        json_string("capture"));
+                break;
+            default:
+                SCLogError(SC_ERR_INVALID_VALUE,
+                           "Invalid flow state: %d, contact developers",
+                           flow_state);
+        }
+    }
 
     json_object_set_new(hjs, "state",
             json_string(state));

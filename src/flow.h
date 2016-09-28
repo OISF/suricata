@@ -190,6 +190,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_END_FLAG_TIMEOUT           0x10
 #define FLOW_END_FLAG_FORCED            0x20
 #define FLOW_END_FLAG_SHUTDOWN          0x40
+#define FLOW_END_FLAG_STATE_BYPASSED    0x80
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -425,12 +426,15 @@ enum FlowState {
     FLOW_STATE_NEW = 0,
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
+    FLOW_STATE_LOCAL_BYPASSED,
+    FLOW_STATE_CAPTURE_BYPASSED,
 };
 
 typedef struct FlowProtoTimeout_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t closed_timeout;
+    uint32_t bypassed_timeout;
 } FlowProtoTimeout;
 
 typedef struct FlowProtoFreeFunc_ {

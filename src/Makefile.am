@@ -76,6 +76,7 @@ detect-base64-decode.c detect-base64-decode.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
+detect-bypass.c detect-bypass.h \
 detect.c detect.h \
 detect-classtype.c detect-classtype.h \
 detect-content.c detect-content.h \
@@ -208,6 +209,7 @@ detect-template.c detect-template.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
+detect-tls-cert-validity.c detect-tls-cert-validity.h \
 detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
 detect-ttl.c detect-ttl.h \

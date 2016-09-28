@@ -127,6 +127,7 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_TLSSNI_MATCH,
     DETECT_SM_LIST_TLSISSUER_MATCH,
     DETECT_SM_LIST_TLSSUBJECT_MATCH,
+    DETECT_SM_LIST_TLSVALIDITY_MATCH,
 
     DETECT_SM_LIST_MODBUS_MATCH,
 
@@ -272,6 +273,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_BYPASS                (1<<22)
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -1179,6 +1181,8 @@ enum {
     DETECT_AL_TLS_VERSION,
     DETECT_AL_TLS_SUBJECT,
     DETECT_AL_TLS_ISSUERDN,
+    DETECT_AL_TLS_NOTBEFORE,
+    DETECT_AL_TLS_NOTAFTER,
     DETECT_AL_TLS_FINGERPRINT,
     DETECT_AL_TLS_STORE,
 
@@ -1240,6 +1244,8 @@ enum {
 
     DETECT_TEMPLATE,
     DETECT_AL_TEMPLATE_BUFFER,
+
+    DETECT_BYPASS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

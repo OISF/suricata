@@ -157,10 +157,6 @@ void FileForceHashParseCfg(ConfNode *conf)
         ConfNode *field = NULL;
 
         TAILQ_FOREACH(field, &forcehash_node->head, next) {
-            if (field == NULL) {
-                break;
-            }
-
             if (strcasecmp("md5", field->val) == 0) {
 #ifdef HAVE_NSS
                 FileForceMd5Enable();

@@ -42,6 +42,7 @@ enum {
     TLS_DECODER_EVENT_INVALID_HEARTBEAT,
     TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT,
     TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH,
+    TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH,
     TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS,
     TLS_DECODER_EVENT_INVALID_SNI_TYPE,
     TLS_DECODER_EVENT_INVALID_SNI_LENGTH,
@@ -146,6 +147,8 @@ typedef struct SSLStateConnp_ {
 
     char *cert0_subject;
     char *cert0_issuerdn;
+    time_t cert0_not_before;
+    time_t cert0_not_after;
     char *cert0_fingerprint;
 
     /* ssl server name indication extension */

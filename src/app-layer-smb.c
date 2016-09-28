@@ -1558,6 +1558,7 @@ void RegisterSMBParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "flow-util.h"
 
 /**
  * \test SMBParserTest01 tests the NBSS and SMB header decoding
@@ -1585,19 +1586,21 @@ int SMBParserTest01(void)
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                                STREAM_TOSERVER | STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1625,6 +1628,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1662,19 +1666,21 @@ int SMBParserTest02(void)
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                                STREAM_TOSERVER | STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1703,6 +1709,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1958,19 +1965,21 @@ int SMBParserTest03(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -1983,28 +1992,31 @@ int SMBParserTest03(void)
         goto end;
     }
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
+    FLOWLOCK_UNLOCK(&f);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
     printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2075,19 +2087,21 @@ int SMBParserTest04(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2100,36 +2114,40 @@ int SMBParserTest04(void)
         goto end;
     }
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
+    FLOWLOCK_UNLOCK(&f);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf4, smblen4);
+    FLOWLOCK_UNLOCK(&f);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf4, smblen4);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2230,6 +2248,7 @@ int SMBParserTest05(void)
     AppLayerProtoDetectUnittestCtxRestore();
     if (alpd_tctx != NULL)
         AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2313,6 +2332,7 @@ int SMBParserTest06(void)
     AppLayerProtoDetectUnittestCtxRestore();
     if (alpd_tctx != NULL)
         AppLayerProtoDetectDestroyCtxThread(alpd_tctx);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2330,19 +2350,21 @@ int SMBParserTest07(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2371,6 +2393,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2404,19 +2427,21 @@ int SMBParserTest08(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2440,14 +2465,15 @@ int SMBParserTest08(void)
         goto end;
     }
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT,
+                            smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
         printf("we should expect SMB command 0x%02x , got 0x%02x : ",
@@ -2471,6 +2497,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2518,19 +2545,21 @@ int SMBParserTest09(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2554,14 +2583,15 @@ int SMBParserTest09(void)
         goto end;
     }
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER,
+                            smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
         printf("we should expect SMB command 0x%02x , got 0x%02x : ",
@@ -2585,6 +2615,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2640,19 +2671,21 @@ int SMBParserTest10(void)
     int r = 0;
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB,
+                            STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMBState *smb_state = f.alstate;
     if (smb_state == NULL) {
@@ -2665,20 +2698,22 @@ int SMBParserTest10(void)
         goto end;
     }
 
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
+    FLOWLOCK_WRLOCK(&f);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB, STREAM_TOCLIENT,
+                            smbbuf2, smblen2);
     if (r == 0) {
         printf("smb parser didn't return fail\n");
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

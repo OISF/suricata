@@ -167,6 +167,7 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_TLSSNI_MATCH, "tls_sni");
         CASE_CODE_STRING(DETECT_SM_LIST_TLSISSUER_MATCH, "tls_cert_issuer");
         CASE_CODE_STRING(DETECT_SM_LIST_TLSSUBJECT_MATCH, "tls_cert_subject");
+        CASE_CODE_STRING(DETECT_SM_LIST_TLSVALIDITY_MATCH, "tls_cert_validity");
         CASE_CODE_STRING(DETECT_SM_LIST_MODBUS_MATCH, "modbus");
         CASE_CODE_STRING(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH, "template");
         CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
@@ -210,6 +211,7 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_TLSSNI_MATCH);
         CASE_CODE(DETECT_SM_LIST_TLSISSUER_MATCH);
         CASE_CODE(DETECT_SM_LIST_TLSSUBJECT_MATCH);
+        CASE_CODE(DETECT_SM_LIST_TLSVALIDITY_MATCH);
         CASE_CODE(DETECT_SM_LIST_MODBUS_MATCH);
         CASE_CODE(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH);
         CASE_CODE(DETECT_SM_LIST_POSTMATCH);
@@ -605,6 +607,26 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
                     optname, optstr);
             goto error;
+        }
+    }
+
+    /* Validate double quoting, trimming trailing white space along the way. */
+    if (strlen(optvalue) > 0) {
+        size_t ovlen = strlen(optvalue);
+        if (ovlen && optvalue[0] == '"') {
+            for (; ovlen > 0; ovlen--) {
+                if (isblank(optvalue[ovlen - 1])) {
+                    optvalue[ovlen - 1] = '\0';
+                } else {
+                    break;
+                }
+            }
+            if (ovlen && optvalue[ovlen - 1] != '"') {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bad option value formatting (possible missing semicolon) "
+                    "for keyword %s: \'%s\'", optname, optvalue);
+                goto error;
+            }
         }
     }
 
@@ -1566,6 +1588,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_TLSVALIDITY_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (sig->sm_lists[DETECT_SM_LIST_MODBUS_MATCH])
@@ -3585,6 +3609,21 @@ end:
     return result;
 }
 
+static int SigParseTestUnblanacedQuotes01(void)
+{
+    DetectEngineCtx *de_ctx;
+    Signature *s;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx, "alert http any any -> any any (msg:\"SigParseTestUnblanacedQuotes01\"; pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
+    FAIL_IF_NOT_NULL(s);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void)
@@ -3639,5 +3678,7 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01);
     UtRegisterTest("SigParseTestAppLayerTLS02", SigParseTestAppLayerTLS02);
     UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03);
+    UtRegisterTest("SigParseTestUnblanacedQuotes01",
+        SigParseTestUnblanacedQuotes01);
 #endif /* UNITTESTS */
 }

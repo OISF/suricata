@@ -126,10 +126,10 @@ static int DetectTemplateBufferTest(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
-    AppLayerParserParse(alp_tctx, &f, ALPROTO_TEMPLATE, STREAM_TOSERVER,
-        request, sizeof(request));
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_WRLOCK(&f);
+    AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TEMPLATE,
+                        STREAM_TOSERVER, request, sizeof(request));
+    FLOWLOCK_UNLOCK(&f);
 
     /* Check that we have app-layer state. */
     FAIL_IF_NULL(f.alstate);

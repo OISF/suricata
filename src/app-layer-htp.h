@@ -133,13 +133,6 @@ enum {
     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER,
 };
 
-#define HTP_PCRE_NONE           0x00    /**< No pcre executed yet */
-#define HTP_PCRE_DONE           0x01    /**< Flag to indicate that pcre has
-                                             done some inspection in the
-                                             chunks */
-#define HTP_PCRE_HAS_MATCH      0x02    /**< Flag to indicate that the chunks
-                                             matched on some rule */
-
 typedef struct HTPCfgDir_ {
     uint32_t body_limit;
     uint32_t inspect_min_size;
@@ -191,16 +184,6 @@ typedef struct HtpBody_ {
 #define HTP_BOUNDARY_OPEN       0x04    /**< We have a boundary string */
 #define HTP_FILENAME_SET        0x08   /**< filename is registered in the flow */
 #define HTP_DONTSTORE           0x10    /**< not storing this file */
-
-#define HTP_TX_HAS_FILE             0x01
-#define HTP_TX_HAS_FILENAME         0x02    /**< filename is known at this time */
-#define HTP_TX_HAS_TYPE             0x04
-#define HTP_TX_HAS_FILECONTENT      0x08    /**< file has content so we can do type detect */
-
-#define HTP_RULE_NEED_FILE          HTP_TX_HAS_FILE
-#define HTP_RULE_NEED_FILENAME      HTP_TX_HAS_FILENAME
-#define HTP_RULE_NEED_TYPE          HTP_TX_HAS_TYPE
-#define HTP_RULE_NEED_FILECONTENT   HTP_TX_HAS_FILECONTENT
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */

@@ -640,15 +640,17 @@ int SMB2ParserTest01(void)
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB2,
+                                STREAM_TOSERVER | STREAM_EOF, smb2buf,
+                                smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
-        SCMutexUnlock(&f.m);
+        FLOWLOCK_UNLOCK(&f);
         goto end;
     }
-    SCMutexUnlock(&f.m);
+    FLOWLOCK_UNLOCK(&f);
 
     SMB2State *smb2_state = f.alstate;
     if (smb2_state == NULL) {
