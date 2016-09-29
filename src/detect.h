@@ -131,6 +131,9 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_MODBUS_MATCH,
 
+    DETECT_SM_LIST_CIP_MATCH,
+    DETECT_SM_LIST_ENIP_MATCH,
+
     DETECT_SM_LIST_BASE64_DATA,
 
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
@@ -297,6 +300,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
 #define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
 #define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<13)
+#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<14)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
@@ -1237,6 +1241,8 @@ enum {
     DETECT_AL_TLS_CERT_ISSUER,
     DETECT_AL_TLS_CERT_SUBJECT,
     DETECT_AL_MODBUS,
+    DETECT_CIPSERVICE,
+    DETECT_ENIPCOMMAND,
 
     DETECT_XBITS,
     DETECT_BASE64_DECODE,
