@@ -245,10 +245,16 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCReturnInt(ret);
 }
 
-static int DetectPcreSetList(int list, int set)
+static int DetectPcreSetList(DetectEngineCtx *de_ctx, int list, int set)
 {
     if (list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "only one pcre option to specify a buffer type is allowed");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("only one pcre option to specify a buffer type is allowed");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return -1;
     }
     return set;
@@ -373,6 +379,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                 case 'B': /* snort's option */
                     if (*sm_list != DETECT_SM_LIST_NOTSET) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with chosen buffer");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'B' inconsistent with chosen buffer");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_RAWBYTES;
@@ -386,77 +399,133 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                 case 'U': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'U' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_UMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_UMATCH);
                     break;
                 case 'V':
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'V' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'V' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HUADMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HUADMATCH);
                     break;
                 case 'W':
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'W' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'W' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HHHDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HHHDMATCH);
                     break;
                 case 'Z':
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'Z' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'Z' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRHHDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HRHHDMATCH);
                     break;
                 case 'H': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'H' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HHDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HHDMATCH);
                     break;
                 case 'I': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'I' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRUDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HRUDMATCH);
                     break;
                 case 'D': /* snort's option */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRHDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HRHDMATCH);
                     break;
                 case 'M': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'M' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HMDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HMDMATCH);
                     break;
                 case 'C': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'C' inconsistent with 'B'");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("regex modifier 'C' inconsistent with 'B'");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HCDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HCDMATCH);
                     break;
                 case 'P':
                     /* snort's option (http request body inspection) */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HCBDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HCBDMATCH);
                     break;
                 case 'Q':
                     /* suricata extension (http response body inspection) */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_FILEDATA);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_FILEDATA);
                     break;
                 case 'Y':
                     /* snort's option */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSMDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HSMDMATCH);
                     break;
                 case 'S':
                     /* snort's option */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSCDMATCH);
+                    *sm_list = DetectPcreSetList(de_ctx, *sm_list, DETECT_SM_LIST_HSCDMATCH);
                     break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
@@ -485,6 +554,13 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                 "Since the hostname buffer we match against "
                 "is actually lowercase, please specify an "
                 "all lowercase based pcre.");
+            if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("pcre host(\"W\") specified has an uppercase char.  Since the hostname buffer we match against is actually lowercase, please specify an all lowercase based pcre.");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+            }
             goto error;
         }
     }
@@ -676,6 +752,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with http "
                        "modifier set, with file_data/dce_stub_data sticky "
                        "option set.");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("pcre found with http modifier set, with file_data/dce_stub_data sticky option set.");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
     }
@@ -754,6 +836,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (s->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre with /R (relative) needs "
                 "preceeding match in the same buffer");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("pcre with /R (relative) needs preceeding match in the same buffer");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error_nofree;
     /* null is allowed when we use a sticky buffer */
     } else if (prev_pm == NULL)

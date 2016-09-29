@@ -103,12 +103,26 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     if (s->alproto == ALPROTO_HTTP && (s->init_flags & SIG_FLAG_INIT_FLOW) &&
         (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http.");
+            if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Can't use file_data with flow:to_server or from_client with http.");
+                    if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                    }
+            }
             return -1;
     }
 
     if (s->alproto == ALPROTO_SMTP && (s->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_client or from_server with smtp.");
+            if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Can't use file_data with flow:to_client or from_server with smtp.");
+                    if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                    }
+            }
             return -1;
     }
 

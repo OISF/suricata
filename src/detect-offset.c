@@ -108,6 +108,12 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 
     if (cd->flags & DETECT_CONTENT_OFFSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't use multiple offsets for the same content. ");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
     if ((cd->flags & DETECT_CONTENT_WITHIN) || (cd->flags & DETECT_CONTENT_DISTANCE)) {
@@ -115,16 +121,34 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                    "keyword like within/distance with a absolute "
                    "relative keyword like depth/offset for the same "
                    "content." );
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't use a relative keyword like within/distance with a absolute relative keyword like depth/offset for the same content.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_NEGATED && cd->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                    "negated keyword set along with a fast_pattern");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't have a relative negated keyword set along with a fast_pattern");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                    "keyword set along with a fast_pattern:only;");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't have a relative keyword set along with a fast_pattern:only;");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
     if (str[0] != '-' && isalpha((unsigned char)str[0])) {

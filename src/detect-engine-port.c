@@ -958,7 +958,7 @@ error:
  * \retval  0 On successfully parsing.
  * \retval -1 On failure.
  */
-static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
+static int DetectPortParseDo(DetectEngineCtx *de_ctx,
                              DetectPort **head, DetectPort **nhead,
                              char *s, int negate, ResolvedVariablesList *var_list)
 {
@@ -1348,7 +1348,7 @@ int DetectPortTestConfVars(void)
  * \retval 0 on success
  * \retval -1 on error
  */
-int DetectPortParse(const DetectEngineCtx *de_ctx,
+int DetectPortParse(DetectEngineCtx *de_ctx,
                     DetectPort **head, char *str)
 {
     int r;

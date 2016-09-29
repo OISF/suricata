@@ -325,6 +325,12 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     if (did == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dec_iface option in "
                    "signature");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Error parsing dec_iface option in signature");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 

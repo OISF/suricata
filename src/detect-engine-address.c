@@ -52,7 +52,8 @@ void DetectAddressPrint(DetectAddress *);
 static int DetectAddressCutNot(DetectAddress *, DetectAddress **);
 static int DetectAddressCut(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                             DetectAddress **);
-int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn);
+int DetectAddressMergeNot(DetectEngineCtx *, DetectAddressHead *gh,
+                          DetectAddressHead *ghn);
 
 /**
  * \brief Creates and returns a new instance of a DetectAddress.
@@ -813,7 +814,7 @@ error:
  * \retval  0 On successfully parsing.
  * \retval -1 On failure.
  */
-static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
+static int DetectAddressParse2(DetectEngineCtx *de_ctx,
         DetectAddressHead *gh, DetectAddressHead *ghn,
         const char *s, int negate, ResolvedVariablesList *var_list)
 {
@@ -898,7 +899,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         DetectAddressPrint(tmp_ad);
                     }
 #endif
-                    if (DetectAddressMergeNot(&tmp_gh, &tmp_ghn) < 0)
+                    if (DetectAddressMergeNot(NULL, &tmp_gh, &tmp_ghn) < 0)
                         goto error;
 
                     SCLogDebug("merged succesfully");
@@ -1097,7 +1098,8 @@ static int DetectAddressIsCompleteIPSpace(DetectAddressHead *gh)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
+int DetectAddressMergeNot(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
+                          DetectAddressHead *ghn)
 {
     DetectAddress *ad;
     DetectAddress *ag, *ag2;
@@ -1112,6 +1114,12 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Complete IP space negated. "
                    "Rule address range is NIL. Probably have a !any or "
                    "an address range that supplies a NULL address range");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Complete IP space negated. Rule address range is NIL. Probably have a !any or an address range that supplies a NULL address range");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
@@ -1273,6 +1281,12 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
     if (gh->ipv4_head == NULL && gh->ipv6_head == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "no addresses left after "
                 "merging addresses and negated addresses");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("no addresses left after merging addresses and negated addresses");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
@@ -1451,7 +1465,7 @@ const DetectAddressHead *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectAddressParse(const DetectEngineCtx *de_ctx,
+int DetectAddressParse(DetectEngineCtx *de_ctx,
                        DetectAddressHead *gh, const char *str)
 {
     int r;
@@ -1480,7 +1494,7 @@ int DetectAddressParse(const DetectEngineCtx *de_ctx,
                ghn->ipv4_head);
 
     /* merge the 'not' address groups */
-    if (DetectAddressMergeNot(gh, ghn) < 0) {
+    if (DetectAddressMergeNot(de_ctx, gh, ghn) < 0) {
         SCLogDebug("DetectAddressMergeNot failed");
         goto error;
     }

@@ -220,7 +220,8 @@ int DetectByteExtractMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  * \param bed On success an instance containing the parsed data.
  *            On failure, NULL.
  */
-static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
+static inline DetectByteExtractData *DetectByteExtractParse(DetectEngineCtx *de_ctx,
+                                                            char *arg)
 {
     DetectByteExtractData *bed = NULL;
 #define MAX_SUBSTRINGS 100
@@ -299,6 +300,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "relative specified more "
                            "than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("relative specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_RELATIVE;
@@ -306,6 +314,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "multiplier specified more "
                            "than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("multiplier specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_MULTIPLIER;
@@ -334,6 +349,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
                            "more than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("endian option specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
@@ -342,6 +364,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
                            "more than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("endian option specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
@@ -350,6 +379,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "endian option specified "
                            "more than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("endian option specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ENDIAN;
@@ -358,12 +394,26 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "string specified more "
                            "than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("string specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "The right way to specify "
                            "base is (string, base) and not (base, string) "
                            "for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("The right way to specify base is (string, base) and not (base, string) for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_STRING;
@@ -372,11 +422,25 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(hex) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Base(hex) specified without specifying string.  The right way is (string, base) and not (base, string)");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
                            "specified for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("More than one base specified for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_HEX;
@@ -385,11 +449,25 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(oct) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Base(oct) specified without specifying string.  The right way is (string, base) and not (base, string)");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
                            "specified for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("More than one base specified for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_OCT;
@@ -398,11 +476,25 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Base(dec) specified "
                            "without specifying string.  The right way is "
                            "(string, base) and not (base, string)");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Base(dec) specified without specifying string.  The right way is (string, base) and not (base, string)");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (bed->base != DETECT_BYTE_EXTRACT_BASE_NONE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "More than one base "
                            "specified for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("More than one base specified for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
@@ -410,6 +502,13 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ALIGN) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Align specified more "
                            "than once for byte_extract");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Align specified more than once for byte_extract");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             bed->flags |= DETECT_BYTE_EXTRACT_FLAG_ALIGN;
@@ -453,6 +552,12 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
             SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't have "
                        "endian \"big\" or \"little\" specified along with "
                        "\"string\"");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("byte_extract can't have endian \"big\" or \"little\" specified along with \"string\"");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         if (bed->base == DETECT_BYTE_EXTRACT_BASE_OCT) {
@@ -525,7 +630,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     DetectByteExtractData *data = NULL;
     int ret = -1;
 
-    data = DetectByteExtractParse(arg);
+    data = DetectByteExtractParse(de_ctx, arg);
     if (data == NULL)
         goto error;
 
@@ -535,6 +640,13 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             if (data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "dce byte_extract specified "
                            "with file_data option set.");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("dce byte_extract specified with file_data option set.");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             AppLayerHtpEnableResponseBodyCallback();
@@ -678,6 +790,12 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
                        "byte_extract with dce enabled");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Non dce alproto sig has byte_extract with dce enabled");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         s->alproto = ALPROTO_DCERPC;
@@ -785,7 +903,7 @@ int DetectByteExtractTest01(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one");
     if (bed == NULL)
         goto end;
 
@@ -811,7 +929,7 @@ int DetectByteExtractTest02(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, relative");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, relative");
     if (bed == NULL)
         goto end;
 
@@ -837,7 +955,7 @@ int DetectByteExtractTest03(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, multiplier 10");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, multiplier 10");
     if (bed == NULL)
         goto end;
 
@@ -863,7 +981,7 @@ int DetectByteExtractTest04(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, relative, multiplier 10");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, relative, multiplier 10");
     if (bed == NULL)
         goto end;
 
@@ -890,7 +1008,7 @@ int DetectByteExtractTest05(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, big");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, big");
     if (bed == NULL)
         goto end;
 
@@ -916,7 +1034,7 @@ int DetectByteExtractTest06(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, little");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, little");
     if (bed == NULL)
         goto end;
 
@@ -942,7 +1060,7 @@ int DetectByteExtractTest07(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, dce");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, dce");
     if (bed == NULL)
         goto end;
 
@@ -968,7 +1086,7 @@ int DetectByteExtractTest08(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string, hex");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, hex");
     if (bed == NULL)
         goto end;
 
@@ -994,7 +1112,7 @@ int DetectByteExtractTest09(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string, oct");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, oct");
     if (bed == NULL)
         goto end;
 
@@ -1020,7 +1138,7 @@ int DetectByteExtractTest10(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string, dec");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string, dec");
     if (bed == NULL)
         goto end;
 
@@ -1046,7 +1164,7 @@ int DetectByteExtractTest11(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4");
     if (bed == NULL)
         goto end;
 
@@ -1072,7 +1190,7 @@ int DetectByteExtractTest12(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, relative");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative");
     if (bed == NULL)
         goto end;
 
@@ -1099,7 +1217,7 @@ int DetectByteExtractTest13(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, relative, big");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, big");
     if (bed == NULL)
         goto end;
 
@@ -1127,7 +1245,7 @@ int DetectByteExtractTest14(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, relative, dce");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, dce");
     if (bed == NULL)
         goto end;
 
@@ -1155,7 +1273,7 @@ int DetectByteExtractTest15(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, relative, little");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little");
     if (bed == NULL)
         goto end;
 
@@ -1183,7 +1301,7 @@ int DetectByteExtractTest16(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, relative, little, multiplier 2");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, relative, little, multiplier 2");
     if (bed == NULL)
         goto end;
 
@@ -1212,7 +1330,7 @@ int DetectByteExtractTest17(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "relative, little, "
                                                         "multiplier 2, string hex");
     if (bed != NULL)
@@ -1229,7 +1347,7 @@ int DetectByteExtractTest18(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "relative, little, "
                                                         "multiplier 2, "
                                                         "relative");
@@ -1247,7 +1365,7 @@ int DetectByteExtractTest19(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "relative, little, "
                                                         "multiplier 2, "
                                                         "little");
@@ -1265,7 +1383,7 @@ int DetectByteExtractTest20(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "relative, "
                                                         "multiplier 2, "
                                                         "align 2");
@@ -1283,7 +1401,7 @@ int DetectByteExtractTest21(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "multiplier 2, "
                                                         "relative, "
                                                         "multiplier 2");
@@ -1301,7 +1419,7 @@ int DetectByteExtractTest22(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "string hex, "
                                                         "relative, "
                                                         "string hex");
@@ -1319,7 +1437,7 @@ int DetectByteExtractTest23(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "string hex, "
                                                         "relative, "
                                                         "string oct");
@@ -1337,7 +1455,7 @@ int DetectByteExtractTest24(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("24, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, align 4, "
                                                         "string hex, "
                                                         "relative");
     if (bed != NULL)
@@ -1354,7 +1472,7 @@ int DetectByteExtractTest25(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("9, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "9, 2, one, align 4, "
                                                         "little, "
                                                         "relative");
     if (bed != NULL)
@@ -1371,7 +1489,7 @@ int DetectByteExtractTest26(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "little, "
                                                         "relative, "
                                                         "multiplier 65536");
@@ -1389,7 +1507,7 @@ int DetectByteExtractTest27(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, align 4, "
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, align 4, "
                                                         "little, "
                                                         "relative, "
                                                         "multiplier 0");
@@ -1407,7 +1525,7 @@ int DetectByteExtractTest28(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("23, 2, one, string, oct");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "23, 2, one, string, oct");
     if (bed == NULL)
         goto end;
 
@@ -1422,7 +1540,7 @@ int DetectByteExtractTest29(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("24, 2, one, string, oct");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "24, 2, one, string, oct");
     if (bed != NULL)
         goto end;
 
@@ -1437,7 +1555,7 @@ int DetectByteExtractTest30(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("20, 2, one, string, dec");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "20, 2, one, string, dec");
     if (bed == NULL)
         goto end;
 
@@ -1452,7 +1570,7 @@ int DetectByteExtractTest31(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("21, 2, one, string, dec");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "21, 2, one, string, dec");
     if (bed != NULL)
         goto end;
 
@@ -1467,7 +1585,7 @@ int DetectByteExtractTest32(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("14, 2, one, string, hex");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "14, 2, one, string, hex");
     if (bed == NULL)
         goto end;
 
@@ -1482,7 +1600,7 @@ int DetectByteExtractTest33(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("15, 2, one, string, hex");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "15, 2, one, string, hex");
     if (bed != NULL)
         goto end;
 
@@ -4771,7 +4889,7 @@ int DetectByteExtractTest63(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, -2, one");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, -2, one");
     if (bed == NULL)
         goto end;
 
@@ -4797,7 +4915,7 @@ int DetectByteExtractTestParseNoBase(void)
 {
     int result = 0;
 
-    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string");
+    DetectByteExtractData *bed = DetectByteExtractParse(NULL, "4, 2, one, string");
     if (bed == NULL)
         goto end;
 

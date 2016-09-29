@@ -63,6 +63,12 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
             "\"base64_data\" keyword seen without preceding base64_decode.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("\"base64_data\" keyword seen without preceding base64_decode.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return -1;
     }
 

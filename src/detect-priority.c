@@ -84,6 +84,12 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
     if (endptr == NULL || *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
                    "to priority keyword");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Saw an invalid character as arg to priority keyword");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return -1;
     }
     /* if we have reached here, we have had a valid priority.  Assign it */

@@ -123,11 +123,23 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
     if (ud->flags & DETECT_CONTENT_NEGATED) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                 "negated keyword set along with a replacement");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't have a relative negated keyword set along with a replacement");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
     if (ud->content_len != len) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a content "
                 "length different from replace length");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't have a content length different from replace length");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
