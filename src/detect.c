@@ -186,6 +186,7 @@
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
+#include "detect-cipservice.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -2186,6 +2187,10 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                     SCLogDebug("packet/flow has smtp state");
                     (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
                     break;
+                case ALPROTO_ENIP:
+                    SCLogDebug("packet/flow has enip state");
+                    (*mask) |= SIG_MASK_REQUIRE_ENIP_STATE;
+                    break;
                 case ALPROTO_TEMPLATE:
                     SCLogDebug("packet/flow has template state");
                     (*mask) |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
@@ -2431,6 +2436,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
         SCLogDebug("sig requires smtp state");
     }
+    if (s->alproto == ALPROTO_ENIP) {
+        s->mask |= SIG_MASK_REQUIRE_ENIP_STATE;
+        SCLogDebug("sig requires enip state");
+    }
     if (s->alproto == ALPROTO_TEMPLATE) {
         s->mask |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
         SCLogDebug("sig requires template state");
@@ -2442,6 +2451,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_ENIP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
     {
@@ -4138,6 +4148,8 @@ void SigTableSetup(void)
 
     DetectDnsQueryRegister();
     DetectModbusRegister();
+    DetectCipServiceRegister();
+    DetectEnipCommandRegister();
 
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();

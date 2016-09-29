@@ -19,6 +19,8 @@ app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-dns-common.c app-layer-dns-common.h \
 app-layer-dns-tcp.c app-layer-dns-tcp.h \
 app-layer-dns-udp.c app-layer-dns-udp.h \
+app-layer-enip.c app-layer-enip.h \
+app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-htp-body.c app-layer-htp-body.h \
@@ -103,6 +105,7 @@ detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
 detect-engine-tls.c detect-engine-tls.h \
 detect-engine-modbus.c detect-engine-modbus.h \
+detect-engine-enip.c detect-engine-enip.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
 detect-engine-filedata-smtp.c detect-engine-filedata-smtp.h \
@@ -222,6 +225,7 @@ detect-window.c detect-window.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
+detect-cipservice.c detect-cipservice.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \
