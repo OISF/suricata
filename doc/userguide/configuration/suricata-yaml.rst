@@ -571,43 +571,17 @@ Detection engine
 Inspection configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The detection-engine builds internal groups of signatures. Suricata
-loads signatures, with which the network traffic will be compared. The
-fact is, that many rules certainly will not be necessary. (For
-instance: if there appears a packet with the UDP-protocol, all
-signatures for the TCP-protocol won't be needed.)  For that reason,
-all signatures will be divided in groups. However, a distribution
-containing many groups will make use of a lot of memory. Not every
-type of signature gets its own group. There is a possibility that
-different signatures with several properties in common, will be placed
-together in a group.  The quantity of groups will determine the
-balance between memory and performance. A small amount of groups will
-lower the performance yet uses little memory. The opposite counts for
-a higher amount of groups. The engine allows you to manage the balance
-between memory and performance. To manage this, (by determining the
-amount of groups) there are several general options:high for good
-performance and more use of memory, low for low performance and little
-use of memory. The option medium is the balance between performance
-and memory usage. This is the default setting.The option custom is for
-advanced users. This option has eight values which can be managed by
-the user.
+The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.)  For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group.  The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options:high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting.The option custom is for advanced users. This option has values which can be managed by the user.
 
 ::
 
-  detect-engine:
-     -profile: medium         #The balance between performance and memory usage. This is the default setting.
-     - custom-values:
-         toclient_src_groups: 2
-         toclient_dst_groups: 2
-         toclient_sp_groups: 2
-         toclient_dp_groups: 3
-         toserver_src_groups: 2
-         toserver_dst_groups: 4
-         toserver_sp_groups: 2
-         toserver_dp_groups: 25
-     - sgh-mpm-context: auto
-     - inspection-recursion-limit: 3000
-
+  detect:
+    profile: medium
+    custom-values:
+      toclient-groups: 2
+      toserver-groups: 25
+    sgh-mpm-context: auto
+    inspection-recursion-limit: 3000
 
 At all of these options, you can add (or change) a value.  Most
 signatures have the adjustment to focus on one direction, meaning
@@ -656,6 +630,48 @@ option inspection-recursion-limit you can limit this action.
 *Example 5       Detail grouping tree*
 
 .. image:: suricata-yaml/grouping_tree_detail.png
+
+.. _suricata-yaml-prefilter:
+
+Prefilter Engines
+~~~~~~~~~~~~~~~~~
+
+The concept of prefiltering is that there are far too many rules to inspect individually. The approach prefilter takes is that from each rule one condition is added to prefilter, which is then checked in one step. The most common example is MPM (also known as fast_pattern). This takes a single pattern per rule and adds it to the MPM. Only for those rules that have at least one pattern match in the MPM stage, individual inspection is performed.
+
+Next to MPM, other types of keywords support prefiltering. ICMP itype, icode, icmp_seq and icmp_id for example. TCP window, IP TTL are other examples.
+
+For a full list of keywords that support prefilter, see:
+
+::
+
+  suricata --list-keywords=all
+
+Suricata can automatically select prefilter options, or it can be set manually.
+
+::
+
+  detect:
+    prefilter:
+      default: mpm
+
+By default, only MPM/fast_pattern is used.
+
+The prefilter engines for other non-MPM keywords can then be enabled in specific rules by using the 'prefilter' keyword.
+
+E.g.
+
+::
+
+  alert ip any any -> any any (ttl:123; prefilter; sid:1;)
+
+To let Suricata make these decisions set default to 'auto':
+
+::
+
+  detect:
+    prefilter:
+      default: auto
+
 
 CUDA (Compute United Device Architecture)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
