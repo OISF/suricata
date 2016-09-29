@@ -319,6 +319,7 @@ typedef enum {
     SC_ERR_INVALID_HASH,
     SC_ERR_NO_SHA1_SUPPORT,
     SC_ERR_NO_SHA256_SUPPORT,
+    SC_ERR_ENIP_CONFIG,
 } SCError;
 
 const char *SCErrorToString(SCError);

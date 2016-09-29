@@ -831,6 +831,8 @@ app-layer:
            #    response-body-limit: 4096
            #    double-decode-path: no
            #    double-decode-query: no
+    enip:
+      enabled: no
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
