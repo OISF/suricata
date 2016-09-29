@@ -434,20 +434,13 @@ void DetectEnipCommandFree(void *ptr)
 static int DetectEnipCommandParseTest01 (void)
 {
     DetectEnipCommandData *enipcmdd = NULL;
-    uint8_t res = 0;
 
     enipcmdd = DetectEnipCommandParse("1");
-    if (enipcmdd != NULL)
-    {
-        if (enipcmdd->enipcommand == 1)
-        {
-            res = 1;
-        }
+    FAIL_IF_NULL(enipcmdd);
+    FAIL_IF_NOT(enipcmdd->enipcommand == 1);
 
-        DetectEnipCommandFree(enipcmdd);
-    }
-
-    return res;
+    DetectEnipCommandFree(enipcmdd);
+    PASS;
 }
 
 /**
@@ -455,25 +448,14 @@ static int DetectEnipCommandParseTest01 (void)
  */
 static int DetectEnipCommandSignatureTest01 (void)
 {
-    uint8_t res = 0;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (enip_command:1; sid:1; rev:1;)");
-    if (sig == NULL)
-    {
-        printf("parsing signature failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(sig);
 
-    /* if we get here, all conditions pass */
-    res = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return res;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif /* UNITTESTS */

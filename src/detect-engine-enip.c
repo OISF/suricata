@@ -310,13 +310,12 @@ static int DetectEngineInspectENIPTest01(void)
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
-
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
 
     p = UTHBuildPacket(listIdentity, sizeof(listIdentity), IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     FLOW_INITIALIZE(&f);
     f.alproto   = ALPROTO_ENIP;
@@ -331,60 +330,38 @@ static int DetectEngineInspectENIPTest01(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert enip any any -> any any "
             "(msg:\"Testing enip command\"; "
             "enipcommand:99 ; sid:1;)");
-
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
             listIdentity, sizeof(listIdentity));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
 
     ENIPState    *enip_state = f.alstate;
-    if (enip_state == NULL) {
-        printf("no enip state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(enip_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+
+    PASS;
 }
 
 #endif /* UNITTESTS */

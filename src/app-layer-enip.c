@@ -568,8 +568,6 @@ int ALDecodeENIPTest(void)
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
-
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
@@ -578,39 +576,24 @@ int ALDecodeENIPTest(void)
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f.m);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
             listIdentity, sizeof(listIdentity));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
 
     ENIPState    *enip_state = f.alstate;
-    if (enip_state == NULL) {
-        printf("no enip state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(enip_state);
 
     ENIPTransaction *tx = ENIPGetTx(enip_state, 0);
+    FAIL_IF_NULL(tx);
 
-    if (tx->header.command != 99)  {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 99, tx->header.command);
+    FAIL_IF(tx->header.command != 99);
 
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
-}
 
+    PASS;
+}
 
 #endif /* UNITTESTS */
 
