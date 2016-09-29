@@ -394,7 +394,7 @@ outputs:
   # file "file.<id>.meta" is created.
   #
   # File extraction depends on a lot of things to be fully done:
-  # - stream reassembly depth. For optimal results, set this to 0 (unlimited)
+  # - file-store stream-depth. For optimal results, set this to 0 (unlimited)
   # - http request / response body sizes. Again set to 0 for optimal results.
   # - rules that contain the "filestore" keyword.
   - file-store:
@@ -405,6 +405,7 @@ outputs:
       # sha1 and sha256
       #force-hash: [md5]
       force-filestore: no # force storing of all files
+      stream-depth: 1mb # reassemble 1mb into a stream, set to no to disable
       #waldo: file.waldo # waldo file to store the file_id across runs
 
   # output module to log files tracked in a easily parsable json format
@@ -699,6 +700,9 @@ app-layer:
       # How many unreplied Modbus requests are considered a flood.
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
+
+      # Stream reassembly size for modbus, default is 0
+      stream-depth: 0
 
       enabled: no
       detection-ports:

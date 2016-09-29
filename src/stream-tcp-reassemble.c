@@ -1777,7 +1777,7 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
 
     /* if the configured depth value is 0, it means there is no limit on
        reassembly depth. Otherwise carry on my boy ;) */
-    if (stream_config.reassembly_depth == 0) {
+    if (stream->reassembly_depth == 0) {
         SCReturnUInt(size);
     }
 
@@ -1790,25 +1790,25 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
      * checking and just reject the rest of the packets including
      * retransmissions. Saves us the hassle of dealing with sequence
      * wraps as well */
-    if (SEQ_GEQ((StreamTcpReassembleGetRaBaseSeq(stream)+1),(stream->isn + stream_config.reassembly_depth))) {
+    if (SEQ_GEQ((StreamTcpReassembleGetRaBaseSeq(stream)+1),(stream->isn + stream->reassembly_depth))) {
         stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
         SCReturnUInt(0);
     }
 
     SCLogDebug("full Depth not yet reached: %"PRIu32" <= %"PRIu32,
             (StreamTcpReassembleGetRaBaseSeq(stream)+1),
-            (stream->isn + stream_config.reassembly_depth));
+            (stream->isn + stream->reassembly_depth));
 
-    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + stream_config.reassembly_depth))) {
+    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + stream->reassembly_depth))) {
         /* packet (partly?) fits the depth window */
 
-        if (SEQ_LEQ((seq + size),(stream->isn + stream_config.reassembly_depth))) {
+        if (SEQ_LEQ((seq + size),(stream->isn + stream->reassembly_depth))) {
             /* complete fit */
             SCReturnUInt(size);
         } else {
             stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
             /* partial fit, return only what fits */
-            uint32_t part = (stream->isn + stream_config.reassembly_depth) - seq;
+            uint32_t part = (stream->isn + stream->reassembly_depth) - seq;
 #if DEBUG
             BUG_ON(part > size);
 #else
@@ -7286,7 +7286,7 @@ static int StreamTcpReassembleTest45 (void)
     ssn.state = TCP_ESTABLISHED;
 
     /* set the default value of reassembly depth, as there is no config file */
-    stream_config.reassembly_depth = httplen1 + 1;
+    ssn.server.reassembly_depth = httplen1 + 1;
 
     TcpStream *s = NULL;
     s = &ssn.server;

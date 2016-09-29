@@ -28,6 +28,7 @@
 #include "app-layer-events.h"
 #include "detect-engine-state.h"
 #include "util-file.h"
+#include "stream-tcp-private.h"
 
 #define APP_LAYER_PARSER_EOF                    0x01
 #define APP_LAYER_PARSER_NO_INSPECTION          0x02
@@ -149,6 +150,9 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
+void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
+                                          AppProto alproto,
+                         uint32_t (*GetStreamDepth)(void));
 
 /***** Get and transaction functions *****/
 
@@ -205,6 +209,8 @@ int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f);
+void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
+uint32_t AppLayerParserGetStreamDepth(uint8_t ipproto, AppProto alproto);
 
 /***** Cleanup *****/
 

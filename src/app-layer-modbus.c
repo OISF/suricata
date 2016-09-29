@@ -43,6 +43,7 @@
 #include "util-misc.h"
 
 #include "stream.h"
+#include "stream-tcp.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -51,6 +52,7 @@
 #include "app-layer-detect-proto.h"
 
 #include "conf.h"
+#include "conf-yaml-loader.h"
 #include "decode.h"
 
 SCEnumCharMap modbus_decoder_event_table[ ] = {
@@ -163,7 +165,11 @@ typedef struct ModbusHeader_ ModbusHeader;
 /* Modbus Default unreplied Modbus requests are considered a flood */
 #define MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD 500
 
+/* Modbus default stream reassembly depth */
+#define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0
+
 static uint32_t request_flood = MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD;
+static uint32_t stream_depth = MODBUS_CONFIG_DEFAULT_STREAM_DEPTH;
 
 int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type) {
     *event_id = SCMapEnumNameToValue(event_name, modbus_decoder_event_table);
@@ -1463,7 +1469,8 @@ void RegisterModbusParsers(void)
             }
         }
 
-        ConfNode *p = ConfGetNode("app-layer.protocols.modbus.request-flood");
+        ConfNode *p = NULL;
+        p = ConfGetNode("app-layer.protocols.modbus.request-flood");
         if (p != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(p->val, &value) < 0) {
@@ -1473,6 +1480,17 @@ void RegisterModbusParsers(void)
             }
         }
         SCLogConfig("Modbus request flood protection level: %u", request_flood);
+
+        p = ConfGetNode("app-layer.protocols.modbus.stream-depth");
+        if (p != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(p->val, &value) < 0) {
+                SCLogError(SC_ERR_MODBUS_CONFIG, "invalid value for stream-depth %s", p->val);
+            } else {
+                stream_depth = value;
+            }
+        }
+        SCLogInfo("Modbus stream depth: %u", stream_depth);
     } else {
 #ifndef AFLFUZZ_APPLAYER
         SCLogConfig("Protocol detection and parser disabled for %s protocol.", proto_name);
@@ -1506,6 +1524,8 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfo);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
+
+        AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_MODBUS, stream_depth);
     } else {
         SCLogConfig("Parsed disabled for %s protocol. Protocol detection" "still on.", proto_name);
     }
@@ -3107,6 +3127,154 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
+
+/** \test Checks if stream_depth is correct */
+static int ModbusParserTest17(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    TcpSession ssn;
+
+    int result = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                readCoilsReq, sizeof(readCoilsReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (f.alstate == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    if (((TcpSession *)(f.protoctx))->server.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid server stream depth");
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                            readCoilsRsp, sizeof(readCoilsRsp));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (((TcpSession *)(f.protoctx))->client.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid client stream depth");
+        goto end;
+    }
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/*/ \test Checks if stream depth is correct over 2 TCP packets */
+static int ModbusParserTest18(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    TcpSession ssn;
+
+    uint32_t    input_len = sizeof(readCoilsReq), part2_len = 3;
+    uint8_t     *input = readCoilsReq;
+
+    int result = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                input, input_len - part2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    if (((TcpSession *)(f.protoctx))->server.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid server stream depth");
+        goto end;
+    }
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                            input, input_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    if (((TcpSession *)(f.protoctx))->server.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid server stream depth");
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (f.alstate == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    input_len = sizeof(readCoilsRsp);
+    part2_len = 10;
+    input = readCoilsRsp;
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                            input, input_len - part2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    if (((TcpSession *)(f.protoctx))->server.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid client stream depth");
+        goto end;
+    }
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                            input, input_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    if (((TcpSession *)(f.protoctx))->server.reassembly_depth != MODBUS_CONFIG_DEFAULT_STREAM_DEPTH) {
+        printf("invalid client stream depth");
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
@@ -3143,5 +3311,9 @@ void ModbusParserRegisterTests(void) {
                    ModbusParserTest15);
     UtRegisterTest("ModbusParserTest16 - Modbus invalid Write single register request",
                    ModbusParserTest16);
+    UtRegisterTest("ModbusParserTest17 - Modbus stream depth",
+                   ModbusParserTest17);
+    UtRegisterTest("ModbusParserTest18 - Modbus stream depth in 2 TCP packets",
+                   ModbusParserTest18);
 #endif /* UNITTESTS */
 }
