@@ -229,6 +229,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                        "ip_proto keyword only when we use alert ip, "
                        "in which case the _ANY flag is set on the sig "
                        "and the if condition should match.");
+            if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("Signature can use ip_proto keyword only when we use alert ip, in which case the _ANY flag is set on the sig and the if condition should match.");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+            }
             goto error;
         }
     }
@@ -244,6 +251,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
                            "ipproto without any operators attached to "
                            "them in the same sig");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("can't use a eq ipproto without any operators attached to them in the same sig");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             s->proto.proto[data->proto / 8] |= 1 << (data->proto % 8);
@@ -254,6 +268,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or gt "
                            "ipproto along with a greater than ipproto in the "
                            "same sig ");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("can't use a eq or gt ipproto along with a greater than ipproto in the same sig ");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (!lt_set && !not_set) {
@@ -275,6 +296,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("can't have both gt and lt ipprotos, with the lt being lower than gt value");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
                         /* Updated by AS.  Please do not remove this unused code.  Need it
                          * as we redo this code once we solve ipproto multiple uses */
@@ -321,6 +349,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("can't have both gt and lt ipprotos, with the lt being lower than gt value");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
 #if 0
                         s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
@@ -373,6 +408,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or lt "
                            "ipproto along with a less than ipproto in the "
                            "same sig ");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("can't use a eq or lt ipproto along with a less than ipproto in the same sig ");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (!gt_set && !not_set) {
@@ -397,6 +439,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("can't use a have both gt and lt ipprotos, with the lt being lower than gt value");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
 #if 0
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -441,6 +490,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
+                        if (de_ctx) {
+                            de_ctx->sigerror = SCStrdup("can't have both gt and lt ipprotos, with the lt being lower than gt value");
+                            if (de_ctx->sigerror == NULL) {
+                                SCLogError(SC_ERR_MEM_ALLOC,
+                                           "Can't allocate sig error");
+                            }
+                        }
                         goto error;
 #if 0
                         for (i = 0; i < (data->proto / 8); i++) {
@@ -493,6 +549,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
                            "ipproto along with a not ipproto in the "
                            "same sig ");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("can't use a eq ipproto along with a not ipproto in the same sig ");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             if (!gt_set && !lt_set && !not_set) {

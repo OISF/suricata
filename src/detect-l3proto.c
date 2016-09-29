@@ -94,6 +94,12 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
             strcasecmp(str,"ip4") == 0 ) {
         if (s->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Conflicting l3 proto specified");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Conflicting l3 proto specified");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         s->proto.flags |= DETECT_PROTO_IPV4;
@@ -102,6 +108,12 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
             strcasecmp(str,"ip6") == 0 ) {
         if (s->proto.flags & DETECT_PROTO_IPV6) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Conflicting l3 proto specified");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Conflicting l3 proto specified");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         s->proto.flags |= DETECT_PROTO_IPV6;

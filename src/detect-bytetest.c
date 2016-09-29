@@ -444,6 +444,13 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
             if (data->flags & DETECT_BYTETEST_DCE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytetest specified "
                            "with file_data option set.");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("dce bytetest specified with file_data option set.");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 goto error;
             }
             AppLayerHtpEnableResponseBodyCallback();
@@ -586,6 +593,12 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
                        "bytetest with dce enabled");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Non dce alproto sig has bytetest with dce enabled");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         if ((data->flags & DETECT_BYTETEST_STRING) ||

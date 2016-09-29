@@ -128,7 +128,7 @@ int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
  * \retval NULL on failure
  */
 
-DetectTtlData *DetectTtlParse (char *ttlstr)
+DetectTtlData *DetectTtlParse (DetectEngineCtx *de_ctx, char *ttlstr)
 {
 
     DetectTtlData *ttld = NULL;
@@ -220,6 +220,13 @@ DetectTtlData *DetectTtlParse (char *ttlstr)
                 SCLogDebug("ttl is %"PRIu8" to %"PRIu8"",ttld->ttl1, ttld->ttl2);
                 if (ttld->ttl1 >= ttld->ttl2) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid ttl range. ");
+                    if (de_ctx) {
+                        de_ctx->sigerror = SCStrdup("Invalid ttl range. ");
+                        if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                        }
+                    }
                     goto error;
                 }
                 break;
@@ -272,7 +279,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr)
     DetectTtlData *ttld = NULL;
     SigMatch *sm = NULL;
 
-    ttld = DetectTtlParse(ttlstr);
+    ttld = DetectTtlParse(de_ctx, ttlstr);
     if (ttld == NULL)
         goto error;
 
@@ -411,7 +418,7 @@ static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTt
 
     *sig = (*de_ctx)->sig_list;
 
-    *ttld = DetectTtlParse(str);
+    *ttld = DetectTtlParse(*de_ctx, str);
 
     result = 1;
 
@@ -428,7 +435,7 @@ static int DetectTtlParseTest01 (void)
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
-    ttld = DetectTtlParse("10");
+    ttld = DetectTtlParse(NULL, "10");
     if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_EQ)
             res = 1;
@@ -448,7 +455,7 @@ static int DetectTtlParseTest02 (void)
 {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
-    ttld = DetectTtlParse("<10");
+    ttld = DetectTtlParse(NULL, "<10");
     if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_LT)
             res = 1;
@@ -467,7 +474,7 @@ static int DetectTtlParseTest03 (void)
 {
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
-    ttld = DetectTtlParse("1-2");
+    ttld = DetectTtlParse(NULL, "1-2");
     if (ttld != NULL) {
         if (ttld->ttl1 == 1 && ttld->ttl2 == 2 && ttld->mode == DETECT_TTL_RA)
             res = 1;
@@ -487,7 +494,7 @@ static int DetectTtlParseTest04 (void)
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
-    ttld = DetectTtlParse(" > 10 ");
+    ttld = DetectTtlParse(NULL, " > 10 ");
     if (ttld != NULL) {
         if (ttld->ttl1 == 10 && ttld->mode == DETECT_TTL_GT)
             res = 1;
@@ -508,7 +515,7 @@ static int DetectTtlParseTest05 (void)
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
-    ttld = DetectTtlParse(" 1 - 2 ");
+    ttld = DetectTtlParse(NULL, " 1 - 2 ");
     if (ttld != NULL) {
         if (ttld->ttl1 == 1 && ttld->ttl2 == 2 && ttld->mode == DETECT_TTL_RA)
             res = 1;
@@ -528,7 +535,7 @@ static int DetectTtlParseTest06 (void)
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
-    ttld = DetectTtlParse(" 1 = 2 ");
+    ttld = DetectTtlParse(NULL, " 1 = 2 ");
     if (ttld == NULL)
         res = 1;
     if (ttld) SCFree(ttld);
@@ -546,7 +553,7 @@ static int DetectTtlParseTest07 (void)
     DetectTtlData *ttld = NULL;
     uint8_t res = 0;
 
-    ttld = DetectTtlParse(" 1<>2 ");
+    ttld = DetectTtlParse(NULL, " 1<>2 ");
     if (ttld == NULL)
         res = 1;
 

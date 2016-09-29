@@ -87,6 +87,12 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (endptr == NULL || *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid character as arg "
                    "to gid keyword");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("invalid character as arg to gid keyword");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
     if (gid >= UINT_MAX) {

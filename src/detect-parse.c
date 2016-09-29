@@ -758,7 +758,7 @@ int SigParseProto(Signature *s, const char *protostr)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SigParsePort(const DetectEngineCtx *de_ctx,
+static int SigParsePort(DetectEngineCtx *de_ctx,
         Signature *s, const char *portstr, char flag)
 {
     int r = 0;
@@ -1231,6 +1231,12 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with "
                    "tcp-stream or flow:only_stream.  Invalidating signature.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't mix packet keywords with tcp-stream or flow:only_stream.  Invalidating signature.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         SCReturnInt(0);
     }
 
@@ -1251,6 +1257,13 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                                "/http_uri , raw_uri, http_client_body, "
                                "http_method, http_user_agent keywords "
                                "with flow:to_client or flow:from_server");
+                    if (de_ctx) {
+                        de_ctx->sigerror = SCStrdup("can't use uricontent /http_uri , raw_uri, http_client_body, http_method, http_user_agent keywords with flow:to_client or flow:from_server");
+                        if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                        }
+                    }
                     SCReturnInt(0);
                 }
             } else if (fd->flags & FLOW_PKT_TOSERVER) {
@@ -1261,6 +1274,13 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use http_"
                                "server_body, http_stat_msg, http_stat_code "
                                "with flow:to_server or flow:from_client");
+                    if (de_ctx) {
+                        de_ctx->sigerror = SCStrdup("can't use http_server_body, http_stat_msg, http_stat_code with flow:to_server or flow:from_client");
+                        if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                        }
+                    }
                     SCReturnInt(0);
                 }
             }
@@ -1288,6 +1308,12 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
                    "support keywords in one direction within a rule.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("You seem to have mixed keywords that require inspection in both directions.  Atm we only support keywords in one direction within a rule.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         SCReturnInt(0);
     }
 
@@ -1297,6 +1323,12 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     "without a flow direction. Use flow:to_server for "
                     "inspecting request headers or flow:to_client for "
                     "inspecting response headers.");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("http_raw_header signature without a flow direction. Use flow:to_server for inspecting request headers or flow:to_client for inspecting response headers.");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             SCReturnInt(0);
         }
     }
@@ -1330,7 +1362,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (!DetectHttpMethodValidateRule(s))
+    if (!DetectHttpMethodValidateRule(s, &de_ctx->sigerror))
         SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
@@ -1391,6 +1423,12 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 " replace keyword linked with a modified content"
                 " keyword (http_*, dce_*). It only supports content on"
                 " raw payload");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Signature has replace keyword linked with a modified content keyword (http_*, dce_*). It only supports content on raw payload");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             SCReturnInt(0);
         }
 
@@ -1412,6 +1450,12 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                     "specific matches (like dsize, flags, ttl) with stream / "
                     "state matching by matching on app layer proto (like using "
                     "http_* keywords).");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Signature combines packet specific matches (like dsize, flags, ttl) with stream / state matching by matching on app layer proto (like using http_* keywords).");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             SCReturnInt(0);
         }
     }
@@ -1455,6 +1499,13 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 if (s->sm_lists[list]->idx > idx) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Rule buffer "
                         "cannot be reset after base64_data.");
+                    if (de_ctx) {
+                        de_ctx->sigerror = SCStrdup("Rule buffer cannot be reset after base64_data.");
+                        if (de_ctx->sigerror == NULL) {
+                            SCLogError(SC_ERR_MEM_ALLOC,
+                                       "Can't allocate sig error");
+                        }
+                    }
                     SCReturnInt(0);
                 }
             }

@@ -101,6 +101,12 @@ static int DetectPktDataTest01(void)
     de_ctx->sig_list = sig;
     if (de_ctx->sig_list == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"could not load test signature");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("could not load test signature");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
 

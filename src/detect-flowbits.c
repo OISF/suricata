@@ -147,8 +147,8 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return 0;
 }
 
-static int DetectFlowbitParse(char *str, char *cmd, int cmd_len, char *name,
-    int name_len)
+static int DetectFlowbitParse(DetectEngineCtx *de_ctx, char *str,
+    char *cmd, int cmd_len, char *name, int name_len)
 {
     const int max_substrings = 30;
     int count, rc;
@@ -186,6 +186,13 @@ static int DetectFlowbitParse(char *str, char *cmd, int cmd_len, char *name,
             if (isblank(name[i])) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "spaces not allowed in flowbit names");
+                if (de_ctx) {
+                    de_ctx->sigerror = SCStrdup("spaces not allowed in flowbit names");
+                    if (de_ctx->sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC,
+                                   "Can't allocate sig error");
+                    }
+                }
                 return 0;
             }
         }
@@ -201,8 +208,8 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     uint8_t fb_cmd = 0;
     char fb_cmd_str[16] = "", fb_name[256] = "";
 
-    if (!DetectFlowbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str), fb_name,
-            sizeof(fb_name))) {
+    if (!DetectFlowbitParse(de_ctx, rawstr, fb_cmd_str, sizeof(fb_cmd_str),
+            fb_name, sizeof(fb_name))) {
         return -1;
     }
 
@@ -303,36 +310,36 @@ static int FlowBitsTestParse01(void)
     char command[16] = "", name[16] = "";
 
     /* Single argument version. */
-    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name,
+    FAIL_IF(!DetectFlowbitParse(NULL, "noalert", command, sizeof(command), name,
             sizeof(name)));
     FAIL_IF(strcmp(command, "noalert") != 0);
 
     /* No leading or trailing spaces. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
+    FAIL_IF(!DetectFlowbitParse(NULL, "set,flowbit", command, sizeof(command), name,
             sizeof(name)));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
+    FAIL_IF(!DetectFlowbitParse(NULL, "set, flowbit", command, sizeof(command), name,
             sizeof(name)));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
+    FAIL_IF(!DetectFlowbitParse(NULL, "set,flowbit ", command, sizeof(command), name,
             sizeof(name)));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading and trailing space. */
-    FAIL_IF(!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
+    FAIL_IF(!DetectFlowbitParse(NULL, "set, flowbit ", command, sizeof(command), name,
             sizeof(name)));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Spaces are not allowed in the name. */
-    FAIL_IF(DetectFlowbitParse("set,namewith space", command, sizeof(command),
+    FAIL_IF(DetectFlowbitParse(NULL, "set,namewith space", command, sizeof(command),
             name, sizeof(name)));
 
     PASS;

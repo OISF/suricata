@@ -115,6 +115,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple nocase modifiers with the same content");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("can't use multiple nocase modifiers with the same content");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
 

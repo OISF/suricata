@@ -259,6 +259,12 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
                                    s->sm_lists_tail[DETECT_SM_LIST_MATCH]) != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Can't use 2 or more dsizes in the same sig.  Invalidating signature.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 

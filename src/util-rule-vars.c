@@ -62,7 +62,7 @@ SCEnumCharMap sc_rule_vars_type_map[ ] = {
  * \retval conf_var_name_value Pointer to the string containing the conf value
  *                             on success; NULL on failure.
  */
-char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
+char *SCRuleVarsGetConfVar(DetectEngineCtx *de_ctx,
                            const char *conf_var_name,
                            SCRuleVarsType conf_vars_type)
 {
@@ -98,8 +98,16 @@ char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
     }
 
     if (ConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
-        SCLogError(SC_ERR_UNDEFINED_VAR, "Variable \"%s\" is not defined in "
-                                         "configuration file", conf_var_name);
+        char error_string[200];
+        snprintf(error_string, sizeof(error_string), "Variable \"%s\" is not defined in "
+                 "configuration file", conf_var_name);
+        SCLogError(SC_ERR_UNDEFINED_VAR, "%s", error_string);
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup(error_string);
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto end;
     }
 

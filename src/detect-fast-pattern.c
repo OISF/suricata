@@ -218,6 +218,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "
                    "content based keyword before using fast_pattern");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("fast_pattern found inside the rule, without a content context. Please use a content based keyword before using fast_pattern");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return -1;
     }
 
@@ -231,6 +237,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         /* we can't have any of these if we are having "only" */
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern; cannot be "
                    "used with negated content, along with relative modifiers");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("fast_pattern; cannot be used with negated content, along with relative modifiers");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
@@ -238,6 +250,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple fast_pattern "
                     "options for the same content");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("can't use multiple fast_pattern options for the same content");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         else { /*allow only one content to have fast_pattern modifier*/
@@ -250,6 +268,13 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
                         if (tmp_cd->flags & DETECT_CONTENT_FAST_PATTERN) {
                             SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern "
                                         "can be used on only one content in a rule");
+                            if (de_ctx) {
+                                de_ctx->sigerror = SCStrdup("fast_pattern can be used on only one content in a rule");
+                                if (de_ctx->sigerror == NULL) {
+                                    SCLogError(SC_ERR_MEM_ALLOC,
+                                               "Can't allocate sig error");
+                                }
+                            }
                             goto error;
                         }
                     }
@@ -275,6 +300,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern: only; cannot be "
                        "used with negated content or with any of the relative "
                        "modifiers like distance, within, offset, depth");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("fast_pattern: only; cannot be used with negated content or with any of the relative modifiers like distance, within, offset, depth");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN_ONLY;
@@ -292,6 +323,12 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         if (offset > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern offset exceeds "
                        "limit");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Fast pattern offset exceeds limit");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
 
@@ -306,12 +343,24 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         if (length > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern length exceeds "
                        "limit");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Fast pattern length exceeds limit");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
 
         if (offset + length > 65535) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern (length + offset) "
                        "exceeds limit pattern length limit");
+            if (de_ctx) {
+                de_ctx->sigerror = SCStrdup("Fast pattern (length + offset) exceeds limit pattern length limit");
+                if (de_ctx->sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+                }
+            }
             goto error;
         }
 

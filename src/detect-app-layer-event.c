@@ -255,7 +255,8 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     return aled;
 }
 
-static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
+static DetectAppLayerEventData *DetectAppLayerEventParse(DetectEngineCtx *de_ctx,
+                                                         const char *arg,
                                                          AppLayerEventType *event_type)
 {
     *event_type = 0;
@@ -263,6 +264,12 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg,
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
                    "with no arguments.  This keyword needs an argument.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("app-layer-event keyword supplied with no arguments.  This keyword needs an argument.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return NULL;
     }
 
@@ -302,7 +309,7 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, cha
     SigMatch *sm = NULL;
     AppLayerEventType event_type;
 
-    data = DetectAppLayerEventParse(arg, &event_type);
+    data = DetectAppLayerEventParse(de_ctx, arg, &event_type);
     if (data == NULL)
         goto error;
 
@@ -424,7 +431,8 @@ int DetectAppLayerEventTest01(void)
     memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
     ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
 
-    DetectAppLayerEventData *aled = DetectAppLayerEventParse("smtp.event1",
+    DetectAppLayerEventData *aled = DetectAppLayerEventParse(NULL,
+                                                             "smtp.event1",
                                                              &event_type);
     if (aled == NULL)
         goto end;
@@ -466,7 +474,8 @@ int DetectAppLayerEventTest02(void)
     memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
     ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
 
-    DetectAppLayerEventData *aled = DetectAppLayerEventParse("smtp.event1",
+    DetectAppLayerEventData *aled = DetectAppLayerEventParse(NULL,
+                                                             "smtp.event1",
                                                              &event_type);
     if (aled == NULL)
         goto end;
@@ -480,7 +489,7 @@ int DetectAppLayerEventTest02(void)
         goto end;
     }
 
-    aled = DetectAppLayerEventParse("smtp.event4",
+    aled = DetectAppLayerEventParse(NULL, "smtp.event4",
                                     &event_type);
     if (aled == NULL)
         goto end;
@@ -494,7 +503,7 @@ int DetectAppLayerEventTest02(void)
         goto end;
     }
 
-    aled = DetectAppLayerEventParse("http.event2",
+    aled = DetectAppLayerEventParse(NULL, "http.event2",
                                     &event_type);
     if (aled == NULL)
         goto end;
@@ -508,7 +517,7 @@ int DetectAppLayerEventTest02(void)
         goto end;
     }
 
-    aled = DetectAppLayerEventParse("smb.event3",
+    aled = DetectAppLayerEventParse(NULL, "smb.event3",
                                     &event_type);
     if (aled == NULL)
         goto end;
@@ -522,7 +531,7 @@ int DetectAppLayerEventTest02(void)
         goto end;
     }
 
-    aled = DetectAppLayerEventParse("ftp.event5",
+    aled = DetectAppLayerEventParse(NULL, "ftp.event5",
                                     &event_type);
     if (aled == NULL)
         goto end;

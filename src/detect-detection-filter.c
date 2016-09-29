@@ -217,6 +217,12 @@ int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
                                       DETECT_THRESHOLD, s->sm_lists_tail[DETECT_SM_LIST_MATCH]);
     if (tmpm != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and \"threshold\" are not allowed in the same rule");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("\"detection_filter\" and \"threshold\" are not allowed in the same rule");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         SCReturnInt(-1);
     }
     /* checks there's no previous instance of detection_filter */
@@ -224,6 +230,12 @@ int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
                                       DETECT_DETECTION_FILTER, s->sm_lists_tail[DETECT_SM_LIST_MATCH]);
     if (tmpm != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "At most one \"detection_filter\" is allowed per rule");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("At most one \"detection_filter\" is allowed per rule");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         SCReturnInt(-1);
     }
 

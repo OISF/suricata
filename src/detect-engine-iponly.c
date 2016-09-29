@@ -581,7 +581,7 @@ static void SigNumArrayFree(void *tmp)
  * \retval 0 if success
  * \retval -1 if fails
  */
-static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
+static IPOnlyCIDRItem *IPOnlyCIDRListParse2(DetectEngineCtx *de_ctx,
                                             char *s, int negate)
 {
     size_t x = 0;
@@ -752,7 +752,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx,
+static int IPOnlyCIDRListParse(DetectEngineCtx *de_ctx,
                                IPOnlyCIDRItem **gh, char *str)
 {
     SCLogDebug("gh %p, str %s", gh, str);
@@ -784,7 +784,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
+int IPOnlySigParseAddress(DetectEngineCtx *de_ctx,
                           Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);

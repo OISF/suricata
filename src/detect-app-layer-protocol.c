@@ -46,7 +46,7 @@ int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return r;
 }
 
-static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
+static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(DetectEngineCtx *de_ctx, const char *arg)
 {
     DetectAppLayerProtocolData *data;
     AppProto alproto = ALPROTO_UNKNOWN;
@@ -56,6 +56,12 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol keyword "
                    "supplied with no arguments.  This keyword needs "
                    "an argument.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("app-layer-protocol keyword supplied with no arguments.  This keyword needs an argument.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         return NULL;
     }
 
@@ -100,7 +106,7 @@ int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
-    data = DetectAppLayerProtocolParse(arg);
+    data = DetectAppLayerProtocolParse(de_ctx, arg);
     if (data == NULL)
         goto error;
 
@@ -156,7 +162,7 @@ int DetectAppLayerProtocolTest01(void)
 {
     int result = 0;
 
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse(NULL, "http");
     if (data == NULL)
         goto end;
     if (data->alproto != ALPROTO_HTTP || data->negated) {
@@ -176,7 +182,7 @@ int DetectAppLayerProtocolTest02(void)
 {
     int result = 0;
 
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("!http");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse(NULL, "!http");
     if (data == NULL)
         goto end;
     if (data->alproto != ALPROTO_HTTP || !data->negated) {

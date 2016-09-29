@@ -32,7 +32,7 @@ void DetectAddressHeadFree(DetectAddressHead *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 
 int DetectAddressParseString(DetectAddress *, char *);
-int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *);
+int DetectAddressParse(DetectEngineCtx *, DetectAddressHead *, const char *);
 
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);

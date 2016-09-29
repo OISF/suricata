@@ -288,6 +288,12 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature, option needs a value");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Error parsing dce_opnum option in signature, option needs a value");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
@@ -295,6 +301,12 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("Error parsing dce_opnum option in signature");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 

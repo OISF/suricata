@@ -292,6 +292,12 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     /*ensure only one flow option*/
     if (s->init_flags & SIG_FLAG_INIT_FLOW) {
         SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
+        if (de_ctx) {
+            de_ctx->sigerror = SCStrdup("A signature may have only one flow option.");
+            if (de_ctx->sigerror == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate sig error");
+            }
+        }
         goto error;
     }
 
