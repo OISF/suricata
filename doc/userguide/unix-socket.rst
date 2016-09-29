@@ -64,6 +64,11 @@ The set of existing commands is the following:
 * capture-mode: display capture system used
 * conf-get: get configuration item (see example below)
 * dump-counters: dump Suricata's performance counters
+* ruleset-reload-rules: reload ruleset and wait for completion
+* ruleset-reload-nonblocking: ask a ruleset reload and return
+* ruleset-last-reload: return time of last reload
+* ruleset-stats: display the number of rules loaded and failed
+* ruleset-failed-rules: display the list of failed rules
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
