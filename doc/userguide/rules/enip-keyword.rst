@@ -27,11 +27,12 @@ Syntax::
   
 
 Examples::
+
   enip_command:99
   cip_service:75
   cip_service:16,246,6
   enip_command:111, cip_service:5
-
+  
 
 (cf. http://read.pudn.com/downloads166/ebook/763211/EIP-CIP-V1-1.0.pdf)
 
