@@ -95,12 +95,12 @@
  */
 typedef struct ENIPEncapHdr_
 {
-    u_int64_t context;
-    u_int32_t session;
-    u_int32_t status;
-    u_int32_t option;
-    u_int16_t command;
-    u_int16_t length;
+    uint64_t context;
+    uint32_t session;
+    uint32_t status;
+    uint32_t option;
+    uint16_t command;
+    uint16_t length;
 } ENIPEncapHdr;
 
 /**
@@ -108,9 +108,9 @@ typedef struct ENIPEncapHdr_
  */
 typedef struct ENIPEncapDataHdr_
 {
-    u_int32_t interface_handle;
-    u_int16_t timeout;
-    u_int16_t item_count;
+    uint32_t interface_handle;
+    uint16_t timeout;
+    uint16_t item_count;
 } ENIPEncapDataHdr;
 
 /**
@@ -118,10 +118,10 @@ typedef struct ENIPEncapDataHdr_
  */
 typedef struct ENIPEncapAddresItem_
 {
-    u_int16_t type;
-    u_int16_t length;
-    u_int16_t conn_id;
-    u_int16_t sequence_num;
+    uint16_t type;
+    uint16_t length;
+    uint16_t conn_id;
+    uint16_t sequence_num;
 } ENIPEncapAddresItem;
 
 /**
@@ -129,9 +129,9 @@ typedef struct ENIPEncapAddresItem_
  */
 typedef struct ENIPEncapDataItem_
 {
-    u_int16_t type;
-    u_int16_t length;
-    u_int16_t sequence_count;
+    uint16_t type;
+    uint16_t length;
+    uint16_t sequence_count;
 } ENIPEncapDataItem;
 
 /**
@@ -139,8 +139,8 @@ typedef struct ENIPEncapDataItem_
  */
 typedef struct CIPReqHdr_
 {
-    u_int8_t service;
-    u_int8_t path_size;
+    uint8_t service;
+    uint8_t path_size;
 } CIPReqHdr;
 
 /**
@@ -148,10 +148,10 @@ typedef struct CIPReqHdr_
  */
 typedef struct CIPRespHdr_
 {
-    u_int8_t service;
-    u_int8_t pad;
-    u_int8_t status;
-    u_int8_t status_size;
+    uint8_t service;
+    uint8_t pad;
+    uint8_t status;
+    uint8_t status_size;
 } CIPRespHdr;
 
 typedef struct SegmentEntry_
@@ -182,14 +182,14 @@ typedef struct CIPServiceEntry_
         } request;
         struct
         {
-            u_int8_t status;
+            uint8_t status;
         } response;
     };
 
-TAILQ_HEAD(, SegmentEntry_) segment_list; /**< list for CIP segment */
-TAILQ_HEAD(, AttributeEntry_) attrib_list; /**< list for CIP segment */
+    TAILQ_HEAD(, SegmentEntry_) segment_list; /**< list for CIP segment */
+    TAILQ_HEAD(, AttributeEntry_) attrib_list; /**< list for CIP segment */
 
-TAILQ_ENTRY(CIPServiceEntry_) next;
+    TAILQ_ENTRY(CIPServiceEntry_) next;
 } CIPServiceEntry;
 
 typedef struct ENIPTransaction_
