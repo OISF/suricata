@@ -33,9 +33,7 @@
 
 
 /*
- *
- ************************************************************ CIP SERVICE CODE ********************************************************************
- *
+ * CIP SERVICE CODE
  */
 
 /**
@@ -53,7 +51,6 @@ void DetectCipServiceRegister(void)
     SCEnter();
     sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "Rules for detecting CIP Service ";
-    sigmatch_table[DETECT_CIPSERVICE].url = "www.solananetworks.com";
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
     sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
@@ -62,9 +59,7 @@ void DetectCipServiceRegister(void)
             = DetectCipServiceRegisterTests;
 
     SCReturn;
-
 }
-
 
 /**
  * \brief This function is used to parse cip_service options passed via cip_service: keyword
@@ -164,13 +159,12 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     SCLogDebug("DetectCipServiceParse - attribute %d\n",
             cipserviced->cipattribute);
 
-    //return cipserviced;
     SCReturnPtr(cipserviced, "DetectENIPFunction");
 
-    error: if (cipserviced)
+error:
+    if (cipserviced)
         SCFree(cipserviced);
     printf("DetectCipServiceParse - Error Parsing Parameters\n");
-    //return NULL;
     SCReturnPtr(NULL, "DetectENIP");
 }
 
@@ -216,7 +210,8 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     SCReturnInt(0);
 
-    error: if (cipserviced != NULL)
+error:
+    if (cipserviced != NULL)
         DetectCipServiceFree(cipserviced);
     if (sm != NULL)
         SCFree(sm);
@@ -243,7 +238,6 @@ void DetectCipServiceFree(void *ptr)
  */
 static int DetectCipServiceParseTest01 (void)
 {
-
     uint8_t res = 1;
 
     /*DetectCipServiceData *cipserviced = NULL;
@@ -270,7 +264,7 @@ static int DetectCipServiceSignatureTest01 (void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-    goto end;
+        goto end;
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (cip_service:1; sid:1; rev:1;)");
     if (sig == NULL)
@@ -281,9 +275,9 @@ static int DetectCipServiceSignatureTest01 (void)
 
     /* if we get here, all conditions pass */
     res = 1;
-    end:
+end:
     if (de_ctx != NULL)
-    DetectEngineCtxFree(de_ctx);
+        DetectEngineCtxFree(de_ctx);
     return res;
 }
 
@@ -303,9 +297,7 @@ void DetectCipServiceRegisterTests(void)
 }
 
 /*
- *
- ************************************************************ ENIP COMMAND CODE ********************************************************************
- *
+ * ENIP COMMAND CODE
  */
 
 /**
@@ -323,7 +315,6 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].name = "enip_command"; //rule keyword
     sigmatch_table[DETECT_ENIPCOMMAND].desc
             = "Rules for detecting EtherNet/IP command";
-    sigmatch_table[DETECT_ENIPCOMMAND].url = "www.solananetworks.com";
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
@@ -342,7 +333,6 @@ void DetectEnipCommandRegister(void)
  * \retval enipcmdd pointer to DetectCipServiceData on success
  * \retval NULL on failure
  */
-
 DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
 {
     DetectEnipCommandData *enipcmdd = NULL;
@@ -356,7 +346,7 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
         unsigned long cmd = atol(rulestr);
         if (cmd > MAX_ENIP_CMD) //if command greater than 16 bit
         {
-            printf("DetectEnipCommandParse: Invalid ENIP command %lu\n", cmd);
+            //printf("DetectEnipCommandParse: Invalid ENIP command %lu\n", cmd);
             goto error;
         }
 
@@ -369,9 +359,10 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
 
     return enipcmdd;
 
-    error: if (enipcmdd)
+error:
+    if (enipcmdd)
         SCFree(enipcmdd);
-    printf("DetectEnipCommandParse - Error Parsing Parameters\n");
+    //printf("DetectEnipCommandParse - Error Parsing Parameters\n");
     return NULL;
 }
 
@@ -414,13 +405,13 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     SCReturnInt(0);
 
-    error: if (enipcmdd != NULL)
+error:
+    if (enipcmdd != NULL)
         DetectEnipCommandFree(enipcmdd);
     if (sm != NULL)
         SCFree(sm);
     printf("DetectEnipCommandSetup - Error\n");
     SCReturnInt(-1);
-
 }
 
 /**
@@ -468,7 +459,7 @@ static int DetectEnipCommandSignatureTest01 (void)
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-    goto end;
+        goto end;
 
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (enip_command:1; sid:1; rev:1;)");
     if (sig == NULL)
@@ -479,9 +470,9 @@ static int DetectEnipCommandSignatureTest01 (void)
 
     /* if we get here, all conditions pass */
     res = 1;
-    end:
+end:
     if (de_ctx != NULL)
-    DetectEngineCtxFree(de_ctx);
+        DetectEngineCtxFree(de_ctx);
     return res;
 }
 

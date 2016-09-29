@@ -35,9 +35,6 @@
 
 #include "app-layer-enip-common.h"
 
-
-
-
 /**
  * \brief Extract 8 bits and move up the offset
  * @param res
@@ -48,7 +45,7 @@ int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t in
 {
 
     if (*offset > (input_len - sizeof(uint8_t)))
-    {        
+    {
         SCLogDebug("ENIPExtractUint8: Parsing beyond payload length\n");
         return 0;
     }
@@ -68,7 +65,7 @@ int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 {
 
     if (*offset > (input_len - sizeof(uint16_t)))
-    {        
+    {
         SCLogDebug("ENIPExtractUint16: Parsing beyond payload length\n");
         return 0;
     }
@@ -89,7 +86,7 @@ int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 {
 
     if (*offset > (input_len - sizeof(uint32_t)))
-    {        
+    {
         SCLogDebug("ENIPExtractUint32: Parsing beyond payload length\n");
         return 0;
     }
@@ -110,7 +107,7 @@ int ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 {
 
     if (*offset > (input_len - sizeof(uint64_t)))
-    {        
+    {
         SCLogDebug("ENIPExtractUint64: Parsing beyond payload length\n");
         return 0;
     }
@@ -142,7 +139,6 @@ static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
 
     TAILQ_INSERT_TAIL(&tx->service_list, svc, next);
     tx->service_count++;
-    
     return svc;
 
 }
@@ -339,7 +335,7 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
             return 0;
         }
     } else if (address_type == SEQUENCE_ADDR_ITEM)
-    { // get 4 byte connection id and 4 byte sequence	
+    { // get 4 byte connection id and 4 byte sequence
         if (ENIPExtractUint32(&address_connectionid, input, &offset, input_len) != 1)
         {
             return 0;
@@ -360,11 +356,11 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
     uint16_t data_sequence_count;
 
     if (ENIPExtractUint16(&data_type, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
     if (ENIPExtractUint16(&data_length, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
 
@@ -372,9 +368,9 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
     enip_data->encap_data_item.length = data_length;
 
     if (enip_data->encap_data_item.type == CONNECTED_DATA_ITEM)
-    { //connected data items have seq number        
+    { //connected data items have seq number
         if (ENIPExtractUint16(&data_sequence_count, input, &offset, input_len) != 1)
-        {     
+        {
             return 0;
         }
         enip_data->encap_data_item.sequence_count = data_sequence_count;
@@ -398,10 +394,7 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
     }
 
     return 1;
-
 }
-
-
 
 /**
  * \brief Decode CIP packet
@@ -471,11 +464,11 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
     uint8_t path_size;
 
     if (ENIPExtractUint8(&service, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
     if (ENIPExtractUint8(&path_size, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
 
@@ -579,7 +572,6 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
 int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         CIPServiceEntry *node, uint16_t offset)
 {
-
     //SCLogDebug("DecodeCIPRequestPath: service 0x%x size %d length %d\n",
     //        node->service, node->request.path_size, input_len);
 
@@ -603,22 +595,21 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
     uint16_t req_path_class16;
     uint16_t req_path_instance16;
 
-    uint16_t class = 0;  
+    uint16_t class = 0;
 
     SegmentEntry *seg = NULL;
 
     while (bytes_remain > 0)
     {
-        
         if (ENIPExtractUint8(&segment, input, &offset, input_len) != 1)
-        {     
+        {
             return 0;
         }
         switch (segment)
         { //assume order is class then instance.  Can have multiple
-            case PATH_CLASS_8BIT:                
+            case PATH_CLASS_8BIT:
                 if (ENIPExtractUint8(&req_path_class8, input, &offset, input_len) != 1)
-                {     
+                {
                     return 0;
                 }
                 class = (uint16_t) req_path_class8;
@@ -633,17 +624,17 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
                 bytes_remain--;
                 break;
-            case PATH_INSTANCE_8BIT:                
+            case PATH_INSTANCE_8BIT:
                 if (ENIPExtractUint8(&req_path_instance8, input, &offset, input_len) != 1)
-                {     
+                {
                     return 0;
                 }
                 //skip instance, don't need to store
                 bytes_remain--;
                 break;
-            case PATH_ATTR_8BIT: //single attribute                
+            case PATH_ATTR_8BIT: //single attribute
                 if (ENIPExtractUint8(&req_path_attr8, input, &offset, input_len) != 1)
-                {     
+                {
                     return 0;
                 }
                 //uint16_t attrib = (uint16_t) req_path_attr8;
@@ -658,13 +649,13 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
                 bytes_remain--;
                 break;
-            case PATH_CLASS_16BIT:               
+            case PATH_CLASS_16BIT:
                 if (ENIPExtractUint8(&reserved, input, &offset, input_len) != 1) //skip reserved
-                {     
+                {
                     return 0;
-                }                 
+                }
                 if (ENIPExtractUint16(&req_path_class16, input, &offset, input_len) != 1)
-                {     
+                {
                     return 0;
                 }
                 class = req_path_class16;
@@ -685,13 +676,12 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                 }
                 break;
             case PATH_INSTANCE_16BIT:
-                
                 if (ENIPExtractUint8(&reserved, input, &offset, input_len) != 1) // skip reserved
-                {     
+                {
                     return 0;
-                }                 
+                }
                 if (ENIPExtractUint16(&req_path_instance16, input, &offset, input_len) != 1)
-                {     
+                {
                     return 0;
                 }
                 //skip instance, don't need to store
@@ -719,7 +709,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         //parse get/set attribute list
 
         if (ENIPExtractUint16(&attr_list_count, input, &offset, input_len) != 1)
-        {     
+        {
             return 0;
         }
         SCLogDebug("DecodeCIPRequestPathPDU: attribute list count %d\n",
@@ -727,7 +717,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         for (int i = 0; i < attr_list_count; i++)
         {
             if (ENIPExtractUint16(&attribute, input, &offset, input_len) != 1)
-            {     
+            {
                 return 0;
             }
             SCLogDebug("DecodeCIPRequestPathPDU: attribute %d\n", attribute);
@@ -742,9 +732,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
     }
 
     return 1;
-
 }
-
 
 /**
  * \brief Decode CIP Response
@@ -765,21 +753,20 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
         return 0;
     }
 
-    
     uint8_t service; //<----CIP SERVICE
     uint8_t reserved; //unused byte reserved by ODVA
     uint16_t status;
 
     if (ENIPExtractUint8(&service, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
     if (ENIPExtractUint8(&reserved, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
     if (ENIPExtractUint16(&status, input, &offset, input_len) != 1)
-    {     
+    {
         return 0;
     }
 
@@ -893,7 +880,6 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
 
     for (int svc = 1; svc < num_services + 1; svc++)
     {
-
         if (temp_offset >= (input_len - sizeof(uint16_t)))
         {
             SCLogDebug("DecodeCIPRequestMSPPDU: Parsing beyond payload length\n");
@@ -942,7 +928,6 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
 
     for (int svc = 0; svc < num_services; svc++)
     {
-
         if (temp_offset >= (input_len - sizeof(uint16_t)))
         {
             SCLogDebug("DecodeCIPResponseMSP: Parsing beyond payload length\n");

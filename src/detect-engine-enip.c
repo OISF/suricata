@@ -17,9 +17,9 @@
 
 /** \file
  *
- *  \author David DIALLO <diallo@et.esiea.fr>
+ *  \author Kevin Wong <kwong@solananetworks.com>
  *
- *  Based on detect-engine-dns.c
+ *  Based on detect-engine-modbus.c
  */
 
 #include "suricata-common.h"
@@ -28,7 +28,6 @@
 
 #include "detect.h"
 #include "detect-cipservice.h"
-
 #include "detect-engine-enip.h"
 
 #include "flow.h"
@@ -84,50 +83,53 @@ int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
         switch(seg->segment)
         {
             case PATH_CLASS_8BIT:
-            class = seg->value;
-            if (cipserviced->cipclass == class)
-            {
-                if (cipserviced->tokens == 2)
-                {// if rule only has class
-                    return 1;
-                } else
+                class = seg->value;
+                if (cipserviced->cipclass == class)
                 {
-                    found_class = 1;
+                    if (cipserviced->tokens == 2)
+                    {// if rule only has class
+                        return 1;
+                    } else
+                    {
+                        found_class = 1;
+                    }
                 }
-            }
-            break;
+                break;
             case PATH_INSTANCE_8BIT:
-            break;
+                break;
             case PATH_ATTR_8BIT: //single attribute
-            attrib = seg->value;
-            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
-                            == class) && (cipserviced->cipattribute == attrib) && (cipserviced->matchattribute == 1))
-            { // if rule has class & attribute, matched all here
-                return 1;
-            }
-            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
-                            == class) && (cipserviced->matchattribute == 0))
-            { // for negation rule on attribute
-                return 1;
-            }
-            break;
-            case PATH_CLASS_16BIT:
-            class = seg->value;
-            if (cipserviced->cipclass == class)
-            {
-                if (cipserviced->tokens == 2)
-                {// if rule only has class
+                attrib = seg->value;
+                if ((cipserviced->tokens == 3) &&
+                        (cipserviced->cipclass == class) &&
+                        (cipserviced->cipattribute == attrib) &&
+                        (cipserviced->matchattribute == 1))
+                { // if rule has class & attribute, matched all here
                     return 1;
-                } else
-                {
-                    found_class = 1;
                 }
-            }
-            break;
+                if ((cipserviced->tokens == 3) &&
+                        (cipserviced->cipclass == class) &&
+                        (cipserviced->matchattribute == 0))
+                { // for negation rule on attribute
+                    return 1;
+                }
+                break;
+            case PATH_CLASS_16BIT:
+                class = seg->value;
+                if (cipserviced->cipclass == class)
+                {
+                    if (cipserviced->tokens == 2)
+                    {// if rule only has class
+                        return 1;
+                    } else
+                    {
+                        found_class = 1;
+                    }
+                }
+                break;
             case PATH_INSTANCE_16BIT:
-            break;
+                break;
             default:
-            return 0;
+                return 0;
         }
     }
 
@@ -136,8 +138,8 @@ int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
         return 0;
     }
 
-    if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
-            == CIP_GET_ATTR_LIST))
+    if ((svc->service == CIP_SET_ATTR_LIST) ||
+            (svc->service == CIP_GET_ATTR_LIST))
     {
         AttributeEntry *attr = NULL;
         TAILQ_FOREACH    (attr, &svc->attrib_list, next)
@@ -149,7 +151,7 @@ int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
         }
     }
 
-return 0;
+    return 0;
 }
 
 /**
@@ -161,7 +163,6 @@ return 0;
 int CIPServiceMatch(ENIPTransaction *enip_data,
         DetectCipServiceData *cipserviced)
 {
-
     int count = 1;
     CIPServiceEntry *svc = NULL;
     //SCLogDebug("CIPServiceMatchAL\n");
@@ -224,14 +225,12 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_CIP_MATCH];
     DetectCipServiceData *cipserviced = (DetectCipServiceData *) sm->ctx;
 
-
     if (cipserviced == NULL)
     {
         SCLogDebug("no cipservice state, no match");
         SCReturnInt(0);
     }
    // SCLogDebug("DetectEngineInspectCIP %d\n", cipserviced->cipservice);
-
 
     if (CIPServiceMatch(tx, cipserviced) == 1)
     {
@@ -241,8 +240,6 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     SCReturnInt(0);
 }
-
-
 
 /** \brief Do the content inspection & validation for a signature
  *
@@ -267,7 +264,6 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) sm->ctx;
 
-
     if (enipcmdd == NULL)
     {
         SCLogDebug("no enipcommand state, no match");
@@ -287,117 +283,108 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
 #ifdef UNITTESTS /* UNITTESTS */
 #include "app-layer-parser.h"
-
 #include "detect-parse.h"
-
 #include "detect-engine.h"
-
 #include "flow-util.h"
-
 #include "stream-tcp.h"
-
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-
 static uint8_t listIdentity[] = {/* List ID */    0x00, 0x63,
-                                    /* Length */     0x00, 0x00,
-                                    /* Session */    0x00, 0x00, 0x00, 0x00,
-                                    /* Status */     0x00, 0x00, 0x00, 0x00,
-                                    /*  Delay*/     0x00,
-                                    /* Context */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                    /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00,};
-
-
+                                 /* Length */     0x00, 0x00,
+                                 /* Session */    0x00, 0x00, 0x00, 0x00,
+                                 /* Status */     0x00, 0x00, 0x00, 0x00,
+                                 /*  Delay*/      0x00,
+                                 /* Context */    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                 /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00,};
 
 /** \test Test code function. */
 static int DetectEngineInspectENIPTest01(void)
 {
-
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-        DetectEngineThreadCtx *det_ctx = NULL;
-        DetectEngineCtx *de_ctx = NULL;
-        Flow f;
-        Packet *p = NULL;
-        Signature *s = NULL;
-        TcpSession ssn;
-        ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
 
-        int result = 0;
+    int result = 0;
 
-        memset(&tv, 0, sizeof(ThreadVars));
-        memset(&f, 0, sizeof(Flow));
-        memset(&ssn, 0, sizeof(TcpSession));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
 
-        p = UTHBuildPacket(listIdentity, sizeof(listIdentity), IPPROTO_TCP);
+    p = UTHBuildPacket(listIdentity, sizeof(listIdentity), IPPROTO_TCP);
 
-        FLOW_INITIALIZE(&f);
-        f.alproto   = ALPROTO_ENIP;
-        f.protoctx  = (void *)&ssn;
-        f.proto     = IPPROTO_TCP;
-        f.flags     |= FLOW_IPV4;
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_ENIP;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
 
-        p->flow         = &f;
-        p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
-        p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
 
-        StreamTcpInitConfig(TRUE);
+    StreamTcpInitConfig(TRUE);
 
-        de_ctx = DetectEngineCtxInit();
-        if (de_ctx == NULL)
-            goto end;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
 
-        de_ctx->flags |= DE_QUIET;
-        s = de_ctx->sig_list = SigInit(de_ctx, "alert enip any any -> any any "
-                                                "(msg:\"Testing enip command\"; "
-                                                "enipcommand:99 ; sid:1;)");
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert enip any any -> any any "
+            "(msg:\"Testing enip command\"; "
+            "enipcommand:99 ; sid:1;)");
 
-        if (s == NULL)
-            goto end;
+    if (s == NULL)
+        goto end;
 
-        SigGroupBuild(de_ctx);
-        DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-        SCMutexLock(&f.m);
-        int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
-                listIdentity, sizeof(listIdentity));
-        if (r != 0) {
-            printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-            SCMutexUnlock(&f.m);
-            goto end;
-        }
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
+            listIdentity, sizeof(listIdentity));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
 
-        ENIPState    *enip_state = f.alstate;
-        if (enip_state == NULL) {
-            printf("no enip state: ");
-            goto end;
-        }
+    ENIPState    *enip_state = f.alstate;
+    if (enip_state == NULL) {
+        printf("no enip state: ");
+        goto end;
+    }
 
-        /* do detect */
-        SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-        if (!(PacketAlertCheck(p, 1))) {
-            printf("sid 1 didn't match but should have: ");
-            goto end;
-        }
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
 
-        result = 1;
+    result = 1;
 
-    end:
-        if (alp_tctx != NULL)
-            AppLayerParserThreadCtxFree(alp_tctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&tv, det_ctx);
-        if (de_ctx != NULL)
-            SigGroupCleanup(de_ctx);
-        if (de_ctx != NULL)
-            DetectEngineCtxFree(de_ctx);
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
-        StreamTcpFreeConfig(TRUE);
-        FLOW_DESTROY(&f);
-        UTHFreePacket(p);
-        return result;
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    return result;
 }
 
 #endif /* UNITTESTS */
@@ -405,7 +392,7 @@ static int DetectEngineInspectENIPTest01(void)
 void DetectEngineInspectENIPRegisterTests(void)
 {
 #ifdef UNITTESTS
-      UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01);
+    UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01);
 #endif /* UNITTESTS */
     return;
 }

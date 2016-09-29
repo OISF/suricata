@@ -324,7 +324,7 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DETECT_SM_LIST_ENIP_MATCH,
           DE_STATE_FLAG_ENIP_INSPECT,
           0,
-          DetectEngineInspectENIP },          
+          DetectEngineInspectENIP },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -442,7 +442,7 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DETECT_SM_LIST_ENIP_MATCH,
           DE_STATE_FLAG_ENIP_INSPECT,
           1,
-          DetectEngineInspectENIP },          
+          DetectEngineInspectENIP },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,

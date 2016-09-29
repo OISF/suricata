@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -22,7 +22,7 @@
  */
 
 #ifndef _DETECT_ENIP_H
-#define	_DETECT_ENIP_H
+#define _DETECT_ENIP_H
 
 #include "detect-cipservice.h"
 #include "decode-cip.h"
@@ -42,10 +42,10 @@
 #define CANCEL             0x0073
 
 //Common Packet Format Types
-#define NULL_ADDR              	0x0000
+#define NULL_ADDR               0x0000
 #define CONNECTION_BASED		0x00a1
-#define CONNECTED_DATA_ITEM 	0x00b1
-#define UNCONNECTED_DATA_ITEM 	0x00b2
+#define CONNECTED_DATA_ITEM     0x00b1
+#define UNCONNECTED_DATA_ITEM   0x00b2
 #define SEQUENCE_ADDR_ITEM      0xB002
 
 //status codes

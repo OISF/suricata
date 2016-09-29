@@ -37,11 +37,11 @@
  */
 typedef struct DetectCipServiceData_
 {
-    uint8_t cipservice; /* cip service type */
-    uint16_t cipclass; /* cip service type */
-    uint16_t cipattribute; /* cip service type */
-    uint8_t matchattribute;         /* whether to match on attribute*/
-    uint8_t tokens; /* number of parameters*/
+    uint8_t cipservice;     /* cip service type */
+    uint16_t cipclass;
+    uint16_t cipattribute;
+    uint8_t matchattribute; /* whether to match on attribute*/
+    uint8_t tokens;         /* number of parameters*/
 } DetectCipServiceData;
 
 /**
@@ -49,7 +49,7 @@ typedef struct DetectCipServiceData_
  */
 typedef struct DetectEnipCommandData_
 {
-    u_int16_t enipcommand; /* enip command */
+    uint16_t enipcommand; /* enip command */
 } DetectEnipCommandData;
 
 void DetectCipServiceRegister(void);
@@ -70,13 +70,11 @@ typedef struct CIPServiceData_
         } request;
         struct
         {
-            u_int8_t status;
+            uint8_t status;
         } response;
     };
     struct CIPServiceData* next;
 } CIPServiceData;
-
-
 
 /**
  * ENIP data structure
@@ -94,16 +92,10 @@ typedef struct ENIPData_
 
 } ENIPData;
 
-
 /**
  * Add new CIPServiceData node to link list
  */
 CIPServiceData *CreateCIPServiceData(ENIPData *enip_data);
-
-
-
-
-
 
 #endif	/* _DETECT_CIPSERVICE_H */
 

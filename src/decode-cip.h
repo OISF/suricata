@@ -49,20 +49,20 @@
 #define CIP_GET_STATUS      0x50
 
 //PATH sizing codes
-#define PATH_CLASS_8BIT      	0x20
-#define PATH_CLASS_16BIT      	0x21
-#define PATH_INSTANCE_8BIT      0x24
-#define PATH_INSTANCE_16BIT     0x25
-#define PATH_ATTR_8BIT      	0x30
-#define PATH_ATTR_16BIT      	0x31 //possible value
+#define PATH_CLASS_8BIT     0x20
+#define PATH_CLASS_16BIT    0x21
+#define PATH_INSTANCE_8BIT  0x24
+#define PATH_INSTANCE_16BIT 0x25
+#define PATH_ATTR_8BIT      0x30
+#define PATH_ATTR_16BIT     0x31 //possible value
 
 /**
  * CIP Request Header
  */
 typedef struct CIPReqHdr_
 {
-    u_int8_t service;
-    u_int8_t path_size;
+    uint8_t service;
+    uint8_t path_size;
 } CIPReqHdr;
 
 /**
@@ -70,10 +70,10 @@ typedef struct CIPReqHdr_
  */
 typedef struct CIPRespHdr_
 {
-    u_int8_t service;
-    u_int8_t pad;
-    u_int8_t status;
-    u_int8_t status_size;
+    uint8_t service;
+    uint8_t pad;
+    uint8_t status;
+    uint8_t status_size;
 } CIPRespHdr;
 
 /**
