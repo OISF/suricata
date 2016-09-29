@@ -1284,7 +1284,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(seg, list_seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1482,7 +1482,7 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1689,7 +1689,7 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1981,7 +1981,7 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
         flag |= STREAM_EOF;
     }
 
-    if (StreamTcpInlineMode() == 0) {
+    if (StreamTcpInlineMode(p) == 0) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flag |= STREAM_TOCLIENT;
         } else {
@@ -2567,7 +2567,7 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (unlikely(SEQ_GT(seg->seq, next_seq))) {
         /* we've run into a sequence gap */
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             /* don't conclude it's a gap until we see that the data
              * that is missing was acked. */
             if (SEQ_GT(seg->seq,stream->last_ack) && ssn->state != TCP_CLOSED)
@@ -2690,7 +2690,7 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
                 seg->payload_len, rd->ra_base_seq, stream->last_ack);
 
-        if (StreamTcpInlineMode() == 0) {
+        if (StreamTcpInlineMode(p) == 0) {
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
                 payload_offset = (rd->ra_base_seq + 1) - seg->seq;
@@ -3002,7 +3002,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* if in inline mode, we process all segments regardless of whether
          * they are ack'd or not. In non-inline, we process only those that
          * are at least partly ack'd. */
-        if (StreamTcpInlineMode() == 0 && SEQ_GEQ(seg->seq, stream->last_ack))
+        if (StreamTcpInlineMode(p) == 0 && SEQ_GEQ(seg->seq, stream->last_ack))
             break;
 
         SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
@@ -3060,7 +3060,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* if no data was sent to the applayer, we send it a empty 'nudge'
      * when in inline mode */
-    if (StreamTcpInlineMode() && rd.data_sent == 0 && ssn->state > TCP_ESTABLISHED) {
+    if (StreamTcpInlineMode(p) && rd.data_sent == 0 && ssn->state > TCP_ESTABLISHED) {
         SCLogDebug("sending empty eof message");
         /* send EOF to app layer */
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
@@ -3402,7 +3402,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 
     int r = 0;
-    if (!(StreamTcpInlineMode())) {
+    if (!(StreamTcpInlineMode(p))) {
         if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
         if (StreamTcpReassembleRaw(ra_ctx, ssn, stream, p) < 0)
@@ -3452,7 +3452,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* in stream inline mode even if we have no data we call the reassembly
      * functions to handle EOF */
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         int r = 0;
         if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
@@ -8474,6 +8474,7 @@ static int StreamTcpReassembleInlineTest10(void)
     p->tcph->th_seq = htonl(7);
     p->flow = f;
     p->flowflags |= FLOW_PKT_TOSERVER;
+    p->pkt_mode = PKT_MODE_IPS;
 
     FLOWLOCK_WRLOCK(f);
     if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server,  2, stream_payload1, 2) == -1) {

@@ -208,7 +208,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 TcpStream *opposing_stream = NULL;
                 if (stream == &ssn->client) {
                     opposing_stream = &ssn->server;
-                    if (StreamTcpInlineMode()) {
+                    if (StreamTcpInlineMode(p)) {
                         p->flowflags &= ~FLOW_PKT_TOSERVER;
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     } else {
@@ -217,7 +217,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     }
                 } else {
                     opposing_stream = &ssn->client;
-                    if (StreamTcpInlineMode()) {
+                    if (StreamTcpInlineMode(p)) {
                         p->flowflags &= ~FLOW_PKT_TOCLIENT;
                         p->flowflags |= FLOW_PKT_TOSERVER;
                     } else {
@@ -235,7 +235,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
                                                       opposing_stream, p);
                 if (stream == &ssn->client) {
-                    if (StreamTcpInlineMode()) {
+                    if (StreamTcpInlineMode(p)) {
                         p->flowflags &= ~FLOW_PKT_TOCLIENT;
                         p->flowflags |= FLOW_PKT_TOSERVER;
                     } else {
@@ -243,7 +243,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     }
                 } else {
-                    if (StreamTcpInlineMode()) {
+                    if (StreamTcpInlineMode(p)) {
                         p->flowflags &= ~FLOW_PKT_TOSERVER;
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     } else {

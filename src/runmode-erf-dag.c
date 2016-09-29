@@ -86,7 +86,8 @@ int RunModeIdsErfDagSingle(void)
         "ReceiveErfDag",
         "DecodeErfDag",
         thread_name_single,
-        NULL);
+        NULL,
+        RUNMODE_DAG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "DAG single runmode failed to start");
         exit(EXIT_FAILURE);
@@ -112,7 +113,8 @@ int RunModeIdsErfDagAutoFp(void)
         "ReceiveErfDag",
         "DecodeErfDag",
         thread_name_autofp,
-        NULL);
+        NULL,
+        RUNMODE_DAG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "DAG autofp runmode failed to start");
         exit(EXIT_FAILURE);
@@ -138,7 +140,8 @@ int RunModeIdsErfDagWorkers(void)
         "ReceiveErfDag",
         "DecodeErfDag",
         thread_name_workers,
-        NULL);
+        NULL,
+        RUNMODE_DAG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "DAG workers runmode failed to start");
         exit(EXIT_FAILURE);

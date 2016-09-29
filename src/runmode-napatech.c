@@ -112,7 +112,7 @@ int NapatechRegisterDeviceStreams()
         {
             // The Stream IDs do not have to be sequential
             snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", info.u.stream.data.streamIDList[i]);
-            LiveRegisterDevice(live_dev_buf);
+            LiveRegisterDevice(live_dev_buf, RUNMODE_NAPATECH);
         }
 
         if ((status = NT_InfoClose(info_stream)) != NT_SUCCESS)
@@ -143,7 +143,7 @@ int NapatechRegisterDeviceStreams()
             num_configured_streams++;
 
             snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", atoi(stream_id->val));
-            LiveRegisterDevice(live_dev_buf);
+            LiveRegisterDevice(live_dev_buf, RUNMODE_NAPATECH);
         }
     }
     return 0;
@@ -204,12 +204,12 @@ static int NapatechInit(int runmode)
         case NT_RUNMODE_AUTOFP:
             ret = RunModeSetLiveCaptureAutoFp(NapatechConfigParser, NapatechGetThreadsCount,
                                               "NapatechStream", "NapatechDecode",
-                                              thread_name_autofp, NULL);
+                                              thread_name_autofp, NULL, RUNMODE_NAPATECH);
             break;
         case NT_RUNMODE_WORKERS:
             ret = RunModeSetLiveCaptureWorkers(NapatechConfigParser, NapatechGetThreadsCount,
                                                "NapatechStream", "NapatechDecode",
-                                               thread_name_workers, NULL);
+                                               thread_name_workers, NULL, RUNMODE_NAPATECH);
             break;
         default:
             ret = -1;
