@@ -504,7 +504,11 @@ static void NFQReleasePacket(Packet *p)
 static int NFQBypassCallback(Packet *p)
 {
     if (IS_TUNNEL_PKT(p)) {
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
+        if (p->root == NULL) {
+            return 0;
+        }
+
+        SCMutex *m = &p->root->tunnel_mutex;
         SCMutexLock(m);
 
         p->root->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
