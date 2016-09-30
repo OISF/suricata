@@ -831,6 +831,8 @@ app-layer:
            #    response-body-limit: 4096
            #    double-decode-path: no
            #    double-decode-query: no
+
+    # SCADA EtherNet/IP and CIP protocol support
     enip:
       enabled: no
 
