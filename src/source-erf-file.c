@@ -177,8 +177,9 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
             pad = ERF_TYPE_ETH_PAD;
             break;
         default:
-            SCLogError(SC_ERR_UNIMPLEMENTED,
+            FatalError(SC_ERR_UNIMPLEMENTED,
                 "DAG record type %d not implemented.", dr.type);
+            /* Not reached. */
             SCReturnInt(TM_ECODE_FAILED);
             break;
     }
