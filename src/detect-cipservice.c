@@ -101,7 +101,7 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
     char* token;
     char *save;
     int var;
-    int input[3];
+    int input[3] = { 0, 0, 0 };
     int i = 0;
 
     token = strtok_r(rulestr, delims, &save);
@@ -156,6 +156,11 @@ static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
         input[i++] = var;
 
         token = strtok_r(NULL, delims, &save);
+    }
+
+    if (i == 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "no tokens found");
+        goto error;
     }
 
     cipserviced->cipservice = input[0];
