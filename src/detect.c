@@ -213,6 +213,7 @@
 #include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
+#include "util-detect.h"
 #include "runmodes.h"
 
 #include <glob.h>
@@ -360,6 +361,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
+            if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            }
+            if (de_ctx->sigerror) {
+                SCFree(de_ctx->sigerror);
+                de_ctx->sigerror = NULL;
+            }
         }
         multiline = 0;
     }
@@ -432,14 +441,12 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     ConfNode *rule_files;
     ConfNode *file = NULL;
-    SigFileLoaderStat sig_stat;
+    SigFileLoaderStat *sig_stat = &de_ctx->sig_stat;
     int ret = 0;
     char *sfile = NULL;
     char varname[128] = "rule-files";
     int good_sigs = 0;
     int bad_sigs = 0;
-
-    memset(&sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.rule-files",
@@ -464,7 +471,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = 0;
-                    ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
+                    ret = ProcessSigFiles(de_ctx, sfile, sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
 
                     if (ret != 0 || good_sigs == 0) {
@@ -479,7 +486,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
-        ret = ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs);
+        ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
 
         if (ret != 0) {
             if (de_ctx->failure_fatal == 1) {
@@ -493,9 +500,9 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     /* now we should have signatures to work with */
-    if (sig_stat.good_sigs_total <= 0) {
-        if (sig_stat.total_files > 0) {
-           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", sig_stat.total_files);
+    if (sig_stat->good_sigs_total <= 0) {
+        if (sig_stat->total_files > 0) {
+           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", sig_stat->total_files);
         } else {
             SCLogInfo("No signatures supplied.");
             goto end;
@@ -503,10 +510,10 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     } else {
         /* we report the total of files and rules successfully loaded and failed */
         SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed",
-            sig_stat.total_files, sig_stat.good_sigs_total, sig_stat.bad_sigs_total);
+            sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total);
     }
 
-    if ((sig_stat.bad_sigs_total || sig_stat.bad_files) && de_ctx->failure_fatal) {
+    if ((sig_stat->bad_sigs_total || sig_stat->bad_files) && de_ctx->failure_fatal) {
         ret = -1;
         goto end;
     }
@@ -522,6 +529,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     ret = 0;
 
  end:
+    gettimeofday(&de_ctx->last_reload, NULL);
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         if (rule_engine_analysis_set) {
             CleanupRuleAnalyzer();

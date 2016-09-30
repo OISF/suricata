@@ -211,6 +211,14 @@ int g_detect_disabled = 0;
 /** set caps or not */
 int sc_set_caps;
 
+/** Suricata instance */
+SCInstance suri;
+
+int SuriHasSigFile(void)
+{
+    return (suri.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -2387,8 +2395,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
 int main(int argc, char **argv)
 {
-    SCInstance suri;
-
     SCInstanceInit(&suri);
     suri.progname = argv[0];
 
@@ -2624,7 +2630,7 @@ int main(int argc, char **argv)
                 if (!(DetectEngineReloadIsStart())) {
                     DetectEngineReloadStart();
                     DetectEngineReload(&suri);
-                    DetectEngineReloadSetDone();
+                    DetectEngineReloadSetIdle();
                     sigusr2_count--;
                 }
             }
@@ -2633,10 +2639,10 @@ int main(int argc, char **argv)
             if (suri.sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             } else {
                 DetectEngineReload(&suri);
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             }
         }
 
