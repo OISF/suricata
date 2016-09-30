@@ -82,7 +82,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     const char delims[] = ",";
     DetectCipServiceData *cipserviced = NULL;
 
-    //SCLogDebug("DetectCipServiceParse - rule string  %s\n", rulestr);
+    //SCLogDebug("DetectCipServiceParse - rule string  %s", rulestr);
 
     cipserviced = SCMalloc(sizeof(DetectCipServiceData));
     if (unlikely(cipserviced == NULL))
@@ -104,7 +104,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     {
         if (i > 2) //for now only need 3 parameters
         {
-            printf("DetectEnipCommandParse: Too many parameters\n");
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "too many parameters");
             goto error;
         }
 
@@ -112,7 +112,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
         {
             if (!isdigit((int) *token))
             {
-                printf("DetectCipServiceParse - Parameter Error %s\n", token);
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "parameter error %s", token);
                 goto error;
             }
         } else //if on attribute
@@ -126,7 +126,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 
             if (!isdigit((int) *token))
             {
-                printf("DetectCipServiceParse - Attribute Error  %s\n", token);
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "attribute error  %s", token);
                 goto error;
             }
 
@@ -135,15 +135,15 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
         unsigned long num = atol(token);
         if ((num > MAX_CIP_SERVICE) && (i == 0))//if service greater than 7 bit
         {
-            printf("DetectEnipCommandParse: Invalid CIP service %lu\n", num);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP service %lu", num);
             goto error;
         } else if ((num > MAX_CIP_CLASS) && (i == 1))//if service greater than 16 bit
         {
-            printf("DetectEnipCommandParse: Invalid CIP class %lu\n", num);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP class %lu", num);
             goto error;
         } else if ((num > MAX_CIP_ATTRIBUTE) && (i == 2))//if service greater than 16 bit
         {
-            printf("DetectEnipCommandParse: Invalid CIP attribute %lu\n", num);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid CIP attribute %lu", num);
             goto error;
         }
 
@@ -158,12 +158,12 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     cipserviced->cipattribute = input[2];
     cipserviced->tokens = i;
 
-    SCLogDebug("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
-    SCLogDebug("DetectCipServiceParse - service %d\n", cipserviced->cipservice);
-    SCLogDebug("DetectCipServiceParse - class %d\n", cipserviced->cipclass);
-    SCLogDebug("DetectCipServiceParse - match attribute %d\n",
+    SCLogDebug("DetectCipServiceParse - tokens %d", cipserviced->tokens);
+    SCLogDebug("DetectCipServiceParse - service %d", cipserviced->cipservice);
+    SCLogDebug("DetectCipServiceParse - class %d", cipserviced->cipclass);
+    SCLogDebug("DetectCipServiceParse - match attribute %d",
             cipserviced->matchattribute);
-    SCLogDebug("DetectCipServiceParse - attribute %d\n",
+    SCLogDebug("DetectCipServiceParse - attribute %d",
             cipserviced->cipattribute);
 
     SCReturnPtr(cipserviced, "DetectENIPFunction");
@@ -171,7 +171,6 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 error:
     if (cipserviced)
         SCFree(cipserviced);
-    printf("DetectCipServiceParse - Error Parsing Parameters\n");
     SCReturnPtr(NULL, "DetectENIP");
 }
 
@@ -222,8 +221,6 @@ error:
         DetectCipServiceFree(cipserviced);
     if (sm != NULL)
         SCFree(sm);
-    printf("DetectCipServiceSetup - Error\n");
-
     SCReturnInt(-1);
 }
 
@@ -359,7 +356,7 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
         unsigned long cmd = atol(rulestr);
         if (cmd > MAX_ENIP_CMD) //if command greater than 16 bit
         {
-            //printf("DetectEnipCommandParse: Invalid ENIP command %lu\n", cmd);
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %lu", cmd);
             goto error;
         }
 
@@ -375,7 +372,6 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
 error:
     if (enipcmdd)
         SCFree(enipcmdd);
-    //printf("DetectEnipCommandParse - Error Parsing Parameters\n");
     return NULL;
 }
 
@@ -423,7 +419,6 @@ error:
         DetectEnipCommandFree(enipcmdd);
     if (sm != NULL)
         SCFree(sm);
-    printf("DetectEnipCommandSetup - Error\n");
     SCReturnInt(-1);
 }
 

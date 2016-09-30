@@ -150,7 +150,7 @@ int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventTy
  */
 void *ENIPStateAlloc(void)
 {
-    SCLogDebug("ENIPStateAlloc \n");
+    SCLogDebug("ENIPStateAlloc");
     void *s = SCMalloc(sizeof(ENIPState));
     if (unlikely(s == NULL))
         return NULL;
@@ -169,7 +169,7 @@ void *ENIPStateAlloc(void)
 static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 {
     SCEnter();
-    SCLogDebug("ENIPTransactionFree \n");
+    SCLogDebug("ENIPTransactionFree");
     CIPServiceEntry *svc = NULL;
     while ((svc = TAILQ_FIRST(&tx->service_list)))
     {
@@ -214,7 +214,7 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 void ENIPStateFree(void *s)
 {
     SCEnter();
-    SCLogDebug("ENIPStateFree \n");
+    SCLogDebug("ENIPStateFree");
     if (s)
     {
         ENIPState *enip_state = (ENIPState *) s;
@@ -241,7 +241,7 @@ void ENIPStateFree(void *s)
  *  \retval tx or NULL */
 static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
 {
-    SCLogDebug("ENIPStateTransactionAlloc \n");
+    SCLogDebug("ENIPStateTransactionAlloc");
     ENIPTransaction *tx = (ENIPTransaction *) SCCalloc(1,
             sizeof(ENIPTransaction));
     if (unlikely(tx == NULL))
@@ -268,7 +268,7 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
 void ENIPStateTransactionFree(void *state, uint64_t tx_id)
 {
     SCEnter();
-    SCLogDebug("ENIPStateTransactionFree \n");
+    SCLogDebug("ENIPStateTransactionFree");
     ENIPState *enip_state = state;
     ENIPTransaction *tx = NULL;
     TAILQ_FOREACH(tx, &enip_state->tx_list, next)
@@ -329,23 +329,23 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
         if (tx == NULL)
             SCReturnInt(0);
 
-        SCLogDebug("ENIPParse input len %d\n", input_len);
+        SCLogDebug("ENIPParse input len %d", input_len);
         DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
-        SCLogDebug("ENIPParse packet len %d\n", pkt_len);
+        SCLogDebug("ENIPParse packet len %d", pkt_len);
         if (pkt_len > input_len)
         {
-            SCLogDebug("Invalid packet length \n");
+            SCLogDebug("Invalid packet length");
             break;
         }
 
         input += pkt_len;
         input_len -= pkt_len;
-        //SCLogDebug("remaining %d\n", input_len);
+        //SCLogDebug("remaining %d", input_len);
 
         if (input_len < sizeof(ENIPEncapHdr))
         {
-            //SCLogDebug("Not enough data\n"); //not enough data for ENIP
+            //SCLogDebug("Not enough data"); //not enough data for ENIP
             break;
         }
     }
@@ -358,10 +358,10 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
         uint32_t *offset)
 {
-    // SCLogDebug("ENIPProbingParser %d\n", input_len);
+    // SCLogDebug("ENIPProbingParser %d", input_len);
     if (input_len < sizeof(ENIPEncapHdr))
     {
-        printf("Length too small to be a ENIP header \n");
+        SCLogDebug("length too small to be a ENIP header");
         return ALPROTO_UNKNOWN;
     }
 
@@ -409,7 +409,7 @@ void RegisterENIPUDPParsers(void)
 
     } else
     {
-        printf("Protocol detection and parser disabled for %s protocol.",
+        SCLogConfig("Protocol detection and parser disabled for %s protocol.",
                 proto_name);
         return;
     }

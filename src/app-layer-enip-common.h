@@ -156,29 +156,29 @@ typedef struct CIPRespHdr_
 
 typedef struct SegmentEntry_
 {
-    uint16_t segment; //segment type
-    uint16_t value; //segment value (class or attribute)
+    uint16_t segment;   /**< segment type */
+    uint16_t value;     /**< segment value (class or attribute) */
 
-TAILQ_ENTRY(SegmentEntry_) next;
+    TAILQ_ENTRY(SegmentEntry_) next;
 } SegmentEntry;
 
 typedef struct AttributeEntry_
 {
-    uint16_t attribute; //segment class
+    uint16_t attribute; /**< segment class */
 
-TAILQ_ENTRY(AttributeEntry_) next;
+    TAILQ_ENTRY(AttributeEntry_) next;
 } AttributeEntry;
 
 typedef struct CIPServiceEntry_
 {
-    uint8_t service; //cip service
+    uint8_t service;                            /**< cip service */
     uint8_t direction;
     union
     {
         struct
         {
-            uint8_t path_size; //cip path size
-            uint16_t path_offset; //offset to cip path
+            uint8_t path_size;                  /**< cip path size */
+            uint16_t path_offset;               /**< offset to cip path */
         } request;
         struct
         {
@@ -186,8 +186,8 @@ typedef struct CIPServiceEntry_
         } response;
     };
 
-    TAILQ_HEAD(, SegmentEntry_) segment_list; /**< list for CIP segment */
-    TAILQ_HEAD(, AttributeEntry_) attrib_list; /**< list for CIP segment */
+    TAILQ_HEAD(, SegmentEntry_) segment_list;   /**< list for CIP segment */
+    TAILQ_HEAD(, AttributeEntry_) attrib_list;  /**< list for CIP segment */
 
     TAILQ_ENTRY(CIPServiceEntry_) next;
 } CIPServiceEntry;
@@ -195,18 +195,18 @@ typedef struct CIPServiceEntry_
 typedef struct ENIPTransaction_
 {
     struct ENIPState_ *enip;
-    uint16_t tx_num; /**< internal: id */
-    uint16_t tx_id; /**< transaction id */
-    uint16_t service_count; /**< transaction id */
+    uint16_t tx_num;                            /**< internal: id */
+    uint16_t tx_id;                             /**< transaction id */
+    uint16_t service_count;
 
-    ENIPEncapHdr header; //encapsulation header
-    ENIPEncapDataHdr encap_data_header; //encapsulation data header
-    ENIPEncapAddresItem encap_addr_item; //encapsulated address item
-    ENIPEncapDataItem encap_data_item; //encapsulated data item
+    ENIPEncapHdr header;                        /**< encapsulation header */
+    ENIPEncapDataHdr encap_data_header;         /**< encapsulation data header */
+    ENIPEncapAddresItem encap_addr_item;        /**< encapsulated address item */
+    ENIPEncapDataItem encap_data_item;          /**< encapsulated data item */
 
     TAILQ_HEAD(, CIPServiceEntry_) service_list; /**< list for CIP  */
 
-    AppLayerDecoderEvents *decoder_events; /**< per tx events */
+    AppLayerDecoderEvents *decoder_events;      /**< per tx events */
 
     TAILQ_ENTRY(ENIPTransaction_) next;
     DetectEngineState *de_state;
@@ -216,7 +216,7 @@ typedef struct ENIPTransaction_
 typedef struct ENIPState_
 {
     TAILQ_HEAD(, ENIPTransaction_) tx_list; /**< transaction list */
-    ENIPTransaction *curr; /**< ptr to current tx */
+    ENIPTransaction *curr;                  /**< ptr to current tx */
     ENIPTransaction *iter;
     uint64_t transaction_max;
     uint64_t tx_with_detect_state_cnt;

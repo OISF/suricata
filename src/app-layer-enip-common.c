@@ -46,7 +46,7 @@ int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t in
 
     if (*offset > (input_len - sizeof(uint8_t)))
     {
-        SCLogDebug("ENIPExtractUint8: Parsing beyond payload length\n");
+        SCLogDebug("ENIPExtractUint8: Parsing beyond payload length");
         return 0;
     }
 
@@ -66,7 +66,7 @@ int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 
     if (*offset > (input_len - sizeof(uint16_t)))
     {
-        SCLogDebug("ENIPExtractUint16: Parsing beyond payload length\n");
+        SCLogDebug("ENIPExtractUint16: Parsing beyond payload length");
         return 0;
     }
 
@@ -87,7 +87,7 @@ int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 
     if (*offset > (input_len - sizeof(uint32_t)))
     {
-        SCLogDebug("ENIPExtractUint32: Parsing beyond payload length\n");
+        SCLogDebug("ENIPExtractUint32: Parsing beyond payload length");
         return 0;
     }
 
@@ -108,7 +108,7 @@ int ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset, uint32_t 
 
     if (*offset > (input_len - sizeof(uint64_t)))
     {
-        SCLogDebug("ENIPExtractUint64: Parsing beyond payload length\n");
+        SCLogDebug("ENIPExtractUint64: Parsing beyond payload length");
         return 0;
     }
 
@@ -232,43 +232,43 @@ int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
     switch (enip_data->header.command)
     {
         case NOP:
-            SCLogDebug("DecodeENIP - NOP\n");
+            SCLogDebug("DecodeENIP - NOP");
             break;
         case LIST_SERVICES:
-            SCLogDebug("DecodeENIP - LIST_SERVICES\n");
+            SCLogDebug("DecodeENIP - LIST_SERVICES");
             break;
         case LIST_IDENTITY:
-            SCLogDebug("DecodeENIP - LIST_IDENTITY\n");
+            SCLogDebug("DecodeENIP - LIST_IDENTITY");
             break;
         case LIST_INTERFACES:
-            SCLogDebug("DecodeENIP - LIST_INTERFACES\n");
+            SCLogDebug("DecodeENIP - LIST_INTERFACES");
             break;
         case REGISTER_SESSION:
-            SCLogDebug("DecodeENIP - REGISTER_SESSION\n");
+            SCLogDebug("DecodeENIP - REGISTER_SESSION");
             break;
         case UNREGISTER_SESSION:
-            SCLogDebug("DecodeENIP - UNREGISTER_SESSION\n");
+            SCLogDebug("DecodeENIP - UNREGISTER_SESSION");
             break;
         case SEND_RR_DATA:
             SCLogDebug(
-                    "DecodeENIP - SEND_RR_DATA - parse Common Packet Format\n");
+                    "DecodeENIP - SEND_RR_DATA - parse Common Packet Format");
             ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data,
                     offset);
             break;
         case SEND_UNIT_DATA:
             SCLogDebug(
-                    "DecodeENIP - SEND UNIT DATA - parse Common Packet Format\n");
+                    "DecodeENIP - SEND UNIT DATA - parse Common Packet Format");
             ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data,
                     offset);
             break;
         case INDICATE_STATUS:
-            SCLogDebug("DecodeENIP - INDICATE_STATUS\n");
+            SCLogDebug("DecodeENIP - INDICATE_STATUS");
             break;
         case CANCEL:
-            SCLogDebug("DecodeENIP - CANCEL\n");
+            SCLogDebug("DecodeENIP - CANCEL");
             break;
         default:
-            SCLogDebug("DecodeENIP - UNSUPPORTED COMMAND 0x%x\n",
+            SCLogDebug("DecodeENIP - UNSUPPORTED COMMAND 0x%x",
                     enip_data->header.command);
     }
 
@@ -290,7 +290,7 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
 
     if (enip_data->header.length < sizeof(ENIPEncapDataHdr))
     {
-        SCLogDebug("DecodeCommonPacketFormat: Malformed ENIP packet\n");
+        SCLogDebug("DecodeCommonPacketFormat: Malformed ENIP packet");
         return 0;
     }
 
@@ -380,15 +380,15 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
     {
         case CONNECTED_DATA_ITEM:
             SCLogDebug(
-                    "DecodeCommonPacketFormat - CONNECTED DATA ITEM - parse CIP\n");
+                    "DecodeCommonPacketFormat - CONNECTED DATA ITEM - parse CIP");
             DecodeCIPPDU(input, input_len, enip_data, offset);
             break;
         case UNCONNECTED_DATA_ITEM:
-            SCLogDebug("DecodeCommonPacketFormat - UNCONNECTED DATA ITEM\n");
+            SCLogDebug("DecodeCommonPacketFormat - UNCONNECTED DATA ITEM");
             DecodeCIPPDU(input, input_len, enip_data, offset);
             break;
         default:
-            SCLogDebug("DecodeCommonPacketFormat - UNKNOWN TYPE 0x%x\n\n",
+            SCLogDebug("DecodeCommonPacketFormat - UNKNOWN TYPE 0x%x",
                     enip_data->encap_data_item.type);
             return 0;
     }
@@ -412,20 +412,20 @@ int DecodeCIPPDU(uint8_t *input, uint32_t input_len,
 
     if (enip_data->encap_data_item.length == 0)
     {
-        SCLogDebug("DecodeCIP: No CIP Data\n");
+        SCLogDebug("DecodeCIP: No CIP Data");
         return 0;
     }
 
     if (offset > (input_len - sizeof(uint8_t)))
     {
-        SCLogDebug("DecodeCIP: Parsing beyond payload length\n");
+        SCLogDebug("DecodeCIP: Parsing beyond payload length");
         return 0;
     }
 
     uint8_t service = 0;
     service = *(input + offset);
 
-    //SCLogDebug("CIP Service 0x%x\n", service);
+    //SCLogDebug("CIP Service 0x%x", service);
 
     //use service code first bit to determine request/response, no need to save or push offset
     if (service >> 7)
@@ -456,7 +456,7 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
 
     if (enip_data->encap_data_item.length < sizeof(CIPReqHdr))
     {
-        SCLogDebug("DecodeCIPRequest - Malformed CIP Data\n");
+        SCLogDebug("DecodeCIPRequest - Malformed CIP Data");
         return 0;
     }
 
@@ -474,14 +474,14 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
 
     if (service > MAX_CIP_SERVICE)
     { // service codes of value 0x80 or greater are not permitted because in the CIP protocol the highest order bit is used to flag request(0)/response(1)
-        SCLogDebug("DecodeCIPRequest - INVALID CIP SERVICE 0x%x\n", service);
+        SCLogDebug("DecodeCIPRequest - INVALID CIP SERVICE 0x%x", service);
         return 0;
     }
 
     //reached maximum number of services
     if (enip_data->service_count > 32)
     {
-        SCLogDebug("DecodeCIPRequest: Maximum services reached\n");
+        SCLogDebug("DecodeCIPRequest: Maximum services reached");
         return 0;
     }
 
@@ -489,14 +489,14 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
     CIPServiceEntry *node = CIPServiceAlloc(enip_data);
     if (node == NULL)
     {
-        SCLogDebug("DecodeCIPRequest: Unable to create CIP service\n");
+        SCLogDebug("DecodeCIPRequest: Unable to create CIP service");
 	return 0;
     }
     node->direction = 0;
     node->service = service;
     node->request.path_size = path_size;
     node->request.path_offset = offset;
-    // SCLogDebug("DecodeCIPRequestPDU: service 0x%x size %d\n", node->service,
+    // SCLogDebug("DecodeCIPRequestPDU: service 0x%x size %d", node->service,
     //         node->request.path_size);
 
     DecodeCIPRequestPathPDU(input, input_len, node, offset);
@@ -507,53 +507,53 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
     switch (service)
     {
         case CIP_RESERVED:
-            SCLogDebug("DecodeCIPRequest - CIP_RESERVED\n");
+            SCLogDebug("DecodeCIPRequest - CIP_RESERVED");
             break;
         case CIP_GET_ATTR_ALL:
-            SCLogDebug("DecodeCIPRequest - CIP_GET_ATTR_ALL\n");
+            SCLogDebug("DecodeCIPRequest - CIP_GET_ATTR_ALL");
             break;
         case CIP_GET_ATTR_LIST:
-            SCLogDebug("DecodeCIPRequest - CIP_GET_ATTR_LIST\n");
+            SCLogDebug("DecodeCIPRequest - CIP_GET_ATTR_LIST");
             break;
         case CIP_SET_ATTR_LIST:
-            SCLogDebug("DecodeCIPRequest - CIP_SET_ATTR_LIST\n");
+            SCLogDebug("DecodeCIPRequest - CIP_SET_ATTR_LIST");
             break;
         case CIP_RESET:
-            SCLogDebug("DecodeCIPRequest - CIP_RESET\n");
+            SCLogDebug("DecodeCIPRequest - CIP_RESET");
             break;
         case CIP_START:
-            SCLogDebug("DecodeCIPRequest - CIP_START\n");
+            SCLogDebug("DecodeCIPRequest - CIP_START");
             break;
         case CIP_STOP:
-            SCLogDebug("DecodeCIPRequest - CIP_STOP\n");
+            SCLogDebug("DecodeCIPRequest - CIP_STOP");
             break;
         case CIP_CREATE:
-            SCLogDebug("DecodeCIPRequest - CIP_CREATE\n");
+            SCLogDebug("DecodeCIPRequest - CIP_CREATE");
             break;
         case CIP_DELETE:
-            SCLogDebug("DecodeCIPRequest - CIP_DELETE\n");
+            SCLogDebug("DecodeCIPRequest - CIP_DELETE");
             break;
         case CIP_MSP:
-            SCLogDebug("DecodeCIPRequest - CIP_MSP\n");
+            SCLogDebug("DecodeCIPRequest - CIP_MSP");
             DecodeCIPRequestMSPPDU(input, input_len, enip_data, offset);
             break;
         case CIP_APPLY_ATTR:
-            SCLogDebug("DecodeCIPRequest - CIP_APPLY_ATTR\n");
+            SCLogDebug("DecodeCIPRequest - CIP_APPLY_ATTR");
             break;
         case CIP_KICK_TIMER:
-            SCLogDebug("DecodeCIPRequest - CIP_KICK_TIMER\n");
+            SCLogDebug("DecodeCIPRequest - CIP_KICK_TIMER");
             break;
         case CIP_OPEN_CONNECTION:
-            SCLogDebug("DecodeCIPRequest - CIP_OPEN_CONNECTION\n");
+            SCLogDebug("DecodeCIPRequest - CIP_OPEN_CONNECTION");
             break;
         case CIP_CHANGE_START:
-            SCLogDebug("DecodeCIPRequest - CIP_CHANGE_START\n");
+            SCLogDebug("DecodeCIPRequest - CIP_CHANGE_START");
             break;
         case CIP_GET_STATUS:
-            SCLogDebug("DecodeCIPRequest - CIP_GET_STATUS\n");
+            SCLogDebug("DecodeCIPRequest - CIP_GET_STATUS");
             break;
         default:
-            SCLogDebug("DecodeCIPRequest - CIP SERVICE 0x%x\n", service);
+            SCLogDebug("DecodeCIPRequest - CIP SERVICE 0x%x", service);
     }
 
     return ret;
@@ -572,12 +572,12 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
 int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         CIPServiceEntry *node, uint16_t offset)
 {
-    //SCLogDebug("DecodeCIPRequestPath: service 0x%x size %d length %d\n",
+    //SCLogDebug("DecodeCIPRequestPath: service 0x%x size %d length %d",
     //        node->service, node->request.path_size, input_len);
 
     if (node->request.path_size < 1)
     {
-        //SCLogDebug("DecodeCIPRequestPath: empty path or CIP Response\n");
+        //SCLogDebug("DecodeCIPRequestPath: empty path or CIP Response");
         return 0;
     }
 
@@ -613,7 +613,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                     return 0;
                 }
                 class = (uint16_t) req_path_class8;
-                SCLogDebug("DecodeCIPRequestPathPDU: 8bit class 0x%x\n", class);
+                SCLogDebug("DecodeCIPRequestPathPDU: 8bit class 0x%x", class);
 
                 seg = SCMalloc(sizeof(SegmentEntry));
                 if (unlikely(seg == NULL))
@@ -638,7 +638,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                     return 0;
                 }
                 //uint16_t attrib = (uint16_t) req_path_attr8;
-                //SCLogDebug("DecodeCIPRequestPath: 8bit attr 0x%x\n", attrib);
+                //SCLogDebug("DecodeCIPRequestPath: 8bit attr 0x%x", attrib);
 
                 seg = SCMalloc(sizeof(SegmentEntry));
                 if (unlikely(seg == NULL))
@@ -659,7 +659,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                     return 0;
                 }
                 class = req_path_class16;
-                SCLogDebug("DecodeCIPRequestPath: 16bit class 0x%x\n", class);
+                SCLogDebug("DecodeCIPRequestPath: 16bit class 0x%x", class);
 
                 seg = SCMalloc(sizeof(SegmentEntry));
                 if (unlikely(seg == NULL))
@@ -695,7 +695,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                 break;
             default:
                 SCLogDebug(
-                        "DecodeCIPRequestPath: UNKNOWN SEGMENT 0x%x service 0x%x\n",
+                        "DecodeCIPRequestPath: UNKNOWN SEGMENT 0x%x service 0x%x",
                         segment, node->service);
                 return 0;
         }
@@ -712,7 +712,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         {
             return 0;
         }
-        SCLogDebug("DecodeCIPRequestPathPDU: attribute list count %d\n",
+        SCLogDebug("DecodeCIPRequestPathPDU: attribute list count %d",
                 attr_list_count);
         for (int i = 0; i < attr_list_count; i++)
         {
@@ -720,7 +720,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
             {
                 return 0;
             }
-            SCLogDebug("DecodeCIPRequestPathPDU: attribute %d\n", attribute);
+            SCLogDebug("DecodeCIPRequestPathPDU: attribute %d", attribute);
             //save attrs
             AttributeEntry *attr = SCMalloc(sizeof(AttributeEntry));
             if (unlikely(attr == NULL))
@@ -749,7 +749,7 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
 
     if (enip_data->encap_data_item.length < sizeof(CIPRespHdr))
     {
-        SCLogDebug("DecodeCIPResponse - Malformed CIP Data\n");
+        SCLogDebug("DecodeCIPResponse - Malformed CIP Data");
         return 0;
     }
 
@@ -770,15 +770,15 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
         return 0;
     }
 
-    //SCLogDebug("DecodeCIPResponse: service 0x%x\n",service);
+    //SCLogDebug("DecodeCIPResponse: service 0x%x",service);
     service &= 0x7f; //strip off top bit to get service code.  Responses have first bit as 1
 
-    SCLogDebug("CIP service 0x%x status 0x%x\n", service, status);
+    SCLogDebug("CIP service 0x%x status 0x%x", service, status);
 
     //reached maximum number of services
     if (enip_data->service_count > 32)
     {
-        SCLogDebug("DecodeCIPRequest: Maximum services reached\n");
+        SCLogDebug("DecodeCIPRequest: Maximum services reached");
         return 0;
     }
 
@@ -786,67 +786,67 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
     CIPServiceEntry *node = CIPServiceAlloc(enip_data);
     if (node == NULL)
     {
-        SCLogDebug("DecodeCIPRequest: Unable to create CIP service\n");
+        SCLogDebug("DecodeCIPRequest: Unable to create CIP service");
 	return 0;
     }
     node->direction = 1;
     node->service = service;
     node->response.status = status;
 
-    SCLogDebug("DecodeCIPResponsePDU: service 0x%x size %d\n", node->service,
+    SCLogDebug("DecodeCIPResponsePDU: service 0x%x size %d", node->service,
             node->request.path_size);
 
     //list of CIP services is large and can be vendor specific, store CIP service  anyways and let the rule decide the action
     switch (service)
     {
         case CIP_RESERVED:
-            SCLogDebug("DecodeCIPResponse - CIP_RESERVED\n");
+            SCLogDebug("DecodeCIPResponse - CIP_RESERVED");
             break;
         case CIP_GET_ATTR_ALL:
-            SCLogDebug("DecodeCIPResponse - CIP_GET_ATTR_ALL\n");
+            SCLogDebug("DecodeCIPResponse - CIP_GET_ATTR_ALL");
             break;
         case CIP_GET_ATTR_LIST:
-            SCLogDebug("DecodeCIPResponse - CIP_GET_ATTR_LIST\n");
+            SCLogDebug("DecodeCIPResponse - CIP_GET_ATTR_LIST");
             break;
         case CIP_SET_ATTR_LIST:
-            SCLogDebug("DecodeCIPResponse - CIP_SET_ATTR_LIST\n");
+            SCLogDebug("DecodeCIPResponse - CIP_SET_ATTR_LIST");
             break;
         case CIP_RESET:
-            SCLogDebug("DecodeCIPResponse - CIP_RESET\n");
+            SCLogDebug("DecodeCIPResponse - CIP_RESET");
             break;
         case CIP_START:
-            SCLogDebug("DecodeCIPResponse - CIP_START\n");
+            SCLogDebug("DecodeCIPResponse - CIP_START");
             break;
         case CIP_STOP:
-            SCLogDebug("DecodeCIPResponse - CIP_STOP\n");
+            SCLogDebug("DecodeCIPResponse - CIP_STOP");
             break;
         case CIP_CREATE:
-            SCLogDebug("DecodeCIPResponse - CIP_CREATE\n");
+            SCLogDebug("DecodeCIPResponse - CIP_CREATE");
             break;
         case CIP_DELETE:
-            SCLogDebug("DecodeCIPResponse - CIP_DELETE\n");
+            SCLogDebug("DecodeCIPResponse - CIP_DELETE");
             break;
         case CIP_MSP:
-            SCLogDebug("DecodeCIPResponse - CIP_MSP\n");
+            SCLogDebug("DecodeCIPResponse - CIP_MSP");
             DecodeCIPResponseMSPPDU(input, input_len, enip_data, offset);
             break;
         case CIP_APPLY_ATTR:
-            SCLogDebug("DecodeCIPResponse - CIP_APPLY_ATTR\n");
+            SCLogDebug("DecodeCIPResponse - CIP_APPLY_ATTR");
             break;
         case CIP_KICK_TIMER:
-            SCLogDebug("DecodeCIPResponse - CIP_KICK_TIMER\n");
+            SCLogDebug("DecodeCIPResponse - CIP_KICK_TIMER");
             break;
         case CIP_OPEN_CONNECTION:
-            SCLogDebug("DecodeCIPResponse - CIP_OPEN_CONNECTION\n");
+            SCLogDebug("DecodeCIPResponse - CIP_OPEN_CONNECTION");
             break;
         case CIP_CHANGE_START:
-            SCLogDebug("DecodeCIPResponse - CIP_CHANGE_START\n");
+            SCLogDebug("DecodeCIPResponse - CIP_CHANGE_START");
             break;
         case CIP_GET_STATUS:
-            SCLogDebug("DecodeCIPResponse - CIP_GET_STATUS\n");
+            SCLogDebug("DecodeCIPResponse - CIP_GET_STATUS");
             break;
         default:
-            SCLogDebug("DecodeCIPResponse - CIP SERVICE 0x%x\n", service);
+            SCLogDebug("DecodeCIPResponse - CIP SERVICE 0x%x", service);
     }
 
     return ret;
@@ -867,7 +867,7 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
     int ret = 1;
     if (offset >= (input_len - sizeof(uint16_t)))
     {
-        SCLogDebug("DecodeCIPRequestMSPPDU: Parsing beyond payload length\n");
+        SCLogDebug("DecodeCIPRequestMSPPDU: Parsing beyond payload length");
         return 0;
     }
     //use temp_offset just to grab the service offset, don't want to use and push offset
@@ -876,13 +876,13 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
     ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
             (const uint8_t *) (input + temp_offset));
     temp_offset += sizeof(uint16_t);
-    //SCLogDebug("DecodeCIPRequestMSP number of services %d\n",num_services);
+    //SCLogDebug("DecodeCIPRequestMSP number of services %d",num_services);
 
     for (int svc = 1; svc < num_services + 1; svc++)
     {
         if (temp_offset >= (input_len - sizeof(uint16_t)))
         {
-            SCLogDebug("DecodeCIPRequestMSPPDU: Parsing beyond payload length\n");
+            SCLogDebug("DecodeCIPRequestMSPPDU: Parsing beyond payload length");
             return 0;
         }
 
@@ -890,7 +890,7 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
         ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
                 (const uint8_t *) (input + temp_offset));
         temp_offset += sizeof(uint16_t);
-        //SCLogDebug("parseCIPRequestMSP service %d offset %d\n",svc, svc_offset);
+        //SCLogDebug("parseCIPRequestMSP service %d offset %d",svc, svc_offset);
 
         DecodeCIPPDU(input, input_len, enip_data, offset + svc_offset); //parse CIP at found offset
     }
@@ -915,7 +915,7 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
 
     if (offset >= (input_len - sizeof(uint16_t)))
     {
-        SCLogDebug("DecodeCIPResponseMSPPDU: Parsing beyond payload length\n");
+        SCLogDebug("DecodeCIPResponseMSPPDU: Parsing beyond payload length");
         return 0;
     }
     //use temp_offset just to grab the service offset, don't want to use and push offset
@@ -924,13 +924,13 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
     ByteExtractUint16(&num_services, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
             (const uint8_t *) (input + temp_offset));
     temp_offset += sizeof(uint16_t);
-    //SCLogDebug("DecodeCIPResponseMSP number of services %d\n", num_services);
+    //SCLogDebug("DecodeCIPResponseMSP number of services %d", num_services);
 
     for (int svc = 0; svc < num_services; svc++)
     {
         if (temp_offset >= (input_len - sizeof(uint16_t)))
         {
-            SCLogDebug("DecodeCIPResponseMSP: Parsing beyond payload length\n");
+            SCLogDebug("DecodeCIPResponseMSP: Parsing beyond payload length");
             return 0;
         }
 
@@ -938,7 +938,7 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
         ByteExtractUint16(&svc_offset, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
                 (const uint8_t *) (input + temp_offset));
         temp_offset += sizeof(uint16_t);
-        //SCLogDebug("parseCIPResponseMSP service %d offset %d\n", svc, svc_offset);
+        //SCLogDebug("parseCIPResponseMSP service %d offset %d", svc, svc_offset);
 
         DecodeCIPPDU(input, input_len, enip_data, offset + svc_offset); //parse CIP at found offset
     }
