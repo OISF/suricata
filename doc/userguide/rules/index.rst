@@ -17,6 +17,7 @@ Suricata Rules
    tls-keywords
    modbus-keyword
    dnp3-keywords
+   enip-keyword
    rule-lua-scripting
    normalized-buffers
    live-rule-swap
