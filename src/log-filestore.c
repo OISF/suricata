@@ -46,6 +46,7 @@
 #include "util-atomic.h"
 #include "util-file.h"
 #include "util-time.h"
+#include "util-misc.h"
 
 #include "output.h"
 
@@ -483,6 +484,21 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
     FileForceHashParseCfg(conf);
     SCLogInfo("storing files in %s", g_logfile_base_dir);
+
+    const char *stream_depth_str = ConfNodeLookupChildValue(conf, "stream-depth");
+    if (stream_depth_str != NULL && strcmp(stream_depth_str, "no")) {
+        uint32_t stream_depth = 0;
+        if (ParseSizeStringU32(stream_depth_str,
+                               &stream_depth) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                       "file-store.stream-depth "
+                       "from conf file - %s.  Killing engine",
+                       stream_depth_str);
+            exit(EXIT_FAILURE);
+        } else {
+            FileReassemblyDepthEnable(stream_depth);
+        }
+    }
 
     SCReturnPtr(output_ctx, "OutputCtx");
 }

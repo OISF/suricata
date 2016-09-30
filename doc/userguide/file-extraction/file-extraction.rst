@@ -16,7 +16,7 @@ Settings
 
 *stream.checksum_validation* controls whether or not the stream engine rejects packets with invalid checksums. A good idea normally, but the network interface performs checksum offloading a lot of packets may seem to be broken. This setting is enabled by default, and can be disabled by setting to "no". Note that the checksum handling can be controlled per interface, see "checksum_checks" in example configuration.
 
-*stream.reassembly.depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a settings of 1 Megabyte is used. 0 sets it to unlimited.
+*file-store.stream-depth* controls how far into a stream reassembly is done. Beyond this value no reassembly will be done. This means that after this value the HTTP session will no longer be tracked. By default a settings of 1 Megabyte is used. 0 sets it to unlimited. If set to no, it is disabled and stream.reassembly.depth is considered.
 
 *libhtp.default-config.request-body-limit* / *libhtp.server-config.<config>.request-body-limit* controls how much of the HTTP request body is tracked for inspection by the http_client_body keyword, but also used to limit file inspection. A value of 0 means unlimited.
 
@@ -40,6 +40,7 @@ drop dir must be configured.
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
       force-md5: no     # force logging of md5 checksums
+      stream-depth: 1mb # reassemble 1mb into a stream, set to no to disable
       waldo: file.waldo # waldo file to store the file_id across runs
 
 Each file that is stored with have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used.
