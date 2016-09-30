@@ -527,9 +527,11 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
             pkt_data = erf_payload->eth.dst;
             break;
         default:
-            /* Shouldn't reach here. */
-            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
+            /* If we get here, exit with a fatal error as we shouldn't
+             * see mixed link types. */
+            FatalError(SC_ERR_DATALINK_UNIMPLEMENTED,
                 "Processing of DAG record type: %d not implemented.", dr->type);
+            /* Not reached. */
             SCReturnInt(TM_ECODE_FAILED);
             break;
     }
