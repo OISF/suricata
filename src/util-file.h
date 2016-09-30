@@ -182,6 +182,8 @@ void FilePrune(FileContainer *ffc);
 
 void FileForceFilestoreEnable(void);
 int FileForceFilestore(void);
+void FileReassemblyDepthEnable(uint32_t size);
+uint32_t FileReassemblyDepth(void);
 
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);
