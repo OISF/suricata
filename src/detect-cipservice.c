@@ -77,12 +77,17 @@ void DetectCipServiceRegister(void)
  * \retval cipserviced pointer to DetectCipServiceData on success
  * \retval NULL on failure
  */
-DetectCipServiceData *DetectCipServiceParse(char *rulestr)
+static DetectCipServiceData *DetectCipServiceParse(const char *rulestrc)
 {
     const char delims[] = ",";
     DetectCipServiceData *cipserviced = NULL;
 
     //SCLogDebug("DetectCipServiceParse - rule string  %s", rulestr);
+
+    /* strtok_r modifies the string so work with a copy */
+    char *rulestr = SCStrdup(rulestrc);
+    if (unlikely(rulestr == NULL))
+        goto error;
 
     cipserviced = SCMalloc(sizeof(DetectCipServiceData));
     if (unlikely(cipserviced == NULL))
@@ -166,11 +171,14 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     SCLogDebug("DetectCipServiceParse - attribute %d",
             cipserviced->cipattribute);
 
+    SCFree(rulestr);
     SCReturnPtr(cipserviced, "DetectENIPFunction");
 
 error:
     if (cipserviced)
         SCFree(cipserviced);
+    if (rulestr)
+        SCFree(rulestr);
     SCReturnPtr(NULL, "DetectENIP");
 }
 
@@ -242,21 +250,12 @@ void DetectCipServiceFree(void *ptr)
  */
 static int DetectCipServiceParseTest01 (void)
 {
-    uint8_t res = 1;
-
-    /*DetectCipServiceData *cipserviced = NULL;
-     cipserviced = DetectCipServiceParse("1");
-     if (cipserviced != NULL)
-     {
-     if (cipserviced->cipservice == 1)
-     {
-     res = 1;
-     }
-
-     DetectCipServiceFree(cipserviced);
-     }
-     */
-    return res;
+    DetectCipServiceData *cipserviced = NULL;
+    cipserviced = DetectCipServiceParse("7");
+    FAIL_IF_NULL(cipserviced);
+    FAIL_IF(cipserviced->cipservice != 7);
+    DetectCipServiceFree(cipserviced);
+    PASS;
 }
 
 /**
@@ -264,25 +263,12 @@ static int DetectCipServiceParseTest01 (void)
  */
 static int DetectCipServiceSignatureTest01 (void)
 {
-    uint8_t res = 0;
-
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (cip_service:1; sid:1; rev:1;)");
-    if (sig == NULL)
-    {
-        printf("parsing signature failed: ");
-        goto end;
-    }
-
-    /* if we get here, all conditions pass */
-    res = 1;
-end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-    return res;
+    FAIL_IF_NULL(sig);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif /* UNITTESTS */
@@ -343,7 +329,7 @@ void DetectEnipCommandRegister(void)
  * \retval enipcmdd pointer to DetectCipServiceData on success
  * \retval NULL on failure
  */
-DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
+static DetectEnipCommandData *DetectEnipCommandParse(const char *rulestr)
 {
     DetectEnipCommandData *enipcmdd = NULL;
 
@@ -351,21 +337,19 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
     if (unlikely(enipcmdd == NULL))
         goto error;
 
-    if (isdigit((int) *rulestr))
-    {
-        unsigned long cmd = atol(rulestr);
-        if (cmd > MAX_ENIP_CMD) //if command greater than 16 bit
-        {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %lu", cmd);
-            goto error;
-        }
-
-        enipcmdd->enipcommand = (uint16_t) atoi(rulestr);
-
-    } else
-    {
+    if (!(isdigit((int) *rulestr))) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %s", rulestr);
         goto error;
     }
+
+    unsigned long cmd = atol(rulestr);
+    if (cmd > MAX_ENIP_CMD) //if command greater than 16 bit
+    {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid ENIP command %lu", cmd);
+        goto error;
+    }
+
+    enipcmdd->enipcommand = (uint16_t) atoi(rulestr);
 
     return enipcmdd;
 
