@@ -13,12 +13,12 @@ Suricata Rules
    flowint
    file-keywords
    thresholding
-   rule-lua-scripting
-   adding-your-own-rules
-   live-rule-swap
    dns-keywords
    tls-keywords
-   normalized-buffers
    modbus-keyword
    dnp3-keywords
+   rule-lua-scripting
+   normalized-buffers
+   live-rule-swap
+   adding-your-own-rules
    snort-compatibility
