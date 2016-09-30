@@ -180,6 +180,7 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
 {
     time_t time = ts->tv_sec;
     struct tm local_tm;
+    memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
     char time_fmt[64] = { 0 };
 
@@ -195,6 +196,7 @@ void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
 {
     time_t time = ts->tv_sec;
     struct tm local_tm;
+    memset(&local_tm, 0, sizeof(local_tm));
     struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
     char time_fmt[64] = { 0 };
 

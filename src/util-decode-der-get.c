@@ -85,7 +85,7 @@ static time_t GentimeToTime(char *gentime)
     if (strlen(gentime) != 15)
         goto error;
 
-    tm.tm_gmtoff = 0;
+    memset(&tm, 0, sizeof(tm));
     strptime(gentime, "%Y%m%d%H%M%SZ", &tm);
     time = SCMkTimeUtc(&tm);
 
@@ -102,7 +102,7 @@ static time_t UtctimeToTime(char *utctime)
 {
     time_t time;
     unsigned int year;
-    char yy[2];
+    char yy[3];
     char buf[20];
 
     /* UTCTime values MUST be expressed in Greenwich Mean Time (Zulu)
