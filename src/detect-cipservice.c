@@ -30,7 +30,7 @@
 #include "util-byte.h"
 
 #include "detect-cipservice.h"
-
+#include "detect-engine-enip.h"
 
 /*
  * CIP SERVICE CODE
@@ -57,6 +57,13 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_CIP_MATCH,
+            DetectEngineInspectCIP);
+    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_CIP_MATCH,
+            DetectEngineInspectCIP);
 
     SCReturn;
 }
@@ -322,6 +329,12 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_ENIP_MATCH,
+            DetectEngineInspectENIP);
+    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_ENIP_MATCH,
+            DetectEngineInspectENIP);
 }
 
 /**
