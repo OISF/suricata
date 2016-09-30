@@ -1348,8 +1348,13 @@ static int ModbusParseResponse(Flow                 *f,
             if (tx == NULL)
                 SCReturnInt(0);
 
-            SCLogDebug("MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE");
-            ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE);
+            /* check that midstream is enable and that we are at start of flow */
+            if (StreamTcpMidstreamIsEnabled() && (f->data_al_so_far[0] == 0)) {
+                AppLayerParserManualSetTransactionInspectId(pstate, header.transactionId + 1, 0);
+            } else {
+                SCLogDebug("MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE");
+                ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE);
+            }
         } else {
             /* Store PDU length */
             tx->length = header.length;

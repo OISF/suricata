@@ -42,76 +42,72 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 /* per flow flags */
 
-/** At least on packet from the source address was seen */
-#define FLOW_TO_SRC_SEEN                  0x00000001
-/** At least on packet from the destination address was seen */
-#define FLOW_TO_DST_SEEN                  0x00000002
 /** Don't return this from the flow hash. It has been replaced. */
-#define FLOW_TCP_REUSED                   0x00000004
+#define FLOW_TCP_REUSED                   BIT_U32(0)
 /** no magic on files in this flow */
-#define FLOW_FILE_NO_MAGIC_TS             0x00000008
-#define FLOW_FILE_NO_MAGIC_TC             0x00000010
+#define FLOW_FILE_NO_MAGIC_TS             BIT_U32(1)
+#define FLOW_FILE_NO_MAGIC_TC             BIT_U32(2)
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET          0x00000020
+#define FLOW_TOSERVER_IPONLY_SET          BIT_U32(3)
 /** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET          0x00000040
+#define FLOW_TOCLIENT_IPONLY_SET          BIT_U32(4)
 
 /** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION          0x00000080
+#define FLOW_NOPACKET_INSPECTION          BIT_U32(5)
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION         0x00000100
+#define FLOW_NOPAYLOAD_INSPECTION         BIT_U32(6)
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP                  0x00000200
+#define FLOW_ACTION_DROP                  BIT_U32(7)
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER                 0x00000400
+#define FLOW_SGH_TOSERVER                 BIT_U32(8)
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT                 0x00000800
+#define FLOW_SGH_TOCLIENT                 BIT_U32(9)
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED         0x00001000
+#define FLOW_TOSERVER_DROP_LOGGED         BIT_U32(10)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED         0x00002000
+#define FLOW_TOCLIENT_DROP_LOGGED         BIT_U32(11)
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE          0x00004000
-
-// vacany 1x
+#define FLOW_ALPROTO_DETECT_DONE          BIT_U32(12)
 
 /** Pattern matcher alproto detection done */
-#define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00008000
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE    BIT_U32(13)
 /** Probing parser alproto detection done */
-#define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00010000
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE    BIT_U32(14)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00020000
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE    BIT_U32(15)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00040000
-#define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00080000
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE    BIT_U32(16)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE      BIT_U32(17)
 /** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_STORE_TS             0x00100000
-#define FLOW_FILE_NO_STORE_TC             0x00200000
+#define FLOW_FILE_NO_STORE_TS             BIT_U32(18)
+#define FLOW_FILE_NO_STORE_TC             BIT_U32(19)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                         0x00400000
+#define FLOW_IPV4                         BIT_U32(20)
 /** flow is ipv6 */
-#define FLOW_IPV6                         0x00800000
+#define FLOW_IPV6                         BIT_U32(21)
 
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               0x01000000
-#define FLOW_FILE_NO_MD5_TC               0x02000000
+#define FLOW_FILE_NO_MD5_TS               BIT_U32(22)
+#define FLOW_FILE_NO_MD5_TC               BIT_U32(23)
 
 /** no sha1 on files in this flow */
-#define FLOW_FILE_NO_SHA1_TS              0x04000000
-#define FLOW_FILE_NO_SHA1_TC              0x08000000
+#define FLOW_FILE_NO_SHA1_TS              BIT_U32(24)
+#define FLOW_FILE_NO_SHA1_TC              BIT_U32(25)
 
 /** no sha256 on files in this flow */
-#define FLOW_FILE_NO_SHA256_TS            0x10000000
-#define FLOW_FILE_NO_SHA256_TC            0x20000000
+#define FLOW_FILE_NO_SHA256_TS            BIT_U32(26)
+#define FLOW_FILE_NO_SHA256_TC            BIT_U32(27)
 
 /** no size tracking of files in this flow */
-#define FLOW_FILE_NO_SIZE_TS              0x40000000
-#define FLOW_FILE_NO_SIZE_TC              0x80000000
+#define FLOW_FILE_NO_SIZE_TS              BIT_U32(28)
+#define FLOW_FILE_NO_SIZE_TC              BIT_U32(29)
+/** flow has been caught midstream in server first */
+#define FLOW_ALPROTO_REVERTED             BIT_U32(30)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
@@ -571,6 +567,8 @@ void *FlowGetAppState(const Flow *f);
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
+
+void FlowSwitchDirection(Flow *f);
 
 #endif /* __FLOW_H__ */
 
