@@ -418,7 +418,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    dd = SCMalloc(sizeof(DetectTlsValidityData));
+    dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
         goto error;
@@ -436,7 +436,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
-    dd->mode |= DETECT_TLS_VALIDITY_EX;
+    dd->mode = DETECT_TLS_VALIDITY_EX;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
     dd->epoch2 = 0;
@@ -476,7 +476,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
-    dd = SCMalloc(sizeof(DetectTlsValidityData));
+    dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
         goto error;
@@ -494,7 +494,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
         goto error;
     }
 
-    dd->mode |= DETECT_TLS_VALIDITY_VA;
+    dd->mode = DETECT_TLS_VALIDITY_VA;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
     dd->epoch2 = 0;
