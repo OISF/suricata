@@ -1527,6 +1527,7 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
     Packet *p1 = NULL, *p2 = NULL;
     Signature *s = NULL;
     ThreadVars tv;
+    json_t *js = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
@@ -1627,7 +1628,7 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
         goto end;
     }
 
-    json_t *js = CreateJSONHeader((Packet *)p2, 0, "alert");
+    js = CreateJSONHeader((Packet *)p2, 0, "alert");
     if (unlikely(js == NULL)) {
         goto end;
     }
