@@ -53,6 +53,13 @@
 
 #ifdef HAVE_LIBJANSSON
 
+typedef struct OutputDoc_ {
+    json_t *js;
+    TAILQ_ENTRY(OutputDoc_) next;
+} OutputDoc;
+
+typedef TAILQ_HEAD(OutputDocList_, OutputDoc_) OutputDocList;
+
 /* we can do query logging as well, but it's disabled for now as the
  * TX id handling doesn't expect it */
 #define QUERY 0
@@ -656,14 +663,50 @@ void FillsDNSTransactionJSON(json_t * js,  DNSTransaction *tx, uint64_t flags, D
 
 }
 
-static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
+static OutputDoc * AllocOuputDoc(json_t *js) {
 
-/* Outputs to file log the DNS transaction with using configured output style */
-static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) {
+    if (js == NULL)
+        return NULL;
+
+    OutputDoc *doc = SCMalloc(sizeof(OutputDoc));
+
+    if (unlikely(doc == NULL))
+        return NULL;
+
+    doc->js = js;
+
+    return doc;
+
+}
+
+static void FreeOuputDocList(OutputDocList * docs) {
+
+    if (docs == NULL)
+        return;
+
+    OutputDoc *doc;
+    TAILQ_FOREACH(doc, docs, next) {
+        json_decref(doc->js);
+        SCFree(doc);
+    }
+
+    SCFree(docs);
+}
+
+static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
+
+static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style)
+{
+
+    OutputDocList *docs = SCMalloc(sizeof(OutputDocList));
+    if (unlikely(docs == NULL))
+        return NULL;
+
+    TAILQ_INIT(docs);
 
     json_t *tjs = json_object();
     if (unlikely(tjs == NULL)) {
-        return tjs;
+        return docs;
     }
 
     /* Fill tjs with all parts of DNS transaction */
@@ -671,7 +714,8 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
 
     /* Nothing to write */
     if (json_object_size(tjs) < 1 ) {
-        return tjs;
+       json_decref(tjs);
+        return docs;
     }
 
     /* Outputs a single event containing request and response */
@@ -681,12 +725,14 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
         /* dns node */
         json_object_set_new(js, "dns", tjs);
 
-        /* reset */
-        MemBufferReset(buffer);
-        OutputJSONBuffer(js, file_ctx, &buffer);
+        /* Insert into docs list */
+        OutputDoc *doc = AllocOuputDoc(js);
+        if (doc != NULL) {
+            TAILQ_INSERT_TAIL(docs, doc, next);
+        }
 
-
-        return tjs;
+       json_decref(tjs);
+        return docs;
     }
 
     /* Not unified style */
@@ -695,15 +741,18 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
         /* Queries output part */
         json_t *queries = json_object_get(tjs, "queries");
 
-        if (queries && json_array_size(queries) == 1 ) {
+        if (queries && json_array_size(queries) >= 1 ) {
             json_object_set_new(js, "dns", json_array_get(queries, 0));
 
-            /* reset */
-            MemBufferReset(buffer);
-            OutputJSONBuffer(js, file_ctx, &buffer);
+            /* Insert into docs list */
+            OutputDoc *doc = AllocOuputDoc(js);
+            if (doc != NULL) {
+                TAILQ_INSERT_TAIL(docs, doc, next);
+            }
         }
 
-        return tjs;
+       json_decref(tjs);
+        return docs;
     }
 
    /* Answers output part */
@@ -711,31 +760,49 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
 
     /* No answers to output */
     if (answers == NULL || json_array_size(answers) < 1 ) {
-       return tjs;
+       json_decref(tjs);
+       return docs;
     }
 
     /* Make a copy of event json for answers base */
     json_t * cloned = json_deep_copy(js);
 
     if (unlikely(cloned == NULL)) {
-       return tjs;
+       json_decref(tjs);
+       return docs;
     }
 
     /*  split: one event per request, one event per response */
     if (style == DNS_SPLIT && cloned) {
         json_t *ajs = json_object();
         if (unlikely(ajs == NULL)) {
-            return tjs;
+            json_decref(tjs);
+            return docs;
         }
 
+
         json_object_set_new(ajs, "answers", answers);
+
+        json_t * rcode = json_object_get(tjs, "rcode");
+        json_t * tx_id = json_object_get(tjs, "tx_id");
+
+        if (rcode != NULL)
+             json_object_set_new(ajs, "rcode", rcode);
+
+        if (tx_id != NULL)
+             json_object_set_new(ajs, "tx_id", tx_id);
+
+
         json_object_set_new(cloned, "dns", ajs);
 
-        /* reset */
-        MemBufferReset(buffer);
-        OutputJSONBuffer(cloned, file_ctx, &buffer);
-        json_decref(cloned);
-        return tjs;
+        /* Insert into docs list */
+        OutputDoc *doc = AllocOuputDoc(cloned);
+        if (doc != NULL) {
+            TAILQ_INSERT_TAIL(docs, doc, next);
+        }
+
+        json_decref(tjs);
+        return docs;
     }
 
     /* # discrete: the classic style of an event per question and answer */
@@ -745,6 +812,9 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
         size_t sz = json_array_size(answers);
         json_t *value = NULL;
         json_t *copy = NULL;
+
+        json_t * rcode = json_object_get(tjs, "rcode");
+        json_t * tx_id = json_object_get(tjs, "tx_id");
 
         /* Log each answer separately */
         //json_array_foreach(answers, index, value) {
@@ -757,11 +827,21 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
 
             json_object_set_new(cloned, "dns", value);
 
-            /* reset */
-            MemBufferReset(buffer);
-            OutputJSONBuffer(cloned, file_ctx, &buffer);
+
+            if (rcode != NULL)
+                json_object_set_new(cloned, "rcode", rcode);
+
+            if (tx_id != NULL)
+                json_object_set_new(cloned, "tx_id", tx_id);
+
+
+            /* Insert into docs list */
+            OutputDoc *doc = AllocOuputDoc(js);
+            if (doc != NULL) {
+                TAILQ_INSERT_TAIL(docs, doc, next);
+            }
+
             copy = json_deep_copy(js);
-            json_decref(cloned);
             cloned = copy;
 
         }
@@ -769,8 +849,25 @@ static json_t * OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer
         json_decref(copy);
     }
 
-    return tjs;
+    return docs;
+}
 
+static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) __attribute__((nonnull));
+
+/* Outputs to file log the DNS transaction with using configured output style */
+static void OutputLogTransactionJSON(LogFileCtx *file_ctx, MemBuffer *buffer, json_t *js, DNSTransaction *tx, uint64_t flags, DnsOutputMode style) {
+
+    OutputDocList * docs = TransactionJSONList(js, tx, flags, style);
+
+    OutputDoc *doc = NULL;
+    TAILQ_FOREACH(doc, docs, next) {
+
+        /* reset */
+        MemBufferReset(buffer);
+        OutputJSONBuffer(doc->js, file_ctx, &buffer);
+    }
+
+    FreeOuputDocList(docs);
 }
 
 /* Makes the Json output for an alert */
@@ -800,10 +897,9 @@ static void JsonDnsLogger(LogDnsLogThread *td, DNSTransaction *tx, const Packet 
         if (unlikely(js == NULL))
             return ;
 
-        json_t * tjs = OutputLogTransactionJSON(td->dnslog_ctx->file_ctx,
+        OutputLogTransactionJSON(td->dnslog_ctx->file_ctx,
                 td->buffer, js, tx, td->dnslog_ctx->filter, td->dnslog_ctx->mode);
 
-        json_decref(tjs);
         json_decref(js);
     }
 
@@ -1238,7 +1334,15 @@ static int OutputJsonDnsQueryDiscreteTest01 (void)
     FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(js, "event_type") ));
 
     /* Outputs JSON */
-    json_t *tjs = OutputLogTransactionJSON(file_ctx, buffer, js, TAILQ_FIRST(&dns_state->tx_list), ALL_FILTERS, DNS_DISCRETE);
+
+
+    OutputDocList * docs = TransactionJSONList(js,  TAILQ_FIRST(&dns_state->tx_list) , ALL_FILTERS, DNS_DISCRETE);
+    FAIL_IF(docs == NULL);
+
+    OutputDoc *doc = TAILQ_FIRST(docs);
+    FAIL_IF(doc == NULL);
+
+    json_t *tjs = doc->js;
     FAIL_IF(tjs == NULL);
 
     JSON_DNS_OUTPUT_UNITTEST_DUMP(js);
@@ -1255,6 +1359,7 @@ static int OutputJsonDnsQueryDiscreteTest01 (void)
     /* Free some stuff */
     json_decref(tjs);
     json_decref(js);
+    FreeOuputDocList(docs);
     DNSStateFree(dns_state);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
@@ -1326,10 +1431,15 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
     json_t *js = CreateJSONHeader(p2, 0, "dns");
     FAIL_IF(js == NULL);
 
-
-
     /* Outputs JSON */
-    json_t *tjs = OutputLogTransactionJSON(file_ctx, buffer, js, TAILQ_FIRST(&dns_state->tx_list), ALL_FILTERS, DNS_UNIFIED);
+    OutputDocList * docs = TransactionJSONList(js,  TAILQ_FIRST(&dns_state->tx_list) , ALL_FILTERS, DNS_UNIFIED);
+    FAIL_IF(docs == NULL);
+
+    OutputDoc *doc = TAILQ_FIRST(docs);
+    FAIL_IF(doc == NULL);
+
+    json_t *tjs = doc->js;
+    FAIL_IF(tjs == NULL);
     JSON_DNS_OUTPUT_UNITTEST_DUMP(tjs);
     FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(js, "event_type") ));
 
@@ -1392,6 +1502,7 @@ static int OutputJsonDnsResponseUnifiedTest02 (void)
     json_decref(tjs);
     json_decref(js);
     DNSStateFree(dns_state);
+    FreeOuputDocList(docs);
     FLOW_DESTROY(&f);
     UTHFreePacket(p2);
     UTHFreePacket(p1);
@@ -1584,19 +1695,188 @@ static int OutputJsonDnsResponseUnifiedAlertTest03 (void)
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxFree(det_ctx);
+    }
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
+    json_decref(js);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
     return result;
 
 }
+/**
+ *  \test Tests the JSON Output for a DNS Query with DNS_STYLE style
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int OutputJsonDnsResponseSplitTest04 (void)
+{
+    /* Create the file context */
+    LogFileCtx *file_ctx = LogFileNewCtx();
+    FAIL_IF(file_ctx == NULL);
+
+    /* Create memory butffer */
+    MemBuffer * buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    FAIL_IF(buffer == NULL);
+
+    /* Create DNS file context */
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    FAIL_IF(dnslog_ctx == NULL);
+
+    /* Configure DNS file context configuration options */
+    dnslog_ctx->mode = DNS_UNIFIED;
+    dnslog_ctx->filter &= LOG_ALL_RRTYPES;
+
+    /* Create a DNS packets for tests */
+    Packet *p1 = NULL, *p2 = NULL;
+    p1 = UTHBuildPacketReal(bufQuery, sizeof(bufQuery), IPPROTO_UDP,
+                           "192.168.1.5", "192.168.1.1", 41424, 53);
+
+    p2 = UTHBuildPacketReal(bufResponse, sizeof(bufResponse), IPPROTO_UDP,
+                           "192.168.1.1", "192.168.1.5", 53, 41424);
+
+    FAIL_IF(p1 == NULL);
+    FAIL_IF(p2 == NULL);
+
+    /* Create flow */
+    Flow f;
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
+
+    p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->pcap_cnt = 1;
+
+    p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
+    p2->flowflags |= FLOW_PKT_TOCLIENT;
+    p2->pcap_cnt = 2;
+
+    /* Create a DNS state from the flow and response */
+    DNSState *dns_state =  MakesDNSStateFromRequest(&f, bufQuery, sizeof(bufQuery));
+
+    /* Create a JSON object for output */
+    json_t *js = CreateJSONHeader(p2, 0, "dns");
+    FAIL_IF(js == NULL);
+
+
+    /* Outputs JSON */
+    OutputDocList * docs = TransactionJSONList(js,  TAILQ_FIRST(&dns_state->tx_list) , ALL_FILTERS, DNS_SPLIT);
+    FAIL_IF(docs == NULL);
+
+    OutputDoc *doc = TAILQ_FIRST(docs);
+    FAIL_IF(doc == NULL);
+
+    json_t *qjs = doc->js;
+    FAIL_IF(qjs == NULL);
+
+    FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(qjs, "event_type") ));
+
+
+
+    json_t *dns = json_object_get(qjs, "dns");
+    FAIL_IF (dns == NULL);
+
+    JSON_DNS_OUTPUT_UNITTEST_DUMP(qjs);
+
+/*
+  {
+	"rrname": "google.com",
+	"rrtype": "TXT",
+	"tx_id": 4146
+  }
+
+*/
+
+    /* Check string values */
+    FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(dns, "rrname") ));
+    FAIL_IF_STR_DIFFERS("TXT",        json_string_value( json_object_get(dns, "rrtype")));
+
+    DNSStateFree(dns_state);
+    FreeOuputDocList(docs);
+    json_decref(js);
+
+    /* Answer */
+
+/*
+ {
+    "rrtype": "A",
+    "rrname": "google.com",
+    "ttl": 16623,
+    "rdata": "1.2.3.4"
+  }
+*/
+
+
+    /* Create a DNS state from the flow and response */
+    dns_state =  MakesDNSStateFromRequestAndResponse(&f,
+            bufQuery, sizeof(bufQuery), bufResponse, sizeof(bufResponse));
+
+    /* Create a JSON object for output */
+    js = CreateJSONHeader(p2, 0, "dns");
+    FAIL_IF(js == NULL);
+
+    /* Outputs JSON */
+    docs = TransactionJSONList(js,  TAILQ_FIRST(&dns_state->tx_list) , ALL_FILTERS, DNS_SPLIT);
+    FAIL_IF(docs == NULL);
+
+    doc = TAILQ_FIRST(docs);
+    FAIL_IF(doc == NULL);
+
+    json_t *ajs = doc->js;
+    FAIL_IF(ajs == NULL);
+
+    JSON_DNS_OUTPUT_UNITTEST_DUMP(ajs);
+    FAIL_IF_STR_DIFFERS("dns",      json_string_value( json_object_get(ajs, "event_type") ));
+
+    dns = json_object_get(ajs, "dns");
+    FAIL_IF (dns == NULL);
+
+    json_t *answers = json_object_get(dns, "answers");
+
+    FAIL_IF(answers == NULL);
+    FAIL_IF (! json_is_array(answers));
+    FAIL_IF(json_array_size(answers) != 1);
+
+    json_t *answer = json_array_get(answers, 0);
+    FAIL_IF(answer == NULL);
+
+    /* Check string values */
+    FAIL_IF_STR_DIFFERS("google.com", json_string_value( json_object_get(answer, "rrname") ));
+    FAIL_IF_STR_DIFFERS("A",          json_string_value( json_object_get(answer, "rrtype")));
+    FAIL_IF_STR_DIFFERS("1.2.3.4",    json_string_value( json_object_get(answer, "rdata")));
+    FAIL_IF( 16623 !=                json_integer_value( json_object_get(answer, "ttl")));
+
+    FAIL_IF_STR_DIFFERS("NOERROR",    json_string_value( json_object_get(dns, "rcode") ));
+    FAIL_IF( 4146 !=                 json_integer_value( json_object_get(dns, "tx_id")));
+
+    /* Free some stuff */
+    json_decref(qjs);
+    json_decref(ajs);
+    json_decref(js);
+    FreeOuputDocList(docs);
+    DNSStateFree(dns_state);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+    SCFree(dnslog_ctx);
+    MemBufferFree(buffer);
+    LogFileFreeCtx(file_ctx);
+
+    PASS;
+
+}
+
 
 /**
  *  \brief   Function to register DNS output JSON Tests
@@ -1606,5 +1886,7 @@ void OutputJsonDnsRegisterTests (void)
     UtRegisterTest("OutputJsonDnsQueryDiscreteTest01 -- Tests discrete query", OutputJsonDnsQueryDiscreteTest01);
     UtRegisterTest("OutputJsonDnsResponseUnifiedTest02 -- Tests unified response", OutputJsonDnsResponseUnifiedTest02);
     UtRegisterTest("OutputJsonDnsResponseUnifiedAlertTest03 -- Tests unified response", OutputJsonDnsResponseUnifiedAlertTest03);
+    UtRegisterTest("OutputJsonDnsResponseSplitTest04 -- Tests split style", OutputJsonDnsResponseSplitTest04);
+
 }
 #endif /* UNITTESTS */
