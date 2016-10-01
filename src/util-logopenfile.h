@@ -32,6 +32,10 @@
 #include "hiredis/hiredis.h"
 #endif
 
+#ifdef HAVE_LIBRDKAFKA
+#include "librdkafka/rdkafka.h"
+#endif
+
 typedef struct {
     uint16_t fileno;
 } PcieFile;
@@ -40,7 +44,8 @@ enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
                    LOGFILE_TYPE_UNIX_STREAM,
-                   LOGFILE_TYPE_REDIS };
+                   LOGFILE_TYPE_REDIS,
+                   LOGFILE_TYPE_KAFKA };
 
 typedef struct SyslogSetup_ {
     int alert_syslog_level;
@@ -61,6 +66,17 @@ typedef struct RedisSetup_ {
 } RedisSetup;
 #endif
 
+#ifdef HAVE_LIBRDKAFKA
+typedef struct KafkaSetup_ {
+    rd_kafka_topic_t *topic;
+    rd_kafka_conf_t *conf;
+    char *brokers;
+    int partition;
+    intmax_t loglevel;
+    time_t tried;
+} KafkaSetup;
+#endif
+
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
@@ -69,12 +85,18 @@ typedef struct LogFileCtx_ {
 #ifdef HAVE_LIBHIREDIS
         redisContext *redis;
 #endif
+#ifdef HAVE_LIBRDKAFKA
+        rd_kafka_t *kafka;
+#endif
     };
 
     union {
         SyslogSetup syslog_setup;
 #ifdef HAVE_LIBHIREDIS
         RedisSetup redis_setup;
+#endif
+#ifdef HAVE_LIBRDKAFKA
+        KafkaSetup kafka_setup;
 #endif
     };
 
@@ -134,7 +156,12 @@ int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
+#ifdef HAVE_LIBHIREDIS
 int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
+#endif
+#ifdef HAVE_LIBRDKAFKA
+int SCConfLogOpenKafka(ConfNode *conf, LogFileCtx *log_ctx);
+#endif
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
