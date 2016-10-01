@@ -1868,6 +1868,46 @@
         fi
     fi
 
+#librdkafka
+    AC_ARG_ENABLE(rdkafka,
+	        AS_HELP_STRING([--enable-rdkafka],[Enable Kafka support]),
+	        [ enable_rdkafka="yes"],
+	        [ enable_rdkafka="no"])
+    AC_ARG_WITH(librdkafka_includes,
+            [  --with-librdkafka-includes=DIR  librdkafka include directory],
+            [with_librdkafka_includes="$withval"],[with_librdkafka_includes="no"])
+    AC_ARG_WITH(librdkafka_libraries,
+            [  --with-librdkafka-libraries=DIR    librdkafka library directory],
+            [with_librdkafka_libraries="$withval"],[with_librdkafka_libraries="no"])
+
+    if test "$enable_rdkafka" = "yes"; then
+        if test "$with_libhrdkafka_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_librdkafka_includes}"
+        fi
+
+        AC_CHECK_HEADER("librdkafka/rdkafka.h",RDKAFKA="yes",RDKAFKA="no")
+        if test "$RDKAFKA" = "yes"; then
+            if test "$with_librdkafka_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_librdkafka_libraries}"
+            fi
+            AC_CHECK_LIB(rdkafka, rd_kafka_produce,, RDKAFKA="no")
+        fi
+        if test "$RDKAFKA" = "no"; then
+            echo
+            echo "   ERROR!  librdkafka library not found, go get it"
+            echo "   from https://github.com/edenhill/librdkafka/ or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install librdkafka-dev"
+            echo "   Fedora: yum install librdkafka-devel"
+            echo
+            exit 1
+        fi
+        if test "$RDKAFKA" = "yes"; then
+            AC_DEFINE([HAVE_LIBRDKAFKA],[1],[librdkafka available])
+            enable_rdkafka="yes"
+        fi
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1990,6 +2030,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
+  rdkafka support:                         ${enable_rdkafka}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
