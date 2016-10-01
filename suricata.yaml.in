@@ -134,7 +134,7 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: @e_enable_evelog@
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|kafka
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -154,6 +154,15 @@ outputs:
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      #kafka:
+      #  broker-list: 127.0.0.1:9092
+      #  topic: suricata
+      #  compression: snappy # none, gzip, snappy
+      #  partition: -1 # below < 0 means Unassigned Partition
+      #  max-retries: 1
+      #  backoff-ms: 10
+      #  buffer-max-messages: 100000
+      #  log-level: 6
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
