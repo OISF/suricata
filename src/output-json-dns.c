@@ -673,6 +673,7 @@ static OutputDoc * AllocOuputDoc(json_t *js) {
     if (unlikely(doc == NULL))
         return NULL;
 
+    json_incref(js);
     doc->js = js;
 
     return doc;
@@ -714,7 +715,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
 
     /* Nothing to write */
     if (json_object_size(tjs) < 1 ) {
-       json_decref(tjs);
+        json_decref(tjs);
         return docs;
     }
 
@@ -723,7 +724,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
 
         json_object_set_new(tjs, "type", json_string("unified"));
         /* dns node */
-        json_object_set_new(js, "dns", tjs);
+        json_object_set(js, "dns", tjs);
 
         /* Insert into docs list */
         OutputDoc *doc = AllocOuputDoc(js);
@@ -731,7 +732,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
             TAILQ_INSERT_TAIL(docs, doc, next);
         }
 
-       json_decref(tjs);
+        json_decref(tjs);
         return docs;
     }
 
@@ -742,7 +743,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
         json_t *queries = json_object_get(tjs, "queries");
 
         if (queries && json_array_size(queries) >= 1 ) {
-            json_object_set_new(js, "dns", json_array_get(queries, 0));
+            json_object_set(js, "dns", json_array_get(queries, 0));
 
             /* Insert into docs list */
             OutputDoc *doc = AllocOuputDoc(js);
@@ -751,7 +752,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
             }
         }
 
-       json_decref(tjs);
+        json_decref(tjs);
         return docs;
     }
 
@@ -760,16 +761,16 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
 
     /* No answers to output */
     if (answers == NULL || json_array_size(answers) < 1 ) {
-       json_decref(tjs);
-       return docs;
+        json_decref(tjs);
+        return docs;
     }
 
     /* Make a copy of event json for answers base */
     json_t * cloned = json_deep_copy(js);
 
     if (unlikely(cloned == NULL)) {
-       json_decref(tjs);
-       return docs;
+        json_decref(tjs);
+        return docs;
     }
 
     /*  split: one event per request, one event per response */
@@ -780,20 +781,20 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
             return docs;
         }
 
-
-        json_object_set_new(ajs, "answers", answers);
+        json_object_set(ajs, "answers", answers);
 
         json_t * rcode = json_object_get(tjs, "rcode");
         json_t * tx_id = json_object_get(tjs, "tx_id");
 
         if (rcode != NULL)
-             json_object_set_new(ajs, "rcode", rcode);
+             json_object_set(ajs, "rcode", rcode);
 
         if (tx_id != NULL)
-             json_object_set_new(ajs, "tx_id", tx_id);
+             json_object_set(ajs, "tx_id", tx_id);
 
 
-        json_object_set_new(cloned, "dns", ajs);
+        json_object_set(cloned, "dns", ajs);
+        json_decref(tjs);
 
         /* Insert into docs list */
         OutputDoc *doc = AllocOuputDoc(cloned);
@@ -801,7 +802,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
             TAILQ_INSERT_TAIL(docs, doc, next);
         }
 
-        json_decref(tjs);
+        json_decref(ajs);
         return docs;
     }
 
@@ -825,8 +826,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
             if ( ! value )
                 continue;
 
-            json_object_set_new(cloned, "dns", value);
-
+            json_object_set(cloned, "dns", value);
 
             if (rcode != NULL)
                 json_object_set_new(cloned, "rcode", rcode);
@@ -836,7 +836,7 @@ static OutputDocList *TransactionJSONList(json_t *js, DNSTransaction *tx, uint64
 
 
             /* Insert into docs list */
-            OutputDoc *doc = AllocOuputDoc(js);
+            OutputDoc *doc = AllocOuputDoc(cloned);
             if (doc != NULL) {
                 TAILQ_INSERT_TAIL(docs, doc, next);
             }
@@ -1696,7 +1696,7 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     if (det_ctx != NULL) {
-        DetectEngineThreadCtxFree(det_ctx);
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
     }
     if (de_ctx != NULL)
         SigGroupCleanup(de_ctx);
