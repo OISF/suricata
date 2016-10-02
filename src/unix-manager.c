@@ -154,7 +154,7 @@ int UnixNew(UnixCommand * this)
     addr.sun_family = AF_UNIX;
     strlcpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
     addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
-    len = strlen(addr.sun_path) + sizeof(addr.sun_family);
+    len = strlen(addr.sun_path) + sizeof(addr.sun_family) + 1;
 
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
