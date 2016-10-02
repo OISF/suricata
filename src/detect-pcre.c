@@ -57,6 +57,7 @@
 #include "stream-tcp-reassemble.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "util-pages.h"
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
@@ -71,6 +72,10 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
+
+#ifdef PCRE_HAVE_JIT
+static int pcre_use_jit = 1;
+#endif
 
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectPcreALMatchCookie(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
@@ -141,6 +146,13 @@ void DetectPcreRegister (void)
     {
         FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
     }
+
+#ifdef PCRE_HAVE_JIT
+    if (PageSupportsRWX() == 0) {
+        SCLogConfig("PCRE won't use JIT as OS doesn't allow RWX pages");
+        pcre_use_jit = 0;
+    }
+#endif
 
     DetectParseRegexAddToFreeList(parse_capture_regex, parse_capture_regex_study);
     return;
@@ -504,13 +516,19 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
         SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
     }
+
+    int options = 0;
 #ifdef PCRE_HAVE_JIT
-    pd->sd = pcre_study(pd->re, PCRE_STUDY_JIT_COMPILE, &eb);
+    if (pcre_use_jit)
+        options |= PCRE_STUDY_JIT_COMPILE;
+#endif
+    pd->sd = pcre_study(pd->re, options, &eb);
     if(eb != NULL)  {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
     }
 
+#ifdef PCRE_HAVE_JIT
     int jit = 0;
     ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
@@ -520,12 +538,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
         SCLogDebug("PCRE JIT compiler does not support: %s. "
                 "Falling back to regular PCRE handling (%s:%d)",
                 regexstr, de_ctx->rule_file, de_ctx->rule_line);
-    }
-#else
-    pd->sd = pcre_study(pd->re, 0, &eb);
-    if(eb != NULL)  {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
-        goto error;
     }
 #endif /*PCRE_HAVE_JIT*/
 
