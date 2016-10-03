@@ -23,6 +23,19 @@ OPTIONS FOR DEVELOPERS
 
 .. include:: ../partials/options-unittests.rst
 
+SIGNALS
+-------
+
+Suricata will respond to the following signals:
+
+SIGUSR2
+    Causes Suricata to perform a live rule reload.
+
+SIGHUP
+    Causes Suricata to close and re-open all log files. This can be
+    used to re-open log files after they may have been moved away by
+    log rotation utilities.
+
 FILES AND DIRECTORIES
 ---------------------
 
