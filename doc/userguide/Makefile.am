@@ -30,7 +30,7 @@ man1_MANS = suricata.1
 
 EXTRA_DIST += $(man1_MANS) userguide.pdf
 
-SPHINX_BUILD = sphinx-build -q
+SPHINX_BUILD = sphinx-build -q -W
 
 html:
 	sysconfdir=$(sysconfdir) \
