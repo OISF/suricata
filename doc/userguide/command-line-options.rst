@@ -79,15 +79,13 @@ For more information about runmodes see: :doc:`performance/runmodes`
 Capture Options
 ~~~~~~~~~~~~~~~
 
-.. option:: --af-packet
-.. option:: --af-packet=<device>
+.. option:: --af-packet[=<device>]
 
    Enable capture of packet using AF_PACKET on Linux. If no device is
    supplied, the list of devices from the af-packet section in the
    yaml is used.
 
-.. option:: --netmap
-.. option:: --netmap=<device>
+.. option:: --netmap[=<device>]
 
    Enable capture of packet using NETMAP on FreeBSD or Linux. If no
    device is supplied, the list of devices from the netmap section

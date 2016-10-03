@@ -37,4 +37,4 @@ Examples::
 (cf. http://read.pudn.com/downloads166/ebook/763211/EIP-CIP-V1-1.0.pdf)
 
 Information on the protocol can be found here:
-http://literature.rockwellautomation.com/idc/groups/literature/documents/wp/enet-wp001_-en-p.pdf
+`<http://literature.rockwellautomation.com/idc/groups/literature/documents/wp/enet-wp001_-en-p.pdf>`_
