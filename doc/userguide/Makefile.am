@@ -28,9 +28,9 @@ endif
 if HAVE_SPHINXBUILD
 man1_MANS = suricata.1
 
-EXTRA_DIST += $(man1_MANS)
+EXTRA_DIST += $(man1_MANS) userguide.pdf
 
-SPHINX_BUILD = sphinx-build -q
+SPHINX_BUILD = sphinx-build -q -W
 
 html:
 	sysconfdir=$(sysconfdir) \
@@ -39,13 +39,18 @@ html:
 		$(SPHINX_BUILD) -b html -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/html
 
-pdf:
+_build/latex/Suricata.pdf:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -b latex -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/latex
 	cd _build/latex && $(MAKE) all-pdf
+
+userguide.pdf: _build/latex/Suricata.pdf
+	cp _build/latex/Suricata.pdf userguide.pdf
+
+pdf: userguide.pdf
 
 _build/man/suricata.1:
 	sysconfdir=$(sysconfdir) \
@@ -54,12 +59,15 @@ _build/man/suricata.1:
 		$(SPHINX_BUILD) -b man -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/man
 
-man: _build/man/suricata.1
-
 suricata.1: _build/man/suricata.1
 	cp _build/man/suricata.1 suricata.1
 
+man: _build/man/suricata.1
+
+# Remove build artifacts that aren't tracked by autotools.
 clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
 	rm -f $(top_builddir)/doc/userguide/suricata.1
-endif
+	rm -f $(top_builddir)/doc/userguide/suricata.pdf
+
+endif # HAVE_SPHINXBUILD

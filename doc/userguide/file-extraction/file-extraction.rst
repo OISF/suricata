@@ -99,4 +99,4 @@ Suricata can calculate MD5 checksums of files on the fly and log them. See :doc:
 
    md5
    public-sha1-md5-data-sets
-
+   filemd5-and-whiteblacklisting-with-md5
