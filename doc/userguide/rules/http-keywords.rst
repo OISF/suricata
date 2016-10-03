@@ -143,6 +143,15 @@ When authoring new rules, it is recommended that the ``http_uri``
 content modifier be used rather than the deprecated ``uricontent``
 keyword.
 
+http_request_line
+-----------------
+
+The ``http_request_line`` forces the whole HTTP request line to be inspected.
+
+Example::
+
+    alert http any any -> any any (http_request_line; content:"GET / HTTP/1.0"; sid:1;)
+
 http_header and http_raw_header
 -------------------------------
 
@@ -269,6 +278,15 @@ Example of ``http_stat_msg`` in a HTTP response:
 Example of the purpose of ``http_stat_msg``:
 
 .. image:: http-keywords/stat_msg_1.png
+
+http_response_line
+------------------
+
+The ``http_response_line`` forces the whole HTTP response line to be inspected.
+
+Example::
+
+    alert http any any -> any any (http_response_line; content:"HTTP/1.0 200 OK"; sid:1;)
 
 http_server_body
 ----------------
