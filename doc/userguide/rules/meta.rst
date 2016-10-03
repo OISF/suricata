@@ -1,25 +1,21 @@
 Meta-settings
 =============
 
-Meta-settings have no effect on Suricata's inspection; they have an
-effect on the way Suricata reports events.
+Meta-settings have no effect on Suricata's inspection; they do have an effect on the way Suricata reports events.
 
 msg (message)
 -------------
 
-The keyword msg gives more information about the signature and the
-possible alert.  The first part shows the filename of the
-signature. It is a convention that part is written in uppercase
+The keyword msg gives more information about the signature and the possible alert. The first part shows the class of the signature. It is a convention that part is written in uppercase
 characters.
 
 The format of msg is:
 
 ::
 
+  msg: "some description";
 
-  msg: “..........”;
-
-Example:
+Examples:
 
 ::
 
@@ -28,7 +24,7 @@ Example:
 
 ::
 
-  It is a convention that msg is always the first keyword of a signature.
+It is a convention that msg is always the first keyword of a signature.
 
 Another example of msg in a signature:
 
@@ -39,8 +35,7 @@ In this example the red, bold-faced part is the msg.
 Sid (signature id)
 ------------------
 
-The keyword sid gives every signature its own id. This id is stated
-with a number.
+The keyword sid gives every signature its own id. This id is stated with a number.
 
 The format of sid is:
 
