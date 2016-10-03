@@ -9,10 +9,57 @@ capabilities at the application layer. More information can be found at
 specific parts of the network traffic. For instance, to check specifically on
 the request URI, cookies, or the HTTP request or response body, etc.
 
-Use ``http_method`` to match on the HTTP request method, ``http_uri``
-or ``http_raw_uri`` to match on the request URI, ``http_stat_code`` to
-match on the response status code and ``http_stat_msg`` to match on the
-response status message.
+Types of modifiers
+------------------
+
+There are 2 types of modifiers. The older style 'content modifiers' look back in the rule.
+
+Example::
+
+    alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+
+In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
+
+The more recent type is called  the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer.
+
+Example::
+
+    alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
+
+In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+
+The following request keywords are available:
+
+============================== ======================== ==================
+Keyword                        Sticky or Modifier       Direction
+============================== ======================== ==================
+http_uri                       Modifier                 Request
+http_raw_uri                   Modifier                 Request
+http_method                    Modifier                 Request
+http_request_line              Sticky Buffer            Request
+http_client_body               Modifier                 Request
+http_header                    Modifier                 Both
+http_raw_header                Modifier                 Both
+http_cookie                    Modifier                 Both
+http_user_agent                Modifier                 Request
+http_host                      Modifier                 Request
+http_raw_host                  Modifier                 Request
+============================== ======================== ==================
+
+The following response keywords are available:
+
+============================== ======================== ==================
+Keyword                        Sticky or Modifier       Direction
+============================== ======================== ==================
+http_stat_msg                  Modifier                 Response
+http_stat_code                 Modifier                 Response
+http_response_line             Sticky Buffer            Response
+http_header                    Modifier                 Both
+http_raw_header                Modifier                 Both
+http_cookie                    Modifier                 Both
+http_server_body               Modifier                 Response
+file_data                      Sticky Buffer            Response
+============================== ======================== ==================
 
 It is important to understand the structure of HTTP requests and
 responses. A simple example of a HTTP request and response follows:
