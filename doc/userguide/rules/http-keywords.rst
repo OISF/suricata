@@ -143,6 +143,35 @@ When authoring new rules, it is recommended that the ``http_uri``
 content modifier be used rather than the deprecated ``uricontent``
 keyword.
 
+urilen
+------
+
+The ``urilen`` keyword is used to match on the length of the request
+URI. It is possible to use the ``<`` and ``>`` operators, which
+indicate respectively *smaller than* and *larger than*.
+
+The format of ``urilen`` is::
+
+  urilen:3;
+
+Other possibilities are::
+
+  urilen:1;
+  urilen:>1;
+  urilen:<10;
+  urilen:10<>20;	(bigger than 10, smaller than 20)
+
+Example:
+
+.. image:: http-keywords/urilen.png
+
+Example of ``urilen`` in a signature:
+
+.. image:: http-keywords/urilen1.png
+
+You can also append ``norm`` or ``raw`` to define what sort of buffer you want
+to use (normalized or raw buffer).
+
 http_request_line
 -----------------
 
@@ -339,35 +368,6 @@ Note: how much of the response/server body is inspected is controlled
 in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
-
-urilen
-------
-
-The ``urilen`` keyword is used to match on the length of the request
-URI. It is possible to use the ``<`` and ``>`` operators, which
-indicate respectively *smaller than* and *larger than*.
-
-The format of ``urilen`` is::
-
-  urilen:3;
-
-Other possibilities are::
-
-  urilen:1;
-  urilen:>1;
-  urilen:<10;
-  urilen:10<>20;	(bigger than 10, smaller than 20)
-
-Example:
-
-.. image:: http-keywords/urilen.png
-
-Example of ``urilen`` in a signature:
-
-.. image:: http-keywords/urilen1.png
-
-You can also append ``norm`` or ``raw`` to define what sort of buffer you want
-to use (normalized or raw buffer).
 
 pcre
 ----
