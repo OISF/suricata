@@ -1,3 +1,25 @@
+3.2beta1 -- 2016-10-03
+
+Feature #509: add SHA1 and SHA256 checksum support for files
+Feature #1231: ssl_state negation support
+Feature #1345: OOBE -3- disable NIC offloading by default
+Feature #1373: Allow different reassembly depth for filestore rules
+Feature #1495: EtherNet/IP and CIP support
+Feature #1583: tls: validity fields (notBefore and notAfter)
+Feature #1657: Per application layer stats
+Feature #1896: Reimplement tls.subject and tls.isserdn
+Feature #1903: tls: tls_cert_valid and tls_cert_expired keywords
+Feature #1907: http_request_line and http_response_line
+Optimization #1044: TLS buffers evaluated by fast_pattern matcher.
+Optimization #1277: Trigger second live rule-reload while first one is in progress
+Bug #312: incorrect parsing of rules with missing semi-colon for keywords
+Bug #712: wildcard matches on tls.subject
+Bug #1353: unix-command socket created with last character missing
+Bug #1486: invalid rule: parser err msg not descriptive enough
+Bug #1525: Use pkg-config for libnetfilter_queue
+Bug #1893: tls: src_ip and dest_ip reversed in TLS events for IPS vs IDS mode.
+Bug #1898: Inspection does not always stop when stream depth is reached
+
 3.1.2 -- 2016-09-06
 
 Feature #1830: support 'tag' in eve log
