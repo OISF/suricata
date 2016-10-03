@@ -44,3 +44,20 @@ FILES AND DIRECTORIES
 
 |localstatedir|/log/suricata
     Default Suricata log directory.
+
+BUGS
+----
+
+Please visit Suricata's support page for information about submitting
+bugs or feature requests.
+
+NOTES
+-----
+
+* Suricata Home Page
+
+    https://suricata-ids.org/
+
+* Suricata Support Page
+
+    https://suricata-ids.org/support/
