@@ -1939,7 +1939,6 @@ if test "$WINDOWS_PATH" = "yes"; then
   e_sysconfdir="$e_winbase\\\\"
   e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
   e_magic_file="$e_winbase\\\\magic.mgc"
-  e_magic_file_comment=""
   e_logdir="$e_winbase\\\\log"
   e_logfilesdir="$e_logdir\\\\files"
   e_logcertsdir="$e_logdir\\\\certs"
