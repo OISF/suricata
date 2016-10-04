@@ -22,8 +22,6 @@ Examples:
   msg:"ATTACK-RESPONSES 403 Forbidden";
   msg:"ET EXPLOIT SMB-DS DCERPC PnP bind attempt";
 
-::
-
 It is a convention that msg is always the first keyword of a signature.
 
 Another example of msg in a signature:
