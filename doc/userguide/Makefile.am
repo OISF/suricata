@@ -30,20 +30,20 @@ man1_MANS = suricata.1
 
 EXTRA_DIST += $(man1_MANS) userguide.pdf
 
-SPHINX_BUILD = sphinx-build -q -W
+SPHINX_BUILD = sphinx-build -q
 
 html:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -b html -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b html -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/html
 
 _build/latex/Suricata.pdf:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -b latex -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b latex -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/latex
 	cd _build/latex && $(MAKE) all-pdf
 
