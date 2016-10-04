@@ -807,7 +807,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         app_mpms_cnt++;
     }
     uint32_t stats[MPMB_MAX] = {0};
-    uint32_t appstats[app_mpms_cnt];
+    uint32_t appstats[app_mpms_cnt + 1];    // +1 to silence scan-build
     memset(&appstats, 0x00, sizeof(appstats));
 
     for (htb = HashListTableGetListHead(de_ctx->mpm_hash_table);
@@ -1238,6 +1238,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         i++;
         a++;
     }
+    if (i == 0)
+        return 0;
+
     sh->init->app_mpms = SCCalloc(i, sizeof(MpmCtx *));
     BUG_ON(sh->init->app_mpms == NULL);
 
@@ -1304,6 +1307,9 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
             s->flags |= SIG_FLAG_PREFILTER;
         }
     }
+    /* no rules */
+    if (struct_total_size + content_total_size == 0)
+        return 0;
 
     /* array hash buffer - i've run out of ideas to name it */
     uint8_t *ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
