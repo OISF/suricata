@@ -898,6 +898,9 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         DNSQueryEntry *query = NULL;
         TAILQ_FOREACH(query, &tx->query_list, next) {
 
+            if (unlikely(dnslog_ctx->filter & LOG_ANSWERS) == 0)
+                continue;
+
             if (!DNSRRTypeEnabled(query->type, dnslog_ctx->filter))
                 continue;
 
@@ -920,23 +923,29 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
             /* id */
             json_object_set_new(djs, "id", json_integer(tx->tx_id));
 
+            /* in split mode log the query part in the answer
+             * when both the answer and authority lists are empty
+             */
+            if (TAILQ_FIRST(&tx->answer_list) == NULL &&
+                TAILQ_FIRST(&tx->authority_list) == NULL) {
+                LogUnifiedQuery(td, djs, tx, query);
+            }
+
             /* rcode */
             char rcode[16] = "";
             DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
             json_object_set_new(djs, "rcode", json_string(rcode));
 
-            if (likely(dnslog_ctx->filter & LOG_ANSWERS) != 0) {
-                json_t *rjs = json_array();
-                if (unlikely(rjs == NULL)) {
-                    json_decref(djs);
-                    json_decref(js);
-                    return TM_ECODE_OK;
-                }
-
-                LogUnifiedAnswers(td, rjs, tx);
-
-                json_object_set_new(djs, "answer", rjs);
+            json_t *rjs = json_array();
+            if (unlikely(rjs == NULL)) {
+                json_decref(djs);
+                json_decref(js);
+                return TM_ECODE_OK;
             }
+
+            LogUnifiedAnswers(td, rjs, tx);
+
+            json_object_set_new(djs, "answer", rjs);
 
             /* tx id (tx counter) */
             json_object_set_new(djs, "tx_id", json_integer(tx_id));
