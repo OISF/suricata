@@ -4938,7 +4938,7 @@ end:
 static int SMTPProcessDataChunkTest01(void){
     Flow f;
     FLOW_INITIALIZE(&f);
-    f.flags = FLOW_FILE_NO_STORE_TS;
+    f.file_flags = FLOWFILE_NO_STORE_TS;
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     int ret;
     ret = SMTPProcessDataChunk(NULL, 0, state);

@@ -217,43 +217,43 @@ uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
     uint16_t flags = 0;
 
     if (direction == STREAM_TOSERVER) {
-        if (flow->flags & FLOW_FILE_NO_STORE_TS) {
+        if (flow->file_flags & FLOWFILE_NO_STORE_TS) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->flags & FLOW_FILE_NO_MAGIC_TS) {
+        if (flow->file_flags & FLOWFILE_NO_MAGIC_TS) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->flags & FLOW_FILE_NO_MD5_TS) {
+        if (flow->file_flags & FLOWFILE_NO_MD5_TS) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->flags & FLOW_FILE_NO_SHA1_TS) {
+        if (flow->file_flags & FLOWFILE_NO_SHA1_TS) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->flags & FLOW_FILE_NO_SHA256_TS) {
+        if (flow->file_flags & FLOWFILE_NO_SHA256_TS) {
             flags |= FILE_NOSHA256;
         }
     } else {
-        if (flow->flags & FLOW_FILE_NO_STORE_TC) {
+        if (flow->file_flags & FLOWFILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         }
 
-        if (flow->flags & FLOW_FILE_NO_MAGIC_TC) {
+        if (flow->file_flags & FLOWFILE_NO_MAGIC_TC) {
             flags |= FILE_NOMAGIC;
         }
 
-        if (flow->flags & FLOW_FILE_NO_MD5_TC) {
+        if (flow->file_flags & FLOWFILE_NO_MD5_TC) {
             flags |= FILE_NOMD5;
         }
 
-        if (flow->flags & FLOW_FILE_NO_SHA1_TC) {
+        if (flow->file_flags & FLOWFILE_NO_SHA1_TC) {
             flags |= FILE_NOSHA1;
         }
 
-        if (flow->flags & FLOW_FILE_NO_SHA256_TC) {
+        if (flow->file_flags & FLOWFILE_NO_SHA256_TC) {
             flags |= FILE_NOSHA256;
         }
     }
@@ -813,9 +813,9 @@ void FileDisableStoring(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_STORE_TS;
+        f->file_flags |= FLOWFILE_NO_STORE_TS;
     else
-        f->flags |= FLOW_FILE_NO_STORE_TC;
+        f->file_flags |= FLOWFILE_NO_STORE_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
@@ -845,9 +845,9 @@ void FileDisableMagic(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_MAGIC_TS;
+        f->file_flags |= FLOWFILE_NO_MAGIC_TS;
     else
-        f->flags |= FLOW_FILE_NO_MAGIC_TC;
+        f->file_flags |= FLOWFILE_NO_MAGIC_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
@@ -876,9 +876,9 @@ void FileDisableMd5(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_MD5_TS;
+        f->file_flags |= FLOWFILE_NO_MD5_TS;
     else
-        f->flags |= FLOW_FILE_NO_MD5_TC;
+        f->file_flags |= FLOWFILE_NO_MD5_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
@@ -915,9 +915,9 @@ void FileDisableSha1(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_SHA1_TS;
+        f->file_flags |= FLOWFILE_NO_SHA1_TS;
     else
-        f->flags |= FLOW_FILE_NO_SHA1_TC;
+        f->file_flags |= FLOWFILE_NO_SHA1_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
@@ -954,9 +954,9 @@ void FileDisableSha256(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_SHA256_TS;
+        f->file_flags |= FLOWFILE_NO_SHA256_TS;
     else
-        f->flags |= FLOW_FILE_NO_SHA256_TC;
+        f->file_flags |= FLOWFILE_NO_SHA256_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
@@ -993,9 +993,9 @@ void FileDisableFilesize(Flow *f, uint8_t direction)
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     if (direction == STREAM_TOSERVER)
-        f->flags |= FLOW_FILE_NO_SIZE_TS;
+        f->file_flags |= FLOWFILE_NO_SIZE_TS;
     else
-        f->flags |= FLOW_FILE_NO_SIZE_TC;
+        f->file_flags |= FLOWFILE_NO_SIZE_TC;
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
     if (ffc != NULL) {
