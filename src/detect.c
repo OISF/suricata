@@ -941,6 +941,57 @@ DetectPrefilterSetNonPrefilterList(const Packet *p, DetectEngineThreadCtx *det_c
             det_ctx->sgh->non_pf_other_store_array, det_ctx->sgh->non_pf_other_store_cnt);
 }
 
+/** \internal
+ *  \brief update flow's file tracking flags based on the detection engine
+ */
+static inline void
+DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t direction)
+{
+    /* see if this sgh requires us to consider file storing */
+    if (sgh == NULL || sgh->filestore_cnt == 0) {
+        FileDisableStoring(pflow, direction);
+    }
+
+    /* see if this sgh requires us to consider file magic */
+    if (!FileForceMagic() && (sgh == NULL ||
+                !(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
+    {
+        SCLogDebug("disabling magic for flow");
+        FileDisableMagic(pflow, direction);
+    }
+
+    /* see if this sgh requires us to consider file md5 */
+    if (!FileForceMd5() && (sgh == NULL ||
+                !(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
+    {
+        SCLogDebug("disabling md5 for flow");
+        FileDisableMd5(pflow, direction);
+    }
+
+    /* see if this sgh requires us to consider file sha1 */
+    if (!FileForceSha1() && (sgh == NULL ||
+                !(sgh->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
+    {
+        SCLogDebug("disabling sha1 for flow");
+        FileDisableSha1(pflow, direction);
+    }
+
+    /* see if this sgh requires us to consider file sha256 */
+    if (!FileForceSha256() && (sgh == NULL ||
+                !(sgh->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
+    {
+        SCLogDebug("disabling sha256 for flow");
+        FileDisableSha256(pflow, direction);
+    }
+
+    /* see if this sgh requires us to consider filesize */
+    if (sgh == NULL || !(sgh->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
+    {
+        SCLogDebug("disabling filesize for flow");
+        FileDisableFilesize(pflow, direction);
+    }
+}
+
 /**
  *  \brief Signature match function
  *
@@ -1528,97 +1579,15 @@ end:
                 pflow->sgh_toserver = det_ctx->sgh;
                 pflow->flags |= FLOW_SGH_TOSERVER;
 
-                /* see if this sgh requires us to consider file storing */
-                if (pflow->sgh_toserver == NULL || pflow->sgh_toserver->filestore_cnt == 0) {
-                    FileDisableStoring(pflow, STREAM_TOSERVER);
-                }
+                DetectPostInspectFileFlagsUpdate(pflow,
+                        pflow->sgh_toserver, STREAM_TOSERVER);
 
-                /* see if this sgh requires us to consider file magic */
-                if (!FileForceMagic() && (pflow->sgh_toserver == NULL ||
-                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
-                {
-                    SCLogDebug("disabling magic for flow");
-                    FileDisableMagic(pflow, STREAM_TOSERVER);
-                }
-
-                /* see if this sgh requires us to consider file md5 */
-                if (!FileForceMd5() && (pflow->sgh_toserver == NULL ||
-                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
-                {
-                    SCLogDebug("disabling md5 for flow");
-                    FileDisableMd5(pflow, STREAM_TOSERVER);
-                }
-
-                /* see if this sgh requires us to consider file sha1 */
-                if (!FileForceSha1() && (pflow->sgh_toserver == NULL ||
-                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
-                {
-                    SCLogDebug("disabling sha1 for flow");
-                    FileDisableSha1(pflow, STREAM_TOSERVER);
-                }
-
-                /* see if this sgh requires us to consider file sha256 */
-                if (!FileForceSha256() && (pflow->sgh_toserver == NULL ||
-                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
-                {
-                    SCLogDebug("disabling sha256 for flow");
-                    FileDisableSha256(pflow, STREAM_TOSERVER);
-                }
-
-                /* see if this sgh requires us to consider filesize */
-                if (pflow->sgh_toserver == NULL ||
-                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
-                {
-                    SCLogDebug("disabling filesize for flow");
-                    FileDisableFilesize(pflow, STREAM_TOSERVER);
-                }
             } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(pflow->flags & FLOW_SGH_TOCLIENT)) {
                 pflow->sgh_toclient = det_ctx->sgh;
                 pflow->flags |= FLOW_SGH_TOCLIENT;
 
-                if (pflow->sgh_toclient == NULL || pflow->sgh_toclient->filestore_cnt == 0) {
-                    FileDisableStoring(pflow, STREAM_TOCLIENT);
-                }
-
-                /* check if this flow needs magic, if not disable it */
-                if (!FileForceMagic() && (pflow->sgh_toclient == NULL ||
-                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
-                {
-                    SCLogDebug("disabling magic for flow");
-                    FileDisableMagic(pflow, STREAM_TOCLIENT);
-                }
-
-                /* check if this flow needs md5, if not disable it */
-                if (!FileForceMd5() && (pflow->sgh_toclient == NULL ||
-                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
-                {
-                    SCLogDebug("disabling md5 for flow");
-                    FileDisableMd5(pflow, STREAM_TOCLIENT);
-                }
-
-                /* check if this flow needs sha1, if not disable it */
-                if (!FileForceSha1() && (pflow->sgh_toclient == NULL ||
-                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
-                {
-                    SCLogDebug("disabling sha1 for flow");
-                    FileDisableSha1(pflow, STREAM_TOCLIENT);
-                }
-
-                /* check if this flow needs sha256, if not disable it */
-                if (!FileForceSha256() && (pflow->sgh_toclient == NULL ||
-                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
-                {
-                    SCLogDebug("disabling sha256 for flow");
-                    FileDisableSha256(pflow, STREAM_TOCLIENT);
-                }
-
-                /* see if this sgh requires us to consider filesize */
-                if (pflow->sgh_toclient == NULL ||
-                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
-                {
-                    SCLogDebug("disabling filesize for flow");
-                    FileDisableFilesize(pflow, STREAM_TOCLIENT);
-                }
+                DetectPostInspectFileFlagsUpdate(pflow,
+                        pflow->sgh_toclient, STREAM_TOCLIENT);
             }
         }
 
