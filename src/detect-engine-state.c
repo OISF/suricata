@@ -255,7 +255,7 @@ static void DeStateStoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t fil
     return;
 }
 
-static int DeStateStoreFilestoreSigsCantMatch(SigGroupHead *sgh, DetectEngineState *de_state, uint8_t direction)
+static int DeStateStoreFilestoreSigsCantMatch(const SigGroupHead *sgh, DetectEngineState *de_state, uint8_t direction)
 {
     if (de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt == sgh->filestore_cnt)
         return 1;

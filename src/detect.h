@@ -893,7 +893,7 @@ typedef struct DetectEngineThreadCtx_ {
     SigIntId de_state_sig_array_len;
     uint8_t *de_state_sig_array;
 
-    struct SigGroupHead_ *sgh;
+    const struct SigGroupHead_ *sgh;
 
     SignatureNonPrefilterStore *non_pf_store_ptr;
     uint32_t non_pf_store_cnt;
