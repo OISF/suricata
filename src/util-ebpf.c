@@ -165,9 +165,12 @@ int EBPFForEachFlowV4Table(const char *name,
     struct flowv4_keys key = {}, next_key;
     struct pair value = {0, 0, 0};
     int ret, found = 0;
+    if (bpf_map__get_next_key(mapfd, &key, &next_key) != 0) {
+        return found;
+    }
     while (bpf_map__get_next_key(mapfd, &key, &next_key) == 0) {
-        bpf_map__lookup_elem(mapfd, &next_key, &value);
-        ret = FlowCallback(mapfd, &next_key, &value, data);
+        bpf_map__lookup_elem(mapfd, &key, &value);
+        ret = FlowCallback(mapfd, &key, &value, data);
         if (ret) {
             flowstats->count++;
             flowstats->packets += value.packets;
@@ -175,6 +178,15 @@ int EBPFForEachFlowV4Table(const char *name,
             found = 1;
         }
         key = next_key;
+    }
+
+    bpf_map__lookup_elem(mapfd, &key, &value);
+    ret = FlowCallback(mapfd, &key, &value, data);
+    if (ret) {
+        flowstats->count++;
+        flowstats->packets += value.packets;
+        flowstats->bytes += value.bytes;
+        found = 1;
     }
 
     return found;
