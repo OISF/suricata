@@ -9,6 +9,7 @@ EXTRA_DIST = \
 	what-is-suricata.rst \
 	make-sense-alerts.rst \
 	setting-up-ipsinline-for-linux.rst \
+	unix-socket.rst \
 	capture-hardware \
 	configuration \
 	file-extraction \
@@ -19,7 +20,8 @@ EXTRA_DIST = \
 	performance \
 	reputation \
 	rules \
-	setting-up-ipsinline-for-linux
+	setting-up-ipsinline-for-linux \
+	partials
 
 if HAVE_SURICATA_MAN
 man1_MANS = suricata.1
