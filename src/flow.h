@@ -48,9 +48,6 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TO_DST_SEEN                  0x00000002
 /** Don't return this from the flow hash. It has been replaced. */
 #define FLOW_TCP_REUSED                   0x00000004
-/** no magic on files in this flow */
-#define FLOW_FILE_NO_MAGIC_TS             0x00000008
-#define FLOW_FILE_NO_MAGIC_TC             0x00000010
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
 #define FLOW_TOSERVER_IPONLY_SET          0x00000020
@@ -88,30 +85,38 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** Probing parser alproto detection done */
 #define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00040000
 #define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00080000
-/** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_STORE_TS             0x00100000
-#define FLOW_FILE_NO_STORE_TC             0x00200000
 
 /** flow is ipv4 */
 #define FLOW_IPV4                         0x00400000
 /** flow is ipv6 */
 #define FLOW_IPV6                         0x00800000
 
+
+/* File flags */
+
+/** no magic on files in this flow */
+#define FLOWFILE_NO_MAGIC_TS            BIT_U16(0)
+#define FLOWFILE_NO_MAGIC_TC            BIT_U16(1)
+
+/** even if the flow has files, don't store 'm */
+#define FLOWFILE_NO_STORE_TS            BIT_U16(2)
+#define FLOWFILE_NO_STORE_TC            BIT_U16(3)
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               0x01000000
-#define FLOW_FILE_NO_MD5_TC               0x02000000
+#define FLOWFILE_NO_MD5_TS              BIT_U16(4)
+#define FLOWFILE_NO_MD5_TC              BIT_U16(5)
 
 /** no sha1 on files in this flow */
-#define FLOW_FILE_NO_SHA1_TS              0x04000000
-#define FLOW_FILE_NO_SHA1_TC              0x08000000
+#define FLOWFILE_NO_SHA1_TS             BIT_U16(6)
+#define FLOWFILE_NO_SHA1_TC             BIT_U16(7)
 
 /** no sha256 on files in this flow */
-#define FLOW_FILE_NO_SHA256_TS            0x10000000
-#define FLOW_FILE_NO_SHA256_TC            0x20000000
+#define FLOWFILE_NO_SHA256_TS           BIT_U16(8)
+#define FLOWFILE_NO_SHA256_TC           BIT_U16(9)
 
 /** no size tracking of files in this flow */
-#define FLOW_FILE_NO_SIZE_TS              0x40000000
-#define FLOW_FILE_NO_SIZE_TC              0x80000000
+#define FLOWFILE_NO_SIZE_TS             BIT_U16(10)
+#define FLOWFILE_NO_SIZE_TC             BIT_U16(11)
+
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
@@ -350,7 +355,10 @@ typedef struct Flow_
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
 
-    uint32_t flags;
+    uint32_t flags;         /**< generic flags */
+
+    uint16_t file_flags;    /**< file tracking/extraction flags */
+    /* coccinelle: Flow:file_flags:FLOWFILE_ */
 
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
