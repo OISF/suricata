@@ -1629,6 +1629,12 @@ end:
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
+    if (alerts > 0 && pflow) {
+        /* don't set flag if alert is decoder event */
+        if ((PKT_IS_IPV4(p)) || (PKT_IS_IPV6(p)))
+            pflow->flags |= FLOW_HAS_ALERTS;
+    }
+
     SCReturnInt((int)(alerts > 0));
 }
 
