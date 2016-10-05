@@ -45,15 +45,6 @@
 
 #define BPF_MAP_MAX_COUNT 16
 
-#define MAX_ERRNO   4095
-
-#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
-
-static inline long IS_ERR(const void *ptr)
-{
-    return IS_ERR_VALUE((unsigned long)ptr);
-}
-
 struct bpf_map_item {
     const char * name;
     int fd;
@@ -93,10 +84,11 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     bpfobj = bpf_object__open(path);
 
-    if (IS_ERR(bpfobj)) {
+    if (bpf__is_error(bpfobj)) {
         SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to load eBPF objects in '%s'",
-                   path);
+                   "Unable to load eBPF objects in '%s': %s",
+                   path,
+                   strerror(bpf__get_error(bpfobj)));
         return -1;
     }
 
