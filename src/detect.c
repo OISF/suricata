@@ -992,6 +992,26 @@ DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t d
     }
 }
 
+static inline void
+DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, SigGroupHead *sgh)
+{
+    if ((p->flowflags & FLOW_PKT_TOSERVER) && !(pflow->flags & FLOW_SGH_TOSERVER)) {
+        /* first time we see this toserver sgh, store it */
+        pflow->sgh_toserver = sgh;
+        pflow->flags |= FLOW_SGH_TOSERVER;
+
+        DetectPostInspectFileFlagsUpdate(pflow,
+                pflow->sgh_toserver, STREAM_TOSERVER);
+
+    } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(pflow->flags & FLOW_SGH_TOCLIENT)) {
+        pflow->sgh_toclient = sgh;
+        pflow->flags |= FLOW_SGH_TOCLIENT;
+
+        DetectPostInspectFileFlagsUpdate(pflow,
+                pflow->sgh_toclient, STREAM_TOCLIENT);
+    }
+}
+
 /**
  *  \brief Signature match function
  *
@@ -1574,21 +1594,7 @@ end:
             ; /* no-op */
 
         } else if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
-            if ((p->flowflags & FLOW_PKT_TOSERVER) && !(pflow->flags & FLOW_SGH_TOSERVER)) {
-                /* first time we see this toserver sgh, store it */
-                pflow->sgh_toserver = det_ctx->sgh;
-                pflow->flags |= FLOW_SGH_TOSERVER;
-
-                DetectPostInspectFileFlagsUpdate(pflow,
-                        pflow->sgh_toserver, STREAM_TOSERVER);
-
-            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(pflow->flags & FLOW_SGH_TOCLIENT)) {
-                pflow->sgh_toclient = det_ctx->sgh;
-                pflow->flags |= FLOW_SGH_TOCLIENT;
-
-                DetectPostInspectFileFlagsUpdate(pflow,
-                        pflow->sgh_toclient, STREAM_TOCLIENT);
-            }
+            DetectPostInspectFirstSGH(p, pflow, det_ctx->sgh);
         }
 
         /* if we had no alerts that involved the smsgs,
