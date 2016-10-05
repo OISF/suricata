@@ -70,6 +70,6 @@ man: _build/man/suricata.1
 clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
 	rm -f $(top_builddir)/doc/userguide/suricata.1
-	rm -f $(top_builddir)/doc/userguide/suricata.pdf
+	rm -f $(top_builddir)/doc/userguide/userguide.pdf
 
 endif # HAVE_SPHINXBUILD
