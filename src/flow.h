@@ -404,10 +404,10 @@ typedef struct Flow_
 
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
-    struct SigGroupHead_ *sgh_toclient;
+    const struct SigGroupHead_ *sgh_toclient;
     /** toserver sgh for this flow. Only use when FLOW_SGH_TOSERVER flow flag
      *  has been set. */
-    struct SigGroupHead_ *sgh_toserver;
+    const struct SigGroupHead_ *sgh_toserver;
 
     /* pointer to the var list */
     GenericVar *flowvar;

@@ -993,7 +993,7 @@ DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t d
 }
 
 static inline void
-DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, SigGroupHead *sgh)
+DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, const SigGroupHead *sgh)
 {
     if ((p->flowflags & FLOW_PKT_TOSERVER) && !(pflow->flags & FLOW_SGH_TOSERVER)) {
         /* first time we see this toserver sgh, store it */
