@@ -166,9 +166,6 @@ void HtpBodyFree(HtpBody *body)
 {
     SCEnter();
 
-    if (body->first == NULL)
-        return;
-
     SCLogDebug("removing chunks of body %p", body);
 
     HtpBodyChunk *cur = NULL;
