@@ -347,7 +347,6 @@ void JsonTlsLogRegister (void)
 
 void JsonTlsLogRegister (void)
 {
-    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

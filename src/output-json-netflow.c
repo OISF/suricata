@@ -447,7 +447,6 @@ void JsonNetFlowLogRegister(void)
 
 void JsonNetFlowLogRegister (void)
 {
-    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

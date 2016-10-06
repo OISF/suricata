@@ -210,8 +210,6 @@ void JsonTemplateLogRegister(void)
 
 void JsonTemplateLogRegister(void)
 {
-    SCLogInfo("Cannot register JSON output for template. "
-        "JSON support was disabled during build.");
 }
 
 #endif /* HAVE_LIBJANSSON */

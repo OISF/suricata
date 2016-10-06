@@ -273,7 +273,6 @@ void JsonSmtpLogRegister (void) {
 
 void JsonSmtpLogRegister (void)
 {
-    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
