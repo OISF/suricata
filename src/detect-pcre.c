@@ -171,8 +171,8 @@ void DetectPcreRegister (void)
  * \retval  1 Match.
  * \retval  0 No match.
  */
-int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-                           SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
+int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
+                           const SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
                            uint32_t payload_len)
 {
     SCEnter();

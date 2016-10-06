@@ -38,7 +38,7 @@ int ReadHashString(uint8_t *, char *, char *, int, uint16_t);
 int LoadHashTable(ROHashTable *, char *, char *, int, uint32_t);
 
 int DetectFileHashMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-        File *, Signature *, SigMatch *);
+        File *, const Signature *, const SigMatch *);
 int DetectFileHashSetup(DetectEngineCtx *, Signature *, char *, uint32_t);
 void DetectFileHashFree(void *);
 

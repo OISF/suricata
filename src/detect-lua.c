@@ -88,9 +88,9 @@ void DetectLuaRegister(void)
 #include "util-lua.h"
 
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Packet *, Signature *, const SigMatchCtx *);
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+        Flow *f, uint8_t flags, void *state, const Signature *s, const SigMatch *m);
 static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
@@ -186,7 +186,7 @@ void LuaDumpStack(lua_State *state)
 }
 
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        Signature *s, SigMatch *sm,
+        const Signature *s, const SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f)
 {
@@ -292,7 +292,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
  * \retval 1 match
  */
 static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -537,7 +537,8 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
  * \retval 1 match
  */
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatch *m)
 {
     return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, m->ctx);
 }

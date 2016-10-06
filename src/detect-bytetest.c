@@ -89,7 +89,9 @@ void DetectBytetestRegister (void)
  *  \retval 1 match
  *  \retval 0 no match
  */
-int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
+int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx,
+                          const Signature *s, const SigMatchCtx *ctx,
+                          uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset, uint64_t value)
 {
     SCEnter();
@@ -231,7 +233,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, const Si
 }
 
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx)
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,
                                  ((DetectBytetestData *)ctx)->flags, 0, 0);

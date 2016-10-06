@@ -52,8 +52,8 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                        void *, Signature *, SigMatch *);
+static int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+                        uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceIfaceFree(void *);
 
@@ -242,8 +242,9 @@ static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                        uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatch *m)
 {
     SCEnter();
 

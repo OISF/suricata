@@ -31,7 +31,7 @@ int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx);

@@ -1455,10 +1455,10 @@ static int Unified2Test01(void)
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
+    s.id = 1;
+    s.gid = 1;
+    s.rev = 1;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
-    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1546,10 +1546,10 @@ static int Unified2Test02(void)
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
+    s.id = 1;
+    s.gid = 1;
+    s.rev = 1;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
-    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv6_tcp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1643,10 +1643,10 @@ static int Unified2Test03(void)
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
+    s.id = 1;
+    s.gid = 1;
+    s.rev = 1;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
-    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_gre));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1740,10 +1740,10 @@ static int Unified2Test04(void)
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
+    s.id = 1;
+    s.gid = 1;
+    s.rev = 1;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
-    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ppp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1828,10 +1828,10 @@ static int Unified2Test05(void)
     memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
+    s.id = 1;
+    s.gid = 1;
+    s.rev = 1;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
-    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);

@@ -173,7 +173,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
  *        from the current packet here.
  */
 int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f,
         uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();

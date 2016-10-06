@@ -84,7 +84,7 @@ void DetectBytejumpRegister (void)
  *  \retval 1 match
  *  \retval 0 no match
  */
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                           const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset)
 {
@@ -197,7 +197,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 }
 
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx)
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;

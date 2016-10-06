@@ -393,7 +393,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
      */
     int (*Callback)(ThreadVars *tv,
                     struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-                    struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
+                    const struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
                     void *tx, uint64_t tx_id);
 
     struct DetectEngineAppInspectionEngine_ *next;
@@ -962,10 +962,10 @@ typedef struct DetectEngineThreadCtx_ {
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
     /** AppLayer match function  pointer */
-    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, const Signature *, const SigMatch *);
 
     /** AppLayer TX match function pointer */
     int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,
@@ -976,7 +976,7 @@ typedef struct SigTableElmt_ {
     int (*FileMatch)(ThreadVars *,  /**< thread local vars */
         DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
-        uint8_t flags, File *, Signature *, SigMatch *);
+        uint8_t flags, File *, const Signature *, const SigMatch *);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
@@ -1384,24 +1384,24 @@ void SigTableSetup(void);
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
-int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);
 SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 Signature *DetectGetTagSignature(void);
 
-int SignatureIsFilestoring(Signature *);
-int SignatureIsFilemagicInspecting(Signature *);
-int SignatureIsFileMd5Inspecting(Signature *);
-int SignatureIsFileSha1Inspecting(Signature *s);
-int SignatureIsFileSha256Inspecting(Signature *s);
-int SignatureIsFilesizeInspecting(Signature *);
+int SignatureIsFilestoring(const Signature *);
+int SignatureIsFilemagicInspecting(const Signature *);
+int SignatureIsFileMd5Inspecting(const Signature *);
+int SignatureIsFileSha1Inspecting(const Signature *s);
+int SignatureIsFileSha256Inspecting(const Signature *s);
+int SignatureIsFilesizeInspecting(const Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                   Signature *s);
+                                   const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s);
 
 #endif /* __DETECT_H__ */

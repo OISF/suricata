@@ -28,9 +28,9 @@ int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectPacketPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, Signature *, Flow *, Packet *);
+        DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
 int DetectEngineInspectStreamPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, Signature *, Flow *,
+        DetectEngineThreadCtx *, const Signature *, Flow *,
         uint8_t *, uint32_t);
 
 void PayloadRegisterTests(void);

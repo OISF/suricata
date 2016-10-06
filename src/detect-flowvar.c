@@ -44,9 +44,11 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx);
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static void DetectFlowvarDataFree(void *ptr);
 
 void DetectFlowvarRegister (void)
@@ -93,7 +95,8 @@ static void DetectFlowvarDataFree(void *ptr)
  *        -1: error
  */
 
-int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)ctx;
@@ -261,7 +264,7 @@ error:
  */
 static int DetectFlowvarPostMatch(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     DetectFlowvarList *fs, *prev;
     const DetectFlowvarData *fd;

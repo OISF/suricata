@@ -20,6 +20,6 @@
 
 void DetectBase64DataRegister(void);
 int DetectBase64DataDoMatch(DetectEngineCtx *, DetectEngineThreadCtx *,
-    Signature *, Flow *);
+        const Signature *, Flow *);
 
 #endif /* __DETECT_BASE64_DATA_H__ */

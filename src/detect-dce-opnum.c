@@ -52,8 +52,8 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                        void *, Signature *, SigMatch *);
+static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
+                        void *, const Signature *, const SigMatch *);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceOpnumFree(void *);
 
@@ -237,8 +237,9 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                        uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Flow *f, uint8_t flags, void *state,
+                        const Signature *s, const SigMatch *m)
 {
     SCEnter();
 

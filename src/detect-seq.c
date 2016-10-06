@@ -42,7 +42,7 @@
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, const SigMatchCtx *);
+                          Packet *, const Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 static int PrefilterSetupTcpSeq(SigGroupHead *sgh);
@@ -75,7 +75,7 @@ void DetectSeqRegister(void)
  * \retval 1 match
  */
 static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, const SigMatchCtx *ctx)
+                          Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectSeqData *data = (const DetectSeqData *)ctx;
 

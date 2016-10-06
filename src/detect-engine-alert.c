@@ -186,7 +186,8 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
  *  \param flags alert flags
  *  \param alert_msg ptr to StreamMsg object that the signature matched on
  */
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint64_t tx_id, uint8_t flags)
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
+        Packet *p, uint64_t tx_id, uint8_t flags)
 {
     int i = 0;
 

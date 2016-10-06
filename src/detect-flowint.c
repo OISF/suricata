@@ -54,7 +54,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowintMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                        Signature *, const SigMatchCtx *);
+                       const Signature *, const SigMatchCtx *);
 static int DetectFlowintSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFlowintFree(void *);
 void DetectFlowintRegisterTests(void);
@@ -87,7 +87,7 @@ void DetectFlowintRegister(void)
  * condition
  */
 int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx)
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectFlowintData *sfd = (const DetectFlowintData *)ctx;
     FlowVar *fv;

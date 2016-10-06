@@ -37,7 +37,7 @@ static void DetectAppLayerProtocolRegisterTests(void);
 
 static int DetectAppLayerProtocolPacketMatch(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 

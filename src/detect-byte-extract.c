@@ -90,7 +90,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectByteExtractMatch(ThreadVars *, DetectEngineThreadCtx *,
-                           Packet *, Signature *, SigMatch *);
+                           Packet *, const Signature *, const SigMatch *);
 int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
 void DetectByteExtractRegisterTests(void);
 void DetectByteExtractFree(void *);
@@ -112,8 +112,8 @@ void DetectByteExtractRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
-                             Signature *s, uint8_t *payload,
+int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatch *sm,
+                             const Signature *s, uint8_t *payload,
                              uint16_t payload_len, uint64_t *value,
                              uint8_t endian)
 {
@@ -204,10 +204,8 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
 
 
 int DetectByteExtractMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                           Packet *p, Signature *s, SigMatch *m)
+                           Packet *p, const Signature *s, const SigMatch *m)
 {
-    goto end;
- end:
     return 1;
 }
 
@@ -756,7 +754,7 @@ void DetectByteExtractFree(void *ptr)
  *
  * \retval A pointer to the SigMatch if found, otherwise NULL.
  */
-SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, Signature *s)
+SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 {
     DetectByteExtractData *bed = NULL;
     int list;

@@ -46,7 +46,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectITypeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectITypeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
@@ -115,7 +116,8 @@ static inline int ITypeMatch(const uint8_t ptype, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     if (PKT_IS_PSEUDOPKT(p))
         return 0;

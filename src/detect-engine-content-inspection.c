@@ -99,7 +99,7 @@
  *  \retval 1 match
  */
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, SigMatch *sm,
+                                  const Signature *s, const SigMatch *sm,
                                   Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
                                   uint32_t stream_start_offset,

@@ -67,7 +67,7 @@ static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *txv, uint64_t tx_id);
 
@@ -175,7 +175,7 @@ static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
 int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *txv, uint64_t tx_id)
 {
