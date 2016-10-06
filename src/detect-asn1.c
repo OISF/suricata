@@ -43,7 +43,7 @@
 const char *ASN_DELIM = " \t,\n";
 
 int DetectAsn1Match(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                     Signature *, const SigMatchCtx *);
+                     const Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, char *);
 void DetectAsn1RegisterTests(void);
 void DetectAsn1Free(void *);
@@ -138,7 +138,7 @@ static uint8_t DetectAsn1Checks(Asn1Node *node, const DetectAsn1Data *ad)
  * \retval 1 match
  */
 int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                     Signature *s, const SigMatchCtx *ctx)
+                    const Signature *s, const SigMatchCtx *ctx)
 {
     uint8_t ret = 0;
 

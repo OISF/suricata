@@ -218,7 +218,7 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
  *  \retval 0 no match or 1 match
  */
 int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
@@ -258,7 +258,7 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
  */
 
 int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();

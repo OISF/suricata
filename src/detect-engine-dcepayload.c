@@ -62,7 +62,7 @@
  *  \retval 1 Match.
  */
 int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
+                                  DetectEngineThreadCtx *det_ctx, const Signature *s,
                                   Flow *f, uint8_t flags, void *alstate)
 {
     SCEnter();

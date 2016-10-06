@@ -26,11 +26,11 @@
 
 int DetectFileInspectHttp(ThreadVars *tv,
                           DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                          Signature *s, Flow *f, uint8_t flags, void *alstate,
+                          const Signature *s, Flow *f, uint8_t flags, void *alstate,
                           void *tx, uint64_t tx_id);
 
 int DetectFileInspectSmtp(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                          DetectEngineThreadCtx *det_ctx, Signature *s,
+                          DetectEngineThreadCtx *det_ctx, const Signature *s,
                           Flow *f, uint8_t flags, void *alstate,
                           void *tx, uint64_t tx_id);
 

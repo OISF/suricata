@@ -62,7 +62,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectSshVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectSshVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, char *);
 void DetectSshVersionRegisterTests(void);
 void DetectSshVersionFree(void *);
@@ -93,7 +94,8 @@ void DetectSshVersionRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, const Signature *s, const SigMatch *m)
 {
     SCEnter();
 

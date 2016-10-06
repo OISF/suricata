@@ -40,44 +40,44 @@
 #include "util-profiling.h"
 
 /* prototypes for the "ipv4-csum" rule keyword */
-int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                        Signature *, const SigMatchCtx *);
+static int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIPV4CsumFree(void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
-int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV4CsumFree(void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
-int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV6CsumFree(void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
-int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV4CsumFree(void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
-int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV6CsumFree(void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
-int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV4CsumFree(void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
-int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, const SigMatchCtx *);
+static int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV6CsumFree(void *);
 
@@ -229,8 +229,8 @@ error:
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -323,8 +323,8 @@ void DetectIPV4CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -418,8 +418,8 @@ void DetectTCPV4CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -513,8 +513,8 @@ void DetectTCPV6CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -609,8 +609,8 @@ void DetectUDPV4CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -705,8 +705,8 @@ void DetectUDPV6CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 
@@ -800,8 +800,8 @@ void DetectICMPV4CsumFree(void *ptr)
  *
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
-int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectCsumData *cd = (const DetectCsumData *)ctx;
 

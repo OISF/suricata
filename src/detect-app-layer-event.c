@@ -47,16 +47,16 @@
 #include "stream-tcp-util.h"
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, Signature *s, const SigMatchCtx *ctx);
+                                       Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                                uint8_t, void *, Signature *, SigMatch *);
+                                uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
                                 DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Flow *f, uint8_t flags,
+                                const Signature *s, Flow *f, uint8_t flags,
                                 void *alstate,
                                 void *tx, uint64_t tx_id);
 /**
@@ -87,7 +87,7 @@ void DetectAppLayerEventRegister(void)
 static int DetectEngineAptEventInspect(ThreadVars *tv,
                                 DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Flow *f, uint8_t flags,
+                                const Signature *s, Flow *f, uint8_t flags,
                                 void *alstate,
                                 void *tx, uint64_t tx_id)
 {
@@ -132,7 +132,7 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
 
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Packet *p, Signature *s, const SigMatchCtx *ctx)
+                                Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)ctx;
 
@@ -141,8 +141,8 @@ static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det
 }
 
 static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags, void *state, Signature *s,
-                                SigMatch *m)
+                                Flow *f, uint8_t flags, void *state, const Signature *s,
+                                const SigMatch *m)
 {
     SCEnter();
     AppLayerDecoderEvents *decoder_events = NULL;

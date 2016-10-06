@@ -98,7 +98,7 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 1       Match
  */
 int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                              DetectEngineThreadCtx *det_ctx, Signature *s,
+                              DetectEngineThreadCtx *det_ctx, const Signature *s,
                               Flow *f, uint8_t flags, void *alstate, void *txv,
                               uint64_t tx_id)
 {
