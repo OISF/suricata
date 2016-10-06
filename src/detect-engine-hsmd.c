@@ -113,7 +113,7 @@ int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
-                                   Signature *s, Flow *f, uint8_t flags,
+                                   const Signature *s, Flow *f, uint8_t flags,
                                    void *alstate,
                                    void *txv, uint64_t tx_id)
 {

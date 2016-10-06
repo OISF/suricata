@@ -47,13 +47,11 @@
 #include "stream-tcp.h"
 #include "util-byte.h"
 
-int DetectFtpbounceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                          Signature *, SigMatch *);
-int DetectFtpbounceALMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                           uint8_t, void *, Signature *, SigMatch *);
+static int DetectFtpbounceALMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, char *);
-int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
-                             uint32_t ip_orig, uint16_t offset);
+static int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
+        uint32_t ip_orig, uint16_t offset);
 void DetectFtpbounceRegisterTests(void);
 void DetectFtpbounceFree(void *);
 
@@ -83,7 +81,7 @@ void DetectFtpbounceRegister(void)
  *
  * \retval 1 if ftpbounce detected, 0 if not
  */
-int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
+static int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
                              uint32_t ip_orig, uint16_t offset)
 {
     SCEnter();
@@ -168,9 +166,9 @@ int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *m)
+static int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                           Flow *f, uint8_t flags, void *state, const Signature *s,
+                           const SigMatch *m)
 {
     SCEnter();
     FtpState *ftp_state =(FtpState *)state;
