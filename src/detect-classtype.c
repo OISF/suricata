@@ -43,7 +43,7 @@ static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
 static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, char *);
-void DetectClasstypeRegisterTests(void);
+static void DetectClasstypeRegisterTests(void);
 
 /**
  * \brief Registers the handler functions for the "Classtype" keyword.
@@ -153,7 +153,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
  * \test Check that supplying an invalid classtype in the rule, results in the
  *       rule being invalidated.
  */
-int DetectClasstypeTest01()
+static int DetectClasstypeTest01()
 {
     int result = 0;
 
@@ -182,7 +182,7 @@ end:
  *       properly, with rules containing invalid classtypes being rejected
  *       and the ones containing valid classtypes parsed and returned.
  */
-int DetectClasstypeTest02()
+static int DetectClasstypeTest02()
 {
     int result = 0;
     Signature *last = NULL;
@@ -248,7 +248,7 @@ end:
  * \test Check that the signatures are assigned priority based on classtype they
  *       are given.
  */
-int DetectClasstypeTest03()
+static int DetectClasstypeTest03()
 {
     int result = 0;
     Signature *last = NULL;
@@ -308,7 +308,7 @@ end:
 /**
  * \brief This function registers unit tests for Classification Config API.
  */
-void DetectClasstypeRegisterTests(void)
+static void DetectClasstypeRegisterTests(void)
 {
 
 #ifdef UNITTESTS
