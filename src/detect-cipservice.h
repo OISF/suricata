@@ -92,9 +92,4 @@ typedef struct ENIPData_
 
 } ENIPData;
 
-/**
- * Add new CIPServiceData node to link list
- */
-CIPServiceData *CreateCIPServiceData(ENIPData *enip_data);
-
 #endif	/* _DETECT_CIPSERVICE_H */

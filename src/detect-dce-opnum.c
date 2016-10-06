@@ -55,7 +55,8 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
                         void *, const Signature *, const SigMatch *);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectDceOpnumFree(void *);
+static void DetectDceOpnumFree(void *);
+static void DetectDceOpnumRegisterTests(void);
 
 /**
  * \brief Registers the keyword handlers for the "dce_opnum" keyword.
@@ -80,7 +81,7 @@ void DetectDceOpnumRegister(void)
  *
  * \retval dor Pointer to the new instance DetectDceOpnumRange.
  */
-static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
+static DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 {
     DetectDceOpnumRange *dor = NULL;
 
@@ -101,7 +102,7 @@ static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
  * \retval did Pointer to a DetectDceIfaceData instance that holds the data
  *             from the parsed arg.
  */
-static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
+static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 {
     DetectDceOpnumData *dod = NULL;
 
@@ -325,7 +326,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return -1;
 }
 
-void DetectDceOpnumFree(void *ptr)
+static void DetectDceOpnumFree(void *ptr)
 {
     DetectDceOpnumData *dod = ptr;
     DetectDceOpnumRange *dor = NULL;
@@ -2902,12 +2903,10 @@ static int DetectDceOpnumTestParse13(void)
     return result;
 }
 #endif
+#endif /* UNITTESTS */
 
-
-#endif
-void DetectDceOpnumRegisterTests(void)
+static void DetectDceOpnumRegisterTests(void)
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
     UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
@@ -2927,6 +2926,4 @@ void DetectDceOpnumRegisterTests(void)
     UtRegisterTest("DetectDceOpnumTestParse13", DetectDceOpnumTestParse13, 1);
 #endif
 #endif
-
-    return;
 }

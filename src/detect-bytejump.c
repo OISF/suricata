@@ -60,7 +60,12 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-void DetectBytejumpRegisterTests(void);
+static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr);
+static void DetectBytejumpFree(void *ptr);
+static void DetectBytejumpRegisterTests(void);
 
 void DetectBytejumpRegister (void)
 {
@@ -196,7 +201,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     SCReturnInt(1);
 }
 
-int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
@@ -306,7 +311,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return 1;
 }
 
-DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
+static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
 {
     DetectBytejumpData *data = NULL;
     char args[10][64];
@@ -500,7 +505,7 @@ error:
     return NULL;
 }
 
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
@@ -721,7 +726,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
  *
  * \param data pointer to DetectBytejumpData
  */
-void DetectBytejumpFree(void *ptr)
+static void DetectBytejumpFree(void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -738,7 +743,7 @@ void DetectBytejumpFree(void *ptr)
  * \test DetectBytejumpTestParse01 is a test to make sure that we return
  * "something" when given valid bytejump opt
  */
-int DetectBytejumpTestParse01(void)
+static int DetectBytejumpTestParse01(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -754,7 +759,7 @@ int DetectBytejumpTestParse01(void)
 /**
  * \test DetectBytejumpTestParse02 is a test for setting the required opts
  */
-int DetectBytejumpTestParse02(void)
+static int DetectBytejumpTestParse02(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -778,7 +783,7 @@ int DetectBytejumpTestParse02(void)
 /**
  * \test DetectBytejumpTestParse03 is a test for setting the optional flags
  */
-int DetectBytejumpTestParse03(void)
+static int DetectBytejumpTestParse03(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -810,7 +815,7 @@ int DetectBytejumpTestParse03(void)
  *
  * \todo This fails becuase we can only have 9 captures and there are 10.
  */
-int DetectBytejumpTestParse04(void)
+static int DetectBytejumpTestParse04(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -840,7 +845,7 @@ int DetectBytejumpTestParse04(void)
 /**
  * \test DetectBytejumpTestParse05 is a test for setting base without string
  */
-int DetectBytejumpTestParse05(void)
+static int DetectBytejumpTestParse05(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -856,7 +861,7 @@ int DetectBytejumpTestParse05(void)
 /**
  * \test DetectBytejumpTestParse06 is a test for too many bytes to extract
  */
-int DetectBytejumpTestParse06(void)
+static int DetectBytejumpTestParse06(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -871,7 +876,7 @@ int DetectBytejumpTestParse06(void)
 /**
  * \test DetectBytejumpTestParse07 is a test for too many string bytes to extract
  */
-int DetectBytejumpTestParse07(void)
+static int DetectBytejumpTestParse07(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -886,7 +891,7 @@ int DetectBytejumpTestParse07(void)
 /**
  * \test DetectBytejumpTestParse08 is a test for offset too big
  */
-int DetectBytejumpTestParse08(void)
+static int DetectBytejumpTestParse08(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -901,7 +906,7 @@ int DetectBytejumpTestParse08(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse09(void)
+static int DetectBytejumpTestParse09(void)
 {
     Signature *s = SigAlloc();
     if (s == NULL)
@@ -934,7 +939,7 @@ int DetectBytejumpTestParse09(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse10(void)
+static int DetectBytejumpTestParse10(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1038,7 +1043,7 @@ int DetectBytejumpTestParse10(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse11(void)
+static int DetectBytejumpTestParse11(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1189,7 +1194,7 @@ static int DetectBytejumpTestParse12(void)
  * byte_jump and byte_jump relative works if the previous keyword is pcre
  * (bug 142)
  */
-int DetectByteJumpTestPacket01 (void)
+static int DetectByteJumpTestPacket01 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
@@ -1221,7 +1226,7 @@ end:
  * byte_jump and byte_jump relative works if the previous keyword is byte_jump
  * (bug 165)
  */
-int DetectByteJumpTestPacket02 (void)
+static int DetectByteJumpTestPacket02 (void)
 {
     int result = 0;
     uint8_t buf[] = { 0x00, 0x00, 0x00, 0x77, 0xff, 0x53,
@@ -1249,7 +1254,7 @@ end:
     return result;
 }
 
-int DetectByteJumpTestPacket03(void)
+static int DetectByteJumpTestPacket03(void)
 {
     int result = 0;
     uint8_t *buf = NULL;
@@ -1284,7 +1289,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket04 (void)
+static int DetectByteJumpTestPacket04 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
@@ -1307,7 +1312,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket05 (void)
+static int DetectByteJumpTestPacket05 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
@@ -1330,7 +1335,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket06 (void)
+static int DetectByteJumpTestPacket06 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
@@ -1353,7 +1358,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket07 (void)
+static int DetectByteJumpTestPacket07 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
@@ -1379,7 +1384,7 @@ end:
 /**
  * \brief this function registers unit tests for DetectBytejump
  */
-void DetectBytejumpRegisterTests(void)
+static void DetectBytejumpRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectBytejumpTestParse01", DetectBytejumpTestParse01);

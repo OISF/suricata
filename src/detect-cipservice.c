@@ -242,7 +242,7 @@ error:
  *
  * \param ptr pointer to DetectCipServiceData
  */
-void DetectCipServiceFree(void *ptr)
+static void DetectCipServiceFree(void *ptr)
 {
     DetectCipServiceData *cipserviced = (DetectCipServiceData *) ptr;
     SCFree(cipserviced);
@@ -281,7 +281,7 @@ static int DetectCipServiceSignatureTest01 (void)
 /**
  * \brief this function registers unit tests for DetectCipService
  */
-void DetectCipServiceRegisterTests(void)
+static void DetectCipServiceRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectCipServiceParseTest01",
@@ -416,7 +416,7 @@ error:
  *
  * \param ptr pointer to DetectEnipCommandData
  */
-void DetectEnipCommandFree(void *ptr)
+static void DetectEnipCommandFree(void *ptr)
 {
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) ptr;
     SCFree(enipcmdd);
@@ -460,7 +460,7 @@ static int DetectEnipCommandSignatureTest01 (void)
 /**
  * \brief this function registers unit tests for DetectEnipCommand
  */
-void DetectEnipCommandRegisterTests(void)
+static void DetectEnipCommandRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectEnipCommandParseTest01",

@@ -46,7 +46,7 @@
 #include "util-unittest-helper.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
-void DetectDistanceRegisterTests(void);
+static void DetectDistanceRegisterTests(void);
 
 void DetectDistanceRegister(void)
 {
@@ -236,7 +236,7 @@ end:
  * distance works, if the previous keyword is byte_jump and content
  * (bug 163)
  */
-int DetectDistanceTestPacket01 (void)
+static int DetectDistanceTestPacket01 (void)
 {
     int result = 0;
     uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -260,7 +260,7 @@ end:
 }
 #endif /* UNITTESTS */
 
-void DetectDistanceRegisterTests(void)
+static void DetectDistanceRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectDistanceTest01 -- distance / within mix",

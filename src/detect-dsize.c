@@ -52,7 +52,7 @@ static pcre_extra *parse_regex_study;
 static int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, char *str);
-void DsizeRegisterTests(void);
+static void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
 static int PrefilterSetupDsize(SigGroupHead *sgh);
@@ -866,7 +866,7 @@ end:
 /**
  * \brief this function registers unit tests for dsize
  */
-void DsizeRegisterTests(void)
+static void DsizeRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01);

@@ -1795,7 +1795,7 @@ end:
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig05(void)
+static int IPOnlyTestSig05(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1832,7 +1832,7 @@ int IPOnlyTestSig05(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig06(void)
+static int IPOnlyTestSig06(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1873,7 +1873,7 @@ int IPOnlyTestSig06(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig07(void)
+static int IPOnlyTestSig07(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1911,7 +1911,7 @@ int IPOnlyTestSig07(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig08(void)
+static int IPOnlyTestSig08(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1948,7 +1948,7 @@ int IPOnlyTestSig08(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig09(void)
+static int IPOnlyTestSig09(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1985,7 +1985,7 @@ int IPOnlyTestSig09(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig10(void)
+static int IPOnlyTestSig10(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2026,7 +2026,7 @@ int IPOnlyTestSig10(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match) with ipv4 and ipv6 mixed
  */
-int IPOnlyTestSig11(void)
+static int IPOnlyTestSig11(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2065,7 +2065,7 @@ int IPOnlyTestSig11(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match) with ipv4 and ipv6 mixed
  */
-int IPOnlyTestSig12(void)
+static int IPOnlyTestSig12(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2133,7 +2133,7 @@ static int IPOnlyTestSig14(void)
     PASS;
 }
 
-int IPOnlyTestSig15(void)
+static int IPOnlyTestSig15(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2187,7 +2187,7 @@ int IPOnlyTestSig15(void)
 /**
  * \brief Unittest to show #599.  We fail to match if we have negated addresses.
  */
-int IPOnlyTestSig16(void)
+static int IPOnlyTestSig16(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2218,7 +2218,7 @@ int IPOnlyTestSig16(void)
 /**
  * \brief Unittest to show #611. Ports on portless protocols.
  */
-int IPOnlyTestSig17(void)
+static int IPOnlyTestSig17(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
