@@ -438,7 +438,6 @@ void JsonDropLogRegister (void)
 
 void JsonDropLogRegister (void)
 {
-    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

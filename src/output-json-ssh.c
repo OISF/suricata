@@ -326,7 +326,6 @@ void JsonSshLogRegister (void)
 
 void JsonSshLogRegister (void)
 {
-    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
