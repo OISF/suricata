@@ -1,6 +1,7 @@
 EXTRA_DIST = \
 	conf.py \
 	index.rst \
+	install.rst \
 	acknowledgements.rst \
 	oinkmaster.rst \
 	command-line-options.rst \

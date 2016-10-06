@@ -6,6 +6,7 @@ Suricata User Guide
    :titlesonly:
 
    what-is-suricata
+   install.rst
    command-line-options
    rules/index.rst
    oinkmaster
