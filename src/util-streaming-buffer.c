@@ -103,7 +103,8 @@ static void AutoSlide(StreamingBuffer *sb)
     sb->buf_offset = size;
 }
 
-static void GrowToSize(StreamingBuffer *sb, uint32_t size)
+static int __attribute__((warn_unused_result))
+GrowToSize(StreamingBuffer *sb, uint32_t size)
 {
     /* try to grow in multiples of sb->cfg->buf_size */
     uint32_t x = sb->cfg->buf_size ? size % sb->cfg->buf_size : 0;
@@ -111,44 +112,53 @@ static void GrowToSize(StreamingBuffer *sb, uint32_t size)
     uint32_t grow = base + sb->cfg->buf_size;
 
     void *ptr = REALLOC(sb->cfg, sb->buf, sb->buf_size, grow);
-    if (ptr != NULL) {
-        /* for safe printing and general caution, lets memset the
-         * new data to 0 */
-        size_t diff = grow - sb->buf_size;
-        void *new_mem = ((char *)ptr) + sb->buf_size;
-        memset(new_mem, 0, diff);
+    if (ptr == NULL)
+        return -1;
 
-        sb->buf = ptr;
-        sb->buf_size = grow;
-        SCLogDebug("grown buffer to %u", grow);
+    /* for safe printing and general caution, lets memset the
+     * new data to 0 */
+    size_t diff = grow - sb->buf_size;
+    void *new_mem = ((char *)ptr) + sb->buf_size;
+    memset(new_mem, 0, diff);
+
+    sb->buf = ptr;
+    sb->buf_size = grow;
+    SCLogDebug("grown buffer to %u", grow);
 #ifdef DEBUG
-        if (sb->buf_size > sb->buf_size_max) {
-            sb->buf_size_max = sb->buf_size;
-        }
-#endif
+    if (sb->buf_size > sb->buf_size_max) {
+        sb->buf_size_max = sb->buf_size;
     }
+#endif
+    return 0;
 }
 
-static void Grow(StreamingBuffer *sb)
+/** \internal
+ *  \brief try to double the buffer size
+ *  \retval 0 ok
+ *  \retval -1 failed, buffer unchanged
+ */
+static int __attribute__((warn_unused_result)) Grow(StreamingBuffer *sb)
 {
     uint32_t grow = sb->buf_size * 2;
     void *ptr = REALLOC(sb->cfg, sb->buf, sb->buf_size, grow);
-    if (ptr != NULL) {
-        /* for safe printing and general caution, lets memset the
-         * new data to 0 */
-        size_t diff = grow - sb->buf_size;
-        void *new_mem = ((char *)ptr) + sb->buf_size;
-        memset(new_mem, 0, diff);
+    if (ptr == NULL)
+        return -1;
 
-        sb->buf = ptr;
-        sb->buf_size = grow;
-        SCLogDebug("grown buffer to %u", grow);
+    /* for safe printing and general caution, lets memset the
+     * new data to 0 */
+    size_t diff = grow - sb->buf_size;
+    void *new_mem = ((char *)ptr) + sb->buf_size;
+    memset(new_mem, 0, diff);
+
+    sb->buf = ptr;
+    sb->buf_size = grow;
+    SCLogDebug("grown buffer to %u", grow);
 #ifdef DEBUG
-        if (sb->buf_size > sb->buf_size_max) {
-            sb->buf_size_max = sb->buf_size;
-        }
-#endif
+    if (sb->buf_size > sb->buf_size_max) {
+        sb->buf_size_max = sb->buf_size;
     }
+#endif
+    return 0;
 }
 
 /**
@@ -188,24 +198,26 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
             return NULL;
     }
 
-    StreamingBufferSegment *seg = CALLOC(sb->cfg, 1, sizeof(StreamingBufferSegment));
-    if (seg != NULL) {
-        if (!DATA_FITS(sb, data_len)) {
-            if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
-                AutoSlide(sb);
-            if (sb->buf_size == 0) {
-                GrowToSize(sb, data_len);
-            } else {
-                while (!DATA_FITS(sb, data_len)) {
-                    Grow(sb);
+    if (!DATA_FITS(sb, data_len)) {
+        if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
+            AutoSlide(sb);
+        if (sb->buf_size == 0) {
+            if (GrowToSize(sb, data_len) != 0)
+                return NULL;
+        } else {
+            while (!DATA_FITS(sb, data_len)) {
+                if (Grow(sb) != 0) {
+                    return NULL;
                 }
             }
         }
-        if (!DATA_FITS(sb, data_len)) {
-            FREE(sb->cfg, seg, sizeof(StreamingBufferSegment));
-            return NULL;
-        }
+    }
+    if (!DATA_FITS(sb, data_len)) {
+        return NULL;
+    }
 
+    StreamingBufferSegment *seg = CALLOC(sb->cfg, 1, sizeof(StreamingBufferSegment));
+    if (seg != NULL) {
         memcpy(sb->buf + sb->buf_offset, data, data_len);
         seg->stream_offset = sb->stream_offset + sb->buf_offset;
         seg->segment_len = data_len;
@@ -215,65 +227,73 @@ StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb, const uint
     return NULL;
 }
 
-void StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
-                            const uint8_t *data, uint32_t data_len)
+int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
+                          const uint8_t *data, uint32_t data_len)
 {
     BUG_ON(seg == NULL);
 
     if (sb->buf == NULL) {
         if (InitBuffer(sb) == -1)
-            return;
+            return -1;
     }
 
     if (!DATA_FITS(sb, data_len)) {
         if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
             AutoSlide(sb);
         if (sb->buf_size == 0) {
-            GrowToSize(sb, data_len);
+            if (GrowToSize(sb, data_len) != 0)
+                return -1;
         } else {
             while (!DATA_FITS(sb, data_len)) {
-                Grow(sb);
+                if (Grow(sb) != 0) {
+                    return -1;
+                }
             }
         }
     }
     if (!DATA_FITS(sb, data_len)) {
-        return;
+        return -1;
     }
 
     memcpy(sb->buf + sb->buf_offset, data, data_len);
     seg->stream_offset = sb->stream_offset + sb->buf_offset;
     seg->segment_len = data_len;
     sb->buf_offset += data_len;
+    return 0;
 }
 
 /**
  *  \brief add data w/o tracking a segment
  */
-void StreamingBufferAppendNoTrack(StreamingBuffer *sb,
-                                  const uint8_t *data, uint32_t data_len)
+int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
+                                 const uint8_t *data, uint32_t data_len)
 {
     if (sb->buf == NULL) {
         if (InitBuffer(sb) == -1)
-            return;
+            return -1;
     }
 
     if (!DATA_FITS(sb, data_len)) {
         if (sb->cfg->flags & STREAMING_BUFFER_AUTOSLIDE)
             AutoSlide(sb);
         if (sb->buf_size == 0) {
-            GrowToSize(sb, data_len);
+            if (GrowToSize(sb, data_len) != 0)
+                return -1;
         } else {
             while (!DATA_FITS(sb, data_len)) {
-                Grow(sb);
+                if (Grow(sb) != 0) {
+                    return -1;
+                }
             }
         }
     }
     if (!DATA_FITS(sb, data_len)) {
-        return;
+        return -1;
     }
 
     memcpy(sb->buf + sb->buf_offset, data, data_len);
     sb->buf_offset += data_len;
+    return 0;
 }
 
 #define DATA_FITS_AT_OFFSET(sb, len, offset) \
@@ -282,18 +302,18 @@ void StreamingBufferAppendNoTrack(StreamingBuffer *sb,
 /**
  *  \param offset offset relative to StreamingBuffer::stream_offset
  */
-void StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
-                             const uint8_t *data, uint32_t data_len,
-                             uint64_t offset)
+int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
+                            const uint8_t *data, uint32_t data_len,
+                            uint64_t offset)
 {
     BUG_ON(seg == NULL);
 
     if (offset < sb->stream_offset)
-        return;
+        return -1;
 
     if (sb->buf == NULL) {
         if (InitBuffer(sb) == -1)
-            return;
+            return -1;
     }
 
     uint32_t rel_offset = offset - sb->stream_offset;
@@ -303,7 +323,8 @@ void StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
             rel_offset = offset - sb->stream_offset;
         }
         if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
-            GrowToSize(sb, (rel_offset + data_len));
+            if (GrowToSize(sb, (rel_offset + data_len)) != 0)
+                return -1;
         }
     }
     BUG_ON(!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset));
@@ -313,8 +334,7 @@ void StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
     seg->segment_len = data_len;
     if (rel_offset + data_len > sb->buf_offset)
         sb->buf_offset = rel_offset + data_len;
-
-
+    return 0;
 }
 
 int StreamingBufferSegmentIsBeforeWindow(const StreamingBuffer *sb,
@@ -529,9 +549,9 @@ static int StreamingBufferTest02(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8);
+    FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
     StreamingBufferSegment seg2;
-    StreamingBufferAppend(sb, &seg2, (const uint8_t *)"01234567", 8);
+    FAIL_IF(StreamingBufferAppend(sb, &seg2, (const uint8_t *)"01234567", 8) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 16);
     FAIL_IF(seg1.stream_offset != 0);
@@ -545,7 +565,7 @@ static int StreamingBufferTest02(void)
     StreamingBufferSlide(sb, 6);
 
     StreamingBufferSegment seg3;
-    StreamingBufferAppend(sb, &seg3, (const uint8_t *)"QWERTY", 6);
+    FAIL_IF(StreamingBufferAppend(sb, &seg3, (const uint8_t *)"QWERTY", 6) != 0);
     FAIL_IF(sb->stream_offset != 6);
     FAIL_IF(sb->buf_offset != 16);
     FAIL_IF(seg3.stream_offset != 16);
@@ -577,9 +597,9 @@ static int StreamingBufferTest03(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8);
+    FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
     StreamingBufferSegment seg2;
-    StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14);
+    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 22);
     FAIL_IF(seg1.stream_offset != 0);
@@ -591,7 +611,7 @@ static int StreamingBufferTest03(void)
     DumpSegment(sb, &seg2);
 
     StreamingBufferSegment seg3;
-    StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8);
+    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
@@ -623,9 +643,9 @@ static int StreamingBufferTest04(void)
     FAIL_IF(sb == NULL);
 
     StreamingBufferSegment seg1;
-    StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8);
+    FAIL_IF(StreamingBufferAppend(sb, &seg1, (const uint8_t *)"ABCDEFGH", 8) != 0);
     StreamingBufferSegment seg2;
-    StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14);
+    FAIL_IF(StreamingBufferInsertAt(sb, &seg2, (const uint8_t *)"01234567", 8, 14) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 22);
     FAIL_IF(seg1.stream_offset != 0);
@@ -637,7 +657,7 @@ static int StreamingBufferTest04(void)
     DumpSegment(sb, &seg2);
 
     StreamingBufferSegment seg3;
-    StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8);
+    FAIL_IF(StreamingBufferInsertAt(sb, &seg3, (const uint8_t *)"QWERTY", 6, 8) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 22);
     FAIL_IF(seg3.stream_offset != 8);
@@ -651,7 +671,7 @@ static int StreamingBufferTest04(void)
 
     /* far ahead of curve: */
     StreamingBufferSegment seg4;
-    StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"XYZ", 3, 124);
+    FAIL_IF(StreamingBufferInsertAt(sb, &seg4, (const uint8_t *)"XYZ", 3, 124) != 0);
     FAIL_IF(sb->stream_offset != 0);
     FAIL_IF(sb->buf_offset != 127);
     FAIL_IF(sb->buf_size != 128);
