@@ -100,7 +100,10 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
             SCReturnInt(-1);
         }
 
-        StreamingBufferAppend(body->sb, &bd->sbseg, data, len);
+        if (StreamingBufferAppend(body->sb, &bd->sbseg, data, len) != 0) {
+            HTPFree(bd, sizeof(HtpBodyChunk));
+            SCReturnInt(-1);
+        }
 
         body->first = body->last = bd;
 
@@ -111,7 +114,10 @@ int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
             SCReturnInt(-1);
         }
 
-        StreamingBufferAppend(body->sb, &bd->sbseg, data, len);
+        if (StreamingBufferAppend(body->sb, &bd->sbseg, data, len) != 0) {
+            HTPFree(bd, sizeof(HtpBodyChunk));
+            SCReturnInt(-1);
+        }
 
         body->last->next = bd;
         body->last = bd;
@@ -159,9 +165,6 @@ void HtpBodyPrint(HtpBody *body)
 void HtpBodyFree(HtpBody *body)
 {
     SCEnter();
-
-    if (body->first == NULL)
-        return;
 
     SCLogDebug("removing chunks of body %p", body);
 
