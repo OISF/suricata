@@ -321,8 +321,6 @@ typedef struct DetectPort_ {
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
 
-#define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
-#define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
 #define FILE_SIG_NEED_FILE          0x01
