@@ -45,7 +45,7 @@
 /* prototypes */
 static int DetectAckSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, const SigMatchCtx *);
+                          Packet *, const Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
 static void DetectAckFree(void *);
 static int PrefilterSetupTcpAck(SigGroupHead *sgh);
@@ -79,7 +79,7 @@ void DetectAckRegister(void)
  * \retval 1 match
  */
 static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, const SigMatchCtx *ctx)
+                          Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectAckData *data = (const DetectAckData *)ctx;
 

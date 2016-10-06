@@ -89,7 +89,7 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
                                  int (*Callback)(ThreadVars *tv,
                                      DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx,
-                                     Signature *sig, Flow *f,
+                                     const Signature *sig, Flow *f,
                                      uint8_t flags, void *alstate,
                                      void *tx, uint64_t tx_id));
 

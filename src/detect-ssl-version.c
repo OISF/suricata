@@ -60,8 +60,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                          uint8_t, void *, Signature *, SigMatch *);
+static int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, char *);
 void DetectSslVersionRegisterTests(void);
 void DetectSslVersionFree(void *);
@@ -92,8 +92,9 @@ void DetectSslVersionRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatch *m)
 {
     SCEnter();
 

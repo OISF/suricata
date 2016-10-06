@@ -54,7 +54,7 @@ void DetectBase64DecodeRegister(void)
     DetectSetupParseRegexes(decode_pattern, &decode_pcre, &decode_pcre_study);
 }
 
-int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     const SigMatch *sm, uint8_t *payload, uint32_t payload_len)
 {
     DetectBase64Decode *data = (DetectBase64Decode *)sm->ctx;

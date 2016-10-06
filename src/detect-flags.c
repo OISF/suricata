@@ -58,7 +58,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFlagsFree(void *);
 
@@ -138,7 +139,8 @@ static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 

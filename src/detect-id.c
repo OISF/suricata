@@ -49,8 +49,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                    Signature *, const SigMatchCtx *);
+static int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
@@ -88,8 +88,8 @@ void DetectIdRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                        Signature *s, const SigMatchCtx *ctx)
+static int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+                          const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIdData *id_d = (const DetectIdData *)ctx;
 

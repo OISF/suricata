@@ -260,7 +260,7 @@ typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
-    struct Signature_ *s;
+    const struct Signature_ *s;
     uint64_t tx_id;
 } PacketAlert;
 

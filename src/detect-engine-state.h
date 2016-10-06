@@ -123,7 +123,7 @@ typedef struct DetectEngineState_ {
 /* FLOW BASED (AMATCH) */
 
 typedef struct DeStateStoreFlowRule_ {
-    SigMatch *nm;
+    const SigMatch *nm;
     uint32_t flags;
     SigIntId sid;
 } DeStateStoreFlowRule;
@@ -188,7 +188,8 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint8_t alversion,
  */
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Packet *p, Flow *f, uint8_t flags,
+                                const Signature *s, Packet *p, Flow *f,
+                                uint8_t flags,
                                 AppProto alproto, uint8_t alversion);
 
 /**

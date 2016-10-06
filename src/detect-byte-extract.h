@@ -63,9 +63,9 @@ void DetectByteExtractRegister(void);
 int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
 void DetectByteExtractFree(void *);
 int DetectByteExtractMatch(ThreadVars *, DetectEngineThreadCtx *,
-                           Packet *, Signature *, SigMatch *);
-SigMatch *DetectByteExtractRetrieveSMVar(const char *, Signature *);
-int DetectByteExtractDoMatch(DetectEngineThreadCtx *, SigMatch *, Signature *,
+                           Packet *, const Signature *, const SigMatch *);
+SigMatch *DetectByteExtractRetrieveSMVar(const char *, const Signature *);
+int DetectByteExtractDoMatch(DetectEngineThreadCtx *, const SigMatch *, const Signature *,
                              uint8_t *, uint16_t, uint64_t *, uint8_t);
 
 #endif /* __DETECT_BYTEEXTRACT_H__ */
