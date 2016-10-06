@@ -63,7 +63,7 @@
 int DetectEngineInspectDnsQueryName(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id)
 {
     DNSTransaction *tx = (DNSTransaction *)txv;
@@ -141,7 +141,7 @@ int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 int DetectEngineInspectDnsRequest(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
@@ -152,7 +152,7 @@ int DetectEngineInspectDnsRequest(ThreadVars *tv,
 int DetectEngineInspectDnsResponse(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
-                                   Signature *s, Flow *f, uint8_t flags,
+                                   const Signature *s, Flow *f, uint8_t flags,
                                    void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,

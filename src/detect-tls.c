@@ -74,19 +74,19 @@ static pcre_extra *issuerdn_parse_regex_study;
 static pcre *fingerprint_parse_regex;
 static pcre_extra *fingerprint_parse_regex_study;
 
-static int DetectTlsSubjectMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsSubjectMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsSubjectRegisterTests(void);
 static void DetectTlsSubjectFree(void *);
-static int DetectTlsIssuerDNMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsIssuerDNMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsIssuerDNRegisterTests(void);
 static void DetectTlsIssuerDNFree(void *);
-static int DetectTlsFingerprintMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsFingerprintMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsFingerprintFree(void *);
 static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, const Signature *, const SigMatch *);
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -149,7 +149,8 @@ void DetectTlsRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, const Signature *s, const SigMatch *m)
 {
     SCEnter();
 
@@ -359,7 +360,8 @@ static void DetectTlsSubjectRegisterTests(void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, const Signature *s, const SigMatch *m)
 {
     SCEnter();
 
@@ -641,7 +643,8 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, const Signature *s, const SigMatch *m)
 {
     SCEnter();
     DetectTlsData *tls_data = (DetectTlsData *)m->ctx;
@@ -793,7 +796,8 @@ error:
 }
 
 /** \warning modifies state */
-static int DetectTlsStoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsStoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+        uint8_t flags, void *state, const Signature *s, const SigMatch *m)
 {
     SCEnter();
 
