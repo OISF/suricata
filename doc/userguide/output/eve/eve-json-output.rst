@@ -13,7 +13,7 @@ The most common way to use this is through 'EVE', which is a firehose approach w
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|kafka
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -33,6 +33,15 @@ The most common way to use this is through 'EVE', which is a firehose approach w
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      #kafka:
+      #  broker-list: 127.0.0.1:9092 # a comma separated list of brokers addresses
+      #  topic: suricata             # the topic for kafka messages
+      #  compression: snappy         # compression codec: none, gzip, snappy
+      #  partition: -1               # below < 0 means Unassigned Partition
+      #  max-retries: 1              # number of retries if message delivery fails
+      #  backoff-ms: 10              # ms to wait for backoff
+      #  buffer-max-messages: 2048   # max of messages to keep in internal buffer
+      #  log-level: 6                # sames log levels as SC_LOG_LEVEL . Debug is 7.
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
@@ -119,11 +128,11 @@ Output types
 ~~~~~~~~~~~~
 
 EVE can output to multiple methods. ``regular`` is a normal file. Other
-options are ``syslog``, ``unix_dgram``, ``unix_stream`` and ``redis``.
+options are ``syslog``, ``unix_dgram``, ``unix_stream``, ``redis`` and ``kafka``
 
 Output types::
 
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|kafka
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -143,6 +152,15 @@ Output types::
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      #kafka:
+      #  broker-list: 127.0.0.1:9092 # a comma separated list of brokers addresses
+      #  topic: suricata             # the topic for kafka messages
+      #  compression: snappy         # compression codec: none, gzip, snappy
+      #  partition: -1               # below < 0 means Unassigned Partition
+      #  max-retries: 1              # number of retries if message delivery fails
+      #  backoff-ms: 10              # ms to wait for backoff
+      #  buffer-max-messages: 2048   # max of messages to keep in internal buffer
+      #  log-level: 6                # sames log levels as SC_LOG_LEVEL . Debug is 7.
 
 Alerts
 ~~~~~~
