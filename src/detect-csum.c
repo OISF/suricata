@@ -43,45 +43,45 @@
 static int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectIPV4CsumFree(void *);
+static void DetectIPV4CsumFree(void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
 static int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectTCPV4CsumFree(void *);
+static void DetectTCPV4CsumFree(void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
 static int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectTCPV6CsumFree(void *);
+static void DetectTCPV6CsumFree(void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
 static int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectUDPV4CsumFree(void *);
+static void DetectUDPV4CsumFree(void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
 static int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectUDPV6CsumFree(void *);
+static void DetectUDPV6CsumFree(void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
 static int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectICMPV4CsumFree(void *);
+static void DetectICMPV4CsumFree(void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
 static int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectICMPV6CsumFree(void *);
+static void DetectICMPV6CsumFree(void *);
 
-void DetectCsumRegisterTests(void);
+static void DetectCsumRegisterTests(void);
 
 /**
  * \brief Registers handlers for all the checksum keywords.  The checksum
@@ -298,7 +298,7 @@ error:
     return -1;
 }
 
-void DetectIPV4CsumFree(void *ptr)
+static void DetectIPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -393,7 +393,7 @@ error:
     return -1;
 }
 
-void DetectTCPV4CsumFree(void *ptr)
+static void DetectTCPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -488,7 +488,7 @@ error:
     return -1;
 }
 
-void DetectTCPV6CsumFree(void *ptr)
+static void DetectTCPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -584,7 +584,7 @@ error:
     return -1;
 }
 
-void DetectUDPV4CsumFree(void *ptr)
+static void DetectUDPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -680,7 +680,7 @@ error:
     return -1;
 }
 
-void DetectUDPV6CsumFree(void *ptr)
+static void DetectUDPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -775,7 +775,7 @@ error:
     return -1;
 }
 
-void DetectICMPV4CsumFree(void *ptr)
+static void DetectICMPV4CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -873,7 +873,7 @@ error:
     return -1;
 }
 
-void DetectICMPV6CsumFree(void *ptr)
+static void DetectICMPV6CsumFree(void *ptr)
 {
     DetectCsumData *cd = (DetectCsumData *)ptr;
 
@@ -887,7 +887,7 @@ void DetectICMPV6CsumFree(void *ptr)
 
 #ifdef UNITTESTS
 
-int DetectCsumIPV4ValidArgsTestParse01(void)
+static int DetectCsumIPV4ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -911,7 +911,7 @@ int DetectCsumIPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumIPV4InValidArgsTestParse02(void)
+static int DetectCsumIPV4InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -935,7 +935,7 @@ int DetectCsumIPV4InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumIPV4ValidArgsTestParse03(void)
+static int DetectCsumIPV4ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -974,7 +974,7 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumICMPV4ValidArgsTestParse01(void)
+static int DetectCsumICMPV4ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -998,7 +998,7 @@ int DetectCsumICMPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumICMPV4InValidArgsTestParse02(void)
+static int DetectCsumICMPV4InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1022,7 +1022,7 @@ int DetectCsumICMPV4InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumICMPV4ValidArgsTestParse03(void)
+static int DetectCsumICMPV4ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1061,7 +1061,7 @@ int DetectCsumICMPV4ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumTCPV4ValidArgsTestParse01(void)
+static int DetectCsumTCPV4ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -1085,7 +1085,7 @@ int DetectCsumTCPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumTCPV4InValidArgsTestParse02(void)
+static int DetectCsumTCPV4InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1109,7 +1109,7 @@ int DetectCsumTCPV4InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumTCPV4ValidArgsTestParse03(void)
+static int DetectCsumTCPV4ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1148,7 +1148,7 @@ int DetectCsumTCPV4ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumUDPV4ValidArgsTestParse01(void)
+static int DetectCsumUDPV4ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -1172,7 +1172,7 @@ int DetectCsumUDPV4ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumUDPV4InValidArgsTestParse02(void)
+static int DetectCsumUDPV4InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1196,7 +1196,7 @@ int DetectCsumUDPV4InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumUDPV4ValidArgsTestParse03(void)
+static int DetectCsumUDPV4ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1235,7 +1235,7 @@ int DetectCsumUDPV4ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumTCPV6ValidArgsTestParse01(void)
+static int DetectCsumTCPV6ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -1259,7 +1259,7 @@ int DetectCsumTCPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumTCPV6InValidArgsTestParse02(void)
+static int DetectCsumTCPV6InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1283,7 +1283,7 @@ int DetectCsumTCPV6InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumTCPV6ValidArgsTestParse03(void)
+static int DetectCsumTCPV6ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1322,7 +1322,7 @@ int DetectCsumTCPV6ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumUDPV6ValidArgsTestParse01(void)
+static int DetectCsumUDPV6ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -1346,7 +1346,7 @@ int DetectCsumUDPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumUDPV6InValidArgsTestParse02(void)
+static int DetectCsumUDPV6InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1370,7 +1370,7 @@ int DetectCsumUDPV6InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumUDPV6ValidArgsTestParse03(void)
+static int DetectCsumUDPV6ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1409,7 +1409,7 @@ int DetectCsumUDPV6ValidArgsTestParse03(void)
     return result;
 }
 
-int DetectCsumICMPV6ValidArgsTestParse01(void)
+static int DetectCsumICMPV6ValidArgsTestParse01(void)
 {
     Signature s;
     int result = 0;
@@ -1433,7 +1433,7 @@ int DetectCsumICMPV6ValidArgsTestParse01(void)
     return result;
 }
 
-int DetectCsumICMPV6InValidArgsTestParse02(void)
+static int DetectCsumICMPV6InValidArgsTestParse02(void)
 {
     Signature s;
     int result = -1;
@@ -1457,7 +1457,7 @@ int DetectCsumICMPV6InValidArgsTestParse02(void)
     return result;
 }
 
-int DetectCsumICMPV6ValidArgsTestParse03(void)
+static int DetectCsumICMPV6ValidArgsTestParse03(void)
 {
     Signature s;
     DetectCsumData *cd = NULL;
@@ -1499,7 +1499,7 @@ int DetectCsumICMPV6ValidArgsTestParse03(void)
 #include "detect-engine.h"
 #include "stream-tcp.h"
 
-int DetectCsumICMPV6Test01(void)
+static int DetectCsumICMPV6Test01(void)
 {
     int result = 0;
     DetectEngineCtx *de_ctx = NULL;
@@ -1587,11 +1587,9 @@ int DetectCsumICMPV6Test01(void)
 
 #endif /* UNITTESTS */
 
-void DetectCsumRegisterTests(void)
+static void DetectCsumRegisterTests(void)
 {
-
 #ifdef UNITTESTS
-
     UtRegisterTest("DetectCsumIPV4ValidArgsTestParse01",
                    DetectCsumIPV4ValidArgsTestParse01);
     UtRegisterTest("DetectCsumIPV4InValidArgsTestParse02",
@@ -1642,8 +1640,5 @@ void DetectCsumRegisterTests(void)
                    DetectCsumICMPV6ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumICMPV6Test01", DetectCsumICMPV6Test01);
-
-
 #endif /* UNITTESTS */
-
 }

@@ -49,7 +49,7 @@
 #include "util-unittest-helper.h"
 #include "util-device.h"
 
-int DetectBypassMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+static int DetectBypassMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
 static int DetectBypassSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectBypassRegisterTests(void);
@@ -92,7 +92,7 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     return 0;
 }
 
-int DetectBypassMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
+static int DetectBypassMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx)
 {
     PacketBypassCallback(p);
@@ -232,7 +232,7 @@ static int DetectBypassTestSig01(void)
 }
 #endif /* UNITTESTS */
 
-void DetectBypassRegisterTests(void)
+static void DetectBypassRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectBypassTestSig01", DetectBypassTestSig01);

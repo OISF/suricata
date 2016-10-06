@@ -38,6 +38,5 @@ typedef struct DetectDceOpnumData_ {
 } DetectDceOpnumData;
 
 void DetectDceOpnumRegister(void);
-void DetectDceOpnumRegisterTests(void);
 
 #endif /* __DETECT_DCE_OPNUM_H__ */

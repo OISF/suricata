@@ -89,11 +89,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectByteExtractMatch(ThreadVars *, DetectEngineThreadCtx *,
-                           Packet *, const Signature *, const SigMatch *);
-int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
-void DetectByteExtractRegisterTests(void);
-void DetectByteExtractFree(void *);
+static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
+static void DetectByteExtractRegisterTests(void);
+static void DetectByteExtractFree(void *);
 
 /**
  * \brief Registers the keyword handlers for the "byte_extract" keyword.
@@ -199,13 +197,6 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatch *sm,
 
     *value = val;
 
-    return 1;
-}
-
-
-int DetectByteExtractMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                           Packet *p, const Signature *s, const SigMatch *m)
-{
     return 1;
 }
 
@@ -516,7 +507,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
@@ -734,7 +725,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
  *
  * \param ptr Instance of DetectByteExtractData to be freed.
  */
-void DetectByteExtractFree(void *ptr)
+static void DetectByteExtractFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectByteExtractData *bed = ptr;
@@ -779,7 +770,7 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 
 #ifdef UNITTESTS
 
-int DetectByteExtractTest01(void)
+static int DetectByteExtractTest01(void)
 {
     int result = 0;
 
@@ -805,7 +796,7 @@ int DetectByteExtractTest01(void)
     return result;
 }
 
-int DetectByteExtractTest02(void)
+static int DetectByteExtractTest02(void)
 {
     int result = 0;
 
@@ -831,7 +822,7 @@ int DetectByteExtractTest02(void)
     return result;
 }
 
-int DetectByteExtractTest03(void)
+static int DetectByteExtractTest03(void)
 {
     int result = 0;
 
@@ -857,7 +848,7 @@ int DetectByteExtractTest03(void)
     return result;
 }
 
-int DetectByteExtractTest04(void)
+static int DetectByteExtractTest04(void)
 {
     int result = 0;
 
@@ -884,7 +875,7 @@ int DetectByteExtractTest04(void)
     return result;
 }
 
-int DetectByteExtractTest05(void)
+static int DetectByteExtractTest05(void)
 {
     int result = 0;
 
@@ -910,7 +901,7 @@ int DetectByteExtractTest05(void)
     return result;
 }
 
-int DetectByteExtractTest06(void)
+static int DetectByteExtractTest06(void)
 {
     int result = 0;
 
@@ -936,7 +927,7 @@ int DetectByteExtractTest06(void)
     return result;
 }
 
-int DetectByteExtractTest07(void)
+static int DetectByteExtractTest07(void)
 {
     int result = 0;
 
@@ -962,7 +953,7 @@ int DetectByteExtractTest07(void)
     return result;
 }
 
-int DetectByteExtractTest08(void)
+static int DetectByteExtractTest08(void)
 {
     int result = 0;
 
@@ -988,7 +979,7 @@ int DetectByteExtractTest08(void)
     return result;
 }
 
-int DetectByteExtractTest09(void)
+static int DetectByteExtractTest09(void)
 {
     int result = 0;
 
@@ -1014,7 +1005,7 @@ int DetectByteExtractTest09(void)
     return result;
 }
 
-int DetectByteExtractTest10(void)
+static int DetectByteExtractTest10(void)
 {
     int result = 0;
 
@@ -1040,7 +1031,7 @@ int DetectByteExtractTest10(void)
     return result;
 }
 
-int DetectByteExtractTest11(void)
+static int DetectByteExtractTest11(void)
 {
     int result = 0;
 
@@ -1066,7 +1057,7 @@ int DetectByteExtractTest11(void)
     return result;
 }
 
-int DetectByteExtractTest12(void)
+static int DetectByteExtractTest12(void)
 {
     int result = 0;
 
@@ -1093,7 +1084,7 @@ int DetectByteExtractTest12(void)
     return result;
 }
 
-int DetectByteExtractTest13(void)
+static int DetectByteExtractTest13(void)
 {
     int result = 0;
 
@@ -1121,7 +1112,7 @@ int DetectByteExtractTest13(void)
     return result;
 }
 
-int DetectByteExtractTest14(void)
+static int DetectByteExtractTest14(void)
 {
     int result = 0;
 
@@ -1149,7 +1140,7 @@ int DetectByteExtractTest14(void)
     return result;
 }
 
-int DetectByteExtractTest15(void)
+static int DetectByteExtractTest15(void)
 {
     int result = 0;
 
@@ -1177,7 +1168,7 @@ int DetectByteExtractTest15(void)
     return result;
 }
 
-int DetectByteExtractTest16(void)
+static int DetectByteExtractTest16(void)
 {
     int result = 0;
 
@@ -1206,7 +1197,7 @@ int DetectByteExtractTest16(void)
     return result;
 }
 
-int DetectByteExtractTest17(void)
+static int DetectByteExtractTest17(void)
 {
     int result = 0;
 
@@ -1223,7 +1214,7 @@ int DetectByteExtractTest17(void)
     return result;
 }
 
-int DetectByteExtractTest18(void)
+static int DetectByteExtractTest18(void)
 {
     int result = 0;
 
@@ -1241,7 +1232,7 @@ int DetectByteExtractTest18(void)
     return result;
 }
 
-int DetectByteExtractTest19(void)
+static int DetectByteExtractTest19(void)
 {
     int result = 0;
 
@@ -1259,7 +1250,7 @@ int DetectByteExtractTest19(void)
     return result;
 }
 
-int DetectByteExtractTest20(void)
+static int DetectByteExtractTest20(void)
 {
     int result = 0;
 
@@ -1277,7 +1268,7 @@ int DetectByteExtractTest20(void)
     return result;
 }
 
-int DetectByteExtractTest21(void)
+static int DetectByteExtractTest21(void)
 {
     int result = 0;
 
@@ -1295,7 +1286,7 @@ int DetectByteExtractTest21(void)
     return result;
 }
 
-int DetectByteExtractTest22(void)
+static int DetectByteExtractTest22(void)
 {
     int result = 0;
 
@@ -1313,7 +1304,7 @@ int DetectByteExtractTest22(void)
     return result;
 }
 
-int DetectByteExtractTest23(void)
+static int DetectByteExtractTest23(void)
 {
     int result = 0;
 
@@ -1331,7 +1322,7 @@ int DetectByteExtractTest23(void)
     return result;
 }
 
-int DetectByteExtractTest24(void)
+static int DetectByteExtractTest24(void)
 {
     int result = 0;
 
@@ -1348,7 +1339,7 @@ int DetectByteExtractTest24(void)
     return result;
 }
 
-int DetectByteExtractTest25(void)
+static int DetectByteExtractTest25(void)
 {
     int result = 0;
 
@@ -1365,7 +1356,7 @@ int DetectByteExtractTest25(void)
     return result;
 }
 
-int DetectByteExtractTest26(void)
+static int DetectByteExtractTest26(void)
 {
     int result = 0;
 
@@ -1383,7 +1374,7 @@ int DetectByteExtractTest26(void)
     return result;
 }
 
-int DetectByteExtractTest27(void)
+static int DetectByteExtractTest27(void)
 {
     int result = 0;
 
@@ -1401,7 +1392,7 @@ int DetectByteExtractTest27(void)
     return result;
 }
 
-int DetectByteExtractTest28(void)
+static int DetectByteExtractTest28(void)
 {
     int result = 0;
 
@@ -1416,7 +1407,7 @@ int DetectByteExtractTest28(void)
     return result;
 }
 
-int DetectByteExtractTest29(void)
+static int DetectByteExtractTest29(void)
 {
     int result = 0;
 
@@ -1431,7 +1422,7 @@ int DetectByteExtractTest29(void)
     return result;
 }
 
-int DetectByteExtractTest30(void)
+static int DetectByteExtractTest30(void)
 {
     int result = 0;
 
@@ -1446,7 +1437,7 @@ int DetectByteExtractTest30(void)
     return result;
 }
 
-int DetectByteExtractTest31(void)
+static int DetectByteExtractTest31(void)
 {
     int result = 0;
 
@@ -1461,7 +1452,7 @@ int DetectByteExtractTest31(void)
     return result;
 }
 
-int DetectByteExtractTest32(void)
+static int DetectByteExtractTest32(void)
 {
     int result = 0;
 
@@ -1476,7 +1467,7 @@ int DetectByteExtractTest32(void)
     return result;
 }
 
-int DetectByteExtractTest33(void)
+static int DetectByteExtractTest33(void)
 {
     int result = 0;
 
@@ -1491,7 +1482,7 @@ int DetectByteExtractTest33(void)
     return result;
 }
 
-int DetectByteExtractTest34(void)
+static int DetectByteExtractTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1567,7 +1558,7 @@ int DetectByteExtractTest34(void)
     return result;
 }
 
-int DetectByteExtractTest35(void)
+static int DetectByteExtractTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1655,7 +1646,7 @@ int DetectByteExtractTest35(void)
     return result;
 }
 
-int DetectByteExtractTest36(void)
+static int DetectByteExtractTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1743,7 +1734,7 @@ int DetectByteExtractTest36(void)
     return result;
 }
 
-int DetectByteExtractTest37(void)
+static int DetectByteExtractTest37(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1844,7 +1835,7 @@ int DetectByteExtractTest37(void)
     return result;
 }
 
-int DetectByteExtractTest38(void)
+static int DetectByteExtractTest38(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1944,7 +1935,7 @@ int DetectByteExtractTest38(void)
     return result;
 }
 
-int DetectByteExtractTest39(void)
+static int DetectByteExtractTest39(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2045,7 +2036,7 @@ int DetectByteExtractTest39(void)
     return result;
 }
 
-int DetectByteExtractTest40(void)
+static int DetectByteExtractTest40(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2145,7 +2136,7 @@ int DetectByteExtractTest40(void)
     return result;
 }
 
-int DetectByteExtractTest41(void)
+static int DetectByteExtractTest41(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2246,7 +2237,7 @@ int DetectByteExtractTest41(void)
     return result;
 }
 
-int DetectByteExtractTest42(void)
+static int DetectByteExtractTest42(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2397,7 +2388,7 @@ int DetectByteExtractTest42(void)
     return result;
 }
 
-int DetectByteExtractTest43(void)
+static int DetectByteExtractTest43(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2495,7 +2486,7 @@ int DetectByteExtractTest43(void)
     return result;
 }
 
-int DetectByteExtractTest44(void)
+static int DetectByteExtractTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2618,7 +2609,7 @@ int DetectByteExtractTest44(void)
     return result;
 }
 
-int DetectByteExtractTest45(void)
+static int DetectByteExtractTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2717,7 +2708,7 @@ int DetectByteExtractTest45(void)
     return result;
 }
 
-int DetectByteExtractTest46(void)
+static int DetectByteExtractTest46(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2840,7 +2831,7 @@ int DetectByteExtractTest46(void)
     return result;
 }
 
-int DetectByteExtractTest47(void)
+static int DetectByteExtractTest47(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2940,7 +2931,7 @@ int DetectByteExtractTest47(void)
     return result;
 }
 
-int DetectByteExtractTest48(void)
+static int DetectByteExtractTest48(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3068,7 +3059,7 @@ int DetectByteExtractTest48(void)
     return result;
 }
 
-int DetectByteExtractTest49(void)
+static int DetectByteExtractTest49(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3169,7 +3160,7 @@ int DetectByteExtractTest49(void)
     return result;
 }
 
-int DetectByteExtractTest50(void)
+static int DetectByteExtractTest50(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3299,7 +3290,7 @@ int DetectByteExtractTest50(void)
     return result;
 }
 
-int DetectByteExtractTest51(void)
+static int DetectByteExtractTest51(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3397,7 +3388,7 @@ int DetectByteExtractTest51(void)
     return result;
 }
 
-int DetectByteExtractTest52(void)
+static int DetectByteExtractTest52(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3518,7 +3509,7 @@ int DetectByteExtractTest52(void)
     return result;
 }
 
-int DetectByteExtractTest53(void)
+static int DetectByteExtractTest53(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3615,7 +3606,7 @@ int DetectByteExtractTest53(void)
     return result;
 }
 
-int DetectByteExtractTest54(void)
+static int DetectByteExtractTest54(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3733,7 +3724,7 @@ int DetectByteExtractTest54(void)
     return result;
 }
 
-int DetectByteExtractTest55(void)
+static int DetectByteExtractTest55(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3847,7 +3838,7 @@ int DetectByteExtractTest55(void)
     return result;
 }
 
-int DetectByteExtractTest56(void)
+static int DetectByteExtractTest56(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3995,7 +3986,7 @@ int DetectByteExtractTest56(void)
     return result;
 }
 
-int DetectByteExtractTest57(void)
+static int DetectByteExtractTest57(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4160,7 +4151,7 @@ int DetectByteExtractTest57(void)
     return result;
 }
 
-int DetectByteExtractTest58(void)
+static int DetectByteExtractTest58(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4293,7 +4284,7 @@ int DetectByteExtractTest58(void)
     return result;
 }
 
-int DetectByteExtractTest59(void)
+static int DetectByteExtractTest59(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4427,7 +4418,7 @@ int DetectByteExtractTest59(void)
     return result;
 }
 
-int DetectByteExtractTest60(void)
+static int DetectByteExtractTest60(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4570,7 +4561,7 @@ int DetectByteExtractTest60(void)
     return result;
 }
 
-int DetectByteExtractTest61(void)
+static int DetectByteExtractTest61(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4765,7 +4756,7 @@ static int DetectByteExtractTest62(void)
     return result;
 }
 
-int DetectByteExtractTest63(void)
+static int DetectByteExtractTest63(void)
 {
     int result = 0;
 
@@ -4791,7 +4782,7 @@ int DetectByteExtractTest63(void)
     return result;
 }
 
-int DetectByteExtractTestParseNoBase(void)
+static int DetectByteExtractTestParseNoBase(void)
 {
     int result = 0;
 
@@ -4833,7 +4824,7 @@ int DetectByteExtractTestParseNoBase(void)
 
 #endif /* UNITTESTS */
 
-void DetectByteExtractRegisterTests(void)
+static void DetectByteExtractRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectByteExtractTest01", DetectByteExtractTest01);

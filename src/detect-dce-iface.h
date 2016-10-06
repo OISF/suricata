@@ -40,6 +40,5 @@ typedef struct DetectDceIfaceData_ {
 } DetectDceIfaceData;
 
 void DetectDceIfaceRegister(void);
-void DetectDceIfaceRegisterTests(void);
 
 #endif /* __DETECT_DCE_IFACE_H__ */
