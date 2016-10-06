@@ -105,14 +105,14 @@ void StreamingBufferSlide(StreamingBuffer *sb, uint32_t slide);
 void StreamingBufferSlideToOffset(StreamingBuffer *sb, uint64_t offset);
 
 StreamingBufferSegment *StreamingBufferAppendRaw(StreamingBuffer *sb,
-        const uint8_t *data, uint32_t data_len);
-void StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
-        const uint8_t *data, uint32_t data_len);
-void StreamingBufferAppendNoTrack(StreamingBuffer *sb,
-        const uint8_t *data, uint32_t data_len);
-void StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
+        const uint8_t *data, uint32_t data_len) __attribute__((warn_unused_result));
+int StreamingBufferAppend(StreamingBuffer *sb, StreamingBufferSegment *seg,
+        const uint8_t *data, uint32_t data_len) __attribute__((warn_unused_result));
+int StreamingBufferAppendNoTrack(StreamingBuffer *sb,
+        const uint8_t *data, uint32_t data_len) __attribute__((warn_unused_result));
+int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                              const uint8_t *data, uint32_t data_len,
-                             uint64_t offset);
+                             uint64_t offset) __attribute__((warn_unused_result));
 
 void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
                                    const StreamingBufferSegment *seg,

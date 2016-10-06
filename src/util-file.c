@@ -357,7 +357,9 @@ static int FileStoreNoStoreCheck(File *ff)
 
 static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 {
-    StreamingBufferAppendNoTrack(file->sb, data, data_len);
+    if (StreamingBufferAppendNoTrack(file->sb, data, data_len) != 0) {
+        SCReturnInt(-1);
+    }
 
 #ifdef HAVE_NSS
     if (file->md5_ctx) {
