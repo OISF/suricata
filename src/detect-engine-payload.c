@@ -142,13 +142,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
-    //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
                                       f, p->payload, p->payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
-    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
-    //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -186,14 +183,10 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
                                       f, payload, payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
-
-    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], NULL, f, payload, payload_len);
-    //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
     if (r == 1) {
         SCReturnInt(1);
     }
