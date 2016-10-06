@@ -992,11 +992,10 @@ static int LogFileWriteKafka(LogFileCtx *file_ctx, const char *string, size_t st
 
         const char *errstr = rd_kafka_err2str(rd_kafka_errno2err(err));
 
-
         SCLogError(SC_ERR_SOCKET,
                 "%% Failed to produce to topic %s "
                 "partition %i: %s\n",
-                rd_kafka_topic_name(file_ctx->kafka_setup.topic), 
+                rd_kafka_topic_name(file_ctx->kafka_setup.topic),
                 file_ctx->kafka_setup.partition,
                 errstr);
     } else {
