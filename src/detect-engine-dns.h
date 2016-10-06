@@ -26,17 +26,17 @@
 int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectDnsQueryName(ThreadVars *, DetectEngineCtx *de_ctx,
-                                    DetectEngineThreadCtx *, Signature *,
+                                    DetectEngineThreadCtx *, const Signature *,
                                     Flow *, uint8_t, void *, void *, uint64_t);
 int DetectEngineInspectDnsRequest(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
+                                  const Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id);
 int DetectEngineInspectDnsResponse(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
-                                   Signature *s, Flow *f, uint8_t flags,
+                                   const Signature *s, Flow *f, uint8_t flags,
                                    void *alstate, void *txv, uint64_t tx_id);
 
 #endif /* __DETECT_ENGINE_DNS_H__ */

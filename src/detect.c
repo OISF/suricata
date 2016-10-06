@@ -539,7 +539,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                   Signature *s)
+                                   const Signature *s)
 {
     /* run the packet match functions */
     if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
@@ -1034,8 +1034,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
     uint8_t flow_flags = 0; /* flow/state flags */
-    Signature *s = NULL;
-    Signature *next_s = NULL;
+    const Signature *s = NULL;
+    const Signature *next_s = NULL;
     uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
@@ -1791,7 +1791,7 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint3
 }
 
 
-int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s)
+int SignatureIsAppLayer(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != 0)
         return 1;
@@ -1807,7 +1807,7 @@ int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilestoring(Signature *s)
+int SignatureIsFilestoring(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1826,7 +1826,7 @@ int SignatureIsFilestoring(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilemagicInspecting(Signature *s)
+int SignatureIsFilemagicInspecting(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1845,7 +1845,7 @@ int SignatureIsFilemagicInspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileMd5Inspecting(Signature *s)
+int SignatureIsFileMd5Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_MD5))
         return 1;
@@ -1861,7 +1861,7 @@ int SignatureIsFileMd5Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileSha1Inspecting(Signature *s)
+int SignatureIsFileSha1Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA1))
         return 1;
@@ -1877,7 +1877,7 @@ int SignatureIsFileSha1Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileSha256Inspecting(Signature *s)
+int SignatureIsFileSha256Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA256))
         return 1;
@@ -1893,7 +1893,7 @@ int SignatureIsFileSha256Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilesizeInspecting(Signature *s)
+int SignatureIsFilesizeInspecting(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1910,7 +1910,7 @@ int SignatureIsFilesizeInspecting(Signature *s)
  *  \retval 1 sig is ip only
  *  \retval 0 sig is not ip only
  */
-int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s)
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
@@ -2108,7 +2108,7 @@ static int SignatureIsPDOnly(const Signature *s)
  *  \retval 1 sig is inspecting the payload
  *  \retval 0 sig is not inspecting the payload
  */
-static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s)
+static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature *s)
 {
 
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
@@ -2138,7 +2138,7 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s)
  *  \retval 0 not a DEOnly sig
  *  \retval 1 DEOnly sig
  */
-static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s)
+static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN) {
         SCReturnInt(0);

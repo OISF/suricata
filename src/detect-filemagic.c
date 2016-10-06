@@ -76,7 +76,7 @@ void DetectFilemagicRegister(void)
 #else /* HAVE_MAGIC */
 
 static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-        uint8_t, File *, Signature *, SigMatch *);
+        uint8_t, File *, const Signature *, const SigMatch *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilemagicRegisterTests(void);
 static void DetectFilemagicFree(void *);
@@ -176,7 +176,7 @@ int FilemagicThreadLookup(magic_t *ctx, File *file)
  * \retval 1 match
  */
 static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, Signature *s, SigMatch *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatch *m)
 {
     SCEnter();
     int ret = 0;

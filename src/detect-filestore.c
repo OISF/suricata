@@ -60,7 +60,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, File *, Signature *, SigMatch *);
+        Flow *, uint8_t, File *, const Signature *, const SigMatch *);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilestoreFree(void *);
 static void DetectFilestoreRegisterTests(void);
@@ -180,7 +180,7 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
  *  When we are sure all parts of the signature matched, we run this function
  *  to finalize the filestore.
  */
-int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s)
+int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, const Signature *s)
 {
     uint8_t flags = 0;
 
@@ -247,7 +247,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  *       needs to be put behind a api.
  */
 static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, Signature *s, SigMatch *m)
+        uint8_t flags, File *file, const Signature *s, const SigMatch *m)
 {
     uint16_t file_id = 0;
 

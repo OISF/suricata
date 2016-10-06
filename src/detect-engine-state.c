@@ -161,7 +161,8 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
     return 0;
 }
 
-static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint32_t inspect_flags, uint8_t direction)
+static void DeStateSignatureAppend(DetectEngineState *state,
+        const Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
     int jump = 0;
     int i = 0;
@@ -202,9 +203,9 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint3
     return;
 }
 
-static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
-                                   SigMatch *sm, uint32_t inspect_flags,
-                                   uint8_t direction)
+static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, const Signature *s,
+                                  const SigMatch *sm, uint32_t inspect_flags,
+                                  uint8_t direction)
 {
     int jump = 0;
     int i = 0;
@@ -392,7 +393,8 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
 
 static int StoreState(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint8_t alversion,
-        Signature *s, SigMatch *sm, const uint32_t inspect_flags,
+        const Signature *s, const SigMatch *sm,
+        const uint32_t inspect_flags,
         const uint16_t file_no_match)
 {
     if (f->de_state == NULL) {
@@ -445,7 +447,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
 static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint8_t alversion,
         const uint64_t tx_id, void *tx,
-        Signature *s, SigMatch *sm,
+        const Signature *s, const SigMatch *sm,
         const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
 {
     if (AppLayerParserSupportsTxDetectState(f->proto, f->alproto)) {
@@ -474,7 +476,7 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
 
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Packet *p, Flow *f, uint8_t flags,
+                                const Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 AppProto alproto, const uint8_t alversion)
 {
     SigMatch *sm = NULL;
@@ -946,8 +948,8 @@ static int DoInspectFlowRule(ThreadVars *tv,
     uint32_t inspect_flags = item->flags;
     int total_matches = 0;
     int full_match = 0;
-    SigMatch *sm = NULL;
-    Signature *s = de_ctx->sig_array[item->sid];
+    const SigMatch *sm = NULL;
+    const Signature *s = de_ctx->sig_array[item->sid];
 
     RULE_PROFILING_START(p);
 

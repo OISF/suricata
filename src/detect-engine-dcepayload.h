@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_DCEPAYLOAD_H__
 
 int DetectEngineInspectDcePayload(DetectEngineCtx *, DetectEngineThreadCtx *,
-        Signature *, Flow *, uint8_t, void *);
+        const Signature *, Flow *, uint8_t, void *);
 
 void DcePayloadRegisterTests(void);
 

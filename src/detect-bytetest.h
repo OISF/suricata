@@ -121,8 +121,8 @@ DetectBytetestData *DetectBytetestParse(char *optstr, char **value,
  * \todo The return seems backwards.  We should return a non-zero error code.  One of the error codes is "no match".  As-is if someone accidentally does: if (DetectBytetestMatch(...)) { match }, then they catch an error as a match.
  */
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx);
-int DetectBytetestDoMatch(DetectEngineThreadCtx *, Signature *,
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+int DetectBytetestDoMatch(DetectEngineThreadCtx *, const Signature *,
                           const SigMatchCtx *ctx, uint8_t *, uint32_t,
                           uint8_t, int32_t, uint64_t);
 
