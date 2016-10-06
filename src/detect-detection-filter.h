@@ -24,21 +24,11 @@
 #ifndef __DETECT_DETECTION_FILTER_H__
 #define __DETECT_DETECTION_FILTER_H__
 
-#include "decode-events.h"
-#include "decode-ipv4.h"
-#include "decode-tcp.h"
-
 /**
  * Registration function for detection_filter: keyword
  */
 
 void DetectDetectionFilterRegister (void);
-
-/**
- * This function registers unit tests for detection_filter
- */
-
-void DetectDetectionFilterRegisterTests(void);
 
 #endif /*__DETECT_DETECTION_FILTER_H__ */
 

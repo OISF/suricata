@@ -55,7 +55,8 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                         uint8_t, void *, const Signature *, const SigMatch *);
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, char *);
-void DetectDceIfaceFree(void *);
+static void DetectDceIfaceFree(void *);
+static void DetectDceIfaceRegisterTests(void);
 
 /**
  * \brief Registers the keyword handlers for the "dce_iface" keyword.
@@ -83,7 +84,7 @@ void DetectDceIfaceRegister(void)
  * \retval did Pointer to a DetectDceIfaceData instance that holds the data
  *             from the parsed arg.
  */
-static inline DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
+static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
 {
     DetectDceIfaceData *did = NULL;
 #define MAX_SUBSTRINGS 30
@@ -355,7 +356,7 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return -1;
 }
 
-void DetectDceIfaceFree(void *ptr)
+static void DetectDceIfaceFree(void *ptr)
 {
     SCFree(ptr);
 
@@ -1799,9 +1800,8 @@ static int DetectDceIfaceTestParse15(void)
 
 #endif
 
-void DetectDceIfaceRegisterTests(void)
+static void DetectDceIfaceRegisterTests(void)
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01);
     UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02);
@@ -1823,6 +1823,4 @@ void DetectDceIfaceRegisterTests(void)
     UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14);
     UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15);
 #endif
-
-    return;
 }

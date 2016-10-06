@@ -49,9 +49,8 @@
 
 #include "stream-tcp.h"
 
-int DetectDceStubDataMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                           void *, Signature *, SigMatch *);
 static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, char *);
+static void DetectDceStubDataRegisterTests(void);
 
 /**
  * \brief Registers the keyword handlers for the "dce_stub_data" keyword.
@@ -1851,7 +1850,7 @@ static int DetectDceStubDataTestParse05(void)
 
 #endif
 
-void DetectDceStubDataRegisterTests(void)
+static void DetectDceStubDataRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectDceStubDataTestParse01",
