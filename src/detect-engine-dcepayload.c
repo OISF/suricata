@@ -131,7 +131,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest01(void)
+static int DcePayloadTest01(void)
 {
 #if 0
     int result = 0;
@@ -1828,7 +1828,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest02(void)
+static int DcePayloadTest02(void)
 {
 #if 0
     int result = 0;
@@ -2280,7 +2280,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest03(void)
+static int DcePayloadTest03(void)
 {
 #if 0
     int result = 0;
@@ -2731,7 +2731,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest04(void)
+static int DcePayloadTest04(void)
 {
 #if 0
     int result = 0;
@@ -3182,7 +3182,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest05(void)
+static int DcePayloadTest05(void)
 {
 #if 0
     int result = 0;
@@ -3632,7 +3632,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest06(void)
+static int DcePayloadTest06(void)
 {
 #if 0
     int result = 0;
@@ -4083,7 +4083,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest07(void)
+static int DcePayloadTest07(void)
 {
 #if 0
     int result = 0;
@@ -4533,7 +4533,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest08(void)
+static int DcePayloadTest08(void)
 {
 #if 0
     int result = 0;
@@ -4760,7 +4760,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest09(void)
+static int DcePayloadTest09(void)
 {
 #if 0
     int result = 0;
@@ -4987,7 +4987,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest10(void)
+static int DcePayloadTest10(void)
 {
 #if 0
     int result = 0;
@@ -5214,7 +5214,7 @@ end:
 /**
  * \test Postive test to check the working of disance and within across frags.
  */
-int DcePayloadTest11(void)
+static int DcePayloadTest11(void)
 {
 #if 0
     int result = 0;
@@ -5590,7 +5590,7 @@ end:
  * \test Negative test the working of contents on stub data with invalid
  *       distance.
  */
-int DcePayloadTest12(void)
+static int DcePayloadTest12(void)
 {
 #if 0 /* payload ticks off clamav */
     int result = 0;
@@ -5969,7 +5969,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest13(void)
+static int DcePayloadTest13(void)
 {
     int result = 0;
     uint8_t request1[] = {
@@ -6236,7 +6236,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest14(void)
+static int DcePayloadTest14(void)
 {
     int result = 0;
 
@@ -6464,7 +6464,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest15(void)
+static int DcePayloadTest15(void)
 {
     int result = 0;
 
@@ -6581,7 +6581,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest16(void)
+static int DcePayloadTest16(void)
 {
     int result = 0;
 
@@ -6698,7 +6698,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest17(void)
+static int DcePayloadTest17(void)
 {
     int result = 0;
 
@@ -6815,7 +6815,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest18(void)
+static int DcePayloadTest18(void)
 {
     int result = 0;
 
@@ -6932,7 +6932,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest19(void)
+static int DcePayloadTest19(void)
 {
     int result = 0;
 
@@ -7049,7 +7049,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest20(void)
+static int DcePayloadTest20(void)
 {
     int result = 0;
 
@@ -7166,7 +7166,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest21(void)
+static int DcePayloadTest21(void)
 {
     int result = 0;
 
@@ -7268,7 +7268,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest22(void)
+static int DcePayloadTest22(void)
 {
     int result = 0;
 
@@ -7370,7 +7370,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest23(void)
+static int DcePayloadTest23(void)
 {
     int result = 0;
 
@@ -7473,7 +7473,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest25(void)
+static int DcePayloadParseTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7594,7 +7594,7 @@ int DcePayloadParseTest25(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest26(void)
+static int DcePayloadParseTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7721,7 +7721,7 @@ int DcePayloadParseTest26(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest27(void)
+static int DcePayloadParseTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7847,7 +7847,7 @@ int DcePayloadParseTest27(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest28(void)
+static int DcePayloadParseTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7974,7 +7974,7 @@ int DcePayloadParseTest28(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest29(void)
+static int DcePayloadParseTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8116,7 +8116,7 @@ int DcePayloadParseTest29(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest30(void)
+static int DcePayloadParseTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8263,7 +8263,7 @@ int DcePayloadParseTest30(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest31(void)
+static int DcePayloadParseTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8410,7 +8410,7 @@ int DcePayloadParseTest31(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest32(void)
+static int DcePayloadParseTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8557,7 +8557,7 @@ int DcePayloadParseTest32(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest33(void)
+static int DcePayloadParseTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8699,7 +8699,7 @@ int DcePayloadParseTest33(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest34(void)
+static int DcePayloadParseTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8823,7 +8823,7 @@ int DcePayloadParseTest34(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest35(void)
+static int DcePayloadParseTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8910,7 +8910,7 @@ int DcePayloadParseTest35(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest36(void)
+static int DcePayloadParseTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9014,7 +9014,7 @@ int DcePayloadParseTest36(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest37(void)
+static int DcePayloadParseTest37(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9121,7 +9121,7 @@ int DcePayloadParseTest37(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest38(void)
+static int DcePayloadParseTest38(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9243,7 +9243,7 @@ int DcePayloadParseTest38(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest39(void)
+static int DcePayloadParseTest39(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9328,7 +9328,7 @@ int DcePayloadParseTest39(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest40(void)
+static int DcePayloadParseTest40(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9458,7 +9458,7 @@ int DcePayloadParseTest40(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest41(void)
+static int DcePayloadParseTest41(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9587,7 +9587,7 @@ int DcePayloadParseTest41(void)
 /**
  * \test Test the working of consecutive relative matches with a negated content.
  */
-int DcePayloadTest42(void)
+static int DcePayloadTest42(void)
 {
     int result = 0;
 
@@ -9690,7 +9690,7 @@ end:
 /**
  * \test Test the working of consecutive relative pcres.
  */
-int DcePayloadTest43(void)
+static int DcePayloadTest43(void)
 {
     int result = 0;
 
@@ -9793,7 +9793,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest44(void)
+static int DcePayloadParseTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9920,7 +9920,7 @@ int DcePayloadParseTest44(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest45(void)
+static int DcePayloadParseTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -10032,7 +10032,7 @@ int DcePayloadParseTest45(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest46(void)
+static int DcePayloadParseTest46(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
