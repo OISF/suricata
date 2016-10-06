@@ -60,10 +60,7 @@ typedef struct DetectByteExtractData_ {
 } DetectByteExtractData;
 
 void DetectByteExtractRegister(void);
-int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
-void DetectByteExtractFree(void *);
-int DetectByteExtractMatch(ThreadVars *, DetectEngineThreadCtx *,
-                           Packet *, const Signature *, const SigMatch *);
+
 SigMatch *DetectByteExtractRetrieveSMVar(const char *, const Signature *);
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *, const SigMatch *, const Signature *,
                              uint8_t *, uint16_t, uint64_t *, uint8_t);
