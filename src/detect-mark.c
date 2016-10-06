@@ -43,7 +43,8 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectMarkSetup (DetectEngineCtx *, Signature *, char *);
-int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx);
+static int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx);
 void DetectMarkDataFree(void *ptr);
 
 /**
@@ -217,7 +218,8 @@ void DetectMarkDataFree(void *ptr)
 }
 
 
-int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
 #ifdef NFQ
     const DetectMarkData *nf_data = (const DetectMarkData *)ctx;

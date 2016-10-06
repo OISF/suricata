@@ -49,7 +49,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
@@ -122,7 +123,8 @@ static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
  *        -1: error
  */
 
-int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectFlowbitsData *fd = (const DetectFlowbitsData *)ctx;
     if (fd == NULL)

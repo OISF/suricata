@@ -34,7 +34,7 @@
 #define __DETECT_ENGINE_MODBUS_H__
 
 int DetectEngineInspectModbus(ThreadVars *, DetectEngineCtx *de_ctx,
-                              DetectEngineThreadCtx *, Signature *,
+                              DetectEngineThreadCtx *, const Signature *,
                               Flow *, uint8_t, void *, void *, uint64_t);
 
 void DetectEngineInspectModbusRegisterTests(void);
