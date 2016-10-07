@@ -4656,6 +4656,11 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
+        }
+
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        {
             /* we can call bypass callback, if enabled */
             if (StreamTcpBypassEnabled()) {
                 PacketBypassCallback(p);

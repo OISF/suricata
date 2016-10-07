@@ -1213,6 +1213,13 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                handshake must be done */
             ssl_state->flags |= SSL_AL_FLAG_HANDSHAKE_DONE;
 
+            /* Encrypted data, reassembly not asked, bypass asked, let's sacrifice
+             * heartbeat lke inspection to be able to be able to bypass the flow */
+            if ((ssl_config.no_reassemble == 1) && (StreamTcpBypassEnabled())) {
+                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+            }
+
             break;
 
         case SSLV3_HANDSHAKE_PROTOCOL:
