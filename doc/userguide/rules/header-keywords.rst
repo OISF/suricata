@@ -5,7 +5,7 @@ IP-keywords
 -----------
 
 ttl
----
+^^^
 
 The ttl keyword is used to check for a specific IP time-to-live value
 in the header of a packet.  The format is::
@@ -30,7 +30,7 @@ Example of the ttl keyword in a rule:
 .. image:: header-keywords/ttl.png
 
 Ipopts
-------
+^^^^^^
 
 With the ipopts keyword you can check if a specific ip option is
 set. Ipopts has to be used at the beginning of a rule. You can only
@@ -52,7 +52,7 @@ Example of ipopts in a rule:
 .. image:: header-keywords/ipopts_rule.png
 
 sameip
-------
+^^^^^^
 
 Every packet has a source IP-address and a destination IP-address. It
 can be that the source IP is the same as the destination IP.  With the
@@ -67,7 +67,7 @@ Example of sameip in a rule:
 .. image:: header-keywords/sameip.png
 
 ip_proto
---------
+^^^^^^^^
 
 With the ip_proto keyword you can match on the IP protocol in the
 packet-header. You can use the name or the number of the protocol.
@@ -93,7 +93,7 @@ The named variante of that example would be::
     ip_proto:PIM
 
 Id
---
+^^
 
 With the id keyword, you can match on a specific IP ID value.  The ID
 identifies each packet sent by a host and increments usually with one
@@ -113,7 +113,7 @@ Example of id in a rule:
 .. image:: header-keywords/id.png
 
 Geoip
------
+^^^^^
 
 The geoip keyword enables (you) to match on the source, destination or
 source and destination IP addresses of network traffic, and to see to
@@ -136,8 +136,11 @@ direction you would like to match::
   dest: if the destination matches with the given geoip.
   src: the source matches with the given geoip.
 
+Fragments
+---------
+
 Fragbits
---------
+^^^^^^^^
 
 With the fragbits keyword, you can check if the fragmentation and
 reserved bits are set in the IP header. The fragbits keyword should be
@@ -170,7 +173,7 @@ Example of fragbits in a rule:
 .. image:: header-keywords/fragbits.png
 
 Fragoffset
-----------
+^^^^^^^^^^
 
 With the fragoffset keyword you can match on specific decimal values
 of the IP fragment offset field.  If you would like to check the first
@@ -198,7 +201,7 @@ TCP keywords
 ------------
 
 seq
----
+^^^
 
 The seq keyword can be used in a signature to check for a specific TCP
 sequence number.  A sequence number is a number that is generated
@@ -227,7 +230,7 @@ Example of seq in a packet (Wireshark):
 
 
 ack
----
+^^^
 
 The ack is the acknowledgement of the receipt of all previous
 (data)-bytes send by the other side of the TCP-connection. In most
@@ -248,8 +251,8 @@ Example of ack in a packet (Wireshark):
 
 .. image:: header-keywords/Wireshark_ack.png
 
-Window
-------
+window
+^^^^^^
 
 The window keyword is used to check for a specific TCP window size.
 The TCP window size is a mechanism that has control of the
@@ -289,7 +292,7 @@ matched with corresponding ICMP-keywords. These are: the type, the
 code, the id and the sequence of a message.
 
 itype
-------
+^^^^^
 
 The itype keyword is for matching on a specific ICMP type (number).
 ICMP has several kinds of messages and uses codes to clarify those
@@ -312,7 +315,7 @@ Example of the itype keyword in a signature:
 .. image:: header-keywords/icmp_type.png
 
 icode
-------
+^^^^^
 
 With the icode keyword you can match on a specific ICMP code.  The
 code of a ICMP message clarifies the message. Together with the
@@ -334,7 +337,7 @@ Example of the icode keyword in a rule:
 .. image:: header-keywords/icode.png
 
 icmp_id
---------
+^^^^^^^
 
 With the icmp_id keyword you can match on specific ICMP id-values.
 Every ICMP-packet gets an id when it is being send. At the moment the
@@ -356,7 +359,7 @@ Example of the icmp_id keyword in a rule:
 .. image:: header-keywords/icmp_id.png
 
 icmp_seq
----------
+^^^^^^^^
 
 You can use the icmp_seq keyword to check for a ICMP sequence number.
 ICMP messages all have sequence numbers. This can be useful (together
