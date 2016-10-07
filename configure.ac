@@ -1858,7 +1858,7 @@
             echo "   from https://github.com/redis/hiredis or your distribution:"
             echo
             echo "   Ubuntu: apt-get install libhiredis-dev"
-            echo "   Fedora: yum install libhiredis-devel"
+            echo "   CentOS/Fedora: yum install hiredis-devel"
             echo
             exit 1
         fi
