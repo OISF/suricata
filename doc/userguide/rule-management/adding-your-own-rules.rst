@@ -11,7 +11,7 @@ your console:
 
   sudo nano local.rules
 
-Write your rule, see :doc:`intro` and save it.
+Write your rule, see :doc:`../rules/intro` and save it.
 
 Open yaml
 

@@ -20,6 +20,4 @@ Suricata Rules
    enip-keyword
    rule-lua-scripting
    normalized-buffers
-   live-rule-swap
-   adding-your-own-rules
    snort-compatibility

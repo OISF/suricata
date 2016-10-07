@@ -21,4 +21,3 @@ Signal::
 Unix socket::
 
   suricatasc -c reload-rules
-
