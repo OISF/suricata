@@ -162,6 +162,25 @@ Metadata::
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
 
+DNS
+~~~
+
+DNS records are logged one log record per query/answer record.
+
+YAML::
+
+        - dns:
+            # control logging of queries and answers
+            # default yes, no to disable
+            query: yes     # enable logging of DNS queries
+            answer: yes    # enable logging of DNS answers
+            # control which RR types are logged
+            # all enabled if custom not specified
+            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
+
+To reduce verbosity the output can be filtered by supplying the record types
+to be logged under ``custom``.
+
 Multiple Logger Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -225,4 +244,5 @@ For most output types, you can add multiple:
         enabled: yes
         filename: alert-json2.log
 
-Except for drop and tls, for those only one logger instance is supported.
+Except for ``drop`` for which only a single logger instance is supported.
+
