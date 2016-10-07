@@ -1818,7 +1818,7 @@ int AFPIsFanoutSupported(void)
     int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (fd != -1) {
         uint16_t mode = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
-        uint16_t id = 99;
+        uint16_t id = 1;
         uint32_t option = (mode << 16) | (id & 0xffff);
         int r = setsockopt(fd, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
         close(fd);
