@@ -1,10 +1,6 @@
 Multi Tenancy
 =============
 
-**Work In Progress**
-
-This is part of Suricata 3.0RC1.
-
 Introduction
 ------------
 
