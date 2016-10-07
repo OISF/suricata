@@ -67,15 +67,31 @@ The following tools are required:
 
   make gcc (or clang) pkg-config
 
+For full features, also add:
+
+  libjansson, libnss, libgeoip, liblua5.1, libhiredis
+
 Ubuntu/Debian
 """""""""""""
 
-::
+Minimal::
 
-    sudo apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
-                         libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
-                         libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev
+    apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
+                    libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
+                    make libmagic-dev
 
+Recommended::
+
+    apt-get install libpcre3 libpcre3-dbg libpcre3-dev build-essential libpcap-dev   \
+                    libnet1-dev libyaml-0-2 libyaml-dev pkg-config zlib1g zlib1g-dev \
+                    libcap-ng-dev libcap-ng0 make libmagic-dev libjansson-dev        \
+                    libnss3-dev libgeoip-dev liblua5.1-dev libhiredis-dev
+
+Extra for iptables/nftables IPS integration::
+
+    apt-get install libnetfilter-queue-dev libnetfilter-queue1  \
+                    libnetfilter-log-dev libnetfilter-log1      \
+                    libnfnetlink-dev libnfnetlink0
 
 .. _install-binary-packages:
 
@@ -85,7 +101,7 @@ Binary packages
 Ubuntu
 ^^^^^^
 
-For Ubuntu, the OISF maintains a PPA ``suricata-stable`` that is always contains the latest stable release.
+For Ubuntu, the OISF maintains a PPA ``suricata-stable`` that always contains the latest stable release.
 
 To use it::
 
