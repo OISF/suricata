@@ -5,22 +5,22 @@ Currently, libcap-ng is needed for dropping privileges on Suricata
 after startup. For libcap, see status of feature request number #276
 -- Libcap support for dropping privileges.
 
-Download the current version of libcap-ng from upstream, see also
+Most distributions have ``libcap-ng`` in their repositories.
+
+To download the current version of libcap-ng from upstream, see also
 http://people.redhat.com/sgrubb/libcap-ng/ChangeLog
 
 ::
 
-  wget http://people.redhat.com/sgrubb/libcap-ng/libcap-ng-0.7.4.tar.gz
-  tar -xzvf libcap-ng-0.7.4.tar.gz
-  cd libcap-ng-0.7.4
+  wget http://people.redhat.com/sgrubb/libcap-ng/libcap-ng-0.7.8.tar.gz
+  tar -xzvf libcap-ng-0.7.8.tar.gz
+  cd libcap-ng-0.7.8
   ./configure
   make
   make install
 
-Download, configure, compile, and install Suricata for your particular
-setup. See `Suricata Installation
-<https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation>`_. Depending
-on your environment, you may need to add the
+Download, configure, compile and install Suricata for your particular setup.
+See :doc:`../install`. Depending on your environment, you may need to add the
 --with-libpcap_ng-libraries and --with-libpcap_ng-includes options
 during the configure step. e.g:
 
@@ -35,8 +35,7 @@ e.g. (this assumes a 'suri' user and group):
 
 ::
 
-  /usr/local/bin/suricata -c /etc/suricata/suricata.yaml \
-    -D -i eth0 --user=suri --group=suri
+  suricata -D -i eth0 --user=suri --group=suri
 
 You will also want to make sure your user/group permissions are set so
 suricata can still write to its log files which are usually located in
