@@ -1,9 +1,10 @@
 Log Rotation
 ============
 
-Starting with Suricata version 2.0.2 (#1200), log rotation is made a
-lot easier. A HUP signal sent to Suricata will force it to reopen the
-logfiles.
+Suricata can generate lot of output, so it's important to manage the files
+to avoid issues with disks filling up.
+
+A HUP signal sent to Suricata will force it to reopen the logfiles.
 
 Example logrotate file:
 
