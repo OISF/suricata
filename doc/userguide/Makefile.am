@@ -3,7 +3,7 @@ EXTRA_DIST = \
 	index.rst \
 	install.rst \
 	acknowledgements.rst \
-	oinkmaster.rst \
+	rule-management \
 	command-line-options.rst \
 	initscripts.rst \
 	public-data-sets.rst \
@@ -16,7 +16,6 @@ EXTRA_DIST = \
 	file-extraction \
 	licenses \
 	manpages \
-	oinkmaster \
 	output \
 	performance \
 	reputation \

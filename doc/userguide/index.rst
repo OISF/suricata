@@ -9,7 +9,7 @@ Suricata User Guide
    install.rst
    command-line-options
    rules/index.rst
-   oinkmaster
+   rule-management/index.rst
    make-sense-alerts
    performance/index.rst
    configuration/index.rst

@@ -8,7 +8,7 @@ people are using existing rulesets. The most used are `Emerging
 Threats <http://www.emergingthreats.net/>`_, `Emerging Threats Pro
 <http://www.emergingthreatspro.com/>`_ and Sourcefire's `VRT
 <http://www.snort.org/vrt/>`_. A way to install rules is described in
-:doc:`../oinkmaster`.  This Suricata Rules document explains all about
+:doc:`../rule-management/oinkmaster`.  This Suricata Rules document explains all about
 signatures; how to read-, adjust-and create them.
 
 A rule/signature consists of the following:
