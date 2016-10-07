@@ -1029,8 +1029,8 @@ void OutputRegisterRootLoggers(void)
 {
     OutputPacketLoggerRegister();
     OutputTxLoggerRegister();
-    OutputFileLoggerRegister();
     OutputFiledataLoggerRegister();
+    OutputFileLoggerRegister();
     OutputStreamingLoggerRegister();
 }
 
