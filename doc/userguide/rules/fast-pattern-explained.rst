@@ -13,36 +13,7 @@ Be aware that if there are positive (i.e. non-negated) content
 matches, then negated content matches are ignored for fast pattern
 determination.  Otherwise, negated content matches are considered.
 
-Suricata 1.1.x - 1.4.x
-----------------------
-
-#. The longest (in terms of character/byte length) content match is
-   used as the fast pattern match.
-
-#. If multiple content matches qualify for the longest length, the one
-   with the highest character/byte diversity score ("Pattern
-   Strength") is used as the fast pattern match.  See :ref:`Appendix C
-   <fast-pattern-explained-appendix-c>` for details on the algorithm
-   used to determine Pattern Strength.
-
-#. If multiple content matches qualify for the longest length and have
-   the same highest Pattern Strength, the buffer that has the *lower
-   "list_id"* is used as the fast pattern match.  See :ref:`Appendix A
-   <fast-pattern-explained-appendix-a>` for the list_id of each
-   buffers/list.
-
-#. If multiple content matches qualify for the longest length and have
-   the same highest Pattern Strength, and have the same list_id
-   (i.e. are looking in the same buffer), then the one that comes
-   first (from left-to-right) in the rule is used as the fast pattern
-   match.
-
-It is worth noting that for content matches that have the same length
-and Pattern Strength, regular 'content' matches take precedence over
-matches that use the 'http_*' buffers.
-
-Suricata 2.0.x
---------------
+The fast_pattern selection criteria are as follows:
 
 #. Suricata first identifies all content matches that have the highest
    "priority" that are used in the signature.  The priority is based
