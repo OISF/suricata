@@ -116,10 +116,10 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
  *
  * For IPS things are much simpler, and we don't use the flow
  * flag. We just tag the packet directly. */
-static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t dir)
+static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t flags)
 {
     if (EngineModeIsIPS()) {
-        if (dir == STREAM_TOSERVER) {
+        if (flags & STREAM_TOSERVER) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 p->flags |= PKT_PROTO_DETECT_TS_DONE;
             } else {
@@ -133,7 +133,7 @@ static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t dir)
             }
         }
     } else {
-        if (dir == STREAM_TOSERVER) {
+        if (flags & STREAM_TOSERVER) {
             f->flags |= FLOW_PROTO_DETECT_TS_DONE;
         } else {
             f->flags |= FLOW_PROTO_DETECT_TC_DONE;
@@ -141,7 +141,7 @@ static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t dir)
     }
 }
 
-static void DisableAppLayer(Flow *f, Packet *p)
+static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
 {
     SCLogDebug("disable app layer for flow %p alproto %u ts %u tc %u",
             f, f->alproto, f->alproto_ts, f->alproto_tc);
@@ -149,6 +149,7 @@ static void DisableAppLayer(Flow *f, Packet *p)
     TcpSession *ssn = f->protoctx;
     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
     f->alproto = ALPROTO_FAILED;
+    AppLayerIncFlowCounter(tv, f);
 
     if (f->alproto_tc != ALPROTO_FAILED) {
         if (f->alproto_tc == ALPROTO_UNKNOWN) {
@@ -185,7 +186,8 @@ static void DisableAppLayer(Flow *f, Packet *p)
  *
  * Giving up means we disable applayer an set an applayer event
  */
-static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *p)
+static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
+        Flow *f, TcpSession *ssn, Packet *p)
 {
     uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
     uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
@@ -253,7 +255,7 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
     return;
 
 failure:
-    DisableAppLayer(f, p);
+    DisableAppLayer(tv, f, p);
     return;
 }
 
@@ -369,10 +371,7 @@ static int TCPProtoDetect(ThreadVars *tv,
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
         TcpSessionSetReassemblyDepth(ssn,
                 AppLayerParserGetStreamDepth(f->proto, f->alproto));
-        if (flags & STREAM_TOCLIENT)
-            FlagPacketFlow(p, f, STREAM_TOCLIENT);
-        else
-            FlagPacketFlow(p, f, STREAM_TOSERVER);
+        FlagPacketFlow(p, f, flags);
 
         /* account flow if we have both sides */
         if (*alproto_otherdir != ALPROTO_UNKNOWN) {
@@ -392,7 +391,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
                 p, ssn, stream, flags) != 0)
             {
-                DisableAppLayer(f, p);
+                DisableAppLayer(tv, f, p);
                 goto failure;
             }
         }
@@ -420,7 +419,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                 AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                DisableAppLayer(f, p);
+                DisableAppLayer(tv, f, p);
                 goto failure;
             }
             /* This can happen if the current direction is not the
@@ -471,7 +470,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
                 SCLogDebug("midstream end pd %p", ssn);
                 /* midstream and toserver detection failed: give up */
-                DisableAppLayer(f, p);
+                DisableAppLayer(tv, f, p);
                 goto end;
             }
         }
@@ -498,7 +497,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
             {
-                DisableAppLayer(f, p);
+                DisableAppLayer(tv, f, p);
                 goto failure;
             }
 
@@ -524,11 +523,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                 TcpSessionSetReassemblyDepth(ssn,
                         AppLayerParserGetStreamDepth(f->proto, f->alproto));
                 *alproto = ALPROTO_FAILED;
-
-                if (flags & STREAM_TOCLIENT)
-                    FlagPacketFlow(p, f, STREAM_TOCLIENT);
-                else
-                    FlagPacketFlow(p, f, STREAM_TOSERVER);
+                FlagPacketFlow(p, f, flags);
 
                 SCLogDebug("packet %u: pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
                         (uint)p->pcap_cnt, *alproto, *alproto_otherdir, r);
@@ -537,7 +532,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             }
         } else {
             /* both sides unknown, let's see if we need to give up */
-            TCPProtoDetectCheckBailConditions(f, ssn, p);
+            TCPProtoDetectCheckBailConditions(tv, f, ssn, p);
         }
     }
 end:
@@ -676,6 +671,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             f->alproto = ALPROTO_FAILED;
+            AppLayerIncFlowCounter(tv, f);
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
         /* we do only inspection in one direction, so flag both
@@ -827,19 +823,19 @@ void AppLayerSetupCounters()
     uint8_t ipproto;
     AppProto alproto;
     AppProto alprotos[ALPROTO_MAX];
+    const char *str = "app_layer.flow.";
 
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     for (ipproto = 0; ipproto < IPPROTOS_MAX; ipproto++) {
+        uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
         uint8_t other_ipproto = (ipprotos[ipproto] == IPPROTO_TCP) ? IPPROTO_UDP : IPPROTO_TCP;
         const char *ipproto_suffix = (ipprotos[ipproto] == IPPROTO_TCP) ? "_tcp" : "_udp";
 
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
-                const char *str = "app_layer.flow.";
                 const char *tx_str = "app_layer.tx.";
                 const char *alproto_str = AppLayerGetProtoName(alproto);
-                uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
 
                 if (AppLayerParserProtoIsRegistered(ipprotos[ipproto], alproto) &&
                     AppLayerParserProtoIsRegistered(other_ipproto, alproto))
@@ -862,6 +858,10 @@ void AppLayerSetupCounters()
                                 "%s%s", tx_str, alproto_str);
                     }
                 }
+            } else if (alproto == ALPROTO_FAILED) {
+                snprintf(applayer_counter_names[ipproto_map][alproto].name,
+                        sizeof(applayer_counter_names[ipproto_map][alproto].name),
+                        "%s%s%s", str, "failed", ipproto_suffix);
             }
         }
     }
@@ -877,9 +877,10 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
     AppLayerProtoDetectSupportedAppProtocols(alprotos);
 
     for (ipproto = 0; ipproto < IPPROTOS_MAX; ipproto++) {
+        uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
+
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
-                uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
                 applayer_counters[ipproto_map][alproto].counter_id =
                     StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
 
@@ -887,6 +888,9 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
                     applayer_counters[ipproto_map][alproto].counter_tx_id =
                         StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
                 }
+            } else if (alproto == ALPROTO_FAILED) {
+                applayer_counters[ipproto_map][alproto].counter_id =
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
             }
         }
     }
