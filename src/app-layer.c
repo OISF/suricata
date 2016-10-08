@@ -115,6 +115,387 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
     }
 }
 
+/* See if we're going to have to give up:
+ *
+ * If we're getting a lot of data in one direction and the
+ * proto for this direction is unknown, proto detect will
+ * hold up segments in the segment list in the stream.
+ * They are held so that if we detect the protocol on the
+ * opposing stream, we can still parse this side of the stream
+ * as well. However, some sessions are very unbalanced. FTP
+ * data channels, large PUT/POST request and many others, can
+ * lead to cases where we would have to store many megabytes
+ * worth of segments before we see the opposing stream. This
+ * leads to risks of resource starvation.
+ *
+ * Here a cutoff point is enforced. If we've stored 100k in
+ * one direction and we've seen no data in the other direction,
+ * we give up.
+ *
+ * Giving up means we disable applayer an set an applayer event
+ */
+static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *p)
+{
+    uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
+    uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
+    SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
+
+#ifdef DEBUG_VALIDATION
+    if (!(ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP))
+        BUG_ON(size_ts > 1000000UL);
+    if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP))
+        BUG_ON(size_tc > 1000000UL);
+#endif /* DEBUG_VALIDATION */
+
+    if (ProtoDetectDone(f, ssn, STREAM_TOSERVER) &&
+        ProtoDetectDone(f, ssn, STREAM_TOCLIENT))
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+
+    } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
+            size_ts > 100000 && size_tc == 0)
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+
+    } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
+            size_tc > 100000 && size_ts == 0)
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+
+    /* little data in ts direction, pp done, pm not done (max
+     * depth not reached), ts direction done, lots of data in
+     * tc direction. */
+    } else if (size_tc > 100000 &&
+            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+            FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+
+    /* little data in tc direction, pp done, pm not done (max
+     * depth not reached), tc direction done, lots of data in
+     * ts direction. */
+    } else if (size_ts > 100000 &&
+            FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
+            FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+
+    /* in case of really low TS data (e.g. 4 bytes) we can have
+     * the PP complete, PM not complete (depth not reached) and
+     * the TC side also not recognized (proto unknown) */
+    } else if (size_tc > 100000 &&
+            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+            (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)))
+    {
+        DisableAppLayer(f);
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                APPLAYER_PROTO_DETECTION_SKIPPED);
+    }
+}
+
+/** \todo modifying p this way seems too hacky */
+static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
+        TcpReassemblyThreadCtx *ra_ctx,
+        Packet *p, TcpSession *ssn, TcpStream *stream,
+        uint8_t flags)
+{
+    TcpStream *opposing_stream = NULL;
+    if (stream == &ssn->client) {
+        opposing_stream = &ssn->server;
+        if (StreamTcpInlineMode()) {
+            p->flowflags &= ~FLOW_PKT_TOSERVER;
+            p->flowflags |= FLOW_PKT_TOCLIENT;
+        } else {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT;
+            p->flowflags |= FLOW_PKT_TOSERVER;
+        }
+    } else {
+        opposing_stream = &ssn->client;
+        if (StreamTcpInlineMode()) {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT;
+            p->flowflags |= FLOW_PKT_TOSERVER;
+        } else {
+            p->flowflags &= ~FLOW_PKT_TOSERVER;
+            p->flowflags |= FLOW_PKT_TOCLIENT;
+        }
+    }
+
+    int ret = 0;
+    /* if the opposing side is not going to work, then
+     * we just have to give up. */
+    if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+        ret = -1;
+    else
+        ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
+                opposing_stream, p);
+    if (stream == &ssn->client) {
+        if (StreamTcpInlineMode()) {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT;
+            p->flowflags |= FLOW_PKT_TOSERVER;
+        } else {
+            p->flowflags &= ~FLOW_PKT_TOSERVER;
+            p->flowflags |= FLOW_PKT_TOCLIENT;
+        }
+    } else {
+        if (StreamTcpInlineMode()) {
+            p->flowflags &= ~FLOW_PKT_TOSERVER;
+            p->flowflags |= FLOW_PKT_TOCLIENT;
+        } else {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT;
+            p->flowflags |= FLOW_PKT_TOSERVER;
+        }
+    }
+    return ret;
+}
+
+/** \todo data const */
+static int TCPProtoDetect(ThreadVars *tv,
+        TcpReassemblyThreadCtx *ra_ctx, AppLayerThreadCtx *app_tctx,
+        Packet *p, Flow *f, TcpSession *ssn, TcpStream *stream,
+        uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    uint32_t data_al_so_far = 0;
+    AppProto *alproto;
+    AppProto *alproto_otherdir;
+    int dir;
+
+    if (flags & STREAM_TOSERVER) {
+        alproto = &f->alproto_ts;
+        alproto_otherdir = &f->alproto_tc;
+        dir = 0;
+    } else {
+        alproto = &f->alproto_tc;
+        alproto_otherdir = &f->alproto_ts;
+        dir = 1;
+    }
+    if (data_len > 0)
+        data_al_so_far = f->data_al_so_far[dir];
+
+    SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
+#ifdef PRINT
+    if (data_len > 0) {
+        printf("=> Init Stream Data (app layer) -- start %s%s\n",
+                flags & STREAM_TOCLIENT ? "toclient" : "",
+                flags & STREAM_TOSERVER ? "toserver" : "");
+        PrintRawDataFp(stdout, data, data_len);
+        printf("=> Init Stream Data -- end\n");
+    }
+#endif
+
+    PACKET_PROFILING_APP_PD_START(app_tctx);
+    *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
+            f, data, data_len,
+            IPPROTO_TCP, flags);
+    PACKET_PROFILING_APP_PD_END(app_tctx);
+
+    if (*alproto != ALPROTO_UNKNOWN) {
+        if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
+            AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                    APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
+            /* it indicates some data has already been sent to the parser */
+            if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
+                f->alproto = *alproto = *alproto_otherdir;
+            } else {
+                if (flags & STREAM_TOCLIENT)
+                    f->alproto = *alproto_otherdir = *alproto;
+                else
+                    f->alproto = *alproto = *alproto_otherdir;
+            }
+        }
+
+        f->alproto = *alproto;
+        StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+        TcpSessionSetReassemblyDepth(ssn,
+                AppLayerParserGetStreamDepth(f->proto, *alproto));
+
+        /* account flow if we have both sides */
+        if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+            AppLayerIncFlowCounter(tv, f);
+        }
+
+        /* if we have seen data from the other direction first, send
+         * data for that direction first to the parser.  This shouldn't
+         * be an issue, since each stream processing happens
+         * independently of the other stream direction.  At this point of
+         * call, you need to know that this function's already being
+         * called by the very same StreamReassembly() function that we
+         * will now call shortly for the opposing direction. */
+        if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
+                !(flags & ssn->data_first_seen_dir))
+        {
+            if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
+                p, ssn, stream, flags) != 0)
+            {
+                DisableAppLayer(f);
+                goto failure;
+            }
+        }
+
+        /* if the parser operates such that it needs to see data from
+         * a particular direction first, we check if we have seen
+         * data from that direction first for the flow.  IF it is not
+         * the same, we set an event and exit.
+         *
+         * \todo We need to figure out a more robust solution for this,
+         *       as this can lead to easy evasion tactics, where the
+         *       attackeer can first send some dummy data in the wrong
+         *       direction first to mislead our proto detection process.
+         *       While doing this we need to update the parsers as well,
+         *       since the parsers must be robust to see such wrong
+         *       direction data.
+         *       Either ways the moment we see the
+         *       APPLAYER_WRONG_DIRECTION_FIRST_DATA event set for the
+         *       flow, it shows something's fishy.
+         */
+        if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
+            uint8_t first_data_dir;
+            first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto);
+
+            if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
+                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                        APPLAYER_WRONG_DIRECTION_FIRST_DATA);
+                DisableAppLayer(f);
+                /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+                ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                goto failure;
+            }
+            /* This can happen if the current direction is not the
+             * right direction, and the data from the other(also
+             * the right direction) direction is available to be sent
+             * to the app layer, but it is not ack'ed yet and hence
+             * the forced call to STreamTcpAppLayerReassemble still
+             * hasn't managed to send data from the other direction
+             * to the app layer. */
+            if (first_data_dir && !(first_data_dir & flags)) {
+                BUG_ON(*alproto_otherdir != ALPROTO_UNKNOWN);
+                FlowCleanupAppLayer(f);
+                f->alproto = *alproto = ALPROTO_UNKNOWN;
+                StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
+                FLOW_RESET_PP_DONE(f, flags);
+                FLOW_RESET_PM_DONE(f, flags);
+                goto failure;
+            }
+        }
+
+        /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
+        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+
+        /* finally, invoke the parser */
+        PACKET_PROFILING_APP_START(app_tctx, *alproto);
+        int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto,
+                flags, data + data_al_so_far,
+                data_len - data_al_so_far);
+        PACKET_PROFILING_APP_END(app_tctx, *alproto);
+        f->data_al_so_far[dir] = 0;
+        if (r < 0)
+            goto failure;
+
+    } else {
+        /* if the ssn is midstream, we may end up with a case where the
+         * start of an HTTP request is missing. We won't detect HTTP based
+         * on the request. However, the reply is fine, so we detect
+         * HTTP anyway. This leads to passing the incomplete request to
+         * the htp parser.
+         *
+         * This has been observed, where the http parser then saw many
+         * bogus requests in the incomplete data.
+         *
+         * To counter this case, a midstream session MUST find it's
+         * protocol in the toserver direction. If not, we assume the
+         * start of the request/toserver is incomplete and no reliable
+         * detection and parsing is possible. So we give up.
+         */
+        if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) &&
+                !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK))
+        {
+            if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
+                SCLogDebug("midstream end pd %p", ssn);
+                /* midstream and toserver detection failed: give up */
+                DisableAppLayer(f);
+                ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                goto end;
+            }
+        }
+
+        if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+            uint8_t first_data_dir;
+            first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto_otherdir);
+
+            /* this would handle this test case -
+             * http parser which says it wants to see toserver data first only.
+             * tcp handshake
+             * toclient data first received. - RUBBISH DATA which
+             *                                 we don't detect as http
+             * toserver data next sent - we detect this as http.
+             * at this stage we see that toclient is the first data seen
+             * for this session and we try and redetect the app protocol,
+             * but we are unable to detect the app protocol like before.
+             * But since we have managed to detect the protocol for the
+             * other direction as http, we try to use that.  At this
+             * stage we check if the direction of this stream matches
+             * to that acceptable by the app parser.  If it is not the
+             * acceptable direction we error out.
+             */
+            if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
+                    (first_data_dir) && !(first_data_dir & flags))
+            {
+                DisableAppLayer(f);
+                goto failure;
+            }
+
+            if (data_len > 0)
+                ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+
+            PACKET_PROFILING_APP_START(app_tctx, *alproto_otherdir);
+            int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
+                    *alproto_otherdir, flags,
+                    data + data_al_so_far,
+                    data_len - data_al_so_far);
+            PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
+            if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
+                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                        APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
+                StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+                f->data_al_so_far[dir] = 0;
+                TcpSessionSetReassemblyDepth(ssn,
+                        AppLayerParserGetStreamDepth(f->proto, *alproto));
+            } else {
+                f->data_al_so_far[dir] = data_len;
+            }
+            if (r < 0)
+                goto failure;
+
+        } else {
+            /* both sides unknown, let's see if we need to give up */
+            TCPProtoDetectCheckBailConditions(f, ssn, p);
+        }
+    }
+end:
+    return 0;
+
+failure:
+    return -1;
+}
+
+/** \brief handle TCP data for the app-layer.
+ *
+ *  First run protocol detection and then when the protocol is known invoke
+ *  the app layer parser.
+ */
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           Packet *p, Flow *f,
                           TcpSession *ssn, TcpStream *stream,
@@ -126,12 +507,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerThreadCtx *app_tctx = ra_ctx->app_tctx;
-    AppProto *alproto;
-    AppProto *alproto_otherdir;
+    AppProto alproto;
     uint8_t dir;
-    uint32_t data_al_so_far;
     int r = 0;
-    uint8_t first_data_dir;
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
@@ -140,12 +518,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     if (flags & STREAM_TOSERVER) {
-        alproto = &f->alproto_ts;
-        alproto_otherdir = &f->alproto_tc;
+        alproto = f->alproto_ts;
         dir = 0;
     } else {
-        alproto = &f->alproto_tc;
-        alproto_otherdir = &f->alproto_ts;
+        alproto = f->alproto_tc;
         dir = 1;
     }
 
@@ -153,323 +529,16 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * initializer message, we run proto detection.
      * We receive 2 stream init msgs (one for each direction) but we
      * only run the proto detection once. */
-    if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
+    if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
         StreamTcpSetSessionNoReassemblyFlag(ssn, dir);
         SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
-    } else if (*alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
-        if (data_len == 0)
-            data_al_so_far = 0;
-        else
-            data_al_so_far = f->data_al_so_far[dir];
 
-        SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
-#ifdef PRINT
-        if (data_len > 0) {
-            printf("=> Init Stream Data (app layer) -- start %s%s\n",
-                   flags & STREAM_TOCLIENT ? "toclient" : "",
-                   flags & STREAM_TOSERVER ? "toserver" : "");
-            PrintRawDataFp(stdout, data, data_len);
-            printf("=> Init Stream Data -- end\n");
-        }
-#endif
-
-        PACKET_PROFILING_APP_PD_START(app_tctx);
-        *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
-                                f,
-                                data, data_len,
-                                IPPROTO_TCP, flags);
-        PACKET_PROFILING_APP_PD_END(app_tctx);
-
-        if (*alproto != ALPROTO_UNKNOWN) {
-            if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
-                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                 APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-                /* it indicates some data has already been sent to the parser */
-                if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                    f->alproto = *alproto = *alproto_otherdir;
-                } else {
-                    if (flags & STREAM_TOCLIENT)
-                        f->alproto = *alproto_otherdir = *alproto;
-                    else
-                        f->alproto = *alproto = *alproto_otherdir;
-                }
-            }
-
-            f->alproto = *alproto;
-            StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-            TcpSessionSetReassemblyDepth(ssn, AppLayerParserGetStreamDepth(f->proto, *alproto));
-
-            /* account flow if we have both side */
-            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                AppLayerIncFlowCounter(tv, f);
-            }
-
-            /* if we have seen data from the other direction first, send
-             * data for that direction first to the parser.  This shouldn't
-             * be an issue, since each stream processing happens
-             * independently of the other stream direction.  At this point of
-             * call, you need to know that this function's already being
-             * called by the very same StreamReassembly() function that we
-             * will now call shortly for the opposing direction. */
-            if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
-                !(flags & ssn->data_first_seen_dir)) {
-                TcpStream *opposing_stream = NULL;
-                if (stream == &ssn->client) {
-                    opposing_stream = &ssn->server;
-                    if (StreamTcpInlineMode()) {
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    } else {
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    }
-                } else {
-                    opposing_stream = &ssn->client;
-                    if (StreamTcpInlineMode()) {
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    } else {
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    }
-                }
-
-                int ret = 0;
-                /* if the opposing side is not going to work, then
-                 * we just have to give up. */
-                if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
-                    ret = -1;
-                else
-                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
-                                                      opposing_stream, p);
-                if (stream == &ssn->client) {
-                    if (StreamTcpInlineMode()) {
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    } else {
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    }
-                } else {
-                    if (StreamTcpInlineMode()) {
-                        p->flowflags &= ~FLOW_PKT_TOSERVER;
-                        p->flowflags |= FLOW_PKT_TOCLIENT;
-                    } else {
-                        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-                        p->flowflags |= FLOW_PKT_TOSERVER;
-                    }
-                }
-                if (ret < 0) {
-                    DisableAppLayer(f);
-                    goto failure;
-                }
-            }
-
-            /* if the parser operates such that it needs to see data from
-             * a particular direction first, we check if we have seen
-             * data from that direction first for the flow.  IF it is not
-             * the same, we set an event and exit.
-             *
-             * \todo We need to figure out a more robust solution for this,
-             *       as this can lead to easy evasion tactics, where the
-             *       attackeer can first send some dummy data in the wrong
-             *       direction first to mislead our proto detection process.
-             *       While doing this we need to update the parsers as well,
-             *       since the parsers must be robust to see such wrong
-             *       direction data.
-             *       Either ways the moment we see the
-             *       APPLAYER_WRONG_DIRECTION_FIRST_DATA event set for the
-             *       flow, it shows something's fishy.
-             */
-            if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto);
-
-                if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                    DisableAppLayer(f);
-                    /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    goto failure;
-                }
-                /* This can happen if the current direction is not the
-                 * right direction, and the data from the other(also
-                 * the right direction) direction is available to be sent
-                 * to the app layer, but it is not ack'ed yet and hence
-                 * the forced call to STreamTcpAppLayerReassemble still
-                 * hasn't managed to send data from the other direction
-                 * to the app layer. */
-                if (first_data_dir && !(first_data_dir & flags)) {
-                    BUG_ON(*alproto_otherdir != ALPROTO_UNKNOWN);
-                    FlowCleanupAppLayer(f);
-                    f->alproto = *alproto = ALPROTO_UNKNOWN;
-                    StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
-                    FLOW_RESET_PP_DONE(f, flags);
-                    FLOW_RESET_PM_DONE(f, flags);
-                    goto failure;
-                }
-            }
-
-            /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-            ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-
-            PACKET_PROFILING_APP_START(app_tctx, *alproto);
-            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto,
-                                    flags, data + data_al_so_far,
-                                    data_len - data_al_so_far);
-            PACKET_PROFILING_APP_END(app_tctx, *alproto);
-            f->data_al_so_far[dir] = 0;
-        } else {
-            /* if the ssn is midstream, we may end up with a case where the
-             * start of an HTTP request is missing. We won't detect HTTP based
-             * on the request. However, the reply is fine, so we detect
-             * HTTP anyway. This leads to passing the incomplete request to
-             * the htp parser.
-             *
-             * This has been observed, where the http parser then saw many
-             * bogus requests in the incomplete data.
-             *
-             * To counter this case, a midstream session MUST find it's
-             * protocol in the toserver direction. If not, we assume the
-             * start of the request/toserver is incomplete and no reliable
-             * detection and parsing is possible. So we give up.
-             */
-            if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) && !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)) {
-                if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
-                    SCLogDebug("midstream end pd %p", ssn);
-                    /* midstream and toserver detection failed: give up */
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    goto end;
-                }
-            }
-
-            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
-                first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto_otherdir);
-
-                /* this would handle this test case -
-                 * http parser which says it wants to see toserver data first only.
-                 * tcp handshake
-                 * toclient data first received. - RUBBISH DATA which
-                 *                                 we don't detect as http
-                 * toserver data next sent - we detect this as http.
-                 * at this stage we see that toclient is the first data seen
-                 * for this session and we try and redetect the app protocol,
-                 * but we are unable to detect the app protocol like before.
-                 * But since we have managed to detect the protocol for the
-                 * other direction as http, we try to use that.  At this
-                 * stage we check if the direction of this stream matches
-                 * to that acceptable by the app parser.  If it is not the
-                 * acceptable direction we error out.
-                 */
-                if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
-                    (first_data_dir) && !(first_data_dir & flags))
-                {
-                    DisableAppLayer(f);
-                    goto failure;
-                }
-
-                if (data_len > 0)
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-
-                PACKET_PROFILING_APP_START(app_tctx, *alproto_otherdir);
-                r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
-                                        *alproto_otherdir, flags,
-                                        data + data_al_so_far,
-                                        data_len - data_al_so_far);
-                PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
-                if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-                    f->data_al_so_far[dir] = 0;
-                    TcpSessionSetReassemblyDepth(ssn, AppLayerParserGetStreamDepth(f->proto, *alproto));
-                } else {
-                    f->data_al_so_far[dir] = data_len;
-                }
-             } else {
-                /* See if we're going to have to give up:
-                 *
-                 * If we're getting a lot of data in one direction and the
-                 * proto for this direction is unknown, proto detect will
-                 * hold up segments in the segment list in the stream.
-                 * They are held so that if we detect the protocol on the
-                 * opposing stream, we can still parse this side of the stream
-                 * as well. However, some sessions are very unbalanced. FTP
-                 * data channels, large PUT/POST request and many others, can
-                 * lead to cases where we would have to store many megabytes
-                 * worth of segments before we see the opposing stream. This
-                 * leads to risks of resource starvation.
-                 *
-                 * Here a cutoff point is enforced. If we've stored 100k in
-                 * one direction and we've seen no data in the other direction,
-                 * we give up. */
-                uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
-                uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
-                SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
-#ifdef DEBUG_VALIDATION
-                if (!(ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP))
-                    BUG_ON(size_ts > 1000000UL);
-                if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP))
-                    BUG_ON(size_tc > 1000000UL);
-#endif /* DEBUG_VALIDATION */
-
-                if (ProtoDetectDone(f, ssn, STREAM_TOSERVER) &&
-                    ProtoDetectDone(f, ssn, STREAM_TOCLIENT))
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-
-                } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
-                        size_ts > 100000 && size_tc == 0)
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
-                } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
-                        size_tc > 100000 && size_ts == 0)
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
-                /* little data in ts direction, pp done, pm not done (max
-                 * depth not reached), ts direction done, lots of data in
-                 * tc direction. */
-                } else if (size_tc > 100000 &&
-                           FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
-                           FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
-                /* little data in tc direction, pp done, pm not done (max
-                 * depth not reached), tc direction done, lots of data in
-                 * ts direction. */
-                } else if (size_ts > 100000 &&
-                           FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
-                           FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
-                /* in case of really low TS data (e.g. 4 bytes) we can have
-                 * the PP complete, PM not complete (depth not reached) and
-                 * the TC side also not recognized (proto unknown) */
-                } else if (size_tc > 100000 &&
-                           FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
-                           (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)))
-                {
-                    DisableAppLayer(f);
-                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
-                }
-             }
+    } else if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
+        /* run protocol detection */
+        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
+                           data, data_len, flags) != 0) {
+            goto failure;
         }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "

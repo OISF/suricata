@@ -31,19 +31,21 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-void DetectAppLayerProtocolRegisterTests(void);
+static void DetectAppLayerProtocolRegisterTests(void);
 
-int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+static int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags, void *state,
                                 Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     int r = 0;
     DetectAppLayerProtocolData *data = (DetectAppLayerProtocolData *)m->ctx;
 
     r = (data->negated) ? (f->alproto != data->alproto) :
         (f->alproto == data->alproto);
 
-    return r;
+    SCReturnInt(r);
 }
 
 static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
@@ -86,8 +88,8 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
     return data;
 }
 
-int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx, Signature *s,
-                                char *arg)
+static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
+        Signature *s, char *arg)
 {
     DetectAppLayerProtocolData *data = NULL;
     SigMatch *sm = NULL;
@@ -125,10 +127,9 @@ error:
     return -1;
 }
 
-void DetectAppLayerProtocolFree(void *ptr)
+static void DetectAppLayerProtocolFree(void *ptr)
 {
     SCFree(ptr);
-
     return;
 }
 
@@ -389,7 +390,7 @@ int DetectAppLayerProtocolTest09(void)
 
 #endif /* UNITTESTS */
 
-void DetectAppLayerProtocolRegisterTests(void)
+static void DetectAppLayerProtocolRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectAppLayerProtocolTest01",
