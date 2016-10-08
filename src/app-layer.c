@@ -115,6 +115,38 @@ void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
     }
 }
 
+/* in IDS mode protocol detection is done in reverse order:
+ * when TCP data is ack'd. We want to flag the correct packet,
+ * so in this case we set a flag in the flow so that the first
+ * packet in the correct direction can be tagged.
+ *
+ * For IPS things are much simpler, and we don't use the flow
+ * flag. We just tag the packet directly. */
+static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t dir)
+{
+    if (EngineModeIsIPS()) {
+        if (dir == STREAM_TOSERVER) {
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                p->flags |= PKT_PROTO_DETECT_TS_DONE;
+            } else {
+                f->flags |= FLOW_PROTO_DETECT_TS_DONE;
+            }
+        } else {
+            if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                p->flags |= PKT_PROTO_DETECT_TC_DONE;
+            } else {
+                f->flags |= FLOW_PROTO_DETECT_TC_DONE;
+            }
+        }
+    } else {
+        if (dir == STREAM_TOSERVER) {
+            f->flags |= FLOW_PROTO_DETECT_TS_DONE;
+        } else {
+            f->flags |= FLOW_PROTO_DETECT_TC_DONE;
+        }
+    }
+}
+
 /* See if we're going to have to give up:
  *
  * If we're getting a lot of data in one direction and the
@@ -150,24 +182,21 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
     if (ProtoDetectDone(f, ssn, STREAM_TOSERVER) &&
         ProtoDetectDone(f, ssn, STREAM_TOCLIENT))
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+        goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
             size_ts > 100000 && size_tc == 0)
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
+        goto failure;
 
     } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
             size_tc > 100000 && size_ts == 0)
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
+        goto failure;
 
     /* little data in ts direction, pp done, pm not done (max
      * depth not reached), ts direction done, lots of data in
@@ -176,10 +205,9 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
             FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
             FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
+        goto failure;
 
     /* little data in tc direction, pp done, pm not done (max
      * depth not reached), tc direction done, lots of data in
@@ -188,10 +216,9 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
             FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
             FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
+        goto failure;
 
     /* in case of really low TS data (e.g. 4 bytes) we can have
      * the PP complete, PM not complete (depth not reached) and
@@ -200,11 +227,20 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
             FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
             (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)))
     {
-        DisableAppLayer(f);
-        ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
         AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                 APPLAYER_PROTO_DETECTION_SKIPPED);
+        goto failure;
     }
+    return;
+
+failure:
+    DisableAppLayer(f);
+    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+    f->alproto = f->alproto_tc = f->alproto_ts = ALPROTO_FAILED;
+
+    FlagPacketFlow(p, f, STREAM_TOSERVER);
+    FlagPacketFlow(p, f, STREAM_TOCLIENT);
+    return;
 }
 
 /** \todo modifying p this way seems too hacky */
@@ -315,6 +351,10 @@ static int TCPProtoDetect(ThreadVars *tv,
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
         TcpSessionSetReassemblyDepth(ssn,
                 AppLayerParserGetStreamDepth(f->proto, *alproto));
+        if (flags & STREAM_TOCLIENT)
+            FlagPacketFlow(p, f, STREAM_TOCLIENT);
+        else
+            FlagPacketFlow(p, f, STREAM_TOSERVER);
 
         /* account flow if we have both sides */
         if (*alproto_otherdir != ALPROTO_UNKNOWN) {
@@ -469,6 +509,12 @@ static int TCPProtoDetect(ThreadVars *tv,
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                 TcpSessionSetReassemblyDepth(ssn,
                         AppLayerParserGetStreamDepth(f->proto, *alproto));
+
+                if (flags & STREAM_TOCLIENT)
+                    FlagPacketFlow(p, f, STREAM_TOCLIENT);
+                else
+                    FlagPacketFlow(p, f, STREAM_TOSERVER);
+
                 if (r < 0)
                     goto failure;
             }

@@ -89,6 +89,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** flow is ipv6 */
 #define FLOW_IPV6                       BIT_U32(19)
 
+#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(20)
+#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(21)
+
 
 /* File flags */
 

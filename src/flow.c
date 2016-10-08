@@ -248,6 +248,11 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
                 p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
             }
         }
+        /* xfer proto detect ts flag to first packet in ts dir */
+        if (f->flags & FLOW_PROTO_DETECT_TS_DONE) {
+            f->flags &= ~FLOW_PROTO_DETECT_TS_DONE;
+            p->flags |= PKT_PROTO_DETECT_TS_DONE;
+        }
     } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
@@ -257,6 +262,11 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
                 f->flags |= FLOW_TO_SRC_SEEN;
                 p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
             }
+        }
+        /* xfer proto detect tc flag to first packet in tc dir */
+        if (f->flags & FLOW_PROTO_DETECT_TC_DONE) {
+            f->flags &= ~FLOW_PROTO_DETECT_TC_DONE;
+            p->flags |= PKT_PROTO_DETECT_TC_DONE;
         }
     }
 
