@@ -336,21 +336,25 @@ static int TCPProtoDetect(ThreadVars *tv,
         if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto_otherdir != *alproto) {
             AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                     APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
-            /* it indicates some data has already been sent to the parser */
+
             if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                f->alproto = *alproto = *alproto_otherdir;
+                /* if we already invoked the parser, we go with that proto */
+                f->alproto = *alproto_otherdir;
             } else {
+                /* no data sent to parser yet, we can still choose
+                 * we're trusting the server more. */
                 if (flags & STREAM_TOCLIENT)
-                    f->alproto = *alproto_otherdir = *alproto;
+                    f->alproto = *alproto;
                 else
-                    f->alproto = *alproto = *alproto_otherdir;
+                    f->alproto = *alproto_otherdir;
             }
+        } else {
+            f->alproto = *alproto;
         }
 
-        f->alproto = *alproto;
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
         TcpSessionSetReassemblyDepth(ssn,
-                AppLayerParserGetStreamDepth(f->proto, *alproto));
+                AppLayerParserGetStreamDepth(f->proto, f->alproto));
         if (flags & STREAM_TOCLIENT)
             FlagPacketFlow(p, f, STREAM_TOCLIENT);
         else
@@ -397,7 +401,7 @@ static int TCPProtoDetect(ThreadVars *tv,
          */
         if (ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
             uint8_t first_data_dir;
-            first_data_dir = AppLayerParserGetFirstDataDir(f->proto, *alproto);
+            first_data_dir = AppLayerParserGetFirstDataDir(f->proto, f->alproto);
 
             if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                 AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
@@ -415,9 +419,7 @@ static int TCPProtoDetect(ThreadVars *tv,
              * hasn't managed to send data from the other direction
              * to the app layer. */
             if (first_data_dir && !(first_data_dir & flags)) {
-                BUG_ON(*alproto_otherdir != ALPROTO_UNKNOWN);
                 FlowCleanupAppLayer(f);
-                f->alproto = *alproto = ALPROTO_UNKNOWN;
                 StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
                 FLOW_RESET_PP_DONE(f, flags);
                 FLOW_RESET_PM_DONE(f, flags);
@@ -429,10 +431,10 @@ static int TCPProtoDetect(ThreadVars *tv,
         ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
         /* finally, invoke the parser */
-        PACKET_PROFILING_APP_START(app_tctx, *alproto);
-        int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto,
+        PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+        int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                 flags, data, data_len);
-        PACKET_PROFILING_APP_END(app_tctx, *alproto);
+        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         if (r < 0)
             goto failure;
 
@@ -499,22 +501,26 @@ static int TCPProtoDetect(ThreadVars *tv,
                 if (data_len > 0)
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
-                PACKET_PROFILING_APP_START(app_tctx, *alproto_otherdir);
+                PACKET_PROFILING_APP_START(app_tctx, f->alproto);
                 int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
-                        *alproto_otherdir, flags,
+                        f->alproto, flags,
                         data, data_len);
-                PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
+                PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+
                 AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                 TcpSessionSetReassemblyDepth(ssn,
-                        AppLayerParserGetStreamDepth(f->proto, *alproto));
+                        AppLayerParserGetStreamDepth(f->proto, f->alproto));
+                *alproto = ALPROTO_FAILED;
 
                 if (flags & STREAM_TOCLIENT)
                     FlagPacketFlow(p, f, STREAM_TOCLIENT);
                 else
                     FlagPacketFlow(p, f, STREAM_TOSERVER);
 
+                SCLogDebug("packet %u: pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
+                        (uint)p->pcap_cnt, *alproto, *alproto_otherdir, r);
                 if (r < 0)
                     goto failure;
             }
