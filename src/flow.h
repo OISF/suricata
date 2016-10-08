@@ -380,8 +380,6 @@ typedef struct Flow_
     AppProto alproto_ts;
     AppProto alproto_tc;
 
-    uint32_t data_al_so_far[2];
-
     /** detection engine ctx id used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
      *  de_state and stored sgh ptrs are reset. */
