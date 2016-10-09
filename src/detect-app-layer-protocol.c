@@ -145,8 +145,19 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     if (data == NULL)
         goto error;
 
-    if (!data->negated)
+    if (!data->negated && data->alproto != ALPROTO_FAILED) {
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+        for ( ; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+                SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "can't mix "
+                        "positive app-layer-protocol match with negated "
+                        "match or match for 'failed'.");
+                goto error;
+            }
+        }
+
         s->alproto = data->alproto;
+    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -199,239 +210,223 @@ void DetectAppLayerProtocolRegister(void)
 
 #ifdef UNITTESTS
 
-int DetectAppLayerProtocolTest01(void)
+static int DetectAppLayerProtocolTest01(void)
 {
-    int result = 0;
-
     DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http");
-    if (data == NULL)
-        goto end;
-    if (data->alproto != ALPROTO_HTTP || data->negated) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    if (data != NULL)
-        DetectAppLayerProtocolFree(data);
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated != 0);
+    DetectAppLayerProtocolFree(data);
+    PASS;
 }
 
-int DetectAppLayerProtocolTest02(void)
+static int DetectAppLayerProtocolTest02(void)
 {
-    int result = 0;
-
     DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("!http");
-    if (data == NULL)
-        goto end;
-    if (data->alproto != ALPROTO_HTTP || !data->negated) {
-        printf("test failure.  Holding wrong state\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    if (data != NULL)
-        DetectAppLayerProtocolFree(data);
-    return result;
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated == 0);
+    DetectAppLayerProtocolFree(data);
+    PASS;
 }
 
-int DetectAppLayerProtocolTest03(void)
+static int DetectAppLayerProtocolTest03(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectAppLayerProtocolData *data = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:http; sid:1;)");
-    if (s->alproto != ALPROTO_HTTP) {
-        printf("signature alproto should be http\n");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:http; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    FAIL_IF(s->alproto != ALPROTO_HTTP);
+
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx);
+
     data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
-    if (data->alproto != ALPROTO_HTTP || data->negated) {
-        printf("if (data->alproto != ALPROTO_HTTP || data->negated)\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest04(void)
+static int DetectAppLayerProtocolTest04(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectAppLayerProtocolData *data = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!http; sid:1;)");
-    if (s->alproto != ALPROTO_UNKNOWN) {
-        printf("signature alproto should be unknown\n");
-        goto end;
-    }
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL)\n");
-        goto end;
-    }
-    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
-    if (data == NULL) {
-        printf("if (data == NULL)\n");
-        goto end;
-    }
-    if (data->alproto != ALPROTO_HTTP || !data->negated) {
-        printf("if (data->alproto != ALPROTO_HTTP || !data->negated)\n");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:!http; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    result = 1;
+    /* negated match means we use MATCH not AMATCH */
+    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated == 0);
+
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest05(void)
+static int DetectAppLayerProtocolTest05(void)
 {
-    int result = 0;
     Signature *s = NULL;
+    DetectAppLayerProtocolData *data = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!http; app-layer-protocol:!smtp; sid:1;)");
-    if (s->alproto != ALPROTO_UNKNOWN) {
-        printf("signature alproto should be unknown\n");
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:!http; app-layer-protocol:!smtp; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    result = 1;
+    /* negated match means we use MATCH not AMATCH */
+    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated == 0);
+
+    data = (DetectAppLayerProtocolData*)s->sm_lists[DETECT_SM_LIST_MATCH]->next->ctx;
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_SMTP);
+    FAIL_IF(data->negated == 0);
+
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest06(void)
+static int DetectAppLayerProtocolTest06(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any "
-                "(app-layer-protocol:smtp; sid:1;)");
-    if (s != NULL) {
-        printf("if (s != NULL)\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+            "(app-layer-protocol:smtp; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest07(void)
+static int DetectAppLayerProtocolTest07(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any "
-                "(app-layer-protocol:!smtp; sid:1;)");
-    if (s != NULL) {
-        printf("if (s != NULL)\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+            "(app-layer-protocol:!smtp; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest08(void)
+static int DetectAppLayerProtocolTest08(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!smtp; app-layer-protocol:http; sid:1;)");
-    if (s != NULL) {
-        printf("if (s != NULL)\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:!smtp; app-layer-protocol:http; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
-int DetectAppLayerProtocolTest09(void)
+static int DetectAppLayerProtocolTest09(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:http; app-layer-protocol:!smtp; sid:1;)");
-    if (s != NULL) {
-        printf("if (s != NULL)\n");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:http; app-layer-protocol:!smtp; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
+}
+
+static int DetectAppLayerProtocolTest10(void)
+{
+    Signature *s = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:smtp; app-layer-protocol:!http; sid:1;)");
+    FAIL_IF_NOT_NULL(s);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectAppLayerProtocolTest11(void)
+{
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("failed");
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_FAILED);
+    FAIL_IF(data->negated != 0);
+    DetectAppLayerProtocolFree(data);
+    PASS;
+}
+
+static int DetectAppLayerProtocolTest12(void)
+{
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("!failed");
+    FAIL_IF_NULL(data);
+    FAIL_IF(data->alproto != ALPROTO_FAILED);
+    FAIL_IF(data->negated == 0);
+    DetectAppLayerProtocolFree(data);
+    PASS;
+}
+
+static int DetectAppLayerProtocolTest13(void)
+{
+    Signature *s = NULL;
+    DetectAppLayerProtocolData *data = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:failed; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
+
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+
+    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF(data->alproto != ALPROTO_FAILED);
+    FAIL_IF(data->negated);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif /* UNITTESTS */
@@ -457,6 +452,14 @@ static void DetectAppLayerProtocolRegisterTests(void)
                    DetectAppLayerProtocolTest08);
     UtRegisterTest("DetectAppLayerProtocolTest09",
                    DetectAppLayerProtocolTest09);
+    UtRegisterTest("DetectAppLayerProtocolTest10",
+                   DetectAppLayerProtocolTest10);
+    UtRegisterTest("DetectAppLayerProtocolTest11",
+                   DetectAppLayerProtocolTest11);
+    UtRegisterTest("DetectAppLayerProtocolTest12",
+                   DetectAppLayerProtocolTest12);
+    UtRegisterTest("DetectAppLayerProtocolTest13",
+                   DetectAppLayerProtocolTest13);
 #endif /* UNITTESTS */
 
     return;
