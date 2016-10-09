@@ -89,12 +89,6 @@ void AppLayerDeSetupCounters();
 
 /***** L7 layer dispatchers *****/
 
-static void DisableAppLayer(Flow *f)
-{
-    SCLogDebug("disable app layer for flow %p", f);
-    StreamTcpDisableAppLayer(f);
-}
-
 static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t direction) {
     const TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
     return ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
@@ -145,6 +139,31 @@ static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t dir)
             f->flags |= FLOW_PROTO_DETECT_TC_DONE;
         }
     }
+}
+
+static void DisableAppLayer(Flow *f, Packet *p)
+{
+    SCLogDebug("disable app layer for flow %p alproto %u ts %u tc %u",
+            f, f->alproto, f->alproto_ts, f->alproto_tc);
+    StreamTcpDisableAppLayer(f);
+    TcpSession *ssn = f->protoctx;
+    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+    f->alproto = ALPROTO_FAILED;
+
+    if (f->alproto_tc != ALPROTO_FAILED) {
+        if (f->alproto_tc == ALPROTO_UNKNOWN) {
+            f->alproto_tc = ALPROTO_FAILED;
+        }
+        FlagPacketFlow(p, f, STREAM_TOCLIENT);
+    }
+    if (f->alproto_ts != ALPROTO_FAILED) {
+        if (f->alproto_ts == ALPROTO_UNKNOWN) {
+            f->alproto_ts = ALPROTO_FAILED;
+        }
+        FlagPacketFlow(p, f, STREAM_TOSERVER);
+    }
+    SCLogDebug("disabled app layer for flow %p alproto %u ts %u tc %u",
+            f, f->alproto, f->alproto_ts, f->alproto_tc);
 }
 
 /* See if we're going to have to give up:
@@ -234,12 +253,7 @@ static void TCPProtoDetectCheckBailConditions(Flow *f, TcpSession *ssn, Packet *
     return;
 
 failure:
-    DisableAppLayer(f);
-    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
-    f->alproto = f->alproto_tc = f->alproto_ts = ALPROTO_FAILED;
-
-    FlagPacketFlow(p, f, STREAM_TOSERVER);
-    FlagPacketFlow(p, f, STREAM_TOCLIENT);
+    DisableAppLayer(f, p);
     return;
 }
 
@@ -378,7 +392,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
                 p, ssn, stream, flags) != 0)
             {
-                DisableAppLayer(f);
+                DisableAppLayer(f, p);
                 goto failure;
             }
         }
@@ -406,9 +420,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                 AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                         APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                DisableAppLayer(f);
-                /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
-                ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                DisableAppLayer(f, p);
                 goto failure;
             }
             /* This can happen if the current direction is not the
@@ -459,8 +471,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
                 SCLogDebug("midstream end pd %p", ssn);
                 /* midstream and toserver detection failed: give up */
-                DisableAppLayer(f);
-                ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                DisableAppLayer(f, p);
                 goto end;
             }
         }
@@ -487,7 +498,7 @@ static int TCPProtoDetect(ThreadVars *tv,
             if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
             {
-                DisableAppLayer(f);
+                DisableAppLayer(f, p);
                 goto failure;
             }
 
@@ -893,108 +904,109 @@ void AppLayerDeSetupCounters()
 /***** Unittests *****/
 
 #ifdef UNITTESTS
+#include "pkt-var.h"
 #include "stream-tcp.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 #include "util-unittest.h"
+
+#define TEST_START \
+    Packet *p = SCMalloc(SIZE_OF_PACKET);\
+    FAIL_IF_NULL(p);\
+    Flow f;\
+    ThreadVars tv;\
+    StreamTcpThread *stt = NULL;\
+    TCPHdr tcph;\
+    PacketQueue pq;\
+    memset(&pq,0,sizeof(PacketQueue));\
+    memset(p, 0, SIZE_OF_PACKET);\
+    memset (&f, 0, sizeof(Flow));\
+    memset(&tv, 0, sizeof (ThreadVars));\
+    memset(&tcph, 0, sizeof (TCPHdr));\
+\
+    FLOW_INITIALIZE(&f);\
+    f.flags = FLOW_IPV4;\
+    f.proto = IPPROTO_TCP;\
+    p->flow = &f;\
+    p->tcph = &tcph;\
+\
+    StreamTcpInitConfig(TRUE);\
+    StreamTcpThreadInit(&tv, NULL, (void **)&stt);\
+\
+    /* handshake */\
+    tcph.th_win = htons(5480);\
+    tcph.th_flags = TH_SYN;\
+    p->flowflags = FLOW_PKT_TOSERVER;\
+    p->payload_len = 0;\
+    p->payload = NULL;\
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);\
+    TcpSession *ssn = (TcpSession *)f.protoctx;\
+\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));\
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);\
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(ssn->data_first_seen_dir != 0);\
+\
+    /* handshake */\
+    p->tcph->th_ack = htonl(1);\
+    p->tcph->th_flags = TH_SYN | TH_ACK;\
+    p->flowflags = FLOW_PKT_TOCLIENT;\
+    p->payload_len = 0;\
+    p->payload = NULL;\
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));\
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);\
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(ssn->data_first_seen_dir != 0);\
+\
+    /* handshake */\
+    p->tcph->th_ack = htonl(1);\
+    p->tcph->th_seq = htonl(1);\
+    p->tcph->th_flags = TH_ACK;\
+    p->flowflags = FLOW_PKT_TOSERVER;\
+    p->payload_len = 0;\
+    p->payload = NULL;\
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));\
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));\
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);\
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);\
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));\
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));\
+    FAIL_IF(ssn->data_first_seen_dir != 0);
+#define TEST_END \
+    StreamTcpSessionClear(p->flow->protoctx);\
+    StreamTcpThreadDeinit(&tv, (void *)stt); \
+    StreamTcpFreeConfig(TRUE);\
+    PACKET_DESTRUCTOR(p);\
+    SCFree(p);\
+    FLOW_DESTROY(&f); \
+    StatsThreadCleanup(&tv);
 
 /**
  * \test GET -> HTTP/1.1
  */
 static int AppLayerTest01(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request[] = {
@@ -1015,20 +1027,18 @@ static int AppLayerTest01(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request);
     p->payload = request;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -1079,20 +1089,18 @@ static int AppLayerTest01(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -1101,29 +1109,21 @@ static int AppLayerTest01(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_HTTP ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -1131,98 +1131,7 @@ static int AppLayerTest01(void)
  */
 static int AppLayerTest02(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    /* handshake */
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* partial request */
     uint8_t request1[] = { 0x47, 0x45, };
@@ -1232,20 +1141,18 @@ static int AppLayerTest02(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack against partial request */
     p->tcph->th_ack = htonl(3);
@@ -1254,20 +1161,18 @@ static int AppLayerTest02(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* complete partial request */
     uint8_t request2[] = {
@@ -1288,20 +1193,18 @@ static int AppLayerTest02(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
     uint8_t response[] = {
@@ -1352,20 +1255,18 @@ static int AppLayerTest02(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 7\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -1374,29 +1275,21 @@ static int AppLayerTest02(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_HTTP ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 8\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -1404,97 +1297,7 @@ static int AppLayerTest02(void)
  */
 static int AppLayerTest03(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* request */
     uint8_t request[] = {
@@ -1515,20 +1318,18 @@ static int AppLayerTest03(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request);
     p->payload = request;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* rubbish response */
     uint8_t response[] = {
@@ -1579,20 +1380,18 @@ static int AppLayerTest03(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -1601,29 +1400,21 @@ static int AppLayerTest03(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_FAILED);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -1631,87 +1422,7 @@ static int AppLayerTest03(void)
  */
 static int AppLayerTest04(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    FAIL_IF_NULL(p);
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    /* handshake */
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
+    TEST_START;
 
     /* request */
     uint8_t request[] = {
@@ -1863,17 +1574,15 @@ static int AppLayerTest04(void)
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client)); // toserver complete
     FAIL_IF(f.alproto != ALPROTO_HTTP);                     // http based on ts
     FAIL_IF(f.alproto_ts != ALPROTO_HTTP);                  // ts complete
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_FAILED);                // tc failed
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
     FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));         // to client pp got nothing
     FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);  // first data sent to applayer
-    StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
+
+    TEST_END;
     PASS;
 }
 
@@ -1882,89 +1591,7 @@ static int AppLayerTest04(void)
  */
 static int AppLayerTest05(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    FAIL_IF_NULL(p);
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-
-    /* handshake */
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
-    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
-    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
-    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
-    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
-    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
-    FAIL_IF(ssn->data_first_seen_dir != 0);
+    TEST_START;
 
     /* full request */
     uint8_t request[] = {
@@ -2073,7 +1700,7 @@ static int AppLayerTest05(void)
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
     FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
     FAIL_IF(f.alproto != ALPROTO_HTTP);
-    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_FAILED);
     FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
     FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
     FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
@@ -2082,10 +1709,7 @@ static int AppLayerTest05(void)
     FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
     FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
+    TEST_END;
     PASS;
 }
 
@@ -2094,98 +1718,7 @@ static int AppLayerTest05(void)
  */
 static int AppLayerTest06(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -2236,20 +1769,18 @@ static int AppLayerTest06(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOCLIENT) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOCLIENT);
 
     /* full request - response ack*/
     uint8_t request[] = {
@@ -2270,29 +1801,21 @@ static int AppLayerTest06(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request);
     p->payload = request;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_HTTP ||
-        !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_ts != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -2300,98 +1823,7 @@ static int AppLayerTest06(void)
  */
 static int AppLayerTest07(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request[] = {
@@ -2412,20 +1844,18 @@ static int AppLayerTest07(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request);
     p->payload = request;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -2476,20 +1906,18 @@ static int AppLayerTest07(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -2498,29 +1926,21 @@ static int AppLayerTest07(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_HTTP ||
-                f.alproto_ts != ALPROTO_HTTP ||
-                f.alproto_tc != ALPROTO_HTTP ||
-        (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_ts != ALPROTO_HTTP);
+    FAIL_IF(f.alproto_tc != ALPROTO_DCERPC);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -2528,98 +1948,7 @@ static int AppLayerTest07(void)
  */
 static int AppLayerTest08(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request[] = {
@@ -2640,20 +1969,18 @@ static int AppLayerTest08(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request);
     p->payload = request;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -2704,20 +2031,18 @@ static int AppLayerTest08(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_DCERPC ||
-                f.alproto_ts != ALPROTO_DCERPC ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_DCERPC);
+    FAIL_IF(f.alproto_ts != ALPROTO_DCERPC);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -2726,29 +2051,21 @@ static int AppLayerTest08(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_DCERPC ||
-                f.alproto_ts != ALPROTO_DCERPC ||
-                f.alproto_tc != ALPROTO_DCERPC ||
-        !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 6 %04x\n", ssn->flags);
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_DCERPC);
+    FAIL_IF(f.alproto_ts != ALPROTO_DCERPC);
+    FAIL_IF(f.alproto_tc != ALPROTO_HTTP);
+    FAIL_IF(!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -2758,98 +2075,7 @@ static int AppLayerTest08(void)
  */
 static int AppLayerTest09(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request1[] = {
@@ -2860,20 +2086,18 @@ static int AppLayerTest09(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
     p->tcph->th_ack = htonl(9);
@@ -2882,20 +2106,18 @@ static int AppLayerTest09(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full request */
     uint8_t request2[] = {
@@ -2906,20 +2128,18 @@ static int AppLayerTest09(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request2);
     p->payload = request2;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -2970,20 +2190,18 @@ static int AppLayerTest09(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 7\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -2992,29 +2210,21 @@ static int AppLayerTest09(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-        !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 8\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_ts != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_tc != ALPROTO_FAILED);
+    FAIL_IF(!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -3023,98 +2233,7 @@ static int AppLayerTest09(void)
  */
 static int AppLayerTest10(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request1[] = {
@@ -3126,20 +2245,18 @@ static int AppLayerTest10(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
     p->tcph->th_ack = htonl(18);
@@ -3148,20 +2265,18 @@ static int AppLayerTest10(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response[] = {
@@ -3212,20 +2327,18 @@ static int AppLayerTest10(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response);
     p->payload = response;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 7\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
@@ -3234,29 +2347,21 @@ static int AppLayerTest10(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-        !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 8\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_ts != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_tc != ALPROTO_FAILED);
+    FAIL_IF(!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 /**
@@ -3266,98 +2371,7 @@ static int AppLayerTest10(void)
  */
 static int AppLayerTest11(void)
 {
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    Flow f;
-    ThreadVars tv;
-    StreamTcpThread *stt = NULL;
-    TCPHdr tcph;
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(p, 0, SIZE_OF_PACKET);
-    memset (&f, 0, sizeof(Flow));
-    memset(&tv, 0, sizeof (ThreadVars));
-    memset(&tcph, 0, sizeof (TCPHdr));
-
-    FLOW_INITIALIZE(&f);
-    f.flags = FLOW_IPV4;
-    f.proto = IPPROTO_TCP;
-    p->flow = &f;
-    p->tcph = &tcph;
-
-    int ret = 0;
-
-    StreamTcpInitConfig(TRUE);
-    StreamTcpThreadInit(&tv, NULL, (void **)&stt);
-
-    tcph.th_win = htons(5480);
-    tcph.th_flags = TH_SYN;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-
-    TcpSession *ssn = (TcpSession *)f.protoctx;
-
-    /* handshake */
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 1\n");
-        goto end;
-    }
-
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_flags = TH_SYN | TH_ACK;
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 2\n");
-        goto end;
-    }
-
-    /* handshake */
-    p->tcph->th_ack = htonl(1);
-    p->tcph->th_seq = htonl(1);
-    p->tcph->th_flags = TH_ACK;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    p->payload_len = 0;
-    p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != 0) {
-        printf("failure 3\n");
-        goto end;
-    }
+    TEST_START;
 
     /* full request */
     uint8_t request1[] = {
@@ -3369,20 +2383,18 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = sizeof(request1);
     p->payload = request1;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 4\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response - request ack */
     p->tcph->th_ack = htonl(18);
@@ -3391,20 +2403,18 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 5\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* full response - request ack */
     uint8_t response1[] = {
@@ -3415,20 +2425,18 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response1);
     p->payload = response1;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 6\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack from request */
     p->tcph->th_ack = htonl(5);
@@ -3437,20 +2445,18 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 7\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     uint8_t response2[] = {
         0x2f, 0x31, 0x2e, 0x31,
@@ -3500,20 +2506,18 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = sizeof(response2);
     p->payload = response2;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-                ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != STREAM_TOSERVER) {
-        printf("failure 8\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_ts != ALPROTO_UNKNOWN);
+    FAIL_IF(f.alproto_tc != ALPROTO_UNKNOWN);
+    FAIL_IF(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != STREAM_TOSERVER);
 
     /* response ack from request */
     p->tcph->th_ack = htonl(328);
@@ -3522,29 +2526,21 @@ static int AppLayerTest11(void)
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
     p->payload = NULL;
-    if (StreamTcpPacket(&tv, p, stt, &pq) == -1)
-        goto end;
-    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server) ||
-        !StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client) ||
-                f.alproto != ALPROTO_UNKNOWN ||
-                f.alproto_ts != ALPROTO_UNKNOWN ||
-                f.alproto_tc != ALPROTO_UNKNOWN ||
-        !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOSERVER) || !FLOW_IS_PP_DONE(&f, STREAM_TOSERVER) ||
-        !FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT) || !FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT) ||
-        ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-        printf("failure 9\n");
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, stt, &pq) == -1);
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->server));
+    FAIL_IF(!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(&ssn->client));
+    FAIL_IF(f.alproto != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_ts != ALPROTO_FAILED);
+    FAIL_IF(f.alproto_tc != ALPROTO_FAILED);
+    FAIL_IF(!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOSERVER));
+    FAIL_IF(!FLOW_IS_PM_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(!FLOW_IS_PP_DONE(&f, STREAM_TOCLIENT));
+    FAIL_IF(ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER);
 
-    StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
- end:
-    StreamTcpFreeConfig(TRUE);
-    SCFree(p);
-    FLOW_DESTROY(&f);
-    return ret;
+    TEST_END;
+    PASS;
 }
 
 void AppLayerUnittestsRegister(void)
