@@ -80,6 +80,8 @@
 #include "app-layer-ssh.h"
 #include "app-layer-smtp.h"
 
+#include "output-json-dns.h"
+
 #include "util-action.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -222,6 +224,7 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+    OutputJsonDnsRegisterTests();
 }
 #endif
 

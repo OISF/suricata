@@ -26,4 +26,15 @@
 
 void JsonDnsLogRegister(void);
 
+#ifdef HAVE_LIBJANSSON
+#include "app-layer-dns-common.h"
+
+void JsonDnsLogJSON(json_t *js, DNSState *tx);
+#endif /*HAVE_LIBJANSSON*/
+
+#ifdef UNITTESTS
+void OutputJsonDnsRegisterTests (void);
+#endif /*UNITTESTS */
+
+
 #endif /* __OUTPUT_JSON_DNS_H__ */
