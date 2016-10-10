@@ -71,8 +71,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TOSERVER_DROP_LOGGED       BIT_U32(10)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
 #define FLOW_TOCLIENT_DROP_LOGGED       BIT_U32(11)
-/** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE        BIT_U32(12)
+
+// vacancy bit 12
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)

@@ -652,11 +652,11 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         flags |= STREAM_TOCLIENT;
     }
 
-    /* if we don't know the proto yet and we have received a stream
-     * initializer message, we run proto detection.
-     * We receive 2 stream init msgs (one for each direction) but we
-     * only run the proto detection once. */
-    if (f->alproto == ALPROTO_UNKNOWN && !(f->flags & FLOW_ALPROTO_DETECT_DONE)) {
+    if (f->alproto == ALPROTO_FAILED) {
+        SCReturnInt(0);
+
+    /* if the protocol is still unknown, run detection */
+    } else if (f->alproto == ALPROTO_UNKNOWN) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                    p->payload_len);
 
@@ -668,7 +668,6 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         PACKET_PROFILING_APP_PD_END(tctx);
 
         if (f->alproto != ALPROTO_UNKNOWN) {
-            f->flags |= FLOW_ALPROTO_DETECT_DONE;
             AppLayerIncFlowCounter(tv, f);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
@@ -676,24 +675,22 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                                     flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
-            f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            f->alproto = ALPROTO_FAILED;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
+        /* we do only inspection in one direction, so flag both
+         * sides as done here */
+        FlagPacketFlow(p, f, STREAM_TOSERVER);
+        FlagPacketFlow(p, f, STREAM_TOCLIENT);
     } else {
-        SCLogDebug("stream data (len %" PRIu32 " ), alproto "
+        SCLogDebug("data (len %" PRIu32 " ), alproto "
                    "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
 
-        /* if we don't have a data object here we are not getting it
-         * a start msg should have gotten us one */
-        if (f->alproto != ALPROTO_UNKNOWN) {
-            PACKET_PROFILING_APP_START(tctx, f->alproto);
-            r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
-                                    flags, p->payload, p->payload_len);
-            PACKET_PROFILING_APP_END(tctx, f->alproto);
-        } else {
-            SCLogDebug("udp session has started, but failed to detect alproto "
-                       "for l7");
-        }
+        /* run the parser */
+        PACKET_PROFILING_APP_START(tctx, f->alproto);
+        r = AppLayerParserParse(tv, tctx->alp_tctx, f, f->alproto,
+                flags, p->payload, p->payload_len);
+        PACKET_PROFILING_APP_END(tctx, f->alproto);
     }
 
     PACKET_PROFILING_APP_STORE(tctx, p);
