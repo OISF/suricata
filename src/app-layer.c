@@ -68,14 +68,21 @@ struct AppLayerThreadCtx_ {
 #endif
 };
 
+#define MAX_COUNTER_SIZE 64
+typedef struct AppLayerCounterNames_ {
+    char name[MAX_COUNTER_SIZE];
+    char tx_name[MAX_COUNTER_SIZE];
+} AppLayerCounterNames;
+
 typedef struct AppLayerCounters_ {
-    char *name;
-    char *tx_name;
     uint16_t counter_id;
     uint16_t counter_tx_id;
 } AppLayerCounters;
 
-AppLayerCounters applayer_counters[FLOW_PROTO_MAX][ALPROTO_MAX];
+/* counter names. Only used at init. */
+AppLayerCounterNames applayer_counter_names[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
+/* counter id's. Used that runtime. */
+AppLayerCounters applayer_counters[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
 
 void AppLayerSetupCounters();
 void AppLayerDeSetupCounters();
@@ -707,48 +714,29 @@ void AppLayerSetupCounters()
 
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
             if (alprotos[alproto] == 1) {
-                char *str = "app_layer.flow.";
-                char *tx_str = "app_layer.tx.";
-                char *alproto_str = AppLayerGetProtoName(alproto);
-                int alproto_len = strlen(alproto_str) + 1;
+                const char *str = "app_layer.flow.";
+                const char *tx_str = "app_layer.tx.";
+                const char *alproto_str = AppLayerGetProtoName(alproto);
                 uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
-                size_t size;
 
                 if (AppLayerParserProtoIsRegistered(ipprotos[ipproto], alproto) &&
                     AppLayerParserProtoIsRegistered(other_ipproto, alproto))
                 {
-                    size = strlen(str) + alproto_len + strlen(ipproto_suffix);
-                    applayer_counters[ipproto_map][alproto].name = SCMalloc(size);
-                    if (applayer_counters[ipproto_map][alproto].name == NULL) {
-                        return;
-                    }
-
-                    snprintf(applayer_counters[ipproto_map][alproto].name, size,
+                    snprintf(applayer_counter_names[ipproto_map][alproto].name,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s%s", str, alproto_str, ipproto_suffix);
                     if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                        size = strlen(tx_str) + alproto_len + strlen(ipproto_suffix);
-                        applayer_counters[ipproto_map][alproto].tx_name = SCMalloc(size);
-                        if (applayer_counters[ipproto_map][alproto].tx_name == NULL) {
-                            return;
-                        }
-                        snprintf(applayer_counters[ipproto_map][alproto].tx_name, size,
+                        snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
+                                sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
                                 "%s%s%s", tx_str, alproto_str, ipproto_suffix);
                     }
                 } else {
-                    size = strlen(str) + alproto_len;
-                    applayer_counters[ipproto_map][alproto].name = SCMalloc(size);
-                    if (applayer_counters[ipproto_map][alproto].name == NULL) {
-                        return;
-                    }
-                    snprintf(applayer_counters[ipproto_map][alproto].name, size,
+                    snprintf(applayer_counter_names[ipproto_map][alproto].name,
+                            sizeof(applayer_counter_names[ipproto_map][alproto].name),
                             "%s%s", str, alproto_str);
                     if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
-                        size = strlen(tx_str) + alproto_len;
-                        applayer_counters[ipproto_map][alproto].tx_name = SCMalloc(size);
-                        if (applayer_counters[ipproto_map][alproto].tx_name == NULL) {
-                            return;
-                        }
-                        snprintf(applayer_counters[ipproto_map][alproto].tx_name, size,
+                        snprintf(applayer_counter_names[ipproto_map][alproto].tx_name,
+                                sizeof(applayer_counter_names[ipproto_map][alproto].tx_name),
                                 "%s%s", tx_str, alproto_str);
                     }
                 }
@@ -771,11 +759,11 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
             if (alprotos[alproto] == 1) {
                 uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
                 applayer_counters[ipproto_map][alproto].counter_id =
-                    StatsRegisterCounter(applayer_counters[ipproto_map][alproto].name, tv);
+                    StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].name, tv);
 
                 if (AppLayerParserProtocolIsTxAware(ipprotos[ipproto], alproto)) {
                     applayer_counters[ipproto_map][alproto].counter_tx_id =
-                        StatsRegisterCounter(applayer_counters[ipproto_map][alproto].tx_name, tv);
+                        StatsRegisterCounter(applayer_counter_names[ipproto_map][alproto].tx_name, tv);
                 }
             }
         }
@@ -784,28 +772,10 @@ void AppLayerRegisterThreadCounters(ThreadVars *tv)
 
 void AppLayerDeSetupCounters()
 {
-    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
-    uint8_t ipproto;
-    AppProto alproto;
-    AppProto alprotos[ALPROTO_MAX];
-
-    AppLayerProtoDetectSupportedAppProtocols(alprotos);
-
-    for (ipproto = 0; ipproto < IPPROTOS_MAX; ipproto++) {
-        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-            if (alprotos[alproto] == 1) {
-                if (applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name) {
-                    SCFree(applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name);
-                    applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name = NULL;
-                }
-            }
-            if (applayer_counters[FlowGetProtoMapping(ipproto)][alproto].tx_name) {
-                SCFree(applayer_counters[FlowGetProtoMapping(ipproto)][alproto].tx_name);
-                applayer_counters[FlowGetProtoMapping(ipproto)][alproto].tx_name = NULL;
-            }
-        }
-    }
+    memset(applayer_counter_names, 0, sizeof(applayer_counter_names));
+    memset(applayer_counters, 0, sizeof(applayer_counters));
 }
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
