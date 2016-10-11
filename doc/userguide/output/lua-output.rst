@@ -99,6 +99,18 @@ Initialize with:
       return needs
   end
 
+SCPacketTimestamp
+~~~~~~~~~~~~~~~~~
+
+Get packets timestamp as 2 numbers: seconds & microseconds elapsed since
+1970-01-01 00:00:00 UTC.
+
+::
+
+  function log(args)
+      local sec, usec = SCPacketTimestamp()
+  end
+
 SCPacketTimeString
 ~~~~~~~~~~~~~~~~~~
 
