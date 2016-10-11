@@ -706,7 +706,7 @@ int SCConfLogOpenKafka(ConfNode *kafka_node, LogFileCtx *log_ctx)
         rd_kafka_topic_t *rkt             = NULL;
 
         /* Check librdkafka version and emit warning if outside of tested versions */
-        if ( RD_KAFKA_VERSION > 0x00080600 || RD_KAFKA_VERSION < 0x00080100 ) {
+        if ( RD_KAFKA_VERSION > 0x000901ff || RD_KAFKA_VERSION < 0x00080100 ) {
             SCLogWarning(SC_ERR_SOCKET, "librdkafka version check fails : %x", RD_KAFKA_VERSION);
         }
 
@@ -1004,7 +1004,6 @@ static int LogFileWriteKafka(LogFileCtx *file_ctx, const char *string, size_t st
                 file_ctx->kafka_setup.partition,
                 errstr);
     } else {
-
         SCLogDebug("KAFKA MSG:[%s] ERR:[%d] QUEUE:[%d]", string, err, rd_kafka_outq_len(rk));
     }
 
