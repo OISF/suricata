@@ -2251,6 +2251,13 @@ static int AFPBypassCallback(Packet *p)
     if (!PKT_IS_TCP(p)) {
         return 0;
     }
+
+    /* Bypassing tunneled packets is currently not supported
+     * because we can't discard the inner packet only due to
+     * primitive parsing in eBPF */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
     struct timespec curtime;
     uint64_t inittime = 0;
     if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
