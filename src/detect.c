@@ -187,6 +187,7 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-cipservice.h"
+#include "detect-dnp3.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -2165,6 +2166,9 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                 case ALPROTO_ENIP:
                     SCLogDebug("packet/flow has enip state");
                     (*mask) |= SIG_MASK_REQUIRE_ENIP_STATE;
+                case ALPROTO_DNP3:
+                    SCLogDebug("packet/flow has dnp3 state");
+                    (*mask) |= SIG_MASK_REQUIRE_DNP3_STATE;
                     break;
                 case ALPROTO_TEMPLATE:
                     SCLogDebug("packet/flow has template state");
@@ -2403,6 +2407,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
         SCLogDebug("sig requires dns state");
     }
+    if (s->alproto == ALPROTO_DNP3) {
+        s->mask |= SIG_MASK_REQUIRE_DNP3_STATE;
+        SCLogDebug("sig requires dnp3 state");
+    }
     if (s->alproto == ALPROTO_FTP) {
         s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
         SCLogDebug("sig requires ftp state");
@@ -2424,6 +2432,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_DNP3_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_ENIP_STATE) ||
@@ -4125,6 +4134,11 @@ void SigTableSetup(void)
     DetectModbusRegister();
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
+
+    DetectDNP3DataRegister();
+    DetectDNP3FuncRegister();
+    DetectDNP3IndRegister();
+    DetectDNP3ObjRegister();
 
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();

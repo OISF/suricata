@@ -219,6 +219,10 @@
 #ifndef JSON_ESCAPE_SLASH
 #define JSON_ESCAPE_SLASH 0
 #endif
+/* Appears not all current distros have jansson that defines this. */
+#ifndef json_boolean
+#define json_boolean(val)      ((val) ? json_true() : json_false())
+#endif
 #endif
 
 #if CPPCHECK==1
@@ -357,6 +361,7 @@ typedef enum {
     LOGGER_JSON_STATS,
     LOGGER_PRELUDE,
     LOGGER_PCAP,
+    LOGGER_JSON_DNP3,
     LOGGER_SIZE,
 } LoggerId;
 
