@@ -972,12 +972,6 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     char *rule_var_port = NULL;
     int r = 0;
 
-    if (AddVariableToResolveList(var_list, s) == -1) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a port "
-                   "groups declaration. This is likely a misconfiguration.");
-        goto error;
-    }
-
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
     for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
@@ -1078,6 +1072,13 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 address[x] = '\0';
             }
             SCLogDebug("%s", address);
+
+            if (AddVariableToResolveList(var_list, address) == -1) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a port "
+                   "groups declaration. This is likely a misconfiguration.");
+                goto error;
+            }
+
             x = 0;
             if (d_set == 1) {
                 char *temp_rule_var_port = NULL,
@@ -1121,6 +1122,8 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                     goto error;
             }
             n_set = 0;
+        } else if (depth == 1 && s[u] == ',') {
+            range = 0;
         }
     }
 
@@ -2018,6 +2021,7 @@ end:
         DetectPortCleanupList(dd);
     return result;
 }
+
 /**
  * \test Test general functions
  */
@@ -2391,6 +2395,34 @@ end:
 }
 
 /**
+ * \test Test general functions
+ */
+static int PortTestFunctions07(void)
+{
+    DetectPort *dd = NULL;
+
+    // This one should fail due to negation in a range
+    FAIL_IF(DetectPortParse(NULL, &dd, "[80:!99]") == 0);
+
+    // Correct: from 80 till 100 but 99 excluded
+    FAIL_IF_NOT(DetectPortParse(NULL, &dd, "[80:100,!99]") == 0);
+    FAIL_IF_NULL(dd->next);
+    FAIL_IF_NOT(dd->port == 80);
+    FAIL_IF_NOT(dd->port2 == 98);
+    FAIL_IF_NOT(dd->next->port == 100);
+
+    // Also good: from 1 till 80 except of 2 and 4
+    FAIL_IF_NOT(DetectPortParse(NULL, &dd, "[1:80,![2,4]]") == 0);
+    FAIL_IF_NOT(dd->port == 1);
+    FAIL_IF_NULL(DetectPortLookupGroup(dd, 3));
+    FAIL_IF_NOT_NULL(DetectPortLookupGroup(dd, 2));
+    FAIL_IF_NULL(DetectPortLookupGroup(dd, 80));
+
+    DetectPortCleanupList(dd);
+    PASS;
+}
+
+/**
  * \test Test packet Matches
  * \param raw_eth_pkt pointer to the ethernet packet
  * \param pktsize size of the packet
@@ -2713,6 +2745,7 @@ void DetectPortTests(void)
     UtRegisterTest("PortTestFunctions04", PortTestFunctions04);
     UtRegisterTest("PortTestFunctions05", PortTestFunctions05);
     UtRegisterTest("PortTestFunctions06", PortTestFunctions06);
+    UtRegisterTest("PortTestFunctions07", PortTestFunctions07);
     UtRegisterTest("PortTestMatchReal01", PortTestMatchReal01);
     UtRegisterTest("PortTestMatchReal02", PortTestMatchReal02);
     UtRegisterTest("PortTestMatchReal03", PortTestMatchReal03);
