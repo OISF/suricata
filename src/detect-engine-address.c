@@ -826,12 +826,6 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
 
-    if (AddVariableToResolveList(var_list, s) == -1) {
-        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a address "
-                   "groups declaration. This is likely a misconfiguration.");
-        goto error;
-    }
-
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
     for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
@@ -995,6 +989,12 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 address[x] = '\0';
             }
             x = 0;
+
+            if (AddVariableToResolveList(var_list, address) == -1) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a address "
+                    "groups declaration. This is likely a misconfiguration.");
+                goto error;
+            }
 
             if (d_set == 1) {
                 rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
@@ -1323,8 +1323,6 @@ int DetectAddressTestConfVars(void)
                         "Please check it's syntax", seq_node->name, seq_node->val);
             goto error;
         }
-
-        CleanVariableResolveList(&var_list);
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
