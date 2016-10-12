@@ -79,6 +79,9 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { NULL,                          -1 },
 };
 
+/* by default we keep tracking */
+#define SSL_CONFIG_DEFAULT_NOREASSEMBLE 0
+
 typedef struct SslConfig_ {
     int no_reassemble;
 } SslConfig;
@@ -1807,10 +1810,10 @@ void RegisterSSLParsers(void)
         /* Get the value of no reassembly option from the config file */
         if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
             if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-                ssl_config.no_reassemble = 1;
+                ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
         } else {
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-                ssl_config.no_reassemble = 1;
+                ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
         }
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -1820,11 +1823,6 @@ void RegisterSSLParsers(void)
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_TLS, SSLParserRegisterTests);
 #endif
-
-    /* Get the value of no reassembly option from the config file */
-    if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-        ssl_config.no_reassemble = 1;
-
     return;
 }
 
