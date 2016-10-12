@@ -314,6 +314,11 @@ integration with 3rd party tools like logstash.
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
         - dns:
+            # The style of logging:
+            #    discrete: the classic style of an event per question and answer
+            #    split: one event per request, one event per response
+            #    unified: one event containing request and response
+            style: discrete
             # control logging of queries and answers
             # default yes, no to disable
             query: yes     # enable logging of DNS queries
