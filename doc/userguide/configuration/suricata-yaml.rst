@@ -2133,6 +2133,47 @@ see :doc:`../performance/packet-profiling`.
 Application layers
 ------------------
 
+SSL/TLS
+~~~~~~~
+
+SSL/TLS parsers track encrypted SSLv2, SSLv3, TLSv1, TLSv1.1 and TLSv1.2
+sessions.
+
+Protocol detection is done using patterns and a probing parser running
+on only TCP/443 by default. The pattern based protocol detection is
+port independent.
+
+::
+
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+
+      # Completely stop processing TLS/SSL session after the handshake
+      # completed. If bypass is enabled this will also trigger flow
+      # bypass. If disabled (the default), TLS/SSL session is still
+      # tracked for Heartbleed and other anomalies.
+      #no-reassemble: yes
+
+Encrypted traffic
+^^^^^^^^^^^^^^^^^
+
+There is no decryption of encrypted traffic, so once the handshake is complete
+continued tracking of the session is of limited use. The ``no-reassemble``
+option controls the behaviour after the handshake.
+
+If ``no-reassemble`` is set to ``true``, all processing of this session is
+stopped. No further parsing and inspection happens. If ``bypass`` is enabled
+this will lead to the flow being bypassed, either inside Suricata or by the
+capture method if it supports it.
+
+If ``no-reassemble`` is set to ``false``, which is the default, Suricata will
+continue to track the SSL/TLS session. Inspection will be limited, as
+``content`` inspection will still be disabled. There is no point in doing
+pattern matching on traffic known to be encrypted. Inspection for (encrypted)
+Heartbleed and other protocol anomalies still happens.
+
 Modbus
 ~~~~~~
 
