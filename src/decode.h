@@ -1100,6 +1100,9 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #define PKT_PROTO_DETECT_TS_DONE        (1<<23)
 #define PKT_PROTO_DETECT_TC_DONE        (1<<24)
 
+#define PKT_REBUILT_FRAGMENT            (1<<25)     /**< Packet is rebuilt from
+                                                     * fragments. */
+
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
 
