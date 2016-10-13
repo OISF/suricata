@@ -76,10 +76,25 @@ void DetectFlowRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-static inline int FlowMatch(const uint8_t pflowflags, const uint16_t tflags,
-                            const uint8_t dflags, const uint8_t match_cnt)
+/**
+ * \param pflags packet flags (p->flags)
+ * \param pflowflags packet flow flags (p->flowflags)
+ * \param tflags detection flags (det_ctx->flags)
+ * \param dflags detect flow flags
+ * \param match_cnt number of matches to trigger
+ */
+static inline int FlowMatch(const uint32_t pflags, const uint8_t pflowflags,
+    const uint16_t tflags, const uint16_t dflags, const uint8_t match_cnt)
 {
     uint8_t cnt = 0;
+
+    if ((dflags & DETECT_FLOW_FLAG_NO_FRAG) &&
+        (!(pflags & PKT_REBUILT_FRAGMENT))) {
+        cnt++;
+    } else if ((dflags & DETECT_FLOW_FLAG_ONLY_FRAG) &&
+        (pflags & PKT_REBUILT_FRAGMENT)) {
+        cnt++;
+    }
 
     if ((dflags & DETECT_FLOW_FLAG_TOSERVER) && (pflowflags & FLOW_PKT_TOSERVER)) {
         cnt++;
@@ -135,7 +150,7 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
 
     const DetectFlowData *fd = (const DetectFlowData *)ctx;
 
-    int ret = FlowMatch(p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);;
+    int ret = FlowMatch(p->flags, p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);;
     SCLogDebug("returning %" PRId32 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
         ret, fd->match_cnt, fd->flags, p->flowflags);
     SCReturnInt(ret);
@@ -263,6 +278,24 @@ DetectFlowData *DetectFlowParse (char *flowstr)
                     goto error;
                 }
                 fd->flags |= DETECT_FLOW_FLAG_NOSTREAM;
+            } else if (strcasecmp(args[i], "no_frag") == 0) {
+                if (fd->flags & DETECT_FLOW_FLAG_NO_FRAG) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_frag flag is already set");
+                    goto error;
+                } else if (fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_frag flag, only_frag already set");
+                    goto error;
+                }
+                fd->flags |= DETECT_FLOW_FLAG_NO_FRAG;
+            } else if (strcasecmp(args[i], "only_frag") == 0) {
+                if (fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_frag flag is already set");
+                    goto error;
+                } else if (fd->flags & DETECT_FLOW_FLAG_NO_FRAG) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_frag flag, no_frag already set");
+                    goto error;
+                }
+                fd->flags |= DETECT_FLOW_FLAG_ONLY_FRAG;
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "invalid flow option \"%s\"", args[i]);
                 goto error;
@@ -365,7 +398,7 @@ PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *
     if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
         return;
 
-    if (FlowMatch(p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
+    if (FlowMatch(p->flags, p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
     {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
     }
@@ -926,6 +959,75 @@ static int DetectFlowTestParseNotEstablished(void)
     PASS;
 }
 
+/**
+ * \test Test parsing of the "no_frag" flow argument.
+ */
+static int DetectFlowTestParseNoFrag(void)
+{
+    DetectFlowData *fd = NULL;
+    fd = DetectFlowParse("no_frag");
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_NO_FRAG);
+    DetectFlowFree(fd);
+    PASS;
+}
+
+/**
+ * \test Test parsing of the "only_frag" flow argument.
+ */
+static int DetectFlowTestParseOnlyFrag(void)
+{
+    DetectFlowData *fd = NULL;
+    fd = DetectFlowParse("only_frag");
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG);
+    DetectFlowFree(fd);
+    PASS;
+}
+
+/**
+ * \test Test that parsing of only_frag and no_frag together fails.
+ */
+static int DetectFlowTestParseNoFragOnlyFrag(void)
+{
+    DetectFlowData *fd = NULL;
+    fd = DetectFlowParse("no_frag,only_frag");
+    FAIL_IF_NOT_NULL(fd);
+    PASS;
+}
+
+/**
+ * \test Test no_frag matching.
+ */
+static int DetectFlowTestNoFragMatch(void)
+{
+    uint32_t pflags = 0;
+    DetectFlowData *fd = DetectFlowParse("no_frag");
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_NO_FRAG);
+    FAIL_IF_NOT(fd->match_cnt == 1);
+    FAIL_IF_NOT(FlowMatch(pflags, 0, 0, fd->flags, fd->match_cnt));
+    pflags |= PKT_REBUILT_FRAGMENT;
+    FAIL_IF(FlowMatch(pflags, 0, 0, fd->flags, fd->match_cnt));
+    PASS;
+}
+
+/**
+ * \test Test only_frag matching.
+ */
+static int DetectFlowTestOnlyFragMatch(void)
+{
+    uint32_t pflags = 0;
+    DetectFlowData *fd = DetectFlowParse("only_frag");
+    FAIL_IF_NULL(fd);
+    FAIL_IF_NOT(fd->flags & DETECT_FLOW_FLAG_ONLY_FRAG);
+    FAIL_IF_NOT(fd->match_cnt == 1);
+    FAIL_IF(FlowMatch(pflags, 0, 0, fd->flags, fd->match_cnt));
+    pflags |= PKT_REBUILT_FRAGMENT;
+    FAIL_IF_NOT(FlowMatch(pflags, 0, 0, fd->flags, fd->match_cnt));
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -970,6 +1072,13 @@ void DetectFlowRegisterTests(void)
     UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21);
     UtRegisterTest("DetectFlowTestParseNotEstablished",
         DetectFlowTestParseNotEstablished);
+    UtRegisterTest("DetectFlowTestParseNoFrag", DetectFlowTestParseNoFrag);
+    UtRegisterTest("DetectFlowTestParseOnlyFrag",
+        DetectFlowTestParseOnlyFrag);
+    UtRegisterTest("DetectFlowTestParseNoFragOnlyFrag",
+        DetectFlowTestParseNoFragOnlyFrag);
+    UtRegisterTest("DetectFlowTestNoFragMatch", DetectFlowTestNoFragMatch);
+    UtRegisterTest("DetectFlowTestOnlyFragMatch", DetectFlowTestOnlyFragMatch);
 
     UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01);
 #endif /* UNITTESTS */
