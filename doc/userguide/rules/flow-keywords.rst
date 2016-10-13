@@ -59,37 +59,48 @@ only (only_stream) or on packet only (no_stream).
 
 So with the flow keyword you can match on:
 
-::
+to_client
+  Match on packets from server to client.
+to_server
+  Match on packets from client to server.
+from_client
+  Match on packets from client to server (same as to_server).
+from_server
+  Match on packets from server to client (same as to_client).
+established
+  Match on established connections.
+not_established
+  Match on packets that are not part of an established connection.
+stateless
+  Match on packets that are and are not part of an established connection.
+only_stream
+  Match on packets that have been reassembled by the stream engine.
+no_stream
+  Match on packets that have not been reassembled by the stream
+  engine. Will not match packets that have been reeassembled.
+only_frag
+  Match packets that have been reassembled from fragments.
+no_frag
+  Match packets that have not been reassembled from fragments.
 
-  to_client                       established           only_stream
-  from_client                     stateless             no_stream
-  to_server
-  from_server
+Multiple flow options can be combined, for example::
 
-**NOTE:** *from_server* and *to_client* are the same, and so are
- *to_server* and _from_client_. This comes from the original Snort
- language and we support it for compatibility reasons.
+  flow:to_client, established
+  flow:to_server, established, only_stream
+  flow:to_server, not_established, no_frag
 
-These options can be combined. You can use
-up to three options. For example:
+The determination of *established* depends on the protocol:
 
-::
+* For TCP a connection will be established after a three way
+  handshake.
 
-  flow:to_client, established;
-  flow:from_client, established, only_stream;
+  .. image:: flow-keywords/Flow1.png
 
-There are different ways in which can be checked whether the
-connection is established or not. With tcp-traffic a connection starts
-with the three-way-handshake. In the flow is a part in which the state
-is set. There will be checked in which state the connection is.  In
-other cases there will be just checked if traffic comes from two
-sides.
+* For other protocols (for example UDP), the connection will be
+  considered established after seeing traffic from both sides of the
+  connection.
 
-Example:
-
-.. image:: flow-keywords/Flow1.png
-
-.. image:: flow-keywords/Flow2.png
+  .. image:: flow-keywords/Flow2.png
 
 Flowint
 ~~~~~~~
