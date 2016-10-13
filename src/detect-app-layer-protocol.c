@@ -53,32 +53,17 @@ static int DetectAppLayerProtocolPacketMatch(ThreadVars *tv,
         SCReturnInt(0);
     }
 
-    if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER)) {
+    if ((f->alproto_ts != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOSERVER)) {
         SCLogNotice("toserver packet %u: looking for %u/neg %u, got %u", (uint)p->pcap_cnt,
                 data->alproto, data->negated, f->alproto_ts);
         r = (data->negated) ? (f->alproto_ts != data->alproto) :
             (f->alproto_ts == data->alproto);
-    } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT)) {
+    } else if ((f->alproto_tc != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOCLIENT)) {
         SCLogNotice("toclient packet %u: looking for %u/neg %u, got %u", (uint)p->pcap_cnt,
                 data->alproto, data->negated, f->alproto_tc);
         r = (data->negated) ? (f->alproto_tc != data->alproto) :
             (f->alproto_tc == data->alproto);
     }
-
-    SCReturnInt(r);
-}
-
-static int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags, void *state,
-                                Signature *s, SigMatch *m)
-{
-    SCEnter();
-
-    int r = 0;
-    const DetectAppLayerProtocolData *data = (const DetectAppLayerProtocolData *)m->ctx;
-
-    r = (data->negated) ? (f->alproto != data->alproto) :
-        (f->alproto == data->alproto);
 
     SCReturnInt(r);
 }
@@ -166,14 +151,8 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     sm->type = DETECT_AL_APP_LAYER_PROTOCOL;
     sm->ctx = (void *)data;
 
-    if (data->negated || data->alproto == ALPROTO_FAILED) {
-        SCLogNotice("DETECT_SM_LIST_MATCH");
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    } else {
-        SCLogNotice("DETECT_SM_LIST_AMATCH");
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-        s->flags |= SIG_FLAG_APPLAYER;
-    }
+    SCLogNotice("DETECT_SM_LIST_MATCH");
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -194,8 +173,6 @@ void DetectAppLayerProtocolRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Match =
         DetectAppLayerProtocolPacketMatch;
-    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].AppLayerMatch =
-        DetectAppLayerProtocolMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Setup =
         DetectAppLayerProtocolSetup;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].Free =
