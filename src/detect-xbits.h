@@ -37,6 +37,8 @@
 #define DETECT_XBITS_TRACK_IPPAIR 2
 #define DETECT_XBITS_TRACK_FLOW   3
 
+#define DETECT_XBITS_EXPIRE_DEFAULT 30
+
 typedef struct DetectXbitsData_ {
     uint16_t idx;
     uint8_t cmd;
