@@ -840,6 +840,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         fprintf(rule_engine_analysis_FD, "%s\n", line);
 
         if (s->flags & SIG_FLAG_IPONLY) fprintf(rule_engine_analysis_FD, "    Rule is ip only.\n");
+        if (s->flags & SIG_FLAG_PDONLY) fprintf(rule_engine_analysis_FD, "    Rule is PD only.\n");
         if (rule_ipv6_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv6 only.\n");
         if (rule_ipv4_only) fprintf(rule_engine_analysis_FD, "    Rule is IPv4 only.\n");
         if (packet_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on packets.\n");
