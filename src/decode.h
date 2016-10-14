@@ -1096,6 +1096,10 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
  *  flow engine: Packet::flow_hash will be set */
 #define PKT_WANTS_FLOW                  (1<<22)
 
+/** protocol detection done */
+#define PKT_PROTO_DETECT_TS_DONE        (1<<23)
+#define PKT_PROTO_DETECT_TC_DONE        (1<<24)
+
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
 

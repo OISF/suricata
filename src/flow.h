@@ -71,8 +71,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TOSERVER_DROP_LOGGED       BIT_U32(10)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
 #define FLOW_TOCLIENT_DROP_LOGGED       BIT_U32(11)
-/** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE        BIT_U32(12)
+
+// vacancy bit 12
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)
@@ -88,6 +88,9 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_IPV4                       BIT_U32(18)
 /** flow is ipv6 */
 #define FLOW_IPV6                       BIT_U32(19)
+
+#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(20)
+#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(21)
 
 
 /* File flags */
@@ -379,8 +382,6 @@ typedef struct Flow_
     AppProto alproto; /**< \brief application level protocol */
     AppProto alproto_ts;
     AppProto alproto_tc;
-
-    uint32_t data_al_so_far[2];
 
     /** detection engine ctx id used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the

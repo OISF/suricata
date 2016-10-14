@@ -74,6 +74,8 @@ enum {
     /* should be last */
     FLOW_PROTO_MAX,
 };
+/* max used in app-layer (counters) */
+#define FLOW_PROTO_APPLAYER_MAX FLOW_PROTO_UDP + 1
 
 /*
  * Variables

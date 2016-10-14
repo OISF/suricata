@@ -82,6 +82,8 @@ const char *AppProtoToString(AppProto alproto)
             proto_name = "template";
             break;
         case ALPROTO_FAILED:
+            proto_name = "failed";
+            break;
 #ifdef UNITTESTS
         case ALPROTO_TEST:
 #endif

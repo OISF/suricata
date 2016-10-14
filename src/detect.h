@@ -285,6 +285,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_PREFILTER              (1<<23) /**< sig is part of a prefilter engine */
 
+#define SIG_FLAG_PDONLY                 (1<<24) /**< proto detect only signature */
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -1198,6 +1200,7 @@ enum {
 
     /* sorted by prefilter priority. Higher in this list means it will be
      * picked over ones lower in the list */
+    DETECT_AL_APP_LAYER_PROTOCOL,
     DETECT_ACK,
     DETECT_SEQ,
     DETECT_WINDOW,
@@ -1296,7 +1299,6 @@ enum {
     DETECT_FILE_DATA,
     DETECT_PKT_DATA,
     DETECT_AL_APP_LAYER_EVENT,
-    DETECT_AL_APP_LAYER_PROTOCOL,
 
     DETECT_DCE_IFACE,
     DETECT_DCE_OPNUM,

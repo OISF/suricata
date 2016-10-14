@@ -187,7 +187,12 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         return;
     }
 
-    json_object_set_new(js, "app_proto", json_string(AppProtoToString(f->alproto)));
+    json_object_set_new(js, "app_proto",
+            json_string(AppProtoToString(f->alproto)));
+    json_object_set_new(js, "app_proto_ts",
+            json_string(AppProtoToString(f->alproto_ts)));
+    json_object_set_new(js, "app_proto_tc",
+            json_string(AppProtoToString(f->alproto_tc)));
 
     json_object_set_new(hjs, "pkts_toserver",
             json_integer(f->todstpktcnt));
