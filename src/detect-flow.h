@@ -24,16 +24,19 @@
 #ifndef __DETECT_FLOW_H__
 #define __DETECT_FLOW_H__
 
-#define DETECT_FLOW_FLAG_TOSERVER       0x01
-#define DETECT_FLOW_FLAG_TOCLIENT       0x02
-#define DETECT_FLOW_FLAG_ESTABLISHED    0x04
-#define DETECT_FLOW_FLAG_STATELESS      0x08
-#define DETECT_FLOW_FLAG_ONLYSTREAM     0x10
-#define DETECT_FLOW_FLAG_NOSTREAM       0x20
+#define DETECT_FLOW_FLAG_TOSERVER        BIT_U16(0)
+#define DETECT_FLOW_FLAG_TOCLIENT        BIT_U16(1)
+#define DETECT_FLOW_FLAG_ESTABLISHED     BIT_U16(2)
+#define DETECT_FLOW_FLAG_NOT_ESTABLISHED BIT_U16(3)
+#define DETECT_FLOW_FLAG_STATELESS       BIT_U16(4)
+#define DETECT_FLOW_FLAG_ONLYSTREAM      BIT_U16(5)
+#define DETECT_FLOW_FLAG_NOSTREAM        BIT_U16(6)
+#define DETECT_FLOW_FLAG_NO_FRAG         BIT_U16(7)
+#define DETECT_FLOW_FLAG_ONLY_FRAG       BIT_U16(8)
 
 typedef struct DetectFlowData_ {
-    uint8_t flags;     /* flags to match */
-    uint8_t match_cnt; /* number of matches we need */
+    uint16_t flags;     /* flags to match */
+    uint8_t match_cnt;  /* number of matches we need */
 } DetectFlowData;
 
 /* prototypes */
