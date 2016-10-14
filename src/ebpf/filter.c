@@ -63,6 +63,16 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
 
     nhoff = skb->cb[0];
 
+    tuple.ip_proto = load_byte(skb, nhoff + offsetof(struct iphdr, protocol));
+    /* only support TCP and UDP for now */
+    switch (tuple.ip_proto) {
+        case IPPROTO_TCP:
+        case IPPROTO_UDP:
+            break;
+        default:
+            return -1;
+    }
+    
     tuple.src = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
     tuple.dst = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
 
@@ -72,7 +82,6 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
     port = tuple.port16[1];
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
-    tuple.ip_proto = 6;
 
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
