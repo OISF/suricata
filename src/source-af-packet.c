@@ -2247,8 +2247,8 @@ static int AFPBypassCallback(Packet *p)
 {
 #ifdef HAVE_PACKET_EBPF
     SCLogDebug("Calling af_packet callback function");
-    /* FIXME remove this */
-    if (!PKT_IS_TCP(p)) {
+    /* Only bypass TCP and UDP */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
         return 0;
     }
 
@@ -2276,7 +2276,7 @@ static int AFPBypassCallback(Packet *p)
         key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
-        key.ip_proto = 6;
+        key.ip_proto = IPV4_GET_IPPROTO(p);
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }
