@@ -130,6 +130,23 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
     return data;
 }
 
+static _Bool HasConflicts(const DetectAppLayerProtocolData *us,
+                          const DetectAppLayerProtocolData *them)
+{
+    /* mixing negated and non negated is illegal */
+    if (them->negated ^ us->negated)
+        return TRUE;
+    /* multiple non-negated is illegal */
+    if (!us->negated)
+        return TRUE;
+    /* duplicate option */
+    if (us->alproto == them->alproto)
+        return TRUE;
+
+    /* all good */
+    return FALSE;
+}
+
 static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         Signature *s, char *arg)
 {
@@ -148,10 +165,12 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     if (data == NULL)
         goto error;
 
-    if (!data->negated && data->alproto != ALPROTO_FAILED) {
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+    SigMatch *tsm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    for ( ; tsm != NULL; tsm = tsm->next) {
+        if (tsm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+            const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;
+
+            if (HasConflicts(data, them)) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "can't mix "
                         "positive app-layer-protocol match with negated "
                         "match or match for 'failed'.");
@@ -310,12 +329,12 @@ static int DetectAppLayerProtocolTest03(void)
             "(app-layer-protocol:http; sid:1;)");
     FAIL_IF_NULL(s);
 
-    FAIL_IF(s->alproto != ALPROTO_HTTP);
+    FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
 
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
-    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_AMATCH]->ctx;
+    data = (DetectAppLayerProtocolData *)s->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated);
     DetectEngineCtxFree(de_ctx);
@@ -336,7 +355,6 @@ static int DetectAppLayerProtocolTest04(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    /* negated match means we use MATCH not AMATCH */
     FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
@@ -364,7 +382,6 @@ static int DetectAppLayerProtocolTest05(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    /* negated match means we use MATCH not AMATCH */
     FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
@@ -497,6 +514,53 @@ static int DetectAppLayerProtocolTest13(void)
     PASS;
 }
 
+static int DetectAppLayerProtocolTest14(void)
+{
+    DetectAppLayerProtocolData *data = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s1 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:http; flowbits:set,blah; sid:1;)");
+    FAIL_IF_NULL(s1);
+    FAIL_IF(s1->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s1->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated);
+
+    Signature *s2 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:http; flow:to_client; sid:2;)");
+    FAIL_IF_NULL(s2);
+    FAIL_IF(s2->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s2->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated);
+
+    /* flow:established and other options not supported for PD-only */
+    Signature *s3 = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+            "(app-layer-protocol:http; flow:to_client,established; sid:3;)");
+    FAIL_IF_NULL(s3);
+    FAIL_IF(s3->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]);
+    FAIL_IF_NULL(s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+    data = (DetectAppLayerProtocolData *)s3->sm_lists[DETECT_SM_LIST_MATCH]->ctx;
+    FAIL_IF(data->alproto != ALPROTO_HTTP);
+    FAIL_IF(data->negated);
+
+    SigGroupBuild(de_ctx);
+    FAIL_IF_NOT(s1->flags & SIG_FLAG_PDONLY);
+    FAIL_IF_NOT(s2->flags & SIG_FLAG_PDONLY);
+    FAIL_IF(s3->flags & SIG_FLAG_PDONLY); // failure now
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 static void DetectAppLayerProtocolRegisterTests(void)
@@ -528,6 +592,8 @@ static void DetectAppLayerProtocolRegisterTests(void)
                    DetectAppLayerProtocolTest12);
     UtRegisterTest("DetectAppLayerProtocolTest13",
                    DetectAppLayerProtocolTest13);
+    UtRegisterTest("DetectAppLayerProtocolTest14",
+                   DetectAppLayerProtocolTest14);
 #endif /* UNITTESTS */
 
     return;
