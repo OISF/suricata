@@ -2289,7 +2289,9 @@ static int AFPBypassCallback(Packet *p)
         }
         return 1;
     }
-    if (PKT_IS_IPV6(p)) {
+    /* For IPv6 case we don't handle extended header in eBPF */
+    if (PKT_IS_IPV6(p) && 
+        ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         /* FIXME cache this and handle error at cache time*/
         int mapd = EBPFGetMapFDByName("flow_table_v6");
         int i = 0;
@@ -2307,7 +2309,7 @@ static int AFPBypassCallback(Packet *p)
         }
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
-        key.ip_proto = 6;
+        key.ip_proto = IPV6_GET_NH(p);
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }
