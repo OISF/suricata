@@ -11,6 +11,7 @@ Suricata Rules
    http-keywords
    flow-keywords
    flowint
+   xbits
    file-keywords
    thresholding
    dns-keywords
