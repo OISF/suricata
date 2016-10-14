@@ -1998,6 +1998,103 @@ iponly:
     return 1;
 }
 
+/** \internal
+ *  \brief Test is a initialized signature is inspecting protocol detection only
+ *  \param de_ctx detection engine ctx
+ *  \param s the signature
+ *  \retval 1 sig is dp only
+ *  \retval 0 sig is not dp only
+ */
+static int SignatureIsPDOnly(const Signature *s)
+{
+    if (s->alproto != ALPROTO_UNKNOWN)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+        return 0;
+
+    /* TMATCH list can be ignored, it contains TAGs and
+     * tags are compatible to DP-only. */
+
+    /* match list matches may be compatible to DP only. We follow the same
+     * logic as IP-only so we can use that flag */
+
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    if (sm == NULL)
+        return 0;
+
+    int pd = 0;
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
+            pd = 1;
+        } else {
+            /* flowbits are supported for dp only sigs, as long
+             * as the sig only has a "set" flowbits */
+            if (sm->type == DETECT_FLOWBITS) {
+                if ((((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET) ) {
+                    SCLogDebug("%u: not PD-only: flowbit settings other than 'set'", s->id);
+                    return 0;
+                }
+            } else if (sm->type == DETECT_FLOW) {
+                if (((DetectFlowData *)sm->ctx)->flags & ~(DETECT_FLOW_FLAG_TOSERVER|DETECT_FLOW_FLAG_TOCLIENT)) {
+                    SCLogDebug("%u: not PD-only: flow settings other than toserver/toclient", s->id);
+                    return 0;
+                }
+            } else if ( !(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT)) {
+                SCLogDebug("%u: not PD-only: %s not PD/IP-only compat", s->id, sigmatch_table[sm->type].name);
+                return 0;
+            }
+        }
+    }
+
+    if (pd) {
+        SCLogDebug("PD-ONLY (%" PRIu32 ")", s->id);
+    }
+    return pd;
+}
+
 /**
  *  \internal
  *  \brief Check if the initialized signature is inspecting the packet payload
@@ -3283,8 +3380,13 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
+        /* see if the sig is dp only */
+        if (SignatureIsPDOnly(tmp_s) == 1) {
+            tmp_s->flags |= SIG_FLAG_PDONLY;
+            SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", tmp_s->id);
+
         /* see if the sig is ip only */
-        if (SignatureIsIPOnly(de_ctx, tmp_s) == 1) {
+        } else if (SignatureIsIPOnly(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_IPONLY;
             cnt_iponly++;
 

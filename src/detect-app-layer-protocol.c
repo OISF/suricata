@@ -23,6 +23,8 @@
 
 #include "suricata-common.h"
 #include "detect-engine.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-prefilter-common.h"
 #include "detect-parse.h"
 #include "detect-app-layer-protocol.h"
 #include "app-layer.h"
@@ -42,27 +44,43 @@ static int DetectAppLayerProtocolPacketMatch(ThreadVars *tv,
     int r = 0;
     const DetectAppLayerProtocolData *data = (const DetectAppLayerProtocolData *)ctx;
 
-    if ((p->flags & (PKT_PROTO_DETECT_TS_DONE|PKT_PROTO_DETECT_TC_DONE)) == 0) {
-        SCLogNotice("packet %u: flags not set", (uint)p->pcap_cnt);
+    /* if the sig is PD-only we only match when PD packet flags are set */
+    if ((s->flags & SIG_FLAG_PDONLY) &&
+        (p->flags & (PKT_PROTO_DETECT_TS_DONE|PKT_PROTO_DETECT_TC_DONE)) == 0)
+    {
+        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
         SCReturnInt(0);
     }
 
     const Flow *f = p->flow;
     if (f == NULL) {
-        SCLogNotice("packet %u: no flow", (uint)p->pcap_cnt);
+        SCLogDebug("packet %"PRIu64": no flow", p->pcap_cnt);
         SCReturnInt(0);
     }
 
-    if ((f->alproto_ts != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOSERVER)) {
-        SCLogNotice("toserver packet %u: looking for %u/neg %u, got %u", (uint)p->pcap_cnt,
-                data->alproto, data->negated, f->alproto_ts);
+    /* unknown means protocol detection isn't ready yet */
+
+    if ((f->alproto_ts != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOSERVER))
+    {
+        SCLogDebug("toserver packet %"PRIu64": looking for %u/neg %u, got %u",
+                p->pcap_cnt, data->alproto, data->negated, f->alproto_ts);
+
         r = (data->negated) ? (f->alproto_ts != data->alproto) :
             (f->alproto_ts == data->alproto);
-    } else if ((f->alproto_tc != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOCLIENT)) {
-        SCLogNotice("toclient packet %u: looking for %u/neg %u, got %u", (uint)p->pcap_cnt,
-                data->alproto, data->negated, f->alproto_tc);
+
+    } else if ((f->alproto_tc != ALPROTO_UNKNOWN) && (p->flowflags & FLOW_PKT_TOCLIENT))
+    {
+        SCLogDebug("toclient packet %"PRIu64": looking for %u/neg %u, got %u",
+                p->pcap_cnt, data->alproto, data->negated, f->alproto_tc);
+
         r = (data->negated) ? (f->alproto_tc != data->alproto) :
             (f->alproto_tc == data->alproto);
+    }
+    else {
+        SCLogDebug("packet %"PRIu64": default case: direction %02x, approtos %u/%u/%u",
+            p->pcap_cnt,
+            p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER),
+            f->alproto, f->alproto_ts, f->alproto_tc);
     }
 
     SCReturnInt(r);
@@ -140,8 +158,6 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
                 goto error;
             }
         }
-
-        s->alproto = data->alproto;
     }
 
     sm = SigMatchAlloc();
@@ -151,9 +167,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     sm->type = DETECT_AL_APP_LAYER_PROTOCOL;
     sm->ctx = (void *)data;
 
-    SCLogNotice("DETECT_SM_LIST_MATCH");
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
     return 0;
 
 error:
@@ -168,6 +182,79 @@ static void DetectAppLayerProtocolFree(void *ptr)
     return;
 }
 
+/** \internal
+ *  \brief prefilter function for protocol detect matching
+ */
+static void
+PrefilterPacketAppProtoMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE) {
+        SCLogDebug("packet %"PRIu64": extra match failed", p->pcap_cnt);
+        SCReturn;
+    }
+
+    if (p->flow == NULL) {
+        SCLogDebug("packet %"PRIu64": no flow, no alproto", p->pcap_cnt);
+        SCReturn;
+    }
+
+    if ((p->flags & (PKT_PROTO_DETECT_TS_DONE|PKT_PROTO_DETECT_TC_DONE)) == 0) {
+        SCLogDebug("packet %"PRIu64": flags not set", p->pcap_cnt);
+        SCReturn;
+    }
+
+    if ((p->flags & PKT_PROTO_DETECT_TS_DONE) && (p->flowflags & FLOW_PKT_TOSERVER))
+    {
+        int r = (ctx->v1.u16[0] == p->flow->alproto_ts) ^ ctx->v1.u8[2];
+        if (r) {
+            PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+        }
+    } else if ((p->flags & PKT_PROTO_DETECT_TC_DONE) && (p->flowflags & FLOW_PKT_TOCLIENT))
+    {
+        int r = (ctx->v1.u16[0] == p->flow->alproto_tc) ^ ctx->v1.u8[2];
+        if (r) {
+            PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+        }
+    }
+}
+
+static void
+PrefilterPacketAppProtoSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectAppLayerProtocolData *a = smctx;
+    v->u16[0] = a->alproto;
+    v->u8[2] = (uint8_t)a->negated;
+}
+
+static _Bool
+PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectAppLayerProtocolData *a = smctx;
+    if (v.u16[0] == a->alproto &&
+        v.u8[2] == (uint8_t)a->negated)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupAppProto(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_AL_APP_LAYER_PROTOCOL,
+        PrefilterPacketAppProtoSet,
+        PrefilterPacketAppProtoCompare,
+        PrefilterPacketAppProtoMatch);
+}
+
+static _Bool PrefilterAppProtoIsPrefilterable(const Signature *s)
+{
+    if (s->flags & SIG_FLAG_PDONLY) {
+        SCLogDebug("prefilter on PD %u", s->id);
+        return TRUE;
+    }
+    return FALSE;
+}
+
 void DetectAppLayerProtocolRegister(void)
 {
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].name = "app-layer-protocol";
@@ -180,6 +267,10 @@ void DetectAppLayerProtocolRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].RegisterTests =
         DetectAppLayerProtocolRegisterTests;
 
+    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SetupPrefilter =
+        PrefilterSetupAppProto;
+    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SupportsPrefilter =
+        PrefilterAppProtoIsPrefilterable;
     return;
 }
 
