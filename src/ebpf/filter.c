@@ -124,9 +124,13 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     /* get next header */
     nhdr = load_byte(skb, nhoff + offsetof(struct ipv6hdr, nexthdr));
 
-    /* only support direct TCP for now */
-    if (nhdr != IPPROTO_TCP) {
-        return -1;
+    /* only support direct TCP and UDP for now */
+    switch (nhdr) {
+        case IPPROTO_TCP:
+        case IPPROTO_UDP:
+            break;
+        default:
+            return -1;
     }
 
     /* Parse TCP */
@@ -134,7 +138,7 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     port = tuple.port16[1];
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
-    tuple.ip_proto = 6;
+    tuple.ip_proto = nhdr;
 
     //char fmt[] = "Now Got IPv6 port %u and %u\n";
     //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
