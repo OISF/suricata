@@ -18,6 +18,7 @@ Suricata Rules
    modbus-keyword
    dnp3-keywords
    enip-keyword
+   app-layer
    rule-lua-scripting
    normalized-buffers
    snort-compatibility
