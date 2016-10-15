@@ -538,7 +538,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                              tx, tx_id);
                     SCLogDebug("engine %p match %d", engine, match);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);
                         engine = engine->next;
                         total_matches++;
                         continue;
@@ -551,10 +551,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         continue;
                     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);;
                     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);
                         file_no_match++;
                     }
                     break;
@@ -854,7 +854,7 @@ static int DoInspectItem(ThreadVars *tv,
     }
 
     while (engine != NULL) {
-        if (!(item->flags & engine->inspect_flags) &&
+        if (!(item->flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
             SCLogDebug("inspect_flags %x", inspect_flags);
@@ -862,7 +862,7 @@ static int DoInspectItem(ThreadVars *tv,
             int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                     flags, alstate, inspect_tx, inspect_tx_id);
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
                 engine = engine->next;
                 total_matches++;
                 continue;
@@ -875,10 +875,10 @@ static int DoInspectItem(ThreadVars *tv,
                 continue;
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
                 (*file_no_match)++;
             }
             break;
