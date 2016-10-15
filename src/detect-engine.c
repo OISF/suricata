@@ -198,6 +198,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             case DETECT_SM_LIST_TLSSUBJECT_MATCH:
             //case DETECT_SM_LIST_TLSVALIDITY_MATCH:
 
+            case DETECT_SM_LIST_APP_EVENT:
+
                 new_engine->sm = s->sm_lists[new_engine->sm_list];
                 s->sm_lists[new_engine->sm_list] = NULL;
                 s->sm_lists_tail[new_engine->sm_list] = NULL;
