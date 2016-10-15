@@ -70,9 +70,10 @@ int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
 int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
 
 int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
-                                   DetectEngineThreadCtx *, const Signature *,
+                                   DetectEngineThreadCtx *,
+                                   const Signature *, const SigMatchData *,
                                    Flow *, const uint8_t, void *, void *,
-                                   uint64_t, const int);
+                                   uint64_t);
 
 /**
  * \brief Registers an app inspection engine.
