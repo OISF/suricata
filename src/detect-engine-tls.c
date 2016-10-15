@@ -99,7 +99,7 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectTlsSni(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
@@ -114,7 +114,7 @@ int DetectEngineInspectTlsSni(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->client_connp.sni;
     buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -174,7 +174,7 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectTlsIssuer(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatch *sm,
+        Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
@@ -189,7 +189,7 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
     buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -249,7 +249,7 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectTlsSubject(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatch *sm,
+        Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
@@ -264,7 +264,7 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
     buffer_len = strlen(ssl_state->server_connp.cert0_subject);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -273,7 +273,7 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv,
 
 int DetectEngineInspectTlsValidity(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatch *sm,
+        Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id)
 {

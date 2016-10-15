@@ -143,7 +143,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
                                       f, p->payload, p->payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
     if (r == 1) {
@@ -184,7 +184,7 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
                                       f, payload, payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
     if (r == 1) {

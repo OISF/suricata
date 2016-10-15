@@ -106,7 +106,7 @@ int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectHttpUri(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatch *sm,
+        Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);
@@ -129,7 +129,7 @@ int DetectEngineInspectHttpUri(ThreadVars *tv,
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),
