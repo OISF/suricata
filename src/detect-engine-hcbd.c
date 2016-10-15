@@ -276,7 +276,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
                                           f,
                                           (uint8_t *)buffer,
                                           buffer_len,
