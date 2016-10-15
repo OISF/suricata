@@ -139,8 +139,8 @@ static char *TrimString(char *str)
 }
 
 static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
+    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatch *sm,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
     DNP3Transaction *tx = (DNP3Transaction *)txv;
@@ -163,8 +163,8 @@ static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
 }
 
 static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
+    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatch *sm,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
         alstate, txv, tx_id, DETECT_SM_LIST_DNP3_MATCH);

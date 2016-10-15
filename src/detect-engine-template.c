@@ -36,9 +36,10 @@
 
 #include "app-layer-template.h"
 
-int DetectEngineInspectTemplateBuffer(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
+int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
+    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+    Signature *s, const SigMatch *sm,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     TemplateTransaction *tx = (TemplateTransaction *)txv;
     int ret = 0;
