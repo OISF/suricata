@@ -87,5 +87,6 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
         uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
+void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 
 #endif /* __DETECT_ENGINE_H__ */
