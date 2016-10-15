@@ -114,8 +114,7 @@ int DetectEngineInspectTlsSni(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->client_connp.sni;
     buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSSNI_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -190,8 +189,7 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
     buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -266,8 +264,7 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
     buffer_len = strlen(ssl_state->server_connp.cert0_subject);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 

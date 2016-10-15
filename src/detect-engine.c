@@ -188,6 +188,16 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             case DETECT_SM_LIST_HRHHDMATCH:
             case DETECT_SM_LIST_HCDMATCH:
             case DETECT_SM_LIST_HUADMATCH:
+
+            case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
+            //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
+            //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
+
+            case DETECT_SM_LIST_TLSSNI_MATCH:
+            case DETECT_SM_LIST_TLSISSUER_MATCH:
+            case DETECT_SM_LIST_TLSSUBJECT_MATCH:
+            //case DETECT_SM_LIST_TLSVALIDITY_MATCH:
+
                 new_engine->sm = s->sm_lists[new_engine->sm_list];
                 s->sm_lists[new_engine->sm_list] = NULL;
                 s->sm_lists_tail[new_engine->sm_list] = NULL;

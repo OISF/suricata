@@ -86,7 +86,7 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         //PrintRawDataFp(stdout, buffer, buffer_len);
 
         r = DetectEngineContentInspection(de_ctx, det_ctx,
-                s, s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
+                s, sm,
                 f, buffer, buffer_len, 0,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (r == 1)
