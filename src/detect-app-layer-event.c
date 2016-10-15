@@ -86,14 +86,13 @@ void DetectAppLayerEventRegister(void)
 
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *smi,
+        const Signature *s, const SigMatch *sm,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id)
 {
     AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;
     AppProto alproto;
-    SigMatch *sm;
     DetectAppLayerEventData *aled = NULL;
 
     alproto = f->alproto;
@@ -101,7 +100,7 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
     if (decoder_events == NULL)
         goto end;
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT]; sm != NULL; sm = sm->next) {
+    for ( ; sm != NULL; sm = sm->next) {
         aled = (DetectAppLayerEventData *)sm->ctx;
         KEYWORD_PROFILING_START;
         if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
