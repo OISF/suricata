@@ -192,13 +192,13 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             case DETECT_SM_LIST_FILEMATCH:
 
             case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-            //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
-            //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
+            case DETECT_SM_LIST_DNSREQUEST_MATCH:
+            case DETECT_SM_LIST_DNSRESPONSE_MATCH:
 
             case DETECT_SM_LIST_TLSSNI_MATCH:
             case DETECT_SM_LIST_TLSISSUER_MATCH:
             case DETECT_SM_LIST_TLSSUBJECT_MATCH:
-            //case DETECT_SM_LIST_TLSVALIDITY_MATCH:
+            case DETECT_SM_LIST_TLSVALIDITY_MATCH:
 
             case DETECT_SM_LIST_APP_EVENT:
 
@@ -352,13 +352,10 @@ int DetectEngineReloadIsDone(void)
 int DetectEngineInspectGenericList(ThreadVars *tv,
                                    const DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, Flow *f, const uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id, const int list)
+                                   const Signature *s, const SigMatchData *smd,
+                                   Flow *f, const uint8_t flags,
+                                   void *alstate, void *txv, uint64_t tx_id)
 {
-#ifdef PROFILING
-    KEYWORD_PROFILING_SET_LIST(det_ctx, list);
-#endif
-    SigMatchData *smd = s->sm_arrays[list];
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
         while (1) {
