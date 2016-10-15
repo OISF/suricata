@@ -378,9 +378,8 @@ struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
-    uint8_t id;
+    uint8_t id;     /**< per sig id used in state keeping */
     int sm_list;
-    uint32_t inspect_flags;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
      *         1 Match.
