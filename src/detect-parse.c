@@ -1064,9 +1064,9 @@ void SigFree(Signature *s)
 
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        SigMatch *sm = s->sm_lists[i], *nsm;
+        SigMatch *sm = s->sm_lists[i];
         while (sm != NULL) {
-            nsm = sm->next;
+            SigMatch *nsm = sm->next;
             SigMatchFree(sm);
             sm = nsm;
         }
@@ -1101,6 +1101,12 @@ void SigFree(Signature *s)
     DetectEngineAppInspectionEngine *ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
+        SigMatch *sm = ie->sm;
+        while (sm != NULL) {
+            SigMatch *nsm = sm->next;
+            SigMatchFree(sm);
+            sm = nsm;
+        }
         SCFree(ie);
         ie = next;
     }
