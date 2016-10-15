@@ -277,7 +277,6 @@ int DetectEngineInspectTlsValidity(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
-                                          alstate, txv, tx_id,
-                                          DETECT_SM_LIST_TLSVALIDITY_MATCH);
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
 }
