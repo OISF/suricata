@@ -34,7 +34,7 @@ enum {
 };
 
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, const SigMatch *sm,
+                                  const Signature *s, const SigMatchData *smd,
                                   Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
                                   uint32_t stream_start_offset,

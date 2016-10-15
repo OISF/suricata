@@ -55,7 +55,7 @@ static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
 
@@ -86,7 +86,7 @@ void DetectAppLayerEventRegister(void)
 
 static int DetectEngineAptEventInspect(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id)
 {
@@ -100,15 +100,20 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
     if (decoder_events == NULL)
         goto end;
 
-    for ( ; sm != NULL; sm = sm->next) {
-        aled = (DetectAppLayerEventData *)sm->ctx;
+    while (1) {
+        aled = (DetectAppLayerEventData *)smd->ctx;
         KEYWORD_PROFILING_START;
+
         if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+
+            if (smd->is_last)
+                break;
+            smd++;
             continue;
         }
 
-        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
+        KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
         goto end;
     }
 

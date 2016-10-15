@@ -128,7 +128,7 @@ int PrefilterTxHostnameRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectHttpHRH(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *hname;
@@ -153,7 +153,7 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           hname, hname_len,
                                           0,

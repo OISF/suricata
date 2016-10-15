@@ -113,7 +113,7 @@ int PrefilterTxRawUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectHttpRawUri(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -129,7 +129,7 @@ int DetectEngineInspectHttpRawUri(ThreadVars *tv,
     det_ctx->inspection_recursion_counter = 0;
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_uri),
                                           bstr_len(tx->request_uri),

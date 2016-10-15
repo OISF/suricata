@@ -66,7 +66,7 @@ void DetectHttpRequestLineFree(void *);
 static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
@@ -172,7 +172,7 @@ static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx
  */
 static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -191,7 +191,7 @@ static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
     int r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, sm,
+                                          s, smd,
                                           f,
                                           bstr_ptr(tx->request_line),
                                           bstr_len(tx->request_line),

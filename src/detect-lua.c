@@ -186,7 +186,7 @@ void LuaDumpStack(lua_State *state)
 }
 
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f)
 {
@@ -196,7 +196,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
     if (buffer == NULL || buffer_len == 0)
         SCReturnInt(0);
 
-    DetectLuaData *lua = (DetectLuaData *)sm->ctx;
+    DetectLuaData *lua = (DetectLuaData *)smd->ctx;
     if (lua == NULL)
         SCReturnInt(0);
 

@@ -208,9 +208,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
 
-                new_engine->sm = s->sm_lists[new_engine->sm_list];
-                s->sm_lists[new_engine->sm_list] = NULL;
-                s->sm_lists_tail[new_engine->sm_list] = NULL;
+                new_engine->smd = s->sm_arrays[new_engine->sm_list];
                 lists_used[t->sm_list] = 1;
                 break;
             default:
@@ -239,8 +237,7 @@ next:
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
         if (lists_used[i]) {
-            s->sm_lists[i] = NULL;
-            s->sm_lists_tail[i] = NULL;
+            s->sm_arrays[i] = NULL;
         }
     }
 
@@ -258,13 +255,13 @@ next:
  */
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 {
-    SigMatch *ptrs[DETECT_SM_LIST_MAX] = { NULL };
+    SigMatchData *ptrs[DETECT_SM_LIST_MAX] = { NULL };
 
     DetectEngineAppInspectionEngine *ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
-        BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->sm);
-        ptrs[ie->sm_list] = ie->sm;
+        BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->smd);
+        ptrs[ie->sm_list] = ie->smd;
         SCFree(ie);
         ie = next;
     }
@@ -272,12 +269,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++)
     {
-        SigMatch *sm = ptrs[i];
-        while (sm != NULL) {
-            SigMatch *nsm = sm->next;
-            SigMatchFree(sm);
-            sm = nsm;
-        }
+        SCFree(ptrs[i]);
     }
 }
 
