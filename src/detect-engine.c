@@ -178,7 +178,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
-            new_engine->inspect_flags = BIT_U32(DE_STATE_FLAG_BASE); // start beyond the built-ins
+            new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
         } else {
             DetectEngineAppInspectionEngine *a = s->app_inspect;
             while (a->next != NULL) {
@@ -187,7 +187,6 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             a->next = new_engine;
             new_engine->id = a->id + 1;
-            new_engine->inspect_flags = BIT_U32(new_engine->id + DE_STATE_FLAG_BASE);
         }
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
