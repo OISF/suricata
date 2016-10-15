@@ -74,9 +74,9 @@
  *  \note flow is not locked at this time
  */
 static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Flow *f, Signature *s, uint8_t flags, FileContainer *ffc)
+        Flow *f, Signature *s, const SigMatch *smi, uint8_t flags, FileContainer *ffc)
 {
-    SigMatch *sm = NULL;
+    const SigMatch *sm = NULL;
     int r = 0;
     int match = 0;
     int store_r = 0;
@@ -148,7 +148,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             }
 
             /* run the file match functions. */
-            for (sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH]; sm != NULL; sm = sm->next) {
+            for (sm = smi; sm != NULL; sm = sm->next) {
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
                 if (sigmatch_table[sm->type].FileMatch != NULL) {
@@ -183,7 +183,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     } else {
         /* if we have a filestore sm with a scope > file (so tx, ssn) we
          * run it here */
-        sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH];
+        sm = smi;
         if (sm != NULL && sm->next == NULL && sm->type == DETECT_FILESTORE &&
                 sm->ctx != NULL)
         {
@@ -242,7 +242,7 @@ int DetectFileInspectHttp(ThreadVars *tv,
     else
         ffc = htp_state->files_ts;
 
-    int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+    int match = DetectFileInspect(tv, det_ctx, f, s, sm, flags, ffc);
     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
@@ -294,7 +294,7 @@ int DetectFileInspectSmtp(ThreadVars *tv,
     else
         goto end;
 
-    int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+    int match = DetectFileInspect(tv, det_ctx, f, s, sm, flags, ffc);
     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {

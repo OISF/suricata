@@ -189,6 +189,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             case DETECT_SM_LIST_HCDMATCH:
             case DETECT_SM_LIST_HUADMATCH:
 
+            case DETECT_SM_LIST_FILEMATCH:
+
             case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
             //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
             //case DETECT_SM_LIST_DNSRESPONSE_MATCH:
