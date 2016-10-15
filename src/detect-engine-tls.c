@@ -97,10 +97,10 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                              DetectEngineThreadCtx *det_ctx, const Signature *s,
-                              Flow *f, uint8_t flags, void *alstate, void *txv,
-                              uint64_t tx_id)
+int DetectEngineInspectTlsSni(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint16_t buffer_len;
@@ -173,10 +173,10 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                 DetectEngineThreadCtx *det_ctx, Signature *s,
-                                 Flow *f, uint8_t flags, void *alstate, void *txv,
-                                 uint64_t tx_id)
+int DetectEngineInspectTlsIssuer(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint32_t buffer_len;
@@ -249,10 +249,10 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
-                                  Flow *f, uint8_t flags, void *alstate, void *txv,
-                                  uint64_t tx_id)
+int DetectEngineInspectTlsSubject(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint32_t buffer_len;
@@ -274,10 +274,11 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
     return cnt;
 }
 
-int DetectEngineInspectTlsValidity(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
-                                  Flow *f, uint8_t flags, void *alstate,
-                                  void *txv, uint64_t tx_id)
+int DetectEngineInspectTlsValidity(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
                                           alstate, txv, tx_id,

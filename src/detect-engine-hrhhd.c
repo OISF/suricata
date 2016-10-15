@@ -127,11 +127,9 @@ int PrefilterTxHostnameRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  * \retval 1 Match.
  */
 int DetectEngineInspectHttpHRH(ThreadVars *tv,
-                               DetectEngineCtx *de_ctx,
-                               DetectEngineThreadCtx *det_ctx,
-                               const Signature *s, Flow *f, uint8_t flags,
-                               void *alstate,
-                               void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *hname;
     uint32_t hname_len;
