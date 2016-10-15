@@ -102,13 +102,7 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
 void DetectAppLayerInspectEngineRegister(AppProto alproto,
-        uint32_t dir, int32_t sm_list,
-        int (*Callback)(ThreadVars *tv,
-            DetectEngineCtx *de_ctx,
-            DetectEngineThreadCtx *det_ctx,
-            const Signature *sig, Flow *f,
-            uint8_t flags, void *alstate,
-            void *tx, uint64_t tx_id))
+        uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback)
 {
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
