@@ -1098,18 +1098,7 @@ void SigFree(Signature *s)
 
     SigRefFree(s);
 
-    DetectEngineAppInspectionEngine *ie = s->app_inspect;
-    while (ie) {
-        DetectEngineAppInspectionEngine *next = ie->next;
-        SigMatch *sm = ie->sm;
-        while (sm != NULL) {
-            SigMatch *nsm = sm->next;
-            SigMatchFree(sm);
-            sm = nsm;
-        }
-        SCFree(ie);
-        ie = next;
-    }
+    DetectEngineAppInspectionEngineSignatureFree(s);
 
     SCFree(s);
 }
