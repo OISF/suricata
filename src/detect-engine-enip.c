@@ -219,14 +219,13 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
  */
 int DetectEngineInspectCIP(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *smi, Flow *f, uint8_t flags,
+        const Signature *s, const SigMatch *sm, Flow *f, uint8_t flags,
         void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
 
 
     ENIPTransaction *tx = (ENIPTransaction *) txv;
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_CIP_MATCH];
     DetectCipServiceData *cipserviced = (DetectCipServiceData *) sm->ctx;
 
     if (cipserviced == NULL)
@@ -260,13 +259,12 @@ int DetectEngineInspectCIP(ThreadVars *tv,
 
 int DetectEngineInspectENIP(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *smi,
+        const Signature *s, const SigMatch *sm,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
 
     ENIPTransaction *tx = (ENIPTransaction *) txv;
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) sm->ctx;
 
     if (enipcmdd == NULL)
