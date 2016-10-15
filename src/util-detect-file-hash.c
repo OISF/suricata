@@ -147,7 +147,7 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
  * \retval 1 match
  */
 int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatch *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
 {
     SCEnter();
     int ret = 0;
