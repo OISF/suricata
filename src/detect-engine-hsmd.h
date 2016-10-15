@@ -28,11 +28,10 @@
 int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
-                                   DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, Flow *f, uint8_t flags,
-                                   void *alstate,
-                                   void *tx, uint64_t tx_id);
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
+
 void DetectEngineHttpStatMsgRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSMD_H__ */
