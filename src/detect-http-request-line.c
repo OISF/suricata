@@ -191,7 +191,7 @@ static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
     int r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, s->sm_lists[DETECT_SM_LIST_HTTP_REQLINEMATCH],
+                                          s, sm,
                                           f,
                                           bstr_ptr(tx->request_line),
                                           bstr_len(tx->request_line),

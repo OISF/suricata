@@ -129,7 +129,7 @@ int DetectEngineInspectHttpRawUri(ThreadVars *tv,
     det_ctx->inspection_recursion_counter = 0;
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRUDMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->request_uri),
                                           bstr_len(tx->request_uri),

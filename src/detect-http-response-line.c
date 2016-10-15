@@ -194,7 +194,7 @@ int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
 #endif
 
     /* run the inspection against the buffer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HTTP_RESLINEMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
                                           f,
                                           bstr_ptr(tx->response_line),
                                           bstr_len(tx->response_line),
