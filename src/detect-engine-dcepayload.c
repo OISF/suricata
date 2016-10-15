@@ -85,7 +85,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_DMATCH],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
@@ -108,7 +108,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_DMATCH],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
