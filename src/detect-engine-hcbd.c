@@ -257,10 +257,9 @@ int PrefilterTxHttpRequestBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 }
 
 int DetectEngineInspectHttpClientBody(ThreadVars *tv,
-                                      DetectEngineCtx *de_ctx,
-                                      DetectEngineThreadCtx *det_ctx,
-                                      Signature *s, Flow *f, uint8_t flags,
-                                      void *alstate, void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;

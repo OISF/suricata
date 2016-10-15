@@ -533,9 +533,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 SCLogDebug("inspect_flags %x", inspect_flags);
                 if (direction == engine->dir) {
                     KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                    int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
-                                             flags, alstate,
-                                             tx, tx_id);
+                    int match = engine->Callback(tv, de_ctx, det_ctx,
+                            s, engine->sm, f, flags, alstate, tx, tx_id);
                     SCLogDebug("engine %p match %d", engine, match);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                         inspect_flags |= BIT_U32(engine->id);
@@ -859,8 +858,9 @@ static int DoInspectItem(ThreadVars *tv,
         {
             SCLogDebug("inspect_flags %x", inspect_flags);
             KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-            int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
-                    flags, alstate, inspect_tx, inspect_tx_id);
+            int match = engine->Callback(tv, de_ctx, det_ctx,
+                    s, engine->sm,
+                    f, flags, alstate, inspect_tx, inspect_tx_id);
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                 inspect_flags |= BIT_U32(engine->id);
                 engine = engine->next;
