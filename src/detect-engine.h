@@ -84,14 +84,7 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
  * \param Callback The engine callback.
  */
 void DetectAppLayerInspectEngineRegister(AppProto alproto,
-                                 uint32_t dir,
-                                 int32_t sm_list,
-                                 int (*Callback)(ThreadVars *tv,
-                                     DetectEngineCtx *de_ctx,
-                                     DetectEngineThreadCtx *det_ctx,
-                                     const Signature *sig, Flow *f,
-                                     uint8_t flags, void *alstate,
-                                     void *tx, uint64_t tx_id));
+        uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
 
