@@ -375,6 +375,11 @@ typedef struct SigMatchData_ {
 
 struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
+typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
+        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
+        const struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
+        void *tx, uint64_t tx_id);
+
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
@@ -387,10 +392,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
      *         3 Special value used by filestore sigs to indicate disabling
      *           filestore for the tx.
      */
-    int (*Callback)(ThreadVars *tv,
-                    struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-                    const struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
-                    void *tx, uint64_t tx_id);
+    InspectEngineFuncPtr Callback;
 
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
