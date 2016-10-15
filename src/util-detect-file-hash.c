@@ -193,6 +193,8 @@ int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
+static const char *hexcodes = "ABCDEFabcdef0123456789";
+
 /**
  * \brief Parse the filemd5, filesha1 or filesha256 keyword
  *
@@ -251,24 +253,17 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
 
     int line_no = 0;
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        size_t len = strlen(line);
+        size_t valid = 0, len = strlen(line);
         line_no++;
 
-        /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+        while (strchr(hexcodes, line[valid]) != NULL && valid++ < len);
+
+        /* lines that do not contain sequentially any valid character are ignored */
+        if (valid == 0)
             continue;
 
-        while (isspace(line[--len]));
-
-        /* Check if we have a trailing newline, and remove it */
-        len = strlen(line);
-        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-            line[len - 1] = '\0';
-        }
-
-        /* cut off longer lines than a SHA256 represented in hexadecimal  */
-        if (strlen(line) > 64)
-            line[64] = 0x00;
+        /* ignore anything after the sequence of valid characters */
+        line[valid] = '\0';
 
         if (LoadHashTable(filehash->hash, line, filename, line_no, type) != 1) {
             goto error;
