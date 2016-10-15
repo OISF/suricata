@@ -120,11 +120,9 @@ int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  * \retval 1 Match.
  */
 int DetectEngineInspectHttpUA(ThreadVars *tv,
-                              DetectEngineCtx *de_ctx,
-                              DetectEngineThreadCtx *det_ctx,
-                              const Signature *s, Flow *f, uint8_t flags,
-                              void *alstate,
-                              void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
     htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,

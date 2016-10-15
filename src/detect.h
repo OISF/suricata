@@ -377,7 +377,8 @@ struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
 typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
         struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-        const struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
+        const struct Signature_ *sig, const SigMatch *sm_list,
+        Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
 
 typedef struct DetectEngineAppInspectionEngine_ {
@@ -393,6 +394,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
      *           filestore for the tx.
      */
     InspectEngineFuncPtr Callback;
+
+    SigMatch *sm;
 
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;

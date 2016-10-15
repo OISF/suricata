@@ -61,10 +61,10 @@
  *  \retval 1 match
  */
 int DetectEngineInspectDnsQueryName(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate, void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
     DNSTransaction *tx = (DNSTransaction *)txv;
     DNSQueryEntry *query = NULL;
@@ -139,10 +139,9 @@ int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 }
 
 int DetectEngineInspectDnsRequest(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate, void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
                                           alstate, txv, tx_id,
@@ -150,10 +149,9 @@ int DetectEngineInspectDnsRequest(ThreadVars *tv,
 }
 
 int DetectEngineInspectDnsResponse(ThreadVars *tv,
-                                   DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, Flow *f, uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
                                           alstate, txv, tx_id,
