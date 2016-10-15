@@ -144,6 +144,8 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
+    int lists_used[DETECT_SM_LIST_MAX] = { 0 };
+
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         if (s->sm_lists[t->sm_list] == NULL)
@@ -189,7 +191,49 @@ next:
         t = t->next;
     }
 
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        if (lists_used[i]) {
+            s->sm_lists[i] = NULL;
+            s->sm_lists_tail[i] = NULL;
+        }
+    }
+
     return 0;
+}
+
+/** \brief free app inspect engines for a signature
+ *
+ *  For lists that are registered multiple times, like http_header and
+ *  http_cookie, making the engines owner of the lists is complicated.
+ *  Multiple engines in a sig may be pointing to the same list. To
+ *  address this the 'free' code needs to be extra careful about not
+ *  double freeing, so it takes an approach to first fill an array
+ *  of the to-free pointers before freeing them.
+ */
+void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
+{
+    SigMatch *ptrs[DETECT_SM_LIST_MAX] = { NULL };
+
+    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    while (ie) {
+        DetectEngineAppInspectionEngine *next = ie->next;
+        BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->sm);
+        ptrs[ie->sm_list] = ie->sm;
+        SCFree(ie);
+        ie = next;
+    }
+
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++)
+    {
+        SigMatch *sm = ptrs[i];
+        while (sm != NULL) {
+            SigMatch *nsm = sm->next;
+            SigMatchFree(sm);
+            sm = nsm;
+        }
+    }
 }
 
 /* code to control the main thread to do a reload */
