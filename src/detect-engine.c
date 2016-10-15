@@ -206,6 +206,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             case DETECT_SM_LIST_CIP_MATCH:
             case DETECT_SM_LIST_ENIP_MATCH:
 
+            case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
+
                 new_engine->sm = s->sm_lists[new_engine->sm_list];
                 s->sm_lists[new_engine->sm_list] = NULL;
                 s->sm_lists_tail[new_engine->sm_list] = NULL;
