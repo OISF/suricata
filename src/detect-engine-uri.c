@@ -129,7 +129,7 @@ int DetectEngineInspectHttpUri(ThreadVars *tv,
 
     /* Inspect all the uricontents fetched on each
      * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_UMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
                                           f,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),

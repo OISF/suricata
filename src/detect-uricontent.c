@@ -486,45 +486,24 @@ end:
  */
 int DetectUriSigTest01(void)
 {
-    SigMatch *sm = NULL;
-    int result = 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
     Signature *s = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "content:\"me\"; uricontent:\"me\"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx,"alert http any any -> any any (msg:"
+            "\" Test uricontent\"; content:\"me\"; uricontent:\"me\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    BUG_ON(s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL);
+    FAIL_IF_NOT(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH]->type == DETECT_CONTENT);
 
-    BUG_ON(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL);
-
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type == DETECT_CONTENT) {
-        result = 1;
-    } else {
-        result = 0;
-    }
-
- end:
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /** \test Check the signature working to alert when http_cookie is matched . */
