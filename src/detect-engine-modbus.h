@@ -35,7 +35,7 @@
 
 int DetectEngineInspectModbus(ThreadVars *,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const Signature *, const SigMatch *,
+        const Signature *, const SigMatchData *,
         Flow *, uint8_t, void *, void *, uint64_t);
 
 void DetectEngineInspectModbusRegisterTests(void);
