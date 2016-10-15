@@ -54,11 +54,11 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
-                                DetectEngineCtx *de_ctx,
-                                DetectEngineThreadCtx *det_ctx,
-                                const Signature *s, Flow *f, uint8_t flags,
-                                void *alstate,
-                                void *tx, uint64_t tx_id);
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate,
+        void *tx, uint64_t tx_id);
+
 /**
  * \brief Registers the keyword handlers for the "app-layer-event" keyword.
  */
@@ -85,11 +85,10 @@ void DetectAppLayerEventRegister(void)
 }
 
 static int DetectEngineAptEventInspect(ThreadVars *tv,
-                                DetectEngineCtx *de_ctx,
-                                DetectEngineThreadCtx *det_ctx,
-                                const Signature *s, Flow *f, uint8_t flags,
-                                void *alstate,
-                                void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *smi,
+        Flow *f, uint8_t flags, void *alstate,
+        void *tx, uint64_t tx_id)
 {
     AppLayerDecoderEvents *decoder_events = NULL;
     int r = 0;

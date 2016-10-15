@@ -229,9 +229,9 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  *  \note flow should be locked when this function's called.
  */
 int DetectFileInspectHttp(ThreadVars *tv,
-                          DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                          Signature *s, Flow *f, uint8_t flags, void *alstate,
-                          void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     FileContainer *ffc;
@@ -274,9 +274,9 @@ int DetectFileInspectHttp(ThreadVars *tv,
  *  \note flow is not locked at this time
  */
 int DetectFileInspectSmtp(ThreadVars *tv,
-                          DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                          Signature *s, Flow *f, uint8_t flags, void *alstate,
-                          void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();
     int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

@@ -105,11 +105,9 @@ int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  * \retval 2 Sig can't match.
  */
 int DetectEngineInspectHttpUri(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);
 

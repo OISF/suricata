@@ -65,11 +65,9 @@ void DetectHttpResponseLineRegisterTests(void);
 void DetectHttpResponseLineFree(void *);
 static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id);
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_response_line" keyword.
@@ -173,11 +171,9 @@ static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
  * \retval 2 Sig can't match.
  */
 int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  const Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatch *sm,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
 
