@@ -62,7 +62,7 @@
  */
 int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id)
 {
@@ -86,7 +86,7 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         //PrintRawDataFp(stdout, buffer, buffer_len);
 
         r = DetectEngineContentInspection(de_ctx, det_ctx,
-                s, sm,
+                s, smd,
                 f, buffer, buffer_len, 0,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (r == 1)

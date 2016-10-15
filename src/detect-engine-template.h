@@ -26,7 +26,7 @@
 
 int DetectEngineInspectTemplateBuffer(ThreadVars *,
         DetectEngineCtx *, DetectEngineThreadCtx *,
-        const Signature *, const SigMatch *,
+        const Signature *, const SigMatchData *,
         Flow *, uint8_t, void *, void *tx, uint64_t tx_id);
 
 #endif /* __DETECT_TEMPLATE_ENGINE_H__ */

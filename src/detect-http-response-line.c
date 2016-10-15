@@ -66,7 +66,7 @@ void DetectHttpResponseLineFree(void *);
 static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 /**
@@ -172,7 +172,7 @@ static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
  */
 int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -194,7 +194,7 @@ int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
 #endif
 
     /* run the inspection against the buffer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           bstr_ptr(tx->response_line),
                                           bstr_len(tx->response_line),

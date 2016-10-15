@@ -52,7 +52,7 @@
 #include "detect-fileext.h"
 
 static int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-        uint8_t, File *, const Signature *, const SigMatch *);
+        uint8_t, File *, const Signature *, const SigMatchData *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFileextRegisterTests(void);
 static void DetectFileextFree(void *);
@@ -89,7 +89,7 @@ void DetectFileextRegister(void)
  * \retval 1 match
  */
 static int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatch *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
 {
     SCEnter();
     int ret = 0;

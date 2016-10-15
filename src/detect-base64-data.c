@@ -75,7 +75,7 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 {
     if (det_ctx->base64_decoded_len) {
         return DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_BASE64_DATA], f, det_ctx->base64_decoded,
+            s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], f, det_ctx->base64_decoded,
             det_ctx->base64_decoded_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }

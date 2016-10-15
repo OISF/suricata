@@ -172,8 +172,8 @@ void DetectPcreRegister (void)
  * \retval  0 No match.
  */
 int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
-                           const SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
-                           uint32_t payload_len)
+                           const SigMatchData *smd, Packet *p, Flow *f,
+                           uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 #define MAX_SUBSTRINGS 30
@@ -183,7 +183,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
     uint16_t len = 0;
     uint16_t capture_len = 0;
 
-    DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+    DetectPcreData *pe = (DetectPcreData *)smd->ctx;
 
     if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = payload + det_ctx->buffer_offset;

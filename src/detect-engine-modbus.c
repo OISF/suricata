@@ -200,7 +200,7 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
                               DetectEngineCtx       *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               const Signature       *s,
-                              const SigMatch        *sm,
+                              const SigMatchData    *smd,
                               Flow                  *f,
                               uint8_t               flags,
                               void                  *alstate,
@@ -209,7 +209,7 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
 {
     SCEnter();
     ModbusTransaction   *tx = (ModbusTransaction *)txv;
-    DetectModbus        *modbus = (DetectModbus *) sm->ctx;
+    DetectModbus        *modbus = (DetectModbus *) smd->ctx;
 
     int ret = 0;
 

@@ -110,12 +110,12 @@ void DetectByteExtractRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatch *sm,
+int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData *smd,
                              const Signature *s, uint8_t *payload,
                              uint16_t payload_len, uint64_t *value,
                              uint8_t endian)
 {
-    DetectByteExtractData *data = (DetectByteExtractData *)sm->ctx;
+    DetectByteExtractData *data = (DetectByteExtractData *)smd->ctx;
     uint8_t *ptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;

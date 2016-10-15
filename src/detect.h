@@ -377,7 +377,7 @@ struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
 typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
         struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-        const struct Signature_ *sig, const SigMatch *sm_list,
+        const struct Signature_ *sig, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
 
@@ -395,7 +395,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
      */
     InspectEngineFuncPtr Callback;
 
-    SigMatch *sm;
+    SigMatchData *smd;
 
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
@@ -959,7 +959,6 @@ typedef struct DetectEngineThreadCtx_ {
 } DetectEngineThreadCtx;
 
 /** \brief element in sigmatch type table.
- *  \note FileMatch pointer below takes a locked flow, AppLayerMatch an unlocked flow
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
@@ -977,7 +976,7 @@ typedef struct SigTableElmt_ {
     int (*FileMatch)(ThreadVars *,  /**< thread local vars */
         DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
-        uint8_t flags, File *, const Signature *, const SigMatch *);
+        uint8_t flags, File *, const Signature *, const SigMatchData *);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);

@@ -29,7 +29,7 @@ int PrefilterTxHttpStatCodeRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpStatCode(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 
 void DetectEngineHttpStatCodeRegisterTests(void);
