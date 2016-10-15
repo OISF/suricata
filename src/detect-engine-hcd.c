@@ -167,7 +167,7 @@ int PrefilterTxResponseCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectHttpCookie(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -191,7 +191,7 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm,
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),

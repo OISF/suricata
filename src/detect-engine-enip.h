@@ -25,12 +25,12 @@
 
 int DetectEngineInspectCIP(ThreadVars *,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const Signature *, const SigMatch *sm,
+        const Signature *, const SigMatchData *smd,
         Flow *, uint8_t, void *, void *, uint64_t);
 
 int DetectEngineInspectENIP(ThreadVars *,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-        const Signature *, const SigMatch *sm,
+        const Signature *, const SigMatchData *smd,
         Flow *, uint8_t, void *, void *, uint64_t);
 
 void DetectEngineInspectENIPRegisterTests(void);
