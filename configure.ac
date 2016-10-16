@@ -1869,6 +1869,52 @@
         fi
     fi
 
+#libevent if hiredis is enabled
+    AC_ARG_ENABLE(libevent,
+            AS_HELP_STRING([--enable-libevent],[Enable libevent for async calls for redis ]),
+            [ enable_event="yes"],
+            [ enable_event="no"])
+    AC_ARG_WITH(libevent_includes,
+            [  --with-libevent-includes=DIR  libevent include directory],
+            [with_libevent_includes="$withval"],[with_libevent_includes="no"])
+    AC_ARG_WITH(libevent_libraries,
+            [  --with-libevent-libraries=DIR    libevent library directory],
+            [with_libevent_libraries="$withval"],[with_libevent_libraries="no"])
+
+
+    if test "$HIREDIS" = "yes"; then
+
+        if test "$enable_libevent" = "yes"; then
+            if test "$with_libevent_includes" != "no"; then
+                CPPFLAGS="${CPPFLAGS} -I${with_libevent_includes}"
+            fi
+
+            AC_CHECK_HEADER("event.h",LIBEVENT="yes",LIBEVENT="no")
+
+            if test "$LIBEVENT" = "yes"; then
+                if test "$with_libevent_libraries" != "no"; then
+                    LDFLAGS="${LDFLAGS}  -L${with_libevent_libraries}"
+                fi
+                AC_CHECK_LIB(event, event_base_free,, LIBEVENT="no")
+            fi
+            if test "$LIBEVENT" = "no"; then
+                echo
+                echo "   ERROR!  libevent library not found, go get it"
+                echo
+                echo "   Ubuntu: apt-get install libevent-dev"
+                echo "   Fedora: dnf install libevent-devel"
+                echo "   RHEL/CentOS: yum install libevent-devel"
+                echo
+                exit 1
+            fi
+            if test "$LIBEVENT" = "yes"; then
+                AC_DEFINE([HAVE_LIBEVENT],[1],[libevent available])
+                libenable_event="yes"
+            fi
+        fi
+
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1990,6 +2036,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
+  libevent support:                        ${enable_libevent}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
