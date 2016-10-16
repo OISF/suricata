@@ -148,7 +148,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
-        if (s->init_data->smlists[t->sm_list] == NULL)
+        if (s->sm_arrays[t->sm_list] == NULL)
             goto next;
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
@@ -234,6 +234,8 @@ next:
         t = t->next;
     }
 
+    /* clear s->sm_arrays for those lists that we put
+     * in the inspect engines. They own it now. */
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
         if (lists_used[i]) {
@@ -257,6 +259,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 {
     SigMatchData *ptrs[DETECT_SM_LIST_MAX] = { NULL };
 
+    /* free engines and put smd in the array */
     DetectEngineAppInspectionEngine *ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
@@ -266,9 +269,22 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
         ie = next;
     }
 
+    /* free the smds */
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++)
     {
+        if (ptrs[i] == NULL)
+            continue;
+
+        SigMatchData *smd = ptrs[i];
+        while(1) {
+            if (sigmatch_table[smd->type].Free != NULL) {
+                sigmatch_table[smd->type].Free(smd->ctx);
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        }
         SCFree(ptrs[i]);
     }
 }

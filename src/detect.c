@@ -3914,6 +3914,13 @@ static int SigMatchListLen(SigMatch *sm)
     return len;
 }
 
+/** \internal
+ *  \brief perform final per signature setup tasks
+ *
+ *  - Create SigMatchData arrays from the init only SigMatch lists
+ *  - Setup per signature inspect engines
+ *  - remove signature init data.
+ */
 static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 {
     SCEnter();
@@ -3937,13 +3944,25 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 for (; sm != NULL; sm = sm->next, smd++) {
                     smd->type = sm->type;
                     smd->ctx = sm->ctx;
+                    sm->ctx = NULL; // SigMatch no longer owns the ctx
                     smd->is_last = (sm->next == NULL);
                 }
             }
         }
+
+        /* set up inspect engines */
         DetectEngineAppInspectionEngine2Signature(s);
 
-        /* TODO free lists etc */
+        /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
+        int i;
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+            SigMatch *sm = s->init_data->smlists[i];
+            while (sm != NULL) {
+                SigMatch *nsm = sm->next;
+                SigMatchFree(sm);
+                sm = nsm;
+            }
+        }
         SCFree(s->init_data);
         s->init_data = NULL;
     }
