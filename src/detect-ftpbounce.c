@@ -48,7 +48,7 @@
 #include "util-byte.h"
 
 static int DetectFtpbounceALMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-        uint8_t, void *, const Signature *, const SigMatch *);
+        uint8_t, void *, const Signature *, const SigMatchData *);
 static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
         uint32_t ip_orig, uint16_t offset);
@@ -168,7 +168,7 @@ static int DetectFtpbounceMatchArgs(uint8_t *payload, uint16_t payload_len,
  */
 static int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            Flow *f, uint8_t flags, void *state, const Signature *s,
-                           const SigMatch *m)
+                           const SigMatchData *m)
 {
     SCEnter();
     FtpState *ftp_state =(FtpState *)state;
