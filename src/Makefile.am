@@ -372,6 +372,7 @@ util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
+util-logopenfile-redis.h util-logopenfile-redis.c \
 util-lua.c util-lua.h \
 util-lua-common.c util-lua-common.h \
 util-lua-dns.c util-lua-dns.h \
