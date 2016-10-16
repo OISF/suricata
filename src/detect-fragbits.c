@@ -378,7 +378,7 @@ static int PrefilterSetupFragBits(SigGroupHead *sgh)
 static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FRAGBITS:
                 return TRUE;

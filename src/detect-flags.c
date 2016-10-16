@@ -519,7 +519,7 @@ static void DetectFlagsFree(void *de_ptr)
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
             {
@@ -538,7 +538,7 @@ int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
             {
@@ -606,7 +606,7 @@ static int PrefilterSetupTcpFlags(SigGroupHead *sgh)
 static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
                 return TRUE;
