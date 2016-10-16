@@ -90,7 +90,7 @@ void DetectLuaRegister(void)
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, const Signature *s, const SigMatch *m);
+        Flow *f, uint8_t flags, void *state, const Signature *s, const SigMatchData *m);
 static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
@@ -538,7 +538,7 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
  */
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatch *m)
+        const Signature *s, const SigMatchData *m)
 {
     return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, m->ctx);
 }
@@ -1052,7 +1052,7 @@ void DetectLuaPostSetup(Signature *s)
     SigMatch *sm;
 
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_LUA)
                 continue;
 

@@ -159,7 +159,7 @@ error:
 
 static int DetectIPProtoTypePresentForOP(Signature *s, uint8_t op)
 {
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     DetectIPProtoData *data;
 
     while (sm != NULL) {
@@ -262,7 +262,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     s->proto.proto[i] = 0xff;
                 }
             } else if (lt_set && !not_set) {
-                SigMatch *temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO) {
                         break;
@@ -304,7 +304,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 }
             } else {
                 DetectIPProtoData *data_temp;
-                SigMatch *temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO &&
                         ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_LT) {
@@ -381,7 +381,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 }
                 s->proto.proto[data->proto / 8] = ~(0xff << (data->proto % 8));
             } else if (gt_set && !not_set) {
-                SigMatch *temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO) {
                         break;
@@ -424,7 +424,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 }
             } else {
                 DetectIPProtoData *data_temp;
-                SigMatch *temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                SigMatch *temp_sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
                 while (temp_sm != NULL) {
                     if (temp_sm->type == DETECT_IPPROTO &&
                         ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_GT) {
@@ -533,7 +533,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
 
 void DetectIPProtoRemoveAllSMs(Signature *s)
 {
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type != DETECT_IPPROTO) {

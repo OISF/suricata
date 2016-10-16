@@ -134,7 +134,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
@@ -176,7 +176,7 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
