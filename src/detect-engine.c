@@ -2463,7 +2463,6 @@ int DetectEngineReload(SCInstance *suri)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
-    SCThresholdConfInitContext(new_de_ctx, NULL);
     SCLogDebug("set up new_de_ctx %p", new_de_ctx);
 
     /* add to master */
