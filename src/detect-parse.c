@@ -1045,13 +1045,26 @@ static void SigRefFree (Signature *s)
     SCReturn;
 }
 
-static void SigMatchFreeArrays(Signature *s)
+static void SigMatchFreeArrays(Signature *s, int ctxs)
 {
     if (s != NULL) {
         int type;
         for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
-            if (s->sm_arrays[type] != NULL)
+            if (s->sm_arrays[type] != NULL) {
+                if (ctxs) {
+                    SigMatchData *smd = s->sm_arrays[type];
+                    while(1) {
+                        if (sigmatch_table[smd->type].Free != NULL) {
+                            sigmatch_table[smd->type].Free(smd->ctx);
+                        }
+                        if (smd->is_last)
+                            break;
+                        smd++;
+                    }
+                }
+
                 SCFree(s->sm_arrays[type]);
+            }
         }
     }
 }
@@ -1078,7 +1091,11 @@ void SigFree(Signature *s)
             }
         }
     }
-    SigMatchFreeArrays(s);
+    SigMatchFreeArrays(s, (s->init_data == NULL));
+    if (s->init_data) {
+        SCFree(s->init_data);
+        s->init_data = NULL;
+    }
 
     if (s->sp != NULL) {
         DetectPortCleanupList(s->sp);
