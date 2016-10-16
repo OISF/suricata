@@ -148,7 +148,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
-        if (s->sm_lists[t->sm_list] == NULL)
+        if (s->init_data->smlists[t->sm_list] == NULL)
             goto next;
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */

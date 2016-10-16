@@ -941,20 +941,22 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
                          Signature *s, Packet *p)
 {
     KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-
-    while (sm != NULL) {
-        BUG_ON(!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT));
-        KEYWORD_PROFILING_START;
-        if (sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm->ctx) > 0) {
-            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
-            sm = sm->next;
-            continue;
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
+    if (smd) {
+        while (1) {
+            BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
+            KEYWORD_PROFILING_START;
+            if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) > 0) {
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+                continue;
+            }
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+            return 0;
         }
-        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
-        return 0;
     }
-
     return 1;
 }
 

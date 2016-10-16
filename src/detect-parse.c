@@ -252,7 +252,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
     }
 
     sm = SigMatchGetLastSMFromLists(s, 2,
-                                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                                    DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
                    "found inside the rule without a content context.  "
@@ -283,8 +283,8 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         }
 
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT, s->sm_lists_tail[sm_list],
-                                        DETECT_PCRE, s->sm_lists_tail[sm_list]);
+                                        DETECT_CONTENT, s->init_data->smlists_tail[sm_list],
+                                        DETECT_PCRE, s->init_data->smlists_tail[sm_list]);
         if (pm != NULL) {
             if (pm->type == DETECT_CONTENT) {
                 DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
@@ -302,10 +302,10 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
 
     /* transfer the sm from the pmatch list to hcbdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
-                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
-                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        &s->sm_lists[sm_list],
-                                        &s->sm_lists_tail[sm_list]);
+                                        &s->init_data->smlists[DETECT_SM_LIST_PMATCH],
+                                        &s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->init_data->smlists[sm_list],
+                                        &s->init_data->smlists_tail[sm_list]);
 
     ret = 0;
  end:
@@ -370,17 +370,17 @@ SigTableElmt *SigTableGet(char *name)
  */
 void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
 {
-    if (s->sm_lists[list] == NULL) {
-        s->sm_lists[list] = new;
-        s->sm_lists_tail[list] = new;
+    if (s->init_data->smlists[list] == NULL) {
+        s->init_data->smlists[list] = new;
+        s->init_data->smlists_tail[list] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->sm_lists_tail[list];
+        SigMatch *cur = s->init_data->smlists_tail[list];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->sm_lists_tail[list] = new;
+        s->init_data->smlists_tail[list] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -389,11 +389,11 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
 
 void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
 {
-    if (sm == s->sm_lists[sm_list]) {
-        s->sm_lists[sm_list] = sm->next;
+    if (sm == s->init_data->smlists[sm_list]) {
+        s->init_data->smlists[sm_list] = sm->next;
     }
-    if (sm == s->sm_lists_tail[sm_list]) {
-        s->sm_lists_tail[sm_list] = sm->prev;
+    if (sm == s->init_data->smlists_tail[sm_list]) {
+        s->init_data->smlists_tail[sm_list] = sm->prev;
     }
     if (sm->prev != NULL)
         sm->prev->next = sm->next;
@@ -475,7 +475,7 @@ SigMatch *SigMatchGetLastSM(const Signature *s)
     int i;
 
     for (i = 0; i < DETECT_SM_LIST_MAX; i ++) {
-        sm_new = s->sm_lists_tail[i];
+        sm_new = s->init_data->smlists_tail[i];
         if (sm_new == NULL)
             continue;
         if (sm_last == NULL || sm_new->idx > sm_last->idx)
@@ -522,7 +522,7 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
     int list = 0;
 
     for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
-        const SigMatch *sm = s->sm_lists[list];
+        const SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm == key_sm)
                 return list;
@@ -998,8 +998,13 @@ Signature *SigAlloc (void)
     Signature *sig = SCMalloc(sizeof(Signature));
     if (unlikely(sig == NULL))
         return NULL;
-
     memset(sig, 0, sizeof(Signature));
+
+    sig->init_data = SCCalloc(1, sizeof(SignatureInitData));
+    if (sig->init_data == NULL) {
+        SCFree(sig);
+        return NULL;
+    }
 
     /* assign it to -1, so that we can later check if the value has been
      * overwritten after the Signature has been parsed, and if it hasn't been
@@ -1063,12 +1068,14 @@ void SigFree(Signature *s)
         IPOnlyCIDRListFree(s->CidrSrc);
 
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        SigMatch *sm = s->sm_lists[i];
-        while (sm != NULL) {
-            SigMatch *nsm = sm->next;
-            SigMatchFree(sm);
-            sm = nsm;
+    if (s->init_data) {
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+            SigMatch *sm = s->init_data->smlists[i];
+            while (sm != NULL) {
+                SigMatch *nsm = sm->next;
+                SigMatchFree(sm);
+                sm = nsm;
+            }
         }
     }
     SigMatchFreeArrays(s);
@@ -1232,7 +1239,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_FLOW) {
             DetectFlowData *fd = (DetectFlowData *)sm->ctx;
             if (fd == NULL)
@@ -1240,11 +1247,11 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
             if (fd->flags & FLOW_PKT_TOCLIENT) {
                 /* check for uricontent + from_server/to_client */
-                if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
-                    s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-                    s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-                    s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
-                    s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
+                    s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+                    s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+                    s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+                    s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
                                "/http_uri , raw_uri, http_client_body, "
                                "http_method, http_user_agent keywords "
@@ -1253,9 +1260,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 }
             } else if (fd->flags & FLOW_PKT_TOSERVER) {
                 /* check for uricontent + from_server/to_client */
-                if (/*s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||*/
-                    s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-                    s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                if (s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+                    s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use http_"
                                "server_body, http_stat_msg, http_stat_code "
                                "with flow:to_server or flow:from_client");
@@ -1265,19 +1271,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if ((s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
+        s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOSERVER;
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags &= ~SIG_FLAG_TOCLIENT;
     }
-    if ((s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP) ||
-        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+    if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP) ||
+        s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
         s->flags |= SIG_FLAG_TOCLIENT;
         s->flags &= ~SIG_FLAG_TOSERVER;
@@ -1289,7 +1295,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
                     "without a flow direction. Use flow:to_server for "
@@ -1299,8 +1305,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
-        for (sm = s->sm_lists[DETECT_SM_LIST_HHHDMATCH];
+    if (s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
+        for (sm = s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH];
              sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -1371,19 +1377,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         pm =  SigMatchGetLastSMFromLists(s, 24,
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
+                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
         if (pm != NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
                 " replace keyword linked with a modified content"
@@ -1392,19 +1398,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
         }
 
-        if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
-                s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
-                s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH])
+        if (s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH]  ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH] ||
+                s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "
@@ -1414,7 +1420,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH]; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_AMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_AL_APP_LAYER_PROTOCOL)
             continue;
         if (((DetectAppLayerProtocolData *)sm->ctx)->negated)
@@ -1431,7 +1437,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
         if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
             s->flags |= SIG_FLAG_REQUIRE_STREAM;
-            sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+            sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
             while (sm != NULL) {
                 if (sm->type == DETECT_CONTENT &&
                         (((DetectContentData *)(sm->ctx))->flags &
@@ -1444,13 +1450,13 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
         int list;
-        uint16_t idx = s->sm_lists[DETECT_SM_LIST_BASE64_DATA]->idx;
+        uint16_t idx = s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]->idx;
         for (list = 0; list < DETECT_SM_LIST_DETECT_MAX; list++) {
             if (list != DETECT_SM_LIST_BASE64_DATA &&
-                s->sm_lists[list] != NULL) {
-                if (s->sm_lists[list]->idx > idx) {
+                s->init_data->smlists[list] != NULL) {
+                if (s->init_data->smlists[list]->idx > idx) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Rule buffer "
                         "cannot be reset after base64_data.");
                     SCReturnInt(0);
@@ -1466,8 +1472,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 #ifdef DEBUG
     int i;
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        if (s->sm_lists[i] != NULL) {
-            for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
+        if (s->init_data->smlists[i] != NULL) {
+            for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                 BUG_ON(sm == sm->prev);
                 BUG_ON(sm == sm->next);
             }
@@ -1547,8 +1553,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
      * app layer flag wasn't already set in which case we
      * only consider the app layer */
     if (!(sig->flags & SIG_FLAG_APPLAYER)) {
-        if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-            SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+        if (sig->init_data->smlists[DETECT_SM_LIST_MATCH] != NULL) {
+            SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
                 if (sigmatch_table[sm->type].Match != NULL)
                     sig->init_flags |= SIG_FLAG_INIT_PACKET;
@@ -1558,12 +1564,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         }
     }
 
-    if (sig->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+    if (sig->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         sig->flags |= SIG_FLAG_APPLAYER;
 
-    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
+    if (sig->init_data->smlists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
+    if (sig->init_data->smlists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     /* for other lists this flag is set when the inspect engines
      * are registered */
@@ -3397,7 +3403,7 @@ int SigParseTestMpm01 (void)
         goto end;
     }
 
-    if (sig->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (sig->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
         printf("sig doesn't have content list: ");
         goto end;
     }
@@ -3428,7 +3434,7 @@ int SigParseTestMpm02 (void)
         goto end;
     }
 
-    if (sig->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (sig->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) {
         printf("sig doesn't have content list: ");
         goto end;
     }
