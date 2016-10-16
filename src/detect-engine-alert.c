@@ -72,18 +72,18 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     SCEnter();
     int ret = 1;
     const DetectThresholdData *td = NULL;
-    const SigMatch *sm;
+    const SigMatchData *smd;
 
     if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
         SCReturnInt(1);
     }
 
     /* handle suppressions first */
-    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] != NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_SUPPRESS] != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_SUPPRESS);
-        sm = NULL;
+        smd = NULL;
         do {
-            td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_SUPPRESS);
+            td = SigGetThresholdTypeIter(s, p, &smd, DETECT_SM_LIST_SUPPRESS);
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 
@@ -98,15 +98,15 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
                 }
                 KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 1);
             }
-        } while (sm != NULL);
+        } while (smd != NULL);
     }
 
     /* if we're still here, consider thresholding */
-    if (s->sm_lists[DETECT_SM_LIST_THRESHOLD] != NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_THRESHOLD] != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_THRESHOLD);
-        sm = NULL;
+        smd = NULL;
         do {
-            td = SigGetThresholdTypeIter(s, p, &sm, DETECT_SM_LIST_THRESHOLD);
+            td = SigGetThresholdTypeIter(s, p, &smd, DETECT_SM_LIST_THRESHOLD);
             if (td != NULL) {
                 SCLogDebug("td %p", td);
 
@@ -121,7 +121,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
                 }
                 KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 1);
             }
-        } while (sm != NULL);
+        } while (smd != NULL);
     }
     SCReturnInt(1);
 }
@@ -240,7 +240,6 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 {
     SCEnter();
     int i = 0;
-    SigMatch *sm = NULL;
 
     while (i < p->alerts.cnt) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
@@ -250,14 +249,18 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
-            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
-            sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
-            while (sm) {
-                /* tags are set only for alerts */
-                KEYWORD_PROFILING_START;
-                sigmatch_table[sm->type].Match(NULL, det_ctx, p, (Signature *)s, sm->ctx);
-                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
-                sm = sm->next;
+            if (s->sm_arrays[DETECT_SM_LIST_TMATCH] != NULL) {
+                KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_TMATCH);
+                SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_TMATCH];
+                while (1) {
+                    /* tags are set only for alerts */
+                    KEYWORD_PROFILING_START;
+                    sigmatch_table[smd->type].Match(NULL, det_ctx, p, (Signature *)s, smd->ctx);
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                    if (smd->is_last)
+                        break;
+                    smd++;
+                }
             }
 
             if (s->flags & SIG_FLAG_IPONLY) {
