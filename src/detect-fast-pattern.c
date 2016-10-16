@@ -163,25 +163,25 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     char arg_substr[128] = "";
     DetectContentData *cd = NULL;
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_TLSSNI_MATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_TLSISSUER_MATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL &&
+        s->init_data->smlists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
@@ -195,25 +195,25 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     }
 
     SigMatch *pm = SigMatchGetLastSMFromLists(s, 38,
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH]);
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSSNI_MATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSISSUER_MATCH],
+            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "
@@ -244,7 +244,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             int list_id = 0;
             for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
                 SigMatch *sm = NULL;
-                for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type == DETECT_CONTENT) {
                         DetectContentData *tmp_cd = (DetectContentData *)sm->ctx;
                         if (tmp_cd->flags & DETECT_CONTENT_FAST_PATTERN) {
@@ -18793,13 +18793,11 @@ int DetectFastPatternTest670(void)
 int DetectFastPatternTest671(void)
 {
     int no_of_sigs = 6;
-    int result = 0;
     char *sigs[no_of_sigs];
     Signature *s[no_of_sigs];
-    Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
     DetectContentData *cd = NULL;
-    SigMatch *sm = NULL;
+    SigMatchData *smd = NULL;
     int i = 0;
 
     sigs[0] = "alert tcp any any -> any any "
@@ -18816,83 +18814,42 @@ int DetectFastPatternTest671(void)
         "(content:\"onetwothreefour\"; fast_pattern:0,15; sid:6;)";
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("DetectEngineCtxInit() failure\n");
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    i = 0;
-    s[i] = SigInit(de_ctx, sigs[i]);
-    de_ctx->sig_list = sig = s[i];
-    if (sig == NULL) {
-        printf("SigInit(de_ctx, sig1) failure\n");
-        goto end;
-    }
-    i++;
-    for ( ; i < no_of_sigs; i++) {
-        s[i] = SigInit(de_ctx, sigs[i]);
-        sig->next = s[i];
-        sig = sig->next;
-        if (sig == NULL) {
-            printf("SigInit(de_ctx, sig[%d]) failure\n", i);
-            goto end;
-        }
+    for (i = 0; i < no_of_sigs; i++) {
+        s[i] = DetectEngineAppendSig(de_ctx, sigs[i]);
+        FAIL_IF_NULL(s[i]);
     }
 
     SigGroupBuild(de_ctx);
 
-    sm = s[0]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 0) {
-        printf("sm = s[0]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[0]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 0);
 
-    sm = s[1]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 0) {
-        printf("sm = s[1]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[1]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 0);
 
-    sm = s[2]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 1) {
-        printf("sm = s[2]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[2]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 2);
 
-    sm = s[3]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 2) {
-        printf("sm = s[3]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[3]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 1);
 
-    sm = s[4]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 2) {
-        printf("sm = s[4]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[4]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 1);
 
-    sm = s[5]->sm_lists[DETECT_SM_LIST_PMATCH];
-    cd = (DetectContentData *)sm->ctx;
-    if (cd->id != 0) {
-        printf("sm = s[5]->sm_lists[DETECT_SM_LIST_PMATCH] failure\n");
-        goto end;
-    }
+    smd = s[5]->sm_arrays[DETECT_SM_LIST_PMATCH];
+    cd = (DetectContentData *)smd->ctx;
+    FAIL_IF(cd->id != 0);
 
-    result = 1;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 #endif

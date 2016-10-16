@@ -49,7 +49,7 @@
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                                uint8_t, void *, const Signature *, const SigMatch *);
+                                uint8_t, void *, const Signature *, const SigMatchData *);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
@@ -144,8 +144,8 @@ static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det
 }
 
 static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags, void *state, const Signature *s,
-                                const SigMatch *m)
+                                Flow *f, uint8_t flags, void *state,
+                                const Signature *s, const SigMatchData *m)
 {
     SCEnter();
     AppLayerDecoderEvents *decoder_events = NULL;
@@ -360,9 +360,9 @@ static void DetectAppLayerEventFree(void *ptr)
 
 int DetectAppLayerEventPrepare(Signature *s)
 {
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT];
-    s->sm_lists[DETECT_SM_LIST_APP_EVENT] = NULL;
-    s->sm_lists_tail[DETECT_SM_LIST_APP_EVENT] = NULL;
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_APP_EVENT];
+    s->init_data->smlists[DETECT_SM_LIST_APP_EVENT] = NULL;
+    s->init_data->smlists_tail[DETECT_SM_LIST_APP_EVENT] = NULL;
 
     while (sm != NULL) {
         sm->next = sm->prev = NULL;

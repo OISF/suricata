@@ -59,8 +59,9 @@ static pcre_extra *parse_regex1_study;
 static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
-static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                        uint8_t, void *, const Signature *, const SigMatch *);
+static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *,
+        const Signature *, const SigMatchData *);
 static int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
 void DetectSslStateRegisterTests(void);
 void DetectSslStateFree(void *);
@@ -96,10 +97,10 @@ void DetectSslStateRegister(void)
  * \retval 0 No match.
  */
 static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *alstate, const Signature *s,
-                        const SigMatch *m)
+        Flow *f, uint8_t flags, void *alstate,
+        const Signature *s, const SigMatchData *m)
 {
-    DetectSslStateData *ssd = (DetectSslStateData *)m->ctx;
+    const DetectSslStateData *ssd = (const DetectSslStateData *)m->ctx;
     SSLState *ssl_state = (SSLState *)alstate;
     if (ssl_state == NULL) {
         SCLogDebug("no app state, no match");

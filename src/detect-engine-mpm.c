@@ -286,7 +286,9 @@ int SignatureHasPacketContent(const Signature *s)
         SCReturnInt(1);
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if ((s->init_data != NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) ||
+        (s->init_data == NULL && s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL))
+    {
         SCLogDebug("no mpm");
         SCReturnInt(0);
     }
@@ -320,7 +322,9 @@ int SignatureHasStreamContent(const Signature *s)
         SCReturnInt(0);
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if ((s->init_data != NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] == NULL) ||
+        (s->init_data == NULL && s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL))
+    {
         SCLogDebug("no mpm");
         SCReturnInt(0);
     }
@@ -551,13 +555,13 @@ void RetrieveFPForSig(Signature *s)
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
     for (list_id = 0; list_id < DETECT_SM_LIST_DETECT_MAX; list_id++) {
-        if (s->sm_lists[list_id] == NULL)
+        if (s->init_data->smlists[list_id] == NULL)
             continue;
 
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -614,7 +618,7 @@ void RetrieveFPForSig(Signature *s)
     int max_len = 0;
     int i;
     for (i = 0; i < count_final_sm_list; i++) {
-        for (sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -629,7 +633,7 @@ void RetrieveFPForSig(Signature *s)
     }
 
     for (i = 0; i < count_final_sm_list; i++) {
-        for (sm = s->sm_lists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 

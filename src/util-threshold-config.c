@@ -449,7 +449,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
     if (id == 0 && gid == 0) {
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
             sm = SigMatchGetLastSMFromLists(s, 2,
-                    DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                    DETECT_THRESHOLD, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
             if (sm != NULL) {
                 SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                         "an event var set.  The signature event var is "
@@ -459,7 +459,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             }
 
             sm = SigMatchGetLastSMFromLists(s, 2,
-                    DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                    DETECT_DETECTION_FILTER, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
             if (sm != NULL) {
                 SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                         "an event var set.  The signature event var is "
@@ -512,7 +512,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
         for (s = de_ctx->sig_list; s != NULL; s = s->next) {
             if (s->gid == gid) {
                 sm = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                        DETECT_THRESHOLD, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 if (sm != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                             "an event var set.  The signature event var is "
@@ -522,7 +522,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 }
 
                 sm = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                        DETECT_DETECTION_FILTER, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 if (sm != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                             "an event var set.  The signature event var is "
@@ -585,7 +585,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 parsed_type != TYPE_BOTH && parsed_type != TYPE_LIMIT)
             {
                 sm = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                        DETECT_THRESHOLD, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 if (sm != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                             "a threshold set. The signature event var is "
@@ -595,7 +595,7 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 }
 
                 sm = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                        DETECT_DETECTION_FILTER, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 if (sm != NULL) {
                     SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
                             "a detection_filter set. The signature event var is "
@@ -608,10 +608,10 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
 #if 1
             } else if (parsed_type == TYPE_THRESHOLD || parsed_type == TYPE_BOTH || parsed_type == TYPE_LIMIT) {
                 sm = SigMatchGetLastSMFromLists(s, 2,
-                        DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                        DETECT_THRESHOLD, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 if (sm == NULL) {
                     sm = SigMatchGetLastSMFromLists(s, 2,
-                            DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
+                            DETECT_DETECTION_FILTER, s->init_data->smlists[DETECT_SM_LIST_THRESHOLD]);
                 }
                 if (sm != NULL) {
                     SigMatchRemoveSMFromList(s, sm, DETECT_SM_LIST_THRESHOLD);
@@ -2609,52 +2609,27 @@ static FILE *SCThresholdConfGenerateInvalidDummyFD12()
  */
 static int SCThresholdConfTest18(void)
 {
-    Signature *s = NULL;
-    int result = 0;
-    FILE *fd = NULL;
-    SigMatch *sm = NULL;
-    DetectThresholdData *de = NULL;
-
     HostInitConfig(HOST_QUIET);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        return result;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    fd = SCThresholdConfGenerateInvalidDummyFD12();
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    FAIL_IF_NULL(s);
+    FILE *fd = SCThresholdConfGenerateInvalidDummyFD12();
+    FAIL_IF_NULL(fd);
     SCThresholdConfInitContext(de_ctx,fd);
     SigGroupBuild(de_ctx);
 
-    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] == NULL) {
-        printf("no thresholds: ");
-        goto end;
-    }
-    sm = s->sm_lists[DETECT_SM_LIST_SUPPRESS];
-    if (sm == NULL) {
-        printf("no sm: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_SUPPRESS];
+    DetectThresholdData *de = (DetectThresholdData *)smd->ctx;
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_SUPPRESS && de->track == TRACK_DST);
 
-    de = (DetectThresholdData *)sm->ctx;
-    if (de == NULL) {
-        printf("no de: ");
-        goto end;
-    }
-    if (!(de->type == TYPE_SUPPRESS && de->track == TRACK_DST)) {
-        printf("de state wrong: ");
-        goto end;
-    }
-
-    result = 1;
-end:
     DetectEngineCtxFree(de_ctx);
     HostShutdown();
-    return result;
+    PASS;
 }
 
 /**
@@ -2684,52 +2659,24 @@ static FILE *SCThresholdConfGenerateInvalidDummyFD13()
  */
 static int SCThresholdConfTest19(void)
 {
-    Signature *s = NULL;
-    int result = 0;
-    FILE *fd = NULL;
-    SigMatch *sm = NULL;
-    DetectThresholdData *de = NULL;
-
     HostInitConfig(HOST_QUIET);
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        return result;
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-
-    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    fd = SCThresholdConfGenerateInvalidDummyFD13();
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    FAIL_IF_NULL(s);
+    FILE *fd = SCThresholdConfGenerateInvalidDummyFD13();
+    FAIL_IF_NULL(fd);
     SCThresholdConfInitContext(de_ctx,fd);
     SigGroupBuild(de_ctx);
-
-    if (s->sm_lists[DETECT_SM_LIST_SUPPRESS] == NULL) {
-        printf("no thresholds: ");
-        goto end;
-    }
-    sm = s->sm_lists[DETECT_SM_LIST_SUPPRESS];
-    if (sm == NULL) {
-        printf("no sm: ");
-        goto end;
-    }
-
-    de = (DetectThresholdData *)sm->ctx;
-    if (de == NULL) {
-        printf("no de: ");
-        goto end;
-    }
-    if (!(de->type == TYPE_SUPPRESS && de->track == TRACK_DST)) {
-        printf("de state wrong: ");
-        goto end;
-    }
-
-    result = 1;
-end:
+    FAIL_IF_NULL(s->sm_arrays[DETECT_SM_LIST_SUPPRESS]);
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_SUPPRESS];
+    DetectThresholdData *de = (DetectThresholdData *)smd->ctx;
+    FAIL_IF_NULL(de);
+    FAIL_IF_NOT(de->type == TYPE_SUPPRESS && de->track == TRACK_DST);
     DetectEngineCtxFree(de_ctx);
     HostShutdown();
-    return result;
+    PASS;
 }
 
 /**

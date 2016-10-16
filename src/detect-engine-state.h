@@ -123,7 +123,7 @@ typedef struct DetectEngineState_ {
 /* FLOW BASED (AMATCH) */
 
 typedef struct DeStateStoreFlowRule_ {
-    const SigMatch *nm;
+    const SigMatchData *nm;
     uint32_t flags;
     SigIntId sid;
 } DeStateStoreFlowRule;
