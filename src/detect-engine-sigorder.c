@@ -133,7 +133,7 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
     int flowbits_user_type = DETECT_FLOWBITS_NOT_USED;
     int read = 0;
     int write = 0;
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
@@ -151,7 +151,7 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
         sm = sm->next;
     }
 
-    sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
+    sm = sig->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
@@ -188,7 +188,7 @@ static inline int SCSigGetFlowintType(Signature *sig)
     int flowint_user_type = DETECT_FLOWINT_NOT_USED;
     int read = 0;
     int write = 0;
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
@@ -212,7 +212,7 @@ static inline int SCSigGetFlowintType(Signature *sig)
         sm = sm->next;
     }
 
-    sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
+    sm = sig->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWINT) {
             fi = (DetectFlowintData *)sm->ctx;
@@ -263,7 +263,7 @@ static inline int SCSigGetFlowvarType(Signature *sig)
     int type = DETECT_FLOWVAR_NOT_USED;
     int read = 0;
     int write = 0;
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_PMATCH];
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
@@ -274,7 +274,7 @@ static inline int SCSigGetFlowvarType(Signature *sig)
         sm = sm->next;
     }
 
-    sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWVAR) {
@@ -315,7 +315,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
     int type = DETECT_PKTVAR_NOT_USED;
     int read = 0;
     int write = 0;
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_PMATCH];
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
@@ -326,7 +326,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
         sm = sm->next;
     }
 
-    sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
         if (sm->type == DETECT_PKTVAR) {
@@ -367,7 +367,7 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
     int xbits_user_type = DETECT_XBITS_NOT_USED;
     int read = 0;
     int write = 0;
-    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
         if (sm->type == DETECT_XBITS) {
@@ -387,7 +387,7 @@ static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
         sm = sm->next;
     }
 
-    sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
+    sm = sig->init_data->smlists[DETECT_SM_LIST_POSTMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_HOSTBITS) {
             fb = (DetectXbitsData *)sm->ctx;

@@ -81,23 +81,23 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     /* retrive the sm to apply the depth against */
     if (s->list != DETECT_SM_LIST_NOTSET) {
-        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[s->list]);
+        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->init_data->smlists_tail[s->list]);
     } else {
         pm =  SigMatchGetLastSMFromLists(s, 28,
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
+                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
     }
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "nocase needs "

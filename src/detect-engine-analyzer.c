@@ -595,7 +595,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
 
         SigMatch *sm = NULL;
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_PCRE) {
                 if (list_id == DETECT_SM_LIST_HCBDMATCH) {
                     rule_pcre_http += 1;

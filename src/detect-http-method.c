@@ -135,8 +135,8 @@ int DetectHttpMethodValidateRule(const Signature *s)
     if (s->alproto != ALPROTO_HTTP)
         return 1;
 
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
-        const SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HMDMATCH];
+    if (s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+        const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_HMDMATCH];
         for ( ; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;

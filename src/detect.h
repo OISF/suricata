@@ -400,6 +400,17 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
+#ifdef UNITTESTS
+#define sm_lists init_data->smlists
+#define sm_lists_tail init_data->smlists_tail
+#endif
+
+typedef struct SignatureInitData_ {
+    /* holds all sm lists */
+    struct SigMatch_ *smlists[DETECT_SM_LIST_MAX];
+    /* holds all sm lists' tails */
+    struct SigMatch_ *smlists_tail[DETECT_SM_LIST_MAX];
+} SignatureInitData;
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -461,12 +472,8 @@ typedef struct Signature_ {
     /* Hold copies of the sm lists for Match() */
     SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
 
-    /* holds all sm lists */
-    struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
-    /* holds all sm lists' tails */
-    struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
-
-    SigMatch *filestore_sm;
+    /* memory is still owned by the sm_lists/sm_arrays entry */
+    const struct DetectFilestoreData_ *filestore_ctx;
 
     char *msg;
 
@@ -498,6 +505,8 @@ typedef struct Signature_ {
     char *sig_str;
 
     int prefilter_list;
+
+    SignatureInitData *init_data;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -965,7 +974,9 @@ typedef struct SigTableElmt_ {
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
     /** AppLayer match function  pointer */
-    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, const Signature *, const SigMatch *);
+    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *,
+            Flow *, uint8_t flags, void *alstate,
+            const Signature *, const SigMatchData *);
 
     /** AppLayer TX match function pointer */
     int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,

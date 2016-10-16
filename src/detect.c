@@ -1487,15 +1487,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
-                   s->sm_lists[DETECT_SM_LIST_AMATCH],
-                   s->sm_lists[DETECT_SM_LIST_UMATCH],
-                   s->sm_lists[DETECT_SM_LIST_DMATCH],
-                   s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
-
         /* consider stateful sig matches */
         if (sflags & SIG_FLAG_STATE_MATCH) {
             if (has_state == 0) {
@@ -1912,49 +1903,49 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HCDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
     /* TMATCH list can be ignored, it contains TAGs and
@@ -1976,7 +1967,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         cidr_item = cidr_item->next;
     }
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         goto iponly;
 
@@ -2012,49 +2003,49 @@ static int SignatureIsPDOnly(const Signature *s)
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HCDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
     /* TMATCH list can be ignored, it contains TAGs and
@@ -2063,7 +2054,7 @@ static int SignatureIsPDOnly(const Signature *s)
     /* match list matches may be compatible to DP only. We follow the same
      * logic as IP-only so we can use that flag */
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         return 0;
 
@@ -2108,7 +2099,7 @@ static int SignatureIsPDOnly(const Signature *s)
 static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature *s)
 {
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         return 1;
     }
 #if 0
@@ -2141,34 +2132,34 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
         SCReturnInt(0);
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_AMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HCDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]    != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_UMATCH]    != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_AMATCH]    != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HCDMATCH]  != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL ||
+        s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
     {
         SCReturnInt(0);
     }
 
     /* check for conflicting keywords */
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
             SCReturnInt(0);
     }
 
     /* need at least one decode event keyword to be considered decode event. */
-    sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
             goto deonly;
@@ -2287,27 +2278,27 @@ static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
         SCLogDebug("sig requires payload");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_DMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
         SCLogDebug("sig requires dce state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL) {
         /* set the state depending from the protocol */
         if (s->alproto == ALPROTO_HTTP)
             s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
@@ -2317,58 +2308,58 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires http or smtp app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HCDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
 
     SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_AL_URILEN:
             case DETECT_AL_HTTP_URI:
@@ -2381,7 +2372,7 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_APP_EVENT] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_AL_APP_LAYER_EVENT:
             {
@@ -2409,7 +2400,7 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_FLOWBITS:
             {
@@ -2547,7 +2538,7 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires flow");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
@@ -2645,7 +2636,7 @@ static void SigParseApplyDsizeToContent(Signature *s)
             return;
         }
 
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+        SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
         for ( ; sm != NULL;  sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
                 continue;
@@ -2668,7 +2659,7 @@ static void SigParseApplyDsizeToContent(Signature *s)
 /** \brief Pure-PCRE or bytetest rule */
 int RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
-    if (s->mpm_sm == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 1;
     return 0;
 }
@@ -2766,7 +2757,7 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
         if (s->mpm_sm == NULL) {
             nonmpm_cnt++;
 
-            if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
                 SCLogDebug("SGH %p Non-MPM inspecting only packets. Rule %u", sgh, s->id);
             }
 
@@ -3417,7 +3408,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             char copresent = 0;
             SigMatch *sm;
             DetectContentData *co;
-            for (sm = tmp_s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+            for (sm = tmp_s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_CONTENT)
                     continue;
 
@@ -3456,7 +3447,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* get the keyword supporting prefilter with the lowest type */
             for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
-                SigMatch *sm = tmp_s->sm_lists[i];
+                SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
                         if (sigmatch_table[sm->type].SupportsPrefilter(tmp_s) == TRUE) {
@@ -3470,7 +3461,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
                 for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
-                    SigMatch *sm = tmp_s->sm_lists[i];
+                    SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
                             tmp_s->prefilter_sm = sm;
@@ -3931,7 +3922,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
     for (; s != NULL; s = s->next) {
         int type;
         for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
-            SigMatch *sm = s->sm_lists[type];
+            SigMatch *sm = s->init_data->smlists[type];
             int len = SigMatchListLen(sm);
             if (len == 0)
                 s->sm_arrays[type] = NULL;
@@ -3951,6 +3942,10 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             }
         }
         DetectEngineAppInspectionEngine2Signature(s);
+
+        /* TODO free lists etc */
+        SCFree(s->init_data);
+        s->init_data = NULL;
     }
 
 

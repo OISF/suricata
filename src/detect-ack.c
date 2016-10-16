@@ -194,7 +194,7 @@ static int PrefilterSetupTcpAck(SigGroupHead *sgh)
 static _Bool PrefilterTcpAckIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ACK:
                 return TRUE;
