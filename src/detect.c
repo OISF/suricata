@@ -203,6 +203,7 @@
 #include "util-lua.h"
 #include "util-var-name.h"
 #include "util-classification-config.h"
+#include "util-threshold-config.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -516,6 +517,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
+
+    SCThresholdConfInitContext(de_ctx);
 
     /* Setup the signature group lookup structure and pattern matchers */
     if (SigGroupBuild(de_ctx) < 0)
