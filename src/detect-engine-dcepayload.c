@@ -9796,125 +9796,88 @@ end:
 static int DcePayloadParseTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *data = NULL;
     DetectIsdataatData *isd = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "content:\"one\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "isdataat:10,relative; "
-                                   "content:\"one\"; within:4; distance:8; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
-        result = 0;
-        goto end;
-    }
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        result = 0;
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+            "content:\"one\"; "
+            "dce_iface:12345678-1234-1234-1234-123456789012; "
+            "dce_opnum:10; dce_stub_data; "
+            "isdataat:10,relative; "
+            "content:\"one\"; within:4; distance:8; "
+            "pkt_data; "
+            "content:\"two\"; "
+            "sid:1;)");
+    FAIL_IF_NULL(s);
 
+    FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH]);
+    FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
+
+    /* isdataat:10,relative; */
     sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
-    if (sm->type != DETECT_ISDATAAT) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(sm->type != DETECT_ISDATAAT);
     isd = (DetectIsdataatData *)sm->ctx;
-    if ( isd->flags & ISDATAAT_RAWBYTES ||
-         !(isd->flags & ISDATAAT_RELATIVE)) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(isd->flags & ISDATAAT_RAWBYTES);
+    FAIL_IF_NOT(isd->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NULL(sm->next);
 
     sm = sm->next;
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+
+    /* content:\"one\"; within:4; distance:8; */
+    FAIL_IF(sm->type != DETECT_CONTENT);
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        !(data->flags & DETECT_CONTENT_WITHIN) ||
-        !(data->flags & DETECT_CONTENT_DISTANCE) ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        result = 0;
-        printf("two failed\n");
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "one", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF (data->flags & DETECT_CONTENT_RAWBYTES ||
+            data->flags & DETECT_CONTENT_NOCASE ||
+            !(data->flags & DETECT_CONTENT_WITHIN) ||
+            !(data->flags & DETECT_CONTENT_DISTANCE) ||
+            data->flags & DETECT_CONTENT_FAST_PATTERN ||
+            data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
+            data->flags & DETECT_CONTENT_NEGATED );
 
-    result &= (sm->next == NULL);
+    FAIL_IF_NOT(strncmp((char *)data->content, "one", 3) == 0);
+    FAIL_IF_NOT(sm->next == NULL);
 
+    /* first content:\"one\"; */
     sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(sm->type != DETECT_CONTENT);
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        printf("three failed\n");
-        result = 0;
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "one", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF(data->flags & DETECT_CONTENT_RAWBYTES);
+    FAIL_IF(data->flags & DETECT_CONTENT_NOCASE);
+    FAIL_IF(data->flags & DETECT_CONTENT_WITHIN);
+    FAIL_IF(data->flags & DETECT_CONTENT_DISTANCE);
+    FAIL_IF(data->flags & DETECT_CONTENT_FAST_PATTERN);
+    FAIL_IF(data->flags & DETECT_CONTENT_RELATIVE_NEXT);
+    FAIL_IF(data->flags & DETECT_CONTENT_NEGATED );
+    FAIL_IF_NOT(strncmp((char *)data->content, "one", 3) == 0);
 
+    FAIL_IF_NULL(sm->next);
     sm = sm->next;
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+
+    FAIL_IF(sm->type != DETECT_CONTENT);
+
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        printf("two failed\n");
-        result = 0;
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "two", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF(data->flags & DETECT_CONTENT_RAWBYTES ||
+            data->flags & DETECT_CONTENT_NOCASE ||
+            data->flags & DETECT_CONTENT_WITHIN ||
+            data->flags & DETECT_CONTENT_DISTANCE ||
+            data->flags & DETECT_CONTENT_FAST_PATTERN ||
+            data->flags & DETECT_CONTENT_NEGATED );
 
-    result &= (sm->next == NULL);
+    FAIL_IF_NOT(strncmp((char *)data->content, "two", 3) == 0);
 
- end:
+    FAIL_IF_NOT(sm->next == NULL);
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
