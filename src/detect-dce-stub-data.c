@@ -105,20 +105,16 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
 static int DetectDceStubDataTestParse01(void)
 {
-    Signature s;
-    int result = 0;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        result = 1;
-    } else {
-        result = 0;
-    }
-
-    return result;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags = DE_QUIET;
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (dce_stub_data; content:\"1\"; sid:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]);
+    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_DMATCH]);
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
