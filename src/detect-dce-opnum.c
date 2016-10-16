@@ -354,8 +354,6 @@ static int DetectDceOpnumTestParse01(void)
     Signature *s = SigAlloc();
     int result = 0;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
     result &= (DetectDceOpnumSetup(NULL, s, "12,24") == 0);
     result &= (DetectDceOpnumSetup(NULL, s, "12,12-24") == 0);
@@ -379,8 +377,6 @@ static int DetectDceOpnumTestParse02(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
@@ -409,8 +405,6 @@ static int DetectDceOpnumTestParse03(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -437,8 +431,6 @@ static int DetectDceOpnumTestParse04(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
@@ -504,8 +496,6 @@ static int DetectDceOpnumTestParse05(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -570,8 +560,6 @@ static int DetectDceOpnumTestParse06(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -617,8 +605,6 @@ static int DetectDceOpnumTestParse07(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
