@@ -28,9 +28,6 @@
 #include "tm-modules.h"      /* LogFileCtx */
 #include "util-buffer.h"
 
-#ifdef HAVE_LIBHIREDIS
-#include "hiredis/hiredis.h"
-#endif
 
 typedef struct {
     uint16_t fileno;
@@ -58,6 +55,7 @@ typedef struct RedisSetup_ {
     char *server;
     int  port;
     time_t tried;
+    int async;
 } RedisSetup;
 #endif
 
@@ -67,7 +65,7 @@ typedef struct LogFileCtx_ {
         FILE *fp;
         PcieFile *pcie_fp;
 #ifdef HAVE_LIBHIREDIS
-        redisContext *redis;
+        void *redis;
 #endif
     };
 
