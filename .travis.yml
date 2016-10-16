@@ -111,8 +111,7 @@ before_install:
             libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev \
             libcap-ng0 make libmagic-dev libnetfilter-queue-dev \
             libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 \
-            libhiredis-dev
-
+            libhiredis-dev libevent-dev libevent-pthreads-2.0-5
 
         if [[ "$ENABLE_COCCI" == "yes" ]]; then
             sudo apt-get install -y coccinelle
@@ -127,7 +126,7 @@ before_install:
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
         brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
-            pcre hiredis
+            pcre hiredis libevent
     fi
   - ./qa/travis-libhtp.sh
 
