@@ -886,622 +886,107 @@ static void DetectICMPV6CsumFree(void *ptr)
 /* ---------------------------------- Unit Tests --------------------------- */
 
 #ifdef UNITTESTS
+#include "detect-engine.h"
 
-static int DetectCsumIPV4ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectIPV4CsumSetup(NULL, &s, "\"valid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "\"invalid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "\"vaLid\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "\"VALID\"") == 0);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "\"iNvaLid\"") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
+#define str(s) #s
+#define TEST1(kwstr) {\
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();\
+    FAIL_IF_NULL(de_ctx);\
+    de_ctx->flags = DE_QUIET;\
+    \
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:valid; sid:1;)");\
+    FAIL_IF_NULL(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:invalid; sid:2;)");\
+    FAIL_IF_NULL(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:vaLid; sid:3;)");\
+    FAIL_IF_NULL(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:VALID; sid:4;)");\
+    FAIL_IF_NULL(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:iNvaLid; sid:5;)");\
+    FAIL_IF_NULL(s);\
+    DetectEngineCtxFree(de_ctx);\
 }
 
-static int DetectCsumIPV4InValidArgsTestParse02(void)
+
+static int DetectCsumValidArgsTestParse01(void)
 {
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
+    TEST1(ipv4);
+    TEST1(tcpv4);
+    TEST1(tcpv6);
+    TEST1(udpv4);
+    TEST1(udpv6);
+    TEST1(icmpv4);
+    TEST1(icmpv6);
+    PASS;
+}
+#undef TEST1
 
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectIPV4CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectIPV4CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
+#define TEST2(kwstr) { \
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();\
+    FAIL_IF_NULL(de_ctx);\
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:vaid; sid:1;)");\
+    FAIL_IF(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:invaalid; sid:2;)");\
+    FAIL_IF(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:vaLiid; sid:3;)");\
+    FAIL_IF(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:VALieD; sid:4;)");\
+    FAIL_IF(s);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:iNvamid; sid:5;)");\
+    FAIL_IF(s);\
+    DetectEngineCtxFree(de_ctx);\
 }
 
-static int DetectCsumIPV4ValidArgsTestParse03(void)
+int DetectCsumInvalidArgsTestParse02(void)
 {
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
+    TEST2(ipv4);
+    TEST2(tcpv4);
+    TEST2(tcpv6);
+    TEST2(udpv4);
+    TEST2(udpv6);
+    TEST2(icmpv4);
+    TEST2(icmpv6);
+    PASS;
+}
+#undef TEST2
 
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectIPV4CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectIPV4CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
+#define TEST3(kwstr, kwtype) { \
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();\
+    FAIL_IF_NULL(de_ctx);\
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:valid; sid:1;)");\
+    FAIL_IF_NULL(s);\
+    SigMatch *sm = SigMatchGetLastSMFromLists(s, 2, (kwtype), s->sm_lists[DETECT_SM_LIST_MATCH]);\
+    FAIL_IF_NULL(sm);\
+    FAIL_IF_NULL(sm->ctx);\
+    FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 1);\
+    s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:INVALID; sid:2;)");\
+    FAIL_IF_NULL(s);\
+    sm = SigMatchGetLastSMFromLists(s, 2, (kwtype), s->sm_lists[DETECT_SM_LIST_MATCH]);\
+    FAIL_IF_NULL(sm);\
+    FAIL_IF_NULL(sm->ctx);\
+    FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 0);\
+    DetectEngineCtxFree(de_ctx);\
 }
 
-static int DetectCsumICMPV4ValidArgsTestParse01(void)
+int DetectCsumValidArgsTestParse03(void)
 {
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV4CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
+    TEST3(ipv4, DETECT_IPV4_CSUM);
+    TEST3(tcpv4, DETECT_TCPV4_CSUM);
+    TEST3(tcpv6, DETECT_TCPV6_CSUM);
+    TEST3(udpv4, DETECT_UDPV4_CSUM);
+    TEST3(udpv6, DETECT_UDPV6_CSUM);
+    TEST3(icmpv4, DETECT_ICMPV4_CSUM);
+    TEST3(icmpv6, DETECT_ICMPV6_CSUM);
+    PASS;
 }
-
-static int DetectCsumICMPV4InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV4CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumICMPV4ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV4CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectICMPV4CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV4ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV4CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV4InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV4CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV4ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV4CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectTCPV4CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV4ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV4CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV4InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV4CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV4ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV4CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectUDPV4CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV6ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV6CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV6InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV6CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumTCPV6ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectTCPV6CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectTCPV6CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV6ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV6CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV6InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV6CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumUDPV6ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectUDPV6CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectUDPV6CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumICMPV6ValidArgsTestParse01(void)
-{
-    Signature s;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV6CsumSetup(NULL, &s, "valid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "invalid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "vaLid") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "VALID") == 0);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumICMPV6InValidArgsTestParse02(void)
-{
-    Signature s;
-    int result = -1;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV6CsumSetup(NULL, &s, "vaid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "invaalid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "vaLiid") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "VALieD") == -1);
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvamid") == -1);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
-
-static int DetectCsumICMPV6ValidArgsTestParse03(void)
-{
-    Signature s;
-    DetectCsumData *cd = NULL;
-    int result = 0;
-    SigMatch *temp = NULL;
-
-    memset(&s, 0, sizeof(Signature));
-
-    result = (DetectICMPV6CsumSetup(NULL, &s, "valid") == 0);
-
-    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 1);
-        }
-        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
-
-    result &= (DetectICMPV6CsumSetup(NULL, &s, "INVALID") == 0);
-
-    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
-            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
-            result &= (cd->valid == 0);
-        }
-        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
-        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
-        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
-        SCFree(temp);
-    }
-
-    return result;
-}
+#undef TEST3
+#undef str
 
 #include "detect-engine.h"
 #include "stream-tcp.h"
 
 static int DetectCsumICMPV6Test01(void)
 {
-    int result = 0;
     DetectEngineCtx *de_ctx = NULL;
     Signature *s = NULL;
     ThreadVars tv;
@@ -1509,10 +994,7 @@ static int DetectCsumICMPV6Test01(void)
     DecodeThreadVars dtv;
 
     Packet *p = PacketGetFromAlloc();
-    if (p == NULL) {
-        printf("failure PacketGetFromAlloc\n");
-        goto end;
-    }
+    FAIL_IF_NULL(p);
 
     uint8_t pkt[] = {
         0x00, 0x30, 0x18, 0xa8, 0x7c, 0x23, 0x2c, 0x41,
@@ -1540,19 +1022,13 @@ static int DetectCsumICMPV6Test01(void)
     FlowInitConfig(FLOW_QUIET);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        printf("DetectEngineCtxInit failure\n");
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
                                    "(icmpv6-csum:valid; sid:1;)");
-    if (s == NULL) {
-        printf("SigInit failed\n");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
     SigGroupBuild(de_ctx);
 
     DecodeEthernet(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
@@ -1561,28 +1037,16 @@ static int DetectCsumICMPV6Test01(void)
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sig 1 didn't alert on p, but it should: ");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p, 1));
 
-    result = 1;
-
- end:
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     PACKET_RECYCLE(p);
     FlowShutdown();
-
     SCFree(p);
-
-    return result;
+    PASS;
 }
 
 #endif /* UNITTESTS */
@@ -1590,55 +1054,16 @@ static int DetectCsumICMPV6Test01(void)
 static void DetectCsumRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectCsumIPV4ValidArgsTestParse01",
-                   DetectCsumIPV4ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumIPV4InValidArgsTestParse02",
-                   DetectCsumIPV4InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumIPV4ValidArgsTestParse03",
-                   DetectCsumIPV4ValidArgsTestParse03);
 
-    UtRegisterTest("DetectCsumICMPV4ValidArgsTestParse01",
-                   DetectCsumICMPV4ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumICMPV4InValidArgsTestParse02",
-                   DetectCsumICMPV4InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumICMPV4ValidArgsTestParse03",
-                   DetectCsumICMPV4ValidArgsTestParse03);
+    UtRegisterTest("DetectCsumValidArgsTestParse01",
+                   DetectCsumValidArgsTestParse01);
+    UtRegisterTest("DetectCsumInvalidArgsTestParse02",
+                   DetectCsumInvalidArgsTestParse02);
+    UtRegisterTest("DetectCsumValidArgsTestParse03",
+                   DetectCsumValidArgsTestParse03);
 
-    UtRegisterTest("DetectCsumTCPV4ValidArgsTestParse01",
-                   DetectCsumTCPV4ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumTCPV4InValidArgsTestParse02",
-                   DetectCsumTCPV4InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumTCPV4ValidArgsTestParse03",
-                   DetectCsumTCPV4ValidArgsTestParse03);
+    UtRegisterTest("DetectCsumICMPV6Test01",
+            DetectCsumICMPV6Test01);
 
-    UtRegisterTest("DetectCsumUDPV4ValidArgsTestParse01",
-                   DetectCsumUDPV4ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumUDPV4InValidArgsTestParse02",
-                   DetectCsumUDPV4InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumUDPV4ValidArgsTestParse03",
-                   DetectCsumUDPV4ValidArgsTestParse03);
-
-    UtRegisterTest("DetectCsumUDPV6ValidArgsTestParse01",
-                   DetectCsumUDPV6ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumUDPV6InValidArgsTestParse02",
-                   DetectCsumUDPV6InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumUDPV6ValidArgsTestParse03",
-                   DetectCsumUDPV6ValidArgsTestParse03);
-
-    UtRegisterTest("DetectCsumTCPV6ValidArgsTestParse01",
-                   DetectCsumTCPV6ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumTCPV6InValidArgsTestParse02",
-                   DetectCsumTCPV6InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumTCPV6ValidArgsTestParse03",
-                   DetectCsumTCPV6ValidArgsTestParse03);
-
-    UtRegisterTest("DetectCsumICMPV6ValidArgsTestParse01",
-                   DetectCsumICMPV6ValidArgsTestParse01);
-    UtRegisterTest("DetectCsumICMPV6InValidArgsTestParse02",
-                   DetectCsumICMPV6InValidArgsTestParse02);
-    UtRegisterTest("DetectCsumICMPV6ValidArgsTestParse03",
-                   DetectCsumICMPV6ValidArgsTestParse03);
-
-    UtRegisterTest("DetectCsumICMPV6Test01", DetectCsumICMPV6Test01);
 #endif /* UNITTESTS */
 }
