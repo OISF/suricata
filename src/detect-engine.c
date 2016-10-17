@@ -2824,8 +2824,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http cookie";
         case DETECT_SM_LIST_HUADMATCH:
             return "http user-agent";
-        case DETECT_SM_LIST_HTTP_REQLINEMATCH:
-            return "http request line";
         case DETECT_SM_LIST_HTTP_RESLINEMATCH:
             return "http response line";
         case DETECT_SM_LIST_APP_EVENT:
