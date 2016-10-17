@@ -1470,7 +1470,15 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
         int list;
         uint16_t idx = s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]->idx;
-        for (list = 0; list < DETECT_SM_LIST_DETECT_MAX; list++) {
+        for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+            if (list == DETECT_SM_LIST_POSTMATCH ||
+                list == DETECT_SM_LIST_TMATCH ||
+                list == DETECT_SM_LIST_SUPPRESS ||
+                list == DETECT_SM_LIST_THRESHOLD)
+            {
+                continue;
+            }
+
             if (list != DETECT_SM_LIST_BASE64_DATA &&
                 s->init_data->smlists[list] != NULL) {
                 if (s->init_data->smlists[list]->idx > idx) {
