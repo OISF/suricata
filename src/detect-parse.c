@@ -1563,85 +1563,12 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         sig->flags |= SIG_FLAG_APPLAYER;
 
-    if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HTTP_REQLINEMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HTTP_RESLINEMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_FILEDATA])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HMDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HCDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRUDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_FILEMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HSMDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HSCDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HUADMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HHHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-
-    /* DNP3. */
-    if (sig->sm_lists[DETECT_SM_LIST_DNP3_DATA_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-    if (sig->sm_lists[DETECT_SM_LIST_DNP3_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-
-    /* Template. */
-    if (sig->sm_lists[DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-
-    /* DNS */
-    if (sig->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_DNSREQUEST_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-    if (sig->sm_lists[DETECT_SM_LIST_DNSRESPONSE_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-
-    /* TLS */
-    if (sig->sm_lists[DETECT_SM_LIST_TLSSNI_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_TLSVALIDITY_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-
-    if (sig->sm_lists[DETECT_SM_LIST_MODBUS_MATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-
-    if (sig->sm_lists[DETECT_SM_LIST_CIP_MATCH])
-       sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_ENIP_MATCH])
-       sig->flags |= SIG_FLAG_STATE_MATCH;
+    /* for other lists this flag is set when the inspect engines
+     * are registered */
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
         sig->flags |= SIG_FLAG_TOSERVER;
