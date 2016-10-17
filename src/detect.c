@@ -3908,15 +3908,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-static int SigMatchListLen(SigMatch *sm)
-{
-    int len = 0;
-    for (; sm != NULL; sm = sm->next)
-        len++;
-
-    return len;
-}
-
 /** \internal
  *  \brief perform final per signature setup tasks
  *
@@ -3930,31 +3921,14 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
-        int type;
-        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
-            SigMatch *sm = s->init_data->smlists[type];
-            int len = SigMatchListLen(sm);
-            if (len == 0)
-                s->sm_arrays[type] = NULL;
-            else {
-                SigMatchData *smd = (SigMatchData*)SCMalloc(len * sizeof(SigMatchData));
-                if (smd == NULL) {
-                    SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
-                    exit(EXIT_FAILURE);
-                }
-                /* Copy sm type and Context into array */
-                s->sm_arrays[type] = smd;
-                for (; sm != NULL; sm = sm->next, smd++) {
-                    smd->type = sm->type;
-                    smd->ctx = sm->ctx;
-                    sm->ctx = NULL; // SigMatch no longer owns the ctx
-                    smd->is_last = (sm->next == NULL);
-                }
-            }
-        }
-
         /* set up inspect engines */
         DetectEngineAppInspectionEngine2Signature(s);
+
+        int type;
+        for (type = 0; type < DETECT_SM_LIST_BUILTIN_MAX; type++) {
+            SigMatch *sm = s->init_data->smlists[type];
+            s->sm_arrays[type] = SigMatchList2DataArray(sm);
+        }
 
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         int i;

@@ -475,8 +475,9 @@ typedef struct Signature_ {
 
     DetectEngineAppInspectionEngine *app_inspect;
 
-    /* Hold copies of the sm lists for Match() */
-    SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
+    /* Matching structures for the built-ins. The others are in
+     * their inspect engines. */
+    SigMatchData *sm_arrays[DETECT_SM_LIST_BUILTIN_MAX];
 
     /* memory is still owned by the sm_lists/sm_arrays entry */
     const struct DetectFilestoreData_ *filestore_ctx;

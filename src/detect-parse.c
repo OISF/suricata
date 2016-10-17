@@ -1049,7 +1049,7 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
 {
     if (s != NULL) {
         int type;
-        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+        for (type = 0; type < DETECT_SM_LIST_BUILTIN_MAX; type++) {
             if (s->sm_arrays[type] != NULL) {
                 if (ctxs) {
                     SigMatchData *smd = s->sm_arrays[type];
@@ -1230,6 +1230,42 @@ static void SigBuildAddressMatchArray(Signature *s)
         }
         s->addr_dst_match6_cnt = cnt;
     }
+}
+
+static int SigMatchListLen(SigMatch *sm)
+{
+    int len = 0;
+    for (; sm != NULL; sm = sm->next)
+        len++;
+
+    return len;
+}
+
+/** \brief convert SigMatch list to SigMatchData array
+ *  \note ownership of sm->ctx is transfered to smd->ctx
+ */
+SigMatchData* SigMatchList2DataArray(SigMatch *head)
+{
+    int len = SigMatchListLen(head);
+    if (len == 0)
+        return NULL;
+
+    SigMatchData *smd = (SigMatchData *)SCCalloc(len, sizeof(SigMatchData));
+    if (smd == NULL) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
+    SigMatchData *out = smd;
+
+    /* Copy sm type and Context into array */
+    SigMatch *sm = head;
+    for (; sm != NULL; sm = sm->next, smd++) {
+        smd->type = sm->type;
+        smd->ctx = sm->ctx;
+        sm->ctx = NULL; // SigMatch no longer owns the ctx
+        smd->is_last = (sm->next == NULL);
+    }
+    return out;
 }
 
 /**
