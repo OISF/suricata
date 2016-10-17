@@ -3400,7 +3400,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         /* see if any sig is inspecting the packet payload */
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_INIT_PAYLOAD;
             cnt_payload++;
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
@@ -8383,9 +8382,6 @@ int SigTest40NoPayloadInspection02(void)
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    if (!(de_ctx->sig_list->init_flags & SIG_FLAG_INIT_PAYLOAD))
-        result = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 

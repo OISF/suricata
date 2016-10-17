@@ -297,8 +297,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
 #define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
-#define SIG_FLAG_INIT_PAYLOAD        (1<<4)  /**< signature is inspecting the packet payload */
-#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 5) /** < signature has seen the first ip_proto keyword */
+#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 4) /** < signature has seen the first ip_proto keyword */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
