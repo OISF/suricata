@@ -216,7 +216,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     if (s->proto.flags & (DETECT_PROTO_ANY | DETECT_PROTO_IPV6 | DETECT_PROTO_IPV4)) {
         s->proto.flags &= ~DETECT_PROTO_ANY;
         memset(s->proto.proto, 0x00, sizeof(s->proto.proto));
-        s->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+        s->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     } else {
         /* The ipproto engine has a relationship with the protocol that is
          * set after the action and also the app protocol(that can also be
@@ -224,7 +224,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
          * An ip_proto keyword can be used only with alert ip, which if
          * not true we error out on the sig.  And hence the init_flag to
          * indicate this. */
-        if (!(s->init_flags & SIG_FLAG_INIT_FIRST_IPPROTO_SEEN)) {
+        if (!(s->init_data->init_flags & SIG_FLAG_INIT_FIRST_IPPROTO_SEEN)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature can use "
                        "ip_proto keyword only when we use alert ip, "
                        "in which case the _ANY flag is set on the sig "
@@ -610,7 +610,7 @@ static int DetectIPProtoTestSetup01(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
@@ -650,7 +650,7 @@ static int DetectIPProtoTestSetup02(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
@@ -687,7 +687,7 @@ static int DetectIPProtoTestSetup03(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
@@ -723,7 +723,7 @@ static int DetectIPProtoTestSetup04(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
@@ -759,7 +759,7 @@ static int DetectIPProtoTestSetup05(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     DetectIPProtoSetup(NULL, sig, value_str);
     for (i = 0; i < (value / 8); i++) {
@@ -794,7 +794,7 @@ static int DetectIPProtoTestSetup06(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -821,7 +821,7 @@ static int DetectIPProtoTestSetup07(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -848,7 +848,7 @@ static int DetectIPProtoTestSetup08(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -875,7 +875,7 @@ static int DetectIPProtoTestSetup09(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -902,7 +902,7 @@ static int DetectIPProtoTestSetup10(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -929,7 +929,7 @@ static int DetectIPProtoTestSetup11(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -956,7 +956,7 @@ static int DetectIPProtoTestSetup12(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -983,7 +983,7 @@ static int DetectIPProtoTestSetup13(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1007,7 +1007,7 @@ static int DetectIPProtoTestSetup14(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1033,7 +1033,7 @@ static int DetectIPProtoTestSetup15(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1069,7 +1069,7 @@ static int DetectIPProtoTestSetup15(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1114,7 +1114,7 @@ static int DetectIPProtoTestSetup16(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1150,7 +1150,7 @@ static int DetectIPProtoTestSetup16(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1195,7 +1195,7 @@ static int DetectIPProtoTestSetup17(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1231,7 +1231,7 @@ static int DetectIPProtoTestSetup17(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1272,7 +1272,7 @@ static int DetectIPProtoTestSetup18(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1308,7 +1308,7 @@ static int DetectIPProtoTestSetup18(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1350,7 +1350,7 @@ static int DetectIPProtoTestSetup19(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1389,7 +1389,7 @@ static int DetectIPProtoTestSetup19(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1436,7 +1436,7 @@ static int DetectIPProtoTestSetup20(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1473,7 +1473,7 @@ static int DetectIPProtoTestSetup20(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1521,7 +1521,7 @@ static int DetectIPProtoTestSetup21(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1560,7 +1560,7 @@ static int DetectIPProtoTestSetup21(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1608,7 +1608,7 @@ static int DetectIPProtoTestSetup22(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1647,7 +1647,7 @@ static int DetectIPProtoTestSetup22(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -1694,7 +1694,7 @@ static int DetectIPProtoTestSetup23(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -1731,7 +1731,7 @@ static int DetectIPProtoTestSetup23(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -1779,7 +1779,7 @@ static int DetectIPProtoTestSetup24(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -1818,7 +1818,7 @@ static int DetectIPProtoTestSetup24(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -1866,7 +1866,7 @@ static int DetectIPProtoTestSetup25(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1905,7 +1905,7 @@ static int DetectIPProtoTestSetup25(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1952,7 +1952,7 @@ static int DetectIPProtoTestSetup26(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -1988,7 +1988,7 @@ static int DetectIPProtoTestSetup26(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2036,7 +2036,7 @@ static int DetectIPProtoTestSetup27(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2074,7 +2074,7 @@ static int DetectIPProtoTestSetup27(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2122,7 +2122,7 @@ static int DetectIPProtoTestSetup28(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2161,7 +2161,7 @@ static int DetectIPProtoTestSetup28(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2208,7 +2208,7 @@ static int DetectIPProtoTestSetup29(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2245,7 +2245,7 @@ static int DetectIPProtoTestSetup29(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2293,7 +2293,7 @@ static int DetectIPProtoTestSetup30(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2332,7 +2332,7 @@ static int DetectIPProtoTestSetup30(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2380,7 +2380,7 @@ static int DetectIPProtoTestSetup31(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2419,7 +2419,7 @@ static int DetectIPProtoTestSetup31(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2466,7 +2466,7 @@ static int DetectIPProtoTestSetup32(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2503,7 +2503,7 @@ static int DetectIPProtoTestSetup32(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2551,7 +2551,7 @@ static int DetectIPProtoTestSetup33(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2590,7 +2590,7 @@ static int DetectIPProtoTestSetup33(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2639,7 +2639,7 @@ static int DetectIPProtoTestSetup34(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2678,7 +2678,7 @@ static int DetectIPProtoTestSetup34(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -2707,7 +2707,7 @@ static int DetectIPProtoTestSetup35(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2744,7 +2744,7 @@ static int DetectIPProtoTestSetup35(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2792,7 +2792,7 @@ static int DetectIPProtoTestSetup36(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2831,7 +2831,7 @@ static int DetectIPProtoTestSetup36(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -2879,7 +2879,7 @@ static int DetectIPProtoTestSetup37(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2918,7 +2918,7 @@ static int DetectIPProtoTestSetup37(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2958,7 +2958,7 @@ static int DetectIPProtoTestSetup38(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -2995,7 +2995,7 @@ static int DetectIPProtoTestSetup38(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3036,7 +3036,7 @@ static int DetectIPProtoTestSetup39(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3075,7 +3075,7 @@ static int DetectIPProtoTestSetup39(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3117,7 +3117,7 @@ static int DetectIPProtoTestSetup40(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3156,7 +3156,7 @@ static int DetectIPProtoTestSetup40(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3197,7 +3197,7 @@ static int DetectIPProtoTestSetup41(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3234,7 +3234,7 @@ static int DetectIPProtoTestSetup41(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3276,7 +3276,7 @@ static int DetectIPProtoTestSetup42(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3315,7 +3315,7 @@ static int DetectIPProtoTestSetup42(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3357,7 +3357,7 @@ static int DetectIPProtoTestSetup43(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3400,7 +3400,7 @@ static int DetectIPProtoTestSetup43(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3451,7 +3451,7 @@ static int DetectIPProtoTestSetup44(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3491,7 +3491,7 @@ static int DetectIPProtoTestSetup44(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3543,7 +3543,7 @@ static int DetectIPProtoTestSetup45(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3586,7 +3586,7 @@ static int DetectIPProtoTestSetup45(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3636,7 +3636,7 @@ static int DetectIPProtoTestSetup46(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3674,7 +3674,7 @@ static int DetectIPProtoTestSetup46(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -3725,7 +3725,7 @@ static int DetectIPProtoTestSetup47(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3765,7 +3765,7 @@ static int DetectIPProtoTestSetup47(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3815,7 +3815,7 @@ static int DetectIPProtoTestSetup48(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3853,7 +3853,7 @@ static int DetectIPProtoTestSetup48(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -3905,7 +3905,7 @@ static int DetectIPProtoTestSetup49(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3945,7 +3945,7 @@ static int DetectIPProtoTestSetup49(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -3993,7 +3993,7 @@ static int DetectIPProtoTestSetup50(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4033,7 +4033,7 @@ static int DetectIPProtoTestSetup50(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4082,7 +4082,7 @@ static int DetectIPProtoTestSetup51(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4122,7 +4122,7 @@ static int DetectIPProtoTestSetup51(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4169,7 +4169,7 @@ static int DetectIPProtoTestSetup52(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4207,7 +4207,7 @@ static int DetectIPProtoTestSetup52(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4255,7 +4255,7 @@ static int DetectIPProtoTestSetup53(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4295,7 +4295,7 @@ static int DetectIPProtoTestSetup53(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4342,7 +4342,7 @@ static int DetectIPProtoTestSetup54(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4380,7 +4380,7 @@ static int DetectIPProtoTestSetup54(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4427,7 +4427,7 @@ static int DetectIPProtoTestSetup55(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4465,7 +4465,7 @@ static int DetectIPProtoTestSetup55(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4513,7 +4513,7 @@ static int DetectIPProtoTestSetup56(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4553,7 +4553,7 @@ static int DetectIPProtoTestSetup56(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4600,7 +4600,7 @@ static int DetectIPProtoTestSetup57(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4638,7 +4638,7 @@ static int DetectIPProtoTestSetup57(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4686,7 +4686,7 @@ static int DetectIPProtoTestSetup58(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4726,7 +4726,7 @@ static int DetectIPProtoTestSetup58(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -4774,7 +4774,7 @@ static int DetectIPProtoTestSetup59(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4814,7 +4814,7 @@ static int DetectIPProtoTestSetup59(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4862,7 +4862,7 @@ static int DetectIPProtoTestSetup60(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4902,7 +4902,7 @@ static int DetectIPProtoTestSetup60(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -4949,7 +4949,7 @@ static int DetectIPProtoTestSetup61(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -4987,7 +4987,7 @@ static int DetectIPProtoTestSetup61(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5038,7 +5038,7 @@ static int DetectIPProtoTestSetup62(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5078,7 +5078,7 @@ static int DetectIPProtoTestSetup62(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5128,7 +5128,7 @@ static int DetectIPProtoTestSetup63(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5166,7 +5166,7 @@ static int DetectIPProtoTestSetup63(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5218,7 +5218,7 @@ static int DetectIPProtoTestSetup64(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5261,7 +5261,7 @@ static int DetectIPProtoTestSetup64(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5312,7 +5312,7 @@ static int DetectIPProtoTestSetup65(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -5352,7 +5352,7 @@ static int DetectIPProtoTestSetup65(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -5404,7 +5404,7 @@ static int DetectIPProtoTestSetup66(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -5447,7 +5447,7 @@ static int DetectIPProtoTestSetup66(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -5498,7 +5498,7 @@ static int DetectIPProtoTestSetup67(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5543,7 +5543,7 @@ static int DetectIPProtoTestSetup68(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5588,7 +5588,7 @@ static int DetectIPProtoTestSetup69(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5626,7 +5626,7 @@ static int DetectIPProtoTestSetup70(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5664,7 +5664,7 @@ static int DetectIPProtoTestSetup71(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5702,7 +5702,7 @@ static int DetectIPProtoTestSetup72(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5740,7 +5740,7 @@ static int DetectIPProtoTestSetup73(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5785,7 +5785,7 @@ static int DetectIPProtoTestSetup74(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5829,7 +5829,7 @@ static int DetectIPProtoTestSetup75(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5866,7 +5866,7 @@ static int DetectIPProtoTestSetup76(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5903,7 +5903,7 @@ static int DetectIPProtoTestSetup77(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -5940,7 +5940,7 @@ static int DetectIPProtoTestSetup78(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -5978,7 +5978,7 @@ static int DetectIPProtoTestSetup79(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6015,7 +6015,7 @@ static int DetectIPProtoTestSetup80(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6052,7 +6052,7 @@ static int DetectIPProtoTestSetup81(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6090,7 +6090,7 @@ static int DetectIPProtoTestSetup82(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6128,7 +6128,7 @@ static int DetectIPProtoTestSetup83(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6166,7 +6166,7 @@ static int DetectIPProtoTestSetup84(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6204,7 +6204,7 @@ static int DetectIPProtoTestSetup85(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6242,7 +6242,7 @@ static int DetectIPProtoTestSetup86(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6281,7 +6281,7 @@ static int DetectIPProtoTestSetup87(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6329,7 +6329,7 @@ static int DetectIPProtoTestSetup88(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6377,7 +6377,7 @@ static int DetectIPProtoTestSetup89(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6425,7 +6425,7 @@ static int DetectIPProtoTestSetup90(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6473,7 +6473,7 @@ static int DetectIPProtoTestSetup91(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -6521,7 +6521,7 @@ static int DetectIPProtoTestSetup92(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -6569,7 +6569,7 @@ static int DetectIPProtoTestSetup93(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6614,7 +6614,7 @@ static int DetectIPProtoTestSetup94(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6659,7 +6659,7 @@ static int DetectIPProtoTestSetup95(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6704,7 +6704,7 @@ static int DetectIPProtoTestSetup96(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6749,7 +6749,7 @@ static int DetectIPProtoTestSetup97(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -6794,7 +6794,7 @@ static int DetectIPProtoTestSetup98(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -6840,7 +6840,7 @@ static int DetectIPProtoTestSetup99(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6886,7 +6886,7 @@ static int DetectIPProtoTestSetup100(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -6932,7 +6932,7 @@ static int DetectIPProtoTestSetup101(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -6978,7 +6978,7 @@ static int DetectIPProtoTestSetup102(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7024,7 +7024,7 @@ static int DetectIPProtoTestSetup103(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7070,7 +7070,7 @@ static int DetectIPProtoTestSetup104(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7116,7 +7116,7 @@ static int DetectIPProtoTestSetup105(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7165,7 +7165,7 @@ static int DetectIPProtoTestSetup106(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7214,7 +7214,7 @@ static int DetectIPProtoTestSetup107(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7263,7 +7263,7 @@ static int DetectIPProtoTestSetup108(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7312,7 +7312,7 @@ static int DetectIPProtoTestSetup109(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7361,7 +7361,7 @@ static int DetectIPProtoTestSetup110(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7409,7 +7409,7 @@ static int DetectIPProtoTestSetup111(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7457,7 +7457,7 @@ static int DetectIPProtoTestSetup112(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7505,7 +7505,7 @@ static int DetectIPProtoTestSetup113(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7553,7 +7553,7 @@ static int DetectIPProtoTestSetup114(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7601,7 +7601,7 @@ static int DetectIPProtoTestSetup115(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7649,7 +7649,7 @@ static int DetectIPProtoTestSetup116(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7697,7 +7697,7 @@ static int DetectIPProtoTestSetup117(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7745,7 +7745,7 @@ static int DetectIPProtoTestSetup118(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -7793,7 +7793,7 @@ static int DetectIPProtoTestSetup119(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -7841,7 +7841,7 @@ static int DetectIPProtoTestSetup120(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7889,7 +7889,7 @@ static int DetectIPProtoTestSetup121(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7937,7 +7937,7 @@ static int DetectIPProtoTestSetup122(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -7985,7 +7985,7 @@ static int DetectIPProtoTestSetup123(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8033,7 +8033,7 @@ static int DetectIPProtoTestSetup124(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8081,7 +8081,7 @@ static int DetectIPProtoTestSetup125(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8129,7 +8129,7 @@ static int DetectIPProtoTestSetup126(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8177,7 +8177,7 @@ static int DetectIPProtoTestSetup127(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -8225,7 +8225,7 @@ static int DetectIPProtoTestSetup128(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
         goto end;
@@ -8271,7 +8271,7 @@ static int DetectIPProtoTestSetup129(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8308,7 +8308,7 @@ static int DetectIPProtoTestSetup130(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8345,7 +8345,7 @@ static int DetectIPProtoTestSetup131(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8382,7 +8382,7 @@ static int DetectIPProtoTestSetup132(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8419,7 +8419,7 @@ static int DetectIPProtoTestSetup133(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8457,7 +8457,7 @@ static int DetectIPProtoTestSetup134(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8501,7 +8501,7 @@ static int DetectIPProtoTestSetup135(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -8565,7 +8565,7 @@ static int DetectIPProtoTestSetup136(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
         goto end;
@@ -8629,7 +8629,7 @@ static int DetectIPProtoTestSetup137(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
         goto end;
@@ -8693,7 +8693,7 @@ static int DetectIPProtoTestSetup138(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
         goto end;
@@ -8757,7 +8757,7 @@ static int DetectIPProtoTestSetup139(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
         goto end;
@@ -8821,7 +8821,7 @@ static int DetectIPProtoTestSetup140(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
         goto end;
@@ -8885,7 +8885,7 @@ static int DetectIPProtoTestSetup141(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
         goto end;
@@ -8949,7 +8949,7 @@ static int DetectIPProtoTestSetup142(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
         goto end;
@@ -9015,7 +9015,7 @@ static int DetectIPProtoTestSetup143(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
         goto end;
@@ -9085,7 +9085,7 @@ static int DetectIPProtoTestSetup144(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value10_str) != 0)
         goto end;
@@ -9155,7 +9155,7 @@ static int DetectIPProtoTestSetup145(void)
     if ((sig = SigAlloc()) == NULL)
         goto end;
 
-    sig->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
+    sig->init_data->init_flags |= SIG_FLAG_INIT_FIRST_IPPROTO_SEEN;
     sig->proto.flags |= DETECT_PROTO_ANY;
     if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
         goto end;

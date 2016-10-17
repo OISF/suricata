@@ -2536,7 +2536,7 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires flow");
     }
 
-    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
+    if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
@@ -2569,8 +2569,8 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
  */
 static int SigParseGetMaxDsize(Signature *s)
 {
-    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
-        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->init_data->dsize_sm->ctx;
 
         switch (dd->mode) {
             case DETECTDSIZE_LT:
@@ -2591,8 +2591,8 @@ static int SigParseGetMaxDsize(Signature *s)
  */
 static void SigParseSetDsizePair(Signature *s)
 {
-    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
-        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->init_data->dsize_sm->ctx;
 
         uint16_t low = 0;
         uint16_t high = 65535;
@@ -2662,19 +2662,19 @@ static void SigParseApplyDsizeToContent(Signature *s)
 /** \brief Pure-PCRE or bytetest rule */
 int RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
-    if (s->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 1;
     return 0;
 }
 
 int RuleGetMpmPatternSize(const Signature *s)
 {
-    if (s->mpm_sm == NULL)
+    if (s->init_data->mpm_sm == NULL)
         return -1;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
     if (mpm_list < 0)
         return -1;
-    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
     if (cd == NULL)
         return -1;
     return (int)cd->content_len;
@@ -2682,12 +2682,12 @@ int RuleGetMpmPatternSize(const Signature *s)
 
 int RuleMpmIsNegated(const Signature *s)
 {
-    if (s->mpm_sm == NULL)
+    if (s->init_data->mpm_sm == NULL)
         return 0;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
     if (mpm_list < 0)
         return 0;
-    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
     if (cd == NULL)
         return 0;
     return (cd->flags & DETECT_CONTENT_NEGATED);
@@ -2757,7 +2757,7 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             any5_cnt++;
         }
 
-        if (s->mpm_sm == NULL) {
+        if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
             if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
@@ -2779,9 +2779,9 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             }
 
         } else {
-            int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+            int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             BUG_ON(mpm_list < 0);
-            const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+            const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
@@ -3174,8 +3174,8 @@ static int RuleSetWhitelist(Signature *s)
             wl = 77;
 
             /* one byte pattern in packet/stream payloads */
-        } else if (s->mpm_sm != NULL &&
-                   SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH &&
+        } else if (s->init_data->mpm_sm != NULL &&
+                   SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH &&
                    RuleGetMpmPatternSize(s) == 1)
         {
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
@@ -3189,7 +3189,7 @@ static int RuleSetWhitelist(Signature *s)
         }
     }
 
-    s->whitelist = wl;
+    s->init_data->whitelist = wl;
     return wl;
 }
 
@@ -3241,7 +3241,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             goto next;
         }
 
-        int wl = s->whitelist;
+        int wl = s->init_data->whitelist;
         while (p) {
             int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? 111 : 0;
             pwl = MAX(wl,pwl);
@@ -3395,7 +3395,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
         } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_INIT_DEONLY;
+            tmp_s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
             cnt_deonly++;
         }
@@ -3467,7 +3467,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                     SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
-                            tmp_s->prefilter_sm = sm;
+                            tmp_s->init_data->prefilter_sm = sm;
                             tmp_s->flags |= SIG_FLAG_PREFILTER;
                             SCLogConfig("sid %u: prefilter is on \"%s\"", tmp_s->id, sigmatch_table[sm->type].name);
                             break;
@@ -3718,7 +3718,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
         }
 
-        if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
+        if (tmp_s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         }
 
@@ -8338,15 +8338,13 @@ int SigTest40NoPayloadInspection02(void)
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-    return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
-
     memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
     memset(p, 0, SIZE_OF_PACKET);
+
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -8354,37 +8352,26 @@ int SigTest40NoPayloadInspection02(void)
     p->proto = IPPROTO_TCP;
     p->flags |= PKT_NOPAYLOAD_INSPECTION;
 
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        result &= 0;
-    else
-        result &= 1;
+    FAIL_IF(PacketAlertCheck(p, 1));
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     SCFree(p);
-    return result;
+    PASS;
 }
 
 static int SigTestMemory01 (void)

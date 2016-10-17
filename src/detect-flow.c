@@ -336,7 +336,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
         goto error;
 
     /*ensure only one flow option*/
-    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
+    if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
         goto error;
     }
@@ -367,7 +367,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
     } else {
-        s->init_flags |= SIG_FLAG_INIT_FLOW;
+        s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
     }
 
     return 0;

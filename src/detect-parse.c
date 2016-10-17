@@ -237,7 +237,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
 
-    if (s->list != DETECT_SM_LIST_NOTSET) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword seen "
                    "with a sticky buffer still set.  Reset sticky buffer "
                    "with pkt_data before using the modifier.",
@@ -383,8 +383,8 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
         s->init_data->smlists_tail[list] = new;
     }
 
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
+    new->idx = s->init_data->sm_cnt;
+    s->init_data->sm_cnt++;
 }
 
 void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
@@ -684,15 +684,15 @@ static int SigParseAddress(DetectEngineCtx *de_ctx,
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        s->src = DetectParseAddress(de_ctx, addrstr);
-        if (s->src == NULL)
+        s->init_data->src = DetectParseAddress(de_ctx, addrstr);
+        if (s->init_data->src == NULL)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        s->dst = DetectParseAddress(de_ctx, addrstr);
-        if (s->dst == NULL)
+        s->init_data->dst = DetectParseAddress(de_ctx, addrstr);
+        if (s->init_data->dst == NULL)
             goto error;
     }
 
@@ -908,7 +908,7 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     }
     /* Check if it is bidirectional */
     if (strcmp(parser->direction, "<>") == 0)
-        s->init_flags |= SIG_FLAG_INIT_BIDIREC;
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
 
     /* Parse Address & Ports */
     if (SigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
@@ -1011,7 +1011,7 @@ Signature *SigAlloc (void)
      * overwritten, we can then assign the default value of 3 */
     sig->prio = -1;
 
-    sig->list = DETECT_SM_LIST_NOTSET;
+    sig->init_data->list = DETECT_SM_LIST_NOTSET;
     return sig;
 }
 
@@ -1138,7 +1138,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses */
     uint16_t cnt = 0;
     uint16_t idx = 0;
-    DetectAddress *da = s->src->ipv4_head;
+    DetectAddress *da = s->init_data->src->ipv4_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1148,7 +1148,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->src->ipv4_head; da != NULL; da = da->next) {
+        for (da = s->init_data->src->ipv4_head; da != NULL; da = da->next) {
             s->addr_src_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
             s->addr_src_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1159,7 +1159,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses */
     cnt = 0;
     idx = 0;
-    da = s->dst->ipv4_head;
+    da = s->init_data->dst->ipv4_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1169,7 +1169,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->dst->ipv4_head; da != NULL; da = da->next) {
+        for (da = s->init_data->dst->ipv4_head; da != NULL; da = da->next) {
             s->addr_dst_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
             s->addr_dst_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1180,7 +1180,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->src->ipv6_head;
+    da = s->init_data->src->ipv6_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1190,7 +1190,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->src->ipv6_head; da != NULL; da = da->next) {
+        for (da = s->init_data->src->ipv6_head; da != NULL; da = da->next) {
             s->addr_src_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
             s->addr_src_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
             s->addr_src_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
@@ -1207,7 +1207,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->dst->ipv6_head;
+    da = s->init_data->dst->ipv6_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1217,7 +1217,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->dst->ipv6_head; da != NULL; da = da->next) {
+        for (da = s->init_data->dst->ipv6_head; da != NULL; da = da->next) {
             s->addr_dst_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
             s->addr_dst_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
             s->addr_dst_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
@@ -1618,10 +1618,10 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
             SigMatch *sm = sig->init_data->smlists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
                 if (sigmatch_table[sm->type].Match != NULL)
-                    sig->init_flags |= SIG_FLAG_INIT_PACKET;
+                    sig->init_data->init_flags |= SIG_FLAG_INIT_PACKET;
             }
         } else {
-            sig->init_flags |= SIG_FLAG_INIT_PACKET;
+            sig->init_data->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
 
@@ -1635,14 +1635,14 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     /* for other lists this flag is set when the inspect engines
      * are registered */
 
-    if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
+    if (!(sig->init_data->init_flags & SIG_FLAG_INIT_FLOW)) {
         sig->flags |= SIG_FLAG_TOSERVER;
         sig->flags |= SIG_FLAG_TOCLIENT;
     }
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
-        sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
+        sig->init_data->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
 
@@ -1681,7 +1681,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr)
         goto error;
     }
 
-    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
+    if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
         if (sig->next == NULL) {
             goto error;
@@ -1874,7 +1874,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     if (sw_dup->s_prev == NULL) {
         SigDuplWrapper sw_temp;
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
-        if (sw_dup->s->init_flags & SIG_FLAG_INIT_BIDIREC) {
+        if (sw_dup->s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             de_ctx->sig_list = sw_dup->s->next->next;
             SigFree(sw_dup->s->next);
@@ -1892,7 +1892,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     } else {
         SigDuplWrapper sw_temp;
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
-        if (sw_dup->s->init_flags & SIG_FLAG_INIT_BIDIREC) {
+        if (sw_dup->s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             sw_dup->s_prev->next = sw_dup->s->next->next;
             SigFree(sw_dup->s->next);
@@ -1962,7 +1962,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
                 sigstr);
     }
 
-    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
+    if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         if (sig->next != NULL) {
             sig->next->next = de_ctx->sig_list;
         } else {
@@ -2908,7 +2908,7 @@ int SigTestBidirec01 (void)
         goto end;
     if (sig->next != NULL)
         goto end;
-    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC)
+    if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC)
         goto end;
     if (de_ctx->signum != 1)
         goto end;
@@ -2942,7 +2942,7 @@ int SigTestBidirec02 (void)
         goto end;
     if (de_ctx->sig_list != sig)
         goto end;
-    if (!(sig->init_flags & SIG_FLAG_INIT_BIDIREC))
+    if (!(sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
     if (sig->next == NULL)
         goto end;
@@ -2951,7 +2951,7 @@ int SigTestBidirec02 (void)
     copy = sig->next;
     if (copy->next != NULL)
         goto end;
-    if (!(copy->init_flags & SIG_FLAG_INIT_BIDIREC))
+    if (!(copy->init_data->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
 
     result = 1;
@@ -3109,7 +3109,7 @@ int SigTestBidirec04 (void)
     sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any <> any any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)");
     if (sig == NULL)
         goto end;
-    if ( !(sig->init_flags & SIG_FLAG_INIT_BIDIREC))
+    if ( !(sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
     if (sig->next == NULL)
         goto end;

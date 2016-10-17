@@ -93,7 +93,7 @@ void DetectTlsSniRegister(void)
  */
 static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_TLSSNI_MATCH;
+    s->init_data->list = DETECT_SM_LIST_TLSSNI_MATCH;
     s->alproto = ALPROTO_TLS;
     return 0;
 }

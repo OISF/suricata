@@ -210,12 +210,12 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         return -1;
 
     int sm_list;
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_FILEDATA) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
             AppLayerHtpEnableResponseBodyCallback();
             s->alproto = ALPROTO_HTTP;
         }
-        sm_list = s->list;
+        sm_list = s->init_data->list;
         s->flags |= SIG_FLAG_APPLAYER;
         if (idad->flags & ISDATAAT_RELATIVE) {
             prev_pm = SigMatchGetLastSMFromLists(s, 4,

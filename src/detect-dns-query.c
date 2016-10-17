@@ -108,7 +108,7 @@ void DetectDnsQueryRegister (void)
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_DNSQUERYNAME_MATCH;
+    s->init_data->list = DETECT_SM_LIST_DNSQUERYNAME_MATCH;
     s->alproto = ALPROTO_DNS;
     return 0;
 }

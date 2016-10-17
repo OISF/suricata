@@ -445,8 +445,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
         goto error;
 
     int sm_list;
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_FILEDATA) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
             if (data->flags & DETECT_BYTETEST_DCE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytetest specified "
                            "with file_data option set.");
@@ -454,7 +454,7 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
             }
             AppLayerHtpEnableResponseBodyCallback();
         }
-        sm_list = s->list;
+        sm_list = s->init_data->list;
         s->flags |= SIG_FLAG_APPLAYER;
         if (data->flags & DETECT_BYTETEST_RELATIVE) {
             prev_pm = SigMatchGetLastSMFromLists(s, 4,

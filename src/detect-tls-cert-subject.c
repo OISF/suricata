@@ -93,7 +93,7 @@ void DetectTlsSubjectRegister(void)
  */
 static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_TLSSUBJECT_MATCH;
+    s->init_data->list = DETECT_SM_LIST_TLSSUBJECT_MATCH;
     s->alproto = ALPROTO_TLS;
     return 0;
 }
