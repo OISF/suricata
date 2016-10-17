@@ -78,7 +78,7 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *nu
         goto end;
     }
 
-    s->prefilter_sm = sm;
+    s->init_data->prefilter_sm = sm;
     s->flags |= SIG_FLAG_PREFILTER;
 
     /* if the sig match is content, prefilter should act like
