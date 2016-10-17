@@ -87,8 +87,31 @@ struct SCSigSignatureWrapper_;
 enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
+
+    /* list for per flow matches. Deprecated. */
+    DETECT_SM_LIST_AMATCH,
+
+    /* list for DCE matches */
+    DETECT_SM_LIST_DMATCH,
+
+    /* base64_data keyword uses some hardcoded logic so consider
+     * built-in
+     * TODO convert to inspect engine */
+    DETECT_SM_LIST_BASE64_DATA,
+
+    /* list for post match actions: flowbit set, flowint increment, etc */
+    DETECT_SM_LIST_POSTMATCH,
+
+    DETECT_SM_LIST_TMATCH, /**< post-detection tagging */
+
+    /* lists for alert thresholding and suppression */
+    DETECT_SM_LIST_SUPPRESS,
+    DETECT_SM_LIST_THRESHOLD,
+
+    DETECT_SM_LIST_BUILTIN_MAX,
+
     /* list for http_uri keyword and the ones relative to it */
-    DETECT_SM_LIST_UMATCH,
+    DETECT_SM_LIST_UMATCH = DETECT_SM_LIST_BUILTIN_MAX,
     /* list for http_raw_uri keyword and the ones relative to it */
     DETECT_SM_LIST_HRUDMATCH,
     /* list for http_client_body keyword and the ones relative to it */
@@ -120,9 +143,6 @@ enum DetectSigmatchListEnum {
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT,
 
-    DETECT_SM_LIST_AMATCH,
-    DETECT_SM_LIST_DMATCH,
-
     DETECT_SM_LIST_FILEMATCH,
 
     DETECT_SM_LIST_DNSREQUEST_MATCH,    /**< per DNS query tx match list */
@@ -139,25 +159,11 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_CIP_MATCH,
     DETECT_SM_LIST_ENIP_MATCH,
 
-    DETECT_SM_LIST_BASE64_DATA,
-
     DETECT_SM_LIST_DNP3_DATA_MATCH,
     DETECT_SM_LIST_DNP3_MATCH,
 
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
 
-    /* Demarcation between detection and post-detection lists. All
-     * detection lists must come before this. */
-    DETECT_SM_LIST_DETECT_MAX,
-
-    /* list for post match actions: flowbit set, flowint increment, etc */
-    DETECT_SM_LIST_POSTMATCH = DETECT_SM_LIST_DETECT_MAX,
-
-    DETECT_SM_LIST_TMATCH, /**< post-detection tagging */
-
-    /* lists for alert thresholding and suppression */
-    DETECT_SM_LIST_SUPPRESS,
-    DETECT_SM_LIST_THRESHOLD,
     DETECT_SM_LIST_MAX,
 
     /* used for Signature->list, which indicates which list

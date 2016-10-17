@@ -3449,7 +3449,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
+            for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
                 SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
@@ -3463,7 +3463,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
+                for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
                     SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
