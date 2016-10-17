@@ -93,7 +93,7 @@ void DetectTlsIssuerRegister(void)
  */
 static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_TLSISSUER_MATCH;
+    s->init_data->list = DETECT_SM_LIST_TLSISSUER_MATCH;
     s->alproto = ALPROTO_TLS;
     return 0;
 }

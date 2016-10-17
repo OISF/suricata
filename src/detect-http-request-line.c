@@ -111,7 +111,7 @@ void DetectHttpRequestLineRegister(void)
  */
 int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    s->list = DETECT_SM_LIST_HTTP_REQLINEMATCH;
+    s->init_data->list = DETECT_SM_LIST_HTTP_REQLINEMATCH;
     s->alproto = ALPROTO_HTTP;
     return 0;
 }

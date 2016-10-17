@@ -90,7 +90,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         goto error;
     }
 
-    s->list = DETECT_SM_LIST_DMATCH;
+    s->init_data->list = DETECT_SM_LIST_DMATCH;
     s->alproto = ALPROTO_DCERPC;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;

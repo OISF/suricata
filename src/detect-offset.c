@@ -73,8 +73,8 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     }
 
     /* retrive the sm to apply the depth against */
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->init_data->smlists_tail[s->list]);
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->init_data->smlists_tail[s->init_data->list]);
     } else {
         pm =  SigMatchGetLastSMFromLists(s, 28,
                                          DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
