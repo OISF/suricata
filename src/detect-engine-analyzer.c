@@ -77,7 +77,7 @@ void EngineAnalysisFP(Signature *s, char *line)
     int fast_pattern_only_set = 0;
     int fast_pattern_chop_set = 0;
     DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->mpm_sm;
+    SigMatch *mpm_sm = s->init_data->mpm_sm;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -95,9 +95,9 @@ void EngineAnalysisFP(Signature *s, char *line)
     fprintf(fp_engine_analysis_FD, "%s\n", line);
 
     fprintf(fp_engine_analysis_FD, "    Fast Pattern analysis:\n");
-    if (s->prefilter_sm != NULL) {
+    if (s->init_data->prefilter_sm != NULL) {
         fprintf(fp_engine_analysis_FD, "        Prefilter on: %s\n",
-                sigmatch_table[s->prefilter_sm->type].name);
+                sigmatch_table[s->init_data->prefilter_sm->type].name);
         fprintf(fp_engine_analysis_FD, "\n");
         return;
     }
@@ -412,7 +412,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
 static void EngineAnalysisRulesPrintFP(const Signature *s)
 {
     DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->mpm_sm;
+    SigMatch *mpm_sm = s->init_data->mpm_sm;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -574,7 +574,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
-    if (s->init_flags & SIG_FLAG_INIT_BIDIREC) {
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
     }
 
@@ -822,8 +822,8 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
-    if (s->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
-        SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
+        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
@@ -868,9 +868,9 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         }
 
         /* print fast pattern info */
-        if (s->prefilter_sm) {
+        if (s->init_data->prefilter_sm) {
             fprintf(rule_engine_analysis_FD, "    Prefilter on: %s.\n",
-                    sigmatch_table[s->prefilter_sm->type].name);
+                    sigmatch_table[s->init_data->prefilter_sm->type].name);
         } else {
             EngineAnalysisRulesPrintFP(s);
         }
