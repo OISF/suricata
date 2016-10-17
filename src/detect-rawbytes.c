@@ -60,7 +60,7 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         return -1;
     }
 
-    if (s->list != DETECT_SM_LIST_NOTSET) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_RAWBYTES_FILE_DATA, "\"rawbytes\" cannot be combined with \"file_data\"");
         SCReturnInt(-1);
     }

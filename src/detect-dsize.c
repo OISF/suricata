@@ -292,8 +292,8 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     s->flags |= SIG_FLAG_DSIZE;
 
-    if (s->dsize_sm == NULL) {
-        s->dsize_sm = sm;
+    if (s->init_data->dsize_sm == NULL) {
+        s->init_data->dsize_sm = sm;
     }
 
     return 0;
