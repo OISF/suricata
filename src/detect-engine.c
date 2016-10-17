@@ -144,11 +144,20 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
-    int lists_used[DETECT_SM_LIST_MAX] = { 0 };
+    SigMatchData *ptrs[DETECT_SM_LIST_MAX] = { NULL };
+
+    /* convert lists to SigMatchData arrays */
+    int i = 0;
+    for (i = DETECT_SM_LIST_BUILTIN_MAX; i < DETECT_SM_LIST_MAX; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+
+        ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
+    }
 
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
-        if (s->sm_arrays[t->sm_list] == NULL)
+        if (ptrs[t->sm_list] == NULL)
             goto next;
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
@@ -208,8 +217,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
 
-                new_engine->smd = s->sm_arrays[new_engine->sm_list];
-                lists_used[t->sm_list] = 1;
+                new_engine->smd = ptrs[new_engine->sm_list];
                 break;
             default:
                 break;
@@ -232,15 +240,6 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         s->flags |= SIG_FLAG_STATE_MATCH;
 next:
         t = t->next;
-    }
-
-    /* clear s->sm_arrays for those lists that we put
-     * in the inspect engines. They own it now. */
-    int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        if (lists_used[i]) {
-            s->sm_arrays[i] = NULL;
-        }
     }
 
     return 0;
