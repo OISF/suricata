@@ -412,6 +412,34 @@ typedef struct DetectEngineAppInspectionEngine_ {
 #endif
 
 typedef struct SignatureInitData_ {
+    /** Number of sigmatches. Used for assigning SigMatch::idx */
+    uint16_t sm_cnt;
+
+    /* used to hold flags that are used during init */
+    uint32_t init_flags;
+    /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
+
+    /* used at init to determine max dsize */
+    SigMatch *dsize_sm;
+
+    /* the fast pattern added from this signature */
+    SigMatch *mpm_sm;
+    /* used to speed up init of prefilter */
+    SigMatch *prefilter_sm;
+
+    /* SigMatch list used for adding content and friends. E.g. file_data; */
+    int list;
+
+    /** score to influence rule grouping. A higher value leads to a higher
+     *  likelyhood of a rulegroup with this sig ending up as a contained
+     *  group. */
+    int whitelist;
+
+    /** address settings for this signature */
+    const DetectAddressHead *src, *dst;
+
+    int prefilter_list;
+
     /* holds all sm lists */
     struct SigMatch_ *smlists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
@@ -463,12 +491,6 @@ typedef struct Signature_ {
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif
-    /** number of sigmatches in the match and pmatch list */
-    uint16_t sm_cnt;
-
-    /* used to hold flags that are predominantly used during init */
-    uint32_t init_flags;
-    /* coccinelle: Signature:init_flags:SIG_FLAG_INIT_ */
 
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
@@ -489,29 +511,9 @@ typedef struct Signature_ {
     /** Reference */
     DetectReference *references;
 
-    /** address settings for this signature */
-    const DetectAddressHead *src, *dst;
-
-    /* used at init to determine max dsize */
-    SigMatch *dsize_sm;
-    /* the fast pattern added from this signature */
-    SigMatch *mpm_sm;
-    /* used to speed up init of prefilter */
-    SigMatch *prefilter_sm;
-
-    /* SigMatch list used for adding content and friends. E.g. file_data; */
-    int list;
-
-    /** score to influence rule grouping. A higher value leads to a higher
-     *  likelyhood of a rulegroup with this sig ending up as a contained
-     *  group. */
-    int whitelist;
-
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
-
-    int prefilter_list;
 
     SignatureInitData *init_data;
 

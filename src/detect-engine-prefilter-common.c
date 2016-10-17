@@ -121,14 +121,14 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        if (s->prefilter_sm == NULL || s->prefilter_sm->type != sm_type)
+        if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)
             continue;
 
         uint16_t type = 0;
         uint16_t value = 0;
         GetExtraMatch(s, &type, &value);
 
-        if (Compare(ctx->v1, s->prefilter_sm->ctx) &&
+        if (Compare(ctx->v1, s->init_data->prefilter_sm->ctx) &&
             ctx->type == type && ctx->value == value)
         {
             SCLogDebug("appending sid %u on %u", s->id, sig_offset);
@@ -227,12 +227,12 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(SigGroupHead *sgh, int sm_typ
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        if (s->prefilter_sm == NULL || s->prefilter_sm->type != sm_type)
+        if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)
             continue;
 
         PrefilterPacketHeaderValue v;
         memset(&v, 0, sizeof(v));
-        Set(&v, s->prefilter_sm->ctx);
+        Set(&v, s->init_data->prefilter_sm->ctx);
 
         ApplyToU8Hash(ctx, v, s);
         s->flags |= SIG_FLAG_PREFILTER;
@@ -348,12 +348,12 @@ static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        if (s->prefilter_sm == NULL || s->prefilter_sm->type != sm_type)
+        if (s->init_data->prefilter_sm == NULL || s->init_data->prefilter_sm->type != sm_type)
             continue;
 
         PrefilterPacketHeaderHashCtx ctx;
         memset(&ctx, 0, sizeof(ctx));
-        Set(&ctx.v1, s->prefilter_sm->ctx);
+        Set(&ctx.v1, s->init_data->prefilter_sm->ctx);
 
         GetExtraMatch(s, &ctx.type, &ctx.value);
 
@@ -365,7 +365,7 @@ static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
             if (actx == NULL)
                 goto error;
 
-            Set(&actx->v1, s->prefilter_sm->ctx);
+            Set(&actx->v1, s->init_data->prefilter_sm->ctx);
             actx->cnt = 1;
             actx->type = ctx.type;
             actx->value = ctx.value;

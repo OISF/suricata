@@ -192,8 +192,8 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
     data->offset = offset;
     data->relative = relative;
 
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        sm_list = s->list;
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        sm_list = s->init_data->list;
 #if 0
         if (data->relative) {
             pm = SigMatchGetLastSMFromLists(s, 4,
