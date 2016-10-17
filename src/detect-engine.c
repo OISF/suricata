@@ -179,49 +179,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
-
-        switch (new_engine->sm_list) {
-            case DETECT_SM_LIST_HMDMATCH:
-            case DETECT_SM_LIST_UMATCH:
-            case DETECT_SM_LIST_HRUDMATCH:
-            case DETECT_SM_LIST_HTTP_REQLINEMATCH:
-            case DETECT_SM_LIST_HTTP_RESLINEMATCH:
-            case DETECT_SM_LIST_HCBDMATCH:
-            case DETECT_SM_LIST_FILEDATA:
-            case DETECT_SM_LIST_HHDMATCH:
-            case DETECT_SM_LIST_HRHDMATCH:
-            case DETECT_SM_LIST_HSMDMATCH:
-            case DETECT_SM_LIST_HSCDMATCH:
-            case DETECT_SM_LIST_HHHDMATCH:
-            case DETECT_SM_LIST_HRHHDMATCH:
-            case DETECT_SM_LIST_HCDMATCH:
-            case DETECT_SM_LIST_HUADMATCH:
-
-            case DETECT_SM_LIST_FILEMATCH:
-
-            case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-            case DETECT_SM_LIST_DNSREQUEST_MATCH:
-            case DETECT_SM_LIST_DNSRESPONSE_MATCH:
-
-            case DETECT_SM_LIST_TLSSNI_MATCH:
-            case DETECT_SM_LIST_TLSISSUER_MATCH:
-            case DETECT_SM_LIST_TLSSUBJECT_MATCH:
-            case DETECT_SM_LIST_TLSVALIDITY_MATCH:
-
-            case DETECT_SM_LIST_APP_EVENT:
-
-            case DETECT_SM_LIST_MODBUS_MATCH:
-            case DETECT_SM_LIST_CIP_MATCH:
-            case DETECT_SM_LIST_ENIP_MATCH:
-
-            case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
-
-                new_engine->smd = ptrs[new_engine->sm_list];
-                break;
-            default:
-                break;
-        }
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
