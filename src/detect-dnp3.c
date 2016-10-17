@@ -150,12 +150,12 @@ static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     /* Content match - should probably be put into its own file. */
     if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_arrays[DETECT_SM_LIST_DNP3_DATA_MATCH], f, tx->request_buffer,
+            smd, f, tx->request_buffer,
             tx->request_buffer_len, 0, 0, NULL);
     }
     else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_arrays[DETECT_SM_LIST_DNP3_DATA_MATCH], f, tx->response_buffer,
+            smd, f, tx->response_buffer,
             tx->response_buffer_len, 0, 0, NULL);
     }
 

@@ -50,6 +50,7 @@ SigMatch *SigMatchGetLastSM(const Signature *);
 void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
                                          SigMatch **, SigMatch **s,
                                          SigMatch **, SigMatch **);
+SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
