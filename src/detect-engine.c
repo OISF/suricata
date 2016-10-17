@@ -190,6 +190,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             new_engine->inspect_flags = BIT_U32(new_engine->id + DE_STATE_FLAG_BASE);
         }
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
+
+        s->flags |= SIG_FLAG_STATE_MATCH;
 next:
         t = t->next;
     }
