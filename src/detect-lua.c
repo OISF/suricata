@@ -1009,8 +1009,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
         else if (lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HTTP_REQLINEMATCH);
+        else {
+            int list = DetectBufferTypeGetByName("http_request_line");
+            SigMatchAppendSMToList(s, sm, list);
+        }
     } else if (lua->alproto == ALPROTO_DNS) {
         if (lua->flags & DATATYPE_DNS_RRNAME) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
