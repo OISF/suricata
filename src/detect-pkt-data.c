@@ -74,7 +74,7 @@ void DetectPktDataRegister(void)
 static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    s->list = DETECT_SM_LIST_NOTSET;
+    s->init_data->list = DETECT_SM_LIST_NOTSET;
 
     return 0;
 }
@@ -127,7 +127,7 @@ static int DetectPktDataTest01(void)
     }
 
 
-    if (sig->list != DETECT_SM_LIST_NOTSET) {
+    if (sig->init_data->list != DETECT_SM_LIST_NOTSET) {
         printf("sticky buffer set: ");
         goto end;
     }

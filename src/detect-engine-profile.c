@@ -33,6 +33,7 @@
 
 #ifdef PROFILING
 #ifdef HAVE_LIBJANSSON
+#if 0
 static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, char *pat_chop, uint32_t pat_chop_sz)
 {
     int fast_pattern_chop_set = 0;
@@ -52,6 +53,7 @@ static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, cha
         PrintRawUriBuf(pat_chop, &off, pat_chop_sz, cd->content + cd->fp_chop_offset, cd->fp_chop_len);
     }
 }
+#endif
 
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
 void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
@@ -78,7 +80,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
         if (unlikely(js == NULL))
             continue;
         json_object_set_new(js_sig, "sig_id", json_integer(s->id));
-
+#if 0
         json_object_set_new(js_sig, "mpm", (s->mpm_sm != NULL) ? json_true() : json_false());
 
         if (s->mpm_sm != NULL) {
@@ -94,6 +96,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
                 json_object_set_new(js_sig, "mpm_pattern_chop", json_string(chop));
             }
         }
+#endif
         json_array_append_new(js_array, js_sig);
     }
 

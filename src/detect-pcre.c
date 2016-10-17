@@ -684,7 +684,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                        "for the rule.");
             goto error;
         }
-        if (s->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with http "
                        "modifier set, with file_data/dce_stub_data sticky "
                        "option set.");
@@ -693,17 +693,17 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     }
 
     int sm_list = -1;
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_FILEDATA) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
             SCLogDebug("adding to http server body list because of file data");
             AppLayerHtpEnableResponseBodyCallback();
-        } else if (s->list == DETECT_SM_LIST_DMATCH) {
+        } else if (s->init_data->list == DETECT_SM_LIST_DMATCH) {
             SCLogDebug("adding to dmatch list because of dce_stub_data");
-        } else if (s->list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
+        } else if (s->init_data->list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
             SCLogDebug("adding to DETECT_SM_LIST_DNSQUERYNAME_MATCH list because of dns_query");
         }
         s->flags |= SIG_FLAG_APPLAYER;
-        sm_list = s->list;
+        sm_list = s->init_data->list;
     } else {
         switch(parsed_sm_list) {
             case DETECT_SM_LIST_HCBDMATCH:
@@ -763,7 +763,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
                                                    DETECT_PCRE, sm->prev);
-    if (s->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
+    if (s->init_data->list == DETECT_SM_LIST_NOTSET && prev_pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre with /R (relative) needs "
                 "preceeding match in the same buffer");
         goto error_nofree;

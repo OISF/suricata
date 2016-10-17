@@ -534,13 +534,13 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
             cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
         }
     }
-    s->mpm_sm = mpm_sm;
+    s->init_data->mpm_sm = mpm_sm;
     return;
 }
 
 void RetrieveFPForSig(Signature *s)
 {
-    if (s->mpm_sm != NULL)
+    if (s->init_data->mpm_sm != NULL)
         return;
 
     SigMatch *mpm_sm = NULL, *sm = NULL;
@@ -927,9 +927,9 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             s = de_ctx->sig_array[sig];
             if (s == NULL)
                 continue;
-            if (s->mpm_sm == NULL)
+            if (s->init_data->mpm_sm == NULL)
                 continue;
-            int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+            int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             if (list < 0)
                 continue;
             if (list != ms->sm_list)
@@ -939,7 +939,7 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 
             SCLogDebug("adding %u", s->id);
 
-            const DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
 
             int skip = 0;
             /* negated logic: if mpm match can't be used to be sure about this
@@ -1036,10 +1036,10 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL)
+        if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
         if (list < 0)
             continue;
 
@@ -1128,10 +1128,10 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL)
+        if (s->init_data->mpm_sm == NULL)
             continue;
 
-        int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+        int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
         if (list < 0)
             continue;
 
@@ -1303,8 +1303,8 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
             continue;
 
         RetrieveFPForSig(s);
-        if (s->mpm_sm != NULL) {
-            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+        if (s->init_data->mpm_sm != NULL) {
+            DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
             content_total_size += cd->content_len;
 
@@ -1327,11 +1327,11 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     uint8_t *content_offset = ahb + struct_total_size;
 
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
-        if (s->mpm_sm != NULL) {
-            int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+        if (s->init_data->mpm_sm != NULL) {
+            int sm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             BUG_ON(sm_list == -1);
 
-            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
             DetectFPAndItsId *dup = (DetectFPAndItsId *)ahb;
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                 content = cd->content + cd->fp_chop_offset;

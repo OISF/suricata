@@ -526,7 +526,7 @@ static void DetectDNP3ObjRegister(void)
 static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    s->list = DETECT_SM_LIST_DNP3_DATA_MATCH;
+    s->init_data->list = DETECT_SM_LIST_DNP3_DATA_MATCH;
     s->alproto = ALPROTO_DNP3;
     SCReturnInt(0);
 }
