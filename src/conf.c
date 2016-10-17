@@ -379,7 +379,7 @@ int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetInt(const char *name, intmax_t *val)
 {
-    char *strval;
+    char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
 
@@ -399,7 +399,7 @@ int ConfGetInt(const char *name, intmax_t *val)
 
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 {
-    char *strval;
+    char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
 
@@ -441,7 +441,7 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetBool(const char *name, int *val)
 {
-    char *strval;
+    char *strval = NULL;
 
     *val = 0;
     if (ConfGet(name, &strval) != 1)
@@ -454,7 +454,7 @@ int ConfGetBool(const char *name, int *val)
 
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
-    char *strval;
+    char *strval = NULL;
 
     *val = 0;
     if (ConfGetChildValue(base, name, &strval) == 0)
@@ -539,7 +539,7 @@ int ConfValIsFalse(const char *val)
  */
 int ConfGetDouble(const char *name, double *val)
 {
-    char *strval;
+    char *strval = NULL;
     double tmpdo;
     char *endptr;
 
@@ -569,7 +569,7 @@ int ConfGetDouble(const char *name, double *val)
  */
 int ConfGetFloat(const char *name, float *val)
 {
-    char *strval;
+    char *strval = NULL;
     double tmpfl;
     char *endptr;
 
