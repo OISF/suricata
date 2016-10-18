@@ -29,5 +29,8 @@ int ListAppLayerProtocols();
 #ifdef __SC_CUDA_SUPPORT__
 int ListCudaCards();
 #endif
+#ifdef HAVE_DPDKINTEL
+void ListDpdkIntelPorts(void);
+#endif /* HAVE_DPDKINTEL */
 
 #endif /* __UTIL_RUNNING_MODES_H__ */

@@ -161,6 +161,10 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
         case RUNMODE_UNIX_SOCKET:
             return "UNIX_SOCKET";
+#ifdef HAVE_DPDKINTEL
+	case RUNMODE_DPDKINTEL:
+	     return "DPDKINTEL";
+#endif
         default:
             SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
             exit(EXIT_FAILURE);
@@ -236,6 +240,9 @@ void RunModeRegisterRunModes(void)
     RunModeUnixSocketRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
+#endif
+#ifdef HAVE_DPDKINTEL
+    RunModeDpdkIntelRegister();
 #endif
     return;
 }
@@ -342,6 +349,12 @@ void RunModeDispatch(int runmode, const char *custom_mode)
             case RUNMODE_NFLOG:
                 custom_mode = RunModeIdsNflogGetDefaultMode();
                 break;
+#ifdef HAVE_DPDKINTEL
+	    case RUNMODE_DPDKINTEL:
+	        custom_mode = RunModeDpdkIntelGetDefaultMode();
+	    break;
+#endif
+
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
                 exit(EXIT_FAILURE);

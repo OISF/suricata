@@ -31,6 +31,10 @@
 #include "queue.h"
 #include "runmodes.h"
 
+#ifdef HAVE_DPDKINTEL
+uint64_t coreSet = 0;
+#endif /* HAVE_DPDKINTEL */
+
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {
         .name = "receive-cpu-set",

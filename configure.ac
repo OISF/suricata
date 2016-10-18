@@ -1,4 +1,4 @@
-    AC_INIT(suricata, 3.1dev)
+    AC_INIT(suricata, 3.1.2)
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     m4_ifndef([AS_VERSION_COMPARE], [AC_DEFUN([AS_VERSION_COMPARE],[])])
     AC_CONFIG_HEADERS([config.h])
@@ -216,6 +216,7 @@
             ;;
         *-*-linux*)
             #for now do nothing
+	    CFLAGS+=" -std=gnu99"
             ;;
         *-*-mingw32*)
             CFLAGS="${CFLAGS} -DOS_WIN32"
@@ -1221,6 +1222,87 @@
   ])
 
   # libhtp
+  # DPDK_INTEL support
+    AC_ARG_ENABLE(dpdkintel,
+           AS_HELP_STRING([--enable-dpdkintel], [Enable DPDK_INTEL support [default=no]]),
+                        ,[enable_dpdkintel=no])
+    if test -z "$host" ; then
+      host="`uname`"
+    fi
+
+    echo -n "installation for '$host' OS... "
+    echo ""
+
+    case $host in
+    *-*-linux*)
+        ;;
+    *)
+
+    AC_MSG_ERROR([unsupported OS for DPDK_INTEL])
+      ;;
+    esac
+
+    AS_IF([test "x$enable_dpdkintel" = "xyes"], [
+        CFLAGS="$CFLAGS -DHAVE_DPDKINTEL"
+        enable_af_packet="no"
+
+        AC_ARG_WITH(libdpdkintel_includes,
+                [  --with-libdpdkintel-includes=DIR  libdpdkintel include directory],
+                [with_libdpdkintel_includes="$withval"],[with_libdpdkintel_includes=no])
+        AC_ARG_WITH(libdpdkintel_libraries,
+                [  --with-libdpdkintel-libraries=DIR    libdpdkintel library directory],
+                [with_libdpdkintel_libraries="$withval"],[with_libdpdkintel_libraries="no"])
+
+        if test "$with_libdpdkintel_includes" != "no"; then
+          CPPFLAGS="${CPPFLAGS} -I${with_libdpdkintel_includes} "
+        else
+          if test "${RTE_SDK}" = ""; then
+            echo ""
+            echo "-----------------------------------------------"
+            echo "  ERROR: RTE_SDK"
+            echo "  unable to find DPDK SDK path: "
+            echo "-----------------------------------------------"
+            echo ""
+            exit 1
+          else
+            if test -f ${RTE_SDK}/${RTE_TARGET}/include/rte_eal.h; then
+              CPPFLAGS="${CPPFLAGS} -I${RTE_SDK}/${RTE_TARGET}/include/"
+            else
+              echo ""
+              echo "-----------------------------------------------"
+              echo "  ERROR: RTE_SDK"
+              echo "  File ${RTE_SDK}/${RTE_TARGET}/include/rte_eal.h not found ...:"
+              echo "-----------------------------------------------"
+              echo ""
+              exit 1
+            fi
+          fi
+        fi
+
+        DPDKINTEL_LDADD="no"
+        if test "$with_libdpdkintel_libraries" != "no"; then
+            DPDKINTEL_LDADD="-Wl,--no-as-needed -Wl,-export-dynamic -L ${with_libdpdkintel_libraries}/ -Wl,--whole-archive -Wl,-lrte_distributor -Wl,-lrte_reorder -Wl,-lrte_kni -Wl,-lrte_pipeline -Wl,-lrte_table -Wl,-lrte_port -Wl,-lrte_timer -Wl,-lrte_hash -Wl,-lrte_jobstats -Wl,-lrte_lpm -Wl,-lrte_power -Wl,-lrte_acl -Wl,-lrte_meter -Wl,-lrte_sched -Wl,-lm -Wl,-lrt -Wl,--start-group -Wl,-lrte_kvargs -Wl,-lrte_mbuf -Wl,-lrte_ip_frag -Wl,-lethdev -Wl,-lrte_mempool -Wl,-lrte_ring -Wl,-lrte_eal -Wl,-lrte_cmdline -Wl,-lrte_cfgfile -Wl,-lrte_pmd_bond -Wl,-lrte_pmd_vmxnet3_uio -Wl,-lrte_pmd_enic -Wl,-lrte_pmd_e1000 -Wl,-lrte_pmd_ixgbe -Wl,-lrte_pmd_ring -Wl,-lrte_pmd_af_packet -Wl,-lrt -Wl,-lm -Wl,-ldl -Wl,--end-group -Wl,--no-whole-archive, ${with_libdpdkintel_libraries}/libdpdk.a -ldl "
+        else
+          if test "${RTE_TARGET}" = ""; then
+            echo ""
+            echo "-----------------------------------------------"
+            echo "  TARGET: $RTE_TARGET"
+            echo "  ERROR: unable to find DPDK TARGET: "
+            echo "-----------------------------------------------"
+            echo ""
+            exit 1
+          else
+            DPDKINTEL_LDADD="-Wl,--no-as-needed -Wl,-export-dynamic -L${RTE_SDK}/${RTE_TARGET}/lib/ -Wl,--whole-archive -Wl,-lrte_distributor -Wl,-lrte_reorder -Wl,-lrte_kni -Wl,-lrte_pipeline -Wl,-lrte_table -Wl,-lrte_port -Wl,-lrte_timer -Wl,-lrte_hash -Wl,-lrte_jobstats -Wl,-lrte_lpm -Wl,-lrte_power -Wl,-lrte_acl -Wl,-lrte_meter -Wl,-lrte_sched -Wl,-lm -Wl,-lrt -Wl,--start-group -Wl,-lrte_kvargs -Wl,-lrte_mbuf -Wl,-lrte_ip_frag -Wl,-lethdev -Wl,-lrte_mempool -Wl,-lrte_ring -Wl,-lrte_eal -Wl,-lrte_cmdline -Wl,-lrte_cfgfile -Wl,-lrte_pmd_bond -Wl,-lrte_pmd_vmxnet3_uio -Wl,-lrte_pmd_enic -Wl,-lrte_pmd_e1000 -Wl,-lrte_pmd_ixgbe -Wl,-lrte_pmd_ring -Wl,-lrte_pmd_af_packet -Wl,-lrt -Wl,-lm -Wl,-ldl -Wl,--end-group -Wl,--no-whole-archive, ${RTE_SDK}/${RTE_TARGET}/lib/libdpdk.a -ldl "
+          fi
+        fi
+
+        AC_SUBST(DPDKINTEL_LDADD)
+        echo " Added configuration for DPDK-INTEL"
+        echo ""
+    ])
+
+    AM_CONDITIONAL([BUILD_DPDKINTEL], [test "x$enable_dpdkintel" = "xyes"])
+
     AC_ARG_ENABLE(non-bundled-htp,
            AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),,[enable_non_bundled_htp=no])
     AS_IF([test "x$enable_non_bundled_htp" = "xyes"], [
@@ -1961,6 +2043,7 @@ AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefil
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
   PF_RING support:                         ${enable_pfring}
+  DPDK_INTEL support:                      ${enable_dpdkintel}
   NFQueue support:                         ${enable_nfqueue}
   NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}

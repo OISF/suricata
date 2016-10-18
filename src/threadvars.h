@@ -110,6 +110,8 @@ typedef struct ThreadVars_ {
     int thread_priority; /** priority (real time) for this thread. Look at threads.h */
 
     /* counters */
+    //SCPerfCounterArray *sc_perf_pca;
+    StatsPrivateThreadContext *sc_perf_pca;
 
     /** public counter store: counter syncs update this */
     StatsPublicThreadContext perf_public_ctx;

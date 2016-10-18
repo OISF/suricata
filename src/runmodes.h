@@ -26,6 +26,10 @@
 /* Run mode */
 enum RunModes {
     RUNMODE_UNKNOWN = 0,
+#ifdef HAVE_DPDKINTEL
+    RUNMODE_DPDKINTEL,
+    RUNMODE_LIST_DPDKINTEL_PORTS,
+#endif
     RUNMODE_PCAP_DEV,
     RUNMODE_PCAP_FILE,
     RUNMODE_PFRING,
@@ -103,7 +107,9 @@ int RunModeOutputFiledataEnabled(void);
 #include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
-
+#ifdef HAVE_DPDKINTEL
+#include "runmode-dpdkintel.h"
+#endif
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
 

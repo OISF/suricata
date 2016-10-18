@@ -492,7 +492,30 @@ logging:
 ## See "Advanced Capture Options" below for more options, including NETMAP
 ## and PF_RING.
 ##
+#dpdkintel support
+dpdkintel:
 
+  inputs:
+  - interface: 0000:09:00.0
+    copy-interface: 0000:0a:00.0
+  - interface: 0000:0a:00.0
+    copy-interface: 0000:09:00.0
+
+  # Select dpdk intel operation mode ips|ids|bypass
+  opmode: ips
+
+  # Select core distribution as uni| multi. multi distributes dpdk RX to available cores
+  #core-distribution: uni
+
+    # Configure Port map for ips|bypass mode
+    # Offload checksum calculation
+    #cksumoffload: no
+    # Enable jumbo frame receipt
+    #jumbo: no
+    # Set mtu for the port
+    #mtu: no
+
+# af-packet support
 # Linux high speed capture support
 af-packet:
   - interface: eth0

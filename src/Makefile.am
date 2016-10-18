@@ -421,6 +421,17 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
+# Rules to build DPDK Intel
+if BUILD_DPDKINTEL
+suricata_SOURCES += util-dpdk-setup.c util-dpdk-setup.h\
+util-dpdk-validate.c  util-dpdk-validate.h\
+source-dpdkintel.c source-dpdkintel.h\
+runmode-dpdkintel.c runmode-dpdkintel.h\
+util-dpdk-common.h dpdk-include-common.h\
+util-dpdk-config.h
+
+endif
+
 EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 
 # set the include path found by configure
@@ -428,7 +439,7 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD)
+suricata_LDADD = $(HTP_LDADD) ${DPDKINTEL_LDADD}
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
@@ -489,7 +500,8 @@ if DEBUG
 AM_CFLAGS += -ggdb -O0
 endif
 
-AM_LDFLAGS = ${SECLDFLAGS}
+#suricata_CFLAGS = -Wall -fno-strict-aliasing 
+AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
 
 if BUILD_UNITTESTS
 check-am:

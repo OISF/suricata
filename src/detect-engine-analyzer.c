@@ -35,6 +35,7 @@
 #include "detect-flow.h"
 #include "detect-flags.h"
 #include "util-print.h"
+#include "util-dpdk-common.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
@@ -42,6 +43,8 @@ static FILE *fp_engine_analysis_FD = NULL;
 static pcre *percent_re = NULL;
 static pcre_extra *percent_re_study = NULL;
 static char log_path[PATH_MAX];
+
+stats_matchPattern_t stats_matchPattern;
 
 typedef struct FpPatternStats_ {
     uint16_t min;
@@ -496,6 +499,97 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
         fprintf(rule_engine_analysis_FD, "    Line: %d.\n", lineno);
         fprintf(rule_engine_analysis_FD, "\n");
 }
+
+/*********************************************************************/
+
+#ifdef HAVE_DPDKINTEL
+
+void dpdkRuleAnalysis(Signature *s)
+{
+    stats_matchPattern.totalRules++;
+    uint8_t checkProto;
+    if (s->alproto == ALPROTO_HTTP)
+    {
+        stats_matchPattern.http ++;
+    }
+    else if (s->alproto == ALPROTO_FTP)
+    {
+        stats_matchPattern.ftp ++;
+    }
+    else if (s->alproto == ALPROTO_SMTP)
+    {
+        stats_matchPattern.smtp ++;
+    }
+    else if (s->alproto == ALPROTO_TLS)
+    {
+        stats_matchPattern.tls ++;
+    }
+    else if (s->alproto == ALPROTO_DNS)
+    {
+        stats_matchPattern.dns ++;
+    }
+    else if (s->alproto == ALPROTO_SSH)
+    {
+        stats_matchPattern.ssh ++;
+    }
+    else if (s->alproto == ALPROTO_SMB)
+    {
+        stats_matchPattern.smb ++;
+    }
+    else if (s->alproto == ALPROTO_SMB2)
+    {
+        stats_matchPattern.smb2 ++;
+    }
+    else if (s->alproto == ALPROTO_DCERPC)
+    {
+        stats_matchPattern.dcerpc ++;
+    }
+
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_TCP);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.tcp ++;
+    }
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_UDP);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.udp ++;
+    }
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_SCTP);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.sctp ++;
+    }
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_ICMPV6);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.icmpv6 ++;
+    }
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_GRE);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.gre ++;
+    }
+    checkProto = DetectProtoContainsProto(&s->proto, IPPROTO_RAW);
+    if(checkProto == 1)
+    {
+        stats_matchPattern.raw ++;
+    }
+    if (s->proto.flags & DETECT_PROTO_IPV4)
+    {
+        stats_matchPattern.ipv4 ++;
+    }
+    if (s->proto.flags & DETECT_PROTO_IPV6)
+    {
+        stats_matchPattern.ipv6 ++;
+    }
+
+}
+
+#endif 
+
+/********************************************************************/
+
 
 /**
  * \brief Prints analysis of loaded rules.
