@@ -6,7 +6,10 @@ Thresholds can be configured in the rules themselves, see
 their intel for creating a rule combined with a judgement on how often
 a rule will alert.
 
-Next to these settings, thresholding can be configured on the sensor
+Threshold Config
+----------------
+
+Next to rule thresholding more thresholding can be configured on the sensor
 using the threshold.config.
 
 threshold/event_filter
@@ -16,12 +19,87 @@ Syntax:
 
 ::
 
-  threshold gen_id <gid>, sig_id <sid>, type <threshold|limit|both>, track <by_src|by_dst>, count <N>, seconds <T>
+  threshold gen_id <gid>, sig_id <sid>, type <threshold|limit|both>, \
+    track <by_src|by_dst>, count <N>, seconds <T>
 
 rate_filter
 ~~~~~~~~~~~
 
-TODO
+Rate filters allow changing of a rule action when a rule matches.
+
+Syntax::
+
+  rate_filter: rate_filter gen_id <gid>, sig_id <sid>, track <tracker>, \
+    count <c>, seconds <s>, new_action <action>, timeout <timeout>
+
+Example::
+
+  rate_filter gen_id 1, sig_id 1000, track by_rule, count 100, seconds 60, \
+    new_action alert, timeout 30
+
+gen_id
+^^^^^^
+Generator id. Normally 1, but if a rule uses the ``gid`` keyword to set
+another value it has to be matched in the ``gen_id``.
+
+sig_id
+^^^^^^
+
+Rule/signature id as set by the rule ``sid`` keyword.
+
+track
+^^^^^
+
+Where to track the rule matches. When using by_src/by_dst the tracking is
+done per IP-address. The Host table is used for storage. When using by_rule
+it's done globally for the rule.
+
+count
+^^^^^
+
+Number of rule hits before the ``rate_filter`` is activated.
+
+seconds
+^^^^^^^
+
+Time period within which the ``count`` needs to be reached to activate
+the ``rate_filter``
+
+new_action
+^^^^^^^^^^
+
+New action that is applied to matching traffic when the ``rate_filter``
+is in place.
+
+Values::
+
+  <alert|drop|pass|reject>
+
+Note: 'sdrop' and 'log' are supported by the parser but not implemented otherwise.
+
+timeout
+^^^^^^^
+
+Time in seconds during which the ``rate_filter`` will remain active.
+
+Example
+^^^^^^^
+
+Lets say we want to limit incoming connections to our SSH server. The rule
+``888`` below simply alerts on SYN packets to the SSH port of our SSH server.
+If an IP-address triggers this more than 10 or more with a minute, the
+drop ``rate_filter`` is set with a timeout of 5 minutes.
+
+Rule::
+
+  alert tcp any any -> $MY_SSH_SERVER 22 (msg:"Connection to SSH server"; \
+    flow:to_server; flags:S,12; sid:888;)
+
+Rate filter::
+
+  rate_filter gen_id 1, sig_id 888, track by_src, count 10, seconds 60, \
+    new_action drop, timeout 300
+
 
 suppress
 ~~~~~~~~
