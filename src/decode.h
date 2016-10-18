@@ -274,6 +274,8 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_STREAM_MATCH  0x04
 /** alert is in a tx, tx_id set */
 #define PACKET_ALERT_FLAG_TX            0x08
+/** action was changed by rate_filter */
+#define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
 
 #define PACKET_ALERT_MAX 15
 

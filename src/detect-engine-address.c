@@ -1897,7 +1897,7 @@ void DetectAddressPrint(DetectAddress *gr)
  * \retval g On success pointer to an DetectAddress if we find a match
  *           for the Address "a", in the DetectAddressHead "gh".
  */
-DetectAddress *DetectAddressLookupInHead(DetectAddressHead *gh, Address *a)
+DetectAddress *DetectAddressLookupInHead(const DetectAddressHead *gh, Address *a)
 {
     SCEnter();
 

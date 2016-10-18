@@ -33,9 +33,11 @@ void ThresholdInit(void);
 int ThresholdHostStorageId(void);
 int ThresholdHostHasThreshold(Host *);
 
-DetectThresholdData *SigGetThresholdTypeIter(Signature *, Packet *, SigMatch **, int list);
+const DetectThresholdData *SigGetThresholdTypeIter(const Signature *,
+        Packet *, const SigMatch **, int list);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
-                          DetectThresholdData *, Packet *, Signature *);
+        const DetectThresholdData *, Packet *,
+        const Signature *, PacketAlert *);
 
 void ThresholdHashInit(DetectEngineCtx *);
 void ThresholdContextDestroy(DetectEngineCtx *);

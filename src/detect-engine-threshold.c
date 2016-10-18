@@ -98,10 +98,11 @@ int ThresholdHostHasThreshold(Host *host)
  *
  *
  */
-DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm, int list)
+const DetectThresholdData *SigGetThresholdTypeIter(const Signature *sig,
+        Packet *p, const SigMatch **psm, int list)
 {
-    SigMatch *sm = NULL;
-    DetectThresholdData *tsh = NULL;
+    const SigMatch *sm = NULL;
+    const DetectThresholdData *tsh = NULL;
 
     if (sig == NULL)
         return NULL;
@@ -178,7 +179,9 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
     return retval;
 }
 
-static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdData *td, Packet *p, uint32_t sid, uint32_t gid)
+static inline DetectThresholdEntry *
+DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
+                          uint32_t sid, uint32_t gid)
 {
     SCEnter();
 
@@ -209,7 +212,7 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
     return e;
 }
 
-int ThresholdHandlePacketSuppress(Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid)
+int ThresholdHandlePacketSuppress(Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -244,12 +247,38 @@ int ThresholdHandlePacketSuppress(Packet *p, DetectThresholdData *td, uint32_t s
     return ret;
 }
 
+static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_action)
+{
+    switch (new_action) {
+        case TH_ACTION_ALERT:
+            PACKET_ALERT(p);
+            pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
+            break;
+        case TH_ACTION_DROP:
+            PACKET_DROP(p);
+            pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
+            break;
+        case TH_ACTION_REJECT:
+            PACKET_REJECT(p);
+            pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
+            break;
+        case TH_ACTION_PASS:
+            PACKET_PASS(p);
+            pa->flags |= PACKET_ALERT_RATE_FILTER_MODIFIED;
+            break;
+        default:
+            /* Weird, leave the default action */
+            break;
+    }
+}
+
 /**
  *  \retval 2 silent match (no alert but apply actions)
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid)
+int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdData *td,
+        uint32_t sid, uint32_t gid, PacketAlert *pa)
 {
     int ret = 0;
 
@@ -426,23 +455,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     } else {
                         /* Already matching */
                         /* Take the action to perform */
-                        switch (td->new_action) {
-                            case TH_ACTION_ALERT:
-                                PACKET_ALERT(p);
-                                break;
-                            case TH_ACTION_DROP:
-                                PACKET_DROP(p);
-                                break;
-                            case TH_ACTION_REJECT:
-                                PACKET_REJECT(p);
-                                break;
-                            case TH_ACTION_PASS:
-                                PACKET_PASS(p);
-                                break;
-                            default:
-                                /* Weird, leave the default action */
-                                break;
-                        }
+                        RateFilterSetAction(p, pa, td->new_action);
                         ret = 1;
                     } /* else - if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) */
 
@@ -455,23 +468,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                              * timeout */
                             lookup_tsh->tv_timeout = p->ts.tv_sec;
                             /* Take the action to perform */
-                            switch (td->new_action) {
-                                case TH_ACTION_ALERT:
-                                    PACKET_ALERT(p);
-                                    break;
-                                case TH_ACTION_DROP:
-                                    PACKET_DROP(p);
-                                    break;
-                                case TH_ACTION_REJECT:
-                                    PACKET_REJECT(p);
-                                    break;
-                                case TH_ACTION_PASS:
-                                    PACKET_PASS(p);
-                                    break;
-                                default:
-                                    /* Weird, leave the default action */
-                                    break;
-                            }
+                            RateFilterSetAction(p, pa, td->new_action);
                             ret = 1;
                         }
                     } else {
@@ -506,7 +503,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
     return ret;
 }
 
-static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectThresholdData *td, Signature *s)
+static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
+        const DetectThresholdData *td, const Signature *s, PacketAlert *pa)
 {
     int ret = 0;
 
@@ -519,27 +517,11 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
          * we still matching (and enabling the new_action) */
         if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
             /* Ok, we are done, timeout reached */
-            td->timeout = 0;
+            lookup_tsh->tv_timeout = 0;
         } else {
             /* Already matching */
             /* Take the action to perform */
-            switch (td->new_action) {
-                case TH_ACTION_ALERT:
-                    PACKET_ALERT(p);
-                    break;
-                case TH_ACTION_DROP:
-                    PACKET_DROP(p);
-                    break;
-                case TH_ACTION_REJECT:
-                    PACKET_REJECT(p);
-                    break;
-                case TH_ACTION_PASS:
-                    PACKET_PASS(p);
-                    break;
-                default:
-                    /* Weird, leave the default action */
-                    break;
-            }
+            RateFilterSetAction(p, pa, td->new_action);
             ret = 1;
         }
 
@@ -551,23 +533,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
                  * timeout */
                 lookup_tsh->tv_timeout = p->ts.tv_sec;
                 /* Take the action to perform */
-                switch (td->new_action) {
-                    case TH_ACTION_ALERT:
-                        PACKET_ALERT(p);
-                        break;
-                    case TH_ACTION_DROP:
-                        PACKET_DROP(p);
-                        break;
-                    case TH_ACTION_REJECT:
-                        PACKET_REJECT(p);
-                        break;
-                    case TH_ACTION_PASS:
-                        PACKET_PASS(p);
-                        break;
-                    default:
-                        /* Weird, leave the default action */
-                        break;
-                }
+                RateFilterSetAction(p, pa, td->new_action);
                 ret = 1;
             }
         } else {
@@ -605,7 +571,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
  * \retval 0 do not alert on this event
  */
 int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        DetectThresholdData *td, Packet *p, Signature *s)
+        const DetectThresholdData *td, Packet *p, const Signature *s, PacketAlert *pa)
 {
     SCEnter();
 
@@ -619,18 +585,18 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     } else if (td->track == TRACK_SRC) {
         Host *src = HostGetHostFromHash(&p->src);
         if (src) {
-            ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid);
+            ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid,pa);
             HostRelease(src);
         }
     } else if (td->track == TRACK_DST) {
         Host *dst = HostGetHostFromHash(&p->dst);
         if (dst) {
-            ret = ThresholdHandlePacketHost(dst,p,td,s->id,s->gid);
+            ret = ThresholdHandlePacketHost(dst,p,td,s->id,s->gid,pa);
             HostRelease(dst);
         }
     } else if (td->track == TRACK_RULE) {
         SCMutexLock(&de_ctx->ths_ctx.threshold_table_lock);
-        ret = ThresholdHandlePacketRule(de_ctx,p,td,s);
+        ret = ThresholdHandlePacketRule(de_ctx,p,td,s,pa);
         SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
     }
 

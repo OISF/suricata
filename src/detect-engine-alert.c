@@ -67,12 +67,12 @@ PacketAlert *PacketAlertGetTag(void)
  * \retval 0 alert is suppressed
  */
 static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                       Signature *s, Packet *p, uint16_t pos)
+                             const Signature *s, Packet *p, PacketAlert *pa)
 {
     SCEnter();
     int ret = 1;
-    DetectThresholdData *td = NULL;
-    SigMatch *sm;
+    const DetectThresholdData *td = NULL;
+    const SigMatch *sm;
 
     if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
         SCReturnInt(1);
@@ -90,7 +90,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
                 /* PacketAlertThreshold returns 2 if the alert is suppressed but
                  * we do need to apply rule actions to the packet. */
                 KEYWORD_PROFILING_START;
-                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
                 if (ret == 0 || ret == 2) {
                     KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD, 0);
                     /* It doesn't match threshold, remove it */
@@ -113,7 +113,7 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
                 /* PacketAlertThreshold returns 2 if the alert is suppressed but
                  * we do need to apply rule actions to the packet. */
                 KEYWORD_PROFILING_START;
-                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+                ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s, pa);
                 if (ret == 0 || ret == 2) {
                     KEYWORD_PROFILING_END(det_ctx, DETECT_THRESHOLD ,0);
                     /* It doesn't match threshold, remove it */
@@ -239,14 +239,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 {
     SCEnter();
     int i = 0;
-    Signature *s = NULL;
     SigMatch *sm = NULL;
 
     while (i < p->alerts.cnt) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
-        s = de_ctx->sig_array[p->alerts.alerts[i].num];
+        const Signature *s = de_ctx->sig_array[p->alerts.alerts[i].num];
 
-        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, i);
+        int res = PacketAlertHandle(de_ctx, det_ctx, s, p, &p->alerts.alerts[i]);
         if (res > 0) {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
@@ -255,7 +254,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             while (sm) {
                 /* tags are set only for alerts */
                 KEYWORD_PROFILING_START;
-                sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm->ctx);
+                sigmatch_table[sm->type].Match(NULL, det_ctx, p, (Signature *)s, sm->ctx);
                 KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
                 sm = sm->next;
             }

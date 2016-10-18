@@ -142,10 +142,18 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 {
     char *action = "allowed";
-    if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
-        action = "blocked";
-    } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
-        action = "blocked";
+    /* use packet action if rate_filter modified the action */
+    if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
+        if (PACKET_TEST_ACTION(p, (ACTION_DROP|ACTION_REJECT|
+                                   ACTION_REJECT_DST|ACTION_REJECT_BOTH))) {
+            action = "blocked";
+        }
+    } else {
+        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+            action = "blocked";
+        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+            action = "blocked";
+        }
     }
 
     /* Add tx_id to root element for correlation with other events. */
