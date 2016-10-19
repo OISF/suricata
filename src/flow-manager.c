@@ -258,8 +258,8 @@ static int FlowManagerFlowTimeout(const Flow *f, enum FlowState state, struct ti
  */
 static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
 {
-    /** never prune a flow that is used by a packet or stream msg
-     *  we are currently processing in one of the threads */
+    /* never prune a flow that is used by a packet we
+     * are currently processing in one of the threads */
     if (SC_ATOMIC_GET(f->use_cnt) > 0) {
         return 0;
     }
@@ -369,14 +369,10 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
                 f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
             f->flow_end_flags |= FLOW_END_FLAG_TIMEOUT;
 
-//            FlowClearMemory (f, f->protomap);
-
             /* no one is referring to this flow, use_cnt 0, removed from hash
-             * so we can unlock it and move it back to the spare queue. */
+             * so we can unlock it and pass it to the flow recycler */
             FLOWLOCK_UNLOCK(f);
             FlowEnqueue(&flow_recycle_q, f);
-            /* move to spare list */
-//            FlowMoveToSpare(f);
 
             cnt++;
 
