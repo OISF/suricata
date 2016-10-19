@@ -501,6 +501,12 @@ static void NFQReleasePacket(Packet *p)
     PacketFreeOrRelease(p);
 }
 
+/**
+ * \brief bypass callback function for NFQ
+ *
+ * \param p a Packet to use information from to trigger bypass
+ * \return 1 if bypass is successful, 0 if not
+ */
 static int NFQBypassCallback(Packet *p)
 {
     if (IS_TUNNEL_PKT(p)) {
