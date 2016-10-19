@@ -330,6 +330,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_INVALID_HASH);
         CASE_CODE (SC_ERR_NO_SHA1_SUPPORT);
         CASE_CODE (SC_ERR_NO_SHA256_SUPPORT);
+        CASE_CODE (SC_ERR_NO_LIBEVENT);
     }
 
     return "UNKNOWN_ERROR";
