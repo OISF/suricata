@@ -122,7 +122,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
          */
         if (GET_PKT_DIRECT_MAX_SIZE(p) <  40) {
             if (PacketCallocExtPkt(p, 40) == -1) {
-                return NULL;
+                goto error;
             }
         }
         /* set the ip header */
@@ -167,7 +167,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
          */
         if (GET_PKT_DIRECT_MAX_SIZE(p) <  60) {
             if (PacketCallocExtPkt(p, 60) == -1) {
-                return NULL;
+                goto error;
             }
         }
         /* set the ip header */
@@ -256,6 +256,10 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     AppLayerParserSetEOF(f->alparser);
 
     return p;
+
+error:
+    FlowDeReference(&p->flow);
+    return NULL;
 }
 
 static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
