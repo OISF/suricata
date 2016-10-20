@@ -33,8 +33,8 @@
 #endif
 
 #ifdef HAVE_LIBRDKAFKA
-#include "librdkafka/rdkafka.h"
-#endif
+#include "util-logopenfile-kafka.h"
+#endif /* HAVE_LIBRDKAFKA */
 
 typedef struct {
     uint16_t fileno;
@@ -64,17 +64,6 @@ typedef struct RedisSetup_ {
     int  port;
     time_t tried;
 } RedisSetup;
-#endif
-
-#ifdef HAVE_LIBRDKAFKA
-typedef struct KafkaSetup_ {
-    rd_kafka_topic_t *topic;
-    rd_kafka_conf_t *conf;
-    char *brokers;
-    int partition;
-    intmax_t loglevel;
-    time_t tried;
-} KafkaSetup;
 #endif
 
 /** Global structure for Output Context */
@@ -158,9 +147,6 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 #ifdef HAVE_LIBHIREDIS
 int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
-#endif
-#ifdef HAVE_LIBRDKAFKA
-int SCConfLogOpenKafka(ConfNode *conf, LogFileCtx *log_ctx);
 #endif
 int SCConfLogReopen(LogFileCtx *);
 
