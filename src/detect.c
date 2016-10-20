@@ -885,7 +885,7 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
         }
 
         FlowBit *fb = (FlowBit *) gv;
-        const char *name = VariableIdxGetName(de_ctx, fb->idx, VAR_TYPE_FLOW_BIT);
+        const char *name = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
         if (name != NULL) {
             p->debuglog_flowbits_names[i] = SCStrdup(name);
             if (p->debuglog_flowbits_names[i] == NULL) {
@@ -3853,6 +3853,10 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 #endif
     SCFree(de_ctx->app_mpms);
     de_ctx->app_mpms = NULL;
+
+    if (!DetectEngineMultiTenantEnabled()) {
+        VarNameStoreActivateStaging();
+    }
     return 0;
 }
 

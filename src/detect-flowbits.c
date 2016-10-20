@@ -246,7 +246,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, VAR_TYPE_FLOW_BIT);
+    cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_FLOW_BIT);
     cd->cmd = fb_cmd;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
@@ -360,6 +360,7 @@ static int FlowBitsTestSig01(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert,wrongusage; content:\"GET \"; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
+    SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -399,6 +400,7 @@ static int FlowBitsTestSig02(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)");
     FAIL_IF_NOT_NULL(s);
 
+    SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
     PASS;
@@ -424,6 +426,7 @@ static int FlowBitsTestSig03(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Unknown cmd\"; flowbits:wrongcmd; content:\"GET \"; sid:1;)");
     FAIL_IF_NOT_NULL(s);
 
+    SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -449,9 +452,10 @@ static int FlowBitsTestSig04(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_FLOW_BIT);
+    idx = VarNameStoreSetupAdd("fbt", VAR_TYPE_FLOW_BIT);
     FAIL_IF(idx != 1);
 
+    SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -477,6 +481,7 @@ static int FlowBitsTestSig05(void)
     FAIL_IF_NULL(s);
     FAIL_IF((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT);
 
+    SigGroupBuild(de_ctx);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
@@ -504,7 +509,7 @@ static int FlowBitsTestSig06(void)
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
-    int idx = 0;
+    uint32_t idx = 0;
 
     memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
@@ -531,15 +536,14 @@ static int FlowBitsTestSig06(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow; sid:10;)");
     FAIL_IF_NULL(s);
 
+    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
-
     gv = p->flow->flowvar;
-
+    FAIL_IF_NULL(gv);
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
                 result = 1;
@@ -547,13 +551,9 @@ static int FlowBitsTestSig06(void)
     }
     FAIL_IF_NOT(result);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
 
     SCFree(p);
@@ -583,7 +583,7 @@ static int FlowBitsTestSig07(void)
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
-    int idx = 0;
+    uint32_t idx = 0;
 
     memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
@@ -611,14 +611,14 @@ static int FlowBitsTestSig07(void)
     s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
     FAIL_IF_NULL(s);
 
+    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
-
     gv = p->flow->flowvar;
+    FAIL_IF_NULL(gv);
 
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
@@ -627,13 +627,9 @@ static int FlowBitsTestSig07(void)
     }
     FAIL_IF(result);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
 
     SCFree(p);
@@ -664,7 +660,7 @@ static int FlowBitsTestSig08(void)
     Flow f;
     GenericVar flowvar, *gv = NULL;
     int result = 0;
-    int idx = 0;
+    uint32_t idx = 0;
 
     memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
@@ -692,14 +688,14 @@ static int FlowBitsTestSig08(void)
     s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)");
     FAIL_IF_NULL(s);
 
+    idx = VarNameStoreSetupAdd("myflow", VAR_TYPE_FLOW_BIT);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
-
     gv = p->flow->flowvar;
+    FAIL_IF_NULL(gv);
 
     for ( ; gv != NULL; gv = gv->next) {
         if (gv->type == DETECT_FLOWBITS && gv->idx == idx) {
@@ -708,13 +704,9 @@ static int FlowBitsTestSig08(void)
     }
     FAIL_IF(result);
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
 
     SCFree(p);
