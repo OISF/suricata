@@ -163,7 +163,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     fd->name = SCStrdup(varname);
     if (unlikely(fd->name == NULL))
         goto error;
-    fd->idx = VariableNameGetIdx(de_ctx, varname, VAR_TYPE_FLOW_VAR);
+    fd->idx = VarNameStoreSetupAdd(varname, VAR_TYPE_FLOW_VAR);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -191,7 +191,7 @@ error:
 
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx,
+int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
         uint8_t *buffer, uint16_t len, int type)
 {
     DetectFlowvarList *fs = det_ctx->flowvarlist;
@@ -226,7 +226,7 @@ int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint16_t idx,
 /** \brief Setup a post-match for flowvar storage
  *  We're piggyback riding the DetectFlowvarData struct
  */
-int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx)
+int DetectFlowvarPostMatchSetup(Signature *s, uint32_t idx)
 {
     SigMatch *sm = NULL;
     DetectFlowvarData *fv = NULL;

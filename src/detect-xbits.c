@@ -287,7 +287,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, var_type);
+    cd->idx = VarNameStoreSetupAdd(fb_name, var_type);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = var_type;

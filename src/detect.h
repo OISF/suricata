@@ -47,6 +47,8 @@
 
 #include "stream.h"
 
+#include "util-var-name.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -535,7 +537,7 @@ typedef struct DetectReplaceList_ {
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
 typedef struct DetectFlowvarList_ {
-    uint16_t idx;                       /**< flowvar name idx */
+    uint32_t idx;                       /**< flowvar name idx */
     uint16_t len;                       /**< data len */
     int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
@@ -657,10 +659,6 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sgh_hash_table;
 
     HashListTable *mpm_hash_table;
-
-    HashListTable *variable_names;
-    HashListTable *variable_idxs;
-    uint16_t variable_names_idx;
 
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
