@@ -26,34 +26,6 @@ typedef struct DNP3Mapping_ {
     uint16_t  value;
 } DNP3Mapping;
 
-/**
- * The type of detection to be performed.
- */
-typedef enum DetectDNP3Type_ {
-    DNP3_DETECT_TYPE_FC,
-    DNP3_DETECT_TYPE_IND,
-    DNP3_DETECT_TYPE_OBJ,
-} DetectDNP3Type;
-
-/**
- * The detection struct.
- */
-typedef struct DetectDNP3_ {
-
-    /* Type of detection. */
-    int      detect_type;   /*<< Type of detection. */
-
-    /* Function code for function code detection. */
-    uint8_t  function_code;
-
-    /* Internal indicator flags for IIN detection. */
-    uint16_t ind_flags;
-
-    /* Object info for object detection. */
-    uint8_t  obj_group;
-    uint8_t  obj_variation;
-} DetectDNP3;
-
 /* Map of internal indicators to value for external use. */
 extern DNP3Mapping DNP3IndicatorsMap[];
 

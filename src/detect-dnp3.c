@@ -24,6 +24,27 @@
 #include "detect-engine-content-inspection.h"
 
 /**
+ * The detection struct.
+ */
+typedef struct DetectDNP3_ {
+    union {
+        struct {
+            /* Function code for function code detection. */
+            uint8_t  function_code;
+        };
+        struct {
+            /* Internal indicator flags for IIN detection. */
+            uint16_t ind_flags;
+        };
+        struct {
+            /* Object info for object detection. */
+            uint8_t  obj_group;
+            uint8_t  obj_variation;
+        };
+    };
+} DetectDNP3;
+
+/**
  * Indicator names to value mappings (Snort compatible).
  */
 DNP3Mapping DNP3IndicatorsMap[] = {
