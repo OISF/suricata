@@ -39,7 +39,7 @@ typedef struct DetectPcreData_ {
     pcre_extra *sd;
     int opts;
     uint16_t flags;
-    uint16_t capidx;
+    uint32_t capidx;
     char *capname;
 } DetectPcreData;
 

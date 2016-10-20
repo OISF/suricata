@@ -26,7 +26,7 @@
 
 typedef struct DetectFlowvarData_ {
     char *name;
-    uint16_t idx;
+    uint32_t idx;
     uint8_t *content;
     uint8_t content_len;
     uint8_t flags;
@@ -35,8 +35,8 @@ typedef struct DetectFlowvarData_ {
 /* prototypes */
 void DetectFlowvarRegister (void);
 
-int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx);
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *, uint16_t, uint8_t *, uint16_t, int);
+int DetectFlowvarPostMatchSetup(Signature *s, uint32_t idx);
+int DetectFlowvarStoreMatch(DetectEngineThreadCtx *, uint32_t, uint8_t *, uint16_t, int);
 
 /* For use only by DetectFlowvarProcessList() */
 void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f);

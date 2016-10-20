@@ -304,7 +304,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     if (unlikely(cd == NULL))
         return -1;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, var_type);
+    cd->idx = VarNameStoreSetupAdd(fb_name, var_type);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = var_type;

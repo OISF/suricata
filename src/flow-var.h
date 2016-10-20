@@ -47,7 +47,7 @@ typedef struct FlowVarTypeInt_ {
 /** Generic Flowvar Structure */
 typedef struct FlowVar_ {
     uint8_t type;       /* type, DETECT_FLOWVAR in this case */
-    uint16_t idx;       /* name idx */
+    uint32_t idx;       /* name idx */
     GenericVar *next;   /* right now just implement this as a list,
                          * in the long run we have think of something
                          * faster. */
@@ -61,11 +61,11 @@ typedef struct FlowVar_ {
 
 /** Flowvar Interface API */
 
-void FlowVarAddStrNoLock(Flow *, uint16_t, uint8_t *, uint16_t);
-void FlowVarAddStr(Flow *, uint16_t, uint8_t *, uint16_t);
-void FlowVarAddIntNoLock(Flow *, uint16_t, uint32_t);
-void FlowVarAddInt(Flow *, uint16_t, uint32_t);
-FlowVar *FlowVarGet(Flow *, uint16_t);
+void FlowVarAddStrNoLock(Flow *, uint32_t, uint8_t *, uint16_t);
+void FlowVarAddStr(Flow *, uint32_t, uint8_t *, uint16_t);
+void FlowVarAddIntNoLock(Flow *, uint32_t, uint32_t);
+void FlowVarAddInt(Flow *, uint32_t, uint32_t);
+FlowVar *FlowVarGet(Flow *, uint32_t);
 void FlowVarFree(FlowVar *);
 void FlowVarPrint(GenericVar *);
 
