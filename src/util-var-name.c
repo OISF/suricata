@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,7 +31,6 @@
 typedef struct VariableName_ {
     char *name;
     uint8_t type; /* flowbit, pktvar, etc */
-    uint8_t flags;
     uint16_t idx;
 } VariableName;
 
@@ -135,7 +134,7 @@ void VariableNameFreeHash(DetectEngineCtx *de_ctx)
  *  \retval 0 in case of error
  *  \retval idx the idx or 0
  */
-uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, enum VarTypes type)
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, const char *name, enum VarTypes type)
 {
     uint16_t idx = 0;
 
@@ -174,7 +173,7 @@ error:
  *  \retval NULL in case of error
  *  \retval name of the variable if successful.
  */
-char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, enum VarTypes type)
+const char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, enum VarTypes type)
 {
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (unlikely(fn == NULL))
