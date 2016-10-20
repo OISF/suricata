@@ -128,7 +128,7 @@ Output types
 ~~~~~~~~~~~~
 
 EVE can output to multiple methods. ``regular`` is a normal file. Other
-options are ``syslog``, ``unix_dgram``, ``unix_stream``, ``redis`` and ``kafka``
+options are ``syslog``, ``unix_dgram``, ``unix_stream``, ``redis`` and ``kafka``.
 
 Output types::
 
