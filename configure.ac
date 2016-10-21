@@ -1890,16 +1890,27 @@
                         LDFLAGS="${LDFLAGS}  -L${with_libevent_libraries}"
                     fi
                     AC_CHECK_LIB(event, event_base_free,, HAVE_LIBEVENT="no")
+                    AC_CHECK_LIB(event_pthreads, evthread_use_pthreads,, HAVE_LIBEVENT_PTHREADS="no")
                 fi
-                if test "$HAVE_LIBEVENT" = "no"; then
-                    echo
-                    echo "  Async mode for redis output will not be available."
-                    echo "  To enable it install libevent."
-                    echo
-                    echo "   Ubuntu: apt-get install libevent-dev"
-                    echo "   Fedora: dnf install event-devel"
-                    echo "   RHEL/CentOS: yum install event-devel"
-                    echo
+                if test "$HAVE_LIBEVENT" = "no" -o test "$HAVE_LIBEVENT_PTHREADS" = "no" ; then
+                    if test "$HAVE_LIBEVENT" = "no"; then
+                        echo
+                        echo "  Async mode for redis output will not be available."
+                        echo "  To enable it install libevent"
+                        echo
+                        echo "   Ubuntu: apt-get install libevent-dev"
+                        echo "   Fedora: dnf install event-devel"
+                        echo "   RHEL/CentOS: yum install event-devel"
+                        echo
+                   fi
+                   if test "$HAVE_LIBEVENT_PTHREADS" = "no"; then
+                        echo
+                        echo "  Async mode for redis output will not be available."
+                        echo "  To enable it install libevent with pthreads support"
+                        echo
+                        echo "   Ubuntu: apt-get install libevent-pthreads-2.0-5"
+                        echo
+                   fi
                 else
                     AC_DEFINE([HAVE_LIBEVENT],[1],[libevent available])
                     enable_hiredis_async="yes"

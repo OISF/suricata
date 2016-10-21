@@ -121,20 +121,14 @@ void RedisDisconnectCallback(const redisAsyncContext *c, int status)
  *  \param r redis reply
  *  \param privvata opaque datq with pointer to LogFileCtx
  */
-static void SCRedisAsyncCommandCallback (redisAsyncContext *c, void *r, void *privdata)
+static void SCRedisAsyncCommandCallback (redisAsyncContext *async, void *r, void *privdata)
 {
     LogFileCtx *file_ctx = privdata;
-    SCLogRedisContext *ctx = file_ctx->redis;
     redisReply *reply = r;
     /* Disconnection or lost reply may have happened */
     if (reply == NULL) {
-        if (ctx->ev_base != NULL) {
-            event_base_loopbreak(ctx->ev_base);
-        }
         SCConfLogReopenRedis(file_ctx);
-        return;
     }
-    redisAsyncHandleWrite(c);
 }
 
 #endif // HAVE_LIBEVENT
@@ -152,29 +146,27 @@ static int SCConfLogReopenRedis(LogFileCtx *log_ctx)
 	const char *redis_server = log_ctx->redis_setup.server;
 	int redis_port = log_ctx->redis_setup.port;
 #if HAVE_LIBEVENT
+    /* ASYNC */
     if (log_ctx->redis_setup.async) {
+        if (ctx->ev_base != NULL) {
+            event_base_loopbreak(ctx->ev_base);
+        }
         if (ctx->async != NULL)  {
-            redisAsyncDisconnect(ctx->async);
             redisAsyncFree(ctx->async);
         }
-        ctx->async = NULL;
-        /* ASYNC */
-        redisAsyncContext *c = redisAsyncConnect(redis_server, redis_port);
-        if ( c != NULL && c->err) {
-            SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: [%s]", c->errstr);
-            redisAsyncFree(c);
+        ctx->async = redisAsyncConnect(redis_server, redis_port);
+        if ( ctx->async != NULL && ctx->async->err) {
+            SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: [%s]", ctx->async->errstr);
+            redisAsyncFree(ctx->async);
             ctx->async = NULL;
             log_ctx->redis_setup.tried = time(NULL);
             return -1;
         }
-        if (c != NULL)  {
-            redisLibeventAttach(c,ctx->ev_base);
-            redisAsyncSetConnectCallback(c,RedisConnectCallback);
-            redisAsyncSetDisconnectCallback(c,RedisDisconnectCallback);
-            SCLogInfo("Connection to redis server [%s]:[%d] will use async.",
-                    redis_server, redis_port);
-            redisAsyncHandleWrite(c);
-            ctx->async = c;
+        if (ctx->async != NULL)  {
+            redisLibeventAttach(ctx->async,ctx->ev_base);
+            redisAsyncSetConnectCallback(ctx->async,RedisConnectCallback);
+            redisAsyncSetDisconnectCallback(ctx->async,RedisDisconnectCallback);
+            redisAsyncHandleWrite(ctx->async);
         }
     } else
 #endif
@@ -345,8 +337,7 @@ static void SCLogRedisWriteAsync(LogFileCtx *file_ctx, const char *string)
             file_ctx->redis_setup.key,
             string);
 
-    redisAsyncHandleRead(redis_async);
-    redisAsyncHandleWrite(redis_async);
+    event_base_loop(ctx->ev_base, EVLOOP_NONBLOCK);
 }
 
 /** \brief SCLogRedisWriteSync() writes string to redis output in sync mode
@@ -408,23 +399,26 @@ static void SCLogRedisWriteSync(LogFileCtx *file_ctx, const char *string)
                 file_ctx->redis_setup.command,
                 file_ctx->redis_setup.key,
                 string);
-        /*TODO: to verify reply */
         /* We may lose the reply if disconnection happens*/
-        switch (reply->type) {
-            case REDIS_REPLY_ERROR:
-                SCLogWarning(SC_ERR_SOCKET, "Redis error: %s", reply->str);
-                SCConfLogReopenRedis(file_ctx);
-                break;
-            case REDIS_REPLY_INTEGER:
-                SCLogDebug("Redis integer %lld", reply->integer);
-                break;
-            default:
-                SCLogError(SC_ERR_INVALID_VALUE,
-                        "Redis default triggered with %d", reply->type);
-                SCConfLogReopenRedis(file_ctx);
-                break;
+        if (reply) {
+            switch (reply->type) {
+                case REDIS_REPLY_ERROR:
+                    SCLogWarning(SC_ERR_SOCKET, "Redis error: %s", reply->str);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+                case REDIS_REPLY_INTEGER:
+                    SCLogDebug("Redis integer %lld", reply->integer);
+                    break;
+                default:
+                    SCLogError(SC_ERR_INVALID_VALUE,
+                            "Redis default triggered with %d", reply->type);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+            }
+            freeReplyObject(reply);
+        } else {
+            SCConfLogOpenRedis(file_ctx);
         }
-        freeReplyObject(reply);
     }
 }
 

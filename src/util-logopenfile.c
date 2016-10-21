@@ -36,7 +36,7 @@
 
 #ifdef HAVE_LIBHIREDIS
 #include "util-logopenfile-redis.h"
-#endif
+#endif /* HAVE_LIBHIREDIS */
 
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -354,7 +354,7 @@ LogFileCtx *LogFileNewCtx(void)
 
 #ifdef HAVE_LIBHIREDIS
     lf_ctx->redis_setup.batch_count = 0;
-#endif
+#endif /* HAVE_LIBHIREDIS */
 
     return lf_ctx;
 }
@@ -381,8 +381,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             SCFree(lf_ctx->redis_setup.server);
         if (lf_ctx->redis_setup.key)
             SCFree(lf_ctx->redis_setup.key);
-        if (lf_ctx->redis)
+        if (lf_ctx->redis) {
             SCLogRedisContextFree(lf_ctx->redis, lf_ctx->redis_setup.async);
+        }
     }
 #endif
 
@@ -426,7 +427,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
         LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
-                MEMBUFFER_OFFSET(buffer));
+                          MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
