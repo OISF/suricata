@@ -58,6 +58,8 @@
 #include "util-logopenfile.h"
 #include "util-device.h"
 
+#include "flow-var.h"
+#include "flow-bit.h"
 
 #ifndef HAVE_LIBJANSSON
 
@@ -91,6 +93,125 @@ void OutputJsonRegister (void)
 
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
+
+static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
+{
+    if (p == NULL || p->pktvar == NULL) {
+        return;
+    }
+    json_t *js_pktvars = NULL;
+    PktVar *pv = p->pktvar;
+    while (pv != NULL) {
+        const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
+        if (varname) {
+            if (js_pktvars == NULL) {
+                js_pktvars = json_object();
+                if (js_pktvars == NULL)
+                    break;
+            }
+
+            uint32_t len = pv->value_len;
+            uint8_t printable_buf[len + 1];
+            uint32_t offset = 0;
+            PrintStringsToBuffer(printable_buf, &offset,
+                    sizeof(printable_buf),
+                    pv->value, pv->value_len);
+
+            json_object_set_new(js_pktvars, varname,
+                    json_string((char *)printable_buf));
+        }
+        pv = pv->next;
+    }
+    if (js_pktvars) {
+        json_object_set_new(js_vars, "pktvars", js_pktvars);
+    }
+}
+
+static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
+{
+    if (f == NULL || f->flowvar == NULL) {
+        return;
+    }
+    json_t *js_flowvars = NULL;
+    json_t *js_flowints = NULL;
+    json_t *js_flowbits = NULL;
+    GenericVar *gv = f->flowvar;
+    while (gv != NULL) {
+        if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
+            FlowVar *fv = (FlowVar *)gv;
+            if (fv->datatype == FLOWVAR_TYPE_STR) {
+                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_VAR);
+                if (varname) {
+                    if (js_flowvars == NULL) {
+                        js_flowvars = json_object();
+                        if (js_flowvars == NULL)
+                            break;
+                    }
+
+                    uint32_t len = fv->data.fv_str.value_len;
+                    uint8_t printable_buf[len + 1];
+                    uint32_t offset = 0;
+                    PrintStringsToBuffer(printable_buf, &offset,
+                            sizeof(printable_buf),
+                            fv->data.fv_str.value, fv->data.fv_str.value_len);
+
+                    json_object_set_new(js_flowvars, varname,
+                            json_string((char *)printable_buf));
+                }
+            } else if (fv->datatype == FLOWVAR_TYPE_INT) {
+                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_INT);
+                if (varname) {
+                    if (js_flowints == NULL) {
+                        js_flowints = json_object();
+                        if (js_flowints == NULL)
+                            break;
+                    }
+
+                    json_object_set_new(js_flowints, varname, json_integer(fv->data.fv_int.value));
+                }
+
+            }
+        } else if (gv->type == DETECT_FLOWBITS) {
+            FlowBit *fb = (FlowBit *)gv;
+            const char *varname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
+            if (varname) {
+                if (js_flowbits == NULL) {
+                    js_flowbits = json_object();
+                    if (js_flowbits == NULL)
+                        break;
+                }
+                json_object_set_new(js_flowbits, varname, json_boolean(1));
+            }
+        }
+        gv = gv->next;
+    }
+    if (js_flowbits) {
+        json_object_set_new(js_vars, "flowbits", js_flowbits);
+    }
+    if (js_flowints) {
+        json_object_set_new(js_vars, "flowints", js_flowints);
+    }
+    if (js_flowvars) {
+        json_object_set_new(js_vars, "flowvars", js_flowvars);
+    }
+}
+
+void JsonAddVars(const Packet *p, const Flow *f, json_t *js)
+{
+    if ((p && p->pktvar) || (f && f->flowvar)) {
+        json_t *js_vars = json_object();
+        if (js_vars) {
+            if (f && f->flowvar) {
+                JsonAddFlowvars(f, js_vars);
+            }
+            if (p && p->pktvar) {
+                JsonAddPacketvars(p, js_vars);
+            }
+
+            json_object_set_new(js, "vars", js_vars);
+        }
+    }
+}
 
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
