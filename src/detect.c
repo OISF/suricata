@@ -844,72 +844,6 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
 }
 #endif
 
-static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEngineCtx *de_ctx)
-{
-#define MALLOC_JUMP 5
-
-    int i = 0;
-
-    GenericVar *gv = p->flow->flowvar;
-
-    while (gv != NULL) {
-        i++;
-        gv = gv->next;
-    }
-    if (i == 0)
-        return;
-
-    p->debuglog_flowbits_names_len = i;
-
-    p->debuglog_flowbits_names = SCMalloc(sizeof(char *) *
-                                          p->debuglog_flowbits_names_len);
-    if (p->debuglog_flowbits_names == NULL) {
-        return;
-    }
-    memset(p->debuglog_flowbits_names, 0,
-           sizeof(char *) * p->debuglog_flowbits_names_len);
-
-    i = 0;
-    gv = p->flow->flowvar;
-    while (gv != NULL) {
-        if (gv->type != DETECT_FLOWBITS) {
-            gv = gv->next;
-            continue;
-        }
-
-        FlowBit *fb = (FlowBit *) gv;
-        const char *name = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
-        if (name != NULL) {
-            p->debuglog_flowbits_names[i] = SCStrdup(name);
-            if (p->debuglog_flowbits_names[i] == NULL) {
-                return;
-            }
-            i++;
-        }
-
-        if (i == p->debuglog_flowbits_names_len) {
-            p->debuglog_flowbits_names_len += MALLOC_JUMP;
-            const char **names = SCRealloc(p->debuglog_flowbits_names,
-                                                   sizeof(char *) *
-                                                   p->debuglog_flowbits_names_len);
-            if (names == NULL) {
-                SCFree(p->debuglog_flowbits_names);
-                p->debuglog_flowbits_names = NULL;
-                p->debuglog_flowbits_names_len = 0;
-                return;
-            }
-            p->debuglog_flowbits_names = names;
-            memset(p->debuglog_flowbits_names +
-                   p->debuglog_flowbits_names_len - MALLOC_JUMP,
-                   0, sizeof(char *) * MALLOC_JUMP);
-        }
-
-        gv = gv->next;
-    }
-
-    return;
-}
-
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
@@ -1584,12 +1518,6 @@ end:
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
     if (p->flags & PKT_HAS_FLOW) {
-        if (debuglog_enabled) {
-            if (p->alerts.cnt > 0) {
-                AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(p, de_ctx);
-            }
-        }
-
         /* HACK: prevent the wrong sgh (or NULL) from being stored in the
          * flow's sgh pointers */
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {

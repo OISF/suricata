@@ -78,7 +78,14 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
     const GenericVar *gv = p->flow->flowvar;
     uint16_t i;
     while (gv != NULL) {
-        if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
+        if (gv->type == DETECT_FLOWBITS) {
+            FlowBit *fb = (FlowBit *)gv;
+            const char *fbname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
+            if (fbname) {
+                MemBufferWriteString(aft->buffer, "FLOWBIT:           %s\n",
+                        fbname);
+            }
+        } else if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
             FlowVar *fv = (FlowVar *) gv;
 
             if (fv->datatype == FLOWVAR_TYPE_STR) {
@@ -100,32 +107,6 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
         }
         gv = gv->next;
     }
-}
-
-/**
- *  \brief Function to log the FlowBits in to alert-debug.log
- *
- *  \param aft Pointer to AltertDebugLog Thread
- *  \param p Pointer to the packet
- *
- *  \todo const Packet ptr, requires us to change the
- *        debuglog_flowbits_names logic.
- */
-static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
-{
-    int i;
-    for (i = 0; i < p->debuglog_flowbits_names_len; i++) {
-        if (p->debuglog_flowbits_names[i] != NULL) {
-            MemBufferWriteString(aft->buffer, "FLOWBIT:           %s\n",
-                                 p->debuglog_flowbits_names[i]);
-        }
-    }
-
-    SCFree(p->debuglog_flowbits_names);
-    p->debuglog_flowbits_names = NULL;
-    p->debuglog_flowbits_names_len = 0;
-
-    return;
 }
 
 /**
@@ -237,7 +218,6 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              applayer ? "TRUE" : "FALSE",
                              (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
-        AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */
     }
 
     AlertDebugLogPktVars(aft, p);
