@@ -89,8 +89,10 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
             FlowVar *fv = (FlowVar *) gv;
 
             if (fv->datatype == FLOWVAR_TYPE_STR) {
-                MemBufferWriteString(aft->buffer, "FLOWVAR idx(%"PRIu32"):    ",
-                                     fv->idx);
+                const char *fvname = VarNameStoreLookupById(fv->idx,
+                        VAR_TYPE_FLOW_VAR);
+                MemBufferWriteString(aft->buffer, "FLOWVAR:           \"%s\" => \"",
+                                     fvname);
                 for (i = 0; i < fv->data.fv_str.value_len; i++) {
                     if (isprint(fv->data.fv_str.value[i])) {
                         MemBufferWriteString(aft->buffer, "%c",
@@ -100,9 +102,12 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, const Packet *p)
                                              fv->data.fv_str.value[i]);
                     }
                 }
+                MemBufferWriteString(aft->buffer, "\"\n");
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                MemBufferWriteString(aft->buffer, "FLOWVAR idx(%"PRIu32"):   "
-                        " %" PRIu32 "\"", fv->idx, fv->data.fv_int.value);
+                const char *fvname = VarNameStoreLookupById(fv->idx,
+                        VAR_TYPE_FLOW_INT);
+                MemBufferWriteString(aft->buffer, "FLOWINT:           \"%s\" =>"
+                        " %"PRIu32"\n", fvname, fv->data.fv_int.value);
             }
         }
         gv = gv->next;
