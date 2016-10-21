@@ -81,6 +81,7 @@
 #define LOG_JSON_SMTP           0x040
 #define LOG_JSON_TAGGED_PACKETS 0x080
 #define LOG_JSON_DNP3           0x100
+#define LOG_JSON_VARS           0x200
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -317,6 +318,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     AlertJsonDnp3(p->flow, js);
                 }
             }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_VARS) {
+            JsonAddVars(p, p->flow, js);
         }
 
         /* payload */
@@ -637,7 +642,13 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
+        const char *vars = ConfNodeLookupChildValue(conf, "vars");
 
+        if (vars != NULL) {
+            if (ConfValIsTrue(vars)) {
+                json_output_ctx->flags |= LOG_JSON_VARS;
+            }
+        }
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
                 json_output_ctx->flags |= LOG_JSON_SSH;

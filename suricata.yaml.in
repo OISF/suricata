@@ -168,6 +168,7 @@ outputs:
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of DNP3 fields
+            vars: yes                # enable dumping of flowbits and other vars
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
