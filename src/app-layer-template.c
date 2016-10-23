@@ -68,6 +68,9 @@ enum {
 
 SCEnumCharMap template_decoder_event_table[] = {
     {"EMPTY_MESSAGE", TEMPLATE_DECODER_EVENT_EMPTY_MESSAGE},
+
+    // event table must be NULL-terminated
+    { NULL, -1 },
 };
 
 static TemplateTransaction *TemplateTxAlloc(TemplateState *echo)
