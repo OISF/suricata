@@ -1320,6 +1320,8 @@ enum {
     DETECT_FILESHA256,
     DETECT_FILESIZE,
 
+    DETECT_YARA_RULES,
+
     DETECT_L3PROTO,
     DETECT_LUA,
     DETECT_IPREP,
@@ -1369,6 +1371,7 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
+char *DetectLoadCompleteSigPathWithDefaultPath(const DetectEngineCtx *, char *sig_file, const char *);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);
