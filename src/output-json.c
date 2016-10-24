@@ -56,6 +56,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-logopenfile-redis.h"
 #include "util-device.h"
 
 
