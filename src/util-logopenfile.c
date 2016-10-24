@@ -597,21 +597,26 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t s
                 file_ctx->redis_setup.key,
                 string);
 
-        switch (reply->type) {
-            case REDIS_REPLY_ERROR:
-                SCLogWarning(SC_ERR_SOCKET, "Redis error: %s", reply->str);
-                SCConfLogReopenRedis(file_ctx);
-                break;
-            case REDIS_REPLY_INTEGER:
-                SCLogDebug("Redis integer %lld", reply->integer);
-                break;
-            default:
-                SCLogError(SC_ERR_INVALID_VALUE,
-                        "Redis default triggered with %d", reply->type);
-                SCConfLogReopenRedis(file_ctx);
-                break;
+        /*  We may lose the reply if disconnection happens! */
+        if (reply) {
+            switch (reply->type) {
+                case REDIS_REPLY_ERROR:
+                    SCLogWarning(SC_ERR_SOCKET, "Redis error: %s", reply->str);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+                case REDIS_REPLY_INTEGER:
+                    SCLogDebug("Redis integer %lld", reply->integer);
+                    break;
+                default:
+                    SCLogError(SC_ERR_INVALID_VALUE,
+                            "Redis default triggered with %d", reply->type);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+            }
+            freeReplyObject(reply);
+        } else {
+            SCConfLogReopenRedis(file_ctx);
         }
-        freeReplyObject(reply);
     }
     return 0;
 }
