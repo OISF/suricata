@@ -868,9 +868,8 @@ static int LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t st
                 file_ctx->redis_setup.key,
                 string);
 
-        /* We may lose the reply if disconnection happens*/
-        if (reply)  {
-
+        /*  We may lose the reply if disconnection happens! */
+        if (reply) {
             switch (reply->type) {
                 case REDIS_REPLY_ERROR:
                     SCLogWarning(SC_ERR_SOCKET, "Redis error: %s", reply->str);
@@ -885,12 +884,8 @@ static int LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t st
                     SCConfLogReopenRedis(file_ctx);
                     break;
             }
-
-            freeReplyObject(reply);
-        }  else {
-            if (unlikely(reply == NULL)) {
-                SCConfLogReopenRedis(file_ctx);
-            }
+        } else {
+            SCConfLogReopenRedis(file_ctx);
         }
     }
     return 0;
