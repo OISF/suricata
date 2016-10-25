@@ -77,9 +77,9 @@
 #endif
 
 #include <sys/syscall.h>
-#include <linux/bpf.h>
 #include <linux/types.h>
 #ifdef HAVE_PACKET_EBPF
+#include <linux/bpf.h>
 #include "util-ebpf.h"
 #include <bpf/libbpf.h>
 #endif
