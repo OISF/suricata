@@ -60,6 +60,13 @@ typedef struct ODPThreadVars_
     TmSlot *slot;
     /** callback result -- set if one of the thread module failed. */
     int cb_result;
+
+    LiveDevice *livedev;
+
+    /* counters */
+    uint64_t pkts;
+    uint64_t bytes;
+    uint64_t drops;
 } ODPThreadVars;
 
 /* Release Packet without sending. */
@@ -69,20 +76,39 @@ static void ODPReleasePacket(Packet *p)
     odp_packet_free(pkt);
 }
 
+static inline void ODPDumpCounters(ODPThreadVars *ptv)
+{
+    (void) SC_ATOMIC_ADD(ptv->livedev->drop, ptv->drops);
+    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, ptv->pkts);
+    ptv->drops = 0;
+    ptv->pkts = 0;
+}
+
 static TmEcode ReceiveODPThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
+    ODPIfaceConfig *conf = initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
+        odp_loop_break = 1;
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     ODPThreadVars *ptv = SCMalloc(sizeof(ODPThreadVars));
-    if (unlikely(ptv == NULL))
+    if (unlikely(ptv == NULL)) {
+        odp_loop_break = 1;
         SCReturnInt(TM_ECODE_FAILED);
+    }
 
     memset(ptv, 0, sizeof(ODPThreadVars));
+
+    ptv->livedev = LiveGetDevice(conf->iface_name);
+    if (ptv->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        odp_loop_break = 1;
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     ptv->tv = tv;
     *data = (void *)ptv;
@@ -111,6 +137,7 @@ TmEcode DecodeODPThreadDeinit(ThreadVars *tv, void *data)
 {
     if (data != NULL)
         DecodeThreadVarsFree(tv, data);
+    odp_loop_break = 1;
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -180,7 +207,6 @@ static inline Packet *ODPProcessPacket(ODPThreadVars *ptv, odp_packet_t opkt)
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
     gettimeofday(&p->ts, NULL);
-    p->datalink = LINKTYPE_ETHERNET;
     PacketSetData(p, pkt_data, pkt_len);
     p->pkt_odp = opkt;
     p->ReleasePacket = ODPReleasePacket;
@@ -195,11 +221,13 @@ TmEcode ReceiveODPLoop(ThreadVars *tv, void *data, void *slot)
 {
     ODPThreadVars *ptv = (ODPThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
-    uint64_t sched_wait = odp_schedule_wait_time(ODP_TIME_SEC_IN_NS * 1);
     odp_event_t ev;
     odp_packet_t pkt;
     Packet *p = NULL;
     int ret;
+    odp_time_t sync_time, cur_time;
+    odp_pktio_t pktio;
+    odp_queue_t inq;
 
     SCEnter();
     ret = odp_init_local(instance, ODP_THREAD_WORKER);
@@ -208,32 +236,60 @@ TmEcode ReceiveODPLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    pktio = odp_pktio_lookup(ptv->livedev->dev);
+    if (pktio == ODP_PKTIO_INVALID) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "unable to look up pktio %s", ptv->livedev->dev);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    if (odp_pktin_event_queue(pktio, &inq, 1) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "unable to get event queue");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     ptv->slot = s->slot_next;
     ptv->cb_result = TM_ECODE_OK;
+    /* next counter sync in 1 second */
+    sync_time = odp_time_sum(odp_time_local(),
+                             odp_time_local_from_ns(ODP_TIME_SEC_IN_NS));
 
     SCLogInfo("ODP worker thread %d enter to loop", odp_thread_id());
     while (!odp_loop_break)
     {
-        ev = odp_schedule(NULL, sched_wait);
+        ev = odp_queue_deq(inq);
         if (ev == ODP_EVENT_INVALID) {
-                StatsSyncCountersIfSignalled(tv);
-		continue;
+            ODPDumpCounters(ptv);
+            StatsSyncCountersIfSignalled(tv);
+            continue;
+        }
+
+        cur_time = odp_time_local();
+        if (odp_time_cmp(sync_time, cur_time) < 0) {
+            sync_time = odp_time_sum(cur_time, odp_time_local_from_ns(ODP_TIME_SEC_IN_NS));
+            ODPDumpCounters(ptv);
+            StatsSyncCountersIfSignalled(tv);
         }
 
         pkt = odp_packet_from_event(ev);
-        if (!odp_packet_is_valid(pkt))
+        if (!odp_packet_is_valid(pkt)) {
+            ptv->drops++;
             continue;
+	}
 
         p = ODPProcessPacket(ptv, pkt);
         if (!p) {
             odp_packet_free(pkt);
+            ptv->drops++;
             break;
         }
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
             TmqhOutputPacketpool(ptv->tv, p);
+            ptv->drops++;
             SCReturnInt(TM_ECODE_FAILED);
         }
+        ptv->pkts++;
+        ptv->bytes = odp_packet_len(pkt);
     }
 
     SCLogInfo("ODP worker thread exited");
