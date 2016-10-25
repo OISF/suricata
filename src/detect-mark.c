@@ -222,9 +222,23 @@ int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
 #ifdef NFQ
     const DetectMarkData *nf_data = (const DetectMarkData *)ctx;
     if (nf_data->mask) {
-        p->nfq_v.mark = (nf_data->mark & nf_data->mask)
-                        | (p->nfq_v.mark & ~(nf_data->mask));
-        p->flags |= PKT_MARK_MODIFIED;
+        if (!(IS_TUNNEL_PKT(p))) {
+            p->nfq_v.mark = (nf_data->mark & nf_data->mask)
+                | (p->nfq_v.mark & ~(nf_data->mask));
+            p->flags |= PKT_MARK_MODIFIED;
+        } else {
+            /* real tunnels may have multiple flows inside them, so marking
+             * might 'mark' too much. Rebuilt packets from IP fragments
+             * are fine. */
+            if (p->flags & PKT_REBUILT_FRAGMENT) {
+                Packet *tp = p->root ? p->root : p;
+                SCMutexLock(&tp->tunnel_mutex);
+                tp->nfq_v.mark = (nf_data->mark & nf_data->mask)
+                    | (tp->nfq_v.mark & ~(nf_data->mask));
+                tp->flags |= PKT_MARK_MODIFIED;
+                SCMutexUnlock(&tp->tunnel_mutex);
+            }
+        }
     }
 #endif
     return 1;
