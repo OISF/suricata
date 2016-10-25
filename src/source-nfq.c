@@ -510,6 +510,17 @@ static void NFQReleasePacket(Packet *p)
 static int NFQBypassCallback(Packet *p)
 {
     if (IS_TUNNEL_PKT(p)) {
+        /* real tunnels may have multiple flows inside them, so bypass can't
+         * work for those. Rebuilt packets from IP fragments are fine. */
+        if (p->flags & PKT_REBUILT_FRAGMENT) {
+            Packet *tp = p->root ? p->root : p;
+            SCMutexLock(&tp->tunnel_mutex);
+            tp->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
+                | (tp->nfq_v.mark & ~nfq_config.bypass_mask);
+            tp->flags |= PKT_MARK_MODIFIED;
+            SCMutexUnlock(&tp->tunnel_mutex);
+            return 1;
+        }
         return 0;
     } else {
         p->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
