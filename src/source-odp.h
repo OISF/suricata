@@ -29,8 +29,11 @@
 #ifdef HAVE_ODP
 #include <odp_api.h>
 
+#define PKTIO_NAME_LEN 256
+
 typedef struct ODPIfaceConfig_
 {
+    char iface_name[PKTIO_NAME_LEN];
     SC_ATOMIC_DECLARE(unsigned int, threads);
 } ODPIfaceConfig;
 

@@ -117,7 +117,7 @@ static void *ParseODPConfig(const char *iface_name)
     }
 
     odp_pktio_param_init(&pktio_param);
-    pktio_param.in_mode = ODP_PKTIN_MODE_SCHED;
+    pktio_param.in_mode = ODP_PKTIN_MODE_QUEUE;
     pktio_param.out_mode = ODP_PKTOUT_MODE_DISABLED;
 
     pktio = odp_pktio_open(iface_name, pool, &pktio_param);
@@ -142,6 +142,8 @@ static void *ParseODPConfig(const char *iface_name)
 	SCFree(conf);
         return NULL;
     }
+
+    snprintf(conf->iface_name, PKTIO_NAME_LEN, "%s", iface_name);
 
     SCLogDebug("initialised for %s\n", iface_name);
     return conf;
