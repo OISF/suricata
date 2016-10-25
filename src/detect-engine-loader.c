@@ -241,6 +241,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
             int r = task->Func(task->ctx, ftd->instance);
             loader->result |= r;
             TAILQ_REMOVE(&loader->task_list, task, next);
+            SCFree(task->ctx);
             SCFree(task);
         }
 
