@@ -218,6 +218,13 @@ typedef struct DNSState_ {
                                                  state-memcap settings */
     uint64_t tx_with_detect_state_cnt;
 
+    struct timeval last_req;      /**< Timestamp of last request. */
+    struct timeval last_resp;     /**< Timestamp of last response. */
+
+    uint16_t window;              /**< Window of allowed unreplied
+                                   * requests. Set by the maximum
+                                   * number of subsequent requests
+                                   * without a response. */
     uint16_t events;
     uint16_t givenup;
 

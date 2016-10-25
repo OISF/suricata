@@ -196,6 +196,14 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     //PrintRawDataFp(stdout, (uint8_t*)data, input_len - (data - input));
 
+    if (dns_state != NULL) {
+        if (timercmp(&dns_state->last_req, &dns_state->last_resp, >=)) {
+            if (dns_state->window <= dns_state->unreplied_cnt) {
+                dns_state->window++;
+            }
+        }
+    }
+
     for (q = 0; q < ntohs(dns_header->questions); q++) {
         uint8_t fqdn[DNS_MAX_SIZE];
         uint16_t fqdn_offset = 0;
@@ -355,6 +363,10 @@ next_record:
             goto bad_data;
     }
 
+    if (dns_state != NULL && f != NULL) {
+        dns_state->last_req = f->lastts;
+    }
+
     SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);
@@ -377,6 +389,8 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
     if (!found) {
         SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
         DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
+    } else if (dns_state->unreplied_cnt > 0) {
+        dns_state->unreplied_cnt--;
     }
 
     uint16_t q;
@@ -567,6 +581,11 @@ next_record:
         if (r < 0)
             goto bad_data;
     }
+
+    if (dns_state != NULL && f != NULL) {
+        dns_state->last_req = f->lastts;
+    }
+
     SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);

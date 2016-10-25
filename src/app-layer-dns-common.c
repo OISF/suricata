@@ -392,6 +392,9 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
         TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
             if (tx->tx_id == tx_id) {
                 return tx;
+            } else if ((dns_state->transaction_max - tx->tx_num) >
+                (dns_state->window - 1U)) {
+                tx->reply_lost = 1;
             }
         }
     }
@@ -554,19 +557,11 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         return;
     }
 
-    /* see if the last tx is unreplied */
-    if (dns_state->curr != tx && dns_state->curr != NULL &&
-        dns_state->curr->replied == 0)
-    {
-        dns_state->curr->reply_lost = 1;
-        dns_state->unreplied_cnt++;
-
-        /* check flood limit */
-        if (dns_config.request_flood != 0 &&
-                dns_state->unreplied_cnt > dns_config.request_flood) {
-            DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
-            dns_state->givenup = 1;
-        }
+    /* check flood limit */
+    if (dns_config.request_flood != 0 &&
+        dns_state->unreplied_cnt > dns_config.request_flood) {
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
+        dns_state->givenup = 1;
     }
 
     if (tx == NULL) {
@@ -579,6 +574,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         dns_state->curr = tx;
         tx->tx_num = dns_state->transaction_max;
         SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
+        dns_state->unreplied_cnt++;
     }
 
     if (DNSCheckMemcap((sizeof(DNSQueryEntry) + fqdn_len), dns_state) < 0)
@@ -645,9 +641,6 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
 
     /* mark tx is as replied so we can log it */
     tx->replied = 1;
-
-    /* reset unreplied counter */
-    dns_state->unreplied_cnt = 0;
 }
 
 /** \internal
