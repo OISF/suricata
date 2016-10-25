@@ -321,8 +321,8 @@ next_record:
                 goto bad_data;
 
             /* treat the rest of the data as a (potential) new record */
-            input += ntohs(dns_tcp_header->len);
-            input_len -= ntohs(dns_tcp_header->len);
+            input += (2 + ntohs(dns_tcp_header->len));
+            input_len -= (2 + ntohs(dns_tcp_header->len));
             goto next_record;
         } else {
             /* not enough data, store record length and buffer */
@@ -534,8 +534,8 @@ next_record:
                 goto bad_data;
 
             /* treat the rest of the data as a (potential) new record */
-            input += ntohs(dns_tcp_header->len);
-            input_len -= ntohs(dns_tcp_header->len);
+            input += (2 + ntohs(dns_tcp_header->len));
+            input_len -= (2 + ntohs(dns_tcp_header->len));
             goto next_record;
         } else {
             /* not enough data, store record length and buffer */
