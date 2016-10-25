@@ -462,7 +462,6 @@ void RegisterDNSUDPParsers(void)
 
 static int DNSUDPParserTest01 (void)
 {
-    int result = 0;
     /* query: abcdefghijk.com
      * TTL: 86400
      * serial 20130422 refresh 28800 retry 7200 exp 604800 min ttl 86400
@@ -482,25 +481,19 @@ static int DNSUDPParserTest01 (void)
     Flow *f = NULL;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->proto = IPPROTO_UDP;
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
-    if (r != 1)
-        goto end;
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
-    result = 1;
-end:
     UTHFreeFlow(f);
-    return (result);
+    PASS;
 }
 
 static int DNSUDPParserTest02 (void)
 {
-    int result = 0;
     uint8_t buf[] = {
         0x6D,0x08,0x84,0x80,0x00,0x01,0x00,0x08,0x00,0x00,0x00,0x01,0x03,0x57,0x57,0x57,
         0x04,0x54,0x54,0x54,0x54,0x03,0x56,0x56,0x56,0x03,0x63,0x6F,0x6D,0x02,0x79,0x79,
@@ -517,25 +510,19 @@ static int DNSUDPParserTest02 (void)
     Flow *f = NULL;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->proto = IPPROTO_UDP;
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
-    if (r != 1)
-        goto end;
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
-    result = 1;
-end:
     UTHFreeFlow(f);
-    return (result);
+    PASS;
 }
 
 static int DNSUDPParserTest03 (void)
 {
-    int result = 0;
     uint8_t buf[] = {
         0x6F,0xB4,0x84,0x80,0x00,0x01,0x00,0x02,0x00,0x02,0x00,0x03,0x03,0x57,0x57,0x77,
         0x0B,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x03,0x55,0x55,0x55,
@@ -552,26 +539,20 @@ static int DNSUDPParserTest03 (void)
     Flow *f = NULL;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->proto = IPPROTO_UDP;
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
-    if (r != 1)
-        goto end;
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
-    result = 1;
-end:
     UTHFreeFlow(f);
-    return (result);
+    PASS;
 }
 
 /** \test TXT records in answer */
 static int DNSUDPParserTest04 (void)
 {
-    int result = 0;
     uint8_t buf[] = {
         0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
         0x41,0x41,0x4f,0x31,0x6b,0x51,0x41,0x05,0x3d,0x61,0x75,0x74,0x68,0x03,0x73,0x72,
@@ -590,26 +571,20 @@ static int DNSUDPParserTest04 (void)
     Flow *f = NULL;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->proto = IPPROTO_UDP;
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
-    if (r != 1)
-        goto end;
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
-    result = 1;
-end:
     UTHFreeFlow(f);
-    return (result);
+    PASS;
 }
 
 /** \test TXT records in answer, bad txtlen */
 static int DNSUDPParserTest05 (void)
 {
-    int result = 0;
     uint8_t buf[] = {
         0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
         0x41,0x41,0x4f,0x31,0x6b,0x51,0x41,0x05,0x3d,0x61,0x75,0x74,0x68,0x03,0x73,0x72,
@@ -628,20 +603,15 @@ static int DNSUDPParserTest05 (void)
     Flow *f = NULL;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->proto = IPPROTO_UDP;
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
-    if (r != -1)
-        goto end;
+    FAIL_IF(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL) != -1);
 
-    result = 1;
-end:
     UTHFreeFlow(f);
-    return (result);
+    PASS;
 }
 
 /**
