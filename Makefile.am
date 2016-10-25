@@ -41,6 +41,7 @@ endif
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)smtp-events.rules" || install -m 600 "$(top_srcdir)/rules/smtp-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)http-events.rules" || install -m 600 "$(top_srcdir)/rules/http-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)dns-events.rules" || install -m 600 "$(top_srcdir)/rules/dns-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
+	@test -e "$(DESTDIR)$(e_sysconfrulesdir)tls-events.rules" || install -m 600 "$(top_srcdir)/rules/tls-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)modbus-events.rules" || install -m 600 "$(top_srcdir)/rules/modbus-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)app-layer-events.rules" || install -m 600 "$(top_srcdir)/rules/app-layer-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@echo ""
