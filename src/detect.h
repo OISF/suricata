@@ -709,8 +709,8 @@ typedef struct DetectEngineCtx_ {
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
 
-    /* id used by every detect engine ctx instance */
-    uint32_t id;
+    /** version of the detect engine */
+    uint32_t version;
 
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
@@ -1170,6 +1170,9 @@ typedef struct DetectEngineMasterCtx_ {
 
     /** enable multi tenant mode */
     int multi_tenant_enabled;
+
+    /** version, incremented after each 'apply to threads' */
+    uint32_t version;
 
     /** list of active detection engines. This list is used to generate the
      *  threads det_ctx's */
