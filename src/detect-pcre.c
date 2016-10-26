@@ -216,26 +216,29 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             /* regex matched and we're not negated,
              * considering it a match */
 
-            SCLogDebug("ret %d capidx %u", ret, pe->capidx);
+            SCLogDebug("ret %d pe->idx %u", ret, pe->idx);
 
             /* see if we need to do substring capturing. */
-            if (ret > 1 && pe->capidx != 0) {
-                SCLogDebug("capturing");
-                const char *str_ptr;
-                ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-                if (ret) {
-                    if (pe->flags & DETECT_PCRE_CAPTURE_PKT) {
-                        if (p != NULL) {
-                            PktVarAdd(p, pe->capname, (uint8_t *)str_ptr, ret);
-                        }
-                    } else if (pe->flags & DETECT_PCRE_CAPTURE_FLOW) {
-                        if (f != NULL) {
-                            /* store max 64k. Errors are ignored */
-                            capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
-                            (void)DetectFlowvarStoreMatch(det_ctx, pe->capidx,
-                                    (uint8_t *)str_ptr, capture_len,
-                                    DETECT_FLOWVAR_TYPE_POSTMATCH);
-                        }
+            if (ret > 1 && pe->idx != 0) {
+                uint8_t x;
+                for (x = 0; x < pe->idx; x++) {
+                    SCLogDebug("capturing");
+                    const char *str_ptr;
+                    ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, x+1, &str_ptr);
+                    if (unlikely(ret == 0))
+                        continue;
+
+                    if (pe->captypes[x] == VAR_TYPE_PKT_VAR && p != NULL) {
+                        const char *varname = VarNameStoreLookupById(pe->capids[x],
+                                VAR_TYPE_PKT_VAR);
+                        PktVarAdd(p, varname, (uint8_t *)str_ptr, ret);
+
+                    } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
+                        /* store max 64k. Errors are ignored */
+                        capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
+                        (void)DetectFlowvarStoreMatch(det_ctx, pe->capids[x],
+                                (uint8_t *)str_ptr, capture_len,
+                                DETECT_FLOWVAR_TYPE_POSTMATCH);
                     }
                 }
             }
@@ -583,7 +586,11 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
 {
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    memset(&ov, 0, sizeof(ov));
     char type_str[16] = "";
+    char *orig_right_edge = regexstr + strlen(regexstr);
+
+    SCLogDebug("regexstr %s, pd %p", regexstr, pd);
 
     /* take the size of the whole input as buffer size for the string we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
@@ -594,55 +601,57 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
     if (de_ctx == NULL)
         goto error;
 
-    SCLogDebug("\'%s\'", regexstr);
+    while (1) {
+        SCLogDebug("\'%s\'", regexstr);
 
-    ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 3) {
-        return 0;
-    }
+        ret = pcre_exec(parse_capture_regex, parse_capture_regex_study, regexstr, strlen(regexstr), 0, 0, ov, MAX_SUBSTRINGS);
+        if (ret < 3) {
+            return 0;
+        }
 
-    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, type_str, sizeof(type_str));
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-        goto error;
-    }
-    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, capture_str, cap_buffer_len);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-        goto error;
-    }
-    if (strlen(capture_str) == 0 || strlen(type_str) == 0) {
-        goto error;
-    }
+        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 1, type_str, sizeof(type_str));
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            goto error;
+        }
+        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS, 2, capture_str, cap_buffer_len);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            goto error;
+        }
+        if (strlen(capture_str) == 0 || strlen(type_str) == 0) {
+            goto error;
+        }
 
-    SCLogDebug("type \'%s\'", type_str);
-    SCLogDebug("capture \'%s\'", capture_str);
+        SCLogDebug("type \'%s\'", type_str);
+        SCLogDebug("capture \'%s\'", capture_str);
 
-    pd->capname = SCStrdup(capture_str);
-    if (unlikely(pd->capname == NULL))
-        goto error;
+        if (pd->idx >= DETECT_PCRE_CAPTURE_MAX) {
+            SCLogError(SC_ERR_VAR_LIMIT, "rule can have maximally %d pkt/flow "
+                    "var captures", DETECT_PCRE_CAPTURE_MAX);
+            return -1;
+        }
 
-    if (strcmp(type_str, "pkt") == 0) {
-        pd->flags |= DETECT_PCRE_CAPTURE_PKT;
-    } else if (strcmp(type_str, "flow") == 0) {
-        pd->flags |= DETECT_PCRE_CAPTURE_FLOW;
-        SCLogDebug("flow capture");
+        if (strcmp(type_str, "pkt") == 0) {
+            pd->capids[pd->idx] = VarNameStoreSetupAdd((char *)capture_str, VAR_TYPE_PKT_VAR);
+            pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
+            SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
+            pd->idx++;
+        } else if (strcmp(type_str, "flow") == 0) {
+            pd->capids[pd->idx] = VarNameStoreSetupAdd((char *)capture_str, VAR_TYPE_FLOW_VAR);
+            pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
+            pd->idx++;
+        }
+
+        //SCLogDebug("pd->capname %s", pd->capname);
+        regexstr += ov[1];
+
+        if (regexstr >= orig_right_edge)
+            break;
     }
-    if (pd->capname != NULL) {
-        if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
-            pd->capidx = VarNameStoreSetupAdd((char *)pd->capname, VAR_TYPE_PKT_VAR);
-        else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
-            pd->capidx = VarNameStoreSetupAdd((char *)pd->capname, VAR_TYPE_FLOW_VAR);
-    }
-
-    SCLogDebug("pd->capname %s", pd->capname);
     return 0;
 
 error:
-    if (pd->capname != NULL) {
-        SCFree(pd->capname);
-        pd->capname = NULL;
-    }
     return -1;
 }
 
@@ -747,9 +756,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     sm->ctx = (void *)pd;
     SigMatchAppendSMToList(s, sm, sm_list);
 
-    if (pd->capidx != 0) {
-        if (DetectFlowvarPostMatchSetup(s, pd->capidx) < 0)
-            goto error_nofree;
+    uint8_t x;
+    for (x = 0; x < pd->idx; x++) {
+        if (pd->captypes[x] == VAR_TYPE_FLOW_VAR) {
+            if (DetectFlowvarPostMatchSetup(s, pd->capids[x]) < 0)
+                goto error_nofree;
+        }
     }
 
     if (!(pd->flags & DETECT_PCRE_RELATIVE))
@@ -791,8 +803,6 @@ static void DetectPcreFree(void *ptr)
 
     DetectPcreData *pd = (DetectPcreData *)ptr;
 
-    if (pd->capname != NULL)
-        SCFree(pd->capname);
     if (pd->re != NULL)
         pcre_free(pd->re);
     if (pd->sd != NULL)
@@ -3059,7 +3069,7 @@ static int DetectPcreFlowvarCapture01(void)
 
     FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
-    FlowVar *fv = FlowVarGet(&f, pd->capidx);
+    FlowVar *fv = FlowVarGet(&f, pd->capids[0]);
     FAIL_IF(fv == NULL);
 
     FAIL_IF(fv->data.fv_str.value_len != ualen1);
@@ -3151,7 +3161,7 @@ static int DetectPcreFlowvarCapture02(void)
         s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
     DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
 
-    FAIL_IF(pd1->capidx != pd2->capidx);
+    FAIL_IF(pd1->capids[0] != pd2->capids[0]);
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
@@ -3173,7 +3183,7 @@ static int DetectPcreFlowvarCapture02(void)
 
     FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
-    FlowVar *fv = FlowVarGet(&f, pd1->capidx);
+    FlowVar *fv = FlowVarGet(&f, pd1->capids[0]);
     FAIL_IF(fv == NULL);
 
     if (fv->data.fv_str.value_len != ualen1) {
@@ -3267,7 +3277,7 @@ static int DetectPcreFlowvarCapture03(void)
         s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
     DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
 
-    FAIL_IF(pd1->capidx != pd2->capidx);
+    FAIL_IF(pd1->capids[0] != pd2->capids[0]);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3286,7 +3296,7 @@ static int DetectPcreFlowvarCapture03(void)
 
     FAIL_IF(PacketAlertCheck(p1, 1));
 
-    FlowVar *fv = FlowVarGet(&f, pd1->capidx);
+    FlowVar *fv = FlowVarGet(&f, pd1->capids[0]);
     FAIL_IF(fv != NULL);
 
     if (alp_tctx != NULL)
