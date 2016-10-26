@@ -55,12 +55,21 @@ matrix:
         apt:
           sources:
             - sourceline: ppa:npalix/coccinelle
+            - sourceline: ppa:fooinha/libyara3
           packages:
             - *packages
             - coccinelle
+            - libyara-dev
     # Linux, gcc, -DNDEBUG.
     - os: linux
       compiler: gcc
+      addons:
+        apt:
+          sources:
+            - sourceline: ppa:fooinha/libyara3
+          packages:
+            - *packages
+            - libyara-dev
       env:
         - NAME="linux,gcc,ndebug"
         - *default-cflags
@@ -68,6 +77,13 @@ matrix:
     # Linux, clang. For this build we'll also enable -Wshadow.
     - os: linux
       compiler: clang
+      addons:
+        apt:
+          sources:
+            - sourceline: ppa:fooinha/libyara3
+          packages:
+            - *packages
+            - libyara-dev
       env:
         - NAME="linux,clang"
         - *default-cflags
@@ -75,6 +91,13 @@ matrix:
     # Linux, gcc, profiling.
     - os: linux
       compiler: gcc
+      addons:
+        apt:
+          sources:
+            - sourceline: ppa:fooinha/libyara3
+          packages:
+            - *packages
+            - libyara-dev
       env:
         - NAME="linux,gcc,profiling"
         - *default-cflags
@@ -82,6 +105,13 @@ matrix:
     # Linux, gcc, debug.
     - os: linux
       compiler: gcc
+      addons:
+        apt:
+          sources:
+            - sourceline: ppa:fooinha/libyara3
+          packages:
+            - *packages
+            - libyara-dev
       env:
         - NAME="linux,gcc,debug"
         - *default-cflags
@@ -95,8 +125,11 @@ matrix:
         - *default-cflags
       addons:
         apt:
+          sources:
+            - sourceline: ppa:fooinha/libyara3
           packages:
             - *packages-without-jansson
+            - libyara-dev
     # OSX 10.12, XCode 8.1
     - os: osx
       compiler: gcc
@@ -111,7 +144,7 @@ script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
-        ./configure --enable-nfqueue --enable-unittests --enable-hiredis ${ARGS}
+        ./configure --enable-nfqueue --enable-unittests --enable-hiredis --enable-yara ${ARGS}
     fi
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -162,6 +195,7 @@ before_install:
         packages="$packages lua"
         packages="$packages pcre"
         packages="$packages hiredis"
+        packages="$packages yara"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
