@@ -267,8 +267,14 @@ static inline int SCSigGetFlowvarType(Signature *sig)
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
-        if (sm->type == DETECT_PCRE && (pd->flags & DETECT_PCRE_CAPTURE_FLOW)) {
-            write++;
+        if (sm->type == DETECT_PCRE) {
+            uint8_t x;
+            for (x = 0; x < pd->idx; x++) {
+                if (pd->captypes[x] == VAR_TYPE_FLOW_VAR) {
+                    write++;
+                    break;
+                }
+            }
         }
 
         sm = sm->next;
@@ -319,8 +325,14 @@ static inline int SCSigGetPktvarType(Signature *sig)
 
     while (sm != NULL) {
         pd = (DetectPcreData *)sm->ctx;
-        if (sm->type == DETECT_PCRE && (pd->flags & DETECT_PCRE_CAPTURE_PKT)) {
-            write++;
+        if (sm->type == DETECT_PCRE) {
+            uint8_t x;
+            for (x = 0; x < pd->idx; x++) {
+                if (pd->captypes[x] == VAR_TYPE_PKT_VAR) {
+                    write++;
+                    break;
+                }
+            }
         }
 
         sm = sm->next;
