@@ -1175,7 +1175,7 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
         /* set up hash for tenant lookup */
         list = master->list;
         while (list) {
-            SCLogInfo("tenant-id %u", list->tenant_id);
+            SCLogDebug("tenant-id %u", list->tenant_id);
             if (list->tenant_id != 0) {
                 DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list, 0);
                 if (mt_det_ctx == NULL)
@@ -1729,7 +1729,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
     reload_cnt++;
-    SCLogInfo("prefix %s", prefix);
+    SCLogDebug("prefix %s", prefix);
 
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
         SCLogError(SC_ERR_INITIALIZATION,"failed to load yaml");
@@ -1891,7 +1891,7 @@ int DetectEngineMultiTenantSetup(void)
 
         char *handler = NULL;
         if (ConfGet("multi-detect.selector", &handler) == 1) {
-            SCLogInfo("multi-tenant selector type %s", handler);
+            SCLogConfig("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
@@ -1914,7 +1914,7 @@ int DetectEngineMultiTenantSetup(void)
             }
         }
         SCMutexUnlock(&master->lock);
-        SCLogInfo("multi-detect is enabled (multi tenancy). Selector: %s", handler);
+        SCLogConfig("multi-detect is enabled (multi tenancy). Selector: %s", handler);
 
         /* traffic -- tenant mappings */
         ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
@@ -1956,7 +1956,7 @@ int DetectEngineMultiTenantSetup(void)
                 if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
                     goto error;
                 }
-                SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
+                SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
                 mapping_cnt++;
                 continue;
 
@@ -2007,7 +2007,7 @@ int DetectEngineMultiTenantSetup(void)
                             "of %s is invalid", id_node->val);
                     goto bad_tenant;
                 }
-                SCLogInfo("tenant id: %u, %s", tenant_id, yaml_node->val);
+                SCLogDebug("tenant id: %u, %s", tenant_id, yaml_node->val);
 
                 /* setup the yaml in this loop so that it's not done by the loader
                  * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
