@@ -48,6 +48,8 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
 
+#include "detect-yara-rule.h"
+
 #include "detect-engine.h"
 #include "detect-engine-state.h"
 
@@ -1706,6 +1708,9 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         goto error;
     }
+#ifdef HAVE_LIBYARA
+    YaraLoadRules(de_ctx);
+#endif /* HAVE_LIBYARA */
 
     DetectEngineAddToMaster(de_ctx);
 
@@ -1757,6 +1762,10 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         goto error;
     }
+
+#ifdef HAVE_LIBYARA
+    YaraLoadRules(new_de_ctx);
+#endif /* HAVE_LIBYARA */
 
     DetectEngineAddToMaster(new_de_ctx);
 
@@ -2374,6 +2383,11 @@ int DetectEngineReload(SCInstance *suri)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
+
+#ifdef HAVE_LIBYARA
+    YaraLoadRules(new_de_ctx);
+#endif /* HAVE_LIBYARA */
+
     SCThresholdConfInitContext(new_de_ctx, NULL);
     SCLogDebug("set up new_de_ctx %p", new_de_ctx);
 

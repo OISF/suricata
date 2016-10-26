@@ -169,6 +169,7 @@
 #include "detect-template.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
+#include "detect-yara-rule.h"
 
 #include "util-rule-vars.h"
 
@@ -237,8 +238,6 @@ static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, int, StreamMsg
  */
 char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
 {
-    char *defaultpath = NULL;
-    char *path = NULL;
     char varname[128];
 
     if (strlen(de_ctx->config_prefix) > 0) {
@@ -248,9 +247,23 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
         snprintf(varname, sizeof(varname), "default-rule-path");
     }
 
+    return DetectLoadCompleteSigPathWithDefaultPath(de_ctx, sig_file, varname);
+}
+
+/**
+ *  \brief Create the path if default-rule-path was specified
+ *  \param sig_file The name of the file
+ *  \param default_path_var_name The var name to use from conf for default path
+ *  \retval str Pointer to the string path + sig_file
+ */
+char *DetectLoadCompleteSigPathWithDefaultPath(const DetectEngineCtx *de_ctx, char *sig_file, const char *default_path_var_name)
+{
+    char *defaultpath = NULL;
+    char *path = NULL;
+
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
-        if (ConfGet(varname, &defaultpath) == 1) {
+        if (ConfGet(default_path_var_name, &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
@@ -1760,6 +1773,11 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
 
     DetectEngineResetMaxSigId(de_ctx);
     de_ctx->sig_list = NULL;
+
+#ifdef HAVE_LIBYARA 
+    //XXX: FIXME Where is the best place to do this?
+    YaraRulesClean();
+#endif
 }
 
 /** \brief Find a specific signature by sid and gid
@@ -4215,6 +4233,8 @@ void SigTableSetup(void)
     DetectFileSha1Register();
     DetectFileSha256Register();
     DetectFilesizeRegister();
+
+    DetectYaraRulesRegister();
 
     DetectHttpUARegister();
     DetectHttpHHRegister();

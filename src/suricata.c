@@ -63,6 +63,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-yara-rule.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -2127,6 +2128,10 @@ static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
         if (de_ctx->failure_fatal)
             return TM_ECODE_FAILED;
     }
+
+#ifdef HAVE_LIBYARA
+    YaraLoadRules(de_ctx);
+#endif /* HAVE_LIBYARA */
 
     SCThresholdConfInitContext(de_ctx, NULL);
     return TM_ECODE_OK;

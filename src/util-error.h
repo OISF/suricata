@@ -320,6 +320,9 @@ typedef enum {
     SC_ERR_NO_SHA1_SUPPORT,
     SC_ERR_NO_SHA256_SUPPORT,
     SC_ERR_ENIP_CONFIG,
+    SC_ERR_YARA_INITIALIZATION,
+    SC_ERR_YARA_FINALIZE,
+    SC_WARN_YARA_COMPILE_ERR,
 } SCError;
 
 const char *SCErrorToString(SCError);

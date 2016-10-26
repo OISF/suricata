@@ -1584,6 +1584,47 @@
         exit 1
     fi
 
+  #libyara
+    AC_ARG_ENABLE(yara,
+	        AS_HELP_STRING([--enable-yara],[Enable Yara rules support]),
+	        [ enable_yara="yes"],
+	        [ enable_yara="no"])
+
+    AC_ARG_WITH(libyara_includes,
+            [  --with-libyara-includes=DIR  libyara include directory],
+            [with_libyara_includes="$withval"],[with_libyara_includes=no])
+    AC_ARG_WITH(libyara_libraries,
+            [  --with-libyara-libraries=DIR    libyara library directory],
+            [with_libyara_libraries="$withval"],[with_libyara_libraries="no"])
+
+    if test "$enable_yara" = "yes"; then
+        if test "$with_libyara_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libyara_includes}"
+        fi
+
+        AC_CHECK_HEADER(yara.h,,[AC_ERROR(yara.h not found ...)])
+
+        if test "$with_libyara_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libyara_libraries}"
+        fi
+
+        YARA=""
+        AC_CHECK_LIB(yara, yr_initialize,, YARA="no")
+
+        if test "$YARA" = "no"; then
+            echo
+            echo "   ERROR!  yara library not found, go get it"
+            echo "   from https://github.com/VirusTotal/yara/ or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libyara-dev"
+            echo "   Fedora: yum install yara-devel"
+            echo
+            exit 1
+        fi
+    fi
+
+
+
   # Napatech - Using the 3GD API
     AC_ARG_ENABLE(napatech,
                 AS_HELP_STRING([--enable-napatech],[Enabled Napatech Devices]),
@@ -1993,6 +2034,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
+  YARA rules support:                      ${enable_yara}
   libluajit:                               ${enable_luajit}
   libgeoip:                                ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
