@@ -259,11 +259,12 @@ error:
  *  \param sm sigmatch containing the idx to store
  *  \retval 1 or -1 in case of error
  */
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectFlowvarPostMatch(ThreadVars *tv,
+        DetectEngineThreadCtx *det_ctx,
+        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     DetectFlowvarList *fs, *prev;
     const DetectFlowvarData *fd;
-    const int flow_locked = det_ctx->flow_locked;
 
     if (det_ctx->flowvarlist == NULL || p->flow == NULL)
         return 1;
@@ -277,10 +278,7 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
-            if (flow_locked)
-                FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
-            else
-                FlowVarAddStr(p->flow, fs->idx, fs->buffer, fs->len);
+            FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
             /* memory at fs->buffer is now the responsibility of
              * the flowvar code. */
 
@@ -303,10 +301,10 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
 
 /** \brief Handle flowvar candidate list in det_ctx:
  *         - clean up the list
- *         - enforce storage for type ALWAYS (luajit)
+ *         - enforce storage for type ALWAYS (vars set from lua)
  *   Only called from DetectFlowvarProcessList() when flowvarlist is not NULL .
  */
-void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f, const int flow_locked)
+void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f)
 {
     DetectFlowvarList *next;
 
@@ -314,18 +312,15 @@ void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f, const int 
         next = fs->next;
 
         if (fs->type == DETECT_FLOWVAR_TYPE_ALWAYS) {
-            BUG_ON(f == NULL);
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
-            if (flow_locked)
-                FlowVarAddStrNoLock(f, fs->idx, fs->buffer, fs->len);
-            else
-                FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
+            FlowVarAddStrNoLock(f, fs->idx, fs->buffer, fs->len);
             /* memory at fs->buffer is now the responsibility of
              * the flowvar code. */
-        } else
+        } else {
             SCFree(fs->buffer);
+        }
         SCFree(fs);
         fs = next;
     } while (fs != NULL);
