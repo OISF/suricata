@@ -167,7 +167,7 @@ TmEcode DecodeODP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode ReceiveODPBreakLoop(ThreadVars *ptv, void *arg)
+static TmEcode ReceiveODPBreakLoop(ThreadVars *tv, void *arg)
 {
     odp_loop_break = 1;
     SCReturnInt(TM_ECODE_OK);
@@ -196,10 +196,6 @@ static inline Packet *ODPProcessPacket(ODPThreadVars *ptv, odp_packet_t opkt)
     uint32_t pkt_len = odp_packet_len(opkt);
     uint8_t *pkt_data = odp_packet_data(opkt);
     Packet *p;
-
-    /* make sure we have at least one packet in the packet pool, to prevent
-     * us from alloc'ing packets at line rate */
-    PacketPoolWait();
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL)
@@ -253,21 +249,20 @@ TmEcode ReceiveODPLoop(ThreadVars *tv, void *data, void *slot)
     sync_time = odp_time_sum(odp_time_local(),
                              odp_time_local_from_ns(ODP_TIME_SEC_IN_NS));
 
-    SCLogInfo("ODP worker thread %d enter to loop", odp_thread_id());
+    SCLogInfo("ODP worker thread %d (%s) enter to loop", odp_thread_id(), tv->name);
     while (!odp_loop_break)
     {
-        ev = odp_queue_deq(inq);
-        if (ev == ODP_EVENT_INVALID) {
-            ODPDumpCounters(ptv);
-            StatsSyncCountersIfSignalled(tv);
-            continue;
-        }
-
         cur_time = odp_time_local();
         if (odp_time_cmp(sync_time, cur_time) < 0) {
             sync_time = odp_time_sum(cur_time, odp_time_local_from_ns(ODP_TIME_SEC_IN_NS));
             ODPDumpCounters(ptv);
             StatsSyncCountersIfSignalled(tv);
+        }
+
+        ev = odp_queue_deq(inq);
+        if (ev == ODP_EVENT_INVALID) {
+            usleep(20);
+            continue;
         }
 
         pkt = odp_packet_from_event(ev);
@@ -292,7 +287,9 @@ TmEcode ReceiveODPLoop(ThreadVars *tv, void *data, void *slot)
         ptv->bytes = odp_packet_len(pkt);
     }
 
-    SCLogInfo("ODP worker thread exited");
+    odp_term_local();
+
+    SCLogInfo("ODP worker thread %d (%s) exited", odp_thread_id(), tv->name);
     StatsSyncCountersIfSignalled(tv);
     SCReturnInt(TM_ECODE_OK);
 }
