@@ -29,8 +29,9 @@
 #include "util-buffer.h"
 
 #ifdef HAVE_LIBHIREDIS
-#include "hiredis/hiredis.h"
-#endif
+#include "util-logopenfile-redis.h"
+#endif /* HAVE_LIBHIREDIS */
+
 
 typedef struct {
     uint16_t fileno;
@@ -46,20 +47,6 @@ typedef struct SyslogSetup_ {
     int alert_syslog_level;
 } SyslogSetup;
 
-#ifdef HAVE_LIBHIREDIS
-enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
-
-typedef struct RedisSetup_ {
-    enum RedisMode mode;
-    const char *command;
-    char *key;
-    int  batch_size;
-    int  batch_count;
-    char *server;
-    int  port;
-    time_t tried;
-} RedisSetup;
-#endif
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
@@ -67,7 +54,7 @@ typedef struct LogFileCtx_ {
         FILE *fp;
         PcieFile *pcie_fp;
 #ifdef HAVE_LIBHIREDIS
-        redisContext *redis;
+        void *redis;
 #endif
     };
 
@@ -134,7 +121,6 @@ int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
-int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

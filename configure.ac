@@ -1828,6 +1828,14 @@
         LDFLAGS="${LDFLAGS} -pie"
     fi
 
+#libevent includes and libraries
+    AC_ARG_WITH(libevent_includes,
+            [  --with-libevent-includes=DIR  libevent include directory],
+            [with_libevent_includes="$withval"],[with_libevent_includes="no"])
+    AC_ARG_WITH(libevent_libraries,
+            [  --with-libevent-libraries=DIR    libevent library directory],
+            [with_libevent_libraries="$withval"],[with_libevent_libraries="no"])
+
 # libhiredis
     AC_ARG_ENABLE(hiredis,
 	        AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
@@ -1840,6 +1848,7 @@
             [  --with-libhiredis-libraries=DIR    libhiredis library directory],
             [with_libhiredis_libraries="$withval"],[with_libhiredis_libraries="no"])
 
+    enable_hiredis_async="no"
     if test "$enable_hiredis" = "yes"; then
         if test "$with_libhiredis_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_libhiredis_includes}"
@@ -1866,6 +1875,47 @@
         if test "$HIREDIS" = "yes"; then
             AC_DEFINE([HAVE_LIBHIREDIS],[1],[libhiredis available])
             enable_hiredis="yes"
+            #
+            # Check if async adapters and libevent is installed
+            #
+            AC_CHECK_HEADER("hiredis/adapters/libevent.h",HIREDIS_LIBEVENT_ADAPTER="yes",HIREDIS_LIBEVENT_ADAPTER="no")
+            if test "$HIREDIS_LIBEVENT_ADAPTER" = "yes"; then
+                #Look for libevent headers
+                if test "$with_libevent_includes" != "no"; then
+                    CPPFLAGS="${CPPFLAGS} -I${with_libevent_includes}"
+                fi
+                AC_CHECK_HEADER("event.h",LIBEVENT="yes",LIBEVENT="no")
+                if test "$LIBEVENT" = "yes"; then
+                    if test "$with_libevent_libraries" != "no"; then
+                        LDFLAGS="${LDFLAGS}  -L${with_libevent_libraries}"
+                    fi
+                    AC_CHECK_LIB(event, event_base_free,, HAVE_LIBEVENT="no")
+                    AC_CHECK_LIB(event_pthreads, evthread_use_pthreads,, HAVE_LIBEVENT_PTHREADS="no")
+                fi
+                if test "$HAVE_LIBEVENT" = "no" -o test "$HAVE_LIBEVENT_PTHREADS" = "no" ; then
+                    if test "$HAVE_LIBEVENT" = "no"; then
+                        echo
+                        echo "  Async mode for redis output will not be available."
+                        echo "  To enable it install libevent"
+                        echo
+                        echo "   Ubuntu: apt-get install libevent-dev"
+                        echo "   Fedora: dnf install event-devel"
+                        echo "   RHEL/CentOS: yum install event-devel"
+                        echo
+                   fi
+                   if test "$HAVE_LIBEVENT_PTHREADS" = "no"; then
+                        echo
+                        echo "  Async mode for redis output will not be available."
+                        echo "  To enable it install libevent with pthreads support"
+                        echo
+                        echo "   Ubuntu: apt-get install libevent-pthreads-2.0-5"
+                        echo
+                   fi
+                else
+                    AC_DEFINE([HAVE_LIBEVENT],[1],[libevent available])
+                    enable_hiredis_async="yes"
+                fi
+            fi
         fi
     fi
 
@@ -1990,6 +2040,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
+  hiredis async with libevent:             ${enable_hiredis_async}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
