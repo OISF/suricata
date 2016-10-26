@@ -77,12 +77,9 @@ static pcre_extra *parse_capture_regex_study;
 static int pcre_use_jit = 1;
 #endif
 
-int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectPcreALMatchCookie(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
-int DetectPcreALMatchMethod(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
-void DetectPcreFree(void *);
-void DetectPcreRegisterTests(void);
+static void DetectPcreFree(void *);
+static void DetectPcreRegisterTests(void);
 
 void DetectPcreRegister (void)
 {
@@ -787,7 +784,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SCReturnInt(ret);
 }
 
-void DetectPcreFree(void *ptr)
+static void DetectPcreFree(void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -3343,7 +3340,7 @@ static int DetectPcreParseHttpHost(void)
 /**
  * \brief this function registers unit tests for DetectPcre
  */
-void DetectPcreRegisterTests(void)
+static void DetectPcreRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01);
