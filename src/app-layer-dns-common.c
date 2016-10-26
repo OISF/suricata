@@ -31,6 +31,10 @@
 #include "util-memcmp.h"
 #include "util-atomic.h"
 
+/* The number of outstanding replies to allow on a session before
+ * marking the responses as lost. */
+#define UNREPLIED_WINDOW 2
+
 typedef struct DNSConfig_ {
     uint32_t request_flood;
     uint32_t state_memcap;  /**< memcap in bytes per state */
@@ -392,6 +396,9 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
         TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
             if (tx->tx_id == tx_id) {
                 return tx;
+            } else if ((dns_state->transaction_max + 1 - tx->tx_num) >
+                (UNREPLIED_WINDOW - 1)) {
+                tx->reply_lost = 1;
             }
         }
     }
@@ -554,19 +561,11 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         return;
     }
 
-    /* see if the last tx is unreplied */
-    if (dns_state->curr != tx && dns_state->curr != NULL &&
-        dns_state->curr->replied == 0)
-    {
-        dns_state->curr->reply_lost = 1;
-        dns_state->unreplied_cnt++;
-
-        /* check flood limit */
-        if (dns_config.request_flood != 0 &&
-                dns_state->unreplied_cnt > dns_config.request_flood) {
-            DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
-            dns_state->givenup = 1;
-        }
+    /* check flood limit */
+    if (dns_config.request_flood != 0 &&
+        dns_state->unreplied_cnt > dns_config.request_flood) {
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
+        dns_state->givenup = 1;
     }
 
     if (tx == NULL) {
@@ -579,6 +578,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         dns_state->curr = tx;
         tx->tx_num = dns_state->transaction_max;
         SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
+        dns_state->unreplied_cnt++;
     }
 
     if (DNSCheckMemcap((sizeof(DNSQueryEntry) + fqdn_len), dns_state) < 0)
