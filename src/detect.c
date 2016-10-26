@@ -1080,17 +1080,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
 
             /* live ruleswap check for flow updates */
-            if (pflow->de_ctx_id == 0) {
+            if (pflow->de_ctx_version == 0) {
                 /* first time this flow is inspected, set id */
-                pflow->de_ctx_id = de_ctx->id;
-            } else if (pflow->de_ctx_id != de_ctx->id) {
+                pflow->de_ctx_version = de_ctx->version;
+            } else if (pflow->de_ctx_version != de_ctx->version) {
                 /* first time we inspect flow with this de_ctx, reset */
                 pflow->flags &= ~FLOW_SGH_TOSERVER;
                 pflow->flags &= ~FLOW_SGH_TOCLIENT;
                 pflow->sgh_toserver = NULL;
                 pflow->sgh_toclient = NULL;
 
-                pflow->de_ctx_id = de_ctx->id;
+                pflow->de_ctx_version = de_ctx->version;
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
 

@@ -84,14 +84,12 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
-static uint32_t detect_engine_ctx_id = 1;
-
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, 99, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
 
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
@@ -583,7 +581,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     if (minimal) {
         de_ctx->minimal = 1;
-        de_ctx->id = detect_engine_ctx_id++;
+        de_ctx->version = DetectEngineGetVersion();
+        SCLogDebug("minimal with version %u", de_ctx->version);
         return de_ctx;
     }
 
@@ -635,7 +634,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
     }
 
-    de_ctx->id = detect_engine_ctx_id++;
+    de_ctx->version = DetectEngineGetVersion();
+    SCLogDebug("dectx with version %u", de_ctx->version);
     return de_ctx;
 error:
     if (de_ctx != NULL) {
@@ -1618,6 +1618,25 @@ int DetectEngineEnabled(void)
     return 1;
 }
 
+uint32_t DetectEngineGetVersion(void)
+{
+    uint32_t version;
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    version = master->version;
+    SCMutexUnlock(&master->lock);
+    return version;
+}
+
+void DetectEngineBumpVersion(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    master->version++;
+    SCLogDebug("master version now %u", master->version);
+    SCMutexUnlock(&master->lock);
+}
+
 DetectEngineCtx *DetectEngineGetCurrent(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
@@ -2391,6 +2410,8 @@ int DetectEngineReload(SCInstance *suri)
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
+
+    DetectEngineBumpVersion();
 
     SCLogDebug("old_de_ctx should have been freed");
 

@@ -43,6 +43,8 @@ void DetectEngineResetMaxSigId(DetectEngineCtx *);
 void DetectEngineRegisterTests(void);
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
 
+uint32_t DetectEngineGetVersion(void);
+void DetectEngineBumpVersion(void);
 int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineGetCurrent(void);
 DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id);
