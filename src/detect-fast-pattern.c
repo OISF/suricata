@@ -194,7 +194,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         return -1;
     }
 
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 28,
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 38,
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
