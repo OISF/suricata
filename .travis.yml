@@ -126,7 +126,7 @@ before_install:
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
         brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
-            pcre hiredis libevent
+            pcre hiredis
     fi
   - ./qa/travis-libhtp.sh
 

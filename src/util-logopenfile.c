@@ -436,7 +436,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
         LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
-                          MEMBUFFER_OFFSET(buffer));
+                MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif

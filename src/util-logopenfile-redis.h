@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2016 Open Information Security Foundation
+/* Copyright (C) 2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -48,13 +48,11 @@ typedef struct RedisSetup_ {
 } RedisSetup;
 
 typedef struct SCLogRedisContext_ {
-       redisContext *sync;
-
+    redisContext *sync;
 #if HAVE_LIBEVENT
-       redisAsyncContext *async;
-       struct event_base *ev_base;
+    redisAsyncContext *async;
+    struct event_base *ev_base;
 #endif /* HAVE_LIBEVENT */
-
 } SCLogRedisContext;
 
 int SCConfLogOpenRedis(ConfNode *, void *);
