@@ -742,8 +742,8 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* threads now all have new data, however they may not have started using
      * it and may still use the old data */
 
-    SCLogInfo("Live rule swap has swapped %d old det_ctx's with new ones, "
-              "along with the new de_ctx", no_of_detect_tvs);
+    SCLogDebug("Live rule swap has swapped %d old det_ctx's with new ones, "
+               "along with the new de_ctx", no_of_detect_tvs);
 
     InjectPackets(detect_tvs, new_det_ctx, no_of_detect_tvs);
 
