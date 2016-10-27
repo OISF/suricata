@@ -26,7 +26,13 @@ Contributing
 
 We're happily taking patches and other contributions. Please see https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Contributing for how to get started.
 
-Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences: in IPS mode a crash may knock a network offline; in passive mode a compromise of the IDS may lead to loss of critical and confidential data; missed detection may lead to undetected compromise of the network. In other words, we think the stakes are pretty high, especially since in many common cases the IDS/IPS will be directly reachable by an attacker.
+Suricata is a complex piece of software dealing with mostly untrusted input. Mishandling this input will have serious consequences:
+
+* in IPS mode a crash may knock a network offline;
+* in passive mode a compromise of the IDS may lead to loss of critical and confidential data;
+* missed detection may lead to undetected compromise of the network.
+
+In other words, we think the stakes are pretty high, especially since in many common cases the IDS/IPS will be directly reachable by an attacker.
 
 For this reason, we have developed a QA process that is quite extensive. A consequence is that contributing to Suricata can be a somewhat lengthy process.
 
