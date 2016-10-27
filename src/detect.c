@@ -542,21 +542,19 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    Signature *s)
 {
     /* run the packet match functions */
-    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+    if (smd != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
-        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
         SCLogDebug("running match functions, sm %p", smd);
 
-        if (smd != NULL) {
-            while (1) {
-                KEYWORD_PROFILING_START;
-                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (smd->is_last)
-                    break;
-                smd++;
-            }
+        while (1) {
+            KEYWORD_PROFILING_START;
+            (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->is_last)
+                break;
+            smd++;
         }
     }
 
@@ -1473,7 +1471,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
         alerts++;
 next:
-        DetectFlowvarProcessList(det_ctx, pflow);
+        DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
 

@@ -33,6 +33,7 @@
 #include "threads.h"
 #include "flow.h"
 #include "flow-var.h"
+#include "pkt-var.h"
 #include "detect-flowvar.h"
 
 #include "util-spm.h"
@@ -191,10 +192,10 @@ error:
 
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
+int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
         uint8_t *buffer, uint16_t len, int type)
 {
-    DetectFlowvarList *fs = det_ctx->flowvarlist;
+    DetectVarList *fs = det_ctx->varlist;
 
     /* first check if we have had a previous match for this idx */
     for ( ; fs != NULL; fs = fs->next) {
@@ -213,8 +214,8 @@ int DetectFlowvarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
 
         fs->idx = idx;
 
-        fs->next = det_ctx->flowvarlist;
-        det_ctx->flowvarlist = fs;
+        fs->next = det_ctx->varlist;
+        det_ctx->varlist = fs;
     }
 
     fs->len = len;
@@ -263,29 +264,33 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
         Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectFlowvarList *fs, *prev;
+    DetectVarList *fs, *prev;
     const DetectFlowvarData *fd;
 
-    if (det_ctx->flowvarlist == NULL || p->flow == NULL)
+    if (det_ctx->varlist == NULL)
         return 1;
 
     fd = (const DetectFlowvarData *)ctx;
 
     prev = NULL;
-    fs = det_ctx->flowvarlist;
+    fs = det_ctx->varlist;
     while (fs != NULL) {
         if (fd->idx == fs->idx) {
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
-            FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
-            /* memory at fs->buffer is now the responsibility of
-             * the flowvar code. */
+            if (fs->type == DETECT_VAR_TYPE_FLOW_POSTMATCH && p && p->flow) {
+                FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
+                /* memory at fs->buffer is now the responsibility of
+                 * the flowvar code. */
+            } else if (fs->type == DETECT_VAR_TYPE_PKT_POSTMATCH && p) {
+                PktVarAdd(p, fs->idx, fs->buffer, fs->len);
+            }
 
-            if (fs == det_ctx->flowvarlist) {
-                det_ctx->flowvarlist = fs->next;
+            if (fs == det_ctx->varlist) {
+                det_ctx->varlist = fs->next;
                 SCFree(fs);
-                fs = det_ctx->flowvarlist;
+                fs = det_ctx->varlist;
             } else {
                 prev->next = fs->next;
                 SCFree(fs);
@@ -304,14 +309,14 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
  *         - enforce storage for type ALWAYS (vars set from lua)
  *   Only called from DetectFlowvarProcessList() when flowvarlist is not NULL .
  */
-void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f)
+void DetectVarProcessListInternal(DetectVarList *fs, Flow *f, Packet *p)
 {
-    DetectFlowvarList *next;
+    DetectVarList *next;
 
     do {
         next = fs->next;
 
-        if (fs->type == DETECT_FLOWVAR_TYPE_ALWAYS) {
+        if (fs->type == DETECT_VAR_TYPE_ALWAYS) {
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 

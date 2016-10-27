@@ -222,21 +222,28 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             if (ret > 1 && pe->idx != 0) {
                 uint8_t x;
                 for (x = 0; x < pe->idx; x++) {
-                    SCLogDebug("capturing");
+                    SCLogDebug("capturing %u", x);
                     const char *str_ptr;
                     ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, x+1, &str_ptr);
                     if (unlikely(ret == 0))
                         continue;
 
-                    if (pe->captypes[x] == VAR_TYPE_PKT_VAR && p != NULL) {
-                        PktVarAdd(p, pe->capids[x], (uint8_t *)str_ptr, ret);
+                    SCLogDebug("data %p/%u, type %u id %u p %p",
+                            str_ptr, ret, pe->captypes[x], pe->capids[x], p);
+
+                    if (pe->captypes[x] == VAR_TYPE_PKT_VAR) {
+                        /* store max 64k. Errors are ignored */
+                        capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
+                                (uint8_t *)str_ptr, capture_len,
+                                DETECT_VAR_TYPE_PKT_POSTMATCH);
 
                     } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
                         /* store max 64k. Errors are ignored */
                         capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
-                        (void)DetectFlowvarStoreMatch(det_ctx, pe->capids[x],
+                        (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
                                 (uint8_t *)str_ptr, capture_len,
-                                DETECT_FLOWVAR_TYPE_POSTMATCH);
+                                DETECT_VAR_TYPE_FLOW_POSTMATCH);
                     }
                 }
             }
@@ -756,10 +763,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
     uint8_t x;
     for (x = 0; x < pd->idx; x++) {
-        if (pd->captypes[x] == VAR_TYPE_FLOW_VAR) {
-            if (DetectFlowvarPostMatchSetup(s, pd->capids[x]) < 0)
-                goto error_nofree;
-        }
+        if (DetectFlowvarPostMatchSetup(s, pd->capids[x]) < 0)
+            goto error_nofree;
     }
 
     if (!(pd->flags & DETECT_PCRE_RELATIVE))
