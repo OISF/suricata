@@ -1059,6 +1059,43 @@
         AC_MSG_RESULT(no)
     fi
 
+  # libodp
+    AC_ARG_ENABLE(odp,
+            AS_HELP_STRING([--enable-odp], [Enable ODP support]),,[enable_odp=no])
+    AC_ARG_WITH(libodp_includes,
+            [  --with-libodp-includes=DIR  libpcap include directory],
+            [with_libodp_includes="$withval"],[with_libodp_includes=no])
+    AC_ARG_WITH(libodp_libraries,
+            [  --with-libodp-libraries=DIR    libodp library directory],
+            [with_libodp_libraries="$withval"],[with_libodp_libraries="no"])
+
+    if test "$with_libodp_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libodp_includes}"
+    fi
+
+    if test "$with_libodp_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libodp_libraries}"
+    fi
+    AC_CHECK_HEADERS([odp_api.h])
+
+    LIBPODP=""
+    AC_CHECK_LIB(odp-linux, odp_init_global,, LIBODP="no")
+    if test "$LIBODP" = "no"; then
+        echo
+        echo "   WARNING!  Optional libodp library not found, go get it"
+        echo "   from http://www.opendataplane.org or your distribution:"
+        echo
+        echo " sudo apt-add-repository http://deb.opendataplane.org"
+        echo " OS_RELEASE=jessie"
+        echo " wget -O - http://deb.opendataplane.org/odp.key > /tmp/odp.key sudo apt-key add /tmp/odp.key"
+        echo " echo \"deb http://deb.opendataplane.org \${OS_RELEASE} main\"  |sudo tee /etc/apt/sources.list.d/odp.list"
+        echo " ODPLIB_NAME=odp-linux or odp-dpdk"
+        echo " sudo apt-get update"
+        echo " sudo apt-get install libodphelper-linux-dev lib${ODPLIB_NAME}-dev"
+    else
+        AC_DEFINE([HAVE_ODP],[1],(ODP support enabled))
+    fi
+
   # libpcap
     AC_ARG_WITH(libpcap_includes,
             [  --with-libpcap-includes=DIR  libpcap include directory],
@@ -1982,6 +2019,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Netmap support:                          ${enable_netmap}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
+  ODP enabled:                             ${enable_odp}
 
   Unix socket enabled:                     ${enable_unixsocket}
   Detection enabled:                       ${enable_detection}
