@@ -491,6 +491,8 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "tls issuer content");
     else if (list_type == DETECT_SM_LIST_TLSSUBJECT_MATCH)
         fprintf(rule_engine_analysis_FD, "tls subject content");
+    else if (list_type == DETECT_SM_LIST_DNP3_DATA_MATCH)
+        fprintf(rule_engine_analysis_FD, "dnp3 data content");
 
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 
