@@ -1,20 +1,19 @@
-========
 Suricata
 ========
 
 Introduction
-============
+------------
 
 Suricata is a network IDS, IPS and NSM engine.
 
 
 Installation
-============
+------------
 
 https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation
 
 User Guide
-==========
+----------
 
 You can follow the [Suricata user guide](http://suricata.readthedocs.io/en/latest/) to get started.
 
@@ -22,7 +21,7 @@ Our deprecated (but still useful) user guide is also [available](https://redmine
 
 
 Contributing
-============
+------------
 
 We're happily taking patches and other contributions. Please see https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Contributing for how to get started.
 
@@ -46,8 +45,7 @@ On a high level, the steps are:
 
 
 
-Overview of Suricata's QA steps
--------------------------------
+### Overview of Suricata's QA steps
 
 Trusted devs and core team members are able to submit builds to our (semi) public Buildbot instance. It will run a series of build tests and a regression suite to confirm no existing features break.
 
@@ -80,8 +78,7 @@ Of course it can happen that after the merge the community will find issues. For
 
 
 
-FAQ
----
+### FAQ
 
 __Q: Will you accept my PR?__
 
