@@ -339,35 +339,26 @@ error:
  */
 static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
 {
-    char *groupstr = NULL, *varstr, *sep;
-    int result = 0;
-
-    groupstr = SCStrdup(str);
-    if (unlikely(groupstr == NULL)) {
-        return 0;
-    }
+    size_t size = strlen(str) + 1;
+    char groupstr[size], *varstr, *sep;
+    strlcpy(groupstr, str, size);
 
     sep = strchr(groupstr, ',');
     if (sep == NULL) {
-        goto fail;
+        return 0;
     }
     *sep = '\0';
     varstr = sep + 1;
 
     if (ByteExtractStringUint8(group, 0, strlen(groupstr), groupstr) < 0) {
-        goto fail;
+        return 0;
     }
 
     if (ByteExtractStringUint8(var, 0, strlen(varstr), varstr) < 0) {
-        goto fail;
+        return 0;
     }
 
-    result = 1;
-fail:
-    if (groupstr == NULL) {
-        SCFree(groupstr);
-    }
-    return result;
+    return 1;
 }
 
 static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
