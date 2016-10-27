@@ -5326,59 +5326,42 @@ static int SigTest17 (void)
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
     memset(&th_v, 0, sizeof(th_v));
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 80);
+    FAIL_IF_NULL(p);
 
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    PktVar *pv_hn = PktVarGet(p, "http_host");
-    if (pv_hn != NULL) {
-        if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
-            result = 1;
-        else {
-            printf("\"");
-            PrintRawUriFp(stdout, pv_hn->value, pv_hn->value_len);
-            printf("\" != \"one.example.org\": ");
-        }
-        PktVarFree(pv_hn);
-    } else {
-        printf("Pkt var http_host not captured: ");
-    }
 
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    uint32_t capid = VarNameStoreLookupByName("http_host", VAR_TYPE_PKT_VAR);
+
+    PktVar *pv_hn = PktVarGet(p, capid);
+    FAIL_IF_NULL(pv_hn);
+
+    FAIL_IF(pv_hn->value_len != 15);
+    FAIL_IF_NOT(memcmp(pv_hn->value, "one.example.org", pv_hn->value_len) == 0);
+
+    PktVarFree(pv_hn);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     ConfDeInit();
     ConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
-    return result;
+
+    PASS;
 }
 
 static int SigTest18 (void)

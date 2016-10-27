@@ -229,9 +229,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
                         continue;
 
                     if (pe->captypes[x] == VAR_TYPE_PKT_VAR && p != NULL) {
-                        const char *varname = VarNameStoreLookupById(pe->capids[x],
-                                VAR_TYPE_PKT_VAR);
-                        PktVarAdd(p, varname, (uint8_t *)str_ptr, ret);
+                        PktVarAdd(p, pe->capids[x], (uint8_t *)str_ptr, ret);
 
                     } else if (pe->captypes[x] == VAR_TYPE_FLOW_VAR && f != NULL) {
                         /* store max 64k. Errors are ignored */
