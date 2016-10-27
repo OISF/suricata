@@ -318,19 +318,25 @@ static int DNP3ReadPrefix(
 
     switch (prefix_len) {
         case sizeof(uint32_t):
-            DNP3ReadUint32(buf, len, out);
+            if (!DNP3ReadUint32(buf, len, out)) {
+                return 0;
+            }
             break;
         case sizeof(uint16_t): {
             /* Temp value for strict-aliasing. */
             uint16_t val = 0;
-            DNP3ReadUint16(buf, len, &val);
+            if (!DNP3ReadUint16(buf, len, &val)) {
+                return 0;
+            }
             *out = val;
             break;
         }
         case sizeof(uint8_t): {
             /* Temp value for strict-aliasing. */
             uint8_t val = 0;
-            DNP3ReadUint8(buf, len, &val);
+            if (!DNP3ReadUint8(buf, len, &val)) {
+                return 0;
+            }
             *out = val;
             break;
         }
