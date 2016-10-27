@@ -530,20 +530,21 @@ typedef struct DetectReplaceList_ {
 } DetectReplaceList;
 
 /** only execute flowvar storage if rule matched */
-#define DETECT_FLOWVAR_TYPE_POSTMATCH   1
+#define DETECT_VAR_TYPE_FLOW_POSTMATCH      1
+#define DETECT_VAR_TYPE_PKT_POSTMATCH       2
 /** execute flowvar storage even if rule doesn't match (for lua) */
-#define DETECT_FLOWVAR_TYPE_ALWAYS      2
+#define DETECT_VAR_TYPE_ALWAYS              3
 
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
-typedef struct DetectFlowvarList_ {
+typedef struct DetectVarList_ {
     uint32_t idx;                       /**< flowvar name idx */
     uint16_t len;                       /**< data len */
     int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
                                              post-match, post-non-match */
-    struct DetectFlowvarList_ *next;
-} DetectFlowvarList;
+    struct DetectVarList_ *next;
+} DetectVarList;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
@@ -924,8 +925,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* string to replace */
     DetectReplaceList *replist;
-    /* flowvars to store in post match function */
-    DetectFlowvarList *flowvarlist;
+    /* vars to store in post match function */
+    DetectVarList *varlist;
 
     /* Array in which the filestore keyword stores file id and tx id. If the
      * full signature matches, these are processed by a post-match filestore
