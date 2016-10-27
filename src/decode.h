@@ -298,7 +298,7 @@ typedef struct PacketEngineEvents_ {
 } PacketEngineEvents;
 
 typedef struct PktVar_ {
-    char *name;
+    const char *name;
     struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */

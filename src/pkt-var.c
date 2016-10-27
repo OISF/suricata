@@ -45,7 +45,7 @@ void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size)
 /* get the pktvar with name 'name' from the pkt
  *
  * name is a normal string*/
-PktVar *PktVarGet(Packet *p, char *name)
+PktVar *PktVarGet(Packet *p, const char *name)
 {
     PktVar *pv = p->pktvar;
 
@@ -58,7 +58,7 @@ PktVar *PktVarGet(Packet *p, char *name)
 }
 
 /* add a pktvar to the pkt, or update it */
-void PktVarAdd(Packet *p, char *name, uint8_t *value, uint16_t size)
+void PktVarAdd(Packet *p, const char *name, uint8_t *value, uint16_t size)
 {
     //printf("Adding packet var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
