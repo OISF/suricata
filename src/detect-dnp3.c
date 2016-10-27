@@ -186,14 +186,13 @@ static int DetectDNP3FuncParseFunctionCode(char *str, uint8_t *fc)
     if (ByteExtractStringUint8(fc, 10, strlen(str), str) >= 0) {
         return 1;
     }
-    else {
-        /* Lookup by name. */
-        for (size_t i = 0;
-             i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
-            if (strcasecmp(str, DNP3FunctionNameMap[i].name) == 0) {
-                *fc = DNP3FunctionNameMap[i].value;
-                return 1;
-            }
+
+    /* Lookup by name. */
+    for (size_t i = 0;
+            i < sizeof(DNP3FunctionNameMap) / sizeof(DNP3Mapping); i++) {
+        if (strcasecmp(str, DNP3FunctionNameMap[i].name) == 0) {
+            *fc = DNP3FunctionNameMap[i].value;
+            return 1;
         }
     }
 
