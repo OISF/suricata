@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,9 +35,10 @@
 #include "util-debug.h"
 
 /* puts a new value into a pktvar */
-void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size)
+static void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size)
 {
-    if (pv->value) SCFree(pv->value);
+    if (pv->value)
+        SCFree(pv->value);
     pv->value = value;
     pv->value_len = size;
 }
@@ -45,12 +46,12 @@ void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size)
 /* get the pktvar with name 'name' from the pkt
  *
  * name is a normal string*/
-PktVar *PktVarGet(Packet *p, const char *name)
+PktVar *PktVarGet(Packet *p, uint32_t id)
 {
     PktVar *pv = p->pktvar;
 
     for (;pv != NULL; pv = pv->next) {
-        if (pv->name && strcmp(pv->name, name) == 0)
+        if (pv->id == id)
             return pv;
     }
 
@@ -58,23 +59,24 @@ PktVar *PktVarGet(Packet *p, const char *name)
 }
 
 /* add a pktvar to the pkt, or update it */
-void PktVarAdd(Packet *p, const char *name, uint8_t *value, uint16_t size)
+void PktVarAdd(Packet *p, uint32_t id, uint8_t *value, uint16_t size)
 {
     //printf("Adding packet var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
-    PktVar *pv = PktVarGet(p, name);
+    PktVar *pv = PktVarGet(p, id);
     if (pv == NULL) {
         pv = SCMalloc(sizeof(PktVar));
         if (unlikely(pv == NULL))
             return;
 
-        pv->name = name;
+        pv->id = id;
         pv->value = value;
         pv->value_len = size;
         pv->next = NULL;
 
         PktVar *tpv = p->pktvar;
-        if (p->pktvar == NULL) p->pktvar = pv;
+        if (p->pktvar == NULL)
+            p->pktvar = pv;
         else {
             while(tpv) {
                 if (tpv->next == NULL) {
@@ -94,7 +96,6 @@ void PktVarFree(PktVar *pv)
     if (pv == NULL)
         return;
 
-    pv->name = NULL;
     if (pv->value != NULL)
         SCFree(pv->value);
     PktVar *pv_next = pv->next;
@@ -104,21 +105,3 @@ void PktVarFree(PktVar *pv)
     if (pv_next != NULL)
         PktVarFree(pv_next);
 }
-
-void PktVarPrint(PktVar *pv)
-{
-    uint16_t i;
-
-    if (pv == NULL)
-        return;
-
-    printf("Name \"%s\", Value \"", pv->name);
-    for (i = 0; i < pv->value_len; i++) {
-        if (isprint(pv->value[i])) printf("%c", pv->value[i]);
-        else                       printf("\\%02X", pv->value[i]);
-    }
-    printf("\", Len \"%" PRIu32 "\"\n", pv->value_len);
-
-    PktVarPrint(pv->next);
-}
-
