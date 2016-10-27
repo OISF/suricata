@@ -125,8 +125,9 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, const Packet *p)
 {
     const PktVar *pv = p->pktvar;
 
-    while(pv != NULL) {
-        MemBufferWriteString(aft->buffer, "PKTVAR:            %s\n", pv->name);
+    while (pv != NULL) {
+        const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
+        MemBufferWriteString(aft->buffer, "PKTVAR:            %s\n", varname);
         PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                              pv->value, pv->value_len);
         pv = pv->next;
