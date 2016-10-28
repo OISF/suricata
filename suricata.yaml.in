@@ -238,6 +238,8 @@ outputs:
         # uni-directional flows
         #- netflow
         #- dnp3
+        # Vars log flowbits and other packet and flow vars
+        #- vars
 
   # alert output for use with Barnyard2
   - unified2-alert:
