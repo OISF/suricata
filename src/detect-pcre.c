@@ -59,6 +59,8 @@
 #include "app-layer-parser.h"
 #include "util-pages.h"
 
+/* pcre named substring capture supports only 32byte names, A-z0-9 plus _
+ * and needs to start with non-numeric. */
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
 
@@ -291,7 +293,8 @@ static int DetectPcreHasUpperCase(const char *re)
     return 0;
 }
 
-static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr, int *sm_list)
+static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr, int *sm_list,
+        char *capture_names, size_t capture_names_size)
 {
     int ec;
     const char *eb;
@@ -302,33 +305,67 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    char op_str[64] = "";
+    uint8_t negate = 0;
 
+    while (*regexstr != '\0' && isspace((unsigned char)*regexstr)) {
+        regexstr++;
+    }
+
+    if (*regexstr == '!') {
+        negate = 1;
+        regexstr++;
+    }
+
+    int cut_capture = 0;
+    char *fcap = strstr(regexstr, "flow:");
+    char *pcap = strstr(regexstr, "pkt:");
     /* take the size of the whole input as buffer size for the regex we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
     size_t slen = strlen(regexstr) + 1;
+    if (fcap || pcap) {
+        SCLogDebug("regexstr %s", regexstr);
+
+        if (fcap && !pcap)
+            cut_capture = fcap - regexstr;
+        else if (pcap && !fcap)
+            cut_capture = pcap - regexstr;
+        else
+            cut_capture = MIN((pcap - regexstr), (fcap - regexstr));
+
+        SCLogDebug("cut_capture %d", cut_capture);
+
+        if (cut_capture > 1) {
+            int offset = cut_capture - 1;
+            while (offset) {
+                SCLogDebug("regexstr[offset] %c", regexstr[offset]);
+                if (regexstr[offset] == ',' || regexstr[offset] == ' ') {
+                    offset--;
+                }
+                else
+                    break;
+            }
+
+            if (cut_capture == (offset + 1)) {
+                SCLogDebug("missing separators, assume it's part of the regex");
+            } else {
+                slen = offset + 1;
+                strlcpy(capture_names, regexstr+cut_capture, capture_names_size);
+                if (capture_names[strlen(capture_names)-1] == '"')
+                    capture_names[strlen(capture_names)-1] = '\0';
+            }
+        }
+    }
+
     char re[slen];
-
-    char op_str[64] = "";
-    uint16_t pos = 0;
-    uint8_t negate = 0;
-
-    while (pos < slen && isspace((unsigned char)regexstr[pos])) {
-        pos++;
-    }
-
-    if (regexstr[pos] == '!') {
-        negate = 1;
-        pos++;
-    }
-
-    ret = pcre_exec(parse_regex, parse_regex_study, regexstr + pos, slen-pos,
+    ret = pcre_exec(parse_regex, parse_regex_study, regexstr, slen,
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret <= 0) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre parse error: %s", regexstr);
         goto error;
     }
 
-    res = pcre_copy_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+    res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS,
             1, re, slen);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
@@ -336,7 +373,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     }
 
     if (ret > 2) {
-        res = pcre_copy_substring((char *)regexstr + pos, ov, MAX_SUBSTRINGS,
+        res = pcre_copy_substring((char *)regexstr, ov, MAX_SUBSTRINGS,
                 2, op_str, sizeof(op_str));
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
@@ -511,13 +548,18 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
      * If we fail because a capture group is later referenced (e.g., \1),
      * PCRE will let us know.
      */
-    pd->re = pcre_compile2(re, opts | PCRE_NO_AUTO_CAPTURE, &ec, &eb, &eo, NULL);
+    if (capture_names == NULL || strlen(capture_names) == 0)
+        opts |= PCRE_NO_AUTO_CAPTURE;
+
+    pd->re = pcre_compile2(re, opts, &ec, &eb, &eo, NULL);
     if (pd->re == NULL && ec == 15) { // reference to non-existent subpattern
+        opts &= ~PCRE_NO_AUTO_CAPTURE;
         pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
     }
 
-    if(pd->re == NULL)  {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
+    if (pd->re == NULL)  {
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed "
+                "at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
     }
 
@@ -587,15 +629,55 @@ error:
 /** \internal
  *  \brief check if we need to extract capture settings and set them up if needed
  */
-static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd)
+static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd,
+    char *capture_names)
 {
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     memset(&ov, 0, sizeof(ov));
     char type_str[16] = "";
     char *orig_right_edge = regexstr + strlen(regexstr);
+    char *name_array[DETECT_PCRE_CAPTURE_MAX] = { NULL };
+    int name_idx = 0;
+    int capture_cnt = 0;
 
     SCLogDebug("regexstr %s, pd %p", regexstr, pd);
+
+    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_CAPTURECOUNT, &capture_cnt);
+    SCLogDebug("ret %d capture_cnt %d", ret, capture_cnt);
+    if (ret == 0 && capture_cnt && strlen(capture_names) > 0)
+    {
+        char *ptr = NULL;
+        while ((name_array[name_idx] = strtok_r(name_idx == 0 ? capture_names : NULL, " ,", &ptr))){
+            if (name_idx > capture_cnt) {
+                SCLogError(SC_ERR_VAR_LIMIT, "more pkt/flow "
+                        "var capture names than capturing substrings");
+                return -1;
+            }
+            SCLogDebug("name '%s'", name_array[name_idx]);
+
+            if (strncmp(name_array[name_idx], "flow:", 5) == 0) {
+                pd->capids[pd->idx] = VarNameStoreSetupAdd(name_array[name_idx]+5, VAR_TYPE_FLOW_VAR);
+                pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
+                pd->idx++;
+
+            } else if (strncmp(name_array[name_idx], "pkt:", 4) == 0) {
+                pd->capids[pd->idx] = VarNameStoreSetupAdd(name_array[name_idx]+4, VAR_TYPE_PKT_VAR);
+                pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR;
+                SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
+                pd->idx++;
+
+            } else {
+                SCLogError(SC_ERR_VAR_LIMIT, " pkt/flow "
+                        "var capture names must start with 'pkt:' or 'flow:'");
+                return -1;
+            }
+
+            name_idx++;
+            if (name_idx >= DETECT_PCRE_CAPTURE_MAX)
+                break;
+        }
+    }
 
     /* take the size of the whole input as buffer size for the string we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
@@ -648,7 +730,7 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
             pd->idx++;
         }
 
-        //SCLogDebug("pd->capname %s", pd->capname);
+        //SCLogNotice("pd->capname %s", pd->capname);
         regexstr += ov[1];
 
         if (regexstr >= orig_right_edge)
@@ -667,11 +749,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SigMatch *sm = NULL;
     int ret = -1;
     int parsed_sm_list = DETECT_SM_LIST_NOTSET;
+    char capture_names[1024] = "";
 
-    pd = DetectPcreParse(de_ctx, regexstr, &parsed_sm_list);
+    pd = DetectPcreParse(de_ctx, regexstr, &parsed_sm_list, capture_names, sizeof(capture_names));
     if (pd == NULL)
         goto error;
-    if (DetectPcreParseCapture(regexstr, de_ctx, pd) < 0)
+    if (DetectPcreParseCapture(regexstr, de_ctx, pd, capture_names) < 0)
         goto error;
 
     if (parsed_sm_list == DETECT_SM_LIST_UMATCH ||
@@ -829,7 +912,7 @@ static int DetectPcreParseTest01 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -848,7 +931,7 @@ static int DetectPcreParseTest02 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -867,7 +950,7 @@ static int DetectPcreParseTest03 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -886,7 +969,7 @@ static int DetectPcreParseTest04 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -906,7 +989,7 @@ static int DetectPcreParseTest05 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -926,7 +1009,7 @@ static int DetectPcreParseTest06 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -946,7 +1029,7 @@ static int DetectPcreParseTest07 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -966,7 +1049,7 @@ static int DetectPcreParseTest08 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -986,7 +1069,7 @@ static int DetectPcreParseTest09 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -3324,25 +3407,54 @@ static int DetectPcreParseHttpHost(void)
 
     FAIL_IF(de_ctx == NULL);
 
-    pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list);
+    pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0);
     FAIL_IF(pd == NULL);
     DetectPcreFree(pd);
 
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list);
+    pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0);
     FAIL_IF(pd != NULL);
 
     /* Uppercase meta characters are valid. */
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list);
+    pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0);
     FAIL_IF(pd == NULL);
     DetectPcreFree(pd);
 
     /* This should not parse as the first \ escapes the second \, then
      * we have a D. */
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/\\\\Ddomain\\.com/W", &list);
+    pd = DetectPcreParse(de_ctx, "/\\\\Ddomain\\.com/W", &list, NULL, 0);
     FAIL_IF(pd != NULL);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+/**
+ * \brief Test parsing of capture extension
+ */
+static int DetectPcreParseCaptureTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+            "(content:\"Server: \"; http_header; pcre:\"/(.*)\\r\\n/HR, flow:somecapture\"; content:\"xyz\"; http_header; sid:1;)");
+    FAIL_IF(s == NULL);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+            "(content:\"Server: \"; http_header; pcre:\"/(flow:.*)\\r\\n/HR\"; content:\"xyz\"; http_header; sid:2;)");
+    FAIL_IF(s == NULL);
+    s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+            "(content:\"Server: \"; http_header; pcre:\"/([a-z]+)([0-9]+)\\r\\n/HR, flow:somecapture, pkt:anothercap\"; content:\"xyz\"; http_header; sid:3;)");
+    FAIL_IF(s == NULL);
+
+    SigGroupBuild(de_ctx);
+
+    uint32_t capid = VarNameStoreLookupByName("somecapture", VAR_TYPE_FLOW_VAR);
+    FAIL_IF (capid != 1);
+    capid = VarNameStoreLookupByName("anothercap", VAR_TYPE_PKT_VAR);
+    FAIL_IF (capid != 2);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -3430,6 +3542,7 @@ static void DetectPcreRegisterTests(void)
                    DetectPcreFlowvarCapture03);
 
     UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost);
+    UtRegisterTest("DetectPcreParseCaptureTest", DetectPcreParseCaptureTest);
 
 #endif /* UNITTESTS */
 }
