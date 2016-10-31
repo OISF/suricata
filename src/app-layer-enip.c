@@ -482,15 +482,7 @@ void RegisterENIPTCPParsers(void)
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
                     ENIPProbingParser))
             {
-                SCLogDebug(
-                        "no ENIP TCP config found enabling ENIP detection on port 44818.");
-
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
-                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER,
-                        ENIPProbingParser);
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
-                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
-                        ENIPProbingParser);
+                return;
             }
         }
 
@@ -529,8 +521,7 @@ void RegisterENIPTCPParsers(void)
                 ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
     } else
     {
-        SCLogInfo(
-                "Parsed disabled for %s protocol. Protocol detection" "still on.",
+        SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.",
                 proto_name);
     }
 
