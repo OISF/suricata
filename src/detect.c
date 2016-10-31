@@ -2263,6 +2263,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                 case ALPROTO_ENIP:
                     SCLogDebug("packet/flow has enip state");
                     (*mask) |= SIG_MASK_REQUIRE_ENIP_STATE;
+                    break;
                 case ALPROTO_DNP3:
                     SCLogDebug("packet/flow has dnp3 state");
                     (*mask) |= SIG_MASK_REQUIRE_DNP3_STATE;
