@@ -857,6 +857,9 @@ app-layer:
     # SCADA EtherNet/IP and CIP protocol support
     enip:
       enabled: no
+      detection-ports:
+        dp: 44818
+        sp: 44818
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
