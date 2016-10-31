@@ -1490,7 +1490,7 @@ void RegisterModbusParsers(void)
                 stream_depth = value;
             }
         }
-        SCLogInfo("Modbus stream depth: %u", stream_depth);
+        SCLogConfig("Modbus stream depth: %u", stream_depth);
     } else {
 #ifndef AFLFUZZ_APPLAYER
         SCLogConfig("Protocol detection and parser disabled for %s protocol.", proto_name);

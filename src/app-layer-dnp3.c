@@ -1585,8 +1585,8 @@ void RegisterDNP3Parsers(void)
 
     char *proto_name = "dnp3";
 
-    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
-
+    if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
+    {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNP3, proto_name);
 
         if (RunmodeIsUnittests()) {
@@ -1598,24 +1598,19 @@ void RegisterDNP3Parsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader),
                     DNP3ProbingParser)) {
-                SCLogWarning(SC_ERR_DNP3_CONFIG,
-                    "No DNP3 configuration found, enabling DNP3 detection on "
-                    "port " DNP3_DEFAULT_PORT);
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP, DNP3_DEFAULT_PORT,
-                    ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader), STREAM_TOSERVER,
-                    DNP3ProbingParser);
+                return;
             }
         }
 
     }
     else {
-        SCLogInfo("Protocol detection and parser disabled for DNP3.");
+        SCLogConfig("Protocol detection and parser disabled for DNP3.");
         SCReturn;
     }
 
-    if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
-
-        SCLogInfo("Registering DNP3/tcp parsers.");
+    if (AppLayerParserConfParserEnabled("tcp", proto_name))
+    {
+        SCLogConfig("Registering DNP3/tcp parsers.");
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_DNP3, STREAM_TOSERVER,
             DNP3ParseRequest);
@@ -1649,7 +1644,7 @@ void RegisterDNP3Parsers(void)
             DNP3GetTxLogged, DNP3SetTxLogged);
     }
     else {
-        SCLogInfo("Parser disabled for protocol %s. "
+        SCLogConfig("Parser disabled for protocol %s. "
             "Protocol detection still on.", proto_name);
     }
 
