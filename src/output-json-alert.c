@@ -324,8 +324,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                     unsigned long len = p->payload_len * 2 + 1;
                     uint8_t encoded[len];
-                    Base64Encode(p->payload, p->payload_len, encoded, &len);
-                    json_object_set_new(js, "payload", json_string((char *)encoded));
+                    if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
+                        json_object_set_new(js, "payload", json_string((char *)encoded));
+                    }
                 }
 
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
@@ -334,6 +335,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     PrintStringsToBuffer(printable_buf, &offset,
                                      p->payload_len + 1,
                                      p->payload, p->payload_len);
+                    printable_buf[p->payload_len] = '\0';
                     json_object_set_new(js, "payload_printable", json_string((char *)printable_buf));
                 }
             }
