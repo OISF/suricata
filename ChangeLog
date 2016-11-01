@@ -1,3 +1,21 @@
+3.2RC1 -- 2016-11-01
+
+Feature #1906: doc: install man page and ship pdf
+Feature #1916: lua: add an SCPacketTimestamp function
+Feature #1867: rule compatibility: flow:not_established not supported.
+Bug #1525: Use pkg-config for libnetfilter_queue
+Bug #1690: app-layer-proto negation issue
+Bug #1909: libhtp 0.5.23
+Bug #1914: file log always shows stored: no even if file is stored
+Bug #1917: nfq: bypass SEGV
+Bug #1919: filemd5: md5-list does not allow comments any more
+Bug #1923: dns - back to back requests results in loss of response
+Bug #1928: flow bypass leads to memory errors
+Bug #1931: multi-tenancy fails to start
+Bug #1932: make install-full does not install tls-events.rules
+Bug #1935: Check redis reply in non pipeline mode
+Bug #1936: Can't set fast_pattern on tls_sni content
+
 3.2beta1 -- 2016-10-03
 
 Feature #509: add SHA1 and SHA256 checksum support for files
