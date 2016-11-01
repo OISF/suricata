@@ -329,6 +329,16 @@ static int FTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "220 ", 4, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "331 ", 4, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
 
     return 0;
 }
