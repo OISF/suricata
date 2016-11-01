@@ -666,6 +666,8 @@ TmEcode AFPWritePacket(Packet *p)
 {
     struct sockaddr_ll socket_address;
     int socket;
+    uint8_t *pstart;
+    size_t plen;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
         if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
@@ -691,7 +693,21 @@ TmEcode AFPWritePacket(Packet *p)
     if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
         SCMutexLock(&p->afp_v.peer->sock_protect);
     socket = SC_ATOMIC_GET(p->afp_v.peer->socket);
-    if (sendto(socket, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,
+    /* We have a vlan ID without header so first VLAN have been stripped */
+    if (p->vlan_idx && !p->vlanh[0] && p->afp_v.relptr) {
+        pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
+        plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
+        /* move ethernet addresses */
+        memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
+        /* write vlan info */
+        *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
+        *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(p->vlan_id[0]);
+    } else {
+        pstart = GET_PKT_DATA(p);
+        plen = GET_PKT_LEN(p);
+    }
+
+    if (sendto(socket, pstart, plen, 0,
                (struct sockaddr*) &socket_address,
                sizeof(struct sockaddr_ll)) < 0) {
         SCLogWarning(SC_ERR_SOCKET, "Sending packet failed on socket %d: %s",
@@ -1685,6 +1701,20 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
                 strerror(errno));
     }
 #endif
+
+    /* Let's reserve head room so we can add the VLAN header in IPS
+     * or TAP mode before write the packet */
+    if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
+        /* Only one vlan is extracted from AFP header so
+         * one VLAN header length is enough. */  
+        int reserve = VLAN_HEADER_LEN;
+        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_RESERVE, (void *) &reserve,
+                    sizeof(reserve)) < 0) {
+            SCLogWarning(SC_ERR_AFP_CREATE,
+                    "Can't activate reserve on packet socket: %s",
+                    strerror(errno));
+        }
+    }
 
     /* Allocate RX ring */
 #ifdef HAVE_TPACKET_V3
