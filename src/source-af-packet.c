@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2016 Open Information Security Foundation
+/* Copyright (C) 2011-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -662,10 +662,23 @@ int AFPRead(AFPThreadVars *ptv)
     SCReturnInt(AFP_READ_OK);
 }
 
-TmEcode AFPWritePacket(Packet *p)
+/**
+ * \brief AF packet write function.
+ *
+ * This function has to be called before the memory
+ * related to Packet in ring buffer is released.
+ *
+ * \param pointer to Packet
+ * \param version of capture: TPACKET_V2 or TPACKET_V3
+ * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
+ *
+ */
+static TmEcode AFPWritePacket(Packet *p, int version)
 {
     struct sockaddr_ll socket_address;
     int socket;
+    uint8_t *pstart;
+    size_t plen;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
         if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
@@ -691,7 +704,31 @@ TmEcode AFPWritePacket(Packet *p)
     if (p->afp_v.peer->flags & AFP_SOCK_PROTECT)
         SCMutexLock(&p->afp_v.peer->sock_protect);
     socket = SC_ATOMIC_GET(p->afp_v.peer->socket);
-    if (sendto(socket, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,
+
+    if (version == TPACKET_V2) {
+        union thdr h;
+        h.raw = p->afp_v.relptr;
+        /* Copy VLAN header from ring memory. For post june 2011 kernel we test
+         * the flag. It is not defined for older kernel so we go best effort
+         * and test for non zero value of the TCI header. */
+        if (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci) {
+            pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
+            plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
+            /* move ethernet addresses */
+            memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
+            /* write vlan info */
+            *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
+            *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(h.h2->tp_vlan_tci);
+        } else {
+            pstart = GET_PKT_DATA(p);
+            plen = GET_PKT_LEN(p);
+        }
+    } else {
+        pstart = GET_PKT_DATA(p);
+        plen = GET_PKT_LEN(p);
+    }
+
+    if (sendto(socket, pstart, plen, 0,
                (struct sockaddr*) &socket_address,
                sizeof(struct sockaddr_ll)) < 0) {
         SCLogWarning(SC_ERR_SOCKET, "Sending packet failed on socket %d: %s",
@@ -712,7 +749,7 @@ void AFPReleaseDataFromRing(Packet *p)
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
     if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
-        AFPWritePacket(p);
+        AFPWritePacket(p, TPACKET_V2);
     }
 
     if (AFPDerefSocket(p->afp_v.mpeer) == 0)
@@ -728,15 +765,17 @@ cleanup:
     AFPV_CLEANUP(&p->afp_v);
 }
 
+#ifdef HAVE_TPACKET_V3
 void AFPReleasePacketV3(Packet *p)
 {
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
     if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
-        AFPWritePacket(p);
+        AFPWritePacket(p, TPACKET_V3);
     }
     PacketFreeOrRelease(p);
 }
+#endif
 
 void AFPReleasePacket(Packet *p)
 {
@@ -1685,6 +1724,21 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
                 strerror(errno));
     }
 #endif
+
+    /* Let's reserve head room so we can add the VLAN header in IPS
+     * or TAP mode before write the packet */
+    if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
+        /* Only one vlan is extracted from AFP header so
+         * one VLAN header length is enough. */
+        int reserve = VLAN_HEADER_LEN;
+        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_RESERVE, (void *) &reserve,
+                    sizeof(reserve)) < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                    "Can't activate reserve on packet socket: %s",
+                    strerror(errno));
+            return AFP_FATAL_ERROR;
+        }
+    }
 
     /* Allocate RX ring */
 #ifdef HAVE_TPACKET_V3
