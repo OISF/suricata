@@ -522,8 +522,10 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     int status;
 
     lua_State *luastate = luaL_newstate();
-    if (luastate == NULL)
+    if (luastate == NULL){
+        SCLogError(SC_ERR_LUA_ERROR, "function luaL_newstate is NULL: %s", lua_tostring(luastate, -1));
         goto error;
+    }
     luaL_openlibs(luastate);
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
