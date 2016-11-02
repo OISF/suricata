@@ -373,8 +373,8 @@ static int TCPProtoDetect(ThreadVars *tv,
                 AppLayerParserGetStreamDepth(f->proto, f->alproto));
         FlagPacketFlow(p, f, flags);
 
-        /* account flow if we have both sides */
-        if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+        /* account flow if we have both sides and have same proto */
+        if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto == *alproto_otherdir) {
             AppLayerIncFlowCounter(tv, f);
         }
 
