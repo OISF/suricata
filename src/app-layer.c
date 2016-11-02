@@ -373,6 +373,26 @@ static int TCPProtoDetect(ThreadVars *tv,
                 AppLayerParserGetStreamDepth(f->proto, f->alproto));
         FlagPacketFlow(p, f, flags);
 
+#ifdef DEBUG
+        uint8_t *databytes = (uint8_t *) SCMalloc(data_len+1);
+        if (databytes) {
+            memset(databytes, 0, data_len+1);
+            memcpy(databytes, data, data_len);
+        }
+
+        SCLogDebug("  %s proto:[%d] -> %s  proto:[%d]  bytes:(%d) [%s] ",
+                flags & STREAM_TOSERVER ? "client" : "server",
+                *alproto,
+                flags & STREAM_TOCLIENT ? "client" : "server",
+                *alproto_otherdir,
+                data_len,
+                databytes ? (char *) databytes : "<null>");
+
+        if (databytes != NULL) {
+            SCFree(databytes);
+        }
+#endif
+
         /* account flow if we have both sides and have same proto */
         if (*alproto_otherdir != ALPROTO_UNKNOWN && *alproto == *alproto_otherdir) {
             AppLayerIncFlowCounter(tv, f);
