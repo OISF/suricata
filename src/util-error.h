@@ -321,6 +321,7 @@ typedef enum {
     SC_ERR_NO_SHA256_SUPPORT,
     SC_ERR_ENIP_CONFIG,
     SC_ERR_DNP3_CONFIG,
+    SC_ERR_NO_ODP, /**< No OpenDataPlane support. */
 } SCError;
 
 const char *SCErrorToString(SCError);
