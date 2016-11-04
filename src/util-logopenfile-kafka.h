@@ -25,24 +25,18 @@
 #define __UTIL_LOGOPENFILE_KAFKA_H__
 
 #ifdef HAVE_LIBRDKAFKA
-
-#include "conf.h"            /* ConfNode   */
-
 #include "librdkafka/rdkafka.h"
 
-typedef struct KafkaSetup_ {
-    rd_kafka_topic_t *topic;
-    rd_kafka_conf_t *conf;
-    char *brokers;
-    int partition;
-    intmax_t loglevel;
-    time_t tried;
-} KafkaSetup;
+#include "conf.h"            /* ConfNode   */
+#include "util-logopenfile-common.h"
+#include "util-logopenfile.h"
 
+void SCConfLogOpenKafka(ConfNode *, KafkaSetup *, char *);
+rd_kafka_t *SCLogOpenKafka(KafkaSetup *);
 
-int SCConfLogOpenKafka(ConfNode *, void *);
-int LogFileWriteKafka(void *, const char *, size_t);
-void SCLogFileCloseKafka(void *lf_ctx);
+int LogFileWriteKafka(LogFileCtx *, const char *, size_t);
+void SCLogFileCloseKafka(LogFileCtx *);
 
 #endif /* HAVE_LIBRDKAFKA */
+
 #endif /* __UTIL_LOGOPENFILE_KAFKA_H__ */

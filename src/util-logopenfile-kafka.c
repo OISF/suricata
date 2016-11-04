@@ -23,8 +23,9 @@
  *
  * File-like output for logging: Apache Kafka
  */
+
 #include "suricata-common.h" /* errno.h, string.h, etc. */
-#include "src/util-print.h" /* PrintBufferData */
+#include "util-print.h"      /* PrintBufferData */
 
 #include "util-logopenfile-kafka.h"
 #include "util-logopenfile.h"
@@ -138,7 +139,13 @@ static rd_kafka_conf_t* KafkaConfSetup(rd_kafka_conf_t *conf, const char *sensor
 {
 
     /* Setting client id with sensor's name */
-    KafkaConfSetString(conf, "client.id", sensor_name);
+    if(!sensor_name) {
+        KafkaConfSetString(conf, "client.id", sensor_name);
+    } else {
+        char hostname[1024] = {0};
+        gethostname(hostname, 1023);
+        KafkaConfSetString(conf, "client.id", hostname);
+    }
 
     /* Compression */
     KafkaConfSetString(conf, "compression.codec", compression);
@@ -163,12 +170,10 @@ static rd_kafka_conf_t* KafkaConfSetup(rd_kafka_conf_t *conf, const char *sensor
 
 /**
  * \brief SCLogFileCloseKafka() Closes kafka logging
- * \param lf_ctx the logging context
+ * \param log_ctx the logging context
  */
-void SCLogFileCloseKafka(void *lf_ctx)
+void SCLogFileCloseKafka(LogFileCtx *log_ctx)
 {
-    LogFileCtx *log_ctx = lf_ctx;
-
     if (log_ctx->kafka_setup.brokers) {
         /* Destroy brokers */
         SCFree(log_ctx->kafka_setup.brokers);
@@ -234,15 +239,57 @@ static void KafkaLogCb(const rd_kafka_t *rk, int level, const char *fac, const c
 }
 
 /**
+ * \brief SCLogOpenKafka() creates a kafka handler based on config setup
+ * \param kafka_setup the settings
+ *
+ * \return pointer rd_kafka_t * to created handler
+ *                 NULL if failed
+ */
+rd_kafka_t *SCLogOpenKafka(KafkaSetup *kafka_setup)
+{
+    rd_kafka_t *rk                    = NULL;
+    rd_kafka_topic_conf_t *topic_conf = NULL;
+    rd_kafka_topic_t *rkt             = NULL;
+    char errstr[2048]  = {0};
+
+    /* Create Kafka handle */
+    if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, kafka_setup->conf, errstr, sizeof(errstr)))) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to create kafka handler: %s", errstr);
+        return NULL;
+    }
+    /* Set the log level */
+    rd_kafka_set_log_level(rk, kafka_setup->loglevel);
+    /* Add brokers */
+    if (rd_kafka_brokers_add(rk, kafka_setup->brokers) == 0) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to add kafka brokers: %s", kafka_setup->brokers);
+        return NULL;
+    } else {
+        SCLogInfo("eve kafka output: afka brokers added: %s", kafka_setup->brokers);
+    }
+    /* Topic configuration - Not saved at setup */
+    if ( !(topic_conf = rd_kafka_topic_conf_new())) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate kafka topic conf");
+        return NULL;
+    }
+    /* Configure acks */
+    KafkaTopicConfSetString(topic_conf, "request.required.acks", "0");
+
+    /* Topic  */
+    if ( !(rkt = rd_kafka_topic_new(rk, kafka_setup->topic_name, topic_conf))) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate kafka topic %s", kafka_setup->topic_name);
+        return NULL;
+    }
+    kafka_setup->topic       = rkt;
+    return rk;
+}
+
+/**
  * \brief SCConfLogOpenKafka() - Reads configuration settings and opens kafka logging output mode.
  * \param kafka_node the configuration node
- * \param lf_ctx the logfile context
+ * \param sensor_name sensor's name to use as kafka's client.id
  *
- * \retval 0 if success
- *         -1 if configuration fails
- *         EXIT_FAILURE on bad and extreme cases
  */
-int SCConfLogOpenKafka(ConfNode *kafka_node, void *lf_ctx)
+void SCConfLogOpenKafka(ConfNode *kafka_node, KafkaSetup *kafka_setup, char *sensor_name)
 {
     /* Kafka default values */
     const char *    kafka_default_broker_list         = "127.0.0.1:9092";
@@ -253,181 +300,120 @@ int SCConfLogOpenKafka(ConfNode *kafka_node, void *lf_ctx)
     const intmax_t  kafka_default_buffer_max_messages = 100000;
     const intmax_t  kafka_default_loglevel            = 6;
     const intmax_t  kafka_default_partition           = RD_KAFKA_PARTITION_UA; /* Unassigned partition */
-
     const char *brokers          = kafka_default_broker_list;
     const char *compression      = kafka_default_compression;
-    const char *topic            = kafka_default_topic;
+    const char *topic_name       = kafka_default_topic;
     intmax_t max_retries         = kafka_default_max_retries;
     intmax_t backoff_ms          = kafka_default_backoff_ms;
     intmax_t buffer_max_messages = kafka_default_buffer_max_messages;
     intmax_t loglevel            = kafka_default_loglevel;
     intmax_t partition           = 0;
 
-
-    LogFileCtx *log_ctx = lf_ctx;
-
+    /* Configures kafka things */
     if (! kafka_node )
-        return -1;
-
+        return;
     brokers = ConfNodeLookupChildValue(kafka_node, "broker-list");
-
     if (! brokers) {
         brokers = kafka_default_broker_list;
         SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM, "eve kafka output: using default broker: %s", kafka_default_broker_list);
     }
-
     compression = ConfNodeLookupChildValue(kafka_node, "compression");
-
     if (! compression) {
         compression = kafka_default_compression;
         SCLogInfo("eve kafka output: using default compression: %s", kafka_default_compression);
     }
-
-    topic = ConfNodeLookupChildValue(kafka_node, "topic");
-    if (! topic) {
-        topic = kafka_default_topic;
+    topic_name = ConfNodeLookupChildValue(kafka_node, "topic");
+    if (! topic_name) {
+        topic_name = kafka_default_topic;
         SCLogWarning(SC_ERR_MISSING_CONFIG_PARAM, "eve kafka output: using default topic: %s", kafka_default_topic);
+    } else {
+        SCLogInfo("eve kafka output: topic: %s", topic_name);
     }
-
     if (! ConfGetChildValueInt(kafka_node, "max-retries", &max_retries) ) {
         SCLogInfo("eve kafka output: using default max-retries: %lu", kafka_default_max_retries);
     }
-
     if (! ConfGetChildValueInt(kafka_node, "backoff-ms", &backoff_ms) ) {
         SCLogInfo("eve kafka output: using default backoff-ms: %lu", kafka_default_backoff_ms);
     }
-
     if (! ConfGetChildValueInt(kafka_node, "buffer-max-messages", &buffer_max_messages) ) {
         SCLogInfo("eve kafka output: using default buffer-max-messages: %lu", kafka_default_buffer_max_messages);
     }
-
     if (! ConfGetChildValueInt(kafka_node, "partition", &partition) ) {
         SCLogInfo("eve kafka output: using default unassigned partition");
     }
-
     if (! ConfGetChildValueInt(kafka_node, "log-level", &loglevel) ) {
         SCLogInfo("eve kafka output: using default log-level: %lu", kafka_default_loglevel);
     } else {
         SCLogInfo("eve kafka output: log-level: %lu", loglevel);
     }
-
-    log_ctx->kafka_setup.brokers   = SCStrdup(brokers);
-    if (!log_ctx->kafka_setup.brokers) {
+    kafka_setup->brokers   = SCStrdup(brokers);
+    if (kafka_setup->brokers == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating kafka brokers");
-        exit(EXIT_FAILURE);
+        return;
     }
-
     if (partition < 0) {
         partition = kafka_default_partition;
         SCLogInfo("eve kafka output: using default unassigned partition");
     }
-
-    /* Configures and starts up kafka things */
-    {
-        char errstr[2048]  = {0};
-
-        rd_kafka_t *rk                    = NULL;
-        rd_kafka_topic_conf_t *topic_conf = NULL;
-        rd_kafka_topic_t *rkt             = NULL;
-
-        /* Check librdkafka version and emit warning if outside of tested versions */
-        if ( RD_KAFKA_VERSION > 0x000901ff || RD_KAFKA_VERSION < 0x00080100 ) {
-            SCLogWarning(SC_ERR_SOCKET, "librdkafka version check fails : %x", RD_KAFKA_VERSION);
-        }
-
-        /* Kafka configuration */
-        rd_kafka_conf_t *conf = KafkaConfNew();
-
-        /* Set configurations */
-        conf = KafkaConfSetup(conf,
-            log_ctx->sensor_name,
+    /* Check librdkafka version and emit warning if outside of tested versions */
+    if ( RD_KAFKA_VERSION > 0x000901ff || RD_KAFKA_VERSION < 0x00080100 ) {
+        SCLogWarning(SC_ERR_SOCKET, "librdkafka version check fails : %x", RD_KAFKA_VERSION);
+    }
+    /* Kafka configuration */
+    rd_kafka_conf_t *conf = KafkaConfNew();
+    /* Set configurations */
+    conf = KafkaConfSetup(conf,
+            sensor_name,
             compression, buffer_max_messages, max_retries, backoff_ms, loglevel);
 
-        /* Set log callback */
-        rd_kafka_conf_set_log_cb(conf, KafkaLogCb);
-
-        /* Create Kafka handle */
-        if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr)))) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to create kafka handler: %s", errstr);
-            exit(EXIT_FAILURE);
-        }
-
-        /* Set the log level */
-        rd_kafka_set_log_level(rk, loglevel);
-
-        /* Add brokers */
-        if (rd_kafka_brokers_add(rk, brokers) == 0) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to add kafka brokers: %s", brokers);
-            exit(EXIT_FAILURE);
-        } else {
-            SCLogInfo("eve kafka output: afka brokers added: %s", brokers);
-        }
-
-        /* Topic configuration - Not saved at setup */
-        if ( !(topic_conf = rd_kafka_topic_conf_new())) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate kafka topic conf");
-            exit(EXIT_FAILURE);
-        }
-
-        /* Configure acks */
-        KafkaTopicConfSetString(topic_conf, "request.required.acks", "0");
-
-        /* Topic  */
-        if ( !(rkt = rd_kafka_topic_new(rk, topic, topic_conf))) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate kafka topic %s", topic);
-            exit(EXIT_FAILURE);
-        }
-
-        log_ctx->kafka                   = rk;
-        log_ctx->kafka_setup.topic       = rkt;
-        log_ctx->kafka_setup.conf        = conf;
-        log_ctx->kafka_setup.loglevel    = loglevel;
-        log_ctx->kafka_setup.partition   = partition;
-        log_ctx->kafka_setup.tried       = 0;
-
-        SCLogInfo("eve kafka ouput: handler ready and configured!");
-    }
-
-    log_ctx->Close = (void(*)(LogFileCtx *)) SCLogFileCloseKafka;
-    return 0;
+    /* Set log callback */
+    rd_kafka_conf_set_log_cb(conf, KafkaLogCb);
+    kafka_setup->conf        = conf;
+    kafka_setup->topic_name  = topic_name;
+    kafka_setup->loglevel    = loglevel;
+    kafka_setup->partition   = partition;
+    kafka_setup->tried       = 0;
+    SCLogInfo("eve kafka ouput: config setup done!");
 }
 
 /**
  * \brief SCConfLogReopenKafka() Caller wants to re-open kafka output due to some error or
                                  disconnection
- * \param log_ctx the logfile context
+ * \param log_ctx the logfile context to re-open
  *
  * \retval -1 if open failed or too soon
  *          0 if success
  */
 int SCConfLogReopenKafka(LogFileCtx *log_ctx)
 {
-    if (log_ctx->kafka != NULL) {
-        rd_kafka_destroy(log_ctx->kafka);
-        log_ctx->kafka = NULL;
-    }
 
-    // only try to reconnect once per second
+    rd_kafka_t *rk     = NULL;
+    char errstr[2048]  = {0};
+    rd_kafka_conf_t *conf = log_ctx->kafka_setup.conf;
+    
+    /* only try to reconnect once per second */
     if (log_ctx->kafka_setup.tried >= time(NULL)) {
         return -1;
     }
 
-    {
-        rd_kafka_t *rk     = NULL;
-        char errstr[2048]  = {0};
-
-        /* Create Kafka handle */
-        if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, log_ctx->kafka_setup.conf, errstr, sizeof(errstr)))) {
-            SCLogError(SC_ERR_SOCKET, "Failed to create kafka handler: %s", errstr);
-            return -1;
-        }
-
-        rd_kafka_set_log_level(rk, log_ctx->kafka_setup.loglevel);
-
-        log_ctx->kafka             = rk;
-        log_ctx->kafka_setup.tried = 0;
+    if (conf != NULL) {
+        conf = rd_kafka_conf_dup(log_ctx->kafka_setup.conf);
     }
 
+    /* Create Kafka handle */
+    if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf, errstr, sizeof(errstr)))) {
+        SCLogError(SC_ERR_SOCKET, "Failed to create kafka handler: %s", errstr);
+        log_ctx->kafka = NULL;
+        return -1;
+    }
+    rd_kafka_set_log_level(rk, log_ctx->kafka_setup.loglevel);
+
+    rd_kafka_destroy(log_ctx->kafka);
+    //TODO: for some rdkafka versions a double free happens 
+    //rd_kafka_conf_destroy(log_ctx->kafka_setup.conf);
+    log_ctx->kafka_setup.conf  = conf;
+    log_ctx->kafka             = rk;
+    log_ctx->kafka_setup.tried = 0;
     return 0;
 }
 
@@ -440,14 +426,13 @@ int SCConfLogReopenKafka(LogFileCtx *log_ctx)
  * \retval -1 if open failed or too soon
  *          0 if success
  */
-int LogFileWriteKafka(void *lf_ctx, const char *string, size_t string_len)
+int LogFileWriteKafka(LogFileCtx *log_ctx, const char *string, size_t string_len)
 {
-    LogFileCtx *file_ctx = lf_ctx;
-
-    rd_kafka_t *rk = file_ctx->kafka;
+    rd_kafka_t *rk = log_ctx->kafka;
+    int err = 0;
 
     if (rk == NULL) {
-        SCConfLogReopenKafka(file_ctx);
+        SCConfLogReopenKafka(log_ctx);
         if (rk == NULL) {
             SCLogInfo("Connection to kafka brokers not possible.");
             return -1;
@@ -456,12 +441,10 @@ int LogFileWriteKafka(void *lf_ctx, const char *string, size_t string_len)
         }
     }
 
-    int err = -1;
-
     /* Send/Produce message. */
     if ((err =  rd_kafka_produce(
-                    file_ctx->kafka_setup.topic,
-                    file_ctx->kafka_setup.partition,
+                    log_ctx->kafka_setup.topic,
+                    log_ctx->kafka_setup.partition,
                     RD_KAFKA_MSG_F_COPY,
                     /* Payload and length */
                     (char *)string, string_len,
@@ -473,18 +456,22 @@ int LogFileWriteKafka(void *lf_ctx, const char *string, size_t string_len)
                     NULL)) == -1) {
 
         const char *errstr = rd_kafka_err2str(rd_kafka_errno2err(err));
-
         SCLogError(SC_ERR_SOCKET,
-                "%% Failed to produce to topic %s "
+                "Error - %d  - %% Failed to produce to topic %s "
                 "partition %i: %s\n",
-                rd_kafka_topic_name(file_ctx->kafka_setup.topic),
-                file_ctx->kafka_setup.partition,
+                err,
+                rd_kafka_topic_name(log_ctx->kafka_setup.topic),
+                log_ctx->kafka_setup.partition,
                 errstr);
+
+        SCConfLogReopenKafka(log_ctx);
+
+
+#ifdef DEBUG
     } else {
-
         SCLogDebug("KAFKA MSG:[%s] ERR:[%d] QUEUE:[%d]", string, err, rd_kafka_outq_len(rk));
+#endif //DEBUG
     }
-
 
     return 0;
 }
