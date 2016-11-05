@@ -302,8 +302,10 @@ typedef struct PktVar_ {
     struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */
-    uint8_t *value;
+    uint16_t key_len;
     uint16_t value_len;
+    uint8_t *key;
+    uint8_t *value;
 } PktVar;
 
 #ifdef PROFILING
