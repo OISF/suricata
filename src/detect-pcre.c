@@ -233,7 +233,23 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
                     SCLogDebug("data %p/%u, type %u id %u p %p",
                             str_ptr, ret, pe->captypes[x], pe->capids[x], p);
 
-                    if (pe->captypes[x] == VAR_TYPE_PKT_VAR) {
+                    if (pe->captypes[x] == VAR_TYPE_PKT_VAR_KV) {
+                        /* get the value, as first capture is the key */
+                        const char *str_ptr2;
+                        int ret2 = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, x+2, &str_ptr2);
+                        if (unlikely(ret2 == 0)) {
+                            break;
+                        }
+                        /* key length is limited to 256 chars */
+                        uint16_t key_len = (ret < 0xff) ? (uint16_t)ret : 0xff;
+                        capture_len = (ret2 < 0xffff) ? (uint16_t)ret2 : 0xffff;
+
+                        (void)DetectVarStoreMatchKeyValue(det_ctx,
+                                (uint8_t *)str_ptr, key_len,
+                                (uint8_t *)str_ptr2, capture_len,
+                                DETECT_VAR_TYPE_PKT_POSTMATCH);
+
+                    } else if (pe->captypes[x] == VAR_TYPE_PKT_VAR) {
                         /* store max 64k. Errors are ignored */
                         capture_len = (ret < 0xffff) ? (uint16_t)ret : 0xffff;
                         (void)DetectVarStoreMatch(det_ctx, pe->capids[x],
@@ -640,6 +656,7 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
     char *name_array[DETECT_PCRE_CAPTURE_MAX] = { NULL };
     int name_idx = 0;
     int capture_cnt = 0;
+    int key = 0;
 
     SCLogDebug("regexstr %s, pd %p", regexstr, pd);
 
@@ -656,7 +673,25 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
             }
             SCLogDebug("name '%s'", name_array[name_idx]);
 
-            if (strncmp(name_array[name_idx], "flow:", 5) == 0) {
+            if (strcmp(name_array[name_idx], "pkt:key") == 0) {
+                key = 1;
+                SCLogDebug("key-value/key");
+
+                pd->captypes[pd->idx] = VAR_TYPE_PKT_VAR_KV;
+                SCLogDebug("id %u type %u", pd->capids[pd->idx], pd->captypes[pd->idx]);
+                pd->idx++;
+
+            } else if (key == 1 && strcmp(name_array[name_idx], "pkt:value") == 0) {
+                SCLogDebug("key-value/value");
+                key = 0;
+
+            /* kv error conditions */
+            } else if (key == 0 && strcmp(name_array[name_idx], "pkt:value") == 0) {
+                return -1;
+            } else if (key == 1) {
+                return -1;
+
+            } else if (strncmp(name_array[name_idx], "flow:", 5) == 0) {
                 pd->capids[pd->idx] = VarNameStoreSetupAdd(name_array[name_idx]+5, VAR_TYPE_FLOW_VAR);
                 pd->captypes[pd->idx] = VAR_TYPE_FLOW_VAR;
                 pd->idx++;
