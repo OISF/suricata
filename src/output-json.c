@@ -102,23 +102,44 @@ static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
     json_t *js_pktvars = NULL;
     PktVar *pv = p->pktvar;
     while (pv != NULL) {
-        const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
-        if (varname) {
+        if (pv->key || pv->id > 0) {
             if (js_pktvars == NULL) {
-                js_pktvars = json_object();
+                js_pktvars = json_array();
                 if (js_pktvars == NULL)
                     break;
             }
+            json_t *js_pair = json_object();
+            if (js_pair == NULL) {
+                break;
+            }
 
-            uint32_t len = pv->value_len;
-            uint8_t printable_buf[len + 1];
-            uint32_t offset = 0;
-            PrintStringsToBuffer(printable_buf, &offset,
-                    sizeof(printable_buf),
-                    pv->value, pv->value_len);
+            if (pv->key != NULL) {
+                uint32_t offset = 0;
+                uint8_t keybuf[pv->key_len + 1];
+                PrintStringsToBuffer(keybuf, &offset,
+                        sizeof(keybuf),
+                        pv->key, pv->key_len);
+                uint32_t len = pv->value_len;
+                uint8_t printable_buf[len + 1];
+                offset = 0;
+                PrintStringsToBuffer(printable_buf, &offset,
+                        sizeof(printable_buf),
+                        pv->value, pv->value_len);
+                json_object_set_new(js_pair, (char *)keybuf,
+                        json_string((char *)printable_buf));
+            } else {
+                const char *varname = VarNameStoreLookupById(pv->id, VAR_TYPE_PKT_VAR);
+                uint32_t len = pv->value_len;
+                uint8_t printable_buf[len + 1];
+                uint32_t offset = 0;
+                PrintStringsToBuffer(printable_buf, &offset,
+                        sizeof(printable_buf),
+                        pv->value, pv->value_len);
 
-            json_object_set_new(js_pktvars, varname,
-                    json_string((char *)printable_buf));
+                json_object_set_new(js_pair, varname,
+                        json_string((char *)printable_buf));
+            }
+            json_array_append_new(js_pktvars, js_pair);
         }
         pv = pv->next;
     }

@@ -190,9 +190,29 @@ error:
     return -1;
 }
 
+/** \brief Store flowvar in det_ctx so we can exec it post-match */
+int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *det_ctx,
+        uint8_t *key, uint16_t key_len,
+        uint8_t *buffer, uint16_t len, int type)
+{
+    DetectVarList *fs = SCCalloc(1, sizeof(*fs));
+    if (unlikely(fs == NULL))
+        return -1;
+
+    fs->len = len;
+    fs->type = type;
+    fs->buffer = buffer;
+    fs->key = key;
+    fs->key_len = key_len;
+
+    fs->next = det_ctx->varlist;
+    det_ctx->varlist = fs;
+    return 0;
+}
 
 /** \brief Store flowvar in det_ctx so we can exec it post-match */
-int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
+int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx,
+        uint32_t idx,
         uint8_t *buffer, uint16_t len, int type)
 {
     DetectVarList *fs = det_ctx->varlist;
@@ -208,7 +228,7 @@ int DetectVarStoreMatch(DetectEngineThreadCtx *det_ctx, uint32_t idx,
     }
 
     if (fs == NULL) {
-        fs = SCMalloc(sizeof(*fs));
+        fs = SCCalloc(1, sizeof(*fs));
         if (unlikely(fs == NULL))
             return -1;
 
@@ -275,7 +295,7 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
     prev = NULL;
     fs = det_ctx->varlist;
     while (fs != NULL) {
-        if (fd->idx == fs->idx) {
+        if (fd->idx == 0 || fd->idx == fs->idx) {
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
@@ -283,8 +303,20 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
                 FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
                 /* memory at fs->buffer is now the responsibility of
                  * the flowvar code. */
+            } else if (fs->type == DETECT_VAR_TYPE_PKT_POSTMATCH && fs->key && p) {
+                /* pkt key/value */
+                if (PktVarAddKeyValue(p, (uint8_t *)fs->key, fs->key_len,
+                                         (uint8_t *)fs->buffer, fs->len) == -1)
+                {
+                    SCFree(fs->key);
+                    SCFree(fs->buffer);
+                    /* the rest of fs is freed below */
+                }
             } else if (fs->type == DETECT_VAR_TYPE_PKT_POSTMATCH && p) {
-                PktVarAdd(p, fs->idx, fs->buffer, fs->len);
+                if (PktVarAdd(p, fs->idx, fs->buffer, fs->len) == -1) {
+                    SCFree(fs->buffer);
+                    /* the rest of fs is freed below */
+                }
             }
 
             if (fs == det_ctx->varlist) {

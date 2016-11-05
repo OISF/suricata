@@ -24,7 +24,8 @@
 #ifndef __PKT_VAR_H__
 #define __PKT_VAR_H__
 
-void PktVarAdd(Packet *, uint32_t id, uint8_t *, uint16_t);
+int WARN_UNUSED PktVarAddKeyValue(Packet *, uint8_t *, uint16_t, uint8_t *, uint16_t);
+int WARN_UNUSED PktVarAdd(Packet *, uint32_t id, uint8_t *, uint16_t);
 PktVar *PktVarGet(Packet *, uint32_t id);
 void PktVarFree(PktVar *);
 
