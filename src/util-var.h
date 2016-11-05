@@ -30,6 +30,7 @@ enum VarTypes {
     VAR_TYPE_PKT_BIT,
     VAR_TYPE_PKT_INT,
     VAR_TYPE_PKT_VAR,
+    VAR_TYPE_PKT_VAR_KV, // key-value
 
     VAR_TYPE_FLOW_BIT,
     VAR_TYPE_FLOW_INT,
