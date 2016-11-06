@@ -51,6 +51,27 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
  *  \note flow is not locked by this function, caller is
  *        responsible
  */
+FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen)
+{
+    GenericVar *gv = f->flowvar;
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWVAR && gv->idx == 0) {
+
+            FlowVar *fv = (FlowVar *)gv;
+            if (fv->keylen == keylen && memcmp(key, fv->key, keylen) == 0) {
+                return fv;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/** \brief get the flowvar with index 'idx' from the flow
+ *  \note flow is not locked by this function, caller is
+ *        responsible
+ */
 FlowVar *FlowVarGet(Flow *f, uint32_t idx)
 {
     GenericVar *gv = f->flowvar;
@@ -64,11 +85,30 @@ FlowVar *FlowVarGet(Flow *f, uint32_t idx)
 }
 
 /* add a flowvar to the flow, or update it */
-void FlowVarAddStrNoLock(Flow *f, uint32_t idx, uint8_t *value, uint16_t size)
+void FlowVarAddKeyValue(Flow *f, uint8_t *key, uint16_t keysize, uint8_t *value, uint16_t size)
+{
+    FlowVar *fv = SCCalloc(1, sizeof(FlowVar));
+    if (unlikely(fv == NULL))
+        return;
+
+    fv->type = DETECT_FLOWVAR;
+    fv->datatype = FLOWVAR_TYPE_STR;
+    fv->idx = 0;
+    fv->data.fv_str.value = value;
+    fv->data.fv_str.value_len = size;
+    fv->key = key;
+    fv->keylen = keysize;
+    fv->next = NULL;
+
+    GenericVarAppend(&f->flowvar, (GenericVar *)fv);
+}
+
+/* add a flowvar to the flow, or update it */
+void FlowVarAddIdValue(Flow *f, uint32_t idx, uint8_t *value, uint16_t size)
 {
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
-        fv = SCMalloc(sizeof(FlowVar));
+        fv = SCCalloc(1, sizeof(FlowVar));
         if (unlikely(fv == NULL))
             return;
 
@@ -83,12 +123,6 @@ void FlowVarAddStrNoLock(Flow *f, uint32_t idx, uint8_t *value, uint16_t size)
     } else {
         FlowVarUpdateStr(fv, value, size);
     }
-}
-
-/* add a flowvar to the flow, or update it */
-void FlowVarAddStr(Flow *f, uint32_t idx, uint8_t *value, uint16_t size)
-{
-    FlowVarAddStrNoLock(f, idx, value, size);
 }
 
 /* add a flowvar to the flow, or update it */
