@@ -160,7 +160,7 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
     while (gv != NULL) {
         if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
             FlowVar *fv = (FlowVar *)gv;
-            if (fv->datatype == FLOWVAR_TYPE_STR) {
+            if (fv->datatype == FLOWVAR_TYPE_STR && fv->key == NULL) {
                 const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_VAR);
                 if (varname) {
                     if (js_flowvars == NULL) {
@@ -179,6 +179,29 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
                     json_object_set_new(js_flowvars, varname,
                             json_string((char *)printable_buf));
                 }
+            } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
+                if (js_flowvars == NULL) {
+                    js_flowvars = json_object();
+                    if (js_flowvars == NULL)
+                        break;
+                }
+
+                uint8_t keybuf[fv->keylen + 1];
+                uint32_t offset = 0;
+                PrintStringsToBuffer(keybuf, &offset,
+                        sizeof(keybuf),
+                        fv->key, fv->keylen);
+
+                uint32_t len = fv->data.fv_str.value_len;
+                uint8_t printable_buf[len + 1];
+                offset = 0;
+                PrintStringsToBuffer(printable_buf, &offset,
+                        sizeof(printable_buf),
+                        fv->data.fv_str.value, fv->data.fv_str.value_len);
+
+                json_object_set_new(js_flowvars, (const char *)keybuf,
+                        json_string((char *)printable_buf));
+
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
                 const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_INT);
                 if (varname) {
