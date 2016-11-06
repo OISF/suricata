@@ -300,7 +300,7 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
             if (fs->type == DETECT_VAR_TYPE_FLOW_POSTMATCH && p && p->flow) {
-                FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
+                FlowVarAddIdValue(p->flow, fs->idx, fs->buffer, fs->len);
                 /* memory at fs->buffer is now the responsibility of
                  * the flowvar code. */
             } else if (fs->type == DETECT_VAR_TYPE_PKT_POSTMATCH && fs->key && p) {
