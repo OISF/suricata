@@ -56,16 +56,19 @@ typedef struct FlowVar_ {
         FlowVarTypeStr fv_str;
         FlowVarTypeInt fv_int;
     } data;
-
+    uint8_t *key;
+    uint16_t keylen;
 } FlowVar;
 
 /** Flowvar Interface API */
 
-void FlowVarAddStrNoLock(Flow *, uint32_t, uint8_t *, uint16_t);
-void FlowVarAddStr(Flow *, uint32_t, uint8_t *, uint16_t);
+void FlowVarAddIdValue(Flow *, uint32_t id, uint8_t *value, uint16_t size);
+void FlowVarAddKeyValue(Flow *f, uint8_t *key, uint16_t keysize, uint8_t *value, uint16_t size);
+
 void FlowVarAddIntNoLock(Flow *, uint32_t, uint32_t);
 void FlowVarAddInt(Flow *, uint32_t, uint32_t);
 FlowVar *FlowVarGet(Flow *, uint32_t);
+FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen);
 void FlowVarFree(FlowVar *);
 void FlowVarPrint(GenericVar *);
 
