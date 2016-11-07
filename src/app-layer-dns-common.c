@@ -833,6 +833,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     }
 
     const DNSAnswerHeader *head = (DNSAnswerHeader *)data;
+    uint16_t datalen = ntohs(head->len);
 
     data += sizeof(DNSAnswerHeader);
 
@@ -848,7 +849,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     switch (ntohs(head->type)) {
         case DNS_RECORD_TYPE_A:
         {
-            if (ntohs(head->len) == 4) {
+            if (datalen == 0 || datalen == 4) {
                 //PrintRawDataFp(stdout, data, ntohs(head->len));
                 //char a[16];
                 //PrintInet(AF_INET, (const void *)data, a, sizeof(a));
@@ -862,12 +863,12 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 goto bad_data;
             }
 
-            data += ntohs(head->len);
+            data += datalen;
             break;
         }
         case DNS_RECORD_TYPE_AAAA:
         {
-            if (ntohs(head->len) == 16) {
+            if (datalen == 0 || datalen == 16) {
                 //char a[46];
                 //PrintInet(AF_INET6, (const void *)data, a, sizeof(a));
                 //SCLogInfo("AAAA %s TTL %u", a, ntohl(head->ttl));
@@ -880,7 +881,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 goto bad_data;
             }
 
-            data += ntohs(head->len);
+            data += datalen;
             break;
         }
         case DNS_RECORD_TYPE_MX:
