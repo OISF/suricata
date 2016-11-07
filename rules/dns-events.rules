@@ -1,8 +1,8 @@
 # Response (answer) we didn't see a Request for. Could be packet loss.
-alert dns any any -> any any (msg:"SURICATA DNS Unsollicited response"; flow:to_client; app-layer-event:dns.unsollicited_response; sid:2240001; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS Unsolicited response"; flow:to_client; app-layer-event:dns.unsollicited_response; sid:2240001; rev:1;)
 # Malformed data in request. Malformed means length fields are wrong, etc.
-alert dns any any -> any any (msg:"SURICATA DNS malformed request data"; flow:to_client; app-layer-event:dns.malformed_data; sid:2240002; rev:1;)
-alert dns any any -> any any (msg:"SURICATA DNS malformed response data"; flow:to_server; app-layer-event:dns.malformed_data; sid:2240003; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS malformed request data"; flow:to_server; app-layer-event:dns.malformed_data; sid:2240002; rev:1;)
+alert dns any any -> any any (msg:"SURICATA DNS malformed response data"; flow:to_client; app-layer-event:dns.malformed_data; sid:2240003; rev:1;)
 # Response flag set on to_server packet
 alert dns any any -> any any (msg:"SURICATA DNS Not a request"; flow:to_server; app-layer-event:dns.not_a_request; sid:2240004; rev:1;)
 # Response flag not set on to_client packet
