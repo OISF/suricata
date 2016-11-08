@@ -56,6 +56,70 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 
+static int HttpGetRequestMethod(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    if (tx->request_method == NULL)
+        return LuaCallbackError(luastate, "no request method");
+
+    return LuaPushStringBuffer(luastate,
+            bstr_ptr(tx->request_method), bstr_len(tx->request_method));
+}
+
+static int HttpGetRequestProtocol(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    if (tx->request_protocol == NULL)
+        return LuaCallbackError(luastate, "no request protocol");
+
+    return LuaPushStringBuffer(luastate,
+            bstr_ptr(tx->request_protocol), bstr_len(tx->request_protocol));
+}
+
+static int HttpGetResponseProtocol(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    if (tx->response_protocol == NULL)
+        return LuaCallbackError(luastate, "no response protocol");
+
+    return LuaPushStringBuffer(luastate,
+            bstr_ptr(tx->response_protocol), bstr_len(tx->response_protocol));
+}
+
+static int HttpGetResponseStatus(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
+        return LuaCallbackError(luastate, "error: protocol not http");
+
+    htp_tx_t *tx = LuaStateGetTX(luastate);
+    if (tx == NULL)
+        return LuaCallbackError(luastate, "internal error: no tx");
+
+    if (tx->response_status == NULL)
+        return LuaCallbackError(luastate, "no response status");
+
+    return LuaPushStringBuffer(luastate,
+            bstr_ptr(tx->response_status), bstr_len(tx->response_status));
+}
+
 static int HttpGetRequestHost(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_HTTP)))
@@ -206,6 +270,7 @@ static int HttpGetRawHeaders(lua_State *luastate, int dir)
     return LuaPushStringBuffer(luastate, raw, raw_len);
 }
 
+
 static int HttpGetRawRequestHeaders(lua_State *luastate)
 {
     return HttpGetRawHeaders(luastate, 0);
@@ -320,6 +385,16 @@ static int HttpGetResponseBody(lua_State *luastate)
 int LuaRegisterHttpFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
+    lua_pushcfunction(luastate, HttpGetRequestMethod);
+    lua_setglobal(luastate, "HttpGetRequestMethod");
+    lua_pushcfunction(luastate, HttpGetResponseStatus);
+    lua_setglobal(luastate, "HttpGetResponseStatus");   
+
+    lua_pushcfunction(luastate, HttpGetRequestProtocol);
+    lua_setglobal(luastate, "HttpGetRequestProtocol");
+    lua_pushcfunction(luastate, HttpGetResponseProtocol);
+    lua_setglobal(luastate, "HttpGetResponseProtocol");
+
     lua_pushcfunction(luastate, HttpGetRequestHeader);
     lua_setglobal(luastate, "HttpGetRequestHeader");
     lua_pushcfunction(luastate, HttpGetResponseHeader);
@@ -328,10 +403,12 @@ int LuaRegisterHttpFunctions(lua_State *luastate)
     lua_setglobal(luastate, "HttpGetRequestLine");
     lua_pushcfunction(luastate, HttpGetResponseLine);
     lua_setglobal(luastate, "HttpGetResponseLine");
+
     lua_pushcfunction(luastate, HttpGetRawRequestHeaders);
     lua_setglobal(luastate, "HttpGetRawRequestHeaders");
     lua_pushcfunction(luastate, HttpGetRawResponseHeaders);
     lua_setglobal(luastate, "HttpGetRawResponseHeaders");
+
     lua_pushcfunction(luastate, HttpGetRequestUriRaw);
     lua_setglobal(luastate, "HttpGetRequestUriRaw");
     lua_pushcfunction(luastate, HttpGetRequestUriNormalized);
