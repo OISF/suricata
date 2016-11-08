@@ -127,6 +127,9 @@ typedef struct SCLogOPIfaceCtx_ {
     /* the output file descriptor for the above file */
     FILE * file_d;
 
+    /* registered to be set on a file rotation signal */
+    int rotation_flag;
+
     /* the facility code if the interface is SC_LOG_IFACE_SYSLOG */
     int facility;
 

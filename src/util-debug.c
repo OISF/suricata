@@ -34,6 +34,7 @@
 #include "detect.h"
 #include "packet-queue.h"
 #include "threadvars.h"
+#include "output.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -154,6 +155,11 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
  */
 static inline void SCLogPrintToStream(FILE *fd, char *msg)
 {
+    /* Would only happen if the log file failed to re-open during rotation. */
+    if (fd == NULL) {
+        return;
+    }
+
 #if defined (OS_WIN32)
 	SCMutexLock(&sc_log_stream_lock);
 #endif /* OS_WIN32 */
@@ -515,6 +521,24 @@ static SCError SCLogMessageGetBuffer(
     return SC_ERR_SPRINTF;
 }
 
+static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
+{
+    if (op_iface_ctx->file_d == NULL) {
+        return;
+    }
+
+    if (op_iface_ctx->file == NULL) {
+        return;
+    }
+
+    fclose(op_iface_ctx->file_d);
+    op_iface_ctx->file_d = fopen(op_iface_ctx->file, "a");
+    if (op_iface_ctx->file_d == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Erroring re-opening file \"%s\": %s",
+            op_iface_ctx->file, strerror(errno));
+    }
+}
+
 /**
  * \brief Adds the global log_format to the outgoing buffer
  *
@@ -569,6 +593,10 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
+                    if (op_iface_ctx->rotation_flag) {
+                        SCLogReopen(op_iface_ctx);
+                        op_iface_ctx->rotation_flag = 0;
+                    }
                     SCLogPrintToStream(op_iface_ctx->file_d, buffer);
                 }
                 break;
@@ -701,6 +729,8 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
     if ((iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
         goto error;
     }
+
+    OutputRegisterFileRotationFlag(&iface_ctx->rotation_flag);
 
     iface_ctx->log_level = log_level;
 
