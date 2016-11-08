@@ -11,7 +11,7 @@
 /* D E F I N E S*/
 #define SC_DPDK_MAJOR    1
 #define SC_DPDK_MINOR    8
-#define EAL_ARGS         12
+#define EAL_ARGS         3
 
 
 /* E X T E R N */
@@ -27,7 +27,7 @@ uint8_t  portSpeed10000;
 uint8_t  portSpeedUnknown;
 uint8_t  dpdkIntelCoreCount = 0;
 struct   rte_ring *srb [16];
-char* argument[EAL_ARGS] = {"suricata","-c","f","-n","2", "--", "-P", "-p", "15", "--huge-dir", "/mnt/huge", NULL};
+char* argument[EAL_ARGS] = {"suricata","-n","4"};
 file_config_t  file_config;
 struct rte_mempool * dp_pktmbuf_pool = NULL;
 DpdkIntelPortMap portMap [16];
@@ -153,18 +153,12 @@ int32_t dpdkIntelDevSetup(void)
         memset(&dev_info, 0x00, sizeof(struct rte_eth_dev_info));
         memset(&link, 0x00, sizeof(struct rte_eth_link));
 
-        inport = portMap [portIndex].inport;
+        inport = portMap[portIndex].inport;
         rte_eth_dev_info_get (inport, &dev_info);
         if (NULL == dev_info.pci_dev) {
             SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED, "port %d PCI is NULL!",
                        inport);
             return -3;
-        }
-
-        if (dev_info.pci_dev->id.vendor_id != PCI_VENDOR_ID_INTEL) {
-            SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED,"port %d unsupported vendor",
-                       inport);
-            return -6;
         }
 
         fflush(stdout);
@@ -224,27 +218,43 @@ int32_t dpdkIntelDevSetup(void)
                        (link.link_status == 1)?"up":"down");
             return -10;
         }
-        portSpeed[inport] =    (link.link_speed == ETH_LINK_SPEED_10)?1:
-                               (link.link_speed == ETH_LINK_SPEED_100)?2:
-                               (link.link_speed == ETH_LINK_SPEED_1000)?3:
-                               (link.link_speed == ETH_LINK_SPEED_10G)?4:
-                               (link.link_speed == ETH_LINK_SPEED_20G)?5:
-                               (link.link_speed == ETH_LINK_SPEED_40G)?6:
-                               0;
+        portSpeed[inport] =
+				#if RTE_VER_RELEASE < 16 
+				(link.link_speed == ETH_LINK_SPEED_10)?1:
+                            	(link.link_speed == ETH_LINK_SPEED_100)?2:
+                            	(link.link_speed == ETH_LINK_SPEED_1000)?3:
+                            	(link.link_speed == ETH_LINK_SPEED_10G)?4:
+                            	(link.link_speed == ETH_LINK_SPEED_20G)?5:
+                            	(link.link_speed == ETH_LINK_SPEED_40G)?6:
+                             	#else
+				(link.link_speed == ETH_SPEED_NUM_10M)?1:
+                            	(link.link_speed == ETH_SPEED_NUM_100M)?2:
+                            	(link.link_speed == ETH_SPEED_NUM_1G)?3:
+                            	(link.link_speed == ETH_SPEED_NUM_10G)?4:
+                            	(link.link_speed == ETH_SPEED_NUM_20G)?5:
+                            	(link.link_speed == ETH_SPEED_NUM_40G)?6:
+				#endif
+                            	0;
 
         /* ToDo: add support for 20G and 40G */
-        if ((link.link_speed == ETH_LINK_SPEED_20G) || 
-            (link.link_speed == ETH_LINK_SPEED_40G))
+        if (portSpeed[inport] == 5 || portSpeed[inport] == 6 || portSpeed[inport] == 0)
         {
             SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED, " Port %u unsupported speed %u",
                        inport, portSpeed[inport]);
             return -11;
         }
         else {
+        #if RTE_VER_RELEASE < 16
             (link.link_speed == ETH_LINK_SPEED_10)?portSpeed10++:
             (link.link_speed == ETH_LINK_SPEED_100)?portSpeed100++:
             (link.link_speed == ETH_LINK_SPEED_1000)?portSpeed1000++:
             (link.link_speed == ETH_LINK_SPEED_10G)?portSpeed10000++:
+        #else
+            (link.link_speed == ETH_SPEED_NUM_10M)?portSpeed10++:
+            (link.link_speed == ETH_SPEED_NUM_100M)?portSpeed100++:
+            (link.link_speed == ETH_SPEED_NUM_1G)?portSpeed1000++:
+            (link.link_speed == ETH_SPEED_NUM_10G)?portSpeed10000++:
+        #endif
             portSpeedUnknown++;
         }
 
@@ -259,7 +269,8 @@ void dpdkConfSetup(void)
 {
     int32_t ret = 0;
     uint8_t inport = 0, outport = 0, portIndex = 0, portBit = 0;
-    
+   
+    #if (!(RTE_VER_YEAR >= 16)) 
     if (!(RTE_VER_MAJOR > SC_DPDK_MAJOR)? (1):
          ((RTE_VER_MAJOR == SC_DPDK_MAJOR) &&
           (RTE_VER_MINOR >= SC_DPDK_MINOR))?(1):(0))
@@ -267,6 +278,7 @@ void dpdkConfSetup(void)
         SCLogError(SC_ERR_MISSING_CONFIG_PARAM,"DPDK Version unsupported.Minimum Ver-1.8.0 Reqd!!!");
         exit(EXIT_FAILURE);
     }
+    #endif
     SCLogNotice("DPDK Version: %s", rte_version());
 
     ret = rte_eal_has_hugepages();
@@ -274,14 +286,6 @@ void dpdkConfSetup(void)
     {
         SCLogError(SC_ERR_MISSING_CONFIG_PARAM, "No hugepage configured; %d ", ret);
         rte_panic("ERROR: No Huge Page\n");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = rte_eal_iopl_init();
-    if (ret < 0)
-    {
-        SCLogError(SC_ERR_MISSING_CONFIG_PARAM, "DPDK IOPL init %d ", ret);
-        rte_panic("ERROR: Cannot init IOPL\n");
         exit(EXIT_FAILURE);
     }
 

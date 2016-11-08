@@ -86,7 +86,7 @@ void ParseDpdkConfig(void)
     uint32_t portMapIndex = 0;
     int index = 0;
     struct rte_eth_dev_info dev_info;
-    struct rte_pci_addr dev_addr;
+    struct rte_pci_addr dev_addr, dev_addr2;
     ConfNode *ifnode, *ifroot;
 
     ConfNode *dpdkIntel_node = ConfGetNode("dpdkintel");
@@ -122,12 +122,14 @@ void ParseDpdkConfig(void)
     {
         iface = LiveGetDeviceName(index);
         SCLogDebug(" Device Name: %s", iface);
+
         ifroot = ConfNodeLookupKeyValue(ifnode, "interface", iface);
         if (ifroot == NULL) {
             SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED, "Unable to find device %s",
                                                         iface);
             return;
         }
+        SCLogDebug(" input-interface %s", iface);
 
         if (DPDKINTEL_GENCFG.OpMode != IDS) {
             if (ConfGetChildValue(ifroot, "copy-interface", &oface) != 1) {
@@ -145,9 +147,14 @@ void ParseDpdkConfig(void)
             }
         }
 
+        memset(&dev_addr, 0x00, sizeof(struct rte_pci_addr));
+        memset(&dev_addr2, 0x00, sizeof(struct rte_pci_addr));
+        eal_parse_pci_DomBDF(iface, &dev_addr);
+        if ((DPDKINTEL_GENCFG.OpMode != IDS)) 
+            eal_parse_pci_DomBDF(oface, &dev_addr2);
+
         for (portIndex = 0; portIndex < portTotal; portIndex++) {
             memset(&dev_info, 0x00, sizeof(struct rte_eth_dev_info));
-            memset(&dev_addr, 0x00, sizeof(struct rte_pci_addr));
 
             rte_eth_dev_info_get (portIndex, &dev_info);
             if (NULL == dev_info.pci_dev) {
@@ -156,7 +163,6 @@ void ParseDpdkConfig(void)
                 return;
             }
 
-            eal_parse_pci_DomBDF(iface, &dev_addr);
             if (rte_eal_compare_pci_addr(&dev_info.pci_dev->addr, &dev_addr) == 0) {
                 SCLogDebug("PCI in port : domain: %x bus: %x Id:%x Func: %x Vendor ID: %x Device ID: %x",
                 dev_addr.domain, dev_addr.bus, dev_addr.devid, dev_addr.function,
@@ -165,12 +171,12 @@ void ParseDpdkConfig(void)
                 /* PortMap structure update with inport */
                 portMap [portMapIndex].inport = portIndex;
                 portInOutSet |= 0x01;
-            } else {
+            } 
+            else {
                 if ((DPDKINTEL_GENCFG.OpMode != IDS)) {
-                    eal_parse_pci_DomBDF(oface, &dev_addr);
-                    if (rte_eal_compare_pci_addr(&dev_info.pci_dev->addr, &dev_addr) == 0) {
+                    if (rte_eal_compare_pci_addr(&dev_info.pci_dev->addr, &dev_addr2) == 0) {
                         SCLogDebug("PCI out port : domain: %x bus: %x Id:%x Func: %x Vendor ID: %x Device ID: %x",
-                        dev_addr.domain, dev_addr.bus, dev_addr.devid, dev_addr.function,
+                        dev_addr2.domain, dev_addr2.bus, dev_addr2.devid, dev_addr2.function,
                         dev_info.pci_dev->id.vendor_id, dev_info.pci_dev->id.device_id);            
 
                         /* PortMap structure update with outport */

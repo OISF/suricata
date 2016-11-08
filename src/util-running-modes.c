@@ -96,7 +96,7 @@ void ListDpdkIntelPorts (void)
             printf("\n  --- Queues RX %u & TX %u", info.max_rx_queues, info.max_tx_queues);
             printf("\n  --- SRIOV VF: %u ", info.max_vfs);
             printf("\n  --- Offload RX: %u TX: %u ", info.rx_offload_capa, info.tx_offload_capa);
-            printf("\n  --- CPU NUMA node: %u", info.pci_dev->numa_node);
+            printf("\n  --- CPU NUMA node: %u", (info.pci_dev->numa_node == -1)?0:info.pci_dev->numa_node);
             printf("\n  --- PCI Addr: "PCI_PRI_FMT, 
                                       info.pci_dev->addr.domain, 
                                       info.pci_dev->addr.bus, 

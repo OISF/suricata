@@ -2677,13 +2677,15 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_DPDKINTEL
     if (suri.run_mode == RUNMODE_DPDKINTEL) {
-       /* Load DPDK configurations from yaml */
+        /* Load DPDK configurations from yaml */
         ParseDpdkConfig();
 
-       /* Validate Port Map for IPS|Bypass modes */
-        validateMap();
+        /* Validate Port Map for IPS|Bypass modes */
+	if (DPDKINTEL_GENCFG.OpMode != IDS) {
+            validateMap();
+	}
 
-      /* Initialize and configure dpdk devices */
+      	/* Initialize and configure dpdk devices */
         dpdkConfSetup();
 
         if (DPDKINTEL_GENCFG.OpMode == IPS) {

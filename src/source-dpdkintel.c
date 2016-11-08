@@ -1376,28 +1376,43 @@ int32_t launchDpdkFrameParser(void)
     /* fetch the interface speed to set to desired bit map */
     for (reqCores = 0; reqCores < DPDKINTEL_GENCFG.Port; reqCores++)
     {
-        //rte_eth_link_get_nowait(portMap[portIndex].inport, &linkSpeed);
-        rte_eth_link_get(portMap[portIndex].inport, &linkSpeed);
-
+        rte_eth_link_get_nowait(portMap[portIndex].inport, &linkSpeed);
+        //rte_eth_link_get(portMap[portIndex].inport, &linkSpeed);
         if ((portSpeed10 | portSpeed100) &&
+        #if RTE_VER_RELEASE < 16
             ((linkSpeed.link_speed == ETH_LINK_SPEED_10) ||
-             (linkSpeed.link_speed == ETH_LINK_SPEED_100)) )
+             (linkSpeed.link_speed == ETH_LINK_SPEED_100)) 
+        #else
+            ((linkSpeed.link_speed == ETH_SPEED_NUM_10M) ||
+             (linkSpeed.link_speed == ETH_SPEED_NUM_100M)) 
+        #endif
+           )
         {
             portIndexBmp_10_100 =  portIndexBmp_10_100 | (1 << reqCores);
         }
         else if ((portSpeed10000) &&
-                 (linkSpeed.link_speed == ETH_LINK_SPEED_10G))
+        #if RTE_VER_RELEASE < 16
+                 (linkSpeed.link_speed == ETH_LINK_SPEED_10G)
+        #else
+                 (linkSpeed.link_speed == ETH_SPEED_NUM_10G)
+        #endif
+                )
         {
             portIndexBmp_10000 =  portIndexBmp_10000 | (1 << reqCores);
         }
         else if ((portSpeed1000) &&
-                 (linkSpeed.link_speed == ETH_LINK_SPEED_1000))
+        #if RTE_VER_RELEASE < 16
+                 (linkSpeed.link_speed == ETH_LINK_SPEED_1000)
+        #else
+                 (linkSpeed.link_speed == ETH_SPEED_NUM_1G)
+        #endif
+                )
         {
             portIndexBmp_1000 =  portIndexBmp_1000 | (1 << reqCores);
         }
         else
         {
-            SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED, "Unknown speed for %u", reqCores);
+            SCLogError(SC_ERR_DPDKINTEL_CONFIG_FAILED, "Unknown speed %d for Intf %u", linkSpeed.link_speed, portMap[portIndex].inport);
             exit(EXIT_FAILURE);
         }
     }
@@ -1462,36 +1477,30 @@ int32_t launchDpdkFrameParser(void)
 
         SCLogNotice("DPDK Started in IPS Mode!!!");
     }
-#if 0
     else if (DPDKINTEL_GENCFG.OpMode == IDS) {
         if (portIndexBmp_10_100)
-            rte_eal_remote_launch(ReceiveDpdkPkts_IDS_10_100, 
-                                  &portIndexBmp_10_100, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_IDS, 
+                                  &portIndexBmp_10_100, getCpuIndex());
         if (portIndexBmp_1000)
-            rte_eal_remote_launch(ReceiveDpdkPkts_IDS_1000, 
-                                  /* port pair */NULL, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_IDS, 
+                                  &portIndexBmp_1000, getCpuIndex());
         if (portIndexBmp_10000)
-            rte_eal_remote_launch(ReceiveDpdkPkts_IDS_10000, 
-                                  &portIndexBmp_10000, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_IDS, 
+                                  &portIndexBmp_10000, getCpuIndex());
         SCLogNotice("DPDK Started in IDS Mode!!!");
-
-        rte_eal_remote_launch(ReceiveDpdkPkts_IDS, NULL, cpuIndex);
     }
     else if (DPDKINTEL_GENCFG.OpMode == BYPASS) {
         if (portIndexBmp_10_100)
-            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS_10_100, 
-                                  portIndexBmp_10_100, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS, 
+                                  &portIndexBmp_10_100, getCpuIndex());
         if (portIndexBmp_1000)
-            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS_1000, 
-                                  /* port pair */, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS, 
+                                  &portIndexBmp_1000, getCpuIndex());
         if (portIndexBmp_10000)
-            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS_10000, 
-                                  portIndexBmp_10000, cpuIndex);
+            rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS, 
+                                  &portIndexBmp_10000, getCpuIndex());
         SCLogNotice("DPDK Started in BYPASS Mode!!!");
-
-        rte_eal_remote_launch(ReceiveDpdkPkts_BYPASS, NULL, cpuIndex);
     }
-#endif
     return 0;
 }
 
