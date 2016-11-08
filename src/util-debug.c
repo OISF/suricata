@@ -689,7 +689,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
     iface_ctx->iface = SC_LOG_OP_IFACE_FILE;
     iface_ctx->type = type;
 
-    if ( (iface_ctx->file_d = fopen(file, "w+")) == NULL) {
+    if ( (iface_ctx->file_d = fopen(file, "a")) == NULL) {
         printf("Error opening file %s\n", file);
         goto error;
     }
