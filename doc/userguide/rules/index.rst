@@ -22,3 +22,4 @@ Suricata Rules
    rule-lua-scripting
    normalized-buffers
    snort-compatibility
+   suri-rule-guide-for-the-snort-expert
