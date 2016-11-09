@@ -59,7 +59,7 @@ void DetectTtlRegister(void)
 {
     sigmatch_table[DETECT_TTL].name = "ttl";
     sigmatch_table[DETECT_TTL].desc = "check for a specific IP time-to-live value";
-    sigmatch_table[DETECT_TTL].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ttl";
+    sigmatch_table[DETECT_TTL].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ttl";
     sigmatch_table[DETECT_TTL].Match = DetectTtlMatch;
     sigmatch_table[DETECT_TTL].Setup = DetectTtlSetup;
     sigmatch_table[DETECT_TTL].Free = DetectTtlFree;

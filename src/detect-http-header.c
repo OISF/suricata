@@ -71,7 +71,7 @@ void DetectHttpHeaderRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].desc = "content modifier to match only on the HTTP header-buffer";
-    sigmatch_table[DETECT_AL_HTTP_HEADER].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_header";
+    sigmatch_table[DETECT_AL_HTTP_HEADER].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_HEADER].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;

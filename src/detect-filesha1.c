@@ -67,7 +67,7 @@ void DetectFileSha1Register(void)
 {
     sigmatch_table[DETECT_FILESHA1].name = "filesha1";
     sigmatch_table[DETECT_FILESHA1].desc = "match file SHA-1 against list of SHA-1 checksums";
-    sigmatch_table[DETECT_FILESHA1].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filesha1";
+    sigmatch_table[DETECT_FILESHA1].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filesha1";
     sigmatch_table[DETECT_FILESHA1].FileMatch = DetectFileHashMatch;
     sigmatch_table[DETECT_FILESHA1].Setup = DetectFileSha1Setup;
     sigmatch_table[DETECT_FILESHA1].Free  = DetectFileHashFree;

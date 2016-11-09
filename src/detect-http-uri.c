@@ -66,7 +66,7 @@ void DetectHttpUriRegister (void)
 {
     sigmatch_table[DETECT_AL_HTTP_URI].name = "http_uri";
     sigmatch_table[DETECT_AL_HTTP_URI].desc = "content modifier to match specifically and only on the HTTP uri-buffer";
-    sigmatch_table[DETECT_AL_HTTP_URI].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_uri-and-http_raw_uri";
+    sigmatch_table[DETECT_AL_HTTP_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
     sigmatch_table[DETECT_AL_HTTP_URI].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_URI].Setup = DetectHttpUriSetup;

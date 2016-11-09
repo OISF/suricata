@@ -95,7 +95,7 @@ void DetectTlsRegister (void)
 {
     sigmatch_table[DETECT_AL_TLS_SUBJECT].name = "tls.subject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].desc = "match TLS/SSL certificate Subject field";
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlssubject";
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlssubject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerMatch = DetectTlsSubjectMatch;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
@@ -104,7 +104,7 @@ void DetectTlsRegister (void)
 
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsissuerdn";
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsissuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerMatch = DetectTlsIssuerDNMatch;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
@@ -113,7 +113,7 @@ void DetectTlsRegister (void)
 
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsfingerprint";
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsfingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerMatch = DetectTlsFingerprintMatch;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
@@ -122,7 +122,7 @@ void DetectTlsRegister (void)
 
     sigmatch_table[DETECT_AL_TLS_STORE].name = "tls.store";
     sigmatch_table[DETECT_AL_TLS_STORE].desc = "store TLS/SSL certificate on disk";
-    sigmatch_table[DETECT_AL_TLS_STORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsstore";
+    sigmatch_table[DETECT_AL_TLS_STORE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsstore";
     sigmatch_table[DETECT_AL_TLS_STORE].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].AppLayerMatch = DetectTlsStoreMatch;
     sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;

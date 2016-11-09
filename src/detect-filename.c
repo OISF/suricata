@@ -65,7 +65,7 @@ void DetectFilenameRegister(void)
 {
     sigmatch_table[DETECT_FILENAME].name = "filename";
     sigmatch_table[DETECT_FILENAME].desc = "match on the file name";
-    sigmatch_table[DETECT_FILENAME].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filename";
+    sigmatch_table[DETECT_FILENAME].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filename";
     sigmatch_table[DETECT_FILENAME].FileMatch = DetectFilenameMatch;
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;

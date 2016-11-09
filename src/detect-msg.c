@@ -40,7 +40,7 @@ void DetectMsgRegister (void)
 {
     sigmatch_table[DETECT_MSG].name = "msg";
     sigmatch_table[DETECT_MSG].desc = "information about the rule and the possible alert";
-    sigmatch_table[DETECT_MSG].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#msg-message";
+    sigmatch_table[DETECT_MSG].url = DOC_URL DOC_VERSION "/rules/meta.html#msg-message";
     sigmatch_table[DETECT_MSG].Match = NULL;
     sigmatch_table[DETECT_MSG].Setup = DetectMsgSetup;
     sigmatch_table[DETECT_MSG].Free = NULL;

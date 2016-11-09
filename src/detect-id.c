@@ -65,7 +65,7 @@ void DetectIdRegister (void)
 {
     sigmatch_table[DETECT_ID].name = "id";
     sigmatch_table[DETECT_ID].desc = "match on a specific IP ID value";
-    sigmatch_table[DETECT_ID].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#Id";
+    sigmatch_table[DETECT_ID].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#id";
     sigmatch_table[DETECT_ID].Match = DetectIdMatch;
     sigmatch_table[DETECT_ID].Setup = DetectIdSetup;
     sigmatch_table[DETECT_ID].Free  = DetectIdFree;

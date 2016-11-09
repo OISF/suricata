@@ -61,7 +61,7 @@ void DetectITypeRegister (void)
 {
     sigmatch_table[DETECT_ITYPE].name = "itype";
     sigmatch_table[DETECT_ITYPE].desc = "matching on a specific ICMP type";
-    sigmatch_table[DETECT_ITYPE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#itype";
+    sigmatch_table[DETECT_ITYPE].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#itype";
     sigmatch_table[DETECT_ITYPE].Match = DetectITypeMatch;
     sigmatch_table[DETECT_ITYPE].Setup = DetectITypeSetup;
     sigmatch_table[DETECT_ITYPE].Free = DetectITypeFree;

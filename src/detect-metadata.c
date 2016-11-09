@@ -35,7 +35,7 @@ void DetectMetadataRegister (void)
 {
     sigmatch_table[DETECT_METADATA].name = "metadata";
     sigmatch_table[DETECT_METADATA].desc = "ignored by suricata";
-    sigmatch_table[DETECT_METADATA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Metadata";
+    sigmatch_table[DETECT_METADATA].url = DOC_URL DOC_VERSION "/rules/meta.html#metadata";
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;

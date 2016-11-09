@@ -52,7 +52,7 @@ void DetectClasstypeRegister(void)
 {
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
     sigmatch_table[DETECT_CLASSTYPE].desc = "information about the classification of rules and alerts";
-    sigmatch_table[DETECT_CLASSTYPE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Classtype";
+    sigmatch_table[DETECT_CLASSTYPE].url = DOC_URL DOC_VERSION "/rules/meta.html#classtype";
     sigmatch_table[DETECT_CLASSTYPE].Match = NULL;
     sigmatch_table[DETECT_CLASSTYPE].Setup = DetectClasstypeSetup;
     sigmatch_table[DETECT_CLASSTYPE].Free  = NULL;

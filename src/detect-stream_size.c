@@ -57,7 +57,7 @@ void DetectStreamSizeRegister(void)
 {
     sigmatch_table[DETECT_STREAM_SIZE].name = "stream_size";
     sigmatch_table[DETECT_STREAM_SIZE].desc = "match on amount of bytes of a stream";
-    sigmatch_table[DETECT_STREAM_SIZE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Flow-keywords#stream_size";
+    sigmatch_table[DETECT_STREAM_SIZE].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#stream-size";
     sigmatch_table[DETECT_STREAM_SIZE].Match = DetectStreamSizeMatch;
     sigmatch_table[DETECT_STREAM_SIZE].Setup = DetectStreamSizeSetup;
     sigmatch_table[DETECT_STREAM_SIZE].Free = DetectStreamSizeFree;

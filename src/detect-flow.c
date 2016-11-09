@@ -64,7 +64,7 @@ void DetectFlowRegister (void)
 {
     sigmatch_table[DETECT_FLOW].name = "flow";
     sigmatch_table[DETECT_FLOW].desc = "match on direction and state of the flow";
-    sigmatch_table[DETECT_FLOW].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Flow-keywords#Flow";
+    sigmatch_table[DETECT_FLOW].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flow";
     sigmatch_table[DETECT_FLOW].Match = DetectFlowMatch;
     sigmatch_table[DETECT_FLOW].Setup = DetectFlowSetup;
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;

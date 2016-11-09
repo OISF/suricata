@@ -52,7 +52,7 @@ void DetectDistanceRegister(void)
 {
     sigmatch_table[DETECT_DISTANCE].name = "distance";
     sigmatch_table[DETECT_DISTANCE].desc = "indicates a relation between this content keyword and the content preceding it";
-    sigmatch_table[DETECT_DISTANCE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Distance";
+    sigmatch_table[DETECT_DISTANCE].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#distance";
     sigmatch_table[DETECT_DISTANCE].Match = NULL;
     sigmatch_table[DETECT_DISTANCE].Setup = DetectDistanceSetup;
     sigmatch_table[DETECT_DISTANCE].Free  = NULL;

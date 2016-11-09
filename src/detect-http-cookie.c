@@ -72,7 +72,7 @@ void DetectHttpCookieRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].desc = "content modifier to match only on the HTTP cookie-buffer";
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_cookie";
+    sigmatch_table[DETECT_AL_HTTP_COOKIE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;

@@ -88,7 +88,7 @@ void DetectPcreRegister (void)
 {
     sigmatch_table[DETECT_PCRE].name = "pcre";
     sigmatch_table[DETECT_PCRE].desc = "match on regular expression";
-    sigmatch_table[DETECT_PCRE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#Pcre-Perl-Compatible-Regular-Expressions";
+    sigmatch_table[DETECT_PCRE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#pcre-perl-compatible-regular-expressions";
     sigmatch_table[DETECT_PCRE].Match = NULL;
     sigmatch_table[DETECT_PCRE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
