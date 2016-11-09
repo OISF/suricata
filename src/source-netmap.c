@@ -619,7 +619,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
         if (ring_size > max_pending_packets) {
             SCLogError(SC_ERR_NETMAP_CREATE,
                        "Packet pool size (%" PRIuMAX ") must be greater or equal than %s ring size (%" PRIu16 "). "
-                       "Increase max_pending_packets option.",
+                       "Increase max-pending-packets option.",
                        max_pending_packets, aconf->iface_name, ring_size);
             goto error_dst;
         }
