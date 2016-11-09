@@ -72,7 +72,7 @@ void DetectFilestoreRegister(void)
 {
     sigmatch_table[DETECT_FILESTORE].name = "filestore";
     sigmatch_table[DETECT_FILESTORE].desc = "stores files to disk if the rule matched";
-    sigmatch_table[DETECT_FILESTORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filestore";
+    sigmatch_table[DETECT_FILESTORE].url = DOC_URL DOC_VERSION "/rules/file-keywords.html#filestore";
     sigmatch_table[DETECT_FILESTORE].FileMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
     sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;

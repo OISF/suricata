@@ -66,7 +66,7 @@ void DetectXbitsRegister (void)
 {
     sigmatch_table[DETECT_XBITS].name = "xbits";
     sigmatch_table[DETECT_XBITS].desc = "operate on bits";
-//    sigmatch_table[DETECT_XBITS].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Flow-keywords#Flowbits";
+//    sigmatch_table[DETECT_XBITS].url = DOC_URL DOC_VERSION "/rules/flow-keywords.html#flowbits";
     sigmatch_table[DETECT_XBITS].Match = DetectXbitMatch;
     sigmatch_table[DETECT_XBITS].Setup = DetectXbitSetup;
     sigmatch_table[DETECT_XBITS].Free  = DetectXbitFree;

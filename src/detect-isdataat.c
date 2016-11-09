@@ -66,7 +66,7 @@ void DetectIsdataatRegister(void)
 {
     sigmatch_table[DETECT_ISDATAAT].name = "isdataat";
     sigmatch_table[DETECT_ISDATAAT].desc = "check if there is still data at a specific part of the payload";
-    sigmatch_table[DETECT_ISDATAAT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Isadataat";
+    sigmatch_table[DETECT_ISDATAAT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#isadataat";
     /* match is handled in DetectEngineContentInspection() */
     sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;

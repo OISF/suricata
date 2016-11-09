@@ -65,7 +65,7 @@ void DetectHttpRawUriRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].name = "http_raw_uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].desc = "content modifier to match on HTTP uri";
-    sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_uri-and-http_raw_uri";
+    sigmatch_table[DETECT_AL_HTTP_RAW_URI].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_uri-and-http_raw-uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].Setup = DetectHttpRawUriSetup;

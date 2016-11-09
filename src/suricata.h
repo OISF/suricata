@@ -85,6 +85,14 @@
 #define DEFAULT_PID_BASENAME "suricata.pid"
 #define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
+#define DOC_URL "http://suricata.readthedocs.io/en/"
+
+#if defined RELEASE
+#define DOC_VERSION PROG_VER
+#else
+#define DOC_VERSION "latest"
+#endif
+
 /* runtime engine control flags */
 #define SURICATA_STOP    (1 << 0)   /**< gracefully stop the engine: process all
                                      outstanding packets first */

@@ -69,7 +69,7 @@ void DetectHttpClientBodyRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].name = "http_client_body";
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].desc = "content modifier to match only on HTTP request-body";
-    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_client_body";
+    sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_client-body";
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].Setup = DetectHttpClientBodySetup;

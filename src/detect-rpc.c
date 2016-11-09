@@ -60,7 +60,7 @@ void DetectRpcRegister (void)
 {
     sigmatch_table[DETECT_RPC].name = "rpc";
     sigmatch_table[DETECT_RPC].desc = "match RPC procedure numbers and RPC version";
-    sigmatch_table[DETECT_RPC].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#rpc";
+    sigmatch_table[DETECT_RPC].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#rpc";
     sigmatch_table[DETECT_RPC].Match = DetectRpcMatch;
     sigmatch_table[DETECT_RPC].Setup = DetectRpcSetup;
     sigmatch_table[DETECT_RPC].Free  = DetectRpcFree;

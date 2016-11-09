@@ -50,7 +50,7 @@ void DetectWithinRegister(void)
 {
     sigmatch_table[DETECT_WITHIN].name = "within";
     sigmatch_table[DETECT_WITHIN].desc = "indicate that this content match has to be within a certain distance of the previous content keyword match";
-    sigmatch_table[DETECT_WITHIN].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Within";
+    sigmatch_table[DETECT_WITHIN].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#within";
     sigmatch_table[DETECT_WITHIN].Match = NULL;
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
     sigmatch_table[DETECT_WITHIN].Free  = NULL;

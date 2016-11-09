@@ -55,7 +55,7 @@ void DetectAckRegister(void)
 {
     sigmatch_table[DETECT_ACK].name = "ack";
     sigmatch_table[DETECT_ACK].desc = "check for a specific TCP acknowledgement number";
-    sigmatch_table[DETECT_ACK].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ack";
+    sigmatch_table[DETECT_ACK].url = DOC_URL DOC_VERSION "/rules/header-keywords.html#ack";
     sigmatch_table[DETECT_ACK].Match = DetectAckMatch;
     sigmatch_table[DETECT_ACK].Setup = DetectAckSetup;
     sigmatch_table[DETECT_ACK].Free = DetectAckFree;

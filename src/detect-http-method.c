@@ -72,7 +72,7 @@ void DetectHttpMethodRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].desc = "content modifier to match only on the HTTP method-buffer";
-    sigmatch_table[DETECT_AL_HTTP_METHOD].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_method";
+    sigmatch_table[DETECT_AL_HTTP_METHOD].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http-method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;

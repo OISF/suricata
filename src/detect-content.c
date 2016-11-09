@@ -56,7 +56,7 @@ void DetectContentRegister (void)
 {
     sigmatch_table[DETECT_CONTENT].name = "content";
     sigmatch_table[DETECT_CONTENT].desc = "match on payload content";
-    sigmatch_table[DETECT_CONTENT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Content";
+    sigmatch_table[DETECT_CONTENT].url = DOC_URL DOC_VERSION "/rules/payload-keywords.html#content";
     sigmatch_table[DETECT_CONTENT].Match = NULL;
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;

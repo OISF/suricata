@@ -46,7 +46,7 @@ void DetectGidRegister (void)
 {
     sigmatch_table[DETECT_GID].name = "gid";
     sigmatch_table[DETECT_GID].desc = "give different groups of signatures another id value";
-    sigmatch_table[DETECT_GID].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Gid-group-id";
+    sigmatch_table[DETECT_GID].url = DOC_URL DOC_VERSION "/rules/meta.html#gid-group-id";
     sigmatch_table[DETECT_GID].Match = NULL;
     sigmatch_table[DETECT_GID].Setup = DetectGidSetup;
     sigmatch_table[DETECT_GID].Free  = NULL;
