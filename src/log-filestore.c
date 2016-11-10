@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2013 Open Information Security Foundation
+ * Copyright (C) 2016 Lockheed Martin Corporation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,6 +60,11 @@
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
+#ifdef HAVE_LIBHIREDIS
+#include "hiredis/hiredis.h"
+#endif
+#include <jansson.h>
+
 #define MODULE_NAME "LogFilestoreLog"
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
@@ -67,6 +73,7 @@ typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    redisContext *redis;
 } LogFilestoreLogThread;
 
 static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
@@ -298,7 +305,368 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     }
 }
 
-static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+/* TODO: Untested sample caching functions
+ * static int LogFilestoreRedisCacheCheck(redisContext *rc, const char *key)
+ * {
+ *     if (rc == NULL || key == NULL)
+ *     {
+ *         return -1;
+ *     }
+ * 
+ *     redisReply *reply = redisCommand(rc, "GET %s", key);
+ * 
+ *     if (reply == NULL)
+ *     {
+ *         printf("NULL REPLY!\n");
+ *         return -1;
+ *     }
+ * 
+ *     switch (reply->type)
+ *     {
+ *         case REDIS_REPLY_NIL:
+ *             return 0;
+ *         case REDIS_REPLY_ERROR:
+ *             printf("REDIS_REPLY_ERROR: %s\n", reply->str);
+ *             break;
+ *         case REDIS_REPLY_INTEGER:
+ *             printf("REDIS_REPLY_INTEGER: %lld\n", reply->integer);
+ *             break;
+ *         case REDIS_REPLY_STATUS:
+ *             printf("REDIS_REPLY_STATUS: %s\n", reply->str);
+ *             break;
+ *         default:
+ *             printf("Unknown Error Value: %d\n", reply->type);
+ *             break;
+ *     }
+ * 
+ *     return -1;
+ * }
+ * 
+ * 
+ * static int LogFilestoreRedisCacheAdd(redisContext *rc, const char *key)
+ * {
+ *     if (rc == NULL || key == NULL)
+ *     {
+ *         return -1;
+ *     }
+ * 
+ *     redisReply *reply = redisCommand(rc, "SET %s 1 EX 300", key);
+ * 
+ *     if (reply == NULL)
+ *     {
+ *         printf("NULL REPLY!\n");
+ *         return -1;
+ *     }
+ * 
+ *     switch (reply->type)
+ *     {
+ *         case REDIS_REPLY_NIL:
+ *             return 0;
+ *         case REDIS_REPLY_ERROR:
+ *             printf("REDIS_REPLY_ERROR: %s\n", reply->str);
+ *             break;
+ *         case REDIS_REPLY_INTEGER:
+ *             printf("REDIS_REPLY_INTEGER: %lld\n", reply->integer);
+ *             break;
+ *         case REDIS_REPLY_STATUS:
+ *             printf("REDIS_REPLY_STATUS: %s\n", reply->str);
+ *             break;
+ *         default:
+ *             printf("Unknown Error Value: %d\n", reply->type);
+ *             break;
+ *     }
+ * 
+ *     return -1;
+ * }
+ */
+
+static inline void *LogFilestoreLoggerBuildRawHeaders(const void *header_raw, 
+        const size_t header_raw_len, const bstr *header_line)
+{
+    if (header_raw == NULL || header_line == NULL)
+    {
+        return NULL;
+    }
+
+    char *raw_c = bstr_util_memdup_to_c(header_raw, header_raw_len);
+    char *line_c = bstr_util_strdup_to_c(header_line);
+    
+    /* Add 3 for CRLF + NULL terminate */
+    size_t mem_size = (size_t)header_raw_len + strlen(line_c) + 3;
+    char *full_header = (char *)SCMalloc(mem_size);
+
+    snprintf(full_header, mem_size, "%s\r\n%s", line_c, raw_c);
+
+    SCFree(raw_c);
+    SCFree(line_c);
+
+    return full_header;
+}
+
+static inline int LogFilestoreLoggerAddBstrToJSON(const char *ckey, const bstr *val, json_t *js)
+{
+    char *cval = bstr_util_strdup_to_c(val);
+    if (cval != NULL)
+    {
+        json_object_set_new(js, ckey, json_string(cval));
+        SCFree(cval);
+    }
+    return 0;
+}
+
+static inline int LogFilestoreLoggerBuildParsedHdrJSON(const htp_table_t *h, json_t *js)
+{
+    bstr *key;
+    htp_header_t *val;
+    char *ckey, *cval;
+    size_t n = htp_table_size(h);
+
+    for (size_t i = 0; i < n; i++)
+    {
+        /* TODO modify libHTP to allow for iteration over table values */
+        val = htp_table_get_index(h, i, &key);
+        ckey = bstr_util_strdup_to_c(key);
+        cval = bstr_util_strdup_to_c(val->value);
+        json_object_set_new(js, ckey, json_string(cval));
+        SCFree(ckey);
+        SCFree(cval);
+    }
+
+    return 0;
+}
+
+static int LogFilestoreLoggerGetMetadataJSON(const Packet *p, const File *ff, json_t *js)
+{
+    SCEnter();
+
+    char srcip[46], dstip[46];
+    HtpTxUserData *tx_ud;
+    htp_tx_t *tx;
+
+    char *http_dir = "response";
+    srcip[0] = '\0';
+    dstip[0] = '\0';
+
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL)
+    {
+        tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
+        if (tx != NULL)
+        {
+            json_t *req_js = json_object();
+            json_t *res_js = json_object();
+
+            /* build parsed request headers in JSON */
+            LogFilestoreLoggerBuildParsedHdrJSON(tx->request_headers, req_js);
+            LogFilestoreLoggerAddBstrToJSON("type", tx->request_method, req_js);
+            LogFilestoreLoggerAddBstrToJSON("request", tx->request_uri, req_js);
+            LogFilestoreLoggerAddBstrToJSON("protocol", tx->request_protocol, req_js);
+
+            /* build parsed response headers in JSON */
+            LogFilestoreLoggerBuildParsedHdrJSON(tx->response_headers, res_js);
+            LogFilestoreLoggerAddBstrToJSON("code", tx->response_status, res_js);
+            LogFilestoreLoggerAddBstrToJSON("message", tx->response_message, res_js);
+            LogFilestoreLoggerAddBstrToJSON("protocol", tx->response_protocol, res_js);
+
+            /* set HTTP direction to indicate if extracted file is from request or response */
+            if (p->flowflags & FLOW_PKT_TOSERVER)
+            {
+                http_dir = "request";
+            }
+
+            tx_ud = htp_tx_get_user_data(tx);
+
+            if (tx_ud != NULL)
+            {
+                /* obtain full raw request headers */
+                char *raw = LogFilestoreLoggerBuildRawHeaders((void *)tx_ud->request_headers_raw,
+                        (size_t)tx_ud->request_headers_raw_len,
+                        tx->request_line);
+                if (raw != NULL)
+                {
+                    json_object_set_new(req_js, "raw", json_string(raw));
+                    SCFree(raw);
+                }
+
+                /* obtain full raw response headers */
+                raw = LogFilestoreLoggerBuildRawHeaders((void *)tx_ud->response_headers_raw,
+                        (size_t)tx_ud->response_headers_raw_len,
+                        tx->response_line);
+                if (raw != NULL)
+                {
+                    json_object_set_new(res_js, "raw", json_string(raw));
+                    SCFree(raw);
+                }
+            }
+            json_object_set_new(js, "http_request", req_js);
+            json_object_set_new(js, "http_response", res_js);
+        }
+    }
+
+    /* obtain source and destination IPs */
+    if (PKT_IS_IPV4(p))
+    {
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    }
+    else if (PKT_IS_IPV6(p))
+    {
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    }
+    else
+    {
+        strlcpy(srcip, "", sizeof(srcip));
+        strlcpy(dstip, "", sizeof(dstip));
+    }
+
+    /* add IPs, ports, and direction to JSON metadata structure */
+    json_object_set_new(js, "saddr", json_string(srcip));
+    json_object_set_new(js, "daddr", json_string(dstip));
+    json_object_set_new(js, "sport", json_integer(p->sp));
+    json_object_set_new(js, "dport", json_integer(p->dp));
+    json_object_set_new(js, "http_direction", json_string(http_dir));
+
+    return 0;
+}
+
+static int LogFilestoreLoggerRedis(ThreadVars *tv, void *thread_data, const Packet *p,
+        const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+    if (data == NULL || data_len == 0)
+    {
+        return 0;
+    }
+
+    /* TODO
+     * Modify this to work for more than HTTP for acquiring metadata - (TLS Certs and SMTP)
+     * Also - decide how to handle truncated files - hashing currently 
+     * not supported for truncated files
+     */
+    if (p->flow->alproto != ALPROTO_HTTP)
+    {
+        SCLogInfo("FileStore Redis - Skipping Non-HTTP source");
+        return -1;
+    }
+    if (ff->state != FILE_STATE_CLOSED)
+    {
+        SCLogInfo("FileStore Redis - Skipping truncated file");
+        return 0;
+    }
+
+    char digest[512];
+    char prefix_digest[512];
+
+    json_t *js = json_object();
+
+    LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
+    redisContext *rc = aft->redis;
+
+    LogFilestoreLoggerGetMetadataJSON(p, ff, js);
+
+    size_t x;
+    for (x = 0; x < sizeof(ff->md5); x++)
+    {
+        snprintf(&digest[x*2], 3, "%02x", ff->md5[x]);
+    }
+    digest[x*2] = '\0';
+
+    /* TODO Make prefix optional if caching is enabled (see sample functions
+     * commented out above).
+     * TODO Create an additional key prefix that is configurable to distinguish
+     * keys within Redis as belonging to Suricata
+     */
+    snprintf(prefix_digest, 512, "%d_%s", ff->file_id, digest);
+
+    char *js_out = json_dumps(js, 0);
+    redisReply *reply = redisCommand(rc, "SET %s%s %s EX %d", prefix_digest, "_meta", js_out, 300);
+    SCFree(js_out);
+
+    if (reply == NULL)
+    {
+        SCLogInfo("Null redisReply object - FileStore Meta");
+        return 0;
+    }
+ 
+    switch (reply->type)
+    {
+        case REDIS_REPLY_NIL:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore buffer: REDIS_REPLY_NIL");
+            break;
+        case REDIS_REPLY_ERROR:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore buffer: Redis error: %s", reply->str);
+            break;
+        case REDIS_REPLY_STATUS:
+            SCLogDebug("Filestore buffer: REDIS_REPLY_STATUS: %s", reply->str);
+            break;
+        default:
+            SCLogWarning(SC_ERR_SOCKET, "Filestore buffer: Unkown Redis Error Value: %d", reply->type);
+            break;
+    }
+
+    reply = redisCommand(rc, "SET %s%s %b EX %d", prefix_digest, "_buf", data, data_len, 300);
+
+    if (reply == NULL)
+    {
+        SCLogInfo("Null redisReply object - FileStore Buffer");
+        return -1;
+    }
+ 
+    switch (reply->type)
+    {
+        case REDIS_REPLY_NIL:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Meta: REDIS_REPLY_NIL");
+            break;
+        case REDIS_REPLY_ERROR:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Meta: Redis error: %s", reply->str);
+            break;
+        case REDIS_REPLY_STATUS:
+            SCLogDebug("FileStore Meta: REDIS_REPLY_STATUS: %s", reply->str);
+            break;
+        default:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Meta: Unkown Redis Error Value: %d", reply->type);
+            break;
+    }
+
+    freeReplyObject(reply);
+
+    /* Push digest onto Redis Queue */
+    reply = redisCommand(rc, "RPUSH %s %s", "suricata_queue", prefix_digest);
+
+    if (reply == NULL)
+    {
+        SCLogInfo("Null redisReply object - FileStore Queue");
+        return -1;
+    }
+ 
+    switch (reply->type)
+    {
+        case REDIS_REPLY_NIL:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Queue: REDIS_REPLY_NIL");
+            break;
+        case REDIS_REPLY_ERROR:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Queue: Redis error: %s", reply->str);
+            break;
+        case REDIS_REPLY_INTEGER:
+            SCLogDebug("FileStore Queue: REDIS_REPLY_INTEGER: %lld", reply->integer);
+            break;
+        default:
+            SCLogWarning(SC_ERR_SOCKET, "FileStore Queue: Unkown Redis Error Value: %d", reply->type);
+            break;
+    }
+
+    SCLogInfo("Pushed file to Redis queue: %d_%s\n", ff->file_id, digest);
+
+    freeReplyObject(reply);
+    json_object_clear(js);
+    json_decref(js);
+    aft->file_cnt++;
+
+    return 0;
+}
+
+static int LogFilestoreLoggerDisk(ThreadVars *tv, void *thread_data, const Packet *p,
         const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
@@ -360,6 +728,23 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     return 0;
 }
 
+static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+        const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    /* TODO 
+     * if-else design is solely for proof of concept - consider registering new
+     * FileDataModule for Redis to separate from disk file storage
+     */
+    if (FileStoreRedis())
+    {
+        return LogFilestoreLoggerRedis(tv, thread_data, p, ff, data, data_len, flags);
+    }
+    else
+    {
+        return LogFilestoreLoggerDisk(tv, thread_data, p, ff, data, data_len, flags);
+    }
+}
+
 static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     LogFilestoreLogThread *aft = SCMalloc(sizeof(LogFilestoreLogThread));
@@ -395,6 +780,19 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
         }
 
     }
+
+    /* BEGIN_PROTOTYPE */
+    /* TODO Figure out best place to open connection - make redis params configurable */
+    redisContext *c = redisConnect("127.0.0.1", 6379);
+    if (unlikely(c == NULL))
+    {
+        SCLogError(SC_ERR_SOCKET, "Error opening Redis connection");
+        return TM_ECODE_FAILED;
+    }
+
+    aft->redis = c;
+    SCLogNotice("Redis connection successful!!");
+    /* END_PROTOTYPE */
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -451,6 +849,14 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
     output_ctx->data = NULL;
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
+
+    const char *store_redis = NULL;
+    store_redis = ConfNodeLookupChildValue(conf, "store-redis");
+    if (store_redis != NULL && ConfValIsTrue(store_redis))
+    {
+        FileStoreRedisEnable();
+        SCLogInfo("storing files to redis instead of local filesystem");
+    }
 
     char *s_default_log_dir = NULL;
     s_default_log_dir = ConfigGetLogDirectory();

@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2014 Open Information Security Foundation
+ * Copyright (C) 2016 Lockheed Martin Corporation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -214,18 +215,41 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
             const uint8_t *data = NULL;
             uint32_t data_len = 0;
 
-            StreamingBufferGetDataAtOffset(ff->sb,
-                    &data, &data_len,
-                    ff->content_stored);
+            /* if storing to Redis, only store when file is closed */
+            //if (FileStoreRedis() && (flags & OUTPUT_FILEDATA_FLAG_CLOSE))
+            if (FileStoreRedis()) 
+            {
+                if(flags & OUTPUT_FILEDATA_FLAG_CLOSE)
+                {
+                    /* TODO Refactor this function */
+                    StreamingBufferGetDataAtOffset(ff->sb,
+                            &data, &data_len,
+                            0);
 
-            int file_logged = CallLoggers(tv, store, p, ff, data, data_len, flags);
-            if (file_logged) {
-                ff->content_stored += data_len;
+                    int file_logged = CallLoggers(tv, store, p, ff, data, data_len, flags);
+                    if (file_logged)
+                    {
+                        ff->content_stored += data_len;
+                        ff->flags |= FILE_STORED;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                StreamingBufferGetDataAtOffset(ff->sb,
+                        &data, &data_len,
+                        ff->content_stored);
 
-                /* all done */
-                if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-                    ff->flags |= FILE_STORED;
-                    break;
+                int file_logged = CallLoggers(tv, store, p, ff, data, data_len, flags);
+                if (file_logged) {
+                    ff->content_stored += data_len;
+
+                    /* all done */
+                    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+                        ff->flags |= FILE_STORED;
+                        break;
+                    }
                 }
             }
         }

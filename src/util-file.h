@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2011 Open Information Security Foundation
+ * Copyright (C) 2016 Lockheed Martin Corporation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -188,6 +189,8 @@ uint32_t FileReassemblyDepth(void);
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
+void FileStoreRedisEnable(void);
+int FileStoreRedis(void);
 
 void FileDisableMd5(Flow *f, uint8_t);
 void FileForceMd5Enable(void);

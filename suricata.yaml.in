@@ -406,6 +406,7 @@ outputs:
   # - rules that contain the "filestore" keyword.
   - file-store:
       enabled: no       # set to yes to enable
+      #store-redis: no  # enable to extract files and metadata to redis instead of disk
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
       # force logging of checksums, available hash functions are md5,

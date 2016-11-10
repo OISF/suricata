@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2012 Open Information Security Foundation
+ * Copyright (C) 2016 Lockheed Martin Corporation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,6 +42,11 @@
  *         regardless of the rules.
  */
 static int g_file_force_filestore = 0;
+
+/** \brief switch to store files to Redis instead
+ *         of disk.
+ */
+static int g_file_store_redis = 0;
 
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
@@ -88,6 +94,16 @@ void FileForceFilestoreEnable(void)
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
+}
+
+void FileStoreRedisEnable(void)
+{
+    g_file_store_redis = 1;
+}
+
+int FileStoreRedis(void)
+{
+    return g_file_store_redis;
 }
 
 void FileForceMd5Enable(void)
