@@ -165,10 +165,11 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
+#ifdef HAVE_MAGIC
             if (FileForceMagic() && ff->magic == NULL) {
                 FilemagicGlobalLookup(ff);
             }
-
+#endif
             SCLogDebug("ff %p", ff);
             if (ff->flags & FILE_STORED) {
                 SCLogDebug("stored flag set");

@@ -678,6 +678,9 @@ void SCPrintBuildInfo(void)
 #ifdef TLS
     strlcat(features, "TLS ", sizeof(features));
 #endif
+#ifdef HAVE_MAGIC
+    strlcat(features, "MAGIC ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -2388,10 +2391,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     HostInitConfig(HOST_VERBOSE);
-
+#ifdef HAVE_MAGIC
     if (MagicInit() != 0)
         SCReturnInt(TM_ECODE_FAILED);
-
+#endif
     SCAsn1LoadConfig();
 
     CoredumpLoadConfig();
@@ -2554,7 +2557,9 @@ int main(int argc, char **argv)
 
     if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
+#ifdef HAVE_MAGIC
         MagicDeinit();
+#endif
         exit(EXIT_SUCCESS);
     }
 
@@ -2743,7 +2748,9 @@ int main(int argc, char **argv)
         SCReferenceConfDeinit();
         SCClassConfDeinit();
     }
+#ifdef HAVE_MAGIC
     MagicDeinit();
+#endif
     TmqhCleanup();
     TmModuleRunDeInit();
     ParseSizeDeinit();

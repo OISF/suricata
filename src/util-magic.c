@@ -28,10 +28,11 @@
  */
 
 #include "suricata-common.h"
+
+#ifdef HAVE_MAGIC
 #include "conf.h"
 
 #include "util-unittest.h"
-#include <magic.h>
 
 static magic_t g_magic_ctx = NULL;
 static SCMutex g_magic_lock;
@@ -654,7 +655,7 @@ end:
 }
 
 #endif /* UNITTESTS */
-
+#endif
 
 void MagicRegisterTests(void)
 {

@@ -24,12 +24,12 @@
 #ifndef __UTIL_MAGIC_H__
 #define __UTIL_MAGIC_H__
 
-#include <magic.h>
-
+#ifdef HAVE_MAGIC
 int MagicInit(void);
 void MagicDeinit(void);
 char *MagicGlobalLookup(const uint8_t *, uint32_t);
 char *MagicThreadLookup(magic_t *, const uint8_t *, uint32_t);
+#endif
 void MagicRegisterTests(void);
 
 #endif /* __UTIL_MAGIC_H__ */

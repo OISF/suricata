@@ -1553,35 +1553,43 @@
     fi
 
   # libmagic
-    AC_ARG_WITH(libmagic_includes,
-            [  --with-libmagic-includes=DIR  libmagic include directory],
-            [with_libmagic_includes="$withval"],[with_libmagic_includes=no])
-    AC_ARG_WITH(libmagic_libraries,
-            [  --with-libmagic-libraries=DIR    libmagic library directory],
-            [with_libmagic_libraries="$withval"],[with_libmagic_libraries="no"])
+    enable_magic="no"
+    AC_ARG_ENABLE(libmagic,
+           AS_HELP_STRING([--enable-libmagic], [Enable libmagic support [default=yes]]),
+                        ,[enable_magic=yes])
+    if test "$enable_magic" = "yes"; then
+        AC_ARG_WITH(libmagic_includes,
+                [  --with-libmagic-includes=DIR  libmagic include directory],
+                [with_libmagic_includes="$withval"],[with_libmagic_includes=no])
+        AC_ARG_WITH(libmagic_libraries,
+                [  --with-libmagic-libraries=DIR    libmagic library directory],
+                [with_libmagic_libraries="$withval"],[with_libmagic_libraries="no"])
 
-    if test "$with_libmagic_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libmagic_includes}"
-    fi
+        if test "$with_libmagic_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libmagic_includes}"
+        fi
 
-    AC_CHECK_HEADER(magic.h,,[AC_ERROR(magic.h not found ...)])
+        AC_CHECK_HEADER(magic.h,,MAGIC="no")
+        if test "$MAGIC" != "no"; then
+            MAGIC=""
+            AC_CHECK_LIB(magic, magic_open,, MAGIC="no")
+        fi
 
-    if test "$with_libmagic_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libmagic_libraries}"
-    fi
-
-    MAGIC=""
-    AC_CHECK_LIB(magic, magic_open,, MAGIC="no")
-
-    if test "$MAGIC" = "no"; then
-        echo
-        echo "   ERROR!  magic library not found, go get it"
-        echo "   from http://www.darwinsys.com/file/ or your distribution:"
-        echo
-        echo "   Ubuntu: apt-get install libmagic-dev"
-        echo "   Fedora: yum install file-devel"
-        echo
-        exit 1
+        if test "x$MAGIC" != "xno"; then
+            if test "$with_libmagic_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_libmagic_libraries}"
+            fi
+            AC_DEFINE([HAVE_MAGIC],[1],(Libmagic for file handling))
+        else
+            echo
+            echo "   WARNING!  magic library not found, go get it"
+            echo "   from http://www.darwinsys.com/file/ or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libmagic-dev"
+            echo "   Fedora: yum install file-devel"
+            echo
+            enable_magic="no"
+        fi
     fi
 
   # Napatech - Using the 3GD API
@@ -1986,6 +1994,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Unix socket enabled:                     ${enable_unixsocket}
   Detection enabled:                       ${enable_detection}
 
+  Libmagic support:                        ${enable_magic}
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}

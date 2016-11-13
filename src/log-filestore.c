@@ -247,9 +247,10 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "a");
     if (fp != NULL) {
+#ifdef HAVE_MAGIC
         fprintf(fp, "MAGIC:             %s\n",
                 ff->magic ? ff->magic : "<unknown>");
-
+#endif
         switch (ff->state) {
             case FILE_STATE_CLOSED:
                 fprintf(fp, "STATE:             CLOSED\n");
