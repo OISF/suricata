@@ -119,8 +119,10 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_object_set_new(fjs, "filename", json_string(s));
     if (s != NULL)
         SCFree(s);
+#ifdef HAVE_MAGIC
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
+#endif
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             json_object_set_new(fjs, "state", json_string("CLOSED"));

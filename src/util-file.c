@@ -286,7 +286,7 @@ uint64_t FileSize(const File *file)
 static int FilePruneFile(File *file)
 {
     SCEnter();
-
+#ifdef HAVE_MAGIC
     if (!(file->flags & FILE_NOMAGIC)) {
         /* need magic but haven't set it yet, bail out */
         if (file->magic == NULL)
@@ -296,7 +296,7 @@ static int FilePruneFile(File *file)
     } else {
         SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
-
+#endif
     uint64_t left_edge = file->content_stored;
     if (file->flags & FILE_NOSTORE) {
         left_edge = FileSize(file);
@@ -443,11 +443,11 @@ static void FileFree(File *ff)
 
     if (ff->name != NULL)
         SCFree(ff->name);
-
+#ifdef HAVE_MAGIC
     /* magic returned by libmagic is strdup'd by MagicLookup. */
     if (ff->magic != NULL)
         SCFree(ff->magic);
-
+#endif
     if (ff->sb != NULL) {
         StreamingBufferFree(ff->sb);
     }

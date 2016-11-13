@@ -67,7 +67,9 @@ typedef struct File_ {
     uint64_t txid;                  /**< tx this file is part of */
     uint32_t file_id;
     uint8_t *name;
+#ifdef HAVE_MAGIC
     char *magic;
+#endif
     struct File_ *next;
 #ifdef HAVE_NSS
     HASHContext *md5_ctx;

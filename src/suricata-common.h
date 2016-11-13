@@ -225,6 +225,10 @@
 #endif
 #endif
 
+#ifdef HAVE_MAGIC
+#include <magic.h>
+#endif
+
 #if CPPCHECK==1
 #define BUG_ON(x) if (((x))) exit(1)
 #else

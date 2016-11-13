@@ -533,6 +533,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
  */
 void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
+#ifdef HAVE_MAGIC
     Signature *s = NULL;
     uint32_t sig = 0;
 
@@ -549,7 +550,7 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             break;
         }
     }
-
+#endif
     return;
 }
 

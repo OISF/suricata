@@ -269,7 +269,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
     fprintf(fp, "\"filename\": \"");
     PrintRawJsonFp(fp, ff->name, ff->name_len);
     fprintf(fp, "\", ");
-
+#ifdef HAVE_MAGIC
     fprintf(fp, "\"magic\": \"");
     if (ff->magic) {
         PrintRawJsonFp(fp, (uint8_t *)ff->magic, strlen(ff->magic));
@@ -277,7 +277,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
         fprintf(fp, "unknown");
     }
     fprintf(fp, "\", ");
-
+#endif
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             fprintf(fp, "\"state\": \"CLOSED\", ");

@@ -953,7 +953,7 @@ DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t d
     if (sgh == NULL || sgh->filestore_cnt == 0) {
         FileDisableStoring(pflow, direction);
     }
-
+#ifdef HAVE_MAGIC
     /* see if this sgh requires us to consider file magic */
     if (!FileForceMagic() && (sgh == NULL ||
                 !(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
@@ -961,7 +961,7 @@ DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t d
         SCLogDebug("disabling magic for flow");
         FileDisableMagic(pflow, direction);
     }
-
+#endif
     /* see if this sgh requires us to consider file md5 */
     if (!FileForceMd5() && (sgh == NULL ||
                 !(sgh->flags & SIG_GROUP_HEAD_HAVEFILEMD5)))
