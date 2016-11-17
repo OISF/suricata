@@ -2188,3 +2188,25 @@ unlimited.
       modbus:
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
+
+Advanced Options
+----------------
+
+luajit
+~~~~~~
+
+states
+^^^^^^
+
+Luajit has a strange memory requirement, it's 'states' need to be in the
+first 2G of the process' memory. For this reason when luajit is used the
+states are allocated at the process startup. This option controls how many
+states are preallocated.
+
+If the pool is depleted a warning is generated. Suricata will still try to
+continue, but may fail if other parts of the engine take too much memory.
+If the pool was depleted a hint will be printed at the engines exit.
+
+States are allocated as follows: for each detect script a state is used per
+detect thread. For each output script, a single state is used. Keep in
+mind that a rule reload temporary doubles the states requirement.
