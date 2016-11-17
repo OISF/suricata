@@ -378,6 +378,7 @@ util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-lua.c util-lua.h \
+util-luajit.c util-luajit.h \
 util-lua-common.c util-lua-common.h \
 util-lua-dnp3.c util-lua-dnp3.h \
 util-lua-dnp3-objects.c util-lua-dnp3-objects.h \

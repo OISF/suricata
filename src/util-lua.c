@@ -56,6 +56,28 @@
 
 #include "util-lua.h"
 
+lua_State *LuaGetState(void)
+{
+    lua_State *s = NULL;
+#ifdef HAVE_LUAJIT
+    s = LuajitGetState();
+#else
+    s = luaL_newstate();
+#endif
+    return s;
+}
+
+void LuaReturnState(lua_State *s)
+{
+    if (s != NULL) {
+#ifdef HAVE_LUAJIT
+        LuajitReturnState(s);
+#else
+        lua_close(s);
+#endif
+    }
+}
+
 /* key for tv (threadvars) pointer */
 const char lua_ext_key_tv[] = "suricata:lua:tv:ptr";
 /* key for tx pointer */
