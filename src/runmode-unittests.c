@@ -121,6 +121,7 @@
 #include "detect-engine-siggroup.h"
 
 #include "util-streaming-buffer.h"
+#include "util-lua.h"
 
 #endif /* UNITTESTS */
 
@@ -143,6 +144,11 @@ void RunUnittests(int list_unittests, char *regex_arg)
     GlobalInits();
     TimeInit();
     SupportFastPatternForSigMatchTypes();
+#ifdef HAVE_LUAJIT
+    if (LuajitSetupStatesPool() != 0) {
+        exit(EXIT_FAILURE);
+    }
+#endif
 
     default_packet_size = DEFAULT_PACKET_SIZE;
 #ifdef __SC_CUDA_SUPPORT__
@@ -309,6 +315,9 @@ void RunUnittests(int list_unittests, char *regex_arg)
         }
     }
 
+#ifdef HAVE_LUAJIT
+    LuajitFreeStatesPool();
+#endif
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
 #endif

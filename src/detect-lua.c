@@ -85,26 +85,6 @@ void DetectLuaRegister(void)
 
 #else /* HAVE_LUA */
 
-#ifdef HAVE_LUAJIT
-#include "util-pool.h"
-
-/** \brief lua_State pool
- *
- *  Lua requires states to be alloc'd in memory <2GB. For this reason we
- *  prealloc the states early during engine startup so we have a better chance
- *  of getting the states. We protect the pool with a lock as the detect
- *  threads access it during their init and cleanup.
- *
- *  Pool size is automagically determined based on number of keyword occurences,
- *  cpus/cores and rule reloads being enabled or not.
- *
- *  Alternatively, the "detect-engine.luajit-states" var can be set.
- */
-static Pool *luajit_states = NULL;
-static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
-
-#endif /* HAVE_LUAJIT */
-
 #include "util-lua.h"
 
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
@@ -169,94 +149,6 @@ void DetectLuaRegister(void)
 #define DATATYPE_SMTP                       (1<<20)
 
 #define DATATYPE_DNP3                       (1<<20)
-
-#ifdef HAVE_LUAJIT
-static void *LuaStatePoolAlloc(void)
-{
-    return luaL_newstate();
-}
-
-static void LuaStatePoolFree(void *d)
-{
-    lua_State *s = (lua_State *)d;
-    if (s != NULL)
-        lua_close(s);
-}
-
-/** \brief Populate lua states pool
- *
- *  \param num keyword instances
- *  \param reloads bool indicating we have rule reloads enabled
- */
-int DetectLuajitSetupStatesPool(int num, int reloads)
-{
-    int retval = 0;
-    pthread_mutex_lock(&luajit_states_lock);
-
-    if (luajit_states == NULL) {
-        intmax_t cnt = 0;
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "luajit-states") == 0) {
-                    ConfGetChildValueInt(denode, "luajit-states", &cnt);
-                }
-            }
-        }
-
-        if (cnt == 0) {
-            int cpus = UtilCpuGetNumProcessorsOnline();
-            if (cpus == 0) {
-                cpus = 10;
-            }
-            cnt = num * cpus;
-            cnt *= 3; /* assume 3 threads per core */
-
-            /* alloc a bunch extra so reload can add new rules/instances */
-            if (reloads)
-                cnt *= 5;
-        }
-
-        luajit_states = PoolInit(0, cnt, 0, LuaStatePoolAlloc, NULL, NULL, NULL, LuaStatePoolFree);
-        if (luajit_states == NULL) {
-            SCLogError(SC_ERR_LUA_ERROR, "luastate pool init failed, lua/luajit keywords won't work");
-            retval = -1;
-        }
-    }
-
-    pthread_mutex_unlock(&luajit_states_lock);
-    return retval;
-}
-#endif /* HAVE_LUAJIT */
-
-static lua_State *DetectLuaGetState(void)
-{
-
-    lua_State *s = NULL;
-#ifdef HAVE_LUAJIT
-    pthread_mutex_lock(&luajit_states_lock);
-    if (luajit_states != NULL)
-        s = (lua_State *)PoolGet(luajit_states);
-    pthread_mutex_unlock(&luajit_states_lock);
-#else
-    s = luaL_newstate();
-#endif
-    return s;
-}
-
-static void DetectLuaReturnState(lua_State *s)
-{
-    if (s != NULL) {
-#ifdef HAVE_LUAJIT
-        pthread_mutex_lock(&luajit_states_lock);
-        PoolReturn(luajit_states, (void *)s);
-        pthread_mutex_unlock(&luajit_states_lock);
-#else
-        lua_close(s);
-#endif
-    }
-}
 
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state)
@@ -691,7 +583,7 @@ static void *DetectLuaThreadInit(void *data)
     t->alproto = luajit->alproto;
     t->flags = luajit->flags;
 
-    t->luastate = DetectLuaGetState();
+    t->luastate = LuaGetState();
     if (t->luastate == NULL) {
         SCLogError(SC_ERR_LUA_ERROR, "luastate pool depleted");
         goto error;
@@ -737,7 +629,7 @@ static void *DetectLuaThreadInit(void *data)
 
 error:
     if (t->luastate != NULL)
-        DetectLuaReturnState(t->luastate);
+        LuaReturnState(t->luastate);
     SCFree(t);
     return NULL;
 }
@@ -747,7 +639,7 @@ static void DetectLuaThreadFree(void *ctx)
     if (ctx != NULL) {
         DetectLuaThreadData *t = (DetectLuaThreadData *)ctx;
         if (t->luastate != NULL)
-            DetectLuaReturnState(t->luastate);
+            LuaReturnState(t->luastate);
         SCFree(t);
     }
 }

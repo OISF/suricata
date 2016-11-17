@@ -521,7 +521,7 @@ typedef struct LogLuaScriptOptions_ {
 static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     int status;
 
-    lua_State *luastate = luaL_newstate();
+    lua_State *luastate = LuaGetState();
     if (luastate == NULL)
         goto error;
     luaL_openlibs(luastate);
@@ -649,11 +649,11 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
 
     /* pop the table */
     lua_pop(luastate, 1);
-    lua_close(luastate);
+    LuaReturnState(luastate);
     return 0;
 error:
     if (luastate)
-        lua_close(luastate);
+        LuaReturnState(luastate);
     return -1;
 }
 
@@ -665,7 +665,7 @@ error:
  */
 static lua_State *LuaScriptSetup(const char *filename)
 {
-    lua_State *luastate = luaL_newstate();
+    lua_State *luastate = LuaGetState();
     if (luastate == NULL) {
         SCLogError(SC_ERR_LUA_ERROR, "luaL_newstate failed");
         goto error;
@@ -720,7 +720,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     return luastate;
 error:
     if (luastate)
-        lua_close(luastate);
+        LuaReturnState(luastate);
     return NULL;
 }
 
@@ -941,7 +941,7 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'deinit' function: %s", lua_tostring(luastate, -1));
         return;
     }
-    lua_close(luastate);
+    LuaReturnState(luastate);
 }
 
 /** \internal

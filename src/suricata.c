@@ -170,6 +170,8 @@
 #include "util-storage.h"
 #include "host-storage.h"
 
+#include "util-lua.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -2221,6 +2223,13 @@ static int PostConfLoadedSetup(SCInstance *suri)
 {
     char *hostmode = NULL;
 
+    /* do this as early as possible #1577 #1955 */
+#ifdef HAVE_LUAJIT
+    if (LuajitSetupStatesPool() != 0) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+#endif
+
     /* load the pattern matchers */
     MpmTableSetup();
 #ifdef __SC_CUDA_SUPPORT__
@@ -2782,7 +2791,9 @@ int main(int argc, char **argv)
     CudaHandlerFreeProfiles();
 #endif
     ConfDeInit();
-
+#ifdef HAVE_LUAJIT
+    LuajitFreeStatesPool();
+#endif
     SCLogDeInitLogModule();
     DetectParseFreeRegexes();
     exit(engine_retval);

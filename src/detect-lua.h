@@ -26,10 +26,6 @@
 
 #ifdef HAVE_LUA
 
-#include <lua.h>
-#include <lualib.h>
-#include <lauxlib.h>
-
 typedef struct DetectLuaThreadData {
     lua_State *luastate;
     uint32_t flags;
@@ -62,10 +58,6 @@ void DetectLuaRegister (void);
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f);
-
-#ifdef HAVE_LUAJIT
-int DetectLuajitSetupStatesPool(int num, int reloads);
-#endif /* HAVE_LUAJIT */
 
 void DetectLuaPostSetup(Signature *s);
 

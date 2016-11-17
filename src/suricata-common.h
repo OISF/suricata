@@ -376,6 +376,12 @@ typedef enum {
 #include "util-path.h"
 #include "util-conf.h"
 
+#ifdef HAVE_LUA
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#endif
+
 #ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
 #endif

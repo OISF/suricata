@@ -26,11 +26,16 @@
 
 #ifdef HAVE_LUA
 
+#include "util-luajit.h"
+
 typedef struct LuaStreamingBuffer_ {
     const uint8_t *data;
     uint32_t data_len;
     uint8_t flags;
 } LuaStreamingBuffer;
+
+lua_State *LuaGetState(void);
+void LuaReturnState(lua_State *s);
 
 /* gets */
 
