@@ -792,6 +792,15 @@ SCRuleIds
 
   sid, rev, gid = SCRuleIds()
 
+SCRuleAction
+~~~~~~~~~~~~
+
+::
+
+  action = SCRuleAction()
+
+returns one of 'pass', 'reject', 'drop' or 'alert'
+
 SCRuleMsg
 ~~~~~~~~~
 
