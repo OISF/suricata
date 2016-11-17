@@ -582,6 +582,45 @@ static int LuaCallbackRuleIds(lua_State *luastate)
  *  \param pa pointer to packet alert struct
  *  \retval cnt number of data items placed on the stack
  *
+ *  Places: action (string)
+ */
+static int LuaCallbackRuleActionPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
+{
+    const char *action = "";
+    if (pa->s->action & ACTION_PASS) {
+        action = "pass";
+    } else if ((pa->s->action & ACTION_REJECT) ||
+               (pa->s->action & ACTION_REJECT_BOTH) ||
+               (pa->s->action & ACTION_REJECT_DST)) {
+        action = "reject";
+    } else if (pa->s->action & ACTION_DROP) {
+        action = "drop";
+    } else if (pa->s->action & ACTION_ALERT) {
+        action = "alert";
+    }
+    lua_pushstring (luastate, action);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting tuple info into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackRuleAction(lua_State *luastate)
+{
+    const PacketAlert *pa = LuaStateGetPacketAlert(luastate);
+    if (pa == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackRuleActionPushToStackFromPacketAlert(luastate, pa);
+}
+
+/** \internal
+ *  \brief fill lua stack with alert info
+ *  \param luastate the lua state
+ *  \param pa pointer to packet alert struct
+ *  \retval cnt number of data items placed on the stack
+ *
  *  Places: msg (string)
  */
 static int LuaCallbackRuleMsgPushToStackFromPacketAlert(lua_State *luastate, const PacketAlert *pa)
@@ -908,6 +947,8 @@ int LuaRegisterFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, LuaCallbackRuleIds);
     lua_setglobal(luastate, "SCRuleIds");
+    lua_pushcfunction(luastate, LuaCallbackRuleAction);
+    lua_setglobal(luastate, "SCRuleAction");
     lua_pushcfunction(luastate, LuaCallbackRuleMsg);
     lua_setglobal(luastate, "SCRuleMsg");
     lua_pushcfunction(luastate, LuaCallbackRuleClass);
