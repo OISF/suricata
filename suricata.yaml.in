@@ -1381,6 +1381,15 @@ threading:
   #
   detect-thread-ratio: 1.0
 
+# Luajit has a strange memory requirement, it's 'states' need to be in the
+# first 2G of the process' memory.
+#
+# 'luajit.states' is used to control how many states are preallocated.
+# State use: per detect script: 1 per detect thread. Per output script: 1 per
+# script.
+luajit:
+  states: 128
+
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
 #
