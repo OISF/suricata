@@ -727,8 +727,6 @@ typedef struct DetectEngineCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 
-    int detect_luajit_instances;
-
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
