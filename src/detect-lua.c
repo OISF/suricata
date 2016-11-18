@@ -1032,7 +1032,6 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
     }
 
-    de_ctx->detect_luajit_instances++;
     return 0;
 
 error:
