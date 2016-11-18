@@ -47,7 +47,14 @@ _build/latex/Suricata.pdf:
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -W -b latex -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/latex
-	cd _build/latex && $(MAKE) all-pdf
+# The Sphinx generated Makefile is GNU Make specific, so just do what
+# it does here - yes, multiple passes of pdflatex is required.
+	cd _build/latex && pdflatex Suricata.tex
+	cd _build/latex && pdflatex Suricata.tex
+	cd _build/latex && pdflatex Suricata.tex
+	cd _build/latex && makeindex -s python.ist Suricata.idx
+	cd _build/latex && pdflatex Suricata.tex
+	cd _build/latex && pdflatex Suricata.tex
 
 userguide.pdf: _build/latex/Suricata.pdf
 	cp _build/latex/Suricata.pdf userguide.pdf
