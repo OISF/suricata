@@ -139,10 +139,25 @@ EOF
 
 protoname="$1"
 
-if [ "${protoname}" = "" ]; then
-    usage
-    exit 1
-fi
+# Make sure the protocol name looks like a proper name (starts with a
+# capital letter).
+case "${protoname}" in
+
+    [[:upper:]]*)
+	# OK.
+	;;
+
+    "")
+	usage
+	exit 1
+	;;
+
+    *)
+	echo "error: protocol name must beging with an upper case letter"
+	exit 1
+	;;
+
+esac
 
 protoname_lower=$(printf ${protoname} | tr '[:upper:]' '[:lower:]')
 protoname_upper=$(printf ${protoname} | tr '[:lower:]' '[:upper:]')
