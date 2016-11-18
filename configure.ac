@@ -1893,6 +1893,13 @@
     AM_CONDITIONAL([HAVE_SPHINXBUILD], [test "x$enable_sphinxbuild" != "xno"])
     AM_CONDITIONAL([HAVE_SURICATA_MAN], [test "x$have_suricata_man" = "xyes"])
 
+# pdflatex for the pdf version of the user manual
+    AC_PATH_PROG(HAVE_PDFLATEX, pdflatex, "no")
+    if test "$HAVE_PDFLATEX" = "no"; then
+       enable_pdflatex=no
+    fi
+    AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
