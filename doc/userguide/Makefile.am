@@ -30,7 +30,9 @@ endif
 if HAVE_SPHINXBUILD
 man1_MANS = suricata.1
 
+if HAVE_PDFLATEX
 EXTRA_DIST += $(man1_MANS) userguide.pdf
+endif
 
 SPHINX_BUILD = sphinx-build -q
 
