@@ -68,7 +68,7 @@ static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
 }
 
 /**
- * \brief Registration function for keyword: luajit
+ * \brief Registration function for keyword: lua
  */
 void DetectLuaRegister(void)
 {
@@ -100,13 +100,13 @@ static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(void *);
 
 /**
- * \brief Registration function for keyword: luajit
+ * \brief Registration function for keyword: lua
  */
 void DetectLuaRegister(void)
 {
     sigmatch_table[DETECT_LUA].name = "lua";
     sigmatch_table[DETECT_LUA].alias = "luajit";
-    sigmatch_table[DETECT_LUA].desc = "match via a luajit script";
+    sigmatch_table[DETECT_LUA].desc = "match via a lua script";
     sigmatch_table[DETECT_LUA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerMatch = DetectLuaAppMatch;
@@ -115,7 +115,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 
-	SCLogDebug("registering luajit rule option");
+	SCLogDebug("registering lua rule option");
     return;
 }
 
@@ -185,7 +185,8 @@ void LuaDumpStack(lua_State *state)
     }
 }
 
-int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
+int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
+        Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f)
 {
@@ -195,53 +196,53 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
     if (buffer == NULL || buffer_len == 0)
         SCReturnInt(0);
 
-    DetectLuaData *luajit = (DetectLuaData *)sm->ctx;
-    if (luajit == NULL)
+    DetectLuaData *lua = (DetectLuaData *)sm->ctx;
+    if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tluajit = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
-    if (tluajit == NULL)
+    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    if (tlua == NULL)
         SCReturnInt(0);
 
-    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
             f, /* no packet in the ctx */NULL, 0);
 
     /* prepare data to pass to script */
-    lua_getglobal(tluajit->luastate, "match");
-    lua_newtable(tluajit->luastate); /* stack at -1 */
+    lua_getglobal(tlua->luastate, "match");
+    lua_newtable(tlua->luastate); /* stack at -1 */
 
-    lua_pushliteral (tluajit->luastate, "offset"); /* stack at -2 */
-    lua_pushnumber (tluajit->luastate, (int)(offset + 1));
-    lua_settable(tluajit->luastate, -3);
+    lua_pushliteral (tlua->luastate, "offset"); /* stack at -2 */
+    lua_pushnumber (tlua->luastate, (int)(offset + 1));
+    lua_settable(tlua->luastate, -3);
 
-    lua_pushstring (tluajit->luastate, luajit->buffername); /* stack at -2 */
-    LuaPushStringBuffer(tluajit->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
-    lua_settable(tluajit->luastate, -3);
+    lua_pushstring (tlua->luastate, lua->buffername); /* stack at -2 */
+    LuaPushStringBuffer(tlua->luastate, (const uint8_t *)buffer, (size_t)buffer_len);
+    lua_settable(tlua->luastate, -3);
 
-    int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
+    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
     if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
+        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
     }
 
     /* process returns from script */
-    if (lua_gettop(tluajit->luastate) > 0) {
+    if (lua_gettop(tlua->luastate) > 0) {
         /* script returns a number (return 1 or return 0) */
-        if (lua_type(tluajit->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tluajit->luastate, 1);
+        if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
+            double script_ret = lua_tonumber(tlua->luastate, 1);
             SCLogDebug("script_ret %f", script_ret);
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
 
             if (script_ret == 1.0)
                 ret = 1;
 
         /* script returns a table */
-        } else if (lua_type(tluajit->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tluajit->luastate);
+        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
+            lua_pushnil(tlua->luastate);
             const char *k, *v;
-            while (lua_next(tluajit->luastate, -2)) {
-                v = lua_tostring(tluajit->luastate, -1);
-                lua_pop(tluajit->luastate, 1);
-                k = lua_tostring(tluajit->luastate, -1);
+            while (lua_next(tlua->luastate, -2)) {
+                v = lua_tostring(tlua->luastate, -1);
+                lua_pop(tlua->luastate, 1);
+                k = lua_tostring(tlua->luastate, -1);
 
                 if (!k || !v)
                     continue;
@@ -257,18 +258,18 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
             }
 
             /* pop the table */
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
         }
     } else {
         SCLogDebug("no stack");
     }
 
     /* clear the stack */
-    while (lua_gettop(tluajit->luastate) > 0) {
-        lua_pop(tluajit->luastate, 1);
+    while (lua_gettop(tlua->luastate) > 0) {
+        lua_pop(tlua->luastate, 1);
     }
 
-    if (luajit->negated) {
+    if (lua->negated) {
         if (ret == 1)
             ret = 0;
         else
@@ -276,11 +277,10 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
     }
 
     SCReturnInt(ret);
-
 }
 
 /**
- * \brief match the specified luajit
+ * \brief match the specified lua script
  *
  * \param t thread local vars
  * \param det_ctx pattern matcher thread local data
@@ -296,12 +296,12 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     int ret = 0;
-    DetectLuaData *luajit = (DetectLuaData *)ctx;
-    if (luajit == NULL)
+    DetectLuaData *lua = (DetectLuaData *)ctx;
+    if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tluajit = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
-    if (tluajit == NULL)
+    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    if (tlua == NULL)
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
@@ -311,38 +311,38 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
-    LuaStateSetThreadVars(tluajit->luastate, tv);
+    LuaStateSetThreadVars(tlua->luastate, tv);
 
-    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
             p->flow, p, flags);
 
-    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
+    if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
-    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
+    if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p) == 0)
         SCReturnInt(0);
-    if (tluajit->alproto != ALPROTO_UNKNOWN) {
+    if (tlua->alproto != ALPROTO_UNKNOWN) {
         if (p->flow == NULL)
             SCReturnInt(0);
 
         AppProto alproto = p->flow->alproto;
-        if (tluajit->alproto != alproto)
+        if (tlua->alproto != alproto)
             SCReturnInt(0);
     }
 
-    lua_getglobal(tluajit->luastate, "match");
-    lua_newtable(tluajit->luastate); /* stack at -1 */
+    lua_getglobal(tlua->luastate, "match");
+    lua_newtable(tlua->luastate); /* stack at -1 */
 
-    if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len) {
-        lua_pushliteral(tluajit->luastate, "payload"); /* stack at -2 */
-        LuaPushStringBuffer (tluajit->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
-        lua_settable(tluajit->luastate, -3);
+    if ((tlua->flags & DATATYPE_PAYLOAD) && p->payload_len) {
+        lua_pushliteral(tlua->luastate, "payload"); /* stack at -2 */
+        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)p->payload, (size_t)p->payload_len); /* stack at -3 */
+        lua_settable(tlua->luastate, -3);
     }
-    if ((tluajit->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
-        lua_pushliteral(tluajit->luastate, "packet"); /* stack at -2 */
-        LuaPushStringBuffer (tluajit->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
-        lua_settable(tluajit->luastate, -3);
+    if ((tlua->flags & DATATYPE_PACKET) && GET_PKT_LEN(p)) {
+        lua_pushliteral(tlua->luastate, "packet"); /* stack at -2 */
+        LuaPushStringBuffer (tlua->luastate, (const uint8_t *)GET_PKT_DATA(p), (size_t)GET_PKT_LEN(p)); /* stack at -3 */
+        lua_settable(tlua->luastate, -3);
     }
-    if (tluajit->alproto == ALPROTO_HTTP) {
+    if (tlua->alproto == ALPROTO_HTTP) {
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
@@ -354,43 +354,43 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 if (tx == NULL)
                     continue;
 
-                if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
                     bstr_len(tx->request_line) > 0) {
-                    lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tluajit->luastate,
+                    lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
+                    LuaPushStringBuffer(tlua->luastate,
                                      (const uint8_t *)bstr_ptr(tx->request_line),
                                      bstr_len(tx->request_line));
-                    lua_settable(tluajit->luastate, -3);
+                    lua_settable(tlua->luastate, -3);
                 }
             }
         }
     }
 
-    int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
+    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
     if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
+        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
     }
 
     /* process returns from script */
-    if (lua_gettop(tluajit->luastate) > 0) {
+    if (lua_gettop(tlua->luastate) > 0) {
 
         /* script returns a number (return 1 or return 0) */
-        if (lua_type(tluajit->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tluajit->luastate, 1);
+        if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
+            double script_ret = lua_tonumber(tlua->luastate, 1);
             SCLogDebug("script_ret %f", script_ret);
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
 
             if (script_ret == 1.0)
                 ret = 1;
 
         /* script returns a table */
-        } else if (lua_type(tluajit->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tluajit->luastate);
+        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
+            lua_pushnil(tlua->luastate);
             const char *k, *v;
-            while (lua_next(tluajit->luastate, -2)) {
-                v = lua_tostring(tluajit->luastate, -1);
-                lua_pop(tluajit->luastate, 1);
-                k = lua_tostring(tluajit->luastate, -1);
+            while (lua_next(tlua->luastate, -2)) {
+                v = lua_tostring(tlua->luastate, -1);
+                lua_pop(tlua->luastate, 1);
+                k = lua_tostring(tlua->luastate, -1);
 
                 if (!k || !v)
                     continue;
@@ -406,14 +406,14 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             }
 
             /* pop the table */
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
         }
     }
-    while (lua_gettop(tluajit->luastate) > 0) {
-        lua_pop(tluajit->luastate, 1);
+    while (lua_gettop(tlua->luastate) > 0) {
+        lua_pop(tlua->luastate, 1);
     }
 
-    if (luajit->negated) {
+    if (lua->negated) {
         if (ret == 1)
             ret = 0;
         else
@@ -429,70 +429,70 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
 {
     SCEnter();
     int ret = 0;
-    DetectLuaData *luajit = (DetectLuaData *)ctx;
-    if (luajit == NULL)
+    DetectLuaData *lua = (DetectLuaData *)ctx;
+    if (lua == NULL)
         SCReturnInt(0);
 
-    DetectLuaThreadData *tluajit = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, luajit->thread_ctx_id);
-    if (tluajit == NULL)
+    DetectLuaThreadData *tlua = (DetectLuaThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, lua->thread_ctx_id);
+    if (tlua == NULL)
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
-    LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
+    LuaExtensionsMatchSetup(tlua->luastate, lua, det_ctx,
             f, NULL, flags);
 
-    if (tluajit->alproto != ALPROTO_UNKNOWN) {
+    if (tlua->alproto != ALPROTO_UNKNOWN) {
         int alproto = f->alproto;
-        if (tluajit->alproto != alproto)
+        if (tlua->alproto != alproto)
             SCReturnInt(0);
     }
 
-    lua_getglobal(tluajit->luastate, "match");
-    lua_newtable(tluajit->luastate); /* stack at -1 */
+    lua_getglobal(tlua->luastate, "match");
+    lua_newtable(tlua->luastate); /* stack at -1 */
 
-    if (tluajit->alproto == ALPROTO_HTTP) {
+    if (tlua->alproto == ALPROTO_HTTP) {
         HtpState *htp_state = state;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
             tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, det_ctx->tx_id);
             if (tx != NULL) {
-                if ((tluajit->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
+                if ((tlua->flags & DATATYPE_HTTP_REQUEST_LINE) && tx->request_line != NULL &&
                     bstr_len(tx->request_line) > 0) {
-                    lua_pushliteral(tluajit->luastate, "http.request_line"); /* stack at -2 */
-                    LuaPushStringBuffer(tluajit->luastate,
+                    lua_pushliteral(tlua->luastate, "http.request_line"); /* stack at -2 */
+                    LuaPushStringBuffer(tlua->luastate,
                                      (const uint8_t *)bstr_ptr(tx->request_line),
                                      bstr_len(tx->request_line));
-                    lua_settable(tluajit->luastate, -3);
+                    lua_settable(tlua->luastate, -3);
                 }
             }
         }
     }
 
-    int retval = lua_pcall(tluajit->luastate, 1, 1, 0);
+    int retval = lua_pcall(tlua->luastate, 1, 1, 0);
     if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(tluajit->luastate, -1));
+        SCLogInfo("failed to run script: %s", lua_tostring(tlua->luastate, -1));
     }
 
     /* process returns from script */
-    if (lua_gettop(tluajit->luastate) > 0) {
+    if (lua_gettop(tlua->luastate) > 0) {
 
         /* script returns a number (return 1 or return 0) */
-        if (lua_type(tluajit->luastate, 1) == LUA_TNUMBER) {
-            double script_ret = lua_tonumber(tluajit->luastate, 1);
+        if (lua_type(tlua->luastate, 1) == LUA_TNUMBER) {
+            double script_ret = lua_tonumber(tlua->luastate, 1);
             SCLogDebug("script_ret %f", script_ret);
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
 
             if (script_ret == 1.0)
                 ret = 1;
 
         /* script returns a table */
-        } else if (lua_type(tluajit->luastate, 1) == LUA_TTABLE) {
-            lua_pushnil(tluajit->luastate);
+        } else if (lua_type(tlua->luastate, 1) == LUA_TTABLE) {
+            lua_pushnil(tlua->luastate);
             const char *k, *v;
-            while (lua_next(tluajit->luastate, -2)) {
-                v = lua_tostring(tluajit->luastate, -1);
-                lua_pop(tluajit->luastate, 1);
-                k = lua_tostring(tluajit->luastate, -1);
+            while (lua_next(tlua->luastate, -2)) {
+                v = lua_tostring(tlua->luastate, -1);
+                lua_pop(tlua->luastate, 1);
+                k = lua_tostring(tlua->luastate, -1);
 
                 if (!k || !v)
                     continue;
@@ -508,14 +508,14 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
             }
 
             /* pop the table */
-            lua_pop(tluajit->luastate, 1);
+            lua_pop(tlua->luastate, 1);
         }
     }
-    while (lua_gettop(tluajit->luastate) > 0) {
-        lua_pop(tluajit->luastate, 1);
+    while (lua_gettop(tlua->luastate) > 0) {
+        lua_pop(tlua->luastate, 1);
     }
 
-    if (luajit->negated) {
+    if (lua->negated) {
         if (ret == 1)
             ret = 0;
         else
@@ -562,7 +562,7 @@ static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 }
 
 #ifdef UNITTESTS
-/* if this ptr is set the luajit setup functions will use this buffer as the
+/* if this ptr is set the lua setup functions will use this buffer as the
  * lua script instead of calling luaL_loadfile on the filename supplied. */
 static const char *ut_script = NULL;
 #endif
@@ -570,8 +570,8 @@ static const char *ut_script = NULL;
 static void *DetectLuaThreadInit(void *data)
 {
     int status;
-    DetectLuaData *luajit = (DetectLuaData *)data;
-    BUG_ON(luajit == NULL);
+    DetectLuaData *lua = (DetectLuaData *)data;
+    BUG_ON(lua == NULL);
 
     DetectLuaThreadData *t = SCMalloc(sizeof(DetectLuaThreadData));
     if (unlikely(t == NULL)) {
@@ -580,8 +580,8 @@ static void *DetectLuaThreadInit(void *data)
     }
     memset(t, 0x00, sizeof(DetectLuaThreadData));
 
-    t->alproto = luajit->alproto;
-    t->flags = luajit->flags;
+    t->alproto = lua->alproto;
+    t->flags = lua->flags;
 
     t->luastate = LuaGetState();
     if (t->luastate == NULL) {
@@ -593,11 +593,11 @@ static void *DetectLuaThreadInit(void *data)
 
     LuaRegisterExtensions(t->luastate);
 
-    lua_pushinteger(t->luastate, (lua_Integer)(luajit->sid));
+    lua_pushinteger(t->luastate, (lua_Integer)(lua->sid));
     lua_setglobal(t->luastate, "SCRuleSid");
-    lua_pushinteger(t->luastate, (lua_Integer)(luajit->rev));
+    lua_pushinteger(t->luastate, (lua_Integer)(lua->rev));
     lua_setglobal(t->luastate, "SCRuleRev");
-    lua_pushinteger(t->luastate, (lua_Integer)(luajit->gid));
+    lua_pushinteger(t->luastate, (lua_Integer)(lua->gid));
     lua_setglobal(t->luastate, "SCRuleGid");
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
@@ -610,7 +610,7 @@ static void *DetectLuaThreadInit(void *data)
         }
     } else {
 #endif
-        status = luaL_loadfile(t->luastate, luajit->filename);
+        status = luaL_loadfile(t->luastate, lua->filename);
         if (status) {
             SCLogError(SC_ERR_LUA_ERROR, "couldn't load file: %s", lua_tostring(t->luastate, -1));
             goto error;
@@ -645,40 +645,40 @@ static void DetectLuaThreadFree(void *ctx)
 }
 
 /**
- * \brief Parse the luajit keyword
+ * \brief Parse the lua keyword
  *
  * \param str Pointer to the user provided option
  *
- * \retval luajit pointer to DetectLuaData on success
+ * \retval lua pointer to DetectLuaData on success
  * \retval NULL on failure
  */
 static DetectLuaData *DetectLuaParse (const DetectEngineCtx *de_ctx, char *str)
 {
-    DetectLuaData *luajit = NULL;
+    DetectLuaData *lua = NULL;
 
-    /* We have a correct luajit option */
-    luajit = SCMalloc(sizeof(DetectLuaData));
-    if (unlikely(luajit == NULL))
+    /* We have a correct lua option */
+    lua = SCMalloc(sizeof(DetectLuaData));
+    if (unlikely(lua == NULL))
         goto error;
 
-    memset(luajit, 0x00, sizeof(DetectLuaData));
+    memset(lua, 0x00, sizeof(DetectLuaData));
 
     if (strlen(str) && str[0] == '!') {
-        luajit->negated = 1;
+        lua->negated = 1;
         str++;
     }
 
     /* get full filename */
-    luajit->filename = DetectLoadCompleteSigPath(de_ctx, str);
-    if (luajit->filename == NULL) {
+    lua->filename = DetectLoadCompleteSigPath(de_ctx, str);
+    if (lua->filename == NULL) {
         goto error;
     }
 
-    return luajit;
+    return lua;
 
 error:
-    if (luajit != NULL)
-        DetectLuaFree(luajit);
+    if (lua != NULL)
+        DetectLuaFree(lua);
     return NULL;
 }
 
@@ -939,40 +939,40 @@ error:
 }
 
 /**
- * \brief this function is used to parse luajit options
+ * \brief this function is used to parse lua options
  * \brief into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param str pointer to the user provided "luajit" option
+ * \param str pointer to the user provided "lua" option
  *
  * \retval 0 on Success
  * \retval -1 on Failure
  */
 static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    DetectLuaData *luajit = NULL;
+    DetectLuaData *lua = NULL;
     SigMatch *sm = NULL;
 
-    luajit = DetectLuaParse(de_ctx, str);
-    if (luajit == NULL)
+    lua = DetectLuaParse(de_ctx, str);
+    if (lua == NULL)
         goto error;
 
-    if (DetectLuaSetupPrime(de_ctx, luajit) == -1) {
+    if (DetectLuaSetupPrime(de_ctx, lua) == -1) {
         goto error;
     }
 
-    luajit->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "luajit",
-            DetectLuaThreadInit, (void *)luajit,
+    lua->thread_ctx_id = DetectRegisterThreadCtxFuncs(de_ctx, "lua",
+            DetectLuaThreadInit, (void *)lua,
             DetectLuaThreadFree, 0);
-    if (luajit->thread_ctx_id == -1)
+    if (lua->thread_ctx_id == -1)
         goto error;
 
-    if (luajit->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto != ALPROTO_UNKNOWN && luajit->alproto != s->alproto) {
+    if (lua->alproto != ALPROTO_UNKNOWN) {
+        if (s->alproto != ALPROTO_UNKNOWN && lua->alproto != s->alproto) {
             goto error;
         }
-        s->alproto = luajit->alproto;
+        s->alproto = lua->alproto;
     }
 
     /* Okay so far so good, lets get this into a SigMatch
@@ -982,61 +982,61 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
 
     sm->type = DETECT_LUA;
-    sm->ctx = (SigMatchCtx *)luajit;
+    sm->ctx = (SigMatchCtx *)lua;
 
-    if (luajit->alproto == ALPROTO_UNKNOWN) {
-        if (luajit->flags & DATATYPE_STREAM)
+    if (lua->alproto == ALPROTO_UNKNOWN) {
+        if (lua->flags & DATATYPE_STREAM)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    } else if (luajit->alproto == ALPROTO_HTTP) {
-        if (luajit->flags & DATATYPE_HTTP_RESPONSE_BODY)
+    } else if (lua->alproto == ALPROTO_HTTP) {
+        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEDATA);
-        else if (luajit->flags & DATATYPE_HTTP_REQUEST_BODY)
+        else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_URI)
+        else if (lua->flags & DATATYPE_HTTP_URI)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_URI_RAW)
+        else if (lua->flags & DATATYPE_HTTP_URI_RAW)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_REQUEST_COOKIE)
+        else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_REQUEST_UA)
+        else if (lua->flags & DATATYPE_HTTP_REQUEST_UA)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
-        else if (luajit->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
+        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
-        else if (luajit->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
+        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
-        else if (luajit->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
+        else if (lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HTTP_REQLINEMATCH);
-    } else if (luajit->alproto == ALPROTO_DNS) {
-        if (luajit->flags & DATATYPE_DNS_RRNAME) {
+    } else if (lua->alproto == ALPROTO_DNS) {
+        if (lua->flags & DATATYPE_DNS_RRNAME) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
-        } else if (luajit->flags & DATATYPE_DNS_REQUEST) {
+        } else if (lua->flags & DATATYPE_DNS_REQUEST) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSREQUEST_MATCH);
-        } else if (luajit->flags & DATATYPE_DNS_RESPONSE) {
+        } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
         }
-    } else if (luajit->alproto == ALPROTO_TLS) {
+    } else if (lua->alproto == ALPROTO_TLS) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    } else if (luajit->alproto == ALPROTO_SSH) {
+    } else if (lua->alproto == ALPROTO_SSH) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    } else if (luajit->alproto == ALPROTO_SMTP) {
+    } else if (lua->alproto == ALPROTO_SMTP) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    } else if (luajit->alproto == ALPROTO_DNP3) {
+    } else if (lua->alproto == ALPROTO_DNP3) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
     } else {
-        SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
-                   AppLayerGetProtoName(luajit->alproto));
+        SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
+                   AppLayerGetProtoName(lua->alproto));
         goto error;
     }
 
     return 0;
 
 error:
-    if (luajit != NULL)
-        DetectLuaFree(luajit);
+    if (lua != NULL)
+        DetectLuaFree(lua);
     if (sm != NULL)
         SCFree(sm);
     return -1;
@@ -1066,19 +1066,19 @@ void DetectLuaPostSetup(Signature *s)
 /**
  * \brief this function will free memory associated with DetectLuaData
  *
- * \param luajit pointer to DetectLuaData
+ * \param ptr pointer to DetectLuaData
  */
 static void DetectLuaFree(void *ptr)
 {
     if (ptr != NULL) {
-        DetectLuaData *luajit = (DetectLuaData *)ptr;
+        DetectLuaData *lua = (DetectLuaData *)ptr;
 
-        if (luajit->buffername)
-            SCFree(luajit->buffername);
-        if (luajit->filename)
-            SCFree(luajit->filename);
+        if (lua->buffername)
+            SCFree(lua->buffername);
+        if (lua->filename)
+            SCFree(lua->filename);
 
-        SCFree(luajit);
+        SCFree(lua);
     }
 }
 
@@ -1114,7 +1114,7 @@ static int LuaMatchTest01(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
@@ -1280,7 +1280,7 @@ static int LuaMatchTest02(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert tcp any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
@@ -1416,7 +1416,7 @@ static int LuaMatchTest03(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert tcp any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
@@ -1549,7 +1549,7 @@ static int LuaMatchTest04(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
@@ -1699,7 +1699,7 @@ static int LuaMatchTest05(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"
@@ -1854,7 +1854,7 @@ static int LuaMatchTest06(void)
         "   return 0\n"
         "end\n"
         "return 0\n";
-    char sig[] = "alert http any any -> any any (flow:to_server; luajit:unittest; sid:1;)";
+    char sig[] = "alert http any any -> any any (flow:to_server; lua:unittest; sid:1;)";
     int result = 0;
     uint8_t httpbuf1[] =
         "POST / HTTP/1.1\r\n"

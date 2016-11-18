@@ -71,7 +71,7 @@
 #include "util-lua-smtp.h"
 #include "util-lua-dnp3.h"
 
-static const char luaext_key_ld[] = "suricata:luajitdata";
+static const char luaext_key_ld[] = "suricata:luadata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
 
 static int LuaGetFlowvar(lua_State *luastate)
@@ -82,7 +82,7 @@ static int LuaGetFlowvar(lua_State *luastate)
     FlowVar *fv;
     DetectLuaData *ld;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -145,7 +145,7 @@ int LuaSetFlowvar(lua_State *luastate)
     DetectEngineThreadCtx *det_ctx;
     DetectLuaData *ld;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -244,7 +244,7 @@ static int LuaGetFlowint(lua_State *luastate)
     DetectLuaData *ld;
     uint32_t number;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -313,7 +313,7 @@ int LuaSetFlowint(lua_State *luastate)
     uint32_t number;
     lua_Number luanumber;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -391,7 +391,7 @@ static int LuaIncrFlowint(lua_State *luastate)
     DetectLuaData *ld;
     uint32_t number;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -460,7 +460,7 @@ static int LuaDecrFlowint(lua_State *luastate)
     DetectLuaData *ld;
     uint32_t number;
 
-    /* need luajit data for id -> idx conversion */
+    /* need lua data for id -> idx conversion */
     lua_pushlightuserdata(luastate, (void *)&luaext_key_ld);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
     ld = lua_touserdata(luastate, -1);
@@ -525,7 +525,7 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
-    /* luajit keyword data */
+    /* lua keyword data */
     lua_pushlightuserdata(lua_state, (void *)&luaext_key_ld);
     lua_pushlightuserdata(lua_state, (void *)ld);
     lua_settable(lua_state, LUA_REGISTRYINDEX);

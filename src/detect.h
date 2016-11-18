@@ -529,7 +529,7 @@ typedef struct DetectReplaceList_ {
 
 /** only execute flowvar storage if rule matched */
 #define DETECT_FLOWVAR_TYPE_POSTMATCH   1
-/** execute flowvar storage even if rule doesn't match (for luajit) */
+/** execute flowvar storage even if rule doesn't match (for lua) */
 #define DETECT_FLOWVAR_TYPE_ALWAYS      2
 
 /** list for flowvar store candidates, to be stored from
