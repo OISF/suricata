@@ -41,8 +41,8 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
-json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
+json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type, LogFileCtx *file_ctx);
+json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, LogFileCtx *file_ctx, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 

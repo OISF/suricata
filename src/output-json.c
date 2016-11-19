@@ -127,7 +127,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
 }
 
 json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
-                         const char *event_type)
+                         const char *event_type, LogFileCtx *file_ctx)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -270,11 +270,11 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
             break;
     }
 
-    if (p->ethh) {
+    if (file_ctx->options_flags & LOGFILE_LOG_ETHERNET && p->ethh) {
         json_t *ejs = json_object();
         if (ejs != NULL) {
             char eth_addr[19];
-            char *src, *dst;
+            uint8_t *src, *dst;
 
             if ((PKT_IS_TOSERVER(p))) {
                 src = p->ethh->eth_dst;
@@ -309,9 +309,10 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
 }
 
 json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive,
-                                 const char *event_type, uint64_t tx_id)
+                                 const char *event_type, LogFileCtx *file_ctx,
+                                 uint64_t tx_id)
 {
-    json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
+    json_t *js = CreateJSONHeader(p, direction_sensitive, event_type, file_ctx);
     if (unlikely(js == NULL))
         return NULL;
 
@@ -546,6 +547,11 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                            "invalid sensor-is: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
+        }
+
+        const char *v = ConfNodeLookupChildValue(conf, "log-ethernet");
+        if (v != NULL && ConfValIsTrue(v)) {
+            json_ctx->file_ctx->options_flags |= LOGFILE_LOG_ETHERNET;
         }
 
         json_ctx->file_ctx->type = json_ctx->json_out;

@@ -82,7 +82,8 @@ typedef struct JsonFileLogThread_ {
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
 {
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "fileinfo"); //TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "fileinfo",
+                                  aft->filelog_ctx->file_ctx); //TODO const
     json_t *hjs = NULL;
     if (unlikely(js == NULL))
         return;

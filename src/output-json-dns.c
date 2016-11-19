@@ -628,7 +628,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
         DNSQueryEntry *query = NULL;
         TAILQ_FOREACH(query, &tx->query_list, next) {
-            js = CreateJSONHeader((Packet *)p, 1, "dns");
+            js = CreateJSONHeader((Packet *)p, 1, "dns", dnslog_ctx->file_ctx);
             if (unlikely(js == NULL))
                 return TM_ECODE_OK;
 
@@ -652,7 +652,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     json_t *js;
 
     if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
+        js = CreateJSONHeader((Packet *)p, 0, "dns", dnslog_ctx->file_ctx);
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
