@@ -375,7 +375,9 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     htp_tx_t *tx = txptr;
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
 
-    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http", tx_id); //TODO const
+    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http",
+                                          jhl->httplog_ctx->file_ctx->options_flags,
+                                          tx_id); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

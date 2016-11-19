@@ -154,6 +154,7 @@ outputs:
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      #log-ethernet: yes
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
