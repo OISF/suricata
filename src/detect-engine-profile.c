@@ -58,7 +58,7 @@ static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, cha
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
 void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
 {
-    json_t *js = CreateJSONHeader(p, 0, "inspectedrules");
+    json_t *js = CreateJSONHeader(p, 0, "inspectedrules", 0);
     if (js == NULL)
         return;
     json_t *ir = json_object();

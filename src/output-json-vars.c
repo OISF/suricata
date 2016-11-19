@@ -81,7 +81,7 @@ typedef struct JsonVarsLogThread_ {
 
 static int VarsJson(ThreadVars *tv, JsonVarsLogThread *aft, const Packet *p)
 {
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "vars");
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "vars", 0);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
