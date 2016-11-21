@@ -300,7 +300,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         PacketCopyData(p, pkt, pktlen);
         SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)",
-                   GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
+                   GET_PKT_LEN(p), *pkt, *(GET_PKT_DATA(p)));
 
         if (TmThreadsSlotProcessPkt(tv, ((TmSlot *) slot)->slot_next, p)
                 != TM_ECODE_OK) {

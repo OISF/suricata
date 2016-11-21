@@ -193,7 +193,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                     "tc_log_progress %d", logger, logger->LogCondition,
                     logger->ts_log_progress, logger->tc_log_progress);
             if (logger->alproto == alproto) {
-                SCLogDebug("alproto match, logging tx_id %ju", tx_id);
+                SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
 
                 if (AppLayerParserGetTxLogged(p->proto, alproto, alstate, tx,
                         logger->id)) {
@@ -243,7 +243,7 @@ next:
         }
 
         if (!logger_not_logged) {
-            SCLogDebug("updating log tx_id %ju", tx_id);
+            SCLogDebug("updating log tx_id %"PRIu64, tx_id);
             AppLayerParserSetTransactionLogId(f->alparser);
         }
     }
