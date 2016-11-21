@@ -170,7 +170,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
 {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    SCLogDebug("pcap_cnt %ju", p->pcap_cnt);
+    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
     char timebuf[64];
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
