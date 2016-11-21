@@ -515,7 +515,9 @@ TmEcode DecodeIPFWThreadDeinit(ThreadVars *tv, void *data)
 TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 {
     uint32_t verdict;
+#if 0
     struct pollfd IPFWpoll;
+#endif
     IPFWQueueVars *nq = NULL;
 
     SCEnter();
@@ -531,8 +533,10 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+#if 0
     IPFWpoll.fd = nq->fd;
     IPFWpoll.events = POLLWRNORM;
+#endif
 
     if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         verdict = IPFW_DROP;
