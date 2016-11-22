@@ -280,6 +280,15 @@ SCConfLogOpenGeneric(ConfNode *conf,
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
         if (log_ctx->pcie_fp == NULL)
             return -1; // Error already logged by Open...Fp routine
+#ifdef HAVE_LIBHIREDIS
+    } else if (strcasecmp(filetype, "redis") == 0) {
+        ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
+        if (SCConfLogOpenRedis(redis_node, log_ctx) < 0) {
+            SCLogError(SC_ERR_REDIS, "failed to open redis output");
+            return -1;
+        }
+        log_ctx->type = LOGFILE_TYPE_REDIS;
+#endif
     } else {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
