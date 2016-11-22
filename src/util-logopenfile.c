@@ -592,10 +592,10 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t s
             file_ctx->redis_setup.batch_count++;
         }
     } else {
-        redisReply *reply = redisCommand(file_ctx->redis, "%s %s %s",
+        redisReply *reply = redisCommand(file_ctx->redis, "%s %s %b",
                 file_ctx->redis_setup.command,
                 file_ctx->redis_setup.key,
-                string);
+                string, string_len);
 
         /*  We may lose the reply if disconnection happens! */
         if (reply) {
