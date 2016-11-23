@@ -26,9 +26,10 @@ It is a convention that msg is always the first keyword of a signature.
 
 Another example of msg in a signature:
 
-.. image:: meta/msg.png
-
 In this example the red, bold-faced part is the msg.
+
+.. note:: The following characters must be escaped inside the msg:
+	      ``;`` ``\`` ``"``
 
 Sid (signature id)
 ------------------
