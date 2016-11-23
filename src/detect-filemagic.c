@@ -54,6 +54,27 @@
 
 #include "conf.h"
 
+#ifndef HAVE_MAGIC
+
+static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, char *str)
+{
+    SCLogError(SC_ERR_NO_MAGIC_SUPPORT, "no libmagic support built in, needed for filemagic keyword");
+    return -1;
+}
+
+/**
+ * \brief Registration function for keyword: filemagic
+ */
+void DetectFilemagicRegister(void)
+{
+    sigmatch_table[DETECT_FILEMAGIC].name = "filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
+    sigmatch_table[DETECT_FILEMAGIC].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filemagic";
+    sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
+}
+
+#else /* HAVE_MAGIC */
+
 static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, Signature *, SigMatch *);
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, char *);
@@ -453,3 +474,6 @@ void DetectFilemagicRegisterTests(void)
     UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03);
 #endif /* UNITTESTS */
 }
+
+#endif /* HAVE_MAGIC */
+

@@ -147,11 +147,11 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
                 ff->state == FILE_STATE_ERROR)
             {
                 int file_logged = 0;
-
+#ifdef HAVE_MAGIC
                 if (FileForceMagic() && ff->magic == NULL) {
                     FilemagicGlobalLookup(ff);
                 }
-
+#endif
                 logger = list;
                 store = op_thread_data->store;
                 while (logger && store) {

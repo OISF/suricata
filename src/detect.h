@@ -1001,7 +1001,9 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
+#ifdef HAVE_MAGIC
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
+#endif
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 23)

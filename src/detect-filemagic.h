@@ -24,8 +24,8 @@
 #ifndef __DETECT_FILEMAGIC_H__
 #define __DETECT_FILEMAGIC_H__
 
+#ifdef HAVE_MAGIC
 #include "util-spm-bm.h"
-#include <magic.h>
 
 typedef struct DetectFilemagicThreadData {
     magic_t ctx;
@@ -40,7 +40,8 @@ typedef struct DetectFilemagicData {
 } DetectFilemagicData;
 
 /* prototypes */
-void DetectFilemagicRegister (void);
 int FilemagicGlobalLookup(File *file);
+#endif
+void DetectFilemagicRegister (void);
 
 #endif /* __DETECT_FILEMAGIC_H__ */

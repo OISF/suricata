@@ -331,6 +331,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_SHA1_SUPPORT);
         CASE_CODE (SC_ERR_NO_SHA256_SUPPORT);
         CASE_CODE (SC_ERR_DNP3_CONFIG);
+        CASE_CODE (SC_ERR_NO_MAGIC_SUPPORT);
     }
 
     return "UNKNOWN_ERROR";
