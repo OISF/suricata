@@ -93,6 +93,9 @@ For example::
 You see ``content:!”Firefox/3.6.13”;``. This means an alert will be
 generated if the the used version of Firefox is not 3.6.13.
 
+.. note:: The following characters must be escaped inside the content:
+             ``;`` ``\`` ``"``
+
 Nocase
 ------
 

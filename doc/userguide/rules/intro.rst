@@ -172,6 +172,12 @@ There are specific settings for:
 * payloads
 * flows
 
+.. note:: The characters ``;`` and ``"`` have special meaning in the
+          Suricata rule language and must be escaped when used in a
+          rule option value. For example::
+
+	    msg:"Message with semicolon\;";
+
 For more information about these settings, you can click on the
 following headlines:
 

@@ -54,6 +54,9 @@ qualities of pcre as well.  These are:
 * ``E``: Ignores newline characters at the end of the buffer/payload.
 * ``G``: Inverts the greediness.
 
+.. note:: The following characters must be escaped inside the content:
+             ``;`` ``\`` ``"``
+
 Suricata's modifiers
 ~~~~~~~~~~~~~~~~~~~~
 
