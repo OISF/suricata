@@ -399,7 +399,7 @@ TmEcode ReceivePcapFileThreadDeinit(ThreadVars *tv, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-double prev_signaled_ts = 0;
+static double prev_signaled_ts = 0;
 
 TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
