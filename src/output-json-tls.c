@@ -60,20 +60,22 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define SSL_VERSION_LENGTH 13
 
-#define LOG_TLS_DEFAULT     0
-#define LOG_TLS_EXTENDED    (1 << 0)
-#define LOG_TLS_CUSTOM      (1 << 1)
+#define LOG_TLS_DEFAULT                 0
+#define LOG_TLS_EXTENDED                (1 << 0)
+#define LOG_TLS_CUSTOM                  (1 << 1)
+#define LOG_TLS_SESSION_RESUMPTION      (1 << 2)
 
-#define LOG_TLS_FIELD_VERSION     (1 << 0)
-#define LOG_TLS_FIELD_SUBJECT     (1 << 1)
-#define LOG_TLS_FIELD_ISSUER      (1 << 2)
-#define LOG_TLS_FIELD_SERIAL      (1 << 3)
-#define LOG_TLS_FIELD_FINGERPRINT (1 << 4)
-#define LOG_TLS_FIELD_NOTBEFORE   (1 << 5)
-#define LOG_TLS_FIELD_NOTAFTER    (1 << 6)
-#define LOG_TLS_FIELD_SNI         (1 << 7)
-#define LOG_TLS_FIELD_CERTIFICATE (1 << 8)
-#define LOG_TLS_FIELD_CHAIN       (1 << 9)
+#define LOG_TLS_FIELD_VERSION           (1 << 0)
+#define LOG_TLS_FIELD_SUBJECT           (1 << 1)
+#define LOG_TLS_FIELD_ISSUER            (1 << 2)
+#define LOG_TLS_FIELD_SERIAL            (1 << 3)
+#define LOG_TLS_FIELD_FINGERPRINT       (1 << 4)
+#define LOG_TLS_FIELD_NOTBEFORE         (1 << 5)
+#define LOG_TLS_FIELD_NOTAFTER          (1 << 6)
+#define LOG_TLS_FIELD_SNI               (1 << 7)
+#define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
+#define LOG_TLS_FIELD_CHAIN             (1 << 9)
+#define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
 
 typedef struct {
     char *name;
@@ -81,17 +83,18 @@ typedef struct {
 } TlsFields;
 
 TlsFields tls_fields[] = {
-    { "version",     LOG_TLS_FIELD_VERSION },
-    { "subject",     LOG_TLS_FIELD_SUBJECT },
-    { "issuer",      LOG_TLS_FIELD_ISSUER },
-    { "serial",      LOG_TLS_FIELD_SERIAL },
-    { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
-    { "not_before",  LOG_TLS_FIELD_NOTBEFORE },
-    { "not_after",   LOG_TLS_FIELD_NOTAFTER },
-    { "sni",         LOG_TLS_FIELD_SNI },
-    { "certificate", LOG_TLS_FIELD_CERTIFICATE },
-    { "chain",       LOG_TLS_FIELD_CHAIN },
-    { NULL,          -1 }
+    { "version",         LOG_TLS_FIELD_VERSION },
+    { "subject",         LOG_TLS_FIELD_SUBJECT },
+    { "issuer",          LOG_TLS_FIELD_ISSUER },
+    { "serial",          LOG_TLS_FIELD_SERIAL },
+    { "fingerprint",     LOG_TLS_FIELD_FINGERPRINT },
+    { "not_before",      LOG_TLS_FIELD_NOTBEFORE },
+    { "not_after",       LOG_TLS_FIELD_NOTAFTER },
+    { "sni",             LOG_TLS_FIELD_SNI },
+    { "certificate",     LOG_TLS_FIELD_CERTIFICATE },
+    { "chain",           LOG_TLS_FIELD_CHAIN },
+    { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { NULL,              -1 }
 };
 
 typedef struct OutputTlsCtx_ {
@@ -108,14 +111,25 @@ typedef struct JsonTlsLogThread_ {
 
 static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
 {
-    json_object_set_new(js, "subject",
-                        json_string(ssl_state->server_connp.cert0_subject));
+    if (ssl_state->server_connp.cert0_subject) {
+        json_object_set_new(js, "subject",
+                            json_string(ssl_state->server_connp.cert0_subject));
+    }
 }
 
 static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
 {
-    json_object_set_new(js, "issuerdn",
-                        json_string(ssl_state->server_connp.cert0_issuerdn));
+    if (ssl_state->server_connp.cert0_issuerdn) {
+        json_object_set_new(js, "issuerdn",
+                            json_string(ssl_state->server_connp.cert0_issuerdn));
+    }
+}
+
+static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
+        json_object_set_new(js, "session_resumed", json_boolean(true));
+    }
 }
 
 static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
@@ -247,6 +261,9 @@ void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 
     /* tls issuerdn */
     JsonTlsLogIssuer(js, ssl_state);
+
+    /* tls session resumption */
+    JsonTlsLogSessionResumed(js, ssl_state);
 }
 
 static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
@@ -259,6 +276,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls issuerdn */
     if (tls_ctx->fields & LOG_TLS_FIELD_ISSUER)
         JsonTlsLogIssuer(js, ssl_state);
+
+    /* tls session resumption */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SESSION_RESUMED)
+        JsonTlsLogSessionResumed(js, ssl_state);
 
     /* tls serial */
     if (tls_ctx->fields & LOG_TLS_FIELD_SERIAL)
@@ -327,8 +348,10 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL) {
+    if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL) &&
+            ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
+            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0)) {
         return 0;
     }
 
@@ -454,6 +477,11 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
                 }
             }
         }
+    }
+
+    const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
+    if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
+        tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
     }
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&

@@ -205,6 +205,7 @@ Fields
 
 * "subject": The subject field from the TLS certificate
 * "issuer": The issuer field from the TLS certificate
+* "session_resumed": This field has the value of "true" if the TLS session was resumed via a session id. If this field appears, "subject" and "issuer" do not appear, since a TLS certificate is not seen.
 
 If extended logging is enabled the following fields are also included:
 
@@ -230,6 +231,14 @@ Example of regular TLS logging:
   "tls": {
       "subject": "C=US, ST=California, L=Mountain View, O=Google Inc, CN=*.google.com",
       "issuerdn": "C=US, O=Google Inc, CN=Google Internet Authority G2"
+  }
+
+Example of regular TLS logging for resumed sessions:
+
+::
+
+  "tls": {
+      "session_resumed": true
   }
 
 Example of extended TLS logging:
