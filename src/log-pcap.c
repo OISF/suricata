@@ -629,7 +629,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
             TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
         } else {
             /* Ordered insert. */
-            PcapFileName *it = TAILQ_FIRST(&pl->pcap_file_list);
+            PcapFileName *it = NULL;
             TAILQ_FOREACH(it, &pl->pcap_file_list, next) {
                 if (pf->secs < it->secs) {
                     break;
