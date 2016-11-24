@@ -55,8 +55,9 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define MODULE_NAME "LogTlsLog"
 
-#define LOG_TLS_DEFAULT     0
-#define LOG_TLS_EXTENDED    (1 << 0)
+#define LOG_TLS_DEFAULT               0
+#define LOG_TLS_EXTENDED              (1 << 0)
+#define LOG_TLS_SESSION_RESUMPTION    (1 << 1)
 
 typedef struct OutputTlsCtx_ {
     LogFileCtx *file_ctx;
@@ -74,13 +75,20 @@ typedef struct JsonTlsLogThread_ {
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls.subject */
-    json_object_set_new(js, "subject",
-                        json_string(ssl_state->server_connp.cert0_subject));
+    if (ssl_state->server_connp.cert0_subject != NULL) {
+        json_object_set_new(js, "subject",
+                            json_string(ssl_state->server_connp.cert0_subject));
+    }
 
     /* tls.issuerdn */
-    json_object_set_new(js, "issuerdn",
-                        json_string(ssl_state->server_connp.cert0_issuerdn));
+    if (ssl_state->server_connp.cert0_subject != NULL) {
+        json_object_set_new(js, "issuerdn",
+                            json_string(ssl_state->server_connp.cert0_issuerdn));
+    }
 
+    if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
+        json_object_set_new(js, "session", json_string("resumed"));
+    }
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -156,8 +164,10 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)
+    if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL) &&
+            ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
+            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0))
         return 0;
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "tls");
@@ -277,6 +287,11 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
             if (ConfValIsTrue(extended)) {
                 tls_ctx->flags = LOG_TLS_EXTENDED;
             }
+        }
+
+        const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
+        if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
+            tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
         }
     }
     output_ctx->data = tls_ctx;
