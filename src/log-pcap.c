@@ -612,7 +612,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
 
         PcapFileName *pf = SCCalloc(sizeof(*pf), 1);
         if (unlikely(pf == NULL)) {
-            return TM_ECODE_FAILED;
+            goto fail;
         }
         char path[PATH_MAX];
         snprintf(path, PATH_MAX - 1, "%s/%s", pattern, entry->d_name);
