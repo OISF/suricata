@@ -37,6 +37,7 @@
 #include "flow-var.h"
 #include "app-layer.h"
 
+#include "util-byte.h"
 #include "util-debug.h"
 
 static int DetectDepthSetup (DetectEngineCtx *, Signature *, char *);
@@ -137,11 +138,9 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         cd->flags |= DETECT_CONTENT_DEPTH_BE;
     } else {
-        cd->depth = (uint32_t)atoi(str);
-        if (cd->depth < cd->content_len) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth - %"PRIu16
-                       " smaller than content length - %"PRIu32,
-                       cd->depth, cd->content_len);
+        if (ByteExtractStringUint16(&cd->depth, 0, 0, str) != strlen(str)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,
+                      "invalid value for for depth: %s", str);
             goto end;
         }
         /* Now update the real limit, as depth is relative to the offset */
