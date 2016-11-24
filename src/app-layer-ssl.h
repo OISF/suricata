@@ -96,6 +96,12 @@ enum {
 /* flag to indicate that handshake is done */
 #define SSL_AL_FLAG_HANDSHAKE_DONE              0x80000
 
+/* A session ID in the Client Hello message, indicating the client
+   wants to resume a session */
+#define SSL_AL_FLAG_SSL_CLIENT_SESSION_ID       0x100000
+/* Session resumed without a full handshake */
+#define SSL_AL_FLAG_SESSION_RESUMED             0x200000
+
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 

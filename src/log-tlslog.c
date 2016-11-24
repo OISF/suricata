@@ -61,8 +61,9 @@
 #define OUTPUT_BUFFER_SIZE 65535
 #define CERT_ENC_BUFFER_SIZE 2048
 
-#define LOG_TLS_DEFAULT     0
-#define LOG_TLS_EXTENDED    1
+#define LOG_TLS_DEFAULT              0
+#define LOG_TLS_EXTENDED           0x1
+#define LOG_TLS_SESSION_RESUMPTION 0x2
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
@@ -258,6 +259,11 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
         }
     }
 
+    const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
+    if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
+        tlslog_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         goto tlslog_error;
@@ -291,8 +297,11 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL) {
+    if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL) &&
+        ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
+         (hlog->flags & LOG_TLS_SESSION_RESUMPTION) == 0)) {
+
         return 0;
     }
 
@@ -307,10 +316,20 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     MemBufferReset(aft->buffer);
     MemBufferWriteString(aft->buffer,
-                         "%s %s:%d -> %s:%d  TLS: Subject='%s' Issuerdn='%s'",
-                         timebuf, srcip, sp, dstip, dp,
-                         ssl_state->server_connp.cert0_subject,
-                         ssl_state->server_connp.cert0_issuerdn);
+                         "%s %s:%d -> %s:%d  TLS:",
+                         timebuf, srcip, sp, dstip, dp);
+
+    if (ssl_state->server_connp.cert0_subject != NULL) {
+        MemBufferWriteString(aft->buffer, " Subject='%s'",
+                             ssl_state->server_connp.cert0_subject);
+    }
+    if (ssl_state->server_connp.cert0_issuerdn != NULL) {
+        MemBufferWriteString(aft->buffer, " Issuerdn='%s'",
+                             ssl_state->server_connp.cert0_issuerdn);
+    }
+    if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
+        MemBufferWriteString(aft->buffer, " Session='resumed'");
+    }
 
     if (hlog->flags & LOG_TLS_EXTENDED) {
         LogTlsLogExtended(aft, ssl_state);
