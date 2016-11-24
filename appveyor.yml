@@ -1,0 +1,60 @@
+# Based on https://github.com/redis/hiredis/blob/master/appveyor.yml
+# and https://github.com/dokan-dev/dokany/pull/336/files
+# Appveyor configuration file for CI build of hiredis on Windows (under Cygwin)
+environment:
+    matrix:
+#       - CYG_ROOT: C:\cygwin64
+#         CYG_SETUP: setup-x86_64.exe
+#         CYG_MIRROR: http://cygwin.mirror.constant.com
+#         CYG_CACHE: C:\cygwin64\var\cache\setup
+#         CYG_BASH: C:\cygwin64\bin\bash
+#         CC: gcc
+        - CYG_ROOT: C:\cygwin
+          CYG_SETUP: setup-x86.exe
+          CYG_MIRROR: http://cygwin.mirror.constant.com
+          CYG_CACHE: C:\cygwin\var\cache\setup
+          CYG_BASH: C:\cygwin\bin\bash
+          CC: gcc
+
+# Cache Cygwin files to speed up build
+cache:
+    - '%CYG_CACHE%'
+clone_depth: 1
+
+# Attempt to ensure we don't try to convert line endings to Win32 CRLF as this will cause build to fail
+init:
+    - git config --global core.autocrlf input
+#    - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+# Install needed build dependencies. First update cygwin to avoid weird dll issues.
+install:
+    - ps: 'Start-FileDownload "http://cygwin.com/$env:CYG_SETUP" -FileName "$env:CYG_SETUP"'
+    - '%CYG_SETUP% -gqnNdO --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" > NUL 2>&1'
+    - '%CYG_SETUP% --quiet-mode --no-shortcuts --only-site --root "%CYG_ROOT%" --site "%CYG_MIRROR%" --local-package-dir "%CYG_CACHE%" --packages automake,bison,gcc-core,libtool,make,gettext-devel,gettext,intltool,pkg-config,clang,llvm,libpcre-devel,file-devel,wget,zlib-devel,libnss-devel,libnspr-devel,libGeoIP-devel,libyaml-devel,luajit-devel,unzip,libjansson-devel > NUL 2>&1'
+    - '%CYG_BASH% -lc "cygcheck -dc cygwin"'
+    - '%CYG_BASH% -lc "wget https://www.winpcap.org/install/bin/WpdPack_4_1_2.zip && ls && unzip WpdPack_4_1_2.zip"'
+    - '%CYG_BASH% -lc "cp WpdPack/Lib/libpacket.a /usr/lib/"'
+    - '%CYG_BASH% -lc "cp WpdPack/Lib/libwpcap.a /usr/lib/libpcap.a"' # so -lpcap works
+#    - '%CYG_BASH% -lc "cp WpdPack/Lib/libwpcap.a /usr/lib/libwpcap.a"'
+    - '%CYG_BASH% -lc "cp WpdPack/Lib/Packet.lib /usr/lib/"'
+    - '%CYG_BASH% -lc "cp WpdPack/Lib/wpcap.lib /usr/lib/"'
+    - '%CYG_BASH% -lc "mkdir -p /usr/include/pcap"'
+    - '%CYG_BASH% -lc "cp -r WpdPack/Include/* /usr/include/"'
+    - choco install winpcap # userspace
+
+build_script:
+    - 'echo building...'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; bash ./qa/travis-libhtp.sh"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ./autogen.sh"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ./configure --enable-unittests --disable-shared --disable-gccmarch-native --enable-luajit"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; make -j3 LDFLAGS=$LDFLAGS CC=$CC CFLAGS=$CFLAGS"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; file src/suricata.exe"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; ldd src/suricata.exe"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; src/suricata.exe --build-info"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; src/suricata.exe -u -l /tmp/"'
+    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; make -j3 DISTCHECK_CONFIGURE_FLAGS="--enable-unittests --disable-shared --disable-gccmarch-native" LDFLAGS=$LDFLAGS CC=$CC distcheck CFLAGS=$CFLAGS"'
+
+#on_finish:
+#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; cat config.log"'
+
