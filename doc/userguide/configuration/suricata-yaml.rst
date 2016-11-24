@@ -323,6 +323,9 @@ integration with 3rd party tools like logstash.
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
+            # output TLS transaction where the session is resumed using a
+            # session id
+            #session-resumption: no
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
