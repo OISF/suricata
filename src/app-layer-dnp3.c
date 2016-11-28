@@ -2070,8 +2070,8 @@ static int DNP3ProbingParserTest(void)
     FAIL_IF(DNP3ProbingParser(pkt, sizeof(pkt), NULL) != ALPROTO_FAILED);
 
     /* Send a banner. */
-    char banner[] = "Welcome to DNP3 SCADA.";
-    FAIL_IF(DNP3ProbingParser((uint8_t *)banner, sizeof(banner), NULL) != ALPROTO_DNP3);
+    char mybanner[] = "Welcome to DNP3 SCADA.";
+    FAIL_IF(DNP3ProbingParser((uint8_t *)mybanner, sizeof(mybanner), NULL) != ALPROTO_DNP3);
 
     PASS;
 }
