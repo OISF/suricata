@@ -271,7 +271,7 @@ void IPPairShutdown(void)
     /* clear and free the hash */
     if (ippair_hash != NULL) {
         for (u = 0; u < ippair_config.hash_size; u++) {
-            IPPair *h = ippair_hash[u].head;
+            h = ippair_hash[u].head;
             while (h) {
                 IPPair *n = h->hnext;
                 IPPairFree(h);
