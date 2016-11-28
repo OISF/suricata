@@ -155,15 +155,15 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         goto end;
     }
     if (prev_pm->type == DETECT_CONTENT) {
-        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
-        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+        DetectContentData *prev_cd = (DetectContentData *)prev_pm->ctx;
+        if (prev_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
                        "has a fast_pattern:only; set. Can't "
                        "have relative keywords around a fast_pattern "
                        "only content");
             goto end;
         }
-        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        prev_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     } else if (prev_pm->type == DETECT_PCRE) {
         DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
