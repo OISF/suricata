@@ -405,6 +405,14 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                            "redis JSON output option is not compiled");
                 exit(EXIT_FAILURE);
 #endif
+            } else if (strcmp(output_s, "kafka") == 0) {
+#ifdef HAVE_LIBRDKAFKA
+                json_ctx->json_out = LOGFILE_TYPE_KAFKA;
+#else
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "kafka JSON output option is not compiled");
+                exit(EXIT_FAILURE);
+#endif
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -495,6 +503,29 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
 
             if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return NULL;
+            }
+        }
+#endif
+#ifdef HAVE_LIBRDKAFKA
+        else if (json_ctx->json_out == LOGFILE_TYPE_KAFKA) {
+            ConfNode *kafka_node = ConfNodeLookupChild(conf, "kafka");
+            if (!json_ctx->file_ctx->sensor_name) {
+                char hostname[1024];
+                gethostname(hostname, 1023);
+                json_ctx->file_ctx->sensor_name = SCStrdup(hostname);
+            }
+            if (json_ctx->file_ctx->sensor_name  == NULL) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return NULL;
+            }
+
+            if (SCConfLogOpenKafka(kafka_node, json_ctx->file_ctx) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
