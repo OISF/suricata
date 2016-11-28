@@ -636,67 +636,59 @@ int DetectAsn1TestParse15(void)
 /**
  * \test DetectAsn1Test01 Ensure that the checks work when they should
  */
-int DetectAsn1Test01(void)
+static int DetectAsn1Test01(void)
 {
-    int result = 0;
     /* Match if any of the nodes after offset 0 has greater length than 10 */
     char str[] = "oversize_length 132 absolute_offset 0";
-    DetectAsn1Data *ad = NULL;
 
-    ad = DetectAsn1Parse(str);
-    if (ad != NULL && ad->oversize_length == 132
-        && (ad->flags & ASN1_OVERSIZE_LEN)
-        && ad->absolute_offset == 0
-        && (ad->flags & ASN1_ABSOLUTE_OFFSET))
-    {
-       // Example from the specification X.690-0207 Appendix A.3
-        uint8_t *str = (uint8_t*) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
-                   "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
-                   "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
-                   "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
-                   "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
-                   "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
-                   "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
-                   "Jones""\xA0\x0A\x43\x08""19590717";
+    DetectAsn1Data *ad = DetectAsn1Parse(str);
+    FAIL_IF_NULL(ad);
+    FAIL_IF_NOT(ad->oversize_length == 132);
+    FAIL_IF_NOT(ad->flags & ASN1_OVERSIZE_LEN);
+    FAIL_IF_NOT(ad->absolute_offset == 0);
+    FAIL_IF_NOT(ad->flags & ASN1_ABSOLUTE_OFFSET);
 
-        Asn1Ctx *ac = SCAsn1CtxNew();
-        if (ac == NULL)
-            return 0;
+    // Example from the specification X.690-0207 Appendix A.3
+    char buf[] = "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
+        "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
+        "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
+        "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
+        "Smith""\xA3\x42\x31\x1F\x61\x11\x1A\x05""Ralph""\x1A\x01"
+        "T""\x1A\x05""Smith""\xA0\x0A\x43\x08""19571111"
+        "\x31\x1F\x61\x11\x1A\x05""Susan""\x1A\x01""B""\x1A\x05"
+        "Jones""\xA0\x0A\x43\x08""19590717";
 
-        uint16_t len = strlen((char *)str)-1;
+    Asn1Ctx *ac = SCAsn1CtxNew();
+    FAIL_IF_NULL(ac);
 
-        SCAsn1CtxInit(ac, str, len);
+    uint16_t len = strlen((char *)buf)-1;
 
-        SCAsn1Decode(ac, ac->cur_frame);
+    SCAsn1CtxInit(ac, (uint8_t *)buf, len);
+    SCAsn1Decode(ac, ac->cur_frame);
 
-        /* The first node has length 133, so it should match the oversize */
-        if (ac->cur_frame > 0) {
-            /* We spect at least one node */
-            uint16_t n_iter = 0;
+    /* The first node has length 133, so it should match the oversize */
+    FAIL_IF_NOT(ac->cur_frame > 0);
 
-            for (; n_iter <= ac->cur_frame; n_iter++) {
-                Asn1Node *node = ASN1CTX_GET_NODE(ac, n_iter);
+    /* We spect at least one node */
+    uint16_t n_iter = 0;
+    int result = 0;
+    for (; n_iter <= ac->cur_frame; n_iter++) {
+        Asn1Node *node = ASN1CTX_GET_NODE(ac, n_iter);
 
-                if (node == NULL || node->id.ptr == NULL)
-                    continue; /* Should not happen */
+        if (node == NULL || node->id.ptr == NULL)
+            continue; /* Should not happen */
 
-                result = DetectAsn1Checks(node, ad);
-                /* Got a match? */
-                if (result == 1)
-                    break;
-            }
-        }
-
-        SCAsn1CtxDestroy(ac);
-        DetectAsn1Free(ad);
-
+        result = DetectAsn1Checks(node, ad);
+        /* Got a match? */
+        if (result == 1)
+            break;
     }
+    FAIL_IF(result != 1);
 
-    if (result == 0) {
-        printf("Error, oversize_length should match the first node: ");
-    }
+    SCAsn1CtxDestroy(ac);
+    DetectAsn1Free(ad);
 
-    return result;
+    PASS;
 }
 
 /**
