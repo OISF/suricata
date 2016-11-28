@@ -1079,7 +1079,6 @@ static int AppLayerProtoDetectPMSetContentIDs(AppLayerProtoDetectPMCtx *ctx)
     PatIntId max_id = 0;
     TempContainer *struct_offset = NULL;
     uint8_t *content_offset = NULL;
-    TempContainer *dup = NULL;
     int ret = 0;
 
     if (ctx->head == NULL)
@@ -1098,21 +1097,21 @@ static int AppLayerProtoDetectPMSetContentIDs(AppLayerProtoDetectPMCtx *ctx)
     struct_offset = (TempContainer *)ahb;
     content_offset = ahb + struct_total_size;
     for (s = ctx->head; s != NULL; s = s->next) {
-        dup = (TempContainer *)ahb;
+        TempContainer *tcdup = (TempContainer *)ahb;
         content = s->cd->content;
         content_len = s->cd->content_len;
 
-        for (; dup != struct_offset; dup++) {
-            if (dup->content_len != content_len ||
-                SCMemcmp(dup->content, content, dup->content_len) != 0)
+        for (; tcdup != struct_offset; tcdup++) {
+            if (tcdup->content_len != content_len ||
+                SCMemcmp(tcdup->content, content, tcdup->content_len) != 0)
             {
                 continue;
             }
             break;
         }
 
-        if (dup != struct_offset) {
-            s->cd->id = dup->id;
+        if (tcdup != struct_offset) {
+            s->cd->id = tcdup->id;
             continue;
         }
 
