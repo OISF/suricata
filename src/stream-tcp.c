@@ -7175,9 +7175,9 @@ static int StreamTcpTest14 (void)
         printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
                 " should be %"PRIu8" and server.os_policy: %"PRIu8""
                 " should be %"PRIu8"\n", ((TcpSession *)
-                (p->flow->protoctx))->client.os_policy, OS_POLICY_WINDOWS,
+                (p->flow->protoctx))->client.os_policy, (uint8_t)OS_POLICY_WINDOWS,
                 ((TcpSession *)(p->flow->protoctx))->server.os_policy,
-                OS_POLICY_LINUX);
+                (uint8_t)OS_POLICY_LINUX);
         goto end;
     }
     StreamTcpSessionClear(p->flow->protoctx);
@@ -7589,9 +7589,9 @@ static int StreamTcpTest15 (void)
         printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
                 " should be %"PRIu8" and server.os_policy: %"PRIu8""
                 " should be %"PRIu8"\n", ((TcpSession *)
-                (p->flow->protoctx))->client.os_policy, OS_POLICY_WINDOWS,
+                (p->flow->protoctx))->client.os_policy, (uint8_t)OS_POLICY_WINDOWS,
                 ((TcpSession *)(p->flow->protoctx))->server.os_policy,
-                OS_POLICY_LINUX);
+                (uint8_t)OS_POLICY_LINUX);
         goto end;
     }
     StreamTcpSessionPktFree(p);
@@ -7763,9 +7763,9 @@ static int StreamTcpTest16 (void)
         printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
                 " should be %"PRIu8" and server.os_policy: %"PRIu8""
                 " should be %"PRIu8"\n", ((TcpSession *)
-                (p->flow->protoctx))->client.os_policy, OS_POLICY_LINUX,
+                (p->flow->protoctx))->client.os_policy, (uint8_t)OS_POLICY_LINUX,
                 ((TcpSession *)(p->flow->protoctx))->server.os_policy,
-                OS_POLICY_WINDOWS);
+                (uint8_t)OS_POLICY_WINDOWS);
         goto end;
     }
     StreamTcpSessionPktFree(p);
@@ -7938,9 +7938,9 @@ static int StreamTcpTest17 (void)
         printf("failed in setting up OS policy, client.os_policy: %"PRIu8""
                 " should be %"PRIu8" and server.os_policy: %"PRIu8""
                 " should be %"PRIu8"\n", ((TcpSession *)
-                (p->flow->protoctx))->client.os_policy, OS_POLICY_LINUX,
+                (p->flow->protoctx))->client.os_policy, (uint8_t)OS_POLICY_LINUX,
                 ((TcpSession *)(p->flow->protoctx))->server.os_policy,
-                OS_POLICY_DEFAULT);
+                (uint8_t)OS_POLICY_DEFAULT);
         goto end;
     }
     StreamTcpSessionPktFree(p);
@@ -8045,7 +8045,7 @@ static int StreamTcpTest19 (void)
 
     if (stream.os_policy != OS_POLICY_WINDOWS) {
         printf("expected os_policy: %"PRIu8" but received %"PRIu8": ",
-                OS_POLICY_WINDOWS, stream.os_policy);
+                (uint8_t)OS_POLICY_WINDOWS, stream.os_policy);
         goto end;
     }
 
@@ -8097,7 +8097,7 @@ static int StreamTcpTest20 (void)
 
     if (stream.os_policy != OS_POLICY_LINUX) {
         printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
-                OS_POLICY_LINUX, stream.os_policy);
+                (uint8_t)OS_POLICY_LINUX, stream.os_policy);
         goto end;
     }
 
@@ -8149,7 +8149,7 @@ static int StreamTcpTest21 (void)
 
     if (stream.os_policy != OS_POLICY_LINUX) {
         printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
-                OS_POLICY_LINUX, stream.os_policy);
+                (uint8_t)OS_POLICY_LINUX, stream.os_policy);
         goto end;
     }
 
@@ -8201,7 +8201,7 @@ static int StreamTcpTest22 (void)
 
     if (stream.os_policy != OS_POLICY_DEFAULT) {
         printf("expected os_policy: %"PRIu8" but received %"PRIu8"\n",
-                OS_POLICY_DEFAULT, stream.os_policy);
+                (uint8_t)OS_POLICY_DEFAULT, stream.os_policy);
         goto end;
     }
 
