@@ -1325,8 +1325,6 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        CleanVariableResolveList(&var_list);
-
         if (DetectAddressIsCompleteIPSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                        "address var - \"%s\" has the complete IP space negated "
