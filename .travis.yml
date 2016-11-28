@@ -1,3 +1,7 @@
+os:
+  - linux
+  - osx
+osx_image: xcode8.1
 language: c
 env:
   - CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
@@ -5,10 +9,17 @@ compiler:
   - gcc
   - clang
 # Change this to your needs
-script: sh autogen.sh && ./configure --enable-nfqueue --enable-unittests --enable-hiredis && make && make check
+script:
+  - sh autogen.sh
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure --enable-nfqueue --enable-unittests --enable-hiredis; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./configure --enable-unittests --enable-hiredis --enable-ipfw --enable-lua --with-libpcre-includes=/usr/local/include --with-libpcre-includes=/usr/local/include --with-libpcre-libraries=/usr/local/lib --with-libnss-includes=/usr/local/opt/nss/include/nss --with-libnss-libraries=/usr/local/opt/nss/lib --with-libnspr-includes=/usr/local/opt/nspr/include/nspr --with-libnspr-libraries=/usr/local/opt/nspr/lib; fi
+  - make
+  - make check
 before_install:
-  - sudo add-apt-repository -y ppa:npalix/coccinelle
-  - sudo apt-get update -qq
-  - sudo apt-get install -y libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make libmagic-dev libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 coccinelle libjansson-dev libhiredis-dev
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:npalix/coccinelle; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y libpcre3 libpcre3-dbg libpcre3-dev build-essential autoconf automake libtool libpcap-dev libnet1-dev libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev libcap-ng0 make libmagic-dev libnetfilter-queue-dev libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 coccinelle libjansson-dev libhiredis-dev; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install pkg-config libmagic libyaml nss nspr jansson libnet lua pcre hiredis; fi
   - ./qa/travis-libhtp.sh
 
