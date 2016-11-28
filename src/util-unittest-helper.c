@@ -570,7 +570,7 @@ int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
     for (; i < numsids; i++) {
         uint16_t r = PacketAlertCheck(p, sids[i]);
         if (r != results[i]) {
-            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu16
+            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu32
                     " as expected", sids[i], r, results[i]);
             res = 0;
         } else {
