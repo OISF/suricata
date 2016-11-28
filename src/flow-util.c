@@ -64,6 +64,7 @@ Flow *FlowAlloc(void)
     }
     memset(f, 0, size);
 
+    /* coverity[missing_lock] */
     FLOW_INITIALIZE(f);
     return f;
 }
