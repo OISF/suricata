@@ -180,13 +180,13 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             s->app_inspect = new_engine;
             new_engine->inspect_flags = BIT_U32(DE_STATE_FLAG_BASE); // start beyond the built-ins
         } else {
-            DetectEngineAppInspectionEngine *t = s->app_inspect;
-            while (t->next != NULL) {
-                t = t->next;
+            DetectEngineAppInspectionEngine *a = s->app_inspect;
+            while (a->next != NULL) {
+                a = a->next;
             }
 
-            t->next = new_engine;
-            new_engine->id = t->id + 1;
+            a->next = new_engine;
+            new_engine->id = a->id + 1;
             new_engine->inspect_flags = BIT_U32(new_engine->id + DE_STATE_FLAG_BASE);
         }
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
