@@ -46,7 +46,6 @@
 #include "output.h"
 #include "log-tlslog.h"
 #include "app-layer-ssl.h"
-#include "detect-tls-cipher-suite.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -421,10 +420,10 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
                 LogTlsLogExtended(aft, ssl_state);
                 break;
             case LOG_TLS_CF_SERVER_CIPHERSUITE:
-                if (ssl_state->server_connp.cipher_suites_length &&
+                if (ssl_state->server_connp.num_cipher_suites &&
                     ssl_state->server_connp.cipher_suites ) {
                     MemBufferWriteString(aft->buffer, "%s",
-                            TlsCipherSuiteDescription(*ssl_state->server_connp.cipher_suites)
+                            SSLCipherSuiteDescription(*ssl_state->server_connp.cipher_suites)
                             );
                 } else {
                     LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
