@@ -176,7 +176,7 @@ DetectTtlData *DetectTtlParse (char *ttlstr)
 
     ttld = SCMalloc(sizeof (DetectTtlData));
     if (unlikely(ttld == NULL))
-    goto error;
+        goto error;
     ttld->ttl1 = 0;
     ttld->ttl2 = 0;
 
@@ -226,7 +226,9 @@ DetectTtlData *DetectTtlParse (char *ttlstr)
             default:
                 ttld->mode = DETECT_TTL_EQ;
 
-                if ((arg2 != NULL && strlen(arg2) > 0) || (arg3 != NULL && strlen(arg3) > 0) || (arg1 == NULL ||strlen(arg1) == 0))
+                if ((arg2 != NULL && strlen(arg2) > 0) ||
+                    (arg3 != NULL && strlen(arg3) > 0) ||
+                    (arg1 == NULL ||strlen(arg1) == 0))
                     goto error;
 
                 ttld->ttl1 = (uint8_t) atoi(arg1);
@@ -235,9 +237,8 @@ DetectTtlData *DetectTtlParse (char *ttlstr)
     } else {
         ttld->mode = DETECT_TTL_EQ;
 
-        if ((arg2 != NULL && strlen(arg2) > 0) ||
-                (arg3 != NULL && strlen(arg3) > 0) ||
-                (arg1 == NULL ||strlen(arg1) == 0))
+        if ((arg3 != NULL && strlen(arg3) > 0) ||
+            (arg1 == NULL ||strlen(arg1) == 0))
             goto error;
 
         ttld->ttl1 = (uint8_t) atoi(arg1);
@@ -249,10 +250,14 @@ DetectTtlData *DetectTtlParse (char *ttlstr)
     return ttld;
 
 error:
-    if (ttld) SCFree(ttld);
-    if (arg1) SCFree(arg1);
-    if (arg2) SCFree(arg2);
-    if (arg3) SCFree(arg3);
+    if (ttld)
+        SCFree(ttld);
+    if (arg1)
+        SCFree(arg1);
+    if (arg2)
+        SCFree(arg2);
+    if (arg3)
+        SCFree(arg3);
     return NULL;
 }
 
