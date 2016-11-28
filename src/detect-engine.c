@@ -530,7 +530,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
      * silently after setting RUNNING_DONE flag and while waiting for
      * THV_DEINIT flag */
     if (i != no_of_detect_tvs) { // not all threads we swapped
-        ThreadVars *tv = tv_root[TVT_PPT];
+        tv = tv_root[TVT_PPT];
         while (tv) {
             /* obtain the slots for this TV */
             TmSlot *slots = tv->tm_slots;
