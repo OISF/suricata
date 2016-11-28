@@ -5056,7 +5056,7 @@ int DCERPCParserTest13(void)
     Flow f;
     int r = 0;
 
-    uint8_t bind[] = {
+    uint8_t bindbuf[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
         0x48, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00,
         0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
@@ -5067,7 +5067,7 @@ int DCERPCParserTest13(void)
         0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
         0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
     };
-    uint32_t bind_len = sizeof(bind);
+    uint32_t bindbuf_len = sizeof(bindbuf);
 
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5083,7 +5083,7 @@ int DCERPCParserTest13(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, bind, bind_len);
+                            STREAM_TOSERVER, bindbuf, bindbuf_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5141,7 +5141,7 @@ int DCERPCParserTest14(void)
     Flow f;
     int r = 0;
 
-    uint8_t bind[] = {
+    uint8_t bindbuf[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
         0x4A, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00,
         0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
@@ -5158,7 +5158,7 @@ int DCERPCParserTest14(void)
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
         0x01, 0x02, 0x03, 0x04, 0xFF /* ka boom - endless loop */
     };
-    uint32_t bind_len = sizeof(bind);
+    uint32_t bindbuf_len = sizeof(bindbuf);
 
     TcpSession ssn;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -5174,7 +5174,7 @@ int DCERPCParserTest14(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, bind, bind_len);
+                            STREAM_TOSERVER, bindbuf, bindbuf_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5868,7 +5868,7 @@ int DCERPCParserTest17(void)
     Flow f;
     int r = 0;
 
-    uint8_t bind[] = {
+    uint8_t bindbuf[] = {
         0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
         0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
         0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
@@ -5879,7 +5879,7 @@ int DCERPCParserTest17(void)
         0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
         0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
     };
-    uint32_t bind_len = sizeof(bind);
+    uint32_t bindbuf_len = sizeof(bindbuf);
 
     uint8_t bind_ack[] = {
         0x05, 0x00, 0x0c, 0x03, 0x10, 0x00, 0x00, 0x00,
@@ -5944,7 +5944,7 @@ int DCERPCParserTest17(void)
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
-                            STREAM_TOSERVER, bind, bind_len);
+                            STREAM_TOSERVER, bindbuf, bindbuf_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
