@@ -136,7 +136,6 @@ void FlowDisableFlowManagerThread(void)
     return;
 #endif
     ThreadVars *tv = NULL;
-    int cnt = 0;
 
     /* wake up threads */
     uint32_t u;
@@ -144,25 +143,37 @@ void FlowDisableFlowManagerThread(void)
         SCCtrlCondSignal(&flow_manager_ctrl_cond);
 
     SCMutexLock(&tv_root_lock);
-
     /* flow manager thread(s) is/are a part of mgmt threads */
     tv = tv_root[TVT_MGMT];
-
     while (tv != NULL)
     {
         if (strncasecmp(tv->name, thread_name_flow_mgr,
             strlen(thread_name_flow_mgr)) == 0)
         {
             TmThreadsSetFlag(tv, THV_KILL);
-            cnt++;
+        }
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
 
-            /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-            /* value in microseconds */
-#define WAIT_TIME 100
+    double total_wait_time = 0;
+    /* value in seconds */
+    #define THREAD_KILL_MAX_WAIT_TIME 60
+    /* value in microseconds */
+    #define WAIT_TIME 100
 
-            double total_wait_time = 0;
-            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+again:
+    SCMutexLock(&tv_root_lock);
+
+    tv = tv_root[TVT_MGMT];
+    while (tv != NULL)
+    {
+        if (strncasecmp(tv->name, thread_name_flow_mgr,
+            strlen(thread_name_flow_mgr)) == 0)
+        {
+            if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                SCMutexUnlock(&tv_root_lock);
+
                 usleep(WAIT_TIME);
                 total_wait_time += WAIT_TIME / 1000000.0;
                 if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
@@ -171,6 +182,7 @@ void FlowDisableFlowManagerThread(void)
                             "Killing engine", tv->name);
                     exit(EXIT_FAILURE);
                 }
+                goto again;
             }
         }
         tv = tv->next;
@@ -1038,10 +1050,8 @@ void FlowDisableFlowRecyclerThread(void)
         SCCtrlCondSignal(&flow_recycler_ctrl_cond);
 
     SCMutexLock(&tv_root_lock);
-
     /* flow recycler thread(s) is/are a part of mgmt threads */
     tv = tv_root[TVT_MGMT];
-
     while (tv != NULL)
     {
         if (strncasecmp(tv->name, thread_name_flow_rec,
@@ -1049,22 +1059,36 @@ void FlowDisableFlowRecyclerThread(void)
         {
             TmThreadsSetFlag(tv, THV_KILL);
             cnt++;
+        }
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
 
-            /* value in seconds */
+    double total_wait_time = 0;
+    /* value in seconds */
 #define THREAD_KILL_MAX_WAIT_TIME 60
-            /* value in microseconds */
+    /* value in microseconds */
 #define WAIT_TIME 100
 
-            double total_wait_time = 0;
-            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-                usleep(WAIT_TIME);
-                total_wait_time += WAIT_TIME / 1000000.0;
+again:
+    SCMutexLock(&tv_root_lock);
+    tv = tv_root[TVT_MGMT];
+    while (tv != NULL)
+    {
+        if (strncasecmp(tv->name, thread_name_flow_rec,
+            strlen(thread_name_flow_rec)) == 0)
+        {
+            if (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
                 if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
                     SCLogError(SC_ERR_FATAL, "Engine unable to "
                             "disable detect thread - \"%s\".  "
                             "Killing engine", tv->name);
                     exit(EXIT_FAILURE);
                 }
+                SCMutexUnlock(&tv_root_lock);
+                usleep(WAIT_TIME);
+                total_wait_time += WAIT_TIME / 1000000.0;
+                goto again;
             }
         }
         tv = tv->next;

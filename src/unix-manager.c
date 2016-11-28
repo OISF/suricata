@@ -610,8 +610,8 @@ void UnixKillUnixManagerThread(void)
     ThreadVars *tv = NULL;
     int cnt = 0;
 
+again:
     SCCtrlCondSignal(&unix_manager_ctrl_cond);
-
     SCMutexLock(&tv_root_lock);
 
     /* flow manager thread(s) is/are a part of mgmt threads */
@@ -623,8 +623,10 @@ void UnixKillUnixManagerThread(void)
             TmThreadsSetFlag(tv, THV_DEINIT);
 
             /* be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+            if(!(TmThreadsCheckFlag(tv, THV_CLOSED))) {
+                SCMutexUnlock(&tv_root_lock);
                 usleep(100);
+                goto again;
             }
             cnt++;
         }
@@ -1037,6 +1039,7 @@ void UnixSocketKillSocketThread(void)
 {
     ThreadVars *tv = NULL;
 
+again:
     SCMutexLock(&tv_root_lock);
 
     /* unix manager thread(s) is/are a part of command threads */
@@ -1057,8 +1060,10 @@ void UnixSocketKillSocketThread(void)
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
             /* Be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+            if (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCMutexUnlock(&tv_root_lock);
                 usleep(100);
+                goto again;
             }
         }
         tv = tv->next;

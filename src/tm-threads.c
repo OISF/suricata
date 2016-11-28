@@ -1660,6 +1660,8 @@ again:
 
             /* wait for it to enter the 'flow loop' stage */
             while (!TmThreadsCheckFlag(tv, THV_FLOW_LOOP)) {
+                SCMutexUnlock(&tv_root_lock);
+
                 usleep(WAIT_TIME);
                 total_wait_time += WAIT_TIME / 1000000.0;
                 if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
@@ -1668,6 +1670,7 @@ again:
                                "Killing engine", tv->name);
                     exit(EXIT_FAILURE);
                 }
+                goto again;
             }
         }
 
@@ -1743,6 +1746,8 @@ again:
         }
 
         while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+            SCMutexUnlock(&tv_root_lock);
+
             usleep(WAIT_TIME);
             total_wait_time += WAIT_TIME / 1000000.0;
             if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
@@ -1751,6 +1756,7 @@ again:
                         "Killing engine", tv->name);
                 exit(EXIT_FAILURE);
             }
+            goto again;
         }
 
         tv = tv->next;
@@ -2122,37 +2128,36 @@ TmEcode TmThreadWaitOnThreadInit(void)
     int i = 0;
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
-
+again:
     SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
-            char started = FALSE;
-            while (started == FALSE) {
-                if (TmThreadsCheckFlag(tv, THV_INIT_DONE)) {
-                    started = TRUE;
-                } else {
-                    /* sleep a little to give the thread some
-                     * time to finish initialization */
-                    usleep(100);
-                }
-
-                if (TmThreadsCheckFlag(tv, THV_FAILED)) {
-                    SCMutexUnlock(&tv_root_lock);
-                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                            "initialize.", tv->name);
-                    return TM_ECODE_FAILED;
-                }
-                if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                    SCMutexUnlock(&tv_root_lock);
-                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" closed on "
-                            "initialization.", tv->name);
-                    return TM_ECODE_FAILED;
-                }
+            if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
+                SCMutexUnlock(&tv_root_lock);
+                /* sleep a little to give the thread some
+                 * time to finish initialization */
+                usleep(100);
+                goto again;
             }
 
-            if (i == TVT_MGMT) mgt_num++;
-            else if (i == TVT_PPT) ppt_num++;
+            if (TmThreadsCheckFlag(tv, THV_FAILED)) {
+                SCMutexUnlock(&tv_root_lock);
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                        "initialize.", tv->name);
+                return TM_ECODE_FAILED;
+            }
+            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCMutexUnlock(&tv_root_lock);
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" closed on "
+                        "initialization.", tv->name);
+                return TM_ECODE_FAILED;
+            }
+
+            if (i == TVT_MGMT)
+                mgt_num++;
+            else if (i == TVT_PPT)
+                ppt_num++;
 
             tv = tv->next;
         }
