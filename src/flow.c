@@ -472,7 +472,7 @@ void FlowShutdown(void)
     if (flow_hash != NULL) {
         /* clean up flow mutexes */
         for (u = 0; u < flow_config.hash_size; u++) {
-            Flow *f = flow_hash[u].head;
+            f = flow_hash[u].head;
             while (f) {
 #ifdef DEBUG_VALIDATION
                 BUG_ON(SC_ATOMIC_GET(f->use_cnt) != 0);
