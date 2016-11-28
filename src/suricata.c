@@ -355,14 +355,14 @@ void EngineDone(void)
     suricata_ctl_flags |= SURICATA_DONE;
 }
 
-static int SetBpfString(int optind, char *argv[])
+static int SetBpfString(int argc, char *argv[])
 {
     char *bpf_filter = NULL;
     uint32_t bpf_len = 0;
     int tmpindex = 0;
 
     /* attempt to parse remaining args as bpf filter */
-    tmpindex = optind;
+    tmpindex = argc;
     while(argv[tmpindex] != NULL) {
         bpf_len+=strlen(argv[tmpindex]) + 1;
         tmpindex++;
@@ -1029,21 +1029,21 @@ static void SCPrintElapsedTime(SCInstance *suri)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
-static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
+static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
 {
 #ifdef HAVE_AF_PACKET
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_AFP_DEV;
-        if (optarg) {
-            LiveRegisterDevice(optarg);
+        if (in_arg) {
+            LiveRegisterDevice(in_arg);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-            strlcpy(suri->pcap_dev, optarg, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFP_DEV) {
         SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                 "multiple devices to get packets is experimental.");
-        if (optarg) {
-            LiveRegisterDevice(optarg);
+        if (in_arg) {
+            LiveRegisterDevice(in_arg);
         } else {
             SCLogInfo("Multiple af-packet option without interface on each is useless");
         }
@@ -1062,31 +1062,31 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
 #endif
 }
 
-static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
+static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 {
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
-    if (optarg != NULL) {
+    if (in_arg != NULL) {
         /* some windows shells require escaping of the \ in \Device. Otherwise
          * the backslashes are stripped. We put them back here. */
-        if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
-            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
+        if (strlen(in_arg) > 9 && strncmp(in_arg, "DeviceNPF", 9) == 0) {
+            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", in_arg+9);
         } else {
-            strlcpy(suri->pcap_dev, optarg, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
             PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
         }
 
-        if (strcmp(suri->pcap_dev, optarg) != 0) {
-            SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
+        if (strcmp(suri->pcap_dev, in_arg) != 0) {
+            SCLogInfo("translated %s to pcap device %s", in_arg, suri->pcap_dev);
         } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
-            SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
+            SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", in_arg);
             return TM_ECODE_FAILED;
         }
     }
 
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_PCAP_DEV;
-        if (optarg) {
+        if (in_arg) {
             LiveRegisterDevice(suri->pcap_dev);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
