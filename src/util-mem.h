@@ -223,9 +223,9 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = strdup((a)); \
     if (ptrmem == NULL) { \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
-            size_t len = strlen((a)); \
+            size_t _scstrdup_len = strlen((a)); \
             SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
-                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)len); \
+                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)_scstrdup_len); \
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
         } \
