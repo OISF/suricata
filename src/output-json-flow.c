@@ -289,46 +289,46 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         JsonTcpFlags(ssn ? ssn->tcp_packet_flags : 0, tjs);
 
         if (ssn) {
-            char *state = NULL;
+            char *tcp_state = NULL;
             switch (ssn->state) {
                 case TCP_NONE:
-                    state = "none";
+                    tcp_state = "none";
                     break;
                 case TCP_LISTEN:
-                    state = "listen";
+                    tcp_state = "listen";
                     break;
                 case TCP_SYN_SENT:
-                    state = "syn_sent";
+                    tcp_state = "syn_sent";
                     break;
                 case TCP_SYN_RECV:
-                    state = "syn_recv";
+                    tcp_state = "syn_recv";
                     break;
                 case TCP_ESTABLISHED:
-                    state = "established";
+                    tcp_state = "established";
                     break;
                 case TCP_FIN_WAIT1:
-                    state = "fin_wait1";
+                    tcp_state = "fin_wait1";
                     break;
                 case TCP_FIN_WAIT2:
-                    state = "fin_wait2";
+                    tcp_state = "fin_wait2";
                     break;
                 case TCP_TIME_WAIT:
-                    state = "time_wait";
+                    tcp_state = "time_wait";
                     break;
                 case TCP_LAST_ACK:
-                    state = "last_ack";
+                    tcp_state = "last_ack";
                     break;
                 case TCP_CLOSE_WAIT:
-                    state = "close_wait";
+                    tcp_state = "close_wait";
                     break;
                 case TCP_CLOSING:
-                    state = "closing";
+                    tcp_state = "closing";
                     break;
                 case TCP_CLOSED:
-                    state = "closed";
+                    tcp_state = "closed";
                     break;
             }
-            json_object_set_new(tjs, "state", json_string(state));
+            json_object_set_new(tjs, "state", json_string(tcp_state));
         }
 
         json_object_set_new(js, "tcp", tjs);
