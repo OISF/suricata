@@ -136,8 +136,8 @@ typedef struct NFQThreadVars_
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
-static NFQThreadVars nfq_t[NFQ_MAX_QUEUE];
-static NFQQueueVars nfq_q[NFQ_MAX_QUEUE];
+static NFQThreadVars g_nfq_t[NFQ_MAX_QUEUE];
+static NFQQueueVars g_nfq_q[NFQ_MAX_QUEUE];
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
@@ -555,10 +555,10 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     ret = NFQSetupPkt(p, qh, (void *)nfa);
     if (ret == -1) {
 #ifdef COUNTERS
-        NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
-        nfq_q->errs++;
-        nfq_q->pkts++;
-        nfq_q->bytes += GET_PKT_LEN(p);
+        NFQQueueVars *q = NFQGetQueue(ntv->nfq_index);
+        q->errs++;
+        q->pkts++;
+        q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
         /* NFQSetupPkt is issuing a verdict
            so we only recycle Packet and leave */
@@ -569,9 +569,9 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     p->ReleasePacket = NFQReleasePacket;
 
 #ifdef COUNTERS
-    NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
-    nfq_q->pkts++;
-    nfq_q->bytes += GET_PKT_LEN(p);
+    NFQQueueVars *q = NFQGetQueue(ntv->nfq_index);
+    q->pkts++;
+    q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
 
     if (ntv->slot) {
@@ -587,20 +587,20 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     return 0;
 }
 
-TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
+TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
 {
 #ifndef OS_WIN32
     struct timeval tv;
     int opt;
 #endif
-    NFQQueueVars *nfq_q = NFQGetQueue(nfq_t->nfq_index);
-    if (nfq_q == NULL) {
+    NFQQueueVars *q = NFQGetQueue(t->nfq_index);
+    if (q == NULL) {
         SCLogError(SC_ERR_NFQ_OPEN, "no queue for given index");
         return TM_ECODE_FAILED;
     }
     SCLogDebug("opening library handle");
-    nfq_q->h = nfq_open();
-    if (!nfq_q->h) {
+    q->h = nfq_open();
+    if (q->h == NULL) {
         SCLogError(SC_ERR_NFQ_OPEN, "nfq_open() failed");
         return TM_ECODE_FAILED;
     }
@@ -610,11 +610,11 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
         /* VJ: on my Ubuntu Hardy system this fails the first time it's
          * run. Ignoring the error seems to have no bad effects. */
         SCLogDebug("unbinding existing nf_queue handler for AF_INET (if any)");
-        if (nfq_unbind_pf(nfq_q->h, AF_INET) < 0) {
+        if (nfq_unbind_pf(q->h, AF_INET) < 0) {
             SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET failed");
             exit(EXIT_FAILURE);
         }
-        if (nfq_unbind_pf(nfq_q->h, AF_INET6) < 0) {
+        if (nfq_unbind_pf(q->h, AF_INET6) < 0) {
             SCLogError(SC_ERR_NFQ_UNBIND, "nfq_unbind_pf() for AF_INET6 failed");
             exit(EXIT_FAILURE);
         }
@@ -622,23 +622,22 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 
         SCLogDebug("binding nfnetlink_queue as nf_queue handler for AF_INET and AF_INET6");
 
-        if (nfq_bind_pf(nfq_q->h, AF_INET) < 0) {
+        if (nfq_bind_pf(q->h, AF_INET) < 0) {
             SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET failed");
             exit(EXIT_FAILURE);
         }
-        if (nfq_bind_pf(nfq_q->h, AF_INET6) < 0) {
+        if (nfq_bind_pf(q->h, AF_INET6) < 0) {
             SCLogError(SC_ERR_NFQ_BIND, "nfq_bind_pf() for AF_INET6 failed");
             exit(EXIT_FAILURE);
         }
     }
 
-    SCLogInfo("binding this thread %d to queue '%" PRIu32 "'", nfq_t->nfq_index, nfq_q->queue_num);
+    SCLogInfo("binding this thread %d to queue '%" PRIu32 "'", t->nfq_index, q->queue_num);
 
     /* pass the thread memory as a void ptr so the
      * callback function has access to it. */
-    nfq_q->qh = nfq_create_queue(nfq_q->h, nfq_q->queue_num, &NFQCallBack, (void *)nfq_t);
-    if (nfq_q->qh == NULL)
-    {
+    q->qh = nfq_create_queue(q->h, q->queue_num, &NFQCallBack, (void *)t);
+    if (q->qh == NULL) {
         SCLogError(SC_ERR_NFQ_CREATE_QUEUE, "nfq_create_queue failed");
         return TM_ECODE_FAILED;
     }
@@ -647,7 +646,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 
     /* 05DC = 1500 */
     //if (nfq_set_mode(nfq_t->qh, NFQNL_COPY_PACKET, 0x05DC) < 0) {
-    if (nfq_set_mode(nfq_q->qh, NFQNL_COPY_PACKET, 0xFFFF) < 0) {
+    if (nfq_set_mode(q->qh, NFQNL_COPY_PACKET, 0xFFFF) < 0) {
         SCLogError(SC_ERR_NFQ_SET_MODE, "can't set packet_copy mode");
         return TM_ECODE_FAILED;
     }
@@ -657,7 +656,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
         SCLogInfo("setting queue length to %" PRId32 "", queue_maxlen);
 
         /* non-fatal if it fails */
-        if (nfq_set_queue_maxlen(nfq_q->qh, queue_maxlen) < 0) {
+        if (nfq_set_queue_maxlen(q->qh, queue_maxlen) < 0) {
             SCLogWarning(SC_ERR_NFQ_MAXLEN, "can't set queue maxlen: your kernel probably "
                     "doesn't support setting the queue length");
         }
@@ -666,18 +665,18 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 
 #ifndef OS_WIN32
     /* set netlink buffer size to a decent value */
-    nfnl_rcvbufsiz(nfq_nfnlh(nfq_q->h), queue_maxlen * 1500);
+    nfnl_rcvbufsiz(nfq_nfnlh(q->h), queue_maxlen * 1500);
     SCLogInfo("setting nfnl bufsize to %" PRId32 "", queue_maxlen * 1500);
 
-    nfq_q->nh = nfq_nfnlh(nfq_q->h);
-    nfq_q->fd = nfnl_fd(nfq_q->nh);
-    NFQMutexInit(nfq_q);
+    q->nh = nfq_nfnlh(q->h);
+    q->fd = nfnl_fd(q->nh);
+    NFQMutexInit(q);
 
     /* Set some netlink specific option on the socket to increase
 	performance */
     opt = 1;
 #ifdef NETLINK_BROADCAST_SEND_ERROR
-    if (setsockopt(nfq_q->fd, SOL_NETLINK,
+    if (setsockopt(q->fd, SOL_NETLINK,
                    NETLINK_BROADCAST_SEND_ERROR, &opt, sizeof(int)) == -1) {
         SCLogWarning(SC_ERR_NFQ_SETSOCKOPT,
                      "can't set netlink broadcast error: %s",
@@ -687,7 +686,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
     /* Don't send error about no buffer space available but drop the
 	packets instead */
 #ifdef NETLINK_NO_ENOBUFS
-    if (setsockopt(nfq_q->fd, SOL_NETLINK,
+    if (setsockopt(q->fd, SOL_NETLINK,
                    NETLINK_NO_ENOBUFS, &opt, sizeof(int)) == -1) {
         SCLogWarning(SC_ERR_NFQ_SETSOCKOPT,
                      "can't set netlink enobufs: %s",
@@ -699,7 +698,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
     if (nfq_config.flags & NFQ_FLAG_FAIL_OPEN) {
         uint32_t flags = NFQA_CFG_F_FAIL_OPEN;
         uint32_t mask = NFQA_CFG_F_FAIL_OPEN;
-        int r = nfq_set_queue_flags(nfq_q->qh, mask, flags);
+        int r = nfq_set_queue_flags(q->qh, mask, flags);
 
         if (r == -1) {
             SCLogWarning(SC_ERR_NFQ_SET_MODE, "can't set fail-open mode: %s",
@@ -712,7 +711,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 
 #ifdef HAVE_NFQ_SET_VERDICT_BATCH
     if (runmode_workers) {
-        nfq_q->verdict_cache.maxlen = nfq_config.batchcount;
+        q->verdict_cache.maxlen = nfq_config.batchcount;
     } else if (nfq_config.batchcount) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "nfq.batchcount is only valid in workers runmode.");
     }
@@ -723,17 +722,17 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
     tv.tv_sec = 1;
     tv.tv_usec = 0;
 
-    if(setsockopt(nfq_q->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
+    if(setsockopt(q->fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1) {
         SCLogWarning(SC_ERR_NFQ_SETSOCKOPT, "can't set socket timeout: %s", strerror(errno));
     }
 
     SCLogDebug("nfq_q->h %p, nfq_q->nh %p, nfq_q->qh %p, nfq_q->fd %" PRId32 "",
-            nfq_q->h, nfq_q->nh, nfq_q->qh, nfq_q->fd);
+            q->h, q->nh, q->qh, q->fd);
 #else /* OS_WIN32 */
-    NFQMutexInit(nfq_q);
-    nfq_q->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    nfq_q->fd = nfq_fd(nfq_q->h);
-    SCLogDebug("nfq_q->h %p, nfq_q->qh %p, nfq_q->fd %p", nfq_q->h, nfq_q->qh, nfq_q->fd);
+    NFQMutexInit(q);
+    q->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    q->fd = nfq_fd(q->h);
+    SCLogDebug("q->h %p, q->qh %p, q->fd %p", q->h, q->qh, q->fd);
 #endif /* OS_WIN32 */
 
     return TM_ECODE_OK;
@@ -857,14 +856,14 @@ int NFQRegisterQueue(char *queue)
         return -1;
     }
     if (receive_queue_num == 0) {
-        memset(&nfq_t, 0, sizeof(nfq_t));
-        memset(&nfq_q, 0, sizeof(nfq_q));
+        memset(&g_nfq_t, 0, sizeof(g_nfq_t));
+        memset(&g_nfq_q, 0, sizeof(g_nfq_q));
     }
 
-    ntv = &nfq_t[receive_queue_num];
+    ntv = &g_nfq_t[receive_queue_num];
     ntv->nfq_index = receive_queue_num;
 
-    nq = &nfq_q[receive_queue_num];
+    nq = &g_nfq_q[receive_queue_num];
     nq->queue_num = queue_num;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
@@ -889,7 +888,7 @@ void *NFQGetQueue(int number)
     if (number >= receive_queue_num)
         return NULL;
 
-    return (void *)&nfq_q[number];
+    return (void *)&g_nfq_q[number];
 }
 
 /**
@@ -907,7 +906,7 @@ void *NFQGetThread(int number)
     if (number >= receive_queue_num)
         return NULL;
 
-    return (void *)&nfq_t[number];
+    return (void *)&g_nfq_t[number];
 }
 
 /**
@@ -1082,7 +1081,7 @@ TmEcode NFQSetVerdict(Packet *p)
     int ret = 0;
     uint32_t verdict = NF_ACCEPT;
     /* we could also have a direct pointer but we need to have a ref counf in this case */
-    NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
+    NFQQueueVars *t = g_nfq_q + p->nfq_v.nfq_index;
 
     /** \todo add a test on validity of the entry NFQQueueVars could have been
      *  wipeout
