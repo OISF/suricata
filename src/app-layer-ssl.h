@@ -128,7 +128,6 @@ typedef struct SSLCertsChain_ {
     TAILQ_ENTRY(SSLCertsChain_) next;
 } SSLCertsChain;
 
-
 typedef struct SSLStateConnp_ {
     /* record length */
     uint32_t record_length;
@@ -141,6 +140,9 @@ typedef struct SSLStateConnp_ {
 
     uint16_t version;
     uint8_t content_type;
+
+    uint16_t num_cipher_suites;       /** < Number of cipher suites */
+    uint16_t *cipher_suites;          /** < The list of cipher suites */
 
     uint8_t handshake_type;
     uint32_t handshake_length;

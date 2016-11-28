@@ -46,6 +46,7 @@ app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
 app-layer-tls-handshake.c app-layer-tls-handshake.h \
+app-layer-tls-cipher-suite.c app-layer-tls-cipher-suite.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \
@@ -103,6 +104,7 @@ detect-tls-sni.c detect-tls-sni.h \
 detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-tls-cert-subject.c detect-tls-cert-subject.h \
 detect-tls-cert-serial.c detect-tls-cert-serial.h \
+detect-tls-cipher-suite.c detect-tls-cipher-suite.h \
 detect-dsize.c detect-dsize.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \

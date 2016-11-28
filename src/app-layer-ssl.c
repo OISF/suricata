@@ -39,6 +39,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
 #include "app-layer-tls-handshake.h"
+#include "app-layer-tls-cipher-suite.h"
 
 #include "decode-events.h"
 #include "conf.h"
@@ -85,6 +86,7 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
 
 typedef struct SslConfig_ {
     int no_reassemble;
+    const char *cipher_suites_filename;
 } SslConfig;
 
 SslConfig ssl_config;
@@ -287,11 +289,48 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    /* skip cipher suites */
-    uint16_t cipher_suites_length = input[0] << 8 | input[1];
-    input += 2;
+    if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CLIENT_HELLO) {
+        uint16_t cipher_suites_length = input[0] << 8 | input[1];
+        input += 2;
 
-    input += cipher_suites_length;
+        if (cipher_suites_length & 1) {
+            SCLogDebug("Invalid length for cipher suites");
+            goto invalid_length;
+        }
+
+        if (!HAS_SPACE(cipher_suites_length)) {
+            SCLogDebug("Invalid length for cipher suites");
+            goto invalid_length;
+        }
+
+        if (cipher_suites_length >= 2) {
+            if (ssl_state->curr_connp->cipher_suites == NULL) {
+                ssl_state->curr_connp->num_cipher_suites = 0;
+                ssl_state->curr_connp->num_cipher_suites = cipher_suites_length / 2;
+                ssl_state->curr_connp->cipher_suites = SCMalloc(cipher_suites_length);
+                if (!ssl_state->curr_connp->cipher_suites) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate client cipher suites.");
+                } else {
+                    memcpy(ssl_state->curr_connp->cipher_suites, input, cipher_suites_length);
+                }
+            }
+            input += cipher_suites_length;
+        }
+    }
+
+    if (ssl_state->curr_connp->handshake_type == SSLV3_HS_SERVER_HELLO) {
+        if (ssl_state->curr_connp->cipher_suites == NULL) {
+            ssl_state->curr_connp->cipher_suites = SCMalloc(sizeof(uint16_t));
+            if (ssl_state->curr_connp->cipher_suites) {
+                memcpy(ssl_state->curr_connp->cipher_suites, input, sizeof(uint16_t));
+                ssl_state->curr_connp->num_cipher_suites = 1;
+            } else {
+                ssl_state->curr_connp->num_cipher_suites = 0;
+            }
+        }
+
+        input += 2;
+    }
 
     if (!(HAS_SPACE(1)))
         goto invalid_length;
@@ -430,6 +469,11 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
+
+            rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
+
+            if (rc < 0)
+                return rc;
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1591,6 +1635,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
         SCFree(ssl_state->client_connp.sni);
+    if (ssl_state->client_connp.cipher_suites)
+        SCFree(ssl_state->client_connp.cipher_suites);
 
     if (ssl_state->server_connp.trec)
         SCFree(ssl_state->server_connp.trec);
@@ -1602,6 +1648,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
         SCFree(ssl_state->server_connp.sni);
+    if (ssl_state->server_connp.cipher_suites)
+        SCFree(ssl_state->server_connp.cipher_suites);
 
     AppLayerDecoderEventsFreeEvents(&ssl_state->decoder_events);
 
@@ -1808,6 +1856,7 @@ static int SSLRegisterPatternsForProtocolDetection(void)
 void RegisterSSLParsers(void)
 {
     const char *proto_name = "tls";
+    const char *cipher_suites_filename = NULL;
 
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
@@ -1878,6 +1927,13 @@ void RegisterSSLParsers(void)
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
                 ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
         }
+
+        if (ConfGetNode("app-layer.protocols.tls.cipher-suites") != NULL) {
+            ConfGet("app-layer.protocols.tls.cipher-suites", &cipher_suites_filename);
+        }
+
+        SSLLoadCipherSuitesFile(cipher_suites_filename);
+
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

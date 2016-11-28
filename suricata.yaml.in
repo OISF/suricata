@@ -695,6 +695,9 @@ app-layer:
       # bypass. If disabled (the default), TLS/SSL session is still
       # tracked for Heartbleed and other anomalies.
       #no-reassemble: yes
+      #
+      #File with a list of cipher suites.
+      cipher-suites: @e_sysconfdir@tls.cipher-suites.config
     dcerpc:
       enabled: yes
     ftp:
