@@ -15,6 +15,7 @@ environment:
           CYG_CACHE: C:\cygwin\var\cache\setup
           CYG_BASH: C:\cygwin\bin\bash
           CC: gcc
+          CFLAGS: -Wall -Wextra -Werror -Wshadow -Wno-unused-parameter -Wno-unused-function
 
 # Cache Cygwin files to speed up build
 cache:
