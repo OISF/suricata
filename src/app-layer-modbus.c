@@ -1762,11 +1762,10 @@ static int ModbusParserTest01(void) {
     }
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
-
     if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %" PRIu8 ", got %" PRIu8 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %" PRIu8 ", got %" PRIu8 ": ", 19, tx->read.quantity);
+        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
+        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
+        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
         goto end;
     }
 
@@ -1782,7 +1781,7 @@ static int ModbusParserTest01(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -1833,12 +1832,12 @@ static int ModbusParserTest02(void) {
 
     if ((tx->function != 16) || (tx->write.address != 0x01) || (tx->write.quantity != 2) ||
         (tx->write.count != 4) || (tx->data[0] != 0x000A) || (tx->data[1] != 0x0102)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
-        printf("expected write quantity %" PRIu8 ", got %" PRIu8 ": ", 2, tx->write.quantity);
-        printf("expected write count %" PRIu8 ", got %" PRIu8 ": ", 4, tx->write.count);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x000A, tx->data[0]);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x0102, tx->data[1]);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
+        printf("expected write quantity %d, got %" PRIu16 ": ", 2, tx->write.quantity);
+        printf("expected write count %d, got %" PRIu8 ": ", 4, tx->write.count);
+        printf("expected data %d, got %" PRIu16 ": ", 0x000A, tx->data[0]);
+        printf("expected data %d, got %" PRIu16 ": ", 0x0102, tx->data[1]);
         goto end;
     }
 
@@ -1854,7 +1853,7 @@ static int ModbusParserTest02(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -1936,15 +1935,15 @@ static int ModbusParserTest03(void) {
     if ((tx->function != 23) || (tx->read.address != 0x03) || (tx->read.quantity != 6) ||
         (tx->write.address != 0x0E) || (tx->write.quantity != 3) || (tx->write.count != 6) ||
         (tx->data[0] != 0x1234) || (tx->data[1] != 0x5678) || (tx->data[2] != 0x9ABC)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 23, tx->function);
-        printf("expected read address %" PRIu8 ", got %" PRIu8 ": ", 0x03, tx->read.address);
-        printf("expected read quantity %" PRIu8 ", got %" PRIu8 ": ", 6, tx->read.quantity);
-        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x0E, tx->write.address);
-        printf("expected write quantity %" PRIu8 ", got %" PRIu8 ": ", 3, tx->write.quantity);
-        printf("expected write count %" PRIu8 ", got %" PRIu8 ": ", 6, tx->write.count);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x1234, tx->data[0]);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x5678, tx->data[1]);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x9ABC, tx->data[2]);
+        printf("expected function %d, got %" PRIu8 ": ", 23, tx->function);
+        printf("expected read address %d, got %" PRIu16 ": ", 0x03, tx->read.address);
+        printf("expected read quantity %d, got %" PRIu16 ": ", 6, tx->read.quantity);
+        printf("expected write address %d, got %" PRIu16 ": ", 0x0E, tx->write.address);
+        printf("expected write quantity %d, got %" PRIu16 ": ", 3, tx->write.quantity);
+        printf("expected write count %d, got %" PRIu8 ": ", 6, tx->write.count);
+        printf("expected data %d, got %" PRIu16 ": ", 0x1234, tx->data[0]);
+        printf("expected data %d, got %" PRIu16 ": ", 0x5678, tx->data[1]);
+        printf("expected data %d, got %" PRIu16 ": ", 0x9ABC, tx->data[2]);
         goto end;
     }
 
@@ -1960,7 +1959,7 @@ static int ModbusParserTest03(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2025,8 +2024,8 @@ static int ModbusParserTest04(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 8) || (tx->subFunction != 4)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 8, tx->function);
-        printf("expected sub-function %" PRIu8 ", got %" PRIu8 ": ", 0x04, tx->subFunction);
+        printf("expected function %d, got %" PRIu8 ": ", 8, tx->function);
+        printf("expected sub-function %d, got %" PRIu16 ": ", 0x04, tx->subFunction);
         goto end;
     }
 
@@ -2367,9 +2366,9 @@ static int ModbusParserTest08(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %" PRIu8 ", got %" PRIu8 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %" PRIu8 ", got %" PRIu8 ": ", 19, tx->read.quantity);
+        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
+        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
+        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
         goto end;
     }
 
@@ -2385,7 +2384,7 @@ static int ModbusParserTest08(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2460,9 +2459,9 @@ static int ModbusParserTest09(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %" PRIu8 ", got %" PRIu8 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %" PRIu8 ", got %" PRIu8 ": ", 19, tx->read.quantity);
+        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
+        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
+        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
         goto end;
     }
 
@@ -2489,7 +2488,7 @@ static int ModbusParserTest09(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2546,7 +2545,7 @@ static int ModbusParserTest10(void) {
     }
 
     if (modbus_state->transaction_max !=2) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 2, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 2, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2554,12 +2553,12 @@ static int ModbusParserTest10(void) {
 
     if ((tx->function != 16) || (tx->write.address != 0x01) || (tx->write.quantity != 2) ||
         (tx->write.count != 4) || (tx->data[0] != 0x000A) || (tx->data[1] != 0x0102)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
-        printf("expected write quantity %" PRIu8 ", got %" PRIu8 ": ", 2, tx->write.quantity);
-        printf("expected write count %" PRIu8 ", got %" PRIu8 ": ", 4, tx->write.count);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x000A, tx->data[0]);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x0102, tx->data[1]);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
+        printf("expected write quantity %d, got %" PRIu16 ": ", 2, tx->write.quantity);
+        printf("expected write count %d, got %" PRIu8 ": ", 4, tx->write.count);
+        printf("expected data %d, got %" PRIu16 ": ", 0x000A, tx->data[0]);
+        printf("expected data %d, got %" PRIu16 ": ", 0x0102, tx->data[1]);
         goto end;
     }
 
@@ -2807,9 +2806,9 @@ static int ModbusParserTest13(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 22) || (tx->data[0] != 0x00F2) || (tx->data[1] != 0x0025)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
-        printf("expected And_Mask %" PRIu8 ", got %" PRIu8 ": ", 0x00F2, tx->data[0]);
-        printf("expected Or_Mask %" PRIu8 ", got %" PRIu8 ": ", 0x0025, tx->data[1]);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
+        printf("expected And_Mask %d, got %" PRIu16 ": ", 0x00F2, tx->data[0]);
+        printf("expected Or_Mask %d, got %" PRIu16 ": ", 0x0025, tx->data[1]);
         goto end;
     }
 
@@ -2825,7 +2824,7 @@ static int ModbusParserTest13(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2875,9 +2874,9 @@ static int ModbusParserTest14(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 6) || (tx->write.address != 0x0001) || (tx->data[0] != 0x0003)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
-        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x03, tx->data[0]);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
+        printf("expected data %d, got %" PRIu16 ": ", 0x03, tx->data[0]);
         goto end;
     }
 
@@ -2893,7 +2892,7 @@ static int ModbusParserTest14(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -2972,7 +2971,7 @@ static int ModbusParserTest15(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if (tx->function != 22) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
         goto end;
     }
 
@@ -2996,7 +2995,7 @@ static int ModbusParserTest15(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
@@ -3083,8 +3082,8 @@ static int ModbusParserTest16(void) {
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
     if ((tx->function != 6) || (tx->write.address != 0x0001)) {
-        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
+        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
         goto end;
     }
 
@@ -3108,7 +3107,7 @@ static int ModbusParserTest16(void) {
     FLOWLOCK_UNLOCK(&f);
 
     if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
         goto end;
     }
 
