@@ -1248,7 +1248,6 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
 #endif
     if (ghn->ipv4_head != NULL || ghn->ipv6_head != NULL) {
         int cnt = 0;
-        DetectAddress *ad;
         for (ad = ghn->ipv4_head; ad; ad = ad->next)
             cnt++;
 
