@@ -202,11 +202,11 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 }
 
 int PrefilterAppendEngine(SigGroupHead *sgh,
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
+        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name)
 {
-    if (sgh == NULL || Prefilter == NULL || pectx == NULL)
+    if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
 
     PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
@@ -214,7 +214,7 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
         return -1;
     memset(e, 0x00, sizeof(*e));
 
-    e->Prefilter = Prefilter;
+    e->Prefilter = PrefilterFunc;
     e->pectx = pectx;
     e->Free = FreeFunc;
 
@@ -236,11 +236,11 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
 }
 
 int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
-        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
+        void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name)
 {
-    if (sgh == NULL || Prefilter == NULL || pectx == NULL)
+    if (sgh == NULL || PrefilterFunc == NULL || pectx == NULL)
         return -1;
 
     PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
@@ -248,7 +248,7 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
         return -1;
     memset(e, 0x00, sizeof(*e));
 
-    e->Prefilter = Prefilter;
+    e->Prefilter = PrefilterFunc;
     e->pectx = pectx;
     e->Free = FreeFunc;
 
@@ -270,14 +270,14 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
 }
 
 int PrefilterAppendTxEngine(SigGroupHead *sgh,
-        void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        void (*PrefilterTxFunc)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
         AppProto alproto, int tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name)
 {
-    if (sgh == NULL || PrefilterTx == NULL || pectx == NULL)
+    if (sgh == NULL || PrefilterTxFunc == NULL || pectx == NULL)
         return -1;
 
     PrefilterEngineList *e = SCMallocAligned(sizeof(*e), CLS);
@@ -285,7 +285,7 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
         return -1;
     memset(e, 0x00, sizeof(*e));
 
-    e->PrefilterTx = PrefilterTx;
+    e->PrefilterTx = PrefilterTxFunc;
     e->pectx = pectx;
     e->alproto = alproto;
     e->tx_min_progress = tx_min_progress;
