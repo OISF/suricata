@@ -643,7 +643,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input, uint32_t
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    if (ssl_state->current_flags ==SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+    if (ssl_state->curr_connp->handshake_type == SSLV3_HS_CLIENT_HELLO) {
         uint32_t num_cipher_suites = input[0] << 8 | input[1];
         input += 2;
 
@@ -659,7 +659,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input, uint32_t
         }
 
     }
-    if (ssl_state->current_flags == SSL_AL_FLAG_STATE_SERVER_HELLO) {
+    if (ssl_state->curr_connp->handshake_type == SSLV3_HS_SERVER_HELLO) {
         ssl_state->curr_connp->cipher_suites = SCMalloc(sizeof(uint16_t));
         if (ssl_state->curr_connp->cipher_suites) {
             memcpy(ssl_state->curr_connp->cipher_suites, input, sizeof(uint16_t));
@@ -709,7 +709,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input, uint32_t
             case SSL_EXTENSION_SNI:
             {
                 /* just process this extension for client hello */
-                if (ssl_state->current_flags == SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+                if (ssl_state->curr_connp->handshake_type != SSLV3_HS_CLIENT_HELLO) {
                     break;
                 }
 
