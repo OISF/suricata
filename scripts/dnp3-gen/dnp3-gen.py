@@ -363,7 +363,7 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
     DNP3ObjectG{{object.group}}V{{object.variation}} *object = NULL;
     int bytes = (count / 8) + 1;
     uint32_t prefix = 0;
-    int index = start;
+    int point_index = start;
 
     if (!DNP3ReadPrefix(buf, len, prefix_code, &prefix)) {
         goto error;
@@ -392,13 +392,13 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
 #error "Unhandled field width: {{object.fields[0].width}}"
 {% endif %}
 
-            if (!DNP3AddPoint(points, object, index, prefix_code, prefix)) {
+            if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
                 goto error;
             }
 
             object = NULL;
             count--;
-            index++;
+            point_index++;
         }
 
     }
@@ -418,7 +418,7 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
 {
     DNP3ObjectG{{object.group}}V{{object.variation}} *object = NULL;
     uint32_t prefix = 0;
-    uint32_t index = start;
+    uint32_t point_index = start;
 {% if object._track_offset %}
     uint32_t offset;
 {% endif %}
@@ -558,12 +558,12 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
 {% endif %}
 {% endfor %}
 
-        if (!DNP3AddPoint(points, object, index, prefix_code, prefix)) {
+        if (!DNP3AddPoint(points, object, point_index, prefix_code, prefix)) {
             goto error;
         }
 
         object = NULL;
-        index++;
+        point_index++;
     }
 
     return 1;
