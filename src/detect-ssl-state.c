@@ -259,8 +259,6 @@ DetectSslStateData *DetectSslStateParse(char *arg)
     return ssd;
 
 error:
-    if (ssd != NULL)
-        DetectSslStateFree(ssd);
     return NULL;
 }
 
