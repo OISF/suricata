@@ -1109,17 +1109,17 @@ Reputation *SCReputationClone(Reputation *orig)
     return rep;
 }
 
-void SCReputationFreeCtx(IPReputationCtx *rep_ctx)
+void SCReputationFreeCtx(IPReputationCtx *ctx)
 {
-    if (rep_ctx->reputationIPV4_tree != NULL) {
-        SCRadixReleaseRadixTree(rep_ctx->reputationIPV4_tree);
-        rep_ctx->reputationIPV4_tree = NULL;
-        SCMutexDestroy(&rep_ctx->reputationIPV4_lock);
+    if (ctx->reputationIPV4_tree != NULL) {
+        SCRadixReleaseRadixTree(ctx->reputationIPV4_tree);
+        ctx->reputationIPV4_tree = NULL;
+        SCMutexDestroy(&ctx->reputationIPV4_lock);
     }
-    if (rep_ctx->reputationIPV6_tree != NULL) {
-        SCRadixReleaseRadixTree(rep_ctx->reputationIPV6_tree);
-        rep_ctx->reputationIPV6_tree = NULL;
-        SCMutexDestroy(&rep_ctx->reputationIPV6_lock);
+    if (ctx->reputationIPV6_tree != NULL) {
+        SCRadixReleaseRadixTree(ctx->reputationIPV6_tree);
+        ctx->reputationIPV6_tree = NULL;
+        SCMutexDestroy(&ctx->reputationIPV6_lock);
     }
 }
 
