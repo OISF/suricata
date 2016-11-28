@@ -861,12 +861,12 @@ static TmEcode LoadYamlConfig(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
+static TmEcode ParseInterfacesList(int runmode, char *pcap_dev)
 {
     SCEnter();
 
     /* run the selected runmode */
-    if (run_mode == RUNMODE_PCAP_DEV) {
+    if (runmode == RUNMODE_PCAP_DEV) {
         if (strlen(pcap_dev) == 0) {
             int ret = LiveBuildDeviceList("pcap");
             if (ret == 0) {
@@ -875,7 +875,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             }
         }
 #ifdef HAVE_MPIPE
-    } else if (run_mode == RUNMODE_TILERA_MPIPE) {
+    } else if (runmode == RUNMODE_TILERA_MPIPE) {
         if (strlen(pcap_dev)) {
             if (ConfSetFinal("mpipe.single_mpipe_dev", pcap_dev) != 1) {
                 fprintf(stderr, "ERROR: Failed to set mpipe.single_mpipe_dev\n");
@@ -889,7 +889,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             }
         }
 #endif
-    } else if (run_mode == RUNMODE_PFRING) {
+    } else if (runmode == RUNMODE_PFRING) {
         /* FIXME add backward compat support */
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
@@ -902,7 +902,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             LiveBuildDeviceList("pfring");
         }
 #ifdef HAVE_AF_PACKET
-    } else if (run_mode == RUNMODE_AFP_DEV) {
+    } else if (runmode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
             if (ConfSetFinal("af-packet.live-interface", pcap_dev) != 1) {
@@ -922,7 +922,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
         }
 #endif
 #ifdef HAVE_NETMAP
-    } else if (run_mode == RUNMODE_NETMAP) {
+    } else if (runmode == RUNMODE_NETMAP) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
             if (ConfSetFinal("netmap.live-interface", pcap_dev) != 1) {
@@ -942,7 +942,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
         }
 #endif
 #ifdef HAVE_NFLOG
-    } else if (run_mode == RUNMODE_NFLOG) {
+    } else if (runmode == RUNMODE_NFLOG) {
         int ret = LiveBuildDeviceListCustom("nflog", "group");
         if (ret == 0) {
             SCLogError(SC_ERR_INITIALIZATION, "No group found in config for nflog");
