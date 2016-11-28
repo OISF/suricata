@@ -1109,13 +1109,13 @@ static int ConfGetChildValueWithDefaultTest(void)
     ConfSet("af-packet.1.interface", "default");
     ConfSet("af-packet.1.cluster-type", "cluster_cpu");
 
-    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *myroot = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
-    ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
+    ConfGetChildValueWithDefault(myroot, dflt, "cluster-type", &val);
     FAIL_IF(strcmp(val, "cluster_cpu"));
 
     ConfSet("af-packet.0.cluster-type", "cluster_flow");
-    ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
+    ConfGetChildValueWithDefault(myroot, dflt, "cluster-type", &val);
 
     FAIL_IF(strcmp(val, "cluster_flow"));
 
@@ -1133,13 +1133,13 @@ static int ConfGetChildValueIntWithDefaultTest(void)
     ConfSet("af-packet.1.interface", "default");
     ConfSet("af-packet.1.threads", "2");
 
-    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *myroot = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
-    ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
+    ConfGetChildValueIntWithDefault(myroot, dflt, "threads", &val);
     FAIL_IF(val != 2);
 
     ConfSet("af-packet.0.threads", "1");
-    ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
+    ConfGetChildValueIntWithDefault(myroot, dflt, "threads", &val);
     FAIL_IF(val != 1);
 
     ConfDeInit();
@@ -1157,13 +1157,13 @@ static int ConfGetChildValueBoolWithDefaultTest(void)
     ConfSet("af-packet.1.interface", "default");
     ConfSet("af-packet.1.use-mmap", "yes");
 
-    ConfNode *root = ConfGetNode("af-packet.0");
+    ConfNode *myroot = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
-    ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
+    ConfGetChildValueBoolWithDefault(myroot, dflt, "use-mmap", &val);
     FAIL_IF(val == 0);
 
     ConfSet("af-packet.0.use-mmap", "no");
-    ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
+    ConfGetChildValueBoolWithDefault(myroot, dflt, "use-mmap", &val);
     FAIL_IF(val);
 
     ConfDeInit();
