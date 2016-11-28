@@ -1210,10 +1210,10 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
         match_u16:
             if (state & 0x8000) {
-                uint32_t no_of_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
+                uint32_t nentries = ctx->output_table[state & 0x7FFF].no_of_entries;
                 uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
                 uint32_t k;
-                for (k = 0; k < no_of_entries; k++) {
+                for (k = 0; k < nentries; k++) {
                     if (pids[k] & 0xFFFF0000) {
                         uint32_t lower_pid = pids[k] & 0x0000FFFF;
                         if (SCMemcmp(pid_pat_list[lower_pid].cs,
@@ -1294,10 +1294,10 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
         match_u32:
             if (state & 0xFF000000) {
-                uint32_t no_of_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
+                uint32_t nentries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
                 uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
                 uint32_t k;
-                for (k = 0; k < no_of_entries; k++) {
+                for (k = 0; k < nentries; k++) {
                     if (pids[k] & 0xFFFF0000) {
                         uint32_t lower_pid = pids[k] & 0x0000FFFF;
                         if (SCMemcmp(pid_pat_list[lower_pid].cs,
