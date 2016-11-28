@@ -688,8 +688,8 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
     while (length != 0) {
         int cnt = 0;
         while (length & 0xc0) {
-            uint16_t offset = ((length & 0x3f) << 8) + *(qdata+1);
-            qdata = (const uint8_t *)input + offset;
+            uint16_t off = ((length & 0x3f) << 8) + *(qdata+1);
+            qdata = (const uint8_t *)input + off;
 
             if ((uint64_t)((qdata + 1) - input) >= (uint64_t)input_len) {
                 SCLogDebug("input buffer too small");
@@ -833,7 +833,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     }
 
     const DNSAnswerHeader *head = (DNSAnswerHeader *)data;
-    uint16_t datalen = ntohs(head->len);
+    const uint16_t datalen = ntohs(head->len);
 
     data += sizeof(DNSAnswerHeader);
 
@@ -976,9 +976,9 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         }
         case DNS_RECORD_TYPE_TXT:
         {
-            uint16_t datalen = ntohs(head->len);
+            uint16_t txtdatalen = datalen;
 
-            if (datalen == 0) {
+            if (txtdatalen == 0) {
                 DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
                 goto bad_data;
             }
@@ -989,24 +989,24 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             do {
                 //PrintRawDataFp(stdout, (uint8_t*)tdata, txtlen);
 
-                if (txtlen >= datalen)
+                if (txtlen >= txtdatalen)
                     goto bad_data;
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
                         (uint8_t*)tdata, (uint16_t)txtlen, ntohs(dns_header->tx_id));
 
-                datalen -= txtlen;
+                txtdatalen -= txtlen;
                 tdata += txtlen;
                 txtlen = *tdata;
 
                 tdata++;
-                datalen--;
+                txtdatalen--;
 
-                SCLogDebug("datalen %u, txtlen %u", datalen, txtlen);
-            } while (datalen > 1);
+                SCLogDebug("datalen %u, txtlen %u", txtdatalen, txtlen);
+            } while (txtdatalen > 1);
 
-            data += ntohs(head->len);
+            data += datalen;
             break;
         }
         case DNS_RECORD_TYPE_SSHFP:
@@ -1021,7 +1021,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
                     data, ntohs(head->len), ntohs(dns_header->tx_id));
 
-            data += ntohs(head->len);
+            data += datalen;
             break;
         }
         default:    /* unsupported record */
@@ -1031,7 +1031,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                     NULL, 0, ntohs(dns_header->tx_id));
 
             //PrintRawDataFp(stdout, data, ntohs(head->len));
-            data += ntohs(head->len);
+            data += datalen;
             break;
         }
     }
