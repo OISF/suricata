@@ -275,7 +275,7 @@ void HostShutdown(void)
     /* clear and free the hash */
     if (host_hash != NULL) {
         for (u = 0; u < host_config.hash_size; u++) {
-            Host *h = host_hash[u].head;
+            h = host_hash[u].head;
             while (h) {
                 Host *n = h->hnext;
                 HostFree(h);
