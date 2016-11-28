@@ -433,6 +433,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
         //p->nfq_v.hw_protocol = ntohs(p->nfq_v.ph->hw_protocol);
         p->nfq_v.hw_protocol = ph->hw_protocol;
     }
+    /* coverity[missing_lock] */
     p->nfq_v.mark = nfq_get_nfmark(tb);
     if (nfq_config.mode == NFQ_REPEAT_MODE) {
         if ((nfq_config.mark & nfq_config.mask) ==
@@ -523,6 +524,7 @@ static int NFQBypassCallback(Packet *p)
         }
         return 0;
     } else {
+        /* coverity[missing_lock] */
         p->nfq_v.mark = (nfq_config.bypass_mark & nfq_config.bypass_mask)
                         | (p->nfq_v.mark & ~nfq_config.bypass_mask);
         p->flags |= PKT_MARK_MODIFIED;
