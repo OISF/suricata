@@ -163,8 +163,6 @@ DetectTosData *DetectTosParse(char *arg)
     return tosd;
 
 error:
-    if (tosd != NULL)
-        DetectTosFree(tosd);
     return NULL;
 }
 
