@@ -169,21 +169,21 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         int lthread;
 
         for (lthread = 0; lthread < nlive; lthread++) {
-            const char *live_dev = LiveGetDeviceName(lthread);
+            const char *dev = LiveGetDeviceName(lthread);
             const char *visual_devname = LiveGetShortName(live_dev);
             void *aconf;
             int threads_count;
 
-            if (live_dev == NULL) {
+            if (dev == NULL) {
                 SCLogError(SC_ERR_RUNMODE, "Failed to lookup live dev %d", lthread);
                 exit(EXIT_FAILURE);
             }
-            SCLogDebug("live_dev %s", live_dev);
+            SCLogDebug("dev %s", dev);
 
-            aconf = ConfigParser(live_dev);
+            aconf = ConfigParser(dev);
             if (aconf == NULL) {
                 SCLogError(SC_ERR_RUNMODE, "Multidev: Failed to allocate config for %s (%d)",
-                       live_dev, lthread);
+                       dev, lthread);
                 exit(EXIT_FAILURE);
             }
 
@@ -467,7 +467,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
-        TmModule *tm_module = TmModuleGetByName(recv_mod_name);
+        tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
             exit(EXIT_FAILURE);
@@ -505,7 +505,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
 
-        TmModule *tm_module = TmModuleGetByName("FlowWorker");
+        tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
@@ -609,7 +609,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        TmModule *tm_module = TmModuleGetByName("FlowWorker");
+        tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
