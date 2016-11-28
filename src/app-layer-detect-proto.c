@@ -580,7 +580,7 @@ AppLayerProtoDetectProbingParserElementCreate(AppProto alproto,
                                               uint16_t port,
                                               uint16_t min_depth,
                                               uint16_t max_depth,
-                                              uint16_t (*AppLayerProtoDetectProbingParser)
+                                              uint16_t (*AppLayerProtoDetectProbingParserFunc)
                                                        (uint8_t *input, uint32_t input_len, uint32_t *offset))
 {
     AppLayerProtoDetectProbingParserElement *pe = AppLayerProtoDetectProbingParserElementAlloc();
@@ -590,7 +590,7 @@ AppLayerProtoDetectProbingParserElementCreate(AppProto alproto,
     pe->alproto_mask = AppLayerProtoDetectProbingParserGetMask(alproto);
     pe->min_depth = min_depth;
     pe->max_depth = max_depth;
-    pe->ProbingParser = AppLayerProtoDetectProbingParser;
+    pe->ProbingParser = AppLayerProtoDetectProbingParserFunc;
     pe->next = NULL;
 
     if (max_depth != 0 && min_depth >= max_depth) {
@@ -603,7 +603,7 @@ AppLayerProtoDetectProbingParserElementCreate(AppProto alproto,
                    "the probing parser.  Invalid alproto - %d", alproto);
         goto error;
     }
-    if (AppLayerProtoDetectProbingParser == NULL) {
+    if (AppLayerProtoDetectProbingParserFunc == NULL) {
         SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
                    "register the probing parser.  Probing parser func NULL");
         goto error;
