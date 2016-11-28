@@ -145,37 +145,31 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
 static void AlertJsonDnp3(const Flow *f, json_t *js)
 {
     DNP3State *dnp3_state = (DNP3State *)FlowGetAppState(f);
-    json_t *dnp3js = NULL;
     if (dnp3_state) {
         uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
             dnp3_state, tx_id);
         if (tx) {
             json_t *dnp3js = json_object();
-            if (unlikely(dnp3js == NULL)) {
-                goto error;
-            }
-            if (tx->has_request && tx->request_done) {
-                json_t *request = JsonDNP3LogRequest(tx);
-                if (request != NULL) {
-                    json_object_set_new(dnp3js, "request", request);
+            if (likely(dnp3js != NULL)) {
+                if (tx->has_request && tx->request_done) {
+                    json_t *request = JsonDNP3LogRequest(tx);
+                    if (request != NULL) {
+                        json_object_set_new(dnp3js, "request", request);
+                    }
                 }
-            }
-            if (tx->has_response && tx->response_done) {
-                json_t *response = JsonDNP3LogResponse(tx);
-                if (response != NULL) {
-                    json_object_set_new(dnp3js, "response", response);
+                if (tx->has_response && tx->response_done) {
+                    json_t *response = JsonDNP3LogResponse(tx);
+                    if (response != NULL) {
+                        json_object_set_new(dnp3js, "response", response);
+                    }
                 }
+                json_object_set_new(js, "dnp3", dnp3js);
             }
-            json_object_set_new(js, "dnp3", dnp3js);
         }
     }
 
     return;
-error:
-    if (dnp3js != NULL) {
-        json_decref(dnp3js);
-    }
 }
 
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
