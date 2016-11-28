@@ -185,6 +185,7 @@
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
+#include "detect-tls-cipher-suite.h"
 #include "detect-ssh-proto.h"
 #include "detect-ssh-proto-version.h"
 #include "detect-ssh-software.h"
@@ -3856,6 +3857,7 @@ void SigTableSetup(void)
     DetectTlsIssuerRegister();
     DetectTlsSubjectRegister();
     DetectTlsSerialRegister();
+    DetectTlsCipherSuiteRegister();
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
