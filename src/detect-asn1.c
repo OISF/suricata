@@ -708,7 +708,7 @@ int DetectAsn1Test02(void)
         && (ad->flags & ASN1_ABSOLUTE_OFFSET))
     {
        // Example from the specification X.690-0207 Appendix A.3
-        uint8_t *str = (uint8_t*) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
+        uint8_t *buf = (uint8_t*) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"
                    "P""\x1A\x05""Smith""\xA0\x0A\x1A\x08""Director"
                    "\x42\x01\x33\xA1\x0A\x43\x08""19710917"
                    "\xA2\x12\x61\x10\x1A\x04""Mary""\x1A\x01""T""\x1A\x05"
@@ -721,9 +721,9 @@ int DetectAsn1Test02(void)
         if (ac == NULL)
             return 0;
 
-        uint16_t len = strlen((char *)str)-1;
+        uint16_t len = strlen((char *)buf)-1;
 
-        SCAsn1CtxInit(ac, str, len);
+        SCAsn1CtxInit(ac, buf, len);
 
         SCAsn1Decode(ac, ac->cur_frame);
 
@@ -777,7 +777,7 @@ int DetectAsn1Test03(void)
         /* Let's say tagnum bitstring, primitive, and as universal tag,
          * and then length = 1 octet, but the next octet specify to ignore
          * the last  256 bits... (let's match!) */
-        uint8_t *str = (uint8_t*) "\x03\x01\xFF";
+        uint8_t *buf = (uint8_t*) "\x03\x01\xFF";
 
         Asn1Ctx *ac = SCAsn1CtxNew();
         if (ac == NULL)
@@ -785,7 +785,7 @@ int DetectAsn1Test03(void)
 
         uint16_t len = 3;
 
-        SCAsn1CtxInit(ac, str, len);
+        SCAsn1CtxInit(ac, buf, len);
 
         SCAsn1Decode(ac, ac->cur_frame);
 
@@ -836,7 +836,7 @@ int DetectAsn1Test04(void)
         /* Let's say tagnum bitstring, primitive, and as universal tag,
          * and then length = 1 octet, but the next octet specify to ignore
          * the last  7 bits... (should not match) */
-        uint8_t *str = (uint8_t*) "\x03\x01\x07";
+        uint8_t *buf = (uint8_t*) "\x03\x01\x07";
 
         Asn1Ctx *ac = SCAsn1CtxNew();
         if (ac == NULL)
@@ -844,7 +844,7 @@ int DetectAsn1Test04(void)
 
         uint16_t len = 3;
 
-        SCAsn1CtxInit(ac, str, len);
+        SCAsn1CtxInit(ac, buf, len);
 
         SCAsn1Decode(ac, ac->cur_frame);
 
@@ -897,19 +897,19 @@ int DetectAsn1Test05(void)
     {
         /* Let's say tag num 9 (type Real), and encoded as ASCII, with length
          * 257, then we must match */
-        uint8_t str[261];
+        uint8_t buf[261];
         /* universal class, primitive type, tag_num = 9 (Data type Real) */
-        str[0] = '\x09';
+        buf[0] = '\x09';
         /* length, definite form, 2 octets */
-        str[1] = '\x82';
+        buf[1] = '\x82';
         /* length is the sum of the following octets (257): */
-        str[2] = '\xFE';
-        str[3] = '\x03';
+        buf[2] = '\xFE';
+        buf[3] = '\x03';
 
         /* Fill the content of the number */
         uint16_t i = 4;
         for (; i < 257;i++)
-            str[i] = '\x05';
+            buf[i] = '\x05';
 
         Asn1Ctx *ac = SCAsn1CtxNew();
         if (ac == NULL)
@@ -917,7 +917,7 @@ int DetectAsn1Test05(void)
 
         uint16_t len = 261;
 
-        SCAsn1CtxInit(ac, str, len);
+        SCAsn1CtxInit(ac, buf, len);
 
         SCAsn1Decode(ac, ac->cur_frame);
 
@@ -967,19 +967,19 @@ int DetectAsn1Test06(void)
     {
         /* Let's say tag num 9 (type Real), and encoded as ASCII, with length
          * 256, which fit in the buffer, so it should not match */
-        uint8_t str[260];
+        uint8_t buf[260];
         /* universal class, primitive type, tag_num = 9 (Data type Real) */
-        str[0] = '\x09';
+        buf[0] = '\x09';
         /* length, definite form, 2 octets */
-        str[1] = '\x82';
+        buf[1] = '\x82';
         /* length is the sum of the following octets (256): */
-        str[2] = '\xFE';
-        str[3] = '\x02';
+        buf[2] = '\xFE';
+        buf[3] = '\x02';
 
         /* Fill the content of the number */
         uint16_t i = 4;
         for (; i < 256;i++)
-            str[i] = '\x05';
+            buf[i] = '\x05';
 
         Asn1Ctx *ac = SCAsn1CtxNew();
         if (ac == NULL)
@@ -987,7 +987,7 @@ int DetectAsn1Test06(void)
 
         uint16_t len = 260;
 
-        SCAsn1CtxInit(ac, str, len);
+        SCAsn1CtxInit(ac, buf, len);
 
         SCAsn1Decode(ac, ac->cur_frame);
 
