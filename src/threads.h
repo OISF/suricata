@@ -216,47 +216,47 @@ enum {
 #define SCGetThreadIdLong(...) ({ \
     long tmpthid; \
     thr_self(&tmpthid); \
-    u_long tid = (u_long)tmpthid; \
-    tid; \
+    u_long _scgetthread_tid = (u_long)tmpthid; \
+    _scgetthread_tid; \
 })
 #elif __OpenBSD__
 #define SCGetThreadIdLong(...) ({ \
     pid_t tpid; \
     tpid = getpid(); \
-    u_long tid = (u_long)tpid; \
-    tid; \
+    u_long _scgetthread_tid = (u_long)tpid; \
+    _scgetthread_tid; \
 })
 #elif __CYGWIN__
 #define SCGetThreadIdLong(...) ({ \
-    u_long tid = (u_long)GetCurrentThreadId(); \
-	tid; \
+    u_long _scgetthread_tid = (u_long)GetCurrentThreadId(); \
+	_scgetthread_tid; \
 })
 #elif OS_WIN32
 #define SCGetThreadIdLong(...) ({ \
-    u_long tid = (u_long)GetCurrentThreadId(); \
-	tid; \
+    u_long _scgetthread_tid = (u_long)GetCurrentThreadId(); \
+	_scgetthread_tid; \
 })
 #elif OS_DARWIN
 #define SCGetThreadIdLong(...) ({ \
     thread_port_t tpid; \
     tpid = mach_thread_self(); \
-    u_long tid = (u_long)tpid; \
-    tid; \
+    u_long _scgetthread_tid = (u_long)tpid; \
+    _scgetthread_tid; \
 })
 #elif defined(sun)
 #include <thread.h>
 #define SCGetThreadIdLong(...) ({ \
     thread_t tmpthid = thr_self(); \
-    u_long tid = (u_long)tmpthid; \
-    tid; \
+    u_long _scgetthread_tid = (u_long)tmpthid; \
+    _scgetthread_tid; \
 })
 
 #else
 #define SCGetThreadIdLong(...) ({ \
    pid_t tmpthid; \
    tmpthid = syscall(SYS_gettid); \
-   u_long tid = (u_long)tmpthid; \
-   tid; \
+   u_long _scgetthread_tid = (u_long)tmpthid; \
+   _scgetthread_tid; \
 })
 #endif /* OS FREEBSD */
 
