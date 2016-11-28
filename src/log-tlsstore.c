@@ -307,6 +307,7 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, void *initdata, void **da
     }
 
     struct stat stat_buf;
+    /* coverity[toctou] */
     if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
         int ret;
         ret = mkdir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);

@@ -475,6 +475,7 @@ ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
     }
 
     struct stat stat_buf;
+    /* coverity[toctou] */
     if (stat(filename, &stat_buf) == 0) {
         if (stat_buf.st_mode & S_IFDIR) {
             SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
