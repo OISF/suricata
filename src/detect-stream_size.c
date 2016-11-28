@@ -354,7 +354,7 @@ static int DetectStreamSizeParseTest02 (void)
     DetectStreamSizeData *sd = NULL;
     sd = DetectStreamSizeParse("invalidoption,<,6");
     if (sd != NULL) {
-        printf("expected: NULL got 0x%02X %" PRId16 ": ",sd->flags, sd->ssize);
+        printf("expected: NULL got 0x%02X %" PRIu32 ": ",sd->flags, sd->ssize);
         result = 0;
         DetectStreamSizeFree(sd);
     }
