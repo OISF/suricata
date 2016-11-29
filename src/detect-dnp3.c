@@ -476,8 +476,8 @@ static void DetectDNP3FuncRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3.func";
-    sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3_func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
+    sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
     sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
@@ -493,8 +493,8 @@ static void DetectDNP3IndRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3.ind";
-    sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3_ind";
+    sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
+    sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
     sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
@@ -510,8 +510,8 @@ static void DetectDNP3ObjRegister(void)
 {
     SCEnter();
 
-    sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3.obj";
-    sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3_obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
+    sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
