@@ -1117,7 +1117,7 @@ static inline void SCProfilingUpdatePacketGenericRecord(PktProfilingData *pdt,
 }
 
 static void SCProfilingUpdatePacketGenericRecords(Packet *p, PktProfilingData *pd,
-        struct ProfileProtoRecords *store, int size)
+        struct ProfileProtoRecords *records, int size)
 {
     int i;
     for (i = 0; i < size; i++) {
@@ -1127,7 +1127,7 @@ static void SCProfilingUpdatePacketGenericRecords(Packet *p, PktProfilingData *p
             continue;
         }
 
-        struct ProfileProtoRecords *r = &store[i];
+        struct ProfileProtoRecords *r = &records[i];
         SCProfilePacketData *store = NULL;
 
         if (PKT_IS_IPV4(p)) {
