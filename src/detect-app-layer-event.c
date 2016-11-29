@@ -46,6 +46,8 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp-util.h"
 
+#define MAX_ALPROTO_NAME 50
+
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                        Packet *p, Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
@@ -193,10 +195,14 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
     int event_id = 0;
     const char *p_idx;
     uint8_t ipproto;
-    char alproto_name[50];
+    char alproto_name[MAX_ALPROTO_NAME];
     int r = 0;
 
     p_idx = strchr(data->arg, '.');
+    if (strlen(data->arg) > MAX_ALPROTO_NAME) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
+        return -1;
+    }
     strlcpy(alproto_name, data->arg, p_idx - data->arg + 1);
 
     if (ipproto_bitarray[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8)) {
@@ -227,9 +233,13 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     DetectAppLayerEventData *aled;
     AppProto alproto;
     const char *p_idx;
-    char alproto_name[50];
+    char alproto_name[MAX_ALPROTO_NAME];
 
     p_idx = strchr(arg, '.');
+    if (strlen(arg) > MAX_ALPROTO_NAME) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword is too long or malformed");
+        return NULL;
+    }
     /* + 1 for trailing \0 */
     strlcpy(alproto_name, arg, p_idx - arg + 1);
 
