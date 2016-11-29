@@ -1,3 +1,15 @@
+3.2 -- 2016-12-01
+
+Bug #1117: PCAP file count does not persist
+Bug #1577: luajit scripts load error
+Bug #1924: Windows dynamic DNS updates trigger 'DNS malformed request data' alerts
+Bug #1938: suricata: log handling issues
+Bug #1955: luajit script init failed
+Bug #1960: Error while parsing rule with PCRE keyword with semicolon
+Bug #1961: No error on missing semicolon between depth and classtype
+Bug #1965: dnp3/enip/cip keywords naming convention
+Bug #1966: af-packet fanout detection broken on Debian Jessie (master)
+
 3.2RC1 -- 2016-11-01
 
 Feature #1906: doc: install man page and ship pdf
