@@ -4,7 +4,7 @@ os:
 osx_image: xcode8.1
 language: c
 env:
-  - CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
+  - CFLAGS="-Wall -Wextra -Werror -Wshadow -Wno-unused-parameter -Wno-unused-function"
 compiler:
   - gcc
   - clang
