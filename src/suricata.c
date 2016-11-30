@@ -1894,6 +1894,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         return TM_ECODE_FAILED;
     }
 
+    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
+        SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
+        return TM_ECODE_FAILED;
+    }
+
     if (list_app_layer_protocols)
         suri->run_mode = RUNMODE_LIST_APP_LAYERS;
     if (list_cuda_cards)
