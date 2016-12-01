@@ -143,18 +143,27 @@ int UnixNew(UnixCommand * this)
         struct stat stat_buf;
         /* coverity[toctou] */
         if (stat(SOCKET_PATH, &stat_buf) != 0) {
-            SCLogWarning(SC_ERR_INITIALIZATION,
-                    "Unix socket: problem with requested directory in %s: %s",
-                    SOCKET_TARGET, strerror(errno));
-            return 0;
+            int ret;
+            /* coverity[toctou] */
+            ret = mkdir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
+            if (ret != 0) {
+                int err = errno;
+                if (err != EEXIST) {
+                    SCLogError(SC_ERR_INITIALIZATION,
+                            "Cannot create socket directory %s: %s",
+                            SOCKET_PATH, strerror(err));
+                    return 0;
+                }
+            } else {
+                SCLogInfo("Created socket directory %s",
+                        SOCKET_PATH);
+            }
         }
         sockettarget = SCStrdup(SOCKET_TARGET);
         if (unlikely(sockettarget == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
             return 0;
         }
-
-
     }
 
     /* Remove socket file */
