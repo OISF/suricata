@@ -908,16 +908,18 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
-        SCLogError(SC_ERR_INITIALIZATION,
-                   "Unable to create unix command socket");
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
         SCFree(utd);
         if (failure_fatal) {
+            SCLogError(SC_ERR_INITIALIZATION,
+                    "Unable to create unix command socket");
             exit(EXIT_FAILURE);
         } else {
-            return TM_ECODE_FAILED;
+            SCLogWarning(SC_ERR_INITIALIZATION,
+                    "Unable to create unix command socket");
+            return TM_ECODE_OK;
         }
     }
 
