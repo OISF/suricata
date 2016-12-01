@@ -140,11 +140,21 @@ int UnixNew(UnixCommand * this)
         SCLogInfo("Using unix socket file '%s'", sockettarget);
     }
     if (sockettarget == NULL) {
+        struct stat stat_buf;
+        /* coverity[toctou] */
+        if (stat(SOCKET_PATH, &stat_buf) != 0) {
+            SCLogWarning(SC_ERR_INITIALIZATION,
+                    "Unix socket: problem with requested directory in %s: %s",
+                    SOCKET_TARGET, strerror(errno));
+            return 0;
+        }
         sockettarget = SCStrdup(SOCKET_TARGET);
         if (unlikely(sockettarget == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
             return 0;
         }
+
+
     }
 
     /* Remove socket file */
