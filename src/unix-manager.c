@@ -97,7 +97,7 @@ int UnixNew(UnixCommand * this)
     int len;
     int ret;
     int on = 1;
-    char *sockettarget = NULL;
+    char sockettarget[PATH_MAX];
     char *socketname;
 
     this->start_timestamp = time(NULL);
@@ -108,38 +108,22 @@ int UnixNew(UnixCommand * this)
     TAILQ_INIT(&this->tasks);
     TAILQ_INIT(&this->clients);
 
+    int check_dir = 0;
     if (ConfGet("unix-command.filename", &socketname) == 1) {
         if (PathIsAbsolute(socketname)) {
-            sockettarget = SCStrdup(socketname);
-            if (unlikely(sockettarget == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
-                return 0;
-            }
+            strlcpy(sockettarget, socketname, sizeof(sockettarget));
         } else {
-            int socketlen = strlen(SOCKET_PATH) + strlen(socketname) + 2;
-            sockettarget = SCMalloc(socketlen);
-            if (unlikely(sockettarget == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
-                return 0;
-            }
-            snprintf(sockettarget, socketlen, "%s/%s", SOCKET_PATH, socketname);
-
-            /* Create socket dir */
-            ret = mkdir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
-            if ( ret != 0 ) {
-                int err = errno;
-                if (err != EEXIST) {
-                    SCFree(sockettarget);
-                    SCLogError(SC_ERR_OPENING_FILE,
-                            "Cannot create socket directory %s: %s", SOCKET_PATH, strerror(err));
-                    return 0;
-                }
-            }
-
+            snprintf(sockettarget, sizeof(sockettarget), "%s/%s",
+                    SOCKET_PATH, socketname);
+            check_dir = 1;
         }
-        SCLogInfo("Using unix socket file '%s'", sockettarget);
+    } else {
+        strlcpy(sockettarget, SOCKET_TARGET, sizeof(sockettarget));
+        check_dir = 1;
     }
-    if (sockettarget == NULL) {
+    SCLogInfo("Using unix socket file '%s'", sockettarget);
+
+    if (check_dir) {
         struct stat stat_buf;
         /* coverity[toctou] */
         if (stat(SOCKET_PATH, &stat_buf) != 0) {
@@ -159,11 +143,6 @@ int UnixNew(UnixCommand * this)
                         SOCKET_PATH);
             }
         }
-        sockettarget = SCStrdup(SOCKET_TARGET);
-        if (unlikely(sockettarget == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
-            return 0;
-        }
     }
 
     /* Remove socket file */
@@ -181,7 +160,6 @@ int UnixNew(UnixCommand * this)
         SCLogWarning(SC_ERR_OPENING_FILE,
                      "Unix Socket: unable to create UNIX socket %s: %s",
                      addr.sun_path, strerror(errno));
-        SCFree(sockettarget);
         return 0;
     }
     this->select_max = this->socket + 1;
@@ -213,7 +191,6 @@ int UnixNew(UnixCommand * this)
         SCLogWarning(SC_ERR_INITIALIZATION,
                      "Unix socket: UNIX socket bind(%s) error: %s",
                      sockettarget, strerror(errno));
-        SCFree(sockettarget);
         return 0;
     }
 
@@ -222,10 +199,8 @@ int UnixNew(UnixCommand * this)
         SCLogWarning(SC_ERR_INITIALIZATION,
                      "Command server: UNIX socket listen() error: %s",
                      strerror(errno));
-        SCFree(sockettarget);
         return 0;
     }
-    SCFree(sockettarget);
     return 1;
 }
 
