@@ -335,6 +335,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE(SC_WARN_REMOVE_FILE);
         CASE_CODE (SC_ERR_NO_MAGIC_SUPPORT);
         CASE_CODE (SC_ERR_REDIS);
+        CASE_CODE(SC_WARN_LOG_CF_TOO_MANY_NODES);
     }
 
     return "UNKNOWN_ERROR";
