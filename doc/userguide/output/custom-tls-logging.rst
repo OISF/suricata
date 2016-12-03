@@ -35,6 +35,7 @@ The list of supported format strings is the following:
 * %f - certificate fingerprint SHA1
 * %s - certificate subject
 * %i - certificate issuer dn
+* %C - server cipher suite description
 * %{extension}x - client extension
 * %{extension}X - server extension
 * %E - extended format
