@@ -155,6 +155,7 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
                 if (np != NULL && np-p > 1 && np-p < LOG_NODE_STRLEN-2) {
                     p++;
                     n = np-p;
+                    strlcpy(node->data, p, n+1);
                     p = np;
                 } else {
                     goto parsererror;

@@ -47,8 +47,17 @@
 
 /* Line log common separators **/
 #define LOG_CF_STAR_SEPARATOR "[**]"
+#define LOG_CF_SPACE_SEPARATOR " "
+#define LOG_CF_UNKNOWN_VALUE "-"
+
 #define LOG_CF_WRITE_STAR_SEPATATOR(buffer) \
     MemBufferWriteString(buffer, LOG_CF_STAR_SEPARATOR);
+
+#define LOG_CF_WRITE_SPACE_SEPARATOR(buffer) \
+    MemBufferWriteString(buffer, LOG_CF_SPACE_SEPARATOR);
+
+#define LOG_CF_WRITE_UNKNOWN_VALUE(buffer) \
+    MemBufferWriteString(buffer, LOG_CF_UNKNOWN_VALUE);
 
 /* Include */
 #include "suricata-common.h"
