@@ -301,8 +301,10 @@ outputs:
       enabled: no  # Log TLS connections.
       filename: tls.log # File to store TLS logs.
       append: yes
+      #extended: yes     # Log extended information like fingerprint
+      #custom: yes       # enabled the custom logging format (defined by customformat)
+      #customformat: "%{%D-%H:%M:%S}t.%z %a:%p -> %A:%P %v %n %d %D"
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-      #extended: yes # Log extended information like fingerprint
 
   # output module to store certificates chain to disk
   - tls-store:

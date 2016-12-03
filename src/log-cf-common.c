@@ -36,14 +36,11 @@
  */
 LogCustomFormatNode * LogCustomFormatNodeAlloc()
 {
-    LogCustomFormatNode * node = SCMalloc(sizeof(LogCustomFormatNode));
+    LogCustomFormatNode * node = SCCalloc(1, sizeof(LogCustomFormatNode));
     if (unlikely(node == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to alloc custom format node");
         return NULL;
     }
-    memset(node, '\0', sizeof(LogCustomFormatNode));
-    memset(node->data, '\0', LOG_NODE_STRLEN);
-
     return node;
 }
 
@@ -54,13 +51,11 @@ LogCustomFormatNode * LogCustomFormatNodeAlloc()
  */
 LogCustomFormat * LogCustomFormatAlloc()
 {
-    LogCustomFormat * cf = SCMalloc(sizeof(LogCustomFormat));
+    LogCustomFormat * cf = SCCalloc(1, sizeof(LogCustomFormat));
     if (unlikely(cf == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to alloc custom format");
         return NULL;
     }
-    memset(cf, '\0', sizeof(LogCustomFormat));
-
     return cf;
 }
 
@@ -172,14 +167,12 @@ int LogCustomFormatParse(LogCustomFormat *cf, const char *format)
             p++;
         }
         LogCustomFormatAddNode(cf, node);
-
     }
     return 1;
 
 parsererror:
     LogCustomFormatNodeFree(node);
     return 0;
-
 }
 
 /**
@@ -230,7 +223,6 @@ void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const str
                    buffer->size, (uint8_t *)buf,strlen(buf));
 }
 
-
 #ifdef UNITTESTS
 /**
  * \internal
@@ -238,7 +230,6 @@ void LogCustomFormatWriteTimestamp(MemBuffer *buffer, const char *fmt, const str
  */
 static int LogCustomFormatTest01(void)
 {
-
     struct tm tm;
     tm.tm_sec = 0;
     tm.tm_min = 30;
