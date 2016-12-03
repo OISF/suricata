@@ -49,6 +49,7 @@
 
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "log-cf-common.h"
 
 #define DEFAULT_LOG_FILENAME "http.log"
 
@@ -70,13 +71,6 @@ void LogHttpLogRegister (void)
         LogHttpLogThreadDeinit, LogHttpLogExitPrintStats);
 }
 
-#define LOG_HTTP_MAXN_NODES 64
-#define LOG_HTTP_NODE_STRLEN 256
-#define LOG_HTTP_NODE_MAXOUTPUTLEN 8192
-
-#define TIMESTAMP_DEFAULT_FORMAT "%b %d, %Y; %H:%M:%S"
-#define LOG_HTTP_CF_NONE "-"
-#define LOG_HTTP_CF_LITERAL '%'
 #define LOG_HTTP_CF_REQUEST_HOST 'h'
 #define LOG_HTTP_CF_REQUEST_PROTOCOL 'H'
 #define LOG_HTTP_CF_REQUEST_METHOD 'm'
@@ -88,24 +82,12 @@ void LogHttpLogRegister (void)
 #define LOG_HTTP_CF_RESPONSE_STATUS 's'
 #define LOG_HTTP_CF_RESPONSE_HEADER 'o'
 #define LOG_HTTP_CF_RESPONSE_LEN 'B'
-#define LOG_HTTP_CF_TIMESTAMP 't'
-#define LOG_HTTP_CF_TIMESTAMP_U 'z'
-#define LOG_HTTP_CF_CLIENT_IP 'a'
-#define LOG_HTTP_CF_SERVER_IP 'A'
-#define LOG_HTTP_CF_CLIENT_PORT 'p'
-#define LOG_HTTP_CF_SERVER_PORT 'P'
 
-typedef struct LogHttpCustomFormatNode_ {
-    uint32_t type; /** Node format type. ie: LOG_HTTP_CF_LITERAL, LOG_HTTP_CF_REQUEST_HEADER */
-    uint32_t maxlen; /** Maximun length of the data */
-    char data[LOG_HTTP_NODE_STRLEN]; /** optional data. ie: http header name */
-} LogHttpCustomFormatNode;
 
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
-    uint32_t cf_n; /** Total number of custom string format nodes */
-    LogHttpCustomFormatNode *cf_nodes[LOG_HTTP_MAXN_NODES]; /** Custom format string nodes */
+    LogCustomFormat *cf;
 } LogHttpFileCtx;
 
 #define LOG_HTTP_DEFAULT 0
@@ -161,49 +143,44 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
     htp_header_t *h_request_hdr;
     htp_header_t *h_response_hdr;
 
-    time_t time = ts->tv_sec;
-    struct tm local_tm;
-    struct tm *timestamp = SCLocalTime(time, &local_tm);
-
-    for (i = 0; i < httplog_ctx->cf_n; i++) {
+    for (i = 0; i < httplog_ctx->cf->cf_n; i++) {
         h_request_hdr = NULL;
         h_response_hdr = NULL;
-        switch (httplog_ctx->cf_nodes[i]->type){
-            case LOG_HTTP_CF_LITERAL:
+
+        LogCustomFormatNode * node = httplog_ctx->cf->cf_nodes[i];
+        if (! node) /* Should never happen */
+            continue;
+
+        switch (node->type){
+            case LOG_CF_LITERAL:
             /* LITERAL */
-                MemBufferWriteString(aft->buffer, "%s", httplog_ctx->cf_nodes[i]->data);
+                MemBufferWriteString(aft->buffer, "%s", node->data);
                 break;
-            case LOG_HTTP_CF_TIMESTAMP:
+            case LOG_CF_TIMESTAMP:
             /* TIMESTAMP */
-                if (httplog_ctx->cf_nodes[i]->data[0] == '\0') {
-                    strftime(buf, 62, TIMESTAMP_DEFAULT_FORMAT, timestamp);
-                } else {
-                    strftime(buf, 62, httplog_ctx->cf_nodes[i]->data, timestamp);
-                }
-                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                LogCustomFormatWriteTimestamp(aft->buffer, node->data, ts);
                 break;
-            case LOG_HTTP_CF_TIMESTAMP_U:
+            case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, 62, "%06u", (unsigned int) ts->tv_usec);
+                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                             aft->buffer->size, (uint8_t *)buf,strlen(buf));
                 break;
-            case LOG_HTTP_CF_CLIENT_IP:
+            case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                             aft->buffer->size, (uint8_t *)srcip,strlen(srcip));
                 break;
-            case LOG_HTTP_CF_SERVER_IP:
+            case LOG_CF_SERVER_IP:
             /* SERVER IP ADDRESS */
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                             aft->buffer->size, (uint8_t *)dstip,strlen(dstip));
                 break;
-            case LOG_HTTP_CF_CLIENT_PORT:
+            case LOG_CF_CLIENT_PORT:
             /* CLIENT PORT */
                 MemBufferWriteString(aft->buffer, "%" PRIu16 "", sp);
                 break;
-            case LOG_HTTP_CF_SERVER_PORT:
+            case LOG_CF_SERVER_PORT:
             /* SERVER PORT */
                 MemBufferWriteString(aft->buffer, "%" PRIu16 "", dp);
                 break;
@@ -214,13 +191,13 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                 aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_method),
                                 bstr_len(tx->request_method));
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_URI:
             /* URI */
                 if (tx->request_uri != NULL) {
-                    datalen = httplog_ctx->cf_nodes[i]->maxlen;
+                    datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(tx->request_uri)) {
                         datalen = bstr_len(tx->request_uri);
                     }
@@ -228,14 +205,14 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                 aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_uri),
                                 datalen);
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_HOST:
             /* HOSTNAME */
                 if (tx->request_hostname != NULL)
                 {
-                    datalen = httplog_ctx->cf_nodes[i]->maxlen;
+                    datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(tx->request_hostname)) {
                         datalen = bstr_len(tx->request_hostname);
                     }
@@ -243,7 +220,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                 aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_hostname),
                                 datalen);
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_PROTOCOL:
@@ -253,16 +230,16 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     aft->buffer->size, (uint8_t *)bstr_ptr(tx->request_protocol),
                                     bstr_len(tx->request_protocol));
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_HEADER:
             /* REQUEST HEADER */
                 if (tx->request_headers != NULL) {
-                    h_request_hdr = htp_table_get_c(tx->request_headers, httplog_ctx->cf_nodes[i]->data);
+                    h_request_hdr = htp_table_get_c(tx->request_headers, node->data);
                 }
                 if (h_request_hdr != NULL) {
-                    datalen = httplog_ctx->cf_nodes[i]->maxlen;
+                    datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(h_request_hdr->value)) {
                         datalen = bstr_len(h_request_hdr->value);
                     }
@@ -270,7 +247,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     aft->buffer->size, (uint8_t *)bstr_ptr(h_request_hdr->value),
                                     datalen);
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_COOKIE:
@@ -279,19 +256,19 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                     h_request_hdr = htp_table_get_c(tx->request_headers, "Cookie");
                     if (h_request_hdr != NULL) {
                         cvalue_len = GetCookieValue((uint8_t *) bstr_ptr(h_request_hdr->value),
-                                    bstr_len(h_request_hdr->value), (char *) httplog_ctx->cf_nodes[i]->data,
+                                    bstr_len(h_request_hdr->value), (char *) node->data,
                                     &cvalue);
                     }
                 }
                 if (cvalue_len > 0 && cvalue != NULL) {
-                    datalen = httplog_ctx->cf_nodes[i]->maxlen;
+                    datalen = node->maxlen;
                     if (datalen == 0 || datalen > cvalue_len) {
                         datalen = cvalue_len;
                     }
                     PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
                                     aft->buffer->size, cvalue, datalen);
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_REQUEST_LEN:
@@ -305,17 +282,17 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     aft->buffer->size, (uint8_t *)bstr_ptr(tx->response_status),
                                     bstr_len(tx->response_status));
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_RESPONSE_HEADER:
             /* RESPONSE HEADER */
                 if (tx->response_headers != NULL) {
                     h_response_hdr = htp_table_get_c(tx->response_headers,
-                                    httplog_ctx->cf_nodes[i]->data);
+                                    node->data);
                 }
                 if (h_response_hdr != NULL) {
-                    datalen = httplog_ctx->cf_nodes[i]->maxlen;
+                    datalen = node->maxlen;
                     if (datalen == 0 || datalen > bstr_len(h_response_hdr->value)) {
                         datalen = bstr_len(h_response_hdr->value);
                     }
@@ -323,7 +300,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                                     aft->buffer->size, (uint8_t *)bstr_ptr(h_response_hdr->value),
                                     datalen);
                 } else {
-                    MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
+                    MemBufferWriteString(aft->buffer, LOG_CF_NONE);
                 }
                 break;
             case LOG_HTTP_CF_RESPONSE_LEN:
@@ -332,8 +309,8 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             default:
             /* NO MATCH */
-                MemBufferWriteString(aft->buffer, LOG_HTTP_CF_NONE);
-                SCLogDebug("No matching parameter %%%c for custom http log.", httplog_ctx->cf_nodes[i]->type);
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+                SCLogDebug("No matching parameter %%%c for custom http log.", node->type);
                 break;
         }
     }
@@ -342,7 +319,7 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
 
 static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
-    MemBufferWriteString(aft->buffer, " [**] ");
+    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
     /* referer */
     htp_header_t *h_referer = NULL;
@@ -356,7 +333,8 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     } else {
         MemBufferWriteString(aft->buffer, "<no referer>");
     }
-    MemBufferWriteString(aft->buffer, " [**] ");
+
+    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
     /* method */
     if (tx->request_method != NULL) {
@@ -364,7 +342,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
                        (uint8_t *)bstr_ptr(tx->request_method),
                        bstr_len(tx->request_method));
     }
-    MemBufferWriteString(aft->buffer, " [**] ");
+    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
     /* protocol */
     if (tx->request_protocol != NULL) {
@@ -374,7 +352,7 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     } else {
         MemBufferWriteString(aft->buffer, "<no protocol>");
     }
-    MemBufferWriteString(aft->buffer, " [**] ");
+    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
     /* response status */
     if (tx->response_status != NULL) {
@@ -397,7 +375,8 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
     }
 
     /* length */
-    MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
+    LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
+    MemBufferWriteString(aft->buffer, "%"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
 static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, Flow *f, HtpState *htp_state, htp_tx_t *tx, uint64_t tx_id, int ipproto)
@@ -464,7 +443,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         } else {
             MemBufferWriteString(aft->buffer, "<hostname unknown>");
         }
-        MemBufferWriteString(aft->buffer, " [**] ");
+        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
         /* uri */
         if (tx->request_uri != NULL) {
@@ -472,7 +451,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
                     (uint8_t *)bstr_ptr(tx->request_uri),
                     bstr_len(tx->request_uri));
         }
-        MemBufferWriteString(aft->buffer, " [**] ");
+        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
@@ -491,8 +470,9 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, void *data, const Packet *p, 
         }
 
         /* ip/tcp header info */
+        LOG_CF_WRITE_STAR_SEPATATOR(aft->buffer);
         MemBufferWriteString(aft->buffer,
-                " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
+                "%s:%" PRIu16 " -> %s:%" PRIu16 "\n",
                 srcip, sp, dstip, dp);
     }
 
@@ -585,8 +565,6 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data)
 OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 {
     LogFileCtx* file_ctx = LogFileNewCtx();
-    const char *p, *np;
-    uint32_t n;
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
@@ -605,7 +583,6 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     memset(httplog_ctx, 0x00, sizeof(LogHttpFileCtx));
 
     httplog_ctx->file_ctx = file_ctx;
-    httplog_ctx->cf_n=0;
 
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
     const char *custom = ConfNodeLookupChildValue(conf, "custom");
@@ -613,74 +590,17 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 
     /* If custom logging format is selected, lets parse it */
     if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
-        p=customformat;
-        httplog_ctx->flags |= LOG_HTTP_CUSTOM;
-        for (httplog_ctx->cf_n = 0; httplog_ctx->cf_n < LOG_HTTP_MAXN_NODES-1 && p && *p != '\0';
-                                                    httplog_ctx->cf_n++){
-            httplog_ctx->cf_nodes[httplog_ctx->cf_n] = SCMalloc(sizeof(LogHttpCustomFormatNode));
-            if (httplog_ctx->cf_nodes[httplog_ctx->cf_n] == NULL) {
-                for (n = 0; n < httplog_ctx->cf_n; n++) {
-                    SCFree(httplog_ctx->cf_nodes[n]);
-                }
-                LogFileFreeCtx(file_ctx);
-                SCFree(httplog_ctx);
-                return NULL;
-            }
-            httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen = 0;
 
-            if (*p != '%'){
-                /* Literal found in format string */
-                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = LOG_HTTP_CF_LITERAL;
-                np = strchr(p, '%');
-                if (np == NULL){
-                    n = LOG_HTTP_NODE_STRLEN-2;
-                    np = NULL; /* End */
-                }else{
-                    n = np-p;
-                }
-                strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data,p,n+1);
-                p = np;
-            } else {
-                /* Non Literal found in format string */
-                p++;
-                if (*p == '[') { /* Check if maxlength has been specified (ie: [25]) */
-                    p++;
-                    np = strchr(p, ']');
-                    if (np != NULL) {
-                        if (np-p > 0 && np-p < 10){
-                            long maxlen = strtol(p,NULL,10);
-                            if (maxlen > 0 && maxlen < LOG_HTTP_NODE_MAXOUTPUTLEN) {
-                                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->maxlen = (uint32_t) maxlen;
-                            }
-                        } else {
-                            goto parsererror;
-                        }
-                        p = np + 1;
-                    } else {
-                        goto parsererror;
-                    }
-                }
-                if (*p == '{') { /* Simple format char */
-                    np = strchr(p, '}');
-                    if (np != NULL && np-p > 1 && np-p < LOG_HTTP_NODE_STRLEN-2) {
-                        p++;
-                        n = np-p;
-                        strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data, p, n+1);
-                        p = np;
-                    } else {
-                        goto parsererror;
-                    }
-                    p++;
-                } else {
-                    httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data[0] = '\0';
-                }
-                httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = *p;
-                if (*p == '%'){
-                    httplog_ctx->cf_nodes[httplog_ctx->cf_n]->type = LOG_HTTP_CF_LITERAL;
-                    strlcpy(httplog_ctx->cf_nodes[httplog_ctx->cf_n]->data, "%", 2);
-                }
-                p++;
-            }
+        httplog_ctx->cf = LogCustomFormatAlloc();
+        if (!httplog_ctx->cf) {
+            goto errorfree;
+        }
+
+        httplog_ctx->flags |= LOG_HTTP_CUSTOM;
+
+        /* Parsing */
+        if ( ! LogCustomFormatParse(httplog_ctx->cf, customformat)) {
+            goto parsererror;
         }
     } else {
         if (extended == NULL) {
@@ -708,12 +628,11 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     return output_ctx;
 
 parsererror:
-    for (n = 0;n < httplog_ctx->cf_n;n++) {
-        SCFree(httplog_ctx->cf_nodes[n]);
-    }
+    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
+errorfree:
+    LogCustomFormatFree(httplog_ctx->cf);
     LogFileFreeCtx(file_ctx);
     SCFree(httplog_ctx);
-    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom http log format string.");
     return NULL;
 
 }
@@ -721,10 +640,7 @@ parsererror:
 static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *httplog_ctx = (LogHttpFileCtx *)output_ctx->data;
-    uint32_t i;
-    for (i = 0; i < httplog_ctx->cf_n; i++) {
-        SCFree(httplog_ctx->cf_nodes[i]);
-    }
+    LogCustomFormatFree(httplog_ctx->cf);
     LogFileFreeCtx(httplog_ctx->file_ctx);
     SCFree(httplog_ctx);
     SCFree(output_ctx);
