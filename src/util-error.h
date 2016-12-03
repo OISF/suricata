@@ -328,6 +328,7 @@ typedef enum {
     SC_ERR_VAR_LIMIT,
     SC_WARN_DUPLICATE_OUTPUT,
     SC_WARN_CHMOD,
+    SC_WARN_LOG_CF_TOO_MANY_NODES,
 } SCError;
 
 const char *SCErrorToString(SCError);
