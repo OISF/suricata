@@ -1,8 +1,8 @@
 noinst_HEADERS = action-globals.h \
     app-layer-nbss.h app-layer-dcerpc-common.h \
     debug.h \
-	flow-private.h queue.h source-nfq-prototypes.h \
-	suricata-common.h threadvars.h util-binsearch.h \
+    flow-private.h queue.h source-nfq-prototypes.h \
+    suricata-common.h threadvars.h util-binsearch.h \
     util-validate.h
 bin_PROGRAMS = suricata
 
@@ -94,6 +94,7 @@ detect-distance.c detect-distance.h \
 detect-dnp3.c detect-dnp3.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-sni.c detect-tls-sni.h \
+detect-tls-alpn.c detect-tls-alpn.h \
 detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-tls-cert-subject.c detect-tls-cert-subject.h \
 detect-dsize.c detect-dsize.h \
@@ -253,6 +254,7 @@ log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
+log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \

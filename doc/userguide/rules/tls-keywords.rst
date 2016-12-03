@@ -143,6 +143,21 @@ Case sensitive, can't use 'nocase'.
 
 The tls.fingerprint buffer is lower case so you must use lower case letters for this to match.
 
+tls_alpn
+---------------
+
+match TLS/SSL ALPN extension values
+
+examples:
+
+::
+
+  tls_alpn:client:h2
+
+::
+
+  tls_alpn:server:http/1.1
+
 tls.store
 ---------
 

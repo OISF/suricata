@@ -245,14 +245,93 @@ int SSLGetAlstateProgress(void *tx, uint8_t direction)
     return TLS_STATE_IN_PROGRESS;
 }
 
-static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
-                                   uint32_t input_len)
+/**
+ * \internal
+ * \brief TLS ALPN  (see RFC 7301)
+ *
+ * \param input     Pointer to the received input data.
+ * \param input_len Length in bytes of the received data.
+ *
+ * \retval pointer the allocated ALPN struct
+ */
+static ALPN * TLSDecodeALPNAlloc(uint8_t *input, uint32_t input_len)
+{
+    ALPN * alpn = SCMalloc(sizeof(ALPN));
+    if (unlikely(alpn == NULL)) {
+        return NULL;
+    }
+
+    memset(alpn, 0, sizeof(ALPN));
+
+    alpn->proto_name = SCMalloc(input_len + 1);
+    if (alpn->proto_name == NULL) {
+        SCFree(alpn);
+        return NULL;
+    }
+
+    memset(alpn->proto_name, '\0', input_len +1);
+    memcpy(alpn->proto_name, input, input_len);
+
+    return alpn;
+}
+
+/**
+ * \internal
+ * \brief Parses and saves TLS ALPN protocols lists during handshake
+ *
+ * \param ssl_state Pointer to SSL State
+ * \param handshake_type who's hand
+ * \param input     Pointer to the received input data.
+ *
+ * \retval pointer the allocated ALPN struct
+ */
+static void TLSDecodeALPNParse(SSLState *ssl_state, uint8_t handshake_type,
+                               uint8_t *input, uint32_t input_len)
+{
+    uint8_t *alpn_input = input;
+    uint16_t alpn_len = input[0] << 8 | input[1];
+
+    if (alpn_len > input_len) {
+        return;
+    }
+
+    alpn_input += 2;
+    uint16_t alpn_count = 2;
+    while(alpn_count < alpn_len) {
+        uint16_t alpn_entry_len = alpn_input[0];
+        /* only a byte for protocol name length */
+        ++alpn_count;
+        ++alpn_input;
+
+        /* bad entry length ... jump over and ignore*/
+        if (alpn_entry_len > alpn_len) {
+            break;
+        }
+
+        ALPN *alpn = TLSDecodeALPNAlloc(alpn_input, alpn_entry_len);
+        if (alpn ) {
+            if (handshake_type == SSLV3_HS_CLIENT_HELLO) {
+                TAILQ_INSERT_TAIL(&ssl_state->client_connp.alpn, alpn, next);
+            }
+            if (handshake_type == SSLV3_HS_SERVER_HELLO) {
+                TAILQ_INSERT_TAIL(&ssl_state->server_connp.alpn, alpn, next);
+            }
+        }
+        alpn_count +=alpn_entry_len;
+        alpn_input +=alpn_entry_len;
+    }
+
+}
+
+static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t handshake_type,
+                                   uint8_t *input, uint32_t input_len)
 {
     uint8_t *initial_input = input;
 
     /* only parse the message if it is complete */
-    if (input_len < ssl_state->curr_connp->message_length || input_len < 40)
+    if (input_len < ssl_state->curr_connp->message_length || input_len < 40) {
         return 0;
+    }
 
     /* skip version */
     input += SSLV3_CLIENT_HELLO_VERSION_LEN;
@@ -271,11 +350,15 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    /* skip cipher suites */
-    uint16_t cipher_suites_length = input[0] << 8 | input[1];
-    input += 2;
-
-    input += cipher_suites_length;
+    if (handshake_type == SSLV3_HS_CLIENT_HELLO) {
+        /* skip cipher suites */
+        uint16_t cipher_suites_length = input[0] << 8 | input[1];
+        input += 2;
+        input += cipher_suites_length;
+    } else {
+        /* skip cipher suites */
+        input += 2;
+    }
 
     if (!(HAS_SPACE(1)))
         goto invalid_length;
@@ -313,6 +396,11 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
         switch (ext_type) {
             case SSL_EXTENSION_SNI:
             {
+                /* just process this extension for client hello */
+                if (handshake_type != SSLV3_HS_CLIENT_HELLO) {
+                    break;
+                }
+
                 /* there must not be more than one extension of the same
                    type (RFC5246 section 7.4.1.4) */
                 if (ssl_state->curr_connp->sni) {
@@ -370,6 +458,15 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
                 input += sni_len;
                 break;
             }
+            case SSL_EXTENSION_ALPN:
+            {
+                if (handshake_type != SSLV3_HS_CLIENT_HELLO &&
+                        handshake_type != SSLV3_HS_SERVER_HELLO) {
+                    break;
+                }
+                TLSDecodeALPNParse(ssl_state, handshake_type, input, input_len);
+                break;
+            }
             default:
             {
                 input += ext_len;
@@ -405,7 +502,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
-            rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
+            rc = TLSDecodeHandshakeHello(ssl_state, SSLV3_HS_CLIENT_HELLO,
+                                         input, input_len);
 
             if (rc < 0)
                 return rc;
@@ -414,6 +512,13 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
+
+            rc = TLSDecodeHandshakeHello(ssl_state, SSLV3_HS_SERVER_HELLO,
+                                         input, input_len);
+
+            if (rc < 0)
+                return rc;
+
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1521,6 +1626,8 @@ void *SSLStateAlloc(void)
     ssl_state->client_connp.cert_log_flag = 0;
     ssl_state->server_connp.cert_log_flag = 0;
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    TAILQ_INIT(&ssl_state->server_connp.alpn);
+    TAILQ_INIT(&ssl_state->client_connp.alpn);
 
     return (void *)ssl_state;
 }
@@ -1568,6 +1675,21 @@ void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->server_connp.certs);
+
+    /* Free SERVER side ALPN */
+    ALPN *alpn;
+    while ((alpn = TAILQ_FIRST(&ssl_state->server_connp.alpn))) {
+        TAILQ_REMOVE(&ssl_state->server_connp.alpn, alpn, next);
+        SCFree(alpn);
+    }
+    TAILQ_INIT(&ssl_state->server_connp.alpn);
+
+    /* Free client side ALPN */
+    while ((alpn = TAILQ_FIRST(&ssl_state->client_connp.alpn))) {
+        TAILQ_REMOVE(&ssl_state->client_connp.alpn, alpn, next);
+        SCFree(alpn);
+    }
+    TAILQ_INIT(&ssl_state->client_connp.alpn);
 
     SCFree(ssl_state);
 
