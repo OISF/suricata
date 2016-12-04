@@ -1,8 +1,6 @@
 DNP3 Keywords
 =============
 
-**NOTE: DNP3 is currently in development and is not yet available.**
-
 The DNP3 keywords can be used to match on fields in decoded DNP3
 messages. The keywords are based on Snort's DNP3 keywords and aim to
 be 100% compatible.
