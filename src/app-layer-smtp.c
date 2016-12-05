@@ -104,6 +104,8 @@
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
 
+SC_ATOMIC_DECLARE(uint64_t, smtp_global_tx_cnt);
+
 SCEnumCharMap smtp_decoder_event_table[ ] = {
     { "INVALID_REPLY",           SMTP_DECODER_EVENT_INVALID_REPLY },
     { "UNABLE_TO_MATCH_REPLY_WITH_REQUEST",
@@ -1290,6 +1292,23 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
     return 0;
 }
 
+/* global counter functions */
+static inline void SMTPSetGlobalTxCounter(void)
+{
+    SC_ATOMIC_ADD(smtp_global_tx_cnt, 1);
+}
+
+static inline uint64_t SMTPGetGlobalTxCnt(void)
+{
+    return SC_ATOMIC_GET(smtp_global_tx_cnt);
+}
+
+static void SMTPRegisterGlobalTxCounter(void)
+{
+    SC_ATOMIC_INIT(smtp_global_tx_cnt);
+    StatsRegisterGlobalCounter("app-layer.smtp", SMTPGetGlobalTxCnt);
+}
+
 /**
  * \internal
  * \brief Function to allocate SMTP state memory.
@@ -1403,6 +1422,9 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
         else
             smtp_state->events = 0;
 #endif
+
+    SMTPSetGlobalTxCounter();
+
     SCFree(tx);
 }
 
@@ -1644,6 +1666,7 @@ void RegisterSMTPParsers(void)
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);
+
         if (SMTPRegisterPatternsForProtocolDetection() < 0 )
             return;
     } else {
@@ -1678,6 +1701,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
+        SMTPRegisterGlobalTxCounter();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

@@ -298,7 +298,7 @@ static DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id
 /** \internal
  *  \brief Free a DNS TX
  *  \param tx DNS TX to free */
-static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
+void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 {
     SCEnter();
 
@@ -437,33 +437,6 @@ void *DNSStateAlloc(void)
 
     TAILQ_INIT(&dns_state->tx_list);
     return s;
-}
-
-void DNSStateFree(void *s)
-{
-    SCEnter();
-    if (s) {
-        DNSState *dns_state = (DNSState *) s;
-
-        DNSTransaction *tx = NULL;
-        while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
-            TAILQ_REMOVE(&dns_state->tx_list, tx, next);
-            DNSTransactionFree(tx, dns_state);
-        }
-
-        if (dns_state->buffer != NULL) {
-            DNSDecrMemcap(0xffff, dns_state); /** TODO update if/once we alloc
-                                               *  in a smarter way */
-            SCFree(dns_state->buffer);
-        }
-
-        BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
-
-        DNSDecrMemcap(sizeof(DNSState), dns_state);
-        BUG_ON(dns_state->memuse > 0);
-        SCFree(s);
-    }
-    SCReturn;
 }
 
 /** \brief Validation checks for DNS request header

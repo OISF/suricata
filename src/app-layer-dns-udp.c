@@ -50,6 +50,25 @@
 
 #include "app-layer-dns-udp.h"
 
+SC_ATOMIC_DECLARE(uint64_t, dns_udp_global_tx_cnt);
+
+/* global counter functions */
+static inline void DNSUDPSetGlobalTxCounter(void)
+{
+    SC_ATOMIC_ADD(dns_udp_global_tx_cnt, 1);
+}
+
+static inline uint64_t DNSUDPGetGlobalTxCnt(void)
+{
+    return SC_ATOMIC_GET(dns_udp_global_tx_cnt);
+}
+
+static void DNSUDPRegisterGlobalTxCounter(void)
+{
+    SC_ATOMIC_INIT(dns_udp_global_tx_cnt);
+    StatsRegisterGlobalCounter("app-layer.dns_udp", DNSUDPGetGlobalTxCnt);
+}
+
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -381,6 +400,34 @@ static void DNSUDPConfigure(void)
     DNSConfigSetGlobalMemcap(global_memcap);
 }
 
+static void DNSUDPStateFree(void *s)
+{
+    SCEnter();
+    if (s) {
+        DNSState *dns_state = (DNSState *) s;
+
+        DNSTransaction *tx = NULL;
+        while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
+            TAILQ_REMOVE(&dns_state->tx_list, tx, next);
+            DNSTransactionFree(tx, dns_state);
+            DNSUDPSetGlobalTxCounter();
+        }
+
+        if (dns_state->buffer != NULL) {
+            DNSDecrMemcap(0xffff, dns_state); /** TODO update if/once we alloc
+                                               *  in a smarter way */
+            SCFree(dns_state->buffer);
+        }
+
+        BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
+
+        DNSDecrMemcap(sizeof(DNSState), dns_state);
+        BUG_ON(dns_state->memuse > 0);
+        SCFree(s);
+    }
+    SCReturn;
+}
+
 void RegisterDNSUDPParsers(void)
 {
     char *proto_name = "dns";
@@ -423,7 +470,7 @@ void RegisterDNSUDPParsers(void)
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DNS, STREAM_TOCLIENT,
                                      DNSUDPResponseParse);
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DNS, DNSStateAlloc,
-                                         DNSStateFree);
+                                         DNSUDPStateFree);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DNS,
                                          DNSStateTransactionFree);
 
@@ -447,6 +494,7 @@ void RegisterDNSUDPParsers(void)
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
         DNSUDPConfigure();
+        DNSUDPRegisterGlobalTxCounter();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
