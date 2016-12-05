@@ -691,13 +691,7 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
     /* try stream logging first */
     if (stream) {
         SCLogDebug("logging the state");
-        uint8_t flag;
-
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag = FLOW_PKT_TOCLIENT;
-        } else {
-            flag = FLOW_PKT_TOSERVER;
-        }
+        uint8_t flag = StreamGetOrderFlag(p);
 
         /* make event id available to callback */
         aun->event_id = event_id;

@@ -302,13 +302,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                     p->flow->protoctx == NULL) {
                 return TM_ECODE_OK;
             }
-            /* IDS mode reverse the data */
-            /** \todo improve the order selection policy */
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                flag = FLOW_PKT_TOCLIENT;
-            } else {
-                flag = FLOW_PKT_TOSERVER;
-            }
+            flag = StreamGetOrderFlag(p);
             ret = StreamSegmentForEach((const Packet *)p, flag,
                                  AlertDebugPrintStreamSegmentCallback,
                                  (void *)aft);
