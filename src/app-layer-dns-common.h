@@ -266,6 +266,7 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
+void DNSTransactionFree(DNSTransaction *tx, DNSState *state);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
 int DNSStateHasTxDetectState(void *alstate);
@@ -274,7 +275,6 @@ int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s);
 
 void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
-void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
 int DNSHasEvents(void *state);
 
