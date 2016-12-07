@@ -60,10 +60,12 @@
 #include "detect-engine-hmd.h"
 #include "stream-tcp.h"
 
-
+static int g_http_method_buffer_id = 0;
 static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
+static void DetectHttpMethodSetupCallback(Signature *s);
+static _Bool DetectHttpMethodValidateCallback(const Signature *s);
 
 /**
  * \brief Registration function for keyword: http_method
@@ -81,13 +83,22 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("http_method", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HMDMATCH, 4,
+    DetectAppLayerMpmRegister("http_method", SIG_FLAG_TOSERVER, 4,
             PrefilterTxMethodRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HMDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_method",
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpMethod);
+
+    DetectBufferTypeSetDescriptionByName("http_method",
+            "http request method");
+
+    DetectBufferTypeRegisterSetupCallback("http_method",
+            DetectHttpMethodSetupCallback);
+    DetectBufferTypeRegisterValidateCallback("http_method",
+            DetectHttpMethodValidateCallback);
+
+    g_http_method_buffer_id = DetectBufferTypeGetByName("http_method");
 
     SCLogDebug("registering http_method rule option");
 }
@@ -107,7 +118,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_METHOD,
-                                                  DETECT_SM_LIST_HMDMATCH,
+                                                  g_http_method_buffer_id,
                                                   ALPROTO_HTTP,
                                                   NULL);
 }
@@ -126,43 +137,45 @@ void DetectHttpMethodFree(void *ptr)
     SCFree(data);
 }
 
+static void DetectHttpMethodSetupCallback(Signature *s)
+{
+    SCLogNotice("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+}
+
 /**
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-int DetectHttpMethodValidateRule(const Signature *s)
+static _Bool DetectHttpMethodValidateCallback(const Signature *s)
 {
-    if (s->alproto != ALPROTO_HTTP)
-        return 1;
-
-    if (s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL) {
-        const SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_HMDMATCH];
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-            const DetectContentData *cd = (const DetectContentData *)sm->ctx;
-            if (cd->content && cd->content_len) {
-                if (cd->content[cd->content_len-1] == 0x20) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing space");
-                    return 0;
-                } else if (cd->content[0] == 0x20) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading space");
-                    return 0;
-                } else if (cd->content[cd->content_len-1] == 0x09) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing tab");
-                    return 0;
-                } else if (cd->content[0] == 0x09) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading tab");
-                    return 0;
-                }
+    const SigMatch *sm = s->init_data->smlists[g_http_method_buffer_id];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+        const DetectContentData *cd = (const DetectContentData *)sm->ctx;
+        if (cd->content && cd->content_len) {
+            if (cd->content[cd->content_len-1] == 0x20) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing space");
+                return FALSE;
+            } else if (cd->content[0] == 0x20) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading space");
+                return FALSE;
+            } else if (cd->content[cd->content_len-1] == 0x09) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing tab");
+                return FALSE;
+            } else if (cd->content[0] == 0x09) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading tab");
+                return FALSE;
             }
         }
     }
-    return 1;
+    return TRUE;
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
 
+#include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 /** \test Check a signature with content */
@@ -330,13 +343,13 @@ static int DetectHttpMethodTest12(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL: ");
+    if (de_ctx->sig_list->sm_lists[g_http_method_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_method_buffer_id] == NULL: ");
         goto end;
     }
 
-    DetectContentData *hmd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
-    DetectContentData *hmd2 = (DetectContentData *)de_ctx->sig_list->next->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
+    DetectContentData *hmd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_method_buffer_id]->ctx;
+    DetectContentData *hmd2 = (DetectContentData *)de_ctx->sig_list->next->sm_lists_tail[g_http_method_buffer_id]->ctx;
 
     if (!(hmd1->flags & DETECT_CONTENT_NOCASE)) {
         printf("nocase flag not set on sig 1: ");
@@ -850,6 +863,31 @@ end:
     return result;
 }
 
+static int DetectHttpMethodIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "content:\"one\"; http_method; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_method_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -873,6 +911,9 @@ void DetectHttpMethodRegisterTests(void)
     UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02);
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03);
     UtRegisterTest("DetectHttpMethodSigTest04", DetectHttpMethodSigTest04);
+
+    UtRegisterTest("DetectHttpMethodIsdataatParseTest",
+            DetectHttpMethodIsdataatParseTest);
 #endif /* UNITTESTS */
 }
 
