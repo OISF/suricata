@@ -154,7 +154,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HSCDMATCH, "http_stat_code");
         CASE_CODE_STRING(DETECT_SM_LIST_HHHDMATCH, "http_host");
         CASE_CODE_STRING(DETECT_SM_LIST_HRHHDMATCH, "http_raw_host");
-        CASE_CODE_STRING(DETECT_SM_LIST_HMDMATCH, "http_method");
         CASE_CODE_STRING(DETECT_SM_LIST_HCDMATCH, "http_cookie");
         CASE_CODE_STRING(DETECT_SM_LIST_HUADMATCH, "http_user_agent");
         CASE_CODE_STRING(DETECT_SM_LIST_HTTP_RESLINEMATCH, "http_response_line");
@@ -197,7 +196,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HSCDMATCH);
         CASE_CODE(DETECT_SM_LIST_HHHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HRHHDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HMDMATCH);
         CASE_CODE(DETECT_SM_LIST_HCDMATCH);
         CASE_CODE(DETECT_SM_LIST_HUADMATCH);
         CASE_CODE(DETECT_SM_LIST_HTTP_RESLINEMATCH);
@@ -1440,7 +1438,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
                     s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
                     s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-                    s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL ||
                     s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
                                "/http_uri , raw_uri, http_client_body, "
@@ -1465,7 +1462,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HMDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOSERVER;
         s->flags |= SIG_FLAG_TOSERVER;
@@ -1524,9 +1520,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
-
-    if (!DetectHttpMethodValidateRule(s))
-        SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
     //    if (s->flags & SIG_FLAG_STATE_MATCH) {
@@ -1596,7 +1589,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH]  ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH] ||
