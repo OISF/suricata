@@ -445,7 +445,8 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HMDMATCH);
+                    int list = DetectBufferTypeGetByName("http_method");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
                 case 'C': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
@@ -674,7 +675,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         parsed_sm_list == DETECT_SM_LIST_HSCDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HHHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHHDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HMDMATCH ||
+//        parsed_sm_list == DETECT_SM_LIST_HMDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HCDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HUADMATCH)
     {
@@ -715,7 +716,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             case DETECT_SM_LIST_HSMDMATCH:
             case DETECT_SM_LIST_HSCDMATCH:
             case DETECT_SM_LIST_HCDMATCH:
-            case DETECT_SM_LIST_HMDMATCH:
             case DETECT_SM_LIST_HUADMATCH:
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;

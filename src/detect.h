@@ -133,8 +133,6 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HHHDMATCH,
     /* list for http_raw_host keyword and the ones relative to it */
     DETECT_SM_LIST_HRHHDMATCH,
-    /* list for http_method keyword and the ones relative to it */
-    DETECT_SM_LIST_HMDMATCH,
     /* list for http_cookie keyword and the ones relative to it */
     DETECT_SM_LIST_HCDMATCH,
     /* list for http_user_agent keyword and the ones relative to it */
