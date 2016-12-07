@@ -93,9 +93,9 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 {
     SCEnter();
 
-    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
-        s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP) {
+    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
+        (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
+        s->alproto != ALPROTO_SMTP)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
