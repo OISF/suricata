@@ -722,8 +722,11 @@ int SigParseProto(Signature *s, const char *protostr)
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName((char *)protostr);
         /* indicate that the signature is app-layer */
-        if (s->alproto != ALPROTO_UNKNOWN)
+        if (s->alproto != ALPROTO_UNKNOWN) {
             s->flags |= SIG_FLAG_APPLAYER;
+
+            AppLayerProtoDetectSupportedIpprotos(s->alproto, s->proto.proto);
+        }
         else {
             SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
                        "in a signature.  Either detection for this protocol "
