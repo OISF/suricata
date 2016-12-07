@@ -2816,8 +2816,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http host";
         case DETECT_SM_LIST_HRHHDMATCH:
             return "http raw host header";
-        case DETECT_SM_LIST_HMDMATCH:
-            return "http method";
         case DETECT_SM_LIST_HCDMATCH:
             return "http cookie";
         case DETECT_SM_LIST_HUADMATCH:
