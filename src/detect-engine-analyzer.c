@@ -120,8 +120,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http header content\n");
     else if (list_type == DETECT_SM_LIST_HRHDMATCH)
         fprintf(fp_engine_analysis_FD, "http raw header content\n");
-    else if (list_type == DETECT_SM_LIST_HMDMATCH)
-        fprintf(fp_engine_analysis_FD, "http method content\n");
     else if (list_type == DETECT_SM_LIST_HCDMATCH)
         fprintf(fp_engine_analysis_FD, "http cookie content\n");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
@@ -474,8 +472,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "http header content");
     else if (list_type == DETECT_SM_LIST_HRHDMATCH)
         fprintf(rule_engine_analysis_FD, "http raw header content");
-    else if (list_type == DETECT_SM_LIST_HMDMATCH)
-        fprintf(rule_engine_analysis_FD, "http method content");
     else if (list_type == DETECT_SM_LIST_HCDMATCH)
         fprintf(rule_engine_analysis_FD, "http cookie content");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
@@ -586,6 +582,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
 
     const int nlists = DetectBufferTypeMaxId();
     const int filedata_id = DetectBufferTypeGetByName("file_data");
+    const int httpmethod_id = DetectBufferTypeGetByName("http_method");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -639,7 +636,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_raw_header_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HMDMATCH) {
+                else if (list_id == httpmethod_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_method_buf += 1;
@@ -720,7 +717,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HMDMATCH) {
+                else if (list_id == httpmethod_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_method_buf += 1;
