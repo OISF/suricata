@@ -672,6 +672,7 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 #ifdef UNITTESTS
 
 static int g_file_data_buffer_id = 0;
+static int g_http_uri_buffer_id = 0;
 
 static int DetectByteExtractTest01(void)
 {
@@ -1691,7 +1692,7 @@ static int DetectByteExtractTest37(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1804,7 +1805,7 @@ static int DetectByteExtractTest38(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -1892,7 +1893,7 @@ static int DetectByteExtractTest39(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2005,7 +2006,7 @@ static int DetectByteExtractTest40(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -2237,7 +2238,7 @@ static int DetectByteExtractTest42(void)
     if (sm->next != NULL)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3776,7 +3777,7 @@ static int DetectByteExtractTest56(void)
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -3948,7 +3949,7 @@ static int DetectByteExtractTest57(void)
     if (sm->next != NULL)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4411,12 +4412,12 @@ static int DetectByteExtractTest60(void)
     if (sm->next != NULL)
         goto end;
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+    if (s->sm_lists_tail[g_http_uri_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4541,12 +4542,12 @@ static int DetectByteExtractTest61(void)
     if (sm->next != NULL)
         goto end;
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+    if (s->sm_lists_tail[g_http_uri_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = s->sm_lists[g_http_uri_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -4731,6 +4732,7 @@ static void DetectByteExtractRegisterTests(void)
 {
 #ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 
     UtRegisterTest("DetectByteExtractTest01", DetectByteExtractTest01);
     UtRegisterTest("DetectByteExtractTest02", DetectByteExtractTest02);
