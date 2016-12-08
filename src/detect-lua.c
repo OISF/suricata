@@ -1003,9 +1003,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
         else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_UA)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
-        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
+        else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
+            int list = DetectBufferTypeGetByName("http_user_agent");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
         else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
