@@ -153,7 +153,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HSCDMATCH, "http_stat_code");
         CASE_CODE_STRING(DETECT_SM_LIST_HHHDMATCH, "http_host");
         CASE_CODE_STRING(DETECT_SM_LIST_HRHHDMATCH, "http_raw_host");
-        CASE_CODE_STRING(DETECT_SM_LIST_HCDMATCH, "http_cookie");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -192,7 +191,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HSCDMATCH);
         CASE_CODE(DETECT_SM_LIST_HHHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HRHHDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HCDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1582,7 +1580,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH])
         {
