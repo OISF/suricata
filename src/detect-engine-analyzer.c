@@ -118,8 +118,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http header content\n");
     else if (list_type == DETECT_SM_LIST_HRHDMATCH)
         fprintf(fp_engine_analysis_FD, "http raw header content\n");
-    else if (list_type == DETECT_SM_LIST_HCDMATCH)
-        fprintf(fp_engine_analysis_FD, "http cookie content\n");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(fp_engine_analysis_FD, "http client body content\n");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
@@ -466,8 +464,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "http header content");
     else if (list_type == DETECT_SM_LIST_HRHDMATCH)
         fprintf(rule_engine_analysis_FD, "http raw header content");
-    else if (list_type == DETECT_SM_LIST_HCDMATCH)
-        fprintf(rule_engine_analysis_FD, "http cookie content");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(rule_engine_analysis_FD, "http client body content");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
@@ -577,6 +573,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");
     const int httpuseragent_id = DetectBufferTypeGetByName("http_user_agent");
+    const int httpcookie_id = DetectBufferTypeGetByName("http_cookie");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -615,7 +612,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     norm_http_buf += 1;
                     http_header_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HCDMATCH) {
+                else if (list_id == httpcookie_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_cookie_buf += 1;
@@ -663,7 +660,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
 
                 if (list_id == httpuri_id
                           || list_id == DETECT_SM_LIST_HHDMATCH
-                          || list_id == DETECT_SM_LIST_HCDMATCH) {
+                          || list_id == httpcookie_id) {
                     rule_content_http += 1;
                     norm_http_buf += 1;
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -677,7 +674,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     else if (list_id == DETECT_SM_LIST_HHDMATCH) {
                         http_header_buf += 1;
                     }
-                    else if (list_id == DETECT_SM_LIST_HCDMATCH) {
+                    else if (list_id == httpcookie_id) {
                         http_cookie_buf += 1;
                     }
                 }
