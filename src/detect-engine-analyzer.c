@@ -112,8 +112,6 @@ void EngineAnalysisFP(Signature *s, char *line)
     int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
-    else if (list_type == DETECT_SM_LIST_UMATCH)
-        fprintf(fp_engine_analysis_FD, "http uri content\n");
     else if (list_type == DETECT_SM_LIST_HRUDMATCH)
         fprintf(fp_engine_analysis_FD, "http raw uri content\n");
     else if (list_type == DETECT_SM_LIST_HHDMATCH)
@@ -464,8 +462,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "%s",
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
-    else if (list_type == DETECT_SM_LIST_UMATCH)
-        fprintf(rule_engine_analysis_FD, "http uri content");
     else if (list_type == DETECT_SM_LIST_HRUDMATCH)
         fprintf(rule_engine_analysis_FD, "http raw uri content");
     else if (list_type == DETECT_SM_LIST_HHDMATCH)
@@ -583,6 +579,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     const int nlists = DetectBufferTypeMaxId();
     const int filedata_id = DetectBufferTypeGetByName("file_data");
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
+    const int httpuri_id = DetectBufferTypeGetByName("http_uri");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -611,7 +608,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     http_client_body_buf += 1;
                     raw_http_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_UMATCH) {
+                else if (list_id == httpuri_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_uri_buf += 1;
@@ -667,7 +664,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
             }
             else if (sm->type == DETECT_CONTENT) {
 
-                if (list_id == DETECT_SM_LIST_UMATCH
+                if (list_id == httpuri_id
                           || list_id == DETECT_SM_LIST_HHDMATCH
                           || list_id == DETECT_SM_LIST_HCDMATCH) {
                     rule_content_http += 1;
@@ -677,7 +674,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                         warn_encoding_norm_http_buf += 1;
                         rule_warning += 1;
                     }
-                    if (list_id == DETECT_SM_LIST_UMATCH) {
+                    if (list_id == httpuri_id) {
                         http_uri_buf += 1;
                     }
                     else if (list_id == DETECT_SM_LIST_HHDMATCH) {

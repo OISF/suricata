@@ -395,13 +395,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
 
                 /* buffer selection */
 
-                case 'U': /* snort's option */
+                case 'U': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_UMATCH);
+                    int list = DetectBufferTypeGetByName("http_uri");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'V':
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'V' inconsistent with 'B'");
@@ -440,7 +442,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                 case 'D': /* snort's option */
                     *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRHDMATCH);
                     break;
-                case 'M': /* snort's option */
+                case 'M': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
                         goto error;
@@ -448,6 +450,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     int list = DetectBufferTypeGetByName("http_method");
                     *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'C': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'C' inconsistent with 'B'");
@@ -666,8 +669,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (DetectPcreParseCapture(regexstr, de_ctx, pd) < 0)
         goto error;
 
-    if (parsed_sm_list == DETECT_SM_LIST_UMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
+    if (parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HCBDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
@@ -707,7 +709,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 sm_list = parsed_sm_list;
                 break;
 
-            case DETECT_SM_LIST_UMATCH:
             case DETECT_SM_LIST_HRUDMATCH:
             case DETECT_SM_LIST_HHDMATCH:
             case DETECT_SM_LIST_HRHDMATCH:
