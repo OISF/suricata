@@ -1001,17 +1001,18 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_HTTP_URI_RAW)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
+        else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
+                 lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
+        {
+            int list = DetectBufferTypeGetByName("http_cookie");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
             int list = DetectBufferTypeGetByName("http_user_agent");
             SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
         else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else {
             int list = DetectBufferTypeGetByName("http_request_line");
             SigMatchAppendSMToList(s, sm, list);
