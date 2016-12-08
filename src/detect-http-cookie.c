@@ -62,8 +62,10 @@
 #include "stream-tcp.h"
 
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
-void DetectHttpCookieRegisterTests(void);
-void DetectHttpCookieFree(void *);
+static void DetectHttpCookieRegisterTests(void);
+static void DetectHttpCookieFree(void *);
+static void DetectHttpCookieSetupCallback(Signature *s);
+static int g_http_cookie_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: http_cookie
@@ -82,19 +84,25 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HCDMATCH, 2,
+    DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2,
             PrefilterTxRequestCookieRegister);
-    DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HCDMATCH, 2,
+    DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxResponseCookieRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HCDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_cookie",
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpCookie);
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HCDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_cookie",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpCookie);
+
+    DetectBufferTypeSetDescriptionByName("http_cookie",
+            "http cookie header");
+
+    DetectBufferTypeRegisterSetupCallback("http_cookie",
+            DetectHttpCookieSetupCallback);
+
+    g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
 }
 
 /**
@@ -127,15 +135,23 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_COOKIE,
-                                                  DETECT_SM_LIST_HCDMATCH,
+                                                  g_http_cookie_buffer_id,
                                                   ALPROTO_HTTP,
                                                   NULL);
 }
+
+static void DetectHttpCookieSetupCallback(Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+}
+
 
 /******************************** UNITESTS **********************************/
 
 #ifdef UNITTESTS
 
+#include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 static int g_http_uri_buffer_id = 0;
@@ -213,7 +229,7 @@ static int DetectHttpCookieTest03(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_cookie_buffer_id];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -306,9 +322,9 @@ static int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    BUG_ON(s->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL);
+    BUG_ON(s->sm_lists[g_http_cookie_buffer_id] == NULL);
 
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH]->type != DETECT_CONTENT)
+    if (s->sm_lists[g_http_cookie_buffer_id]->type != DETECT_CONTENT)
         goto end;
 
     if (s->sm_lists[g_http_uri_buffer_id] == NULL) {
@@ -1273,6 +1289,31 @@ end:
     return result;
 }
 
+static int DetectHttpCookieIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "content:\"one\"; http_cookie; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_cookie_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1298,6 +1339,8 @@ void DetectHttpCookieRegisterTests (void)
     UtRegisterTest("DetectHttpCookieSigTest07", DetectHttpCookieSigTest07);
     UtRegisterTest("DetectHttpCookieSigTest08", DetectHttpCookieSigTest08);
     UtRegisterTest("DetectHttpCookieSigTest09", DetectHttpCookieSigTest09);
+    UtRegisterTest("DetectHttpCookieIsdataatParseTest",
+            DetectHttpCookieIsdataatParseTest);
 #endif /* UNITTESTS */
 
 }
