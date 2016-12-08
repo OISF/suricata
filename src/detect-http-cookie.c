@@ -138,11 +138,13 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
 #include "stream-tcp-reassemble.h"
 
+static int g_http_uri_buffer_id = 0;
+
 /**
  * \test Checks if a http_cookie is registered in a Signature, if content is not
  *       specified in the signature
  */
-int DetectHttpCookieTest01(void)
+static int DetectHttpCookieTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -166,7 +168,7 @@ end:
  * \test Checks if a http_cookie is registered in a Signature, if some parameter
  *       is specified with http_cookie in the signature
  */
-int DetectHttpCookieTest02(void)
+static int DetectHttpCookieTest02(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -190,7 +192,7 @@ end:
 /**
  * \test Checks if a http_cookie is registered in a Signature
  */
-int DetectHttpCookieTest03(void)
+static int DetectHttpCookieTest03(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -237,7 +239,7 @@ end:
  * \test Checks if a http_cookie is registered in a Signature, when fast_pattern
  *       is also specified in the signature (now it should)
  */
-int DetectHttpCookieTest04(void)
+static int DetectHttpCookieTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -262,7 +264,7 @@ end:
  * \test Checks if a http_cookie is registered in a Signature, when rawbytes is
  *       also specified in the signature
  */
-int DetectHttpCookieTest05(void)
+static int DetectHttpCookieTest05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -287,7 +289,7 @@ int DetectHttpCookieTest05(void)
  * \test Checks if a http_cookie is registered in a Signature, when rawbytes is
  *       also specified in the signature
  */
-int DetectHttpCookieTest06(void)
+static int DetectHttpCookieTest06(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -309,12 +311,12 @@ int DetectHttpCookieTest06(void)
     if (s->sm_lists[DETECT_SM_LIST_HCDMATCH]->type != DETECT_CONTENT)
         goto end;
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
+    if (s->sm_lists[g_http_uri_buffer_id] == NULL) {
         printf("expected another SigMatch, got NULL: ");
         goto end;
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH]->type != DETECT_CONTENT) {
+    if (s->sm_lists[g_http_uri_buffer_id]->type != DETECT_CONTENT) {
         goto end;
     }
 
@@ -1279,6 +1281,8 @@ end:
 void DetectHttpCookieRegisterTests (void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
+    g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
+
     UtRegisterTest("DetectHttpCookieTest01", DetectHttpCookieTest01);
     UtRegisterTest("DetectHttpCookieTest02", DetectHttpCookieTest02);
     UtRegisterTest("DetectHttpCookieTest03", DetectHttpCookieTest03);
