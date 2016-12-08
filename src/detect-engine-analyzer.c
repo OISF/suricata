@@ -126,8 +126,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http stat code content\n");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
         fprintf(fp_engine_analysis_FD, "http stat msg content\n");
-    else if (list_type == DETECT_SM_LIST_HUADMATCH)
-        fprintf(fp_engine_analysis_FD, "http user agent content\n");
     else {
         const char *desc = DetectBufferTypeGetDescriptionById(list_type);
         const char *name = DetectBufferTypeGetNameById(list_type);
@@ -476,8 +474,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "http stat code content");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
         fprintf(rule_engine_analysis_FD, "http stat msg content");
-    else if (list_type == DETECT_SM_LIST_HUADMATCH)
-        fprintf(rule_engine_analysis_FD, "http user agent content");
     else if (list_type == DETECT_SM_LIST_DNSQUERYNAME_MATCH)
         fprintf(rule_engine_analysis_FD, "dns query name content");
     else if (list_type == DETECT_SM_LIST_TLSSNI_MATCH)
@@ -580,6 +576,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     const int filedata_id = DetectBufferTypeGetByName("file_data");
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");
+    const int httpuseragent_id = DetectBufferTypeGetByName("http_user_agent");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -653,7 +650,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HUADMATCH) {
+                else if (list_id == httpuseragent_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_ua_buf += 1;

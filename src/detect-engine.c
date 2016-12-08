@@ -2816,8 +2816,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http raw host header";
         case DETECT_SM_LIST_HCDMATCH:
             return "http cookie";
-        case DETECT_SM_LIST_HUADMATCH:
-            return "http user-agent";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 
