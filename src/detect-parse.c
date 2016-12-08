@@ -145,7 +145,6 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_UMATCH, "http_uri");
         CASE_CODE_STRING(DETECT_SM_LIST_HRUDMATCH, "http_raw_uri");
         CASE_CODE_STRING(DETECT_SM_LIST_HCBDMATCH, "http_client_body");
         CASE_CODE_STRING(DETECT_SM_LIST_HHDMATCH, "http_header");
@@ -187,7 +186,6 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
-        CASE_CODE(DETECT_SM_LIST_UMATCH);
         CASE_CODE(DETECT_SM_LIST_HRUDMATCH);
         CASE_CODE(DETECT_SM_LIST_HCBDMATCH);
         CASE_CODE(DETECT_SM_LIST_HHDMATCH);
@@ -1434,9 +1432,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 continue;
 
             if (fd->flags & FLOW_PKT_TOCLIENT) {
-                /* check for uricontent + from_server/to_client */
-                if (s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
-                    s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+                /* check for request + from_server/to_client */
+                if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
                     s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
                     s->init_data->smlists[DETECT_SM_LIST_HUADMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
@@ -1584,8 +1581,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
 
-        if (s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
+        if (s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
