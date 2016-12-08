@@ -56,8 +56,10 @@
 #include "detect-engine-uri.h"
 #include "stream-tcp.h"
 
-int DetectHttpUriSetup (DetectEngineCtx *, Signature *, char *);
-void DetectHttpUriRegisterTests(void);
+static void DetectHttpUriRegisterTests(void);
+static void DetectHttpUriSetupCallback(Signature *s);
+
+static int g_http_uri_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: http_uri
@@ -76,13 +78,19 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("http_uri", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_UMATCH, 2,
+    DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2,
             PrefilterTxUriRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_UMATCH,
+    DetectAppLayerInspectEngineRegister2("http_uri", ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpUri);
+
+    DetectBufferTypeSetDescriptionByName("http_uri",
+            "http request uri");
+
+    DetectBufferTypeRegisterSetupCallback("http_uri",
+            DetectHttpUriSetupCallback);
+
+    g_http_uri_buffer_id = DetectBufferTypeGetByName("http_uri");
 }
 
 
@@ -101,23 +109,29 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_URI,
-                                                  DETECT_SM_LIST_UMATCH,
+                                                  g_http_uri_buffer_id,
                                                   ALPROTO_HTTP,
                                                   NULL);
 }
 
+static void DetectHttpUriSetupCallback(Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+}
 
 /******************************** UNITESTS **********************************/
 
 #ifdef UNITTESTS
 
+#include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 /**
  * \test Checks if a http_uri is registered in a Signature, if content is not
  *       specified in the signature
  */
-int DetectHttpUriTest01(void)
+static int DetectHttpUriTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -141,7 +155,7 @@ end:
  * \test Checks if a http_uri is registered in a Signature, if some parameter
  *       is specified with http_uri in the signature
  */
-int DetectHttpUriTest02(void)
+static int DetectHttpUriTest02(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -165,7 +179,7 @@ end:
 /**
  * \test Checks if a http_uri is registered in a Signature
  */
-int DetectHttpUriTest03(void)
+static int DetectHttpUriTest03(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -186,7 +200,7 @@ int DetectHttpUriTest03(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_uri_buffer_id];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -212,7 +226,7 @@ end:
  * \test Checks if a http_uri is registered in a Signature, when rawbytes is
  *       also specified in the signature
  */
-int DetectHttpUriTest04(void)
+static int DetectHttpUriTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -237,7 +251,7 @@ int DetectHttpUriTest04(void)
  * \test Checks if a http_uri is successfully converted to a uricontent
  *
  */
-int DetectHttpUriTest05(void)
+static int DetectHttpUriTest05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     Signature *s = NULL;
@@ -254,16 +268,16 @@ int DetectHttpUriTest05(void)
         printf("sig failed to parse\n");
         goto end;
     }
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL)
+    if (s->sm_lists[g_http_uri_buffer_id] == NULL)
         goto end;
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH]->type != DETECT_CONTENT) {
+    if (s->sm_lists[g_http_uri_buffer_id]->type != DETECT_CONTENT) {
         printf("wrong type\n");
         goto end;
     }
 
     char *str = "we are testing http_uri keyword";
-    int uricomp = memcmp((const char *)((DetectContentData*) s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->content, str, strlen(str)-1);
-    int urilen = ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->content_len;
+    int uricomp = memcmp((const char *)((DetectContentData*) s->sm_lists[g_http_uri_buffer_id]->ctx)->content, str, strlen(str)-1);
+    int urilen = ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->content_len;
     if (uricomp != 0 ||
         urilen != strlen("we are testing http_uri keyword")) {
         printf("sig failed to parse, content not setup properly\n");
@@ -277,7 +291,7 @@ end:
     return result;
 }
 
-int DetectHttpUriTest12(void)
+static int DetectHttpUriTest12(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -299,13 +313,13 @@ int DetectHttpUriTest12(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -321,7 +335,7 @@ int DetectHttpUriTest12(void)
     return result;
 }
 
-int DetectHttpUriTest13(void)
+static int DetectHttpUriTest13(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -343,13 +357,13 @@ int DetectHttpUriTest13(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||
@@ -365,7 +379,7 @@ int DetectHttpUriTest13(void)
     return result;
 }
 
-int DetectHttpUriTest14(void)
+static int DetectHttpUriTest14(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -389,7 +403,7 @@ int DetectHttpUriTest14(void)
     return result;
 }
 
-int DetectHttpUriTest15(void)
+static int DetectHttpUriTest15(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -405,12 +419,12 @@ int DetectHttpUriTest15(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *cd = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *cd = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     if (memcmp(cd->content, "one", cd->content_len) != 0 ||
         cd->flags != DETECT_CONTENT_WITHIN) {
         goto end;
@@ -424,7 +438,7 @@ int DetectHttpUriTest15(void)
     return result;
 }
 
-int DetectHttpUriTest16(void)
+static int DetectHttpUriTest16(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -448,7 +462,7 @@ int DetectHttpUriTest16(void)
     return result;
 }
 
-int DetectHttpUriTest17(void)
+static int DetectHttpUriTest17(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -470,13 +484,13 @@ int DetectHttpUriTest17(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -492,7 +506,7 @@ int DetectHttpUriTest17(void)
     return result;
 }
 
-int DetectHttpUriTest18(void)
+static int DetectHttpUriTest18(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -514,13 +528,13 @@ int DetectHttpUriTest18(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_uri_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->prev->ctx;
+    DetectContentData *ud2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||
@@ -536,12 +550,37 @@ int DetectHttpUriTest18(void)
     return result;
 }
 
+static int DetectHttpUriIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "content:\"one\"; http_uri; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_uri_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
  * \brief   Register the UNITTESTS for the http_uri keyword
  */
-void DetectHttpUriRegisterTests (void)
+static void DetectHttpUriRegisterTests (void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectHttpUriTest01", DetectHttpUriTest01);
@@ -556,6 +595,9 @@ void DetectHttpUriRegisterTests (void)
     UtRegisterTest("DetectHttpUriTest16", DetectHttpUriTest16);
     UtRegisterTest("DetectHttpUriTest17", DetectHttpUriTest17);
     UtRegisterTest("DetectHttpUriTest18", DetectHttpUriTest18);
+
+    UtRegisterTest("DetectHttpUriIsdataatParseTest",
+            DetectHttpUriIsdataatParseTest);
 #endif /* UNITTESTS */
 
 }
