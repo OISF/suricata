@@ -58,12 +58,10 @@
 
 /* prototypes */
 static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
-void HttpUriRegisterTests(void);
+static void DetectUricontentRegisterTests(void);
+static void DetectUricontentFree(void *);
 
-int DetectAppLayerUricontentMatch (ThreadVars *, DetectEngineThreadCtx *,
-                                   Flow *, uint8_t , void *,
-                                   Signature *, SigMatch *);
-void DetectUricontentFree(void *);
+static int g_http_uri_buffer_id = 0;
 
 /**
  * \brief Registration function for uricontent: keyword
@@ -75,9 +73,11 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
-    sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
+    sigmatch_table[DETECT_URICONTENT].RegisterTests = DetectUricontentRegisterTests;
 
     sigmatch_table[DETECT_URICONTENT].flags |= SIGMATCH_PAYLOAD;
+
+    g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
 }
 
 /**
@@ -194,6 +194,7 @@ error:
 
 #ifdef UNITTESTS
 
+#include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 /** \test Test case where path traversal has been sent as a path string in the
@@ -499,8 +500,8 @@ int DetectUriSigTest01(void)
             "\" Test uricontent\"; content:\"me\"; uricontent:\"me\"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    BUG_ON(s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL);
-    FAIL_IF_NOT(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH]->type == DETECT_CONTENT);
+    BUG_ON(s->sm_lists[g_http_uri_buffer_id] == NULL);
+    FAIL_IF_NOT(de_ctx->sig_list->sm_lists[g_http_uri_buffer_id]->type == DETECT_CONTENT);
 
     DetectEngineCtxFree(de_ctx);
     PASS;
@@ -777,7 +778,7 @@ static int DetectUriSigTest04(void)
                                    "\" Test uricontent\"; "
                                    "uricontent:\"foo\"; sid:1;)");
     if (s == NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+        s->sm_lists[g_http_uri_buffer_id] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
@@ -789,7 +790,7 @@ static int DetectUriSigTest04(void)
                                    "\" Test uricontent and content\"; "
                                    "uricontent:\"foo\"; content:\"bar\";sid:1;)");
     if (s == NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+        s->sm_lists[g_http_uri_buffer_id] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
@@ -802,7 +803,7 @@ static int DetectUriSigTest04(void)
                                    "uricontent:\"foo\"; content:\"bar\";"
                                    " depth:10; offset: 5; sid:1;)");
     if (s == NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+        s->sm_lists[g_http_uri_buffer_id] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
         ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
         ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
@@ -817,10 +818,10 @@ static int DetectUriSigTest04(void)
                                    "content:\"foo\"; uricontent:\"bar\";"
                                    " depth:10; offset: 5; sid:1;)");
     if (s == NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+        s->sm_lists[g_http_uri_buffer_id] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->depth != 15 ||
-        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->offset != 5 ||
+        ((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->depth != 15 ||
+        ((DetectContentData *)s->sm_lists[g_http_uri_buffer_id]->ctx)->offset != 5 ||
         s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 4 failed to parse: ");
@@ -852,7 +853,7 @@ static int DetectUriSigTest04(void)
                                    "\"two_contents\"; within:30; sid:1;)");
     if (s == NULL) {
         goto end;
-    } else if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+    } else if (s->sm_lists[g_http_uri_buffer_id] == NULL ||
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
@@ -871,15 +872,15 @@ static int DetectUriSigTest04(void)
                                    "\"two_uricontents\"; within:30; sid:1;)");
     if (s == NULL) {
         goto end;
-    } else if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+    } else if (s->sm_lists[g_http_uri_buffer_id] == NULL ||
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 30 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 8 failed to parse: ");
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
         goto end;
     }
 
@@ -891,7 +892,7 @@ static int DetectUriSigTest04(void)
     if (s == NULL) {
         goto end;
     } else if (
-            s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+            s->sm_lists[g_http_uri_buffer_id] == NULL ||
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
@@ -911,15 +912,15 @@ static int DetectUriSigTest04(void)
     if (s == NULL) {
         goto end;
     } else if (
-            s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
+            s->sm_lists[g_http_uri_buffer_id] == NULL ||
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 10 failed to parse: ");
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
         goto end;
     }
 
@@ -935,21 +936,21 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL || s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        printf("umatch %p or pmatch %p: ", s->sm_lists[DETECT_SM_LIST_UMATCH], s->sm_lists[DETECT_SM_LIST_PMATCH]);
+    if (s->sm_lists[g_http_uri_buffer_id] == NULL || s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("umatch %p or pmatch %p: ", s->sm_lists[g_http_uri_buffer_id], s->sm_lists[DETECT_SM_LIST_PMATCH]);
         goto end;
     }
 
     if (    ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
-            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 60 ||
+            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->distance != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->within != 60 ||
             ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 45 ||
             ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 70 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
         printf("sig 10 failed to parse, content not setup properly: ");
         DetectContentPrint((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx);
-        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx);
         DetectContentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
         goto end;
     }
@@ -1490,12 +1491,12 @@ int DetectUriSigTest12(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL || s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx == NULL) {
+    if (s->sm_lists_tail[g_http_uri_buffer_id] == NULL || s->sm_lists_tail[g_http_uri_buffer_id]->ctx == NULL) {
         printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx == NULL: ");
         goto end;
     }
 
-    ud = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    ud = (DetectContentData *)s->sm_lists_tail[g_http_uri_buffer_id]->ctx;
     result = (strncmp("boo", (char *)ud->content, ud->content_len) == 0);
 
 end:
@@ -1855,9 +1856,34 @@ int DetectUriContentParseTest24(void)
     return result;
 }
 
+static int DetectUricontentIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "uricontent:\"one\"; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_uri_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
-void HttpUriRegisterTests(void)
+static void DetectUricontentRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("HTTPUriTest01", HTTPUriTest01);
@@ -1890,5 +1916,8 @@ void HttpUriRegisterTests(void)
     UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22);
     UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23);
     UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24);
+
+    UtRegisterTest("DetectUricontentIsdataatParseTest",
+            DetectUricontentIsdataatParseTest);
 #endif /* UNITTESTS */
 }

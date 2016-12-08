@@ -996,9 +996,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_URI)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-        else if (lua->flags & DATATYPE_HTTP_URI_RAW)
+        else if (lua->flags & DATATYPE_HTTP_URI) {
+            int list = DetectBufferTypeGetByName("http_uri");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_URI_RAW)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
         else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);

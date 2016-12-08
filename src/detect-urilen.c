@@ -32,6 +32,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-engine-state.h"
 
 #include "detect-urilen.h"
@@ -53,6 +54,8 @@ static int DetectUrilenSetup (DetectEngineCtx *, Signature *, char *);
 void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
 
+static int g_http_uri_buffer_id = 0;
+
 /**
  * \brief Registration function for urilen: keyword
  */
@@ -70,6 +73,8 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
 }
 
 /**
@@ -260,7 +265,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     if (urilend->raw_buffer)
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
     else
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
+        SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id);
 
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
