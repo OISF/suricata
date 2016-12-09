@@ -116,8 +116,7 @@ int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_USER_AGENT,
                                                   g_http_ua_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static void DetectHttpUASetupCallback(Signature *s)

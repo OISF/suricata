@@ -103,7 +103,7 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
                                                   g_file_data_buffer_id,
-                                                  ALPROTO_HTTP, NULL);
+                                                  ALPROTO_HTTP);
 }
 
 /**
