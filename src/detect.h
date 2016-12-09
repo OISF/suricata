@@ -123,8 +123,6 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HHDMATCH,
     /* list for http_raw_header keyword and the ones relative to it */
     DETECT_SM_LIST_HRHDMATCH,
-    /* list for http_stat_msg keyword and the ones relative to it */
-    DETECT_SM_LIST_HSMDMATCH,
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT,
 
