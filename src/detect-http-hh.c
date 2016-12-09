@@ -119,8 +119,7 @@ int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HOST,
                                                   g_http_host_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static void DetectHttpHostSetupCallback(Signature *s)

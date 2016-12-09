@@ -117,8 +117,7 @@ static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_STAT_MSG,
                                                   g_http_stat_msg_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static void DetectHttpStatMsgSetupCallback(Signature *s)

@@ -107,8 +107,7 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *ar
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_URI,
                                                   g_http_raw_uri_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static void DetectHttpRawUriSetupCallback(Signature *s)
