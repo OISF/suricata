@@ -1930,9 +1930,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL)
         return 0;
 
-    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
-        return 0;
-
     if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
@@ -2021,9 +2018,6 @@ static int SignatureIsPDOnly(const Signature *s)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL)
-        return 0;
-
-    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
@@ -2131,8 +2125,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
         s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+        s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
     {
         SCReturnInt(0);
     }
@@ -2311,11 +2304,6 @@ static int SignatureCreateMask(Signature *s)
     }
 
     if (s->init_data->smlists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
