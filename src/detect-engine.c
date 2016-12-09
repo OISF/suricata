@@ -2800,8 +2800,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_HRUDMATCH:
             return "http raw uri";
-        case DETECT_SM_LIST_HCBDMATCH:
-            return "http client body";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 
