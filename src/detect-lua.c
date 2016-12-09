@@ -1000,9 +1000,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         } else if (lua->flags & DATATYPE_HTTP_URI) {
             int list = DetectBufferTypeGetByName("http_uri");
             SigMatchAppendSMToList(s, sm, list);
-        } else if (lua->flags & DATATYPE_HTTP_URI_RAW)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
+        } else if (lua->flags & DATATYPE_HTTP_URI_RAW) {
+            int list = DetectBufferTypeGetByName("http_raw_uri");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
                  lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
         {
             int list = DetectBufferTypeGetByName("http_cookie");
