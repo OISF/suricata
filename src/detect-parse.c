@@ -151,7 +151,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HRHDMATCH, "http_raw_header");
         CASE_CODE_STRING(DETECT_SM_LIST_HSMDMATCH, "http_stat_msg");
         CASE_CODE_STRING(DETECT_SM_LIST_HSCDMATCH, "http_stat_code");
-        CASE_CODE_STRING(DETECT_SM_LIST_HRHHDMATCH, "http_raw_host");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -188,7 +187,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HRHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HSMDMATCH);
         CASE_CODE(DETECT_SM_LIST_HSCDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HRHHDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1547,8 +1545,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH])
+                s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "

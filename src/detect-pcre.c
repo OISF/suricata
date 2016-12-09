@@ -424,13 +424,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     check_host_header = 1;
                     break;
                 }
-                case 'Z':
+                case 'Z': {
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'Z' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRHHDMATCH);
+                    int list = DetectBufferTypeGetByName("http_raw_host");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'H': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'B'");
@@ -682,8 +684,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HSMDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HSCDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HRHHDMATCH)
+        parsed_sm_list == DETECT_SM_LIST_HSCDMATCH)
     {
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
@@ -716,7 +717,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             case DETECT_SM_LIST_HRUDMATCH:
             case DETECT_SM_LIST_HHDMATCH:
             case DETECT_SM_LIST_HRHDMATCH:
-            case DETECT_SM_LIST_HRHHDMATCH:
             case DETECT_SM_LIST_HSMDMATCH:
             case DETECT_SM_LIST_HSCDMATCH:
                 s->flags |= SIG_FLAG_APPLAYER;
