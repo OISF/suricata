@@ -441,13 +441,15 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     int list = DetectBufferTypeGetByName("http_header");
                     *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
-                } case 'I': /* snort's option */
+                } case 'I': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRUDMATCH);
+                    int list = DetectBufferTypeGetByName("http_raw_uri");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'D': { /* snort's option */
                     int list = DetectBufferTypeGetByName("http_raw_header");
                     *sm_list = DetectPcreSetList(*sm_list, list);
@@ -688,34 +690,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (DetectPcreParseCapture(regexstr, de_ctx, pd) < 0)
         goto error;
 
-    if (parsed_sm_list == DETECT_SM_LIST_HRUDMATCH)
-    {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
-                       "Conflicting alprotos detected for this rule.  Http "
-                       "pcre modifier found along with a different protocol "
-                       "for the rule.");
-            goto error;
-        }
-        if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre found with http "
-                       "modifier set, with file_data/dce_stub_data sticky "
-                       "option set.");
-            goto error;
-        }
-    }
-
     int sm_list = -1;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         s->flags |= SIG_FLAG_APPLAYER;
         sm_list = s->init_data->list;
     } else {
         switch(parsed_sm_list) {
-            case DETECT_SM_LIST_HRUDMATCH:
-                s->flags |= SIG_FLAG_APPLAYER;
-                s->alproto = ALPROTO_HTTP;
-                sm_list = parsed_sm_list;
-                break;
             case DETECT_SM_LIST_NOTSET:
                 sm_list = DETECT_SM_LIST_PMATCH;
                 break;
