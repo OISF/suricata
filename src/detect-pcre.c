@@ -297,6 +297,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    int check_host_header = 0;
 
     /* take the size of the whole input as buffer size for the regex we will
      * extract below. Add 1 to please Coverity's alloc_strlen test. */
@@ -413,13 +414,16 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
                 }
-                case 'W':
+                case 'W': {
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'W' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HHHDMATCH);
+                    int list = DetectBufferTypeGetByName("http_host");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
+                    check_host_header = 1;
                     break;
+                }
                 case 'Z':
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'Z' inconsistent with 'B'");
@@ -493,7 +497,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     SCLogDebug("DetectPcreParse: \"%s\"", re);
 
     /* host header */
-    if (*sm_list == DETECT_SM_LIST_HHHDMATCH) {
+    if (check_host_header) {
         if (pd->flags & DETECT_PCRE_CASELESS) {
             SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http host pcre(\"W\") "
                          "specified along with \"i(caseless)\" modifier.  "
@@ -679,7 +683,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HSMDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HSCDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HHHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHHDMATCH)
     {
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
@@ -713,7 +716,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             case DETECT_SM_LIST_HRUDMATCH:
             case DETECT_SM_LIST_HHDMATCH:
             case DETECT_SM_LIST_HRHDMATCH:
-            case DETECT_SM_LIST_HHHDMATCH:
             case DETECT_SM_LIST_HRHHDMATCH:
             case DETECT_SM_LIST_HSMDMATCH:
             case DETECT_SM_LIST_HSCDMATCH:

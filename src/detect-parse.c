@@ -151,7 +151,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HRHDMATCH, "http_raw_header");
         CASE_CODE_STRING(DETECT_SM_LIST_HSMDMATCH, "http_stat_msg");
         CASE_CODE_STRING(DETECT_SM_LIST_HSCDMATCH, "http_stat_code");
-        CASE_CODE_STRING(DETECT_SM_LIST_HHHDMATCH, "http_host");
         CASE_CODE_STRING(DETECT_SM_LIST_HRHHDMATCH, "http_raw_host");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
@@ -189,7 +188,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HRHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HSMDMATCH);
         CASE_CODE(DETECT_SM_LIST_HSCDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HHHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HRHHDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
@@ -1395,7 +1393,6 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
  */
 int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
-    uint32_t u = 0;
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
     const int nlists = DetectBufferTypeMaxId();
@@ -1482,35 +1479,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
-        for (sm = s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH];
-             sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (cd->flags & DETECT_CONTENT_NOCASE) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
-                                 "specified along with \"nocase\". "
-                                 "Since the hostname buffer we match against "
-                                 "is actually lowercase.  So having a "
-                                 "nocase is redundant.");
-                } else {
-                    for (u = 0; u < cd->content_len; u++) {
-                        if (isupper(cd->content[u]))
-                            break;
-                    }
-                    if (u != cd->content_len) {
-                        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "A pattern with "
-                                     "uppercase chars detected for http_host.  "
-                                     "Since the hostname buffer we match against "
-                                     "is lowercase only, please specify a "
-                                     "lowercase pattern.");
-                        SCReturnInt(0);
-                    }
-                }
-            }
-        }
-    }
-
     //if (s->alproto != ALPROTO_UNKNOWN) {
     //    if (s->flags & SIG_FLAG_STATE_MATCH) {
     //        if (s->alproto == ALPROTO_DNS) {
@@ -1580,7 +1548,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
