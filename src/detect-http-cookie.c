@@ -136,8 +136,7 @@ static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_COOKIE,
                                                   g_http_cookie_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static void DetectHttpCookieSetupCallback(Signature *s)

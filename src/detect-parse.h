@@ -57,9 +57,9 @@ int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 int DetectParseDupSigHashInit(DetectEngineCtx *);
 void DetectParseDupSigHashFree(DetectEngineCtx *);
 
-int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg,
-                                           int sm_type, int sm_list,
-                                           AppProto alproto,  void (*CustomCallback)(Signature *s));
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
+        Signature *s, const char *arg, int sm_type, int sm_list,
+        AppProto alproto);
 
 const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);

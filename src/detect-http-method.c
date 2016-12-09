@@ -119,8 +119,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_METHOD,
                                                   g_http_method_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 /**
