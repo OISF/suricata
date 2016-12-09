@@ -114,8 +114,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "content\n");
     else if (list_type == DETECT_SM_LIST_HRUDMATCH)
         fprintf(fp_engine_analysis_FD, "http raw uri content\n");
-    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
-        fprintf(fp_engine_analysis_FD, "http client body content\n");
     else {
         const char *desc = DetectBufferTypeGetDescriptionById(list_type);
         const char *name = DetectBufferTypeGetNameById(list_type);
@@ -452,8 +450,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
     }
     else if (list_type == DETECT_SM_LIST_HRUDMATCH)
         fprintf(rule_engine_analysis_FD, "http raw uri content");
-    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
-        fprintf(rule_engine_analysis_FD, "http client body content");
     else if (list_type == DETECT_SM_LIST_DNSQUERYNAME_MATCH)
         fprintf(rule_engine_analysis_FD, "dns query name content");
     else if (list_type == DETECT_SM_LIST_TLSSNI_MATCH)
@@ -562,6 +558,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     const int httpstatmsg_id = DetectBufferTypeGetByName("http_stat_msg");
     const int httpheader_id = DetectBufferTypeGetByName("http_header");
     const int httprawheader_id = DetectBufferTypeGetByName("http_raw_header");
+    const int httpclientbody_id = DetectBufferTypeGetByName("http_client_body");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -585,7 +582,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         SigMatch *sm = NULL;
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_PCRE) {
-                if (list_id == DETECT_SM_LIST_HCBDMATCH) {
+                if (list_id == httpclientbody_id) {
                     rule_pcre_http += 1;
                     http_client_body_buf += 1;
                     raw_http_buf += 1;
@@ -666,7 +663,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                         http_cookie_buf += 1;
                     }
                 }
-                else if (list_id == DETECT_SM_LIST_HCBDMATCH) {
+                else if (list_id == httpclientbody_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_client_body_buf += 1;

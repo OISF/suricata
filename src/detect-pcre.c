@@ -471,10 +471,12 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
                 }
-                case 'P':
+                case 'P': {
                     /* snort's option (http request body inspection) */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HCBDMATCH);
+                    int list = DetectBufferTypeGetByName("http_client_body");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'Q': {
                     int list = DetectBufferTypeGetByName("file_data");
                     /* suricata extension (http response body inspection) */
@@ -686,8 +688,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (DetectPcreParseCapture(regexstr, de_ctx, pd) < 0)
         goto error;
 
-    if (parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HCBDMATCH)
+    if (parsed_sm_list == DETECT_SM_LIST_HRUDMATCH)
     {
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
@@ -710,13 +711,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         sm_list = s->init_data->list;
     } else {
         switch(parsed_sm_list) {
-            case DETECT_SM_LIST_HCBDMATCH:
-                AppLayerHtpEnableRequestBodyCallback();
-                s->flags |= SIG_FLAG_APPLAYER;
-                s->alproto = ALPROTO_HTTP;
-                sm_list = parsed_sm_list;
-                break;
-
             case DETECT_SM_LIST_HRUDMATCH:
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;
