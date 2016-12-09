@@ -1912,9 +1912,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
-        return 0;
-
     if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
         return 0;
 
@@ -1988,9 +1985,6 @@ static int SignatureIsPDOnly(const Signature *s)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
-        return 0;
-
-    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
@@ -2096,7 +2090,6 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]    != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_AMATCH]    != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL)
     {
         SCReturnInt(0);
@@ -2248,11 +2241,6 @@ static int SignatureCreateMask(Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_DMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
         SCLogDebug("sig requires dce state");
-    }
-
-    if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
     }
 
     if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
