@@ -433,23 +433,26 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
                 }
-                case 'H': /* snort's option */
+                case 'H': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'B'");
                         goto error;
                     }
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HHDMATCH);
+                    int list = DetectBufferTypeGetByName("http_header");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
-                case 'I': /* snort's option */
+                } case 'I': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'B'");
                         goto error;
                     }
                     *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRUDMATCH);
                     break;
-                case 'D': /* snort's option */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HRHDMATCH);
+                case 'D': { /* snort's option */
+                    int list = DetectBufferTypeGetByName("http_raw_header");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'M': { /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAWBYTES) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
@@ -684,9 +687,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         goto error;
 
     if (parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HCBDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HRHDMATCH)
+        parsed_sm_list == DETECT_SM_LIST_HCBDMATCH)
     {
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
@@ -717,8 +718,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 break;
 
             case DETECT_SM_LIST_HRUDMATCH:
-            case DETECT_SM_LIST_HHDMATCH:
-            case DETECT_SM_LIST_HRHDMATCH:
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;
                 sm_list = parsed_sm_list;
@@ -797,6 +796,7 @@ void DetectPcreFree(void *ptr)
 
 #ifdef UNITTESTS /* UNITTESTS */
 static int g_file_data_buffer_id = 0;
+static int g_http_header_buffer_id = 0;
 
 /**
  * \test DetectPcreParseTest01 make sure we don't allow invalid opts 7.
@@ -3031,10 +3031,10 @@ static int DetectPcreFlowvarCapture01(void)
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; sid:1;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
-    DetectPcreData *pd = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+    FAIL_IF(s->sm_lists[g_http_header_buffer_id] == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next->type != DETECT_PCRE);
+    DetectPcreData *pd = (DetectPcreData *)s->sm_lists[g_http_header_buffer_id]->next->ctx;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -3132,18 +3132,18 @@ static int DetectPcreFlowvarCapture02(void)
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; priority:1; sid:1;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
-    DetectPcreData *pd1 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+    FAIL_IF(s->sm_lists[g_http_header_buffer_id] == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next->type != DETECT_PCRE);
+    DetectPcreData *pd1 = (DetectPcreData *)s->sm_lists[g_http_header_buffer_id]->next->ctx;
 
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"Server: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; priority:3; sid:2;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
-    DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+    FAIL_IF(s->sm_lists[g_http_header_buffer_id] == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next->type != DETECT_PCRE);
+    DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[g_http_header_buffer_id]->next->ctx;
 
     FAIL_IF(pd1->capidx != pd2->capidx);
 
@@ -3248,18 +3248,18 @@ static int DetectPcreFlowvarCapture03(void)
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"User-Agent: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; content:\"xyz\"; http_header; priority:1; sid:1;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
-    DetectPcreData *pd1 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+    FAIL_IF(s->sm_lists[g_http_header_buffer_id] == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next->type != DETECT_PCRE);
+    DetectPcreData *pd1 = (DetectPcreData *)s->sm_lists[g_http_header_buffer_id]->next->ctx;
 
     s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"Server: \"; http_header; pcre:\"/(?P<flow_ua>.*)\\r\\n/HR\"; content:\"xyz\"; http_header; priority:3; sid:2;)");
     FAIL_IF(s == NULL);
 
-    FAIL_IF(s->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next == NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->type != DETECT_PCRE);
-    DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[DETECT_SM_LIST_HHDMATCH]->next->ctx;
+    FAIL_IF(s->sm_lists[g_http_header_buffer_id] == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next == NULL ||
+        s->sm_lists[g_http_header_buffer_id]->next->type != DETECT_PCRE);
+    DetectPcreData *pd2 = (DetectPcreData *)s->sm_lists[g_http_header_buffer_id]->next->ctx;
 
     FAIL_IF(pd1->capidx != pd2->capidx);
 
@@ -3338,6 +3338,7 @@ void DetectPcreRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 
     UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01);
     UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02);

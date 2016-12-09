@@ -119,10 +119,6 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HRUDMATCH = DETECT_SM_LIST_BUILTIN_MAX,
     /* list for http_client_body keyword and the ones relative to it */
     DETECT_SM_LIST_HCBDMATCH,
-    /* list for http_header keyword and the ones relative to it */
-    DETECT_SM_LIST_HHDMATCH,
-    /* list for http_raw_header keyword and the ones relative to it */
-    DETECT_SM_LIST_HRHDMATCH,
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT,
 
