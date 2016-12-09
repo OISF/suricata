@@ -194,10 +194,10 @@ const char *DetectListToString(int list)
     return "unknown";
 }
 
+/** \param arg NULL or empty string */
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
-        Signature *s, const char *arg,
-        int sm_type, int sm_list,
-        AppProto alproto,  void (*CustomCallback)(Signature *s))
+        Signature *s, const char *arg, int sm_type, int sm_list,
+        AppProto alproto)
 {
     SigMatch *sm = NULL;
     int ret = -1;
@@ -263,8 +263,6 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
             }
         }
     }
-    if (CustomCallback != NULL)
-        CustomCallback(s);
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
 
