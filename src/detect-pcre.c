@@ -482,10 +482,12 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     /* snort's option */
                     *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSMDMATCH);
                     break;
-                case 'S':
+                case 'S': {
                     /* snort's option */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSCDMATCH);
+                    int list = DetectBufferTypeGetByName("http_stat_code");
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
@@ -683,8 +685,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         parsed_sm_list == DETECT_SM_LIST_HCBDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HSMDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HSCDMATCH)
+        parsed_sm_list == DETECT_SM_LIST_HSMDMATCH)
     {
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option.  "
@@ -718,7 +719,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             case DETECT_SM_LIST_HHDMATCH:
             case DETECT_SM_LIST_HRHDMATCH:
             case DETECT_SM_LIST_HSMDMATCH:
-            case DETECT_SM_LIST_HSCDMATCH:
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;
                 sm_list = parsed_sm_list;
