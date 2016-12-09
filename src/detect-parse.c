@@ -145,7 +145,6 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_HRUDMATCH, "http_raw_uri");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -176,7 +175,6 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
-        CASE_CODE(DETECT_SM_LIST_HRUDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1404,24 +1402,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         SCReturnInt(0);
     }
 
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_FLOW) {
-            DetectFlowData *fd = (DetectFlowData *)sm->ctx;
-            if (fd == NULL)
-                continue;
-
-            if (fd->flags & FLOW_PKT_TOCLIENT) {
-                /* check for request + from_server/to_client */
-                if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
-                               "/http_uri , raw_uri, http_client_body, "
-                               "http_method, http_user_agent keywords "
-                               "with flow:to_client or flow:from_server");
-                    SCReturnInt(0);
-                }
-            }
-        }
-    }
 #if 0 // TODO figure out why this is even necessary
     if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
         s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
@@ -1508,15 +1488,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                         "http_* keywords).");
                 SCReturnInt(0);
             }
-        }
-
-        if (s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH])
-        {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
-                    "specific matches (like dsize, flags, ttl) with stream / "
-                    "state matching by matching on app layer proto (like using "
-                    "http_* keywords).");
-            SCReturnInt(0);
         }
     }
 

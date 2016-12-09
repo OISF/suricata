@@ -115,10 +115,8 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_BUILTIN_MAX,
 
-    /* list for http_raw_uri keyword and the ones relative to it */
-    DETECT_SM_LIST_HRUDMATCH = DETECT_SM_LIST_BUILTIN_MAX,
     /* app event engine sm list */
-    DETECT_SM_LIST_APP_EVENT,
+    DETECT_SM_LIST_APP_EVENT = DETECT_SM_LIST_BUILTIN_MAX,
 
     DETECT_SM_LIST_FILEMATCH,
 
