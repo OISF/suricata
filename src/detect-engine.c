@@ -2808,8 +2808,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http raw headers";
         case DETECT_SM_LIST_HSMDMATCH:
             return "http stat msg";
-        case DETECT_SM_LIST_HSCDMATCH:
-            return "http stat code";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 

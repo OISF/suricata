@@ -120,8 +120,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http raw header content\n");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(fp_engine_analysis_FD, "http client body content\n");
-    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
-        fprintf(fp_engine_analysis_FD, "http stat code content\n");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
         fprintf(fp_engine_analysis_FD, "http stat msg content\n");
     else {
@@ -466,8 +464,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "http raw header content");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(rule_engine_analysis_FD, "http client body content");
-    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
-        fprintf(rule_engine_analysis_FD, "http stat code content");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
         fprintf(rule_engine_analysis_FD, "http stat msg content");
     else if (list_type == DETECT_SM_LIST_DNSQUERYNAME_MATCH)
@@ -574,6 +570,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");
     const int httpuseragent_id = DetectBufferTypeGetByName("http_user_agent");
     const int httpcookie_id = DetectBufferTypeGetByName("http_cookie");
+    const int httpstatcode_id = DetectBufferTypeGetByName("http_stat_code");
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -642,7 +639,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_stat_msg_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSCDMATCH) {
+                else if (list_id == httpstatcode_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
@@ -703,7 +700,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_stat_msg_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSCDMATCH) {
+                else if (list_id == httpstatcode_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
