@@ -149,7 +149,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HCBDMATCH, "http_client_body");
         CASE_CODE_STRING(DETECT_SM_LIST_HHDMATCH, "http_header");
         CASE_CODE_STRING(DETECT_SM_LIST_HRHDMATCH, "http_raw_header");
-        CASE_CODE_STRING(DETECT_SM_LIST_HSMDMATCH, "http_stat_msg");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -184,7 +183,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HCBDMATCH);
         CASE_CODE(DETECT_SM_LIST_HHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HRHDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HSMDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1428,14 +1426,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                                "with flow:to_client or flow:from_server");
                     SCReturnInt(0);
                 }
-            } else if (fd->flags & FLOW_PKT_TOSERVER) {
-                /* check for uricontent + from_server/to_client */
-                if (s->init_data->smlists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use http_"
-                               "server_body, http_stat_msg, http_stat_code "
-                               "with flow:to_server or flow:from_client");
-                    SCReturnInt(0);
-                }
             }
         }
     }
@@ -1540,8 +1530,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH])
+                s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "
