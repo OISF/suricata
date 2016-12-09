@@ -142,8 +142,7 @@ int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_HEADER,
                                                   g_http_raw_header_buffer_id,
-                                                  ALPROTO_HTTP,
-                                                  NULL);
+                                                  ALPROTO_HTTP);
 }
 
 static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s)
