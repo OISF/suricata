@@ -146,7 +146,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
         CASE_CODE_STRING(DETECT_SM_LIST_HRUDMATCH, "http_raw_uri");
-        CASE_CODE_STRING(DETECT_SM_LIST_HCBDMATCH, "http_client_body");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -178,7 +177,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
         CASE_CODE(DETECT_SM_LIST_HRUDMATCH);
-        CASE_CODE(DETECT_SM_LIST_HCBDMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1414,8 +1412,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
             if (fd->flags & FLOW_PKT_TOCLIENT) {
                 /* check for request + from_server/to_client */
-                if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-                    s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+                if (s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
                                "/http_uri , raw_uri, http_client_body, "
                                "http_method, http_user_agent keywords "
@@ -1513,8 +1510,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
 
-        if (s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH])
+        if (s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "
