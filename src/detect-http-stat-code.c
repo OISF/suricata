@@ -63,12 +63,10 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 
-int DetectHttpStatCodeMatch(ThreadVars *, DetectEngineThreadCtx *,
-                            Flow *, uint8_t , void *, Signature *,
-                            SigMatch *);
 static int DetectHttpStatCodeSetup(DetectEngineCtx *, Signature *, char *);
-void DetectHttpStatCodeRegisterTests(void);
-void DetectHttpStatCodeFree(void *);
+static void DetectHttpStatCodeRegisterTests(void);
+static void DetectHttpStatCodeSetupCallback(Signature *);
+static int g_http_stat_code_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: http_stat_code
@@ -87,13 +85,20 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("http_stat_code", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HSCDMATCH, 4,
+    DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4,
             PrefilterTxHttpStatCodeRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HSCDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_stat_code",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpStatCode);
+
+    DetectBufferTypeSetDescriptionByName("http_stat_code",
+            "http response status code");
+
+    DetectBufferTypeRegisterSetupCallback("http_stat_code",
+            DetectHttpStatCodeSetupCallback);
+
+    g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
 }
 
 /**
@@ -111,9 +116,15 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_STAT_CODE,
-                                                  DETECT_SM_LIST_HSCDMATCH,
+                                                  g_http_stat_code_buffer_id,
                                                   ALPROTO_HTTP,
                                                   NULL);
+}
+
+static void DetectHttpStatCodeSetupCallback(Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 #ifdef UNITTESTS
@@ -156,7 +167,7 @@ int DetectHttpStatCodeTest01(void)
         printf("sid 3 parse failed: ");
         goto end;
     }
-    if (!(((DetectContentData *)de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH]->ctx)->flags &
+    if (!(((DetectContentData *)de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id]->ctx)->flags &
         DETECT_CONTENT_FAST_PATTERN))
     {
         goto end;
@@ -194,7 +205,7 @@ int DetectHttpStatCodeTest02(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;

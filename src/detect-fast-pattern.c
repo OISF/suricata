@@ -328,6 +328,7 @@ static int g_http_ua_buffer_id = 0;
 static int g_http_cookie_buffer_id = 0;
 static int g_http_host_buffer_id = 0;
 static int g_http_raw_host_buffer_id = 0;
+static int g_http_stat_code_buffer_id = 0;
 
 /**
  * \test Checks if a fast_pattern is registered in a Signature
@@ -11719,7 +11720,7 @@ int DetectFastPatternTest425(void)
                                "content:\"three\"; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_NEGATED &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
@@ -11757,7 +11758,7 @@ int DetectFastPatternTest426(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
     if (sm != NULL) {
         if ( ((DetectContentData *)sm->ctx)->flags &
              DETECT_CONTENT_FAST_PATTERN) {
@@ -11794,7 +11795,7 @@ int DetectFastPatternTest427(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
     if (sm != NULL) {
         if ( ((DetectContentData *)sm->ctx)->flags &
              DETECT_CONTENT_FAST_PATTERN) {
@@ -11825,7 +11826,7 @@ int DetectFastPatternTest428(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
     if (sm == NULL) {
         goto end;
     }
@@ -11862,7 +11863,7 @@ int DetectFastPatternTest429(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_stat_code_buffer_id];
     if (sm == NULL) {
         goto end;
     }
@@ -12107,7 +12108,7 @@ int DetectFastPatternTest439(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -12139,7 +12140,7 @@ int DetectFastPatternTest440(void)
                                "content:\"two\"; fast_pattern:only; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -12171,7 +12172,7 @@ int DetectFastPatternTest441(void)
                                "content:\"two\"; fast_pattern:only; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -12203,7 +12204,7 @@ int DetectFastPatternTest442(void)
                                "content:\"two\"; fast_pattern:only; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -12234,7 +12235,7 @@ int DetectFastPatternTest443(void)
                                "content:\"two\"; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_NEGATED &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
@@ -12359,7 +12360,7 @@ int DetectFastPatternTest448(void)
                                "content:\"three\"; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12391,7 +12392,7 @@ int DetectFastPatternTest449(void)
                                "content:\"three\"; http_stat_code; distance:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12423,7 +12424,7 @@ int DetectFastPatternTest450(void)
                                "content:\"three\"; http_stat_code; within:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12455,7 +12456,7 @@ int DetectFastPatternTest451(void)
                                "content:\"three\"; http_stat_code; offset:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12487,7 +12488,7 @@ int DetectFastPatternTest452(void)
                                "content:\"three\"; http_stat_code; depth:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12519,7 +12520,7 @@ int DetectFastPatternTest453(void)
                                "content:\"oneonethree\"; fast_pattern:3,4; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12551,7 +12552,7 @@ int DetectFastPatternTest454(void)
                                "content:\"oneonethree\"; fast_pattern:3,4; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12583,7 +12584,7 @@ int DetectFastPatternTest455(void)
                                "content:\"oneonethree\"; fast_pattern:3,4; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12615,7 +12616,7 @@ int DetectFastPatternTest456(void)
                                "content:\"oneonethree\"; fast_pattern:3,4; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12722,7 +12723,7 @@ int DetectFastPatternTest460(void)
                                "content:\"three\"; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_NEGATED &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
@@ -12851,7 +12852,7 @@ int DetectFastPatternTest465(void)
                                "content:\"three\"; http_stat_code; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH]->prev->ctx;
+    DetectContentData *ud = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_stat_code_buffer_id]->prev->ctx;
     if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
         ud->flags & DETECT_CONTENT_NEGATED &&
         !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
@@ -18835,6 +18836,7 @@ void DetectFastPatternRegisterTests(void)
     g_http_cookie_buffer_id = DetectBufferTypeGetByName("http_cookie");
     g_http_host_buffer_id = DetectBufferTypeGetByName("http_host");
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
+    g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
 
     UtRegisterTest("DetectFastPatternTest01", DetectFastPatternTest01);
     UtRegisterTest("DetectFastPatternTest02", DetectFastPatternTest02);
