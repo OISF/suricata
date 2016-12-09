@@ -60,9 +60,11 @@
 #include "detect-engine-hhd.h"
 #include "stream-tcp.h"
 
-int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
-void DetectHttpHeaderRegisterTests(void);
-void DetectHttpHeaderFree(void *);
+static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
+static void DetectHttpHeaderRegisterTests(void);
+static void DetectHttpHeaderFree(void *);
+static void DetectHttpHeaderSetupCallback(Signature *);
+static int g_http_header_buffer_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
@@ -81,21 +83,25 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
 
-    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HHDMATCH, 2,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeadersRegister);
-    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HHDMATCH, 2,
+    DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseHeadersRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HHDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_header",
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpHeader);
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HHDMATCH,
+    DetectAppLayerInspectEngineRegister2("http_header",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpHeader);
 
-    return;
+    DetectBufferTypeSetDescriptionByName("http_header",
+            "http headers");
+
+    DetectBufferTypeRegisterSetupCallback("http_header",
+            DetectHttpHeaderSetupCallback);
+
+    g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 }
 
 /**
@@ -133,15 +139,22 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HEADER,
-                                                  DETECT_SM_LIST_HHDMATCH,
+                                                  g_http_header_buffer_id,
                                                   ALPROTO_HTTP,
                                                   NULL);
+}
+
+static void DetectHttpHeaderSetupCallback(Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /************************************Unittests*********************************/
 
 #ifdef UNITTESTS
 
+#include "detect-isdataat.h"
 #include "stream-tcp-reassemble.h"
 
 /**
@@ -169,7 +182,7 @@ static int DetectHttpHeaderTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH];
+    sm = de_ctx->sig_list->sm_lists[g_http_header_buffer_id];
     if (sm != NULL) {
         result &= (sm->type == DETECT_CONTENT);
         result &= (sm->next == NULL);
@@ -1258,13 +1271,13 @@ int DetectHttpHeaderTest20(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->ctx;
     if (hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "one", hhd1->content_len) != 0 ||
         hhd2->flags != DETECT_CONTENT_DISTANCE ||
@@ -1302,13 +1315,13 @@ int DetectHttpHeaderTest21(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->ctx;
     if (hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "one", hhd1->content_len) != 0 ||
         hhd2->flags != DETECT_CONTENT_WITHIN ||
@@ -1418,21 +1431,21 @@ int DetectHttpHeaderTest25(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_CONTENT ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_PCRE) {
+    if (de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->type != DETECT_PCRE) {
 
         goto end;
     }
 
-    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hhd2->flags != DETECT_CONTENT_WITHIN ||
         memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
@@ -1469,21 +1482,21 @@ int DetectHttpHeaderTest26(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_PCRE ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_CONTENT) {
+    if (de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->type != DETECT_PCRE ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->type != DETECT_CONTENT) {
 
         goto end;
     }
 
-    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->ctx;
+    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->ctx;
     if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
         hhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hhd1->content, "two", hhd1->content_len) != 0) {
@@ -1520,21 +1533,21 @@ int DetectHttpHeaderTest27(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_http_header_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_CONTENT ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_PCRE) {
+    if (de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->type != DETECT_PCRE) {
 
         goto end;
     }
 
-    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
-    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->prev->ctx;
+    DetectContentData *hhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_http_header_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hhd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(hhd2->content, "two", hhd2->content_len) != 0) {
@@ -1813,6 +1826,32 @@ static int DetectHttpHeaderTest30(void)
     return result;
 }
 
+static int DetectHttpHeaderIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "flow:to_server; "
+            "content:\"one\"; http_header; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_http_header_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DetectHttpHeaderRegisterTests(void)
@@ -1842,6 +1881,10 @@ void DetectHttpHeaderRegisterTests(void)
     UtRegisterTest("DetectHttpHeaderTest28", DetectHttpHeaderTest28);
     UtRegisterTest("DetectHttpHeaderTest29", DetectHttpHeaderTest29);
     UtRegisterTest("DetectHttpHeaderTest30", DetectHttpHeaderTest30);
+
+    UtRegisterTest("DetectHttpHeaderIsdataatParseTest",
+            DetectHttpHeaderIsdataatParseTest);
+
 #endif /* UNITTESTS */
 
     return;

@@ -256,6 +256,8 @@ static void DetectBase64DecodeFree(void *ptr)
 #include "flow-util.h"
 #include "stream-tcp.h"
 
+static int g_http_header_buffer_id = 0;
+
 static int DetectBase64TestDecodeParse(void)
 {
     int retval = 0;
@@ -411,7 +413,7 @@ static int DetectBase64DecodeHttpHeaderTestSetup(void)
     }
 
     /* Test that the http header list is not NULL. */
-    if (s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL) {
+    if (s->sm_lists_tail[g_http_header_buffer_id] == NULL) {
         goto end;
     }
 
@@ -662,6 +664,8 @@ end:
 static void DetectBase64DecodeRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
+
     UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
     UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
     UtRegisterTest("DetectBase64DecodeHttpHeaderTestSetup",
