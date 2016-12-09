@@ -516,50 +516,6 @@ int DetectIsdataatTestParse06(void)
     return result;
 }
 
-int DetectIsdataatTestParse09(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "content:\"one\"; http_client_body; "
-                               "isdataat:!4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL) {
-        goto end;
-    }
-
-    result = 1;
-
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ||
-         !(data->flags & ISDATAAT_NEGATED) ) {
-        result = 0;
-        goto end;
-    }
-
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
 /**
  *  \test dns_query with isdataat relative to it
  */
@@ -728,7 +684,6 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04);
     UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05);
     UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06);
-    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09);
     UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16);
 
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
