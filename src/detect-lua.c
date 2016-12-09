@@ -1009,11 +1009,13 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
             int list = DetectBufferTypeGetByName("http_user_agent");
             SigMatchAppendSMToList(s, sm, list);
-        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
-        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
-        else {
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS)) {
+            int list = DetectBufferTypeGetByName("http_header");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
+            int list = DetectBufferTypeGetByName("http_raw_header");
+            SigMatchAppendSMToList(s, sm, list);
+        } else {
             int list = DetectBufferTypeGetByName("http_request_line");
             SigMatchAppendSMToList(s, sm, list);
         }
