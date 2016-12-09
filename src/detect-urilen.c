@@ -55,6 +55,7 @@ void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
 
 static int g_http_uri_buffer_id = 0;
+static int g_http_raw_uri_buffer_id = 0;
 
 /**
  * \brief Registration function for urilen: keyword
@@ -75,6 +76,7 @@ void DetectUrilenRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
+    g_http_raw_uri_buffer_id = DetectBufferTypeRegister("http_raw_uri");
 }
 
 /**
@@ -263,7 +265,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     sm->ctx = (void *)urilend;
 
     if (urilend->raw_buffer)
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+        SigMatchAppendSMToList(s, sm, g_http_raw_uri_buffer_id);
     else
         SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id);
 
