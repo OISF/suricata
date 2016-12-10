@@ -59,6 +59,7 @@ static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
 static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilemagicRegisterTests(void);
 static void DetectFilemagicFree(void *);
+static int g_file_match_list_id = 0;
 
 /**
  * \brief Registration function for keyword: filemagic
@@ -72,6 +73,8 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].Free  = DetectFilemagicFree;
     sigmatch_table[DETECT_FILEMAGIC].RegisterTests = DetectFilemagicRegisterTests;
+
+    g_file_match_list_id = DetectBufferTypeRegister("files");
 
 	SCLogDebug("registering filemagic rule option");
     return;
@@ -356,7 +359,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     sm->type = DETECT_FILEMAGIC;
     sm->ctx = (void *)filemagic;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_MAGIC);
     return 0;

@@ -2808,9 +2808,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_TMATCH:
             return "tag";
 
-        case DETECT_SM_LIST_FILEMATCH:
-            return "file";
-
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
 

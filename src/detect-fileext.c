@@ -56,6 +56,7 @@ static int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFileextRegisterTests(void);
 static void DetectFileextFree(void *);
+static int g_file_match_list_id = 0;
 
 /**
  * \brief Registration function for keyword: fileext
@@ -69,6 +70,8 @@ void DetectFileextRegister(void)
     sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;
     sigmatch_table[DETECT_FILEEXT].RegisterTests = DetectFileextRegisterTests;
+
+    g_file_match_list_id = DetectBufferTypeRegister("files");
 
 	SCLogDebug("registering fileext rule option");
     return;
@@ -208,7 +211,7 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_FILEEXT;
     sm->ctx = (void *)fileext;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;
