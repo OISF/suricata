@@ -446,8 +446,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "%s",
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
-    else if (list_type == DETECT_SM_LIST_DNP3_DATA_MATCH)
-        fprintf(rule_engine_analysis_FD, "dnp3 data content");
     else {
         const char *desc = DetectBufferTypeGetDescriptionById(list_type);
         const char *name = DetectBufferTypeGetNameById(list_type);

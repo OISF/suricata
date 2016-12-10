@@ -1039,7 +1039,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     } else if (lua->alproto == ALPROTO_SMTP) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else if (lua->alproto == ALPROTO_DNP3) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
+        int list = DetectBufferTypeGetByName("dnp3");
+        SigMatchAppendSMToList(s, sm, list);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
                    AppLayerGetProtoName(lua->alproto));
