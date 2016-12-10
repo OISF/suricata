@@ -64,6 +64,7 @@ static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilestoreFree(void *);
 static void DetectFilestoreRegisterTests(void);
+static int g_file_match_list_id = 0;
 
 /**
  * \brief Registration function for keyword: filestore
@@ -80,6 +81,8 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_file_match_list_id = DetectBufferTypeRegister("files");
 }
 
 /**
@@ -401,7 +404,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
         AppLayerHtpNeedFileInspection();
     }
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
     s->filestore_ctx = (const DetectFilestoreData *)sm->ctx;
 
     s->flags |= SIG_FLAG_FILESTORE;
