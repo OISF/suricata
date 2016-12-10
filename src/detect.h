@@ -118,8 +118,6 @@ enum DetectSigmatchListEnum {
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT = DETECT_SM_LIST_BUILTIN_MAX,
 
-    DETECT_SM_LIST_FILEMATCH,
-
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
 
     DETECT_SM_LIST_MAX,

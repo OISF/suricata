@@ -24,6 +24,7 @@
 
 #include "suricata-common.h"
 
+#include "detect-engine.h"
 #include "util-detect-file-hash.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -56,6 +57,8 @@ void DetectFileMd5Register(void)
 
 #else /* HAVE_NSS */
 
+static int g_file_match_list_id = 0;
+
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, char *);
 static void DetectFileMd5RegisterTests(void);
 
@@ -71,6 +74,8 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;
     sigmatch_table[DETECT_FILEMD5].Free  = DetectFileHashFree;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
+
+    g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filemd5 rule option");
     return;
@@ -89,7 +94,7 @@ void DetectFileMd5Register(void)
  */
 static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    return DetectFileHashSetup(de_ctx, s, str, DETECT_FILEMD5);
+    return DetectFileHashSetup(de_ctx, s, str, DETECT_FILEMD5, g_file_match_list_id);
 }
 
 #ifdef UNITTESTS

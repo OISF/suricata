@@ -81,7 +81,6 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     int match = 0;
     int store_r = 0;
 
-    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_FILEMATCH);
     SCLogDebug("file inspection... %p", ffc);
 
     if (ffc != NULL) {
