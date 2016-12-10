@@ -517,56 +517,6 @@ int DetectIsdataatTestParse06(void)
 }
 
 /**
- *  \test dns_query with isdataat relative to it
- */
-static int DetectIsdataatTestParse16(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing dns_query and isdataat\"; "
-                               "dns_query; isdataat:!4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse: ");
-        goto end;
-    }
-
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL) {
-        printf("dns_query list empty: ");
-        goto end;
-    }
-
-    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH]->type != DETECT_ISDATAAT) {
-        printf("last dns_query body sm not isdataat: ");
-        goto end;
-    }
-
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ||
-         !(data->flags & ISDATAAT_NEGATED) ) {
-        goto end;
-    }
-
-    result = 1;
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
  */
@@ -684,7 +634,6 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04);
     UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05);
     UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06);
-    UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16);
 
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
