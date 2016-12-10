@@ -55,6 +55,7 @@
 
 static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectTlsSniRegisterTests(void);
+static int g_tls_sni_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: tls_sni
@@ -72,13 +73,14 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("tls_sni", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_TLSSNI_MATCH, 2,
+    DetectAppLayerMpmRegister("tls_sni", SIG_FLAG_TOSERVER, 2,
             PrefilterTxTlsSniRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_TLSSNI_MATCH,
+    DetectAppLayerInspectEngineRegister2("tls_sni",
+            ALPROTO_TLS, SIG_FLAG_TOSERVER,
             DetectEngineInspectTlsSni);
+
+    g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls_sni");
 }
 
 
@@ -93,7 +95,7 @@ void DetectTlsSniRegister(void)
  */
 static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->init_data->list = DETECT_SM_LIST_TLSSNI_MATCH;
+    s->init_data->list = g_tls_sni_buffer_id;
     s->alproto = ALPROTO_TLS;
     return 0;
 }

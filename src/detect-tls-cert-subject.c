@@ -55,6 +55,7 @@
 
 static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectTlsSubjectRegisterTests(void);
+static int g_tls_cert_subject_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: tls_cert_issuer
@@ -72,14 +73,14 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("tls_cert_subject", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSSUBJECT_MATCH, 2,
+    DetectAppLayerMpmRegister("tls_cert_subject", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxTlsSubjectRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSSUBJECT_MATCH,
+    DetectAppLayerInspectEngineRegister2("tls_cert_subject",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTlsSubject);
 
+    g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls_cert_subject");
 }
 
 /**
@@ -93,7 +94,7 @@ void DetectTlsSubjectRegister(void)
  */
 static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->init_data->list = DETECT_SM_LIST_TLSSUBJECT_MATCH;
+    s->init_data->list = g_tls_cert_subject_buffer_id;
     s->alproto = ALPROTO_TLS;
     return 0;
 }
@@ -122,7 +123,7 @@ static int DetectTlsSubjectTest01(void)
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     FAIL_IF_NOT_NULL(sm);
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH];
+    sm = de_ctx->sig_list->sm_lists[g_tls_cert_subject_buffer_id];
     FAIL_IF_NULL(sm);
 
     FAIL_IF(sm->type != DETECT_CONTENT);
