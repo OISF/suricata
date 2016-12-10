@@ -1023,11 +1023,14 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         }
     } else if (lua->alproto == ALPROTO_DNS) {
         if (lua->flags & DATATYPE_DNS_RRNAME) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
+            int list = DetectBufferTypeGetByName("dns_query");
+            SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_DNS_REQUEST) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSREQUEST_MATCH);
+            int list = DetectBufferTypeGetByName("dns_request");
+            SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
+            int list = DetectBufferTypeGetByName("dns_response");
+            SigMatchAppendSMToList(s, sm, list);
         }
     } else if (lua->alproto == ALPROTO_TLS) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
