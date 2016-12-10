@@ -2811,15 +2811,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_FILEMATCH:
             return "file";
 
-        case DETECT_SM_LIST_TLSSNI_MATCH:
-            return "tls sni extension";
-        case DETECT_SM_LIST_TLSISSUER_MATCH:
-            return "tls issuer";
-        case DETECT_SM_LIST_TLSSUBJECT_MATCH:
-            return "tls subject";
-        case DETECT_SM_LIST_TLSVALIDITY_MATCH:
-            return "tls validity";
-
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
         case DETECT_SM_LIST_DNP3_DATA_MATCH:

@@ -68,11 +68,12 @@ static int DetectTlsValidSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsNotBeforeSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsNotAfterSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsValiditySetup (DetectEngineCtx *, Signature *s, char *str, uint8_t);
-void TlsNotBeforeRegisterTests(void);
-void TlsNotAfterRegisterTests(void);
-void TlsExpiredRegisterTests(void);
-void TlsValidRegisterTests(void);
+static void TlsNotBeforeRegisterTests(void);
+static void TlsNotAfterRegisterTests(void);
+static void TlsExpiredRegisterTests(void);
+static void TlsValidRegisterTests(void);
 static void DetectTlsValidityFree(void *);
+static int g_tls_validity_buffer_id = 0;
 
 /**
  * \brief Registration function for tls validity keywords.
@@ -119,9 +120,11 @@ void DetectTlsValidityRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSVALIDITY_MATCH,
+    DetectAppLayerInspectEngineRegister2("tls_validity",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTlsValidity);
+
+    g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls_validity");
 }
 
 /**
@@ -447,7 +450,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
 
     return 0;
 
@@ -505,7 +508,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
 
     return 0;
 
@@ -608,7 +611,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
 
     return 0;
 
