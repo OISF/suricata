@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 
+#include "detect-engine.h"
 #include "util-detect-file-hash.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -59,6 +60,7 @@ void DetectFileSha256Register(void)
 
 static int DetectFileSha256Setup (DetectEngineCtx *, Signature *, char *);
 static void DetectFileSha256RegisterTests(void);
+static int g_file_match_list_id = 0;
 
 /**
  * \brief Registration function for keyword: filesha256
@@ -72,6 +74,8 @@ void DetectFileSha256Register(void)
     sigmatch_table[DETECT_FILESHA256].Setup = DetectFileSha256Setup;
     sigmatch_table[DETECT_FILESHA256].Free  = DetectFileHashFree;
     sigmatch_table[DETECT_FILESHA256].RegisterTests = DetectFileSha256RegisterTests;
+
+    g_file_match_list_id = DetectBufferTypeRegister("files");
 
     SCLogDebug("registering filesha256 rule option");
     return;
@@ -90,7 +94,7 @@ void DetectFileSha256Register(void)
  */
 static int DetectFileSha256Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    return DetectFileHashSetup(de_ctx, s, str, DETECT_FILESHA256);
+    return DetectFileHashSetup(de_ctx, s, str, DETECT_FILESHA256, g_file_match_list_id);
 }
 
 #ifdef UNITTESTS
