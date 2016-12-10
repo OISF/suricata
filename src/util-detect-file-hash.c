@@ -303,7 +303,7 @@ error:
  * \retval -1 on Failure
  */
 int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, char *str,
-        uint32_t type)
+        uint32_t type, int list)
 {
     DetectFileHashData *filehash = NULL;
     SigMatch *sm = NULL;
@@ -321,7 +321,7 @@ int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, char *str,
     sm->type = type;
     sm->ctx = (void *)filehash;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, list);
 
     s->file_flags |= FILE_SIG_NEED_FILE;
 
