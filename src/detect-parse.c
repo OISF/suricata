@@ -145,7 +145,6 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
         CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
@@ -166,7 +165,6 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
-        CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
         CASE_CODE(DETECT_SM_LIST_TMATCH);
