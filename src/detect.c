@@ -2247,34 +2247,6 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_APP_EVENT] ; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_AL_APP_LAYER_EVENT:
-            {
-                DetectAppLayerEventData *aed = (DetectAppLayerEventData *)sm->ctx;
-                switch (aed->alproto) {
-                    case ALPROTO_HTTP:
-                        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                        SCLogDebug("sig %u requires http app state (http event)", s->id);
-                        break;
-                    case ALPROTO_SMTP:
-                        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-                        SCLogDebug("sig %u requires smtp app state (smtp event)", s->id);
-                        break;
-                    case ALPROTO_DNS:
-                        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
-                        SCLogDebug("sig %u requires dns app state (dns event)", s->id);
-                        break;
-                    case ALPROTO_TLS:
-                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
-                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
-                        break;
-                }
-                break;
-            }
-        }
-    }
-
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_FLOWBITS:
