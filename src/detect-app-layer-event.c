@@ -58,6 +58,8 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
+static void DetectAppLayerEventSetupCallback(Signature *s);
+static int g_applayer_events_list_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "app-layer-event" keyword.
@@ -74,14 +76,17 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_UNKNOWN,
-            SIG_FLAG_TOSERVER, DETECT_SM_LIST_APP_EVENT,
+    DetectAppLayerInspectEngineRegister2("app-layer-events",
+            ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER,
             DetectEngineAptEventInspect);
-    DetectAppLayerInspectEngineRegister(ALPROTO_UNKNOWN,
-            SIG_FLAG_TOCLIENT, DETECT_SM_LIST_APP_EVENT,
+    DetectAppLayerInspectEngineRegister2("app-layer-events",
+            ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT,
             DetectEngineAptEventInspect);
 
-    return;
+    DetectBufferTypeRegisterSetupCallback("app-layer-events",
+            DetectAppLayerEventSetupCallback);
+
+    g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
 
 static int DetectEngineAptEventInspect(ThreadVars *tv,
@@ -161,6 +166,38 @@ static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det
     }
 
     SCReturnInt(r);
+}
+
+static void DetectAppLayerEventSetupCallback(Signature *s)
+{
+    SigMatch *sm;
+    for (sm = s->init_data->smlists[g_applayer_events_list_id] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_AL_APP_LAYER_EVENT:
+            {
+                DetectAppLayerEventData *aed = (DetectAppLayerEventData *)sm->ctx;
+                switch (aed->alproto) {
+                    case ALPROTO_HTTP:
+                        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+                        SCLogDebug("sig %u requires http app state (http event)", s->id);
+                        break;
+                    case ALPROTO_SMTP:
+                        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+                        SCLogDebug("sig %u requires smtp app state (smtp event)", s->id);
+                        break;
+                    case ALPROTO_DNS:
+                        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
+                        SCLogDebug("sig %u requires dns app state (dns event)", s->id);
+                        break;
+                    case ALPROTO_TLS:
+                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
+                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
+                        break;
+                }
+                break;
+            }
+        }
+    }
 }
 
 static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,
@@ -292,7 +329,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
     if (event_type == APP_LAYER_EVENT_TYPE_GENERAL)
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     else
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_APP_EVENT);
+        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
     /* We should have set this flag already in SetupP1 */
     s->flags |= SIG_FLAG_APPLAYER;
 
@@ -331,7 +368,7 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, cha
     } else {
         /* We push it to this list temporarily.  We deal with
          * these in DetectAppLayerEventPrepare(). */
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_APP_EVENT);
+        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
         s->flags |= SIG_FLAG_APPLAYER;
     }
 
@@ -360,9 +397,9 @@ static void DetectAppLayerEventFree(void *ptr)
 
 int DetectAppLayerEventPrepare(Signature *s)
 {
-    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_APP_EVENT];
-    s->init_data->smlists[DETECT_SM_LIST_APP_EVENT] = NULL;
-    s->init_data->smlists_tail[DETECT_SM_LIST_APP_EVENT] = NULL;
+    SigMatch *sm = s->init_data->smlists[g_applayer_events_list_id];
+    s->init_data->smlists[g_applayer_events_list_id] = NULL;
+    s->init_data->smlists_tail[g_applayer_events_list_id] = NULL;
 
     while (sm != NULL) {
         sm->next = sm->prev = NULL;
