@@ -3780,8 +3780,9 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         /* set up inspect engines */
         DetectEngineAppInspectionEngine2Signature(s);
 
+        /* built-ins */
         int type;
-        for (type = 0; type < DETECT_SM_LIST_BUILTIN_MAX; type++) {
+        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
