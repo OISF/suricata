@@ -2808,9 +2808,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
 
-        case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
-            return "template_buffer";
-
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
 
@@ -2819,6 +2816,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_THRESHOLD:
             return "threshold";
 
+        case DETECT_SM_LIST_BUILTIN_MAX:
         case DETECT_SM_LIST_MAX:
             return "max (internal)";
         case DETECT_SM_LIST_NOTSET:
