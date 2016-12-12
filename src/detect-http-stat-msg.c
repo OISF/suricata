@@ -88,7 +88,7 @@ void DetectHttpStatMsgRegister (void)
     DetectAppLayerMpmRegister("http_stat_msg", SIG_FLAG_TOCLIENT, 3,
             PrefilterTxHttpStatMsgRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_stat_msg",
+    DetectAppLayerInspectEngineRegister("http_stat_msg",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpStatMsg);
 

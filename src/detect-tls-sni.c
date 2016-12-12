@@ -76,7 +76,7 @@ void DetectTlsSniRegister(void)
     DetectAppLayerMpmRegister("tls_sni", SIG_FLAG_TOSERVER, 2,
             PrefilterTxTlsSniRegister);
 
-    DetectAppLayerInspectEngineRegister2("tls_sni",
+    DetectAppLayerInspectEngineRegister("tls_sni",
             ALPROTO_TLS, SIG_FLAG_TOSERVER,
             DetectEngineInspectTlsSni);
 
