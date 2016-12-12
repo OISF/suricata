@@ -120,7 +120,7 @@ void DetectTlsValidityRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister2("tls_validity",
+    DetectAppLayerInspectEngineRegister("tls_validity",
             ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTlsValidity);
 

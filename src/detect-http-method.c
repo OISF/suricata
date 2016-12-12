@@ -86,7 +86,7 @@ void DetectHttpMethodRegister(void)
     DetectAppLayerMpmRegister("http_method", SIG_FLAG_TOSERVER, 4,
             PrefilterTxMethodRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_method",
+    DetectAppLayerInspectEngineRegister("http_method",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpMethod);
 

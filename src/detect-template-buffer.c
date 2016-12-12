@@ -59,10 +59,10 @@ void DetectTemplateBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_PAYLOAD;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister2("template_buffer",
+    DetectAppLayerInspectEngineRegister("template_buffer",
             ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER,
             DetectEngineInspectTemplateBuffer);
-    DetectAppLayerInspectEngineRegister2("template_buffer",
+    DetectAppLayerInspectEngineRegister("template_buffer",
             ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTemplateBuffer);
 

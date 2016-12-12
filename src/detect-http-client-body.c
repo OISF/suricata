@@ -84,7 +84,7 @@ void DetectHttpClientBodyRegister(void)
     DetectAppLayerMpmRegister("http_client_body", SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestBodyRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_client_body",
+    DetectAppLayerInspectEngineRegister("http_client_body",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpClientBody);
 
