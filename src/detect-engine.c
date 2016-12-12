@@ -161,7 +161,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
     /* convert lists to SigMatchData arrays */
     int i = 0;
-    for (i = DETECT_SM_LIST_BUILTIN_MAX; i < nlists; i++) {
+    for (i = DETECT_SM_LIST_DYNAMIC_START; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
 
@@ -267,7 +267,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 #include "util-hash-lookup3.h"
 
 static HashListTable *g_buffer_type_hash = NULL;
-static int g_buffer_type_id = DETECT_SM_LIST_MAX; // past DETECT_SM_LIST_NOTSET
+static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
 typedef struct DetectBufferType_ {
@@ -515,6 +515,7 @@ void DetectBufferTypeFinalizeRegistration(void)
     g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
     BUG_ON(!g_buffer_type_map);
 
+    SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
     HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
     while (b) {
         DetectBufferType *map = HashListTableGetListData(b);
@@ -2816,11 +2817,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_THRESHOLD:
             return "threshold";
 
-        case DETECT_SM_LIST_BUILTIN_MAX:
         case DETECT_SM_LIST_MAX:
             return "max (internal)";
-        case DETECT_SM_LIST_NOTSET:
-            return "not set (internal)";
     }
     return "error";
 }
