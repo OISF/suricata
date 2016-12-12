@@ -78,10 +78,10 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
         DetectAppLayerEventRegisterTests;
 
-    DetectAppLayerInspectEngineRegister2("app-layer-events",
+    DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER,
             DetectEngineAptEventInspect);
-    DetectAppLayerInspectEngineRegister2("app-layer-events",
+    DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT,
             DetectEngineAptEventInspect);
 

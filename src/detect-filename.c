@@ -72,14 +72,14 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 
-    DetectAppLayerInspectEngineRegister2("files",
+    DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectFileInspectHttp);
-    DetectAppLayerInspectEngineRegister2("files",
+    DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectFileInspectHttp);
 
-    DetectAppLayerInspectEngineRegister2("files",
+    DetectAppLayerInspectEngineRegister("files",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER,
             DetectFileInspectSmtp);
 
