@@ -108,16 +108,16 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_SUPPRESS,
     DETECT_SM_LIST_THRESHOLD,
 
-    /* used for Signature->list, which indicates which list
-     * we're adding keywords to in cases of sticky buffers like
-     * file_data */
-    DETECT_SM_LIST_NOTSET,
-
-    DETECT_SM_LIST_BUILTIN_MAX,
-
     DETECT_SM_LIST_MAX,
 
+    /* start of dynamically registered lists */
+    DETECT_SM_LIST_DYNAMIC_START = DETECT_SM_LIST_MAX,
 };
+
+/* used for Signature->list, which indicates which list
+ * we're adding keywords to in cases of sticky buffers like
+ * file_data */
+#define DETECT_SM_LIST_NOTSET INT_MAX
 
 /* a is ... than b */
 enum {
@@ -446,7 +446,7 @@ typedef struct Signature_ {
 
     /* Matching structures for the built-ins. The others are in
      * their inspect engines. */
-    SigMatchData *sm_arrays[DETECT_SM_LIST_BUILTIN_MAX];
+    SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
 
     /* memory is still owned by the sm_lists/sm_arrays entry */
     const struct DetectFilestoreData_ *filestore_ctx;
