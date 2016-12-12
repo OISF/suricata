@@ -84,7 +84,7 @@ void DetectHttpHRHRegister(void)
     DetectAppLayerMpmRegister("http_raw_host", SIG_FLAG_TOSERVER, 2,
             PrefilterTxHostnameRawRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_raw_host",
+    DetectAppLayerInspectEngineRegister("http_raw_host",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpHRH);
 
