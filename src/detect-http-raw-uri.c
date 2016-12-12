@@ -79,7 +79,7 @@ void DetectHttpRawUriRegister(void)
     DetectAppLayerMpmRegister("http_raw_uri", SIG_FLAG_TOSERVER, 2,
             PrefilterTxRawUriRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_raw_uri",
+    DetectAppLayerInspectEngineRegister("http_raw_uri",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpRawUri);
 

@@ -101,14 +101,16 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
-void DetectAppLayerInspectEngineRegister(AppProto alproto,
-        uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback)
+void DetectAppLayerInspectEngineRegister(const char *name,
+        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    DetectBufferTypeRegister(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    BUG_ON(sm_list == -1);
 
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH || sm_list >= nlists) ||
+        (sm_list < DETECT_SM_LIST_MATCH) ||
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
@@ -142,15 +144,6 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
 
         t->next = new_engine;
     }
-}
-
-void DetectAppLayerInspectEngineRegister2(const char *name,
-        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback)
-{
-    DetectBufferTypeRegister(name);
-    int sm_list = DetectBufferTypeGetByName(name);
-    BUG_ON(sm_list == -1);
-    DetectAppLayerInspectEngineRegister(alproto, dir, sm_list, Callback);
 }
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s)

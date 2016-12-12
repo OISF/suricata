@@ -417,10 +417,10 @@ void DetectModbusRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX_ACCESS,
             &access_parse_regex, &access_parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister2("modbus",
+    DetectAppLayerInspectEngineRegister("modbus",
             ALPROTO_MODBUS, SIG_FLAG_TOSERVER,
             DetectEngineInspectModbus);
-    DetectAppLayerInspectEngineRegister2("modbus",
+    DetectAppLayerInspectEngineRegister("modbus",
             ALPROTO_MODBUS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectModbus);
 

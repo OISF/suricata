@@ -89,7 +89,7 @@ void DetectHttpResponseLineRegister(void)
     DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseLineRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_response_line",
+    DetectAppLayerInspectEngineRegister("http_response_line",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpResponseLine);
 

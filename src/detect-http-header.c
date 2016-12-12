@@ -88,10 +88,10 @@ void DetectHttpHeaderRegister(void)
     DetectAppLayerMpmRegister("http_header", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseHeadersRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_header",
+    DetectAppLayerInspectEngineRegister("http_header",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpHeader);
-    DetectAppLayerInspectEngineRegister2("http_header",
+    DetectAppLayerInspectEngineRegister("http_header",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpHeader);
 

@@ -89,10 +89,10 @@ void DetectHttpCookieRegister(void)
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxResponseCookieRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_cookie",
+    DetectAppLayerInspectEngineRegister("http_cookie",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectHttpCookie);
-    DetectAppLayerInspectEngineRegister2("http_cookie",
+    DetectAppLayerInspectEngineRegister("http_cookie",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpCookie);
 

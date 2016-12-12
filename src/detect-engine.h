@@ -97,16 +97,13 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
 /**
  * \brief Registers an app inspection engine.
  *
+ * \param name Name of the detection list
  * \param alproto App layer protocol for which we will register the engine.
  * \param direction The direction for the engine: SIG_FLAG_TOSERVER or
  *                  SIG_FLAG_TOCLIENT
- * \param sm_list The SigMatch list against which the engine works.
  * \param Callback The engine callback.
  */
-void DetectAppLayerInspectEngineRegister(AppProto alproto,
-        uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback);
-
-void DetectAppLayerInspectEngineRegister2(const char *name,
+void DetectAppLayerInspectEngineRegister(const char *name,
         AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);

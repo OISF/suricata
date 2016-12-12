@@ -88,7 +88,7 @@ void DetectHttpStatCodeRegister (void)
     DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4,
             PrefilterTxHttpStatCodeRegister);
 
-    DetectAppLayerInspectEngineRegister2("http_stat_code",
+    DetectAppLayerInspectEngineRegister("http_stat_code",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpStatCode);
 
