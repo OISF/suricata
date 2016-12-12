@@ -148,7 +148,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_SUPPRESS, "suppress");
         CASE_CODE_STRING(DETECT_SM_LIST_THRESHOLD, "threshold");
         CASE_CODE_STRING(DETECT_SM_LIST_MAX, "max (internal)");
-        CASE_CODE_STRING(DETECT_SM_LIST_NOTSET, "not set (internal)");
     }
 #undef CASE_CODE_STRING
     return "unknown";
@@ -167,7 +166,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_SUPPRESS);
         CASE_CODE(DETECT_SM_LIST_THRESHOLD);
         CASE_CODE(DETECT_SM_LIST_MAX);
-        CASE_CODE(DETECT_SM_LIST_NOTSET);
     }
     return "unknown";
 }
@@ -1117,7 +1115,7 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
 {
     if (s != NULL) {
         int type;
-        for (type = 0; type < DETECT_SM_LIST_BUILTIN_MAX; type++) {
+        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
             if (s->sm_arrays[type] != NULL) {
                 if (ctxs) {
                     SigMatchData *smd = s->sm_arrays[type];
