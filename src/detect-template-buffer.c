@@ -39,6 +39,7 @@
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectTemplateBufferRegisterTests(void);
+static int g_template_buffer_id = 0;
 
 void DetectTemplateBufferRegister(void)
 {
@@ -58,12 +59,14 @@ void DetectTemplateBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_PAYLOAD;
 
     /* register inspect engines */
-    DetectAppLayerInspectEngineRegister(ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+    DetectAppLayerInspectEngineRegister2("template_buffer",
+            ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER,
             DetectEngineInspectTemplateBuffer);
-    DetectAppLayerInspectEngineRegister(ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+    DetectAppLayerInspectEngineRegister2("template_buffer",
+            ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTemplateBuffer);
+
+    g_template_buffer_id = DetectBufferTypeGetByName("template_buffer");
 
     SCLogNotice("Template application layer detect registered.");
 }
@@ -71,7 +74,7 @@ void DetectTemplateBufferRegister(void)
 static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
     char *str)
 {
-    s->init_data->list = DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH;
+    s->init_data->list = g_template_buffer_id;
     s->alproto = ALPROTO_TEMPLATE;
     return 0;
 }
