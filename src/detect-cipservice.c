@@ -59,10 +59,10 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
 
-    DetectAppLayerInspectEngineRegister2("cip",
+    DetectAppLayerInspectEngineRegister("cip",
             ALPROTO_ENIP, SIG_FLAG_TOSERVER,
             DetectEngineInspectCIP);
-    DetectAppLayerInspectEngineRegister2("cip",
+    DetectAppLayerInspectEngineRegister("cip",
             ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectCIP);
 
@@ -321,10 +321,10 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
 
-    DetectAppLayerInspectEngineRegister2("enip",
+    DetectAppLayerInspectEngineRegister("enip",
             ALPROTO_ENIP, SIG_FLAG_TOSERVER,
             DetectEngineInspectENIP);
-    DetectAppLayerInspectEngineRegister2("enip",
+    DetectAppLayerInspectEngineRegister("enip",
             ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectENIP);
 
