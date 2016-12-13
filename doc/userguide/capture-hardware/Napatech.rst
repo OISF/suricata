@@ -173,6 +173,11 @@ First let's modify the ntservice.ini file to increase the number and size of the
 
 	HostBuffersRx = [8,256,0]		# [number of host buffers, Size (MB), NUMA node]
 
+Stop and restart ntservice after making changes to ntservice::
+
+	$ /opt/napatech3/bin/ntstop.sh -m
+	$ /opt/napatech3/bin/ntstart.sh -m
+	
 Now let's assign the streams to host buffers and configure the load distribution. The load distrution will be 
 setup to support both tunneled and non-tunneled traffic. Create a file that contains the ntpl commands below::
 
