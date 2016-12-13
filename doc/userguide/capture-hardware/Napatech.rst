@@ -138,6 +138,11 @@ Here are the lines that need changing in /opt/napatech3/bin/ntservice.ini for be
 	TimeSyncReferencePriority = OSTime	# Timestamp clock synchronized to the OS
 	HostBuffersRx = [1,16,0]		# [number of host buffers, Size(MB), NUMA node]			
 
+Stop and restart ntservice after making changes to ntservice::
+
+	$ /opt/napatech3/bin/ntstop.sh -m
+	$ /opt/napatech3/bin/ntstart.sh -m
+	
 Now we need to execute a few NTPL (Napatech Programming Language) commands to complete the setup. Create 
 a file will the following commands::
 
