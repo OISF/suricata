@@ -275,8 +275,9 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
 
     input += compression_methods_length;
 
+    /* extensions are optional (RFC5246 section 7.4.1.2) */
     if (!(HAS_SPACE(2)))
-        goto invalid_length;
+        goto end;
 
     uint16_t extensions_len = input[0] << 8 | input[1];
     input += 2;
