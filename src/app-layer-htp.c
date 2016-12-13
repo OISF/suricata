@@ -2737,7 +2737,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
              * 3 is subtracted from the length since the spacing is hex typed as |xx|
              * but the pattern matching should only be one char
             */
-            register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
+            register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP,
                     ALPROTO_HTTP, method_buffer, strlen(method_buffer)-3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
                 return -1;
@@ -2747,7 +2747,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
 
     /* Loop through all the http verions patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
-        register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
+        register_result = AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP,
                 ALPROTO_HTTP, versions[versions_pos], strlen(versions[versions_pos]),
                 0, STREAM_TOCLIENT);
         if (register_result < 0) {
