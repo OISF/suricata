@@ -24,6 +24,10 @@
 #ifndef __DETECT_METADATA_H__
 #define __DETECT_METADATA_H__
 
+typedef struct DetectMetadataData_ {
+    uint8_t flags;
+} DetectMetadataData;
+
 /* prototypes */
 void DetectMetadataRegister (void);
 
