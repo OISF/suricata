@@ -28,6 +28,25 @@
 #include "tm-threads.h"
 #include "flow-private.h"
 
+int DetectBufferTypeRegister(const char *name);
+int DetectBufferTypeGetByName(const char *name);
+const char *DetectBufferTypeGetNameById(const int id);
+void DetectBufferTypeSupportsMpm(const char *name);
+void DetectBufferTypeSupportsPacket(const char *name);
+_Bool DetectBufferTypeSupportsMpmGetById(const int id);
+_Bool DetectBufferTypeSupportsPacketGetById(const int id);
+int DetectBufferTypeMaxId(void);
+void DetectBufferTypeFinalizeRegistration(void);
+void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
+const char *DetectBufferTypeGetDescriptionById(const int id);
+const char *DetectBufferTypeGetDescriptionByName(const char *name);
+void DetectBufferTypeRegisterSetupCallback(const char *name,
+        void (*Callback)(Signature *));
+void DetectBufferRunSetupCallback(const int id, Signature *s);
+void DetectBufferTypeRegisterValidateCallback(const char *name,
+        _Bool (*ValidateCallback)(const Signature *));
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s);
+
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
