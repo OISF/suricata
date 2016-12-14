@@ -458,10 +458,12 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     /* snort's option (http request body inspection) */
                     *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HCBDMATCH);
                     break;
-                case 'Q':
+                case 'Q': {
+                    int list = DetectBufferTypeGetByName("file_data");
                     /* suricata extension (http response body inspection) */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_FILEDATA);
+                    *sm_list = DetectPcreSetList(*sm_list, list);
                     break;
+                }
                 case 'Y':
                     /* snort's option */
                     *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSMDMATCH);
@@ -666,7 +668,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (parsed_sm_list == DETECT_SM_LIST_UMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HCBDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_FILEDATA ||
         parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HSMDMATCH ||
@@ -694,27 +695,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
     int sm_list = -1;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
-            SCLogDebug("adding to http server body list because of file data");
-            AppLayerHtpEnableResponseBodyCallback();
-        } else if (s->init_data->list == DETECT_SM_LIST_DMATCH) {
-            SCLogDebug("adding to dmatch list because of dce_stub_data");
-        } else if (s->init_data->list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
-            SCLogDebug("adding to DETECT_SM_LIST_DNSQUERYNAME_MATCH list because of dns_query");
-        }
         s->flags |= SIG_FLAG_APPLAYER;
         sm_list = s->init_data->list;
     } else {
         switch(parsed_sm_list) {
             case DETECT_SM_LIST_HCBDMATCH:
                 AppLayerHtpEnableRequestBodyCallback();
-                s->flags |= SIG_FLAG_APPLAYER;
-                s->alproto = ALPROTO_HTTP;
-                sm_list = parsed_sm_list;
-                break;
-
-            case DETECT_SM_LIST_FILEDATA:
-                AppLayerHtpEnableResponseBodyCallback();
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;
                 sm_list = parsed_sm_list;
@@ -737,6 +723,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 break;
             case DETECT_SM_LIST_NOTSET:
                 sm_list = DETECT_SM_LIST_PMATCH;
+                break;
+            default:
+                sm_list = parsed_sm_list;
                 break;
         }
     }
@@ -805,6 +794,7 @@ void DetectPcreFree(void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+static int g_file_data_buffer_id = 0;
 
 /**
  * \test DetectPcreParseTest01 make sure we don't allow invalid opts 7.
@@ -1097,11 +1087,11 @@ static int DetectPcreParseTest12(void)
     FAIL_IF (de_ctx->sig_list == NULL);
 
     s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
     FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE));
 
@@ -1130,11 +1120,11 @@ static int DetectPcreParseTest13(void)
     FAIL_IF(de_ctx->sig_list == NULL);
 
     s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
     FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE));
 
@@ -1163,11 +1153,11 @@ static int DetectPcreParseTest14(void)
     FAIL_IF(de_ctx->sig_list == NULL);
 
     s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id] == NULL);
 
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE);
+    FAIL_IF(s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE);
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
     FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
         data->flags & DETECT_PCRE_RELATIVE);
 
@@ -3345,6 +3335,8 @@ static int DetectPcreParseHttpHost(void)
 void DetectPcreRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01);
     UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02);
     UtRegisterTest("DetectPcreParseTest03", DetectPcreParseTest03);

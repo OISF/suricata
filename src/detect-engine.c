@@ -2804,8 +2804,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http raw uri";
         case DETECT_SM_LIST_HCBDMATCH:
             return "http client body";
-        case DETECT_SM_LIST_FILEDATA:
-            return "http server body";
         case DETECT_SM_LIST_HHDMATCH:
             return "http headers";
         case DETECT_SM_LIST_HRHDMATCH:

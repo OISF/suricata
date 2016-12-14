@@ -82,6 +82,7 @@ static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 #ifdef UNITTESTS
 
 /************************************Unittests*********************************/
+static int g_file_data_buffer_id = 0;
 
 static int DetectPktDataTest01(void)
 {
@@ -105,9 +106,9 @@ static int DetectPktDataTest01(void)
     }
 
     /* sm should be in the MATCH list */
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA];
+    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
     if (sm == NULL) {
-        printf("sm not in DETECT_SM_LIST_FILEDATA: ");
+        printf("sm not in g_file_data_buffer_id: ");
         goto end;
     }
 
@@ -145,6 +146,8 @@ end:
 static void DetectPktDataTestRegister(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01);
 #endif
 }

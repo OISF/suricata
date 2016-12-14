@@ -385,16 +385,8 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
         goto error;
     DetectContentPrint(cd);
 
-    int sm_list;
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list == DETECT_SM_LIST_FILEDATA && s->alproto == ALPROTO_HTTP) {
-            AppLayerHtpEnableResponseBodyCallback();
-            s->alproto = ALPROTO_HTTP;
-        }
-
-        s->flags |= SIG_FLAG_APPLAYER;
-        sm_list = s->init_data->list;
-    } else {
+    int sm_list = s->init_data->list;
+    if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
     }
 
@@ -432,6 +424,7 @@ void DetectContentFree(void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+static int g_file_data_buffer_id = 0;
 
 /**
  * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
@@ -1950,7 +1943,7 @@ static int DetectContentParseTest36(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -1990,7 +1983,7 @@ static int DetectContentParseTest37(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2030,7 +2023,7 @@ static int DetectContentParseTest38(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2114,7 +2107,7 @@ static int DetectContentParseTest39(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2154,7 +2147,7 @@ static int DetectContentParseTest40(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2855,6 +2848,8 @@ static int DetectLongContentTest3(void)
 static void DetectContentRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01);
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02);
     UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03);
