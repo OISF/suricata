@@ -955,13 +955,13 @@ int DetectCsumInvalidArgsTestParse02(void)
     FAIL_IF_NULL(de_ctx);\
     Signature *s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:valid; sid:1;)");\
     FAIL_IF_NULL(s);\
-    SigMatch *sm = SigMatchGetLastSMFromLists(s, 2, (kwtype), s->sm_lists[DETECT_SM_LIST_MATCH]);\
+    SigMatch *sm = DetectGetLastSMFromLists(s, (kwtype), -1);\
     FAIL_IF_NULL(sm);\
     FAIL_IF_NULL(sm->ctx);\
     FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 1);\
     s = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any ("str(kwstr)"-csum:INVALID; sid:2;)");\
     FAIL_IF_NULL(s);\
-    sm = SigMatchGetLastSMFromLists(s, 2, (kwtype), s->sm_lists[DETECT_SM_LIST_MATCH]);\
+    sm = DetectGetLastSMFromLists(s, (kwtype), -1);\
     FAIL_IF_NULL(sm);\
     FAIL_IF_NULL(sm->ctx);\
     FAIL_IF_NOT(((DetectCsumData *)sm->ctx)->valid == 0);\
