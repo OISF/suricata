@@ -531,19 +531,13 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         sm_list = s->init_data->list;
         s->flags |= SIG_FLAG_APPLAYER;
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-            prev_pm = SigMatchGetLastSMFromLists(s, 4,
-                                                 DETECT_CONTENT, s->init_data->smlists_tail[sm_list],
-                                                 DETECT_PCRE, s->init_data->smlists_tail[sm_list]);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
     } else if (data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-            prev_pm = SigMatchGetLastSMFromLists(s, 12,
-                                                 DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE,
+                    DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
+                    DETECT_ISDATAAT, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -559,96 +553,10 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->flags |= SIG_FLAG_APPLAYER;
 
     } else if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-        prev_pm = SigMatchGetLastSMFromLists(s, 168,
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_PCRE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTETEST, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTEJUMP, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_ISDATAAT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+        prev_pm = DetectGetLastSMFromLists(s,
+                DETECT_CONTENT, DETECT_PCRE,
+                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
+                DETECT_ISDATAAT, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -680,8 +588,8 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         }
     }
 
-    SigMatch *prev_bed_sm = SigMatchGetLastSMFromLists(s, 2,
-                                                       DETECT_BYTE_EXTRACT, s->init_data->smlists_tail[sm_list]);
+    SigMatch *prev_bed_sm = DetectGetLastSMByListId(s, sm_list,
+            DETECT_BYTE_EXTRACT, -1);
     if (prev_bed_sm == NULL)
         data->local_id = 0;
     else
@@ -749,8 +657,9 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 {
     DetectByteExtractData *bed = NULL;
     int list;
+    const int nlists = DetectBufferTypeMaxId();
 
-    for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+    for (list = 0; list < nlists; list++) {
         SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm->type == DETECT_BYTE_EXTRACT) {
