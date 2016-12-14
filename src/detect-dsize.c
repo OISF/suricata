@@ -256,9 +256,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;
 
-    if (SigMatchGetLastSMFromLists(s, 2,
-                                   DETECT_DSIZE,
-                                   s->init_data->smlists_tail[DETECT_SM_LIST_MATCH]) != NULL) {
+    if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
         goto error;

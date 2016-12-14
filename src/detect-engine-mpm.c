@@ -119,6 +119,17 @@ void DetectMpmAppLayerRegister(const char *name,
     SupportFastPatternForSigMatchList(sm_list, priority);
 }
 
+void DetectAppLayerMpmRegister(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx))
+{
+    DetectBufferTypeSupportsMpm(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    BUG_ON(sm_list == -1);
+    DetectMpmAppLayerRegister(name, direction, sm_list, priority,
+            PrefilterRegister);
+}
+
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
     BUG_ON(g_app_mpms_list_cnt == 0);
@@ -543,18 +554,20 @@ void RetrieveFPForSig(Signature *s)
     if (s->init_data->mpm_sm != NULL)
         return;
 
+    const int nlists = DetectBufferTypeMaxId();
+
     SigMatch *mpm_sm = NULL, *sm = NULL;
-    int nn_sm_list[DETECT_SM_LIST_MAX];
-    int n_sm_list[DETECT_SM_LIST_MAX];
-    memset(nn_sm_list, 0, sizeof(nn_sm_list));
-    memset(n_sm_list, 0, sizeof(n_sm_list));
+    int nn_sm_list[nlists];
+    int n_sm_list[nlists];
+    memset(nn_sm_list, 0, nlists * sizeof(int));
+    memset(n_sm_list, 0, nlists * sizeof(int));
     int count_nn_sm_list = 0;
     int count_n_sm_list = 0;
     int list_id;
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    for (list_id = 0; list_id < nlists; list_id++) {
         if (s->init_data->smlists[list_id] == NULL)
             continue;
 
@@ -595,7 +608,9 @@ void RetrieveFPForSig(Signature *s)
         return;
     }
 
-    int final_sm_list[DETECT_SM_LIST_MAX] = { 0 };
+    int final_sm_list[nlists];
+    memset(&final_sm_list, 0, (nlists * sizeof(int)));
+
     int count_final_sm_list = 0;
     int priority;
 
