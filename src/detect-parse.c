@@ -1147,6 +1147,36 @@ Signature *SigAlloc (void)
 
 /**
  * \internal
+ * \brief Free Medadata list
+ *
+ * \param s Pointer to the signature
+ */
+static void SigMetadataFree(Signature *s)
+{
+    SCEnter();
+
+    DetectMetadata *mdata = NULL;
+    DetectMetadata *next_mdata = NULL;
+
+    if (s == NULL) {
+        SCReturn;
+    }
+
+    SCLogDebug("s %p, s->metadata %p", s, s->metadata);
+
+    for (mdata = s->metadata; mdata != NULL;)   {
+        next_mdata = mdata->next;
+        DetectMetadataFree(mdata);
+        mdata = next_mdata;
+    }
+
+    s->metadata = NULL;
+
+    SCReturn;
+}
+
+/**
+ * \internal
  * \brief Free Reference list
  *
  * \param s Pointer to the signature
@@ -1255,6 +1285,7 @@ void SigFree(Signature *s)
     }
 
     SigRefFree(s);
+    SigMetadataFree(s);
 
     DetectEngineAppInspectionEngineSignatureFree(s);
 
