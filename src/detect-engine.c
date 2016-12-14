@@ -247,6 +247,272 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
     }
 }
 
+/* code for registering buffers */
+
+#include "util-hash-lookup3.h"
+
+static HashListTable *g_buffer_type_hash = NULL;
+static int g_buffer_type_id = DETECT_SM_LIST_MAX; // past DETECT_SM_LIST_NOTSET
+static int g_buffer_type_reg_closed = 0;
+
+typedef struct DetectBufferType_ {
+    const char *string;
+    const char *description;
+    int id;
+    _Bool mpm;
+    _Bool packet; /**< compat to packet matches */
+    void (*SetupCallback)(Signature *);
+    _Bool (*ValidateCallback)(const Signature *);
+} DetectBufferType;
+
+static DetectBufferType **g_buffer_type_map = NULL;
+
+int DetectBufferTypeMaxId(void)
+{
+    return g_buffer_type_id;
+}
+
+static uint32_t DetectBufferTypeHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectBufferType *map = (DetectBufferType *)data;
+    uint32_t hash = 0;
+
+    hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    hash %= ht->array_size;
+
+    return hash;
+}
+
+static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
+                                        uint16_t len2)
+{
+    DetectBufferType *map1 = (DetectBufferType *)data1;
+    DetectBufferType *map2 = (DetectBufferType *)data2;
+
+    int r = (strcmp(map1->string, map2->string) == 0);
+    return r;
+}
+
+static void DetectBufferTypeFreeFunc(void *data)
+{
+    DetectBufferType *map = (DetectBufferType *)data;
+    if (map != NULL) {
+        SCFree(map);
+    }
+}
+
+int DetectBufferTypeInit(void)
+{
+    BUG_ON(g_buffer_type_hash);
+    g_buffer_type_hash = HashListTableInit(256,
+            DetectBufferTypeHashFunc,
+            DetectBufferTypeCompareFunc,
+            DetectBufferTypeFreeFunc);
+    if (g_buffer_type_hash == NULL)
+        return -1;
+
+    return 0;
+}
+
+void DetectBufferTypeFree(void)
+{
+    if (g_buffer_type_hash == NULL)
+        return;
+
+    HashListTableFree(g_buffer_type_hash);
+    g_buffer_type_hash = NULL;
+    return;
+}
+
+int DetectBufferTypeAdd(const char *string)
+{
+    DetectBufferType *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL)
+        return -1;
+
+    map->string = string;
+    map->id = g_buffer_type_id++;
+
+    BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
+    SCLogDebug("buffer %s registered with id %d", map->string, map->id);
+    return map->id;
+}
+
+DetectBufferType *DetectBufferTypeLookupByName(const char *string)
+{
+    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, NULL, NULL };
+
+    DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
+    return res;
+}
+
+int DetectBufferTypeRegister(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    if (g_buffer_type_hash == NULL)
+        DetectBufferTypeInit();
+
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return DetectBufferTypeAdd(name);
+    } else {
+        return exists->id;
+    }
+}
+
+void DetectBufferTypeSupportsPacket(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->packet = TRUE;
+    SCLogDebug("%p %s -- %d supports packet inspection", exists, name, exists->id);
+}
+
+void DetectBufferTypeSupportsMpm(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->mpm = TRUE;
+    SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
+}
+
+int DetectBufferTypeGetByName(const char *name)
+{
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return -1;
+    }
+    return exists->id;
+}
+
+const char *DetectBufferTypeGetNameById(const int id)
+{
+    BUG_ON(id < 0 || id >= g_buffer_type_id);
+    BUG_ON(g_buffer_type_map == NULL);
+
+    if (g_buffer_type_map[id] == NULL)
+        return NULL;
+
+    return g_buffer_type_map[id]->string;
+}
+
+const DetectBufferType *DetectBufferTypeGetById(const int id)
+{
+    BUG_ON(id < 0 || id >= g_buffer_type_id);
+    BUG_ON(g_buffer_type_map == NULL);
+
+    return g_buffer_type_map[id];
+}
+
+void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
+{
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return;
+    }
+    exists->description = desc;
+}
+
+const char *DetectBufferTypeGetDescriptionById(const int id)
+{
+    const DetectBufferType *exists = DetectBufferTypeGetById(id);
+    if (!exists) {
+        return NULL;
+    }
+    return exists->description;
+}
+
+const char *DetectBufferTypeGetDescriptionByName(const char *name)
+{
+    const DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return NULL;
+    }
+    return exists->description;
+}
+
+_Bool DetectBufferTypeSupportsPacketGetById(const int id)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map == NULL)
+        return FALSE;
+    SCLogDebug("map %p id %d packet? %d", map, id, map->packet);
+    return map->packet;
+}
+
+_Bool DetectBufferTypeSupportsMpmGetById(const int id)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map == NULL)
+        return FALSE;
+    SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
+    return map->mpm;
+}
+
+void DetectBufferTypeRegisterSetupCallback(const char *name,
+        void (*SetupCallback)(Signature *))
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->SetupCallback = SetupCallback;
+}
+
+void DetectBufferRunSetupCallback(const int id, Signature *s)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map && map->SetupCallback) {
+        map->SetupCallback(s);
+    }
+}
+
+void DetectBufferTypeRegisterValidateCallback(const char *name,
+        _Bool (*ValidateCallback)(const Signature *))
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->ValidateCallback = ValidateCallback;
+}
+
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map && map->ValidateCallback) {
+        return map->ValidateCallback(s);
+    }
+    return TRUE;
+}
+
+void DetectBufferTypeFinalizeRegistration(void)
+{
+    BUG_ON(g_buffer_type_hash == NULL);
+
+    const int size = g_buffer_type_id;
+    BUG_ON(!(size > 0));
+
+    g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
+    BUG_ON(!g_buffer_type_map);
+
+    HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
+    while (b) {
+        DetectBufferType *map = HashListTableGetListData(b);
+        g_buffer_type_map[map->id] = map;
+        SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
+                "Callbacks: Setup %p Validate %p", map->string, map->id,
+                map->mpm ? "true" : "false", map->packet ? "true" : "false",
+                map->description, map->SetupCallback, map->ValidateCallback);
+        b = HashListTableGetListNext(b);
+    }
+    g_buffer_type_reg_closed = 1;
+}
+
 /* code to control the main thread to do a reload */
 
 enum DetectEngineSyncState {
