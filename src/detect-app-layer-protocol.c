@@ -165,7 +165,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ; tsm != NULL; tsm = tsm->next) {
         if (tsm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
             const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;

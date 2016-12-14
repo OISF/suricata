@@ -65,8 +65,8 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         SCReturnInt(-1);
     }
 
-    SigMatch *pm =  SigMatchGetLastSMFromLists(s, 2,
-                                               DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
+    SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
+        DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceding content option");
         SCReturnInt(-1);

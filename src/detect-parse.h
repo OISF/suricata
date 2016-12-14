@@ -45,11 +45,6 @@ Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 Signature *SigInitReal(DetectEngineCtx *, char *);
-SigMatch *SigMatchGetLastSMFromLists(const Signature *, int, ...);
-SigMatch *SigMatchGetLastSM(const Signature *);
-void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
-                                         SigMatch **, SigMatch **s,
-                                         SigMatch **, SigMatch **);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
@@ -62,12 +57,18 @@ int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 int DetectParseDupSigHashInit(DetectEngineCtx *);
 void DetectParseDupSigHashFree(DetectEngineCtx *);
 
-int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
-                                           uint8_t sm_type, uint8_t sm_list,
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg,
+                                           int sm_type, int sm_list,
                                            AppProto alproto,  void (*CustomCallback)(Signature *s));
 
 const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);
+
+SigMatch *DetectGetLastSM(const Signature *);
+SigMatch *DetectGetLastSMFromMpmLists(const Signature *s);
+SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
+SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
+SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 
 /* parse regex setup and free util funcs */
 

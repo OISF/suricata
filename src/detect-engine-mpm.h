@@ -93,5 +93,9 @@ void DetectMpmAppLayerRegister(const char *name,
         int direction, int sm_list, int priority,
         int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
 
+void DetectAppLayerMpmRegister(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
+
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

@@ -80,26 +80,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         dubbed = 1;
     }
 
-    /* retrive the sm to apply the depth against */
-    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->init_data->smlists_tail[s->init_data->list]);
-    } else {
-        pm =  SigMatchGetLastSMFromLists(s, 28,
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                         DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
-    }
+    /* retrieve the sm to apply the distance against */
+    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "distance needs "
                    "preceding content, uricontent option, http_client_body, "
@@ -147,9 +129,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     }
     cd->flags |= DETECT_CONTENT_DISTANCE;
 
-    SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, pm->prev,
-                                                   DETECT_PCRE, pm->prev);
+    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
+            DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
         ret = 0;
         goto end;

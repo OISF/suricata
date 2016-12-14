@@ -162,63 +162,27 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     int ov[MAX_SUBSTRINGS];
     char arg_substr[128] = "";
     DetectContentData *cd = NULL;
+    const int nlists = DetectBufferTypeMaxId();
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_TLSSNI_MATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_TLSISSUER_MATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL &&
-        s->init_data->smlists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH] == NULL) {
-        SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
-                     "rule, without a preceding content based keyword.  "
-                     "Currently we provide fast_pattern support for content, "
-                     "uricontent, http_client_body, http_server_body, http_header, "
-                     "http_raw_header, http_method, http_cookie, "
-                     "http_raw_uri, http_stat_msg, http_stat_code, "
-                     "http_user_agent, http_host, http_raw_host, "
-                     "http_request_line, dns_query, "
-                     "tls_sni, tls_cert_issuer or tls_cert_subject option");
+    SigMatch *pm1 = DetectGetLastSMFromMpmLists(s);
+    SigMatch *pm2 = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
+    if (pm1 == NULL && pm2 == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
+                "the rule, without a content context. Please use a "
+                "content based keyword before using fast_pattern");
         return -1;
     }
 
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 38,
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSSNI_MATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSISSUER_MATCH],
-            DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH]);
-    if (pm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
-                   "the rule, without a content context. Please use a "
-                   "content based keyword before using fast_pattern");
-        return -1;
+    SigMatch *pm = NULL;
+    if (pm1 && pm2) {
+        if (pm1->idx > pm2->idx)
+            pm = pm1;
+        else
+            pm = pm2;
+    } else if (pm1 && !pm2) {
+        pm = pm1;
+    } else {
+        pm = pm2;
     }
 
     cd = (DetectContentData *)pm->ctx;
@@ -242,7 +206,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         }
         else { /*allow only one content to have fast_pattern modifier*/
             int list_id = 0;
-            for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+            for (list_id = 0; list_id < nlists; list_id++) {
                 SigMatch *sm = NULL;
                 for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type == DETECT_CONTENT) {

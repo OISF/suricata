@@ -108,6 +108,11 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_SUPPRESS,
     DETECT_SM_LIST_THRESHOLD,
 
+    /* used for Signature->list, which indicates which list
+     * we're adding keywords to in cases of sticky buffers like
+     * file_data */
+    DETECT_SM_LIST_NOTSET,
+
     DETECT_SM_LIST_BUILTIN_MAX,
 
     /* list for http_uri keyword and the ones relative to it */
@@ -166,10 +171,6 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_MAX,
 
-    /* used for Signature->list, which indicates which list
-     * we're adding keywords to in cases of sticky buffers like
-     * file_data */
-    DETECT_SM_LIST_NOTSET,
 };
 
 /* a is ... than b */
@@ -441,9 +442,9 @@ typedef struct SignatureInitData_ {
     int prefilter_list;
 
     /* holds all sm lists */
-    struct SigMatch_ *smlists[DETECT_SM_LIST_MAX];
+    struct SigMatch_ **smlists;
     /* holds all sm lists' tails */
-    struct SigMatch_ *smlists_tail[DETECT_SM_LIST_MAX];
+    struct SigMatch_ **smlists_tail;
 } SignatureInitData;
 
 /** \brief Signature container */

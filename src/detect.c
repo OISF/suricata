@@ -3483,7 +3483,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+            for (i = 0; i < nlists; i++) {
                 SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
@@ -3497,7 +3497,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+                for (i = 0; i < nlists; i++) {
                     SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
@@ -3960,6 +3960,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
+    const int nlists = DetectBufferTypeMaxId();
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
         /* set up inspect engines */
@@ -3973,7 +3974,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         int i;
-        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (i = 0; i < nlists; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -3981,6 +3982,8 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 sm = nsm;
             }
         }
+        SCFree(s->init_data->smlists);
+        SCFree(s->init_data->smlists_tail);
         SCFree(s->init_data);
         s->init_data = NULL;
     }
