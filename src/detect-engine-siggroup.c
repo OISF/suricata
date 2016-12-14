@@ -321,17 +321,6 @@ void SigGroupHeadHashFree(DetectEngineCtx *de_ctx)
     return;
 }
 
-static uint16_t SignatureGetMpmPatternLen(const Signature *s, const int list)
-{
-    if (s->sm_lists[list] != NULL && s->mpm_sm != NULL &&
-        SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
-    {
-        DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
-        return cd->content_len;
-    }
-    return 0;
-}
-
 /**
  * \brief Add a Signature to a SigGroupHead.
  *
@@ -552,42 +541,6 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 #endif
     return;
-}
-
-/**
- *  \brief Get size of the shortest mpm pattern.
- *
- *  \param de_ctx detection engine ctx for the signatures
- *  \param sgh sig group head to set the flag in
- *  \param list sm_list to consider
- */
-uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
-                                   SigGroupHead *sgh, int list)
-{
-    Signature *s = NULL;
-    uint32_t sig = 0;
-    uint16_t min = USHRT_MAX;
-
-    if (sgh == NULL)
-        return 0;
-
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
-        if (mpm_content_minlen > 0) {
-            if (mpm_content_minlen < min)
-                min = mpm_content_minlen;
-            SCLogDebug("mpm_content_minlen %u", mpm_content_minlen);
-        }
-    }
-
-    if (min == USHRT_MAX)
-        min = 0;
-    SCLogDebug("min mpm size %u", min);
-    return min;
 }
 
 /**
