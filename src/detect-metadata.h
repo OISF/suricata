@@ -24,8 +24,22 @@
 #ifndef __DETECT_METADATA_H__
 #define __DETECT_METADATA_H__
 
+/**
+ * \brief Signature metadata list.
+ */
+typedef struct DetectMetadata_ {
+    /* pointer to key */
+    char *key;
+    /* value data */
+    char *value;
+    /* next reference in the signature */
+    struct DetectMetadata_ *next;
+} DetectMetadata;
+
 /* prototypes */
 void DetectMetadataRegister (void);
+
+void DetectMetadataFree(DetectMetadata *mdata);
 
 #endif /* __DETECT_METADATA_H__ */
 
