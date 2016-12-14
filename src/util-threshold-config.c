@@ -1568,7 +1568,7 @@ int SCThresholdConfTest05(void)
     SCThresholdConfInitContext(de_ctx);
 
     Signature *s = de_ctx->sig_list;
-    SigMatch *m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
+    SigMatch *m = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
     FAIL_IF_NULL(m);
     FAIL_IF_NULL(m->ctx);
@@ -1576,7 +1576,7 @@ int SCThresholdConfTest05(void)
     FAIL_IF_NOT(de->type == TYPE_THRESHOLD && de->track == TRACK_SRC && de->count == 100 && de->seconds == 60);
 
     s = de_ctx->sig_list->next;
-    m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
+    m = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
     FAIL_IF_NULL(m);
     FAIL_IF_NULL(m->ctx);
@@ -1584,7 +1584,7 @@ int SCThresholdConfTest05(void)
     FAIL_IF_NOT(de->type == TYPE_THRESHOLD && de->track == TRACK_SRC && de->count == 100 && de->seconds == 60);
 
     s = de_ctx->sig_list->next->next;
-    m = DetectGetLastSMByListId(sig, DETECT_SM_LIST_THRESHOLD,
+    m = DetectGetLastSMByListId(s, DETECT_SM_LIST_THRESHOLD,
             DETECT_THRESHOLD, -1);
     FAIL_IF_NULL(m);
     FAIL_IF_NULL(m->ctx);
