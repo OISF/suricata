@@ -121,8 +121,6 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HRUDMATCH,
     /* list for http_client_body keyword and the ones relative to it */
     DETECT_SM_LIST_HCBDMATCH,
-    /* list for http_server_body keyword and the ones relative to it */
-    DETECT_SM_LIST_FILEDATA,
     /* list for http_header keyword and the ones relative to it */
     DETECT_SM_LIST_HHDMATCH,
     /* list for http_raw_header keyword and the ones relative to it */

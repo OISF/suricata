@@ -126,8 +126,6 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http cookie content\n");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(fp_engine_analysis_FD, "http client body content\n");
-    else if (list_type == DETECT_SM_LIST_FILEDATA)
-        fprintf(fp_engine_analysis_FD, "http server body content\n");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
         fprintf(fp_engine_analysis_FD, "http stat code content\n");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
@@ -482,8 +480,6 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "http cookie content");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(rule_engine_analysis_FD, "http client body content");
-    else if (list_type == DETECT_SM_LIST_FILEDATA)
-        fprintf(rule_engine_analysis_FD, "http server body content");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
         fprintf(rule_engine_analysis_FD, "http stat code content");
     else if (list_type == DETECT_SM_LIST_HSMDMATCH)
@@ -588,6 +584,9 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
+    const int nlists = DetectBufferTypeMaxId();
+    const int filedata_id = DetectBufferTypeGetByName("file_data");
+
     if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
     }
@@ -606,8 +605,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         rule_ipv6_only += 1;
     }
 
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
-
+    for (list_id = 0; list_id < nlists; list_id++) {
         SigMatch *sm = NULL;
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_PCRE) {
@@ -631,7 +629,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     norm_http_buf += 1;
                     http_cookie_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_FILEDATA) {
+                else if (list_id == filedata_id) {
                     rule_pcre_http += 1;
                     http_server_body_buf += 1;
                     raw_http_buf += 1;
@@ -697,7 +695,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                     raw_http_buf += 1;
                     http_client_body_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_FILEDATA) {
+                else if (list_id == filedata_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_server_body_buf += 1;

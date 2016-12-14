@@ -74,6 +74,8 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 
 #include "detect-engine.h"
 
+static int g_file_data_buffer_id = 0;
+
 static int DetectBase64DataSetupTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -151,7 +153,7 @@ static int DetectBase64DataSetupTest02(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA];
+    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
     if (sm == NULL) {
         printf("DETECT_SM_LIST_FILEDATA is NULL: ");
         goto end;
@@ -249,6 +251,8 @@ end:
 static void DetectBase64DataRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
     UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02);
     UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03);

@@ -991,9 +991,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     } else if (lua->alproto == ALPROTO_HTTP) {
-        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEDATA);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY)
+        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
+            int list = DetectBufferTypeGetByName("file_data");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
         else if (lua->flags & DATATYPE_HTTP_URI)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
