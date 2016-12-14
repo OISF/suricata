@@ -211,12 +211,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
-            AppLayerHtpEnableResponseBodyCallback();
-            s->alproto = ALPROTO_HTTP;
-        }
         sm_list = s->init_data->list;
-        s->flags |= SIG_FLAG_APPLAYER;
+
         if (idad->flags & ISDATAAT_RELATIVE) {
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
@@ -828,103 +824,6 @@ int DetectIsdataatTestParse13(void)
     return result;
 }
 
-static int DetectIsdataatTestParse14(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing file_data and isdataat\"; "
-                               "file_data; content:\"one\"; "
-                               "isdataat:!4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
-
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("server body list empty: ");
-        goto end;
-    }
-
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_ISDATAAT) {
-        printf("last server body sm not isdataat: ");
-        goto end;
-    }
-
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ||
-         !(data->flags & ISDATAAT_NEGATED) ) {
-        goto end;
-    }
-
-    result = 1;
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
-/**
- *  \test file_data with isdataat relative to it
- */
-static int DetectIsdataatTestParse15(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing file_data and isdataat\"; "
-                               "file_data; isdataat:!4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("sig parse: ");
-        goto end;
-    }
-
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("server body list empty: ");
-        goto end;
-    }
-
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_ISDATAAT) {
-        printf("last server body sm not isdataat: ");
-        goto end;
-    }
-
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ||
-         !(data->flags & ISDATAAT_NEGATED) ) {
-        goto end;
-    }
-
-    result = 1;
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-
-    return result;
-}
-
 /**
  *  \test dns_query with isdataat relative to it
  */
@@ -1100,8 +999,6 @@ void DetectIsdataatRegisterTests(void)
     UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11);
     UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12);
     UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13);
-    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14);
-    UtRegisterTest("DetectIsdataatTestParse15", DetectIsdataatTestParse15);
     UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16);
 
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
