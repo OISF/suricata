@@ -1282,8 +1282,19 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     uint32_t u = 0;
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
+    const int nlists = DetectBufferTypeMaxId();
 
     SCEnter();
+
+    /* run buffer type validation callbacks if any */
+    int x;
+    for (x = 0; x < nlists; x++) {
+        if (s->init_data->smlists[x]) {
+            if (DetectBufferRunValidateCallback(x, s) == FALSE) {
+                SCReturnInt(0);
+            }
+        }
+    }
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
         (s->flags & SIG_FLAG_REQUIRE_STREAM)) {
@@ -1323,7 +1334,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
-
+#if 0 // TODO figure out why this is even necessary
     if ((s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
         s->init_data->smlists[DETECT_SM_LIST_UMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
@@ -1341,6 +1352,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->flags |= SIG_FLAG_TOCLIENT;
         s->flags &= ~SIG_FLAG_TOSERVER;
     }
+#endif
     if ((sig_flags & (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT | SIG_FLAG_TOSERVER)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"You seem to have mixed keywords "
                    "that require inspection in both directions.  Atm we only "
@@ -1449,6 +1461,21 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 " keyword (http_*, dce_*). It only supports content on"
                 " raw payload");
             SCReturnInt(0);
+        }
+
+        for (int i = 0; i < nlists; i++) {
+            if (s->init_data->smlists[i] == NULL)
+                continue;
+            if (!(DetectBufferTypeGetNameById(i)))
+                continue;
+
+            if (!(DetectBufferTypeSupportsPacketGetById(i))) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
+                        "specific matches (like dsize, flags, ttl) with stream / "
+                        "state matching by matching on app layer proto (like using "
+                        "http_* keywords).");
+                SCReturnInt(0);
+            }
         }
 
         if (s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] ||

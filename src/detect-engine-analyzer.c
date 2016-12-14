@@ -134,6 +134,13 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http stat msg content\n");
     else if (list_type == DETECT_SM_LIST_HUADMATCH)
         fprintf(fp_engine_analysis_FD, "http user agent content\n");
+    else {
+        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
+        const char *name = DetectBufferTypeGetNameById(list_type);
+        if (desc && name) {
+            fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
+        }
+    }
 
     int flags_set = 0;
     fprintf(fp_engine_analysis_FD, "        Flags:");
@@ -493,6 +500,13 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "tls subject content");
     else if (list_type == DETECT_SM_LIST_DNP3_DATA_MATCH)
         fprintf(rule_engine_analysis_FD, "dnp3 data content");
+    else {
+        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
+        const char *name = DetectBufferTypeGetNameById(list_type);
+        if (desc && name) {
+            fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
+        }
+    }
 
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 
