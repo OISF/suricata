@@ -1954,6 +1954,17 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
+
+        SCReturnInt(0);
+    }
+
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
 
@@ -2053,6 +2064,17 @@ static int SignatureIsPDOnly(const Signature *s)
 
     if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
+
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
+
+        SCReturnInt(0);
+    }
 
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to DP-only. */
@@ -2154,6 +2176,17 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
         s->init_data->smlists[DETECT_SM_LIST_HHHDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
     {
+        SCReturnInt(0);
+    }
+
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
+
         SCReturnInt(0);
     }
 
@@ -3358,6 +3391,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
+    const int nlists = DetectBufferTypeMaxId();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
@@ -3479,6 +3513,13 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                     }
                 }
             }
+        }
+
+        /* run buffer type callbacks if any */
+        int x;
+        for (x = 0; x < nlists; x++) {
+            if (tmp_s->init_data->smlists[x])
+                DetectBufferRunSetupCallback(x, tmp_s);
         }
 
         de_ctx->sig_cnt++;
@@ -4302,6 +4343,9 @@ void SigTableSetup(void)
     DetectBypassRegister();
     DetectHttpRequestLineRegister();
     DetectHttpResponseLineRegister();
+
+    /* close keyword registration */
+    DetectBufferTypeFinalizeRegistration();
 }
 
 void SigTableRegisterTests(void)
