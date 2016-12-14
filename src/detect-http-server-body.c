@@ -59,9 +59,11 @@
 #include "detect-http-server-body.h"
 #include "stream-tcp.h"
 
-int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, char *);
-void DetectHttpServerBodyRegisterTests(void);
-void DetectHttpServerBodyFree(void *);
+static int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, char *);
+static void DetectHttpServerBodyRegisterTests(void);
+static void DetectHttpServerBodyFree(void *);
+
+static int g_file_data_buffer_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "http_server_body" keyword.
@@ -78,15 +80,9 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].RegisterTests = DetectHttpServerBodyRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_PAYLOAD ;
-}
+    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].flags |= SIGMATCH_PAYLOAD;
 
-static void DetectHttpServerBodySetupCallback(Signature *s)
-{
-    s->flags |= SIG_FLAG_APPLAYER;
-    AppLayerHtpEnableResponseBodyCallback();
-
-    return;
+    g_file_data_buffer_id = DetectBufferTypeRegister("file_data");
 }
 
 /**
@@ -106,9 +102,8 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
-                                                  DETECT_SM_LIST_FILEDATA,
-                                                  ALPROTO_HTTP,
-                                                  DetectHttpServerBodySetupCallback);
+                                                  g_file_data_buffer_id,
+                                                  ALPROTO_HTTP, NULL);
 }
 
 /**
@@ -166,7 +161,7 @@ static int DetectHttpServerBodyTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA];
+    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
     if (sm == NULL) {
         goto end;
     }
@@ -1815,15 +1810,15 @@ int DetectHttpServerBodyTest22(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (cd1->flags != 0 || memcmp(cd1->content, "one", cd1->content_len) != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
@@ -1870,15 +1865,15 @@ int DetectHttpServerBodyTest23(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
@@ -1924,15 +1919,15 @@ int DetectHttpServerBodyTest24(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
@@ -1979,15 +1974,15 @@ int DetectHttpServerBodyTest25(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -2035,15 +2030,15 @@ int DetectHttpServerBodyTest26(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -2118,15 +2113,15 @@ int DetectHttpServerBodyTest28(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
     DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -2173,13 +2168,13 @@ int DetectHttpServerBodyTest29(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hsbd1->content, "one", hsbd1->content_len) != 0 ||
         hsbd2->flags != DETECT_CONTENT_DISTANCE ||
@@ -2217,13 +2212,13 @@ int DetectHttpServerBodyTest30(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hsbd1->content, "one", hsbd1->content_len) != 0 ||
         hsbd2->flags != DETECT_CONTENT_WITHIN ||
@@ -2316,38 +2311,32 @@ int DetectHttpServerBodyTest34(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
-        goto end;
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(pcre:/one/Q; "
                                "content:\"two\"; within:5; http_server_body; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
+    FAIL_IF_NULL(de_ctx->sig_list);
+
+    FAIL_IF_NOT_NULL(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH]);
+
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
-        goto end;
-    }
-
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_CONTENT ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->type != DETECT_PCRE) {
+    if (de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->type != DETECT_PCRE) {
 
         goto end;
     }
 
-    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hsbd2->flags != DETECT_CONTENT_WITHIN ||
         memcmp(hsbd2->content, "two", hsbd2->content_len) != 0) {
@@ -2384,21 +2373,21 @@ int DetectHttpServerBodyTest35(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->type != DETECT_CONTENT) {
+    if (de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_PCRE ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->type != DETECT_CONTENT) {
 
         goto end;
     }
 
-    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectContentData *hsbd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd2->flags != (DETECT_PCRE_RELATIVE) ||
         hsbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(hsbd1->content, "two", hsbd1->content_len) != 0) {
@@ -2435,21 +2424,21 @@ int DetectHttpServerBodyTest36(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL\n");
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_CONTENT ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->type != DETECT_PCRE) {
+    if (de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id] == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_CONTENT ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev == NULL ||
+        de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->type != DETECT_PCRE) {
 
         goto end;
     }
 
-    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->prev->ctx;
-    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->prev->ctx;
+    DetectContentData *hsbd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         hsbd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(hsbd2->content, "two", hsbd2->content_len) != 0) {

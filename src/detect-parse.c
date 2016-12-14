@@ -148,7 +148,6 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_UMATCH, "http_uri");
         CASE_CODE_STRING(DETECT_SM_LIST_HRUDMATCH, "http_raw_uri");
         CASE_CODE_STRING(DETECT_SM_LIST_HCBDMATCH, "http_client_body");
-        CASE_CODE_STRING(DETECT_SM_LIST_FILEDATA, "file_data");
         CASE_CODE_STRING(DETECT_SM_LIST_HHDMATCH, "http_header");
         CASE_CODE_STRING(DETECT_SM_LIST_HRHDMATCH, "http_raw_header");
         CASE_CODE_STRING(DETECT_SM_LIST_HSMDMATCH, "http_stat_msg");
@@ -192,7 +191,6 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_UMATCH);
         CASE_CODE(DETECT_SM_LIST_HRUDMATCH);
         CASE_CODE(DETECT_SM_LIST_HCBDMATCH);
-        CASE_CODE(DETECT_SM_LIST_FILEDATA);
         CASE_CODE(DETECT_SM_LIST_HHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HRHDMATCH);
         CASE_CODE(DETECT_SM_LIST_HSMDMATCH);
@@ -1596,7 +1594,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH] ||
-                s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH]  ||
