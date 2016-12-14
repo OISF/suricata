@@ -1915,9 +1915,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
-    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL)
-        return 0;
-
     if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL)
         return 0;
 
@@ -2024,9 +2021,6 @@ static int SignatureIsPDOnly(const Signature *s)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL)
-        return 0;
-
-    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL)
@@ -2161,7 +2155,6 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
         s->init_data->smlists[DETECT_SM_LIST_UMATCH]    != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_AMATCH]    != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
         s->init_data->smlists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
@@ -2332,16 +2325,6 @@ static int SignatureCreateMask(Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
-    }
-
-    if (s->init_data->smlists[DETECT_SM_LIST_FILEDATA] != NULL) {
-        /* set the state depending from the protocol */
-        if (s->alproto == ALPROTO_HTTP)
-            s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        else if (s->alproto == ALPROTO_SMTP)
-            s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-
-        SCLogDebug("sig requires http or smtp app state");
     }
 
     if (s->init_data->smlists[DETECT_SM_LIST_HHDMATCH] != NULL) {

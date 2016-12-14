@@ -520,16 +520,8 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
-            if (data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "dce byte_extract specified "
-                           "with file_data option set.");
-                goto error;
-            }
-            AppLayerHtpEnableResponseBodyCallback();
-        }
         sm_list = s->init_data->list;
-        s->flags |= SIG_FLAG_APPLAYER;
+
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
@@ -678,6 +670,8 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, const Signature *s)
 /*************************************Unittests********************************/
 
 #ifdef UNITTESTS
+
+static int g_file_data_buffer_id = 0;
 
 static int DetectByteExtractTest01(void)
 {
@@ -4634,11 +4628,11 @@ static int DetectByteExtractTest62(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (s->sm_lists_tail[g_file_data_buffer_id] == NULL) {
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_FILEDATA];
+    sm = s->sm_lists[g_file_data_buffer_id];
     if (sm->type != DETECT_BYTE_EXTRACT) {
         result = 0;
         goto end;
@@ -4736,6 +4730,8 @@ static int DetectByteExtractTestParseNoBase(void)
 static void DetectByteExtractRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectByteExtractTest01", DetectByteExtractTest01);
     UtRegisterTest("DetectByteExtractTest02", DetectByteExtractTest02);
     UtRegisterTest("DetectByteExtractTest03", DetectByteExtractTest03);

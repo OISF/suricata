@@ -446,16 +446,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
 
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (s->init_data->list == DETECT_SM_LIST_FILEDATA) {
-            if (data->flags & DETECT_BYTETEST_DCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytetest specified "
-                           "with file_data option set.");
-                goto error;
-            }
-            AppLayerHtpEnableResponseBodyCallback();
-        }
         sm_list = s->init_data->list;
-        s->flags |= SIG_FLAG_APPLAYER;
+
         if (data->flags & DETECT_BYTETEST_RELATIVE) {
             prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
@@ -585,6 +577,8 @@ static void DetectBytetestFree(void *ptr)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+static int g_file_data_buffer_id = 0;
+
 /**
  * \test DetectBytetestTestParse01 is a test to make sure that we return "something"
  *  when given valid bytetest opt
@@ -1248,17 +1242,17 @@ static int DetectBytetestTestParse22(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (s->sm_lists_tail[g_file_data_buffer_id] == NULL) {
         printf("empty server body list: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_BYTETEST) {
+    if (s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_BYTETEST) {
         printf("bytetest not last sm in server body list: ");
         goto end;
     }
 
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    bd = (DetectBytetestData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if (bd->flags & DETECT_BYTETEST_DCE &&
         bd->flags & DETECT_BYTETEST_RELATIVE &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1441,6 +1435,8 @@ end:
 static void DetectBytetestRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectBytetestTestParse01", DetectBytetestTestParse01);
     UtRegisterTest("DetectBytetestTestParse02", DetectBytetestTestParse02);
     UtRegisterTest("DetectBytetestTestParse03", DetectBytetestTestParse03);
