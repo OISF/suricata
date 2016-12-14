@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-parse.h"
 
@@ -45,21 +46,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *pm = NULL;
 
     /* Check for a preceding base64_decode. */
-    pm = SigMatchGetLastSMFromLists(s, 28,
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-        DETECT_BASE64_DECODE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
             "\"base64_data\" keyword seen without preceding base64_decode.");

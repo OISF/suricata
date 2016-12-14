@@ -553,7 +553,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     //uint32_t rule_flowvar = 0;
     uint32_t rule_content_http = 0;
     uint32_t rule_content_offset_depth = 0;
-    uint32_t list_id = 0;
+    int32_t list_id = 0;
     uint32_t rule_warning = 0;
     uint32_t raw_http_buf = 0;
     uint32_t norm_http_buf = 0;
