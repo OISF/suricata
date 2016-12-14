@@ -106,6 +106,9 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
 void DetectAppLayerInspectEngineRegister(AppProto alproto,
         uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback);
 
+void DetectAppLayerInspectEngineRegister2(const char *name,
+        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback);
+
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 

@@ -75,6 +75,10 @@ static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
+static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
+        SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
+        SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail);
+
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
  */
@@ -224,9 +228,10 @@ const char *DetectListToString(int list)
     return "unknown";
 }
 
-int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
-                                           uint8_t sm_type, uint8_t sm_list,
-                                           AppProto alproto,  void (*CustomCallback)(Signature *s))
+int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx,
+        Signature *s, const char *arg,
+        int sm_type, int sm_list,
+        AppProto alproto,  void (*CustomCallback)(Signature *s))
 {
     SigMatch *sm = NULL;
     int ret = -1;
@@ -244,15 +249,14 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
                    sigmatch_table[sm_type].name);
         goto end;
     }
-    /* for now let's hardcode it as http */
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting "
                    "alprotos set");
         goto end;
     }
 
-    sm = SigMatchGetLastSMFromLists(s, 2,
-                                    DETECT_CONTENT, s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
+    sm = DetectGetLastSMByListId(s,
+            DETECT_SM_LIST_PMATCH, DETECT_CONTENT, -1);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"%s\" keyword "
                    "found inside the rule without a content context.  "
@@ -269,9 +273,8 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
         goto end;
     }
     if (cd->flags & (DETECT_CONTENT_WITHIN | DETECT_CONTENT_DISTANCE)) {
-        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
+        SigMatch *pm = DetectGetLastSMByListPtr(s, sm->prev,
+            DETECT_CONTENT, DETECT_PCRE, -1);
         if (pm != NULL) {
             if (pm->type == DETECT_CONTENT) {
                 DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
@@ -282,9 +285,8 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
             }
         }
 
-        pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_CONTENT, s->init_data->smlists_tail[sm_list],
-                                        DETECT_PCRE, s->init_data->smlists_tail[sm_list]);
+        pm = DetectGetLastSMByListId(s, sm_list,
+            DETECT_CONTENT, DETECT_PCRE, -1);
         if (pm != NULL) {
             if (pm->type == DETECT_CONTENT) {
                 DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
@@ -300,7 +302,7 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
     s->alproto = alproto;
     s->flags |= SIG_FLAG_APPLAYER;
 
-    /* transfer the sm from the pmatch list to hcbdmatch list */
+    /* transfer the sm from the pmatch list to sm_list */
     SigMatchTransferSigMatchAcrossLists(sm,
                                         &s->init_data->smlists[DETECT_SM_LIST_PMATCH],
                                         &s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH],
@@ -412,7 +414,7 @@ void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
  *
  * \retval match Pointer to the last SigMatch instance of type 'type'.
  */
-static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, uint8_t type)
+static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, int type)
 {
     while (sm != NULL) {
         if (sm->type == type) {
@@ -424,33 +426,139 @@ static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, uint8_t type)
     return NULL;
 }
 
+/** \brief get the last SigMatch from lists that support
+ *         MPM.
+ *  \note only supports the lists that are registered through
+ *        DetectBufferTypeSupportsMpm().
+ */
+SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
+{
+    SigMatch *sm_last = NULL;
+    SigMatch *sm_new;
+    int sm_type;
+
+    /* if we have a sticky buffer, use that */
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (!(DetectBufferTypeSupportsMpmGetById(s->init_data->list))) {
+            return NULL;
+        }
+
+        sm_last = DetectGetLastSMByListPtr(s,
+                s->init_data->smlists_tail[s->init_data->list],
+                DETECT_CONTENT, -1);
+        return sm_last;
+    }
+
+    /* otherwise brute force it */
+    const int nlists = DetectBufferTypeMaxId();
+    for (sm_type = 0; sm_type < nlists; sm_type++) {
+        if (!DetectBufferTypeSupportsMpmGetById(sm_type))
+            continue;
+        SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
+        sm_new = SigMatchGetLastSMByType(sm_list, DETECT_CONTENT);
+        if (sm_new == NULL)
+            continue;
+        if (sm_last == NULL || sm_new->idx > sm_last->idx)
+            sm_last = sm_new;
+    }
+
+    return sm_last;
+}
+
 /**
  * \brief Returns the sm with the largest index (added latest) from the lists
  *        passed to us.
  *
  * \retval Pointer to Last sm.
  */
-SigMatch *SigMatchGetLastSMFromLists(const Signature *s, int args, ...)
+SigMatch *DetectGetLastSMFromLists(const Signature *s, ...)
 {
-    if (args == 0 || args % 2 != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENTS, "You need to send an even no of args "
-                   "(non zero as well) to this function, since we need a "
-                   "SigMatch list for every SigMatch type(send a map of sm_type "
-                   "and sm_list) sent");
-        /* as this is a bug we should abort to ease debugging */
-        BUG_ON(1);
-    }
-
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
-    int i;
+
+    /* otherwise brute force it */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int buf_type = 0; buf_type < nlists; buf_type++) {
+        if (s->init_data->smlists[buf_type] == NULL)
+            continue;
+        if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
+            buf_type != s->init_data->list)
+            continue;
+
+        int sm_type;
+        va_list ap;
+        va_start(ap, s);
+
+        for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int))
+        {
+            sm_new = SigMatchGetLastSMByType(s->init_data->smlists_tail[buf_type], sm_type);
+            if (sm_new == NULL)
+                continue;
+            if (sm_last == NULL || sm_new->idx > sm_last->idx)
+                sm_last = sm_new;
+        }
+        va_end(ap);
+    }
+
+    return sm_last;
+}
+
+/**
+ * \brief Returns the sm with the largest index (added last) from the list
+ *        passed to us as a pointer.
+ *
+ * \param sm_list pointer to the SigMatch we should look before
+ * \param va_args list of keyword types terminated by -1
+ *
+ * \retval sm_last to last sm.
+ */
+SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...)
+{
+    SigMatch *sm_last = NULL;
+    SigMatch *sm_new;
+    int sm_type;
 
     va_list ap;
-    va_start(ap, args);
+    va_start(ap, sm_list);
 
-    for (i = 0; i < args; i += 2) {
-        int sm_type = va_arg(ap, int);
-        SigMatch *sm_list = va_arg(ap, SigMatch *);
+    for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int))
+    {
+        sm_new = SigMatchGetLastSMByType(sm_list, sm_type);
+        if (sm_new == NULL)
+            continue;
+        if (sm_last == NULL || sm_new->idx > sm_last->idx)
+            sm_last = sm_new;
+    }
+
+    va_end(ap);
+
+    return sm_last;
+}
+
+/**
+ * \brief Returns the sm with the largest index (added last) from the list
+ *        passed to us as an id.
+ *
+ * \param list_id id of the list to be searched
+ * \param va_args list of keyword types terminated by -1
+ *
+ * \retval sm_last to last sm.
+ */
+SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
+{
+    SigMatch *sm_last = NULL;
+    SigMatch *sm_new;
+    int sm_type;
+
+    SigMatch *sm_list = s->init_data->smlists_tail[list_id];
+    if (sm_list == NULL)
+        return NULL;
+
+    va_list ap;
+    va_start(ap, list_id);
+
+    for (sm_type = va_arg(ap, int); sm_type != -1; sm_type = va_arg(ap, int))
+    {
         sm_new = SigMatchGetLastSMByType(sm_list, sm_type);
         if (sm_new == NULL)
             continue;
@@ -466,15 +574,16 @@ SigMatch *SigMatchGetLastSMFromLists(const Signature *s, int args, ...)
 /**
  * \brief Returns the sm with the largest index (added latest) from this sig
  *
- * \retval Pointer to Last sm.
+ * \retval sm_last Pointer to last sm
  */
-SigMatch *SigMatchGetLastSM(const Signature *s)
+SigMatch *DetectGetLastSM(const Signature *s)
 {
+    const int nlists = DetectBufferTypeMaxId();
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
     int i;
 
-    for (i = 0; i < DETECT_SM_LIST_MAX; i ++) {
+    for (i = 0; i < nlists; i ++) {
         sm_new = s->init_data->smlists_tail[i];
         if (sm_new == NULL)
             continue;
@@ -485,9 +594,9 @@ SigMatch *SigMatchGetLastSM(const Signature *s)
     return sm_last;
 }
 
-void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
-                                         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
-                                         SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail)
+static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
+        SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
+        SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail)
 {
     /* we won't do any checks for args */
 
@@ -519,9 +628,10 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 
 int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
+    const int nlists = DetectBufferTypeMaxId();
     int list = 0;
 
-    for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+    for (list = 0; list < nlists; list++) {
         const SigMatch *sm = s->init_data->smlists[list];
         while (sm != NULL) {
             if (sm == key_sm)
@@ -1005,6 +1115,22 @@ Signature *SigAlloc (void)
         SCFree(sig);
         return NULL;
     }
+    int lists = DetectBufferTypeMaxId();
+    SCLogDebug("smlists size %d", lists);
+    sig->init_data->smlists = SCCalloc(lists, sizeof(SigMatch *));
+    if (sig->init_data->smlists == NULL) {
+        SCFree(sig->init_data);
+        SCFree(sig);
+        return NULL;
+    }
+
+    sig->init_data->smlists_tail = SCCalloc(lists, sizeof(SigMatch *));
+    if (sig->init_data->smlists_tail == NULL) {
+        SCFree(sig->init_data->smlists_tail);
+        SCFree(sig->init_data);
+        SCFree(sig);
+        return NULL;
+    }
 
     /* assign it to -1, so that we can later check if the value has been
      * overwritten after the Signature has been parsed, and if it hasn't been
@@ -1071,6 +1197,8 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
 
 void SigFree(Signature *s)
 {
+    const int nlists = DetectBufferTypeMaxId();
+
     if (s == NULL)
         return;
 
@@ -1082,7 +1210,7 @@ void SigFree(Signature *s)
 
     int i;
     if (s->init_data) {
-        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (i = 0; i < nlists; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;
@@ -1093,6 +1221,8 @@ void SigFree(Signature *s)
     }
     SigMatchFreeArrays(s, (s->init_data == NULL));
     if (s->init_data) {
+        SCFree(s->init_data->smlists);
+        SCFree(s->init_data->smlists_tail);
         SCFree(s->init_data);
         s->init_data = NULL;
     }
@@ -1441,21 +1571,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     //}
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        pm =  SigMatchGetLastSMFromLists(s, 24,
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_UMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRUDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HCBDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_FILEDATA],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HHDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HMDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HSMDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HSCDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HCDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HUADMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HHHDMATCH],
-                DETECT_REPLACE, s->init_data->smlists_tail[DETECT_SM_LIST_HRHHDMATCH]);
-        if (pm != NULL) {
+        pm = DetectGetLastSMFromLists(s, DETECT_REPLACE, -1);
+        if (pm != NULL && SigMatchListSMBelongsTo(s, pm) != DETECT_SM_LIST_PMATCH) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
                 " replace keyword linked with a modified content"
                 " keyword (http_*, dce_*). It only supports content on"
@@ -1533,7 +1650,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
         int list;
         uint16_t idx = s->init_data->smlists[DETECT_SM_LIST_BASE64_DATA]->idx;
-        for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+        for (list = 0; list < nlists; list++) {
             if (list == DETECT_SM_LIST_POSTMATCH ||
                 list == DETECT_SM_LIST_TMATCH ||
                 list == DETECT_SM_LIST_SUPPRESS ||
@@ -1559,7 +1676,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 
 #ifdef DEBUG
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] != NULL) {
             for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
                 BUG_ON(sm == sm->prev);

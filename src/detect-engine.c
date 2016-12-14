@@ -104,9 +104,11 @@ static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 void DetectAppLayerInspectEngineRegister(AppProto alproto,
         uint32_t dir, int32_t sm_list, InspectEngineFuncPtr Callback)
 {
+    const int nlists = DetectBufferTypeMaxId();
+
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
+        (sm_list < DETECT_SM_LIST_MATCH || sm_list >= nlists) ||
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
@@ -142,13 +144,24 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
     }
 }
 
+void DetectAppLayerInspectEngineRegister2(const char *name,
+        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback)
+{
+    DetectBufferTypeRegister(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    BUG_ON(sm_list == -1);
+    DetectAppLayerInspectEngineRegister(alproto, dir, sm_list, Callback);
+}
+
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
-    SigMatchData *ptrs[DETECT_SM_LIST_MAX] = { NULL };
+    const int nlists = DetectBufferTypeMaxId();
+    SigMatchData *ptrs[nlists];
+    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
     /* convert lists to SigMatchData arrays */
     int i = 0;
-    for (i = DETECT_SM_LIST_BUILTIN_MAX; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = DETECT_SM_LIST_BUILTIN_MAX; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
 
@@ -215,7 +228,9 @@ next:
  */
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 {
-    SigMatchData *ptrs[DETECT_SM_LIST_MAX] = { NULL };
+    const int nlists = DetectBufferTypeMaxId();
+    SigMatchData *ptrs[nlists];
+    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
     /* free engines and put smd in the array */
     DetectEngineAppInspectionEngine *ie = s->app_inspect;
@@ -229,7 +244,7 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 
     /* free the smds */
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++)
+    for (i = 0; i < nlists; i++)
     {
         if (ptrs[i] == NULL)
             continue;
