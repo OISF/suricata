@@ -47,12 +47,14 @@ enum VarTypes {
 
 typedef struct GenericVar_ {
     uint8_t type;
+    uint8_t pad[3];
     uint32_t idx;
     struct GenericVar_ *next;
 } GenericVar;
 
 typedef struct XBit_ {
     uint8_t type;       /* type, DETECT_XBITS in this case */
+    uint8_t pad[3];
     uint32_t idx;       /* name idx */
     GenericVar *next;
     uint32_t expire;
