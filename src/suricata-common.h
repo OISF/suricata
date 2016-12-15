@@ -317,6 +317,8 @@
 #define BIT_U32(n) (1UL  << (n))
 #define BIT_U64(n) (1ULL << (n))
 
+#define WARN_UNUSED __attribute__((warn_unused_result))
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_IPONLY,
     PROF_DETECT_RULES,
