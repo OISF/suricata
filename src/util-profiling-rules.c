@@ -311,7 +311,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
     CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
-    for (i = 0; i < count; i++) {
+    for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
         /* Stop dumping when we hit our first rule with 0 checks.  Due
          * to sorting this will be the beginning of all the rules with
          * 0 checks. */
