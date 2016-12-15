@@ -37,6 +37,7 @@
 #include "defrag.h"
 #include "ippair.h"
 #include "app-layer.h"
+#include "host-bit.h"
 
 #include "util-profiling.h"
 
@@ -795,6 +796,154 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
 
     json_object_set_new(answer, "message", json_string("work in progress"));
     return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to add a hostbit
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data)
+{
+    /* 1 get ip address */
+    json_t *jarg = json_object_get(cmd, "ipaddress");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("ipaddress is not an string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *ipaddress = json_string_value(jarg);
+
+    Address a;
+    struct in_addr in;
+    memset(&in, 0, sizeof(in));
+    if (inet_pton(AF_INET, ipaddress, &in) != 1) {
+        uint32_t in6[4];
+        memset(&in6, 0, sizeof(in6));
+        if (inet_pton(AF_INET6, ipaddress, &in) != 1) {
+            json_object_set_new(answer, "message", json_string("invalid address string"));
+            return TM_ECODE_FAILED;
+        } else {
+            a.family = AF_INET6;
+            a.addr_data32[0] = in6[0];
+            a.addr_data32[1] = in6[1];
+            a.addr_data32[2] = in6[2];
+            a.addr_data32[3] = in6[3];
+        }
+    } else {
+        a.family = AF_INET;
+        a.addr_data32[0] = in.s_addr;
+        a.addr_data32[1] = 0;
+        a.addr_data32[2] = 0;
+        a.addr_data32[3] = 0;
+    }
+
+    /* 2 get variable name */
+    jarg = json_object_get(cmd, "hostbit");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("hostbit is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *hostbit = json_string_value(jarg);
+    uint32_t idx = VarNameStoreLookupByName(hostbit, VAR_TYPE_HOST_BIT);
+    if (idx == 0) {
+        json_object_set_new(answer, "message", json_string("hostbit not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* 3 get expire */
+    jarg = json_object_get(cmd, "expire");
+    if (!json_is_integer(jarg)) {
+        json_object_set_new(answer, "message", json_string("expire is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    uint32_t expire = json_integer_value(jarg);
+
+    SCLogInfo("add-hostbit: ip %s hostbit %s expire %us", ipaddress, hostbit, expire);
+
+    struct timeval current_time;
+    TimeGet(&current_time);
+    Host *host = HostGetHostFromHash(&a);
+    if (host) {
+        HostBitSet(host, idx, current_time.tv_sec + expire);
+        HostUnlock(host);
+
+        json_object_set_new(answer, "message", json_string("hostbit added"));
+        return TM_ECODE_OK;
+    } else {
+        json_object_set_new(answer, "message", json_string("couldn't create host"));
+        return TM_ECODE_FAILED;
+    }
+}
+
+/**
+ * \brief Command to remove a tenant handler
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data)
+{
+    /* 1 get ip address */
+    json_t *jarg = json_object_get(cmd, "ipaddress");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("ipaddress is not an string"));
+        return TM_ECODE_FAILED;
+    }
+    const char *ipaddress = json_string_value(jarg);
+
+    Address a;
+    struct in_addr in;
+    memset(&in, 0, sizeof(in));
+    if (inet_pton(AF_INET, ipaddress, &in) != 1) {
+        uint32_t in6[4];
+        memset(&in6, 0, sizeof(in6));
+        if (inet_pton(AF_INET6, ipaddress, &in) != 1) {
+            json_object_set_new(answer, "message", json_string("invalid address string"));
+            return TM_ECODE_FAILED;
+        } else {
+            a.family = AF_INET6;
+            a.addr_data32[0] = in6[0];
+            a.addr_data32[1] = in6[1];
+            a.addr_data32[2] = in6[2];
+            a.addr_data32[3] = in6[3];
+        }
+    } else {
+        a.family = AF_INET;
+        a.addr_data32[0] = in.s_addr;
+        a.addr_data32[1] = 0;
+        a.addr_data32[2] = 0;
+        a.addr_data32[3] = 0;
+    }
+
+    /* 2 get variable name */
+    jarg = json_object_get(cmd, "hostbit");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("hostbit is not a string"));
+        return TM_ECODE_FAILED;
+    }
+
+    const char *hostbit = json_string_value(jarg);
+    uint32_t idx = VarNameStoreLookupByName(hostbit, VAR_TYPE_HOST_BIT);
+    if (idx == 0) {
+        json_object_set_new(answer, "message", json_string("hostbit not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogInfo("remove-hostbit: %s %s", ipaddress, hostbit);
+
+    Host *host = HostLookupHostFromHash(&a);
+    if (host) {
+        HostBitUnset(host, idx);
+        HostUnlock(host);
+        json_object_set_new(answer, "message", json_string("hostbit removed"));
+        return TM_ECODE_OK;
+    } else {
+        json_object_set_new(answer, "message", json_string("host not found"));
+        return TM_ECODE_FAILED;
+    }
 }
 #endif /* BUILD_UNIX_SOCKET */
 
