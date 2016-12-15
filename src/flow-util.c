@@ -137,10 +137,12 @@ void FlowInit(Flow *f, const Packet *p)
     if (PKT_IS_IPV4(p)) {
         FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
         FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
+        FLOW_SET_IPV4_TTL_FROM_PACKET(p, f);
         f->flags |= FLOW_IPV4;
     } else if (PKT_IS_IPV6(p)) {
         FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
         FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
+        FLOW_SET_IPV6_HLIM_FROM_PACKET(p, f);
         f->flags |= FLOW_IPV6;
     }
 #ifdef DEBUG
