@@ -1411,7 +1411,7 @@ profiling:
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
-    # Limit the number of items printed at exit (ignored for json).
+    # Limit the number of sids for which stats are shown at exit.
     limit: 100
 
     # output to json
