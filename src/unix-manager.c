@@ -933,6 +933,9 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("reload-tenant", UnixSocketReloadTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
 
     *data = utd;
     return TM_ECODE_OK;
