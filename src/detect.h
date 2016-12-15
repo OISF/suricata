@@ -532,8 +532,6 @@ typedef struct DetectReplaceList_ {
 /** only execute flowvar storage if rule matched */
 #define DETECT_VAR_TYPE_FLOW_POSTMATCH      1
 #define DETECT_VAR_TYPE_PKT_POSTMATCH       2
-/** execute flowvar storage even if rule doesn't match (for lua) */
-#define DETECT_VAR_TYPE_ALWAYS              3
 
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
