@@ -336,10 +336,9 @@ static int DetectFlowvarPostMatch(ThreadVars *tv,
     return 1;
 }
 
-/** \brief Handle flowvar candidate list in det_ctx:
- *         - clean up the list
- *         - enforce storage for type ALWAYS (vars set from lua)
- *   Only called from DetectFlowvarProcessList() when flowvarlist is not NULL .
+/** \brief Handle flowvar candidate list in det_ctx: clean up the list
+ *
+ *   Only called from DetectVarProcessList() when varlist is not NULL.
  */
 void DetectVarProcessListInternal(DetectVarList *fs, Flow *f, Packet *p)
 {
@@ -348,16 +347,10 @@ void DetectVarProcessListInternal(DetectVarList *fs, Flow *f, Packet *p)
     do {
         next = fs->next;
 
-        if (fs->type == DETECT_VAR_TYPE_ALWAYS) {
-            SCLogDebug("adding to the flow %u:", fs->idx);
-            //PrintRawDataFp(stdout, fs->buffer, fs->len);
-
-            FlowVarAddStrNoLock(f, fs->idx, fs->buffer, fs->len);
-            /* memory at fs->buffer is now the responsibility of
-             * the flowvar code. */
-        } else {
-            SCFree(fs->buffer);
+        if (fs->key) {
+            SCFree(fs->key);
         }
+        SCFree(fs->buffer);
         SCFree(fs);
         fs = next;
     } while (fs != NULL);
