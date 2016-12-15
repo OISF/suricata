@@ -97,7 +97,16 @@ enum {
     SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH,
     SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH,
 };
-static int profiling_rules_sort_order = SC_PROFILING_RULES_SORT_BY_TICKS;
+
+static int profiling_rules_sort_orders[8] = {
+    SC_PROFILING_RULES_SORT_BY_TICKS,
+    SC_PROFILING_RULES_SORT_BY_AVG_TICKS,
+    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH,
+    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH,
+    SC_PROFILING_RULES_SORT_BY_CHECKS,
+    SC_PROFILING_RULES_SORT_BY_MATCHES,
+    SC_PROFILING_RULES_SORT_BY_MAX_TICKS,
+    -1 };
 
 /**
  * Maximum number of rules to dump.
@@ -106,6 +115,11 @@ static uint32_t profiling_rules_limit = UINT32_MAX;
 
 void SCProfilingRulesGlobalInit(void)
 {
+#define SET_ONE(x) { \
+        profiling_rules_sort_orders[0] = (x); \
+        profiling_rules_sort_orders[1] = -1;  \
+    }
+
     ConfNode *conf;
     const char *val;
 
@@ -117,32 +131,25 @@ void SCProfilingRulesGlobalInit(void)
             val = ConfNodeLookupChildValue(conf, "sort");
             if (val != NULL) {
                 if (strcmp(val, "ticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_TICKS;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_TICKS);
                 }
                 else if (strcmp(val, "avgticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_AVG_TICKS);
                 }
                 else if (strcmp(val, "avgticks_match") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH);
                 }
                 else if (strcmp(val, "avgticks_no_match") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH);
                 }
                 else if (strcmp(val, "checks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_CHECKS;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_CHECKS);
                 }
                 else if (strcmp(val, "matches") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_MATCHES;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_MATCHES);
                 }
                 else if (strcmp(val, "maxticks") == 0) {
-                    profiling_rules_sort_order =
-                        SC_PROFILING_RULES_SORT_BY_MAX_TICKS;
+                    SET_ONE(SC_PROFILING_RULES_SORT_BY_MAX_TICKS);
                 }
                 else {
                     SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -190,6 +197,7 @@ void SCProfilingRulesGlobalInit(void)
             }
         }
     }
+#undef SET_ONE
 }
 
 /**
@@ -292,7 +300,9 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
 
 #ifdef HAVE_LIBJANSSON
 
-static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64_t total_ticks)
+static void DumpJson(FILE *fp, SCProfileSummary *summary,
+        uint32_t count, uint64_t total_ticks,
+        const char *sort_desc)
 {
     char timebuf[64];
     uint32_t i;
@@ -310,6 +320,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
     gettimeofday(&tval, NULL);
     CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
     json_object_set_new(js, "timestamp", json_string(timebuf));
+    json_object_set_new(js, "sort", json_string(sort_desc));
 
     for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
         /* Stop dumping when we hit our first rule with 0 checks.  Due
@@ -354,7 +365,9 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
 
 #endif /* HAVE_LIBJANSSON */
 
-static void DumpText(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64_t total_ticks)
+static void DumpText(FILE *fp, SCProfileSummary *summary,
+        uint32_t count, uint64_t total_ticks,
+        const char *sort_desc)
 {
     uint32_t i;
     struct timeval tval;
@@ -366,8 +379,9 @@ static void DumpText(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");
     fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
+            "%02d:%02d:%02d.", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
             tms->tm_hour,tms->tm_min, tms->tm_sec);
+    fprintf(fp, " Sorted by: %s.\n", sort_desc);
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");
     fprintf(fp, "   %-8s %-12s %-8s %-8s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Num", "Rule", "Gid", "Rev", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
@@ -480,43 +494,55 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
         total_ticks += summary[i].ticks;
     }
 
-    switch (profiling_rules_sort_order) {
-        case SC_PROFILING_RULES_SORT_BY_TICKS:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByTicks);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_AVG_TICKS:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByAvgTicks);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_CHECKS:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByChecks);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_MATCHES:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByMatches);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_MAX_TICKS:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByMaxTicks);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByAvgTicksMatch);
-            break;
-        case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH:
-            qsort(summary, count, sizeof(SCProfileSummary),
-                    SCProfileSummarySortByAvgTicksNoMatch);
-            break;
-    }
+    int *order = profiling_rules_sort_orders;
+    while (*order != -1) {
+        const char *sort_desc = NULL;
+        switch (*order) {
+            case SC_PROFILING_RULES_SORT_BY_TICKS:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByTicks);
+                sort_desc = "ticks";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_AVG_TICKS:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByAvgTicks);
+                sort_desc = "average ticks";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_CHECKS:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByChecks);
+                sort_desc = "number of checks";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_MATCHES:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByMatches);
+                sort_desc = "number of matches";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_MAX_TICKS:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByMaxTicks);
+                sort_desc = "max ticks";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByAvgTicksMatch);
+                sort_desc = "average ticks (match)";
+                break;
+            case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH:
+                qsort(summary, count, sizeof(SCProfileSummary),
+                        SCProfileSummarySortByAvgTicksNoMatch);
+                sort_desc = "average ticks (no match)";
+                break;
+        }
 #ifdef HAVE_LIBJANSSON
-    if (profiling_rule_json) {
-        DumpJson(fp, summary, count, total_ticks);
-    } else
+        if (profiling_rule_json) {
+            DumpJson(fp, summary, count, total_ticks, sort_desc);
+        } else
 #endif
-    {
-        DumpText(fp, summary, count, total_ticks);
+        {
+            DumpText(fp, summary, count, total_ticks, sort_desc);
+        }
+        order++;
     }
 
     if (fp != stdout)
