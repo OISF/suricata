@@ -4,14 +4,14 @@ Interacting via Unix Socket
 Introduction
 ------------
 
-Since 1.4 version, Suricata can listen to a unix socket and accept
-commands from the user. The exchange protocol is JSON-based and the
-format of the message has been done to be generic and it is described
-in this commit message. An example script called suricatasc is
-provided in the source and installed automatically when updating
-Suricata.
+Suricata can listen to a unix socket and accept commands from the user. The
+exchange protocol is JSON-based and the format of the message has been done
+to be generic.
 
-The unix socket is disabled by default. 
+An example script called suricatasc is provided in the source and installed
+automatically when installing/updating Suricata.
+
+The unix socket is enabled by default if libjansson is available.
 
 You need to have libjansson installed:
   
@@ -19,15 +19,14 @@ You need to have libjansson installed:
 * libjansson-dev - C library for encoding, decoding and manipulating JSON data (dev)
 * python-simplejson - simple, fast, extensible JSON encoder/decoder for Python
   
-::
+Debian/Ubuntu::
   
    apt-get install libjansson4 libjansson-dev python-simplejson
 
 If libjansson is present on the system , unix socket will be compiled
-in automatically - when you use "--enable-unix-socket" in your
-configure line.
+in automatically.
 
-The creation of the socket is activated by setting enabled to yes
+The creation of the socket is managed by setting enabled to 'yes' or 'auto'
 under unix-command in Suricata YAML configuration file:
   
 ::
