@@ -344,6 +344,24 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
+
+
+    /* update flow's ttl fields if needed */
+    if (PKT_IS_IPV4(p)) {
+        uint8_t ttl = IPV4_GET_IPTTL(p);
+        if (ttl < f->min_ttl) {
+            f->min_ttl = ttl;
+        } else if (ttl > f->max_ttl) {
+            f->max_ttl = ttl;
+        }
+    } else if (PKT_IS_IPV6(p)) {
+        uint8_t ttl = IPV6_GET_HLIM(p);
+        if (ttl < f->min_ttl) {
+            f->min_ttl = ttl;
+        } else if (ttl > f->max_ttl) {
+            f->max_ttl = ttl;
+        }
+    }
 }
 
 /** \brief Entry point for packet flow handling

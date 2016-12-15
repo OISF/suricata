@@ -214,6 +214,9 @@ static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Fl
     json_object_set_new(hjs, "age",
             json_integer(age));
 
+    json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl));
+    json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl));
+
     json_object_set_new(js, "netflow", hjs);
 
     /* TCP */
