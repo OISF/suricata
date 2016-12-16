@@ -215,7 +215,7 @@ static void PrefilterTxTlsSubject(DetectEngineThreadCtx *det_ctx, const void *pe
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     SSLState *ssl_state = f->alstate;
 
-    if (ssl_state->server_connp.cert0_issuerdn == NULL)
+    if (ssl_state->server_connp.cert0_subject == NULL)
         return;
 
     const uint8_t *buffer = (const uint8_t *)ssl_state->server_connp.cert0_subject;
