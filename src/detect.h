@@ -901,6 +901,8 @@ typedef struct DetectEngineThreadCtx_ {
     int base64_decoded_len;
     int base64_decoded_len_max;
 
+    uint8_t alert_flags;
+
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
