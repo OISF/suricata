@@ -268,15 +268,21 @@ typedef struct PacketAlert_ {
 /** After processing an alert by the thresholding module, if at
  *  last it gets triggered, we might want to stick the drop action to
  *  the flow on IPS mode */
-#define PACKET_ALERT_FLAG_DROP_FLOW     0x01
+#define PACKET_ALERT_FLAG_DROP_FLOW    BIT_U8(0)
 /** alert was generated based on state */
-#define PACKET_ALERT_FLAG_STATE_MATCH   0x02
+#define PACKET_ALERT_FLAG_STATE_MATCH   BIT_U8(1)
 /** alert was generated based on stream */
-#define PACKET_ALERT_FLAG_STREAM_MATCH  0x04
+#define PACKET_ALERT_FLAG_STREAM_MATCH  BIT_U8(1)
 /** alert is in a tx, tx_id set */
-#define PACKET_ALERT_FLAG_TX            0x08
+#define PACKET_ALERT_FLAG_TX            BIT_U8(3)
 /** action was changed by rate_filter */
-#define PACKET_ALERT_RATE_FILTER_MODIFIED   0x10
+#define PACKET_ALERT_RATE_FILTER_MODIFIED   BIT_U8(4)
+/** alert has source which is target of attack */
+#define PACKET_ALERT_SRC_IS_TARGET   BIT_U8(5)
+/** alert has destination which is target of attack */
+#define PACKET_ALERT_DEST_IS_TARGET   BIT_U8(6)
+
+#define PACKET_ALERT_HAS_IDMEF   (PACKET_ALERT_DEST_IS_TARGET|PACKET_ALERT_SRC_IS_TARGET)
 
 #define PACKET_ALERT_MAX 15
 
