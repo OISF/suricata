@@ -36,7 +36,7 @@
 
 #include "util-debug.h"
 
-static void XBitFree(XBit *fb)
+void XBitFree(XBit *fb)
 {
     if (fb == NULL)
         return;
