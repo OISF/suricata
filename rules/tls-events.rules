@@ -26,5 +26,6 @@ alert tls any any -> any any (msg:"SURICATA TLS multiple SNI extensions"; flow:e
 alert tls any any -> any any (msg:"SURICATA TLS invalid SNI type"; flow:established,to_server; app-layer-event:tls.invalid_sni_type; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230017; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS invalid SNI length"; flow:established,to_server; app-layer-event:tls.invalid_sni_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230018; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS handshake invalid length"; flow:established; app-layer-event:tls.handshake_invalid_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230019; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS too many records in packet"; flow:established; app-layer-event:tls.too_many_records_in_packet; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230020; rev:1;)
 
-#next sid is 2230020
+#next sid is 2230021

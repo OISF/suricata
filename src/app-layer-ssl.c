@@ -67,6 +67,7 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { "MULTIPLE_SNI_EXTENSIONS",     TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS },
     { "INVALID_SNI_TYPE",            TLS_DECODER_EVENT_INVALID_SNI_TYPE },
     { "INVALID_SNI_LENGTH",          TLS_DECODER_EVENT_INVALID_SNI_LENGTH },
+    { "TOO_MANY_RECORDS_IN_PACKET",  TLS_DECODER_EVENT_TOO_MANY_RECORDS_IN_PACKET },
     /* certificate decoding messages */
     { "INVALID_CERTIFICATE",         TLS_DECODER_EVENT_INVALID_CERTIFICATE },
     { "CERTIFICATE_MISSING_ELEMENT", TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT },
@@ -130,6 +131,8 @@ SslConfig ssl_config;
 /* TLS heartbeat protocol types */
 #define TLS_HB_REQUEST                  1
 #define TLS_HB_RESPONSE                 2
+
+#define SSL_PACKET_MAX_RECORDS        255
 
 #define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
@@ -1365,11 +1368,12 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 
     /* if we have more than one record */
     while (input_len > 0) {
-        if (counter++ == 30) {
+        if (counter++ == SSL_PACKET_MAX_RECORDS) {
             SCLogDebug("Looks like we have looped quite a bit. Reset state "
                        "and get out of here");
             SSLParserReset(ssl_state);
-            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSL_RECORD);
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_TOO_MANY_RECORDS_IN_PACKET);
             return -1;
         }
 
