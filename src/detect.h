@@ -240,6 +240,12 @@ typedef struct DetectPort_ {
 /** Proto detect only signature.
  *  Inspected once per direction when protocol detection is done. */
 #define SIG_FLAG_PDONLY                 (1<<24)
+/** Info for Source and Target identification */
+#define SIG_FLAG_SRC_IS_TARGET          (1<<25)
+/** Info for Source and Target identification */
+#define SIG_FLAG_DEST_IS_TARGET         (1<<26)
+
+#define SIG_FLAG_HAS_TARGET     (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
@@ -909,6 +915,7 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *base64_decoded;
     int base64_decoded_len;
     int base64_decoded_len_max;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
@@ -1342,6 +1349,7 @@ enum {
     DETECT_BASE64_DATA,
 
     DETECT_TEMPLATE,
+    DETECT_TARGET,
     DETECT_AL_TEMPLATE_BUFFER,
 
     DETECT_BYPASS,
