@@ -993,6 +993,8 @@ engine-analysis:
   rules-fast-pattern: yes
   # enables printing reports for each rule
   rules: yes
+  # output format
+  output-format: txt # json
 
 #recursion and match limits for PCRE where supported
 pcre:

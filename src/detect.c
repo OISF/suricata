@@ -346,10 +346,10 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
                 RetrieveFPForSig(sig);
                 if (fp_engine_analysis_set) {
-                    EngineAnalysisFP(sig, line);
+                    EngineAnalysisFP(sig, line, sig_file);
                 }
                 if (rule_engine_analysis_set) {
-                    EngineAnalysisRules(sig, line);
+                    EngineAnalysisRules(sig, line, sig_file);
                 }
             }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
