@@ -57,6 +57,8 @@ typedef struct XBit_ {
     uint32_t expire;
 } XBit;
 
+void XBitFree(XBit *);
+
 // A list of variables we try to resolve while parsing configuration file.
 // Helps to detect recursive declarations.
 typedef struct ResolvedVariable_ {

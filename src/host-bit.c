@@ -123,6 +123,7 @@ static void HostBitRemove(Host *h, uint16_t idx)
     GenericVar *gv = HostGetStorageById(h, host_bit_id);
     if (gv) {
         GenericVarRemove(&gv, (GenericVar *)fb);
+        XBitFree(fb);
         HostSetStorageById(h, host_bit_id, gv);
     }
 }
