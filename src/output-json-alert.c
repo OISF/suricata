@@ -214,6 +214,37 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
+    if (pa->flags & PACKET_ALERT_HAS_METADATA) {
+        char srcip[46], dstip[46];
+        if (p->flow) {
+            Flow *f = p->flow;
+            if (FLOW_IS_IPV4(f)) {
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+            } else if (FLOW_IS_IPV6(f)) {
+                PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+            }
+        } else {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+            }
+
+        }
+        if (pa->flags & PACKET_ALERT_DEST_IS_TARGET) {
+            json_object_set_new(ajs, "source", json_string(srcip));
+            json_object_set_new(ajs, "target", json_string(dstip));
+        }
+        if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
+            json_object_set_new(ajs, "source", json_string(dstip));
+            json_object_set_new(ajs, "target", json_string(srcip));
+        }
+    }
+
     /* alert */
     json_object_set_new(js, "alert", ajs);
 }
