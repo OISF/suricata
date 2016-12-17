@@ -216,6 +216,20 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (pa->flags & PACKET_ALERT_HAS_METADATA) {
         char srcip[46], dstip[46];
+        Port sp, dp;
+        json_t *sjs = json_object();
+        if (sjs == NULL) {
+            json_decref(js);
+            return;
+        }
+
+        json_t *tjs = json_object();
+        if (tjs == NULL) {
+            json_decref(js);
+            json_decref(sjs);
+            return;
+        }
+
         if (p->flow) {
             Flow *f = p->flow;
             if (FLOW_IS_IPV4(f)) {
@@ -225,6 +239,8 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
                 PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
             }
+            sp = f->sp;
+            dp = f->dp;
         } else {
             if (PKT_IS_IPV4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
@@ -233,16 +249,40 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
                 PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
             }
-
+            sp = p->sp;
+            dp = p->dp;
         }
+
         if (pa->flags & PACKET_ALERT_DEST_IS_TARGET) {
-            json_object_set_new(ajs, "source", json_string(srcip));
-            json_object_set_new(ajs, "target", json_string(dstip));
+            json_object_set_new(sjs, "ip", json_string(srcip));
+            json_object_set_new(tjs, "ip", json_string(dstip));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_integer(sp));
+                    json_object_set_new(tjs, "port", json_integer(dp));
+            }
         }
         if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
-            json_object_set_new(ajs, "source", json_string(dstip));
-            json_object_set_new(ajs, "target", json_string(srcip));
+            json_object_set_new(sjs, "ip", json_string(dstip));
+            json_object_set_new(tjs, "ip", json_string(srcip));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_integer(dp));
+                    json_object_set_new(tjs, "port", json_integer(sp));
+            }
         }
+        json_object_set_new(ajs, "source", sjs);
+        json_object_set_new(ajs, "target", tjs);
     }
 
     /* alert */
