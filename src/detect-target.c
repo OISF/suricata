@@ -102,14 +102,14 @@ static int DetectTargetParse(Signature *s, const char *targetstr)
     if (!strcmp(value, "src_ip")) {
         if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                       "Multiple conflicting value of target keyword");
+                       "Conflicting values of target keyword");
             goto error;
         }
         s->flags |= SIG_FLAG_SRC_IS_TARGET;
     } else if (!strcmp(value, "dest_ip")) {
         if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
             SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                       "Multiple conflicting value of target keyword");
+                       "Conflicting values of target keyword");
             goto error;
         }
         s->flags |= SIG_FLAG_DEST_IS_TARGET;

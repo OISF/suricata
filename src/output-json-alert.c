@@ -174,6 +174,53 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
     return;
 }
 
+static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa, json_t *js, json_t* ajs)
+{
+        json_t *sjs = json_object();
+        if (sjs == NULL) {
+            json_decref(js);
+            return;
+        }
+
+        json_t *tjs = json_object();
+        if (tjs == NULL) {
+            json_decref(js);
+            json_decref(sjs);
+            return;
+        }
+
+        if (pa->s->flags & SIG_FLAG_DEST_IS_TARGET) {
+            json_object_set_new(sjs, "ip", json_object_get(js, "src_ip"));
+            json_object_set_new(tjs, "ip", json_object_get(js, "dest_ip"));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_object_get(js, "src_port"));
+                    json_object_set_new(tjs, "port", json_object_get(js, "dest_port"));
+            }
+        } else if (pa->s->flags & SIG_FLAG_SRC_IS_TARGET) {
+            json_object_set_new(sjs, "ip", json_object_get(js, "dest_ip"));
+            json_object_set_new(tjs, "ip", json_object_get(js, "src_ip"));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_object_get(js, "dest_port"));
+                    json_object_set_new(tjs, "port", json_object_get(js, "src_port"));
+            }
+        }
+        json_object_set_new(ajs, "source", sjs);
+        json_object_set_new(ajs, "target", tjs);
+}
+
+
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 {
     const char *action = "allowed";
@@ -214,6 +261,10 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
+
+    if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
+        AlertJsonSourceTarget(p, pa, js, ajs);
+    }
 
     /* alert */
     json_object_set_new(js, "alert", ajs);
