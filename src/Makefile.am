@@ -114,7 +114,6 @@ detect-engine-file.c detect-engine-file.h \
 detect-engine-filedata-smtp.c detect-engine-filedata-smtp.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
-detect-engine-hhd.c detect-engine-hhd.h \
 detect-engine-hhhd.c detect-engine-hhhd.h \
 detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
