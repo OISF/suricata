@@ -147,7 +147,6 @@
 #include "detect-http-response-line.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
-#include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
