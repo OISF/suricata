@@ -1044,6 +1044,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    det_ctx->ticker++;
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
     det_ctx->smsg = NULL;
