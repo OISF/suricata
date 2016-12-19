@@ -138,6 +138,7 @@
 #include "detect-http-client-body.h"
 #include "detect-http-server-body.h"
 #include "detect-http-header.h"
+#include "detect-http-header-names.h"
 #include "detect-http-raw-header.h"
 #include "detect-http-uri.h"
 #include "detect-http-raw-uri.h"
@@ -4052,6 +4053,7 @@ void SigTableSetup(void)
     DetectHttpResponseLineRegister();
     DetectHttpServerBodyRegister();
     DetectHttpHeaderRegister();
+    DetectHttpHeaderNamesRegister();
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
