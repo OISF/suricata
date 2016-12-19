@@ -671,6 +671,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
                     strerror(errno));
             }
             TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
+            PcapFileNameFree(pf);
             pf = TAILQ_FIRST(&pl->pcap_file_list);
             pl->file_cnt--;
         }
