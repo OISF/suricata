@@ -195,7 +195,6 @@ static void RegisterUnittests(void)
     MemcmpRegisterTests();
     DetectEngineHttpClientBodyRegisterTests();
     DetectEngineHttpServerBodyRegisterTests();
-    DetectEngineHttpHeaderRegisterTests();
     DetectEngineHttpRawHeaderRegisterTests();
     DetectEngineHttpMethodRegisterTests();
     DetectEngineHttpCookieRegisterTests();
