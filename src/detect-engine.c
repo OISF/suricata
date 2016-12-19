@@ -1807,8 +1807,6 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
-    int i;
-
     if (det_ctx->tenant_array != NULL) {
         SCFree(det_ctx->tenant_array);
         det_ctx->tenant_array = NULL;
@@ -1845,18 +1843,6 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
-
-    /* HHD temp storage */
-    for (i = 0; i < det_ctx->hhd_buffers_size; i++) {
-        if (det_ctx->hhd_buffers[i] != NULL)
-            SCFree(det_ctx->hhd_buffers[i]);
-    }
-    if (det_ctx->hhd_buffers)
-        SCFree(det_ctx->hhd_buffers);
-    det_ctx->hhd_buffers = NULL;
-    if (det_ctx->hhd_buffers_len)
-        SCFree(det_ctx->hhd_buffers_len);
-    det_ctx->hhd_buffers_len = NULL;
 
     /* HSBD */
     if (det_ctx->hsbd != NULL) {

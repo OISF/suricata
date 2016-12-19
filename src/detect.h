@@ -821,12 +821,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t hcbd_buffers_size;
     uint16_t hcbd_buffers_list_len;
 
-    uint8_t **hhd_buffers;
-    uint32_t *hhd_buffers_len;
-    uint16_t hhd_buffers_size;
-    uint16_t hhd_buffers_list_len;
-    uint64_t hhd_start_tx_id;
-
     FiledataReassembledBody *smtp;
     uint64_t smtp_start_tx_id;
     uint16_t smtp_buffers_size;
