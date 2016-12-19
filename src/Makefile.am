@@ -168,6 +168,7 @@ detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
 detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
+detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-http-request-line.c detect-http-request-line.h \
