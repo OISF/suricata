@@ -60,7 +60,6 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-header.h"
-#include "detect-engine-hhd.h"
 #include "stream-tcp.h"
 
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
