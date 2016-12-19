@@ -164,6 +164,7 @@ detect-hostbits.c detect-hostbits.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
+detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
 detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
