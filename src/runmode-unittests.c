@@ -263,7 +263,6 @@ void RunUnittests(int list_unittests, char *regex_arg)
     MemcmpRegisterTests();
     DetectEngineHttpClientBodyRegisterTests();
     DetectEngineHttpServerBodyRegisterTests();
-    DetectEngineHttpHeaderRegisterTests();
     DetectEngineHttpRawHeaderRegisterTests();
     DetectEngineHttpMethodRegisterTests();
     DetectEngineHttpCookieRegisterTests();
