@@ -60,117 +60,54 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-header.h"
+#include "detect-http-header-common.h"
 #include "stream-tcp.h"
 
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectHttpHeaderRegisterTests(void);
 static void DetectHttpHeaderSetupCallback(Signature *);
 static int g_http_header_buffer_id = 0;
+static int g_keyword_thread_id = 0;
 
-#define BUFFER_STEP 50
+#define BUFFER_TX_STEP      4
+#define BUFFER_SIZE_STEP    1024
+static HttpHeaderThreadDataConfig g_td_config = { BUFFER_TX_STEP, BUFFER_SIZE_STEP };
 
-static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
+static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Flow *f, HtpState *htp_state, uint8_t flags,
+        uint32_t *buffer_len)
 {
-    if (size >= (USHRT_MAX - BUFFER_STEP))
-        return -1;
-
-    void *ptmp;
-    if (size > det_ctx->hhd_buffers_size) {
-        ptmp = SCRealloc(det_ctx->hhd_buffers,
-                         (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint8_t *));
-        if (ptmp == NULL) {
-            SCFree(det_ctx->hhd_buffers);
-            det_ctx->hhd_buffers = NULL;
-            det_ctx->hhd_buffers_size = 0;
-            det_ctx->hhd_buffers_list_len = 0;
-            return -1;
-        }
-        det_ctx->hhd_buffers = ptmp;
-
-        memset(det_ctx->hhd_buffers + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint8_t *));
-        ptmp = SCRealloc(det_ctx->hhd_buffers_len,
-                         (det_ctx->hhd_buffers_size + BUFFER_STEP) * sizeof(uint32_t));
-        if (ptmp == NULL) {
-            SCFree(det_ctx->hhd_buffers_len);
-            det_ctx->hhd_buffers_len = NULL;
-            det_ctx->hhd_buffers_size = 0;
-            det_ctx->hhd_buffers_list_len = 0;
-            return -1;
-        }
-        det_ctx->hhd_buffers_len = ptmp;
-
-        memset(det_ctx->hhd_buffers_len + det_ctx->hhd_buffers_size, 0, BUFFER_STEP * sizeof(uint32_t));
-        det_ctx->hhd_buffers_size += BUFFER_STEP;
-    }
-    memset(det_ctx->hhd_buffers_len + det_ctx->hhd_buffers_list_len, 0, (size - det_ctx->hhd_buffers_list_len) * sizeof(uint32_t));
-
-    return 0;
-}
-
-static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
-                                              DetectEngineCtx *de_ctx,
-                                              DetectEngineThreadCtx *det_ctx,
-                                              Flow *f, HtpState *htp_state,
-                                              uint8_t flags,
-                                              uint32_t *buffer_len)
-{
-    uint8_t *headers_buffer = NULL;
-    int index = 0;
     *buffer_len = 0;
 
-    if (det_ctx->hhd_buffers_list_len == 0) {
-        /* get the inspect id to use as a 'base id' */
-        uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        BUG_ON(base_inspect_id > tx_id);
-        /* see how many space we need for the current tx_id */
-        uint64_t txs = (tx_id - base_inspect_id) + 1;
-        if (HHDCreateSpace(det_ctx, txs) < 0)
-            goto end;
-
-        index = (tx_id - base_inspect_id);
-        det_ctx->hhd_start_tx_id = base_inspect_id;
-        det_ctx->hhd_buffers_list_len = txs;
-    } else {
-        /* tx fits in our current buffers */
-        if ((tx_id - det_ctx->hhd_start_tx_id) < det_ctx->hhd_buffers_list_len) {
-            /* if we previously reassembled, return that buffer */
-            if (det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)] != 0) {
-                *buffer_len = det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)];
-                return det_ctx->hhd_buffers[(tx_id - det_ctx->hhd_start_tx_id)];
-            }
-            /* otherwise fall through */
-        } else {
-            /* not enough space, lets expand */
-            uint64_t txs = (tx_id - det_ctx->hhd_start_tx_id) + 1;
-            if (HHDCreateSpace(det_ctx, txs) < 0)
-                goto end;
-
-            det_ctx->hhd_buffers_list_len = txs;
-        }
-        index = (tx_id - det_ctx->hhd_start_tx_id);
+    HttpHeaderThreadData *hdr_td = NULL;
+    HttpHeaderBuffer *buf = HttpHeaderGetBufferSpaceForTXID(det_ctx, f, flags,
+            tx_id, g_keyword_thread_id, &hdr_td);
+    if (unlikely(buf == NULL)) {
+        return NULL;
+    } else if (buf->len > 0) {
+        /* already filled buf, reuse */
+        *buffer_len = buf->len;
+        return buf->buffer;
     }
 
     htp_table_t *headers;
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <= HTP_REQUEST_HEADERS)
-            goto end;
+            return NULL;
         headers = tx->request_headers;
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) <= HTP_RESPONSE_HEADERS)
-            goto end;
+            return NULL;
         headers = tx->response_headers;
     }
     if (headers == NULL)
-        goto end;
+        return NULL;
 
-    htp_header_t *h = NULL;
-    headers_buffer = det_ctx->hhd_buffers[index];
-    size_t headers_buffer_len = 0;
     size_t i = 0;
-
     size_t no_of_headers = htp_table_size(headers);
     for (; i < no_of_headers; i++) {
-        h = htp_table_get_index(headers, i, NULL);
+        htp_header_t *h = htp_table_get_index(headers, i, NULL);
         size_t size1 = bstr_size(h->name);
         size_t size2 = bstr_size(h->value);
 
@@ -186,39 +123,35 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
             }
         }
 
-        /* the extra 4 bytes if for ": " and "\r\n" */
-        uint8_t *new_headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
-        if (unlikely(new_headers_buffer == NULL)) {
-            if (headers_buffer != NULL) {
-                SCFree(headers_buffer);
-                headers_buffer = NULL;
+        size_t size = size1 + size2 + 4;
+#if 0
+        if (i + 1 == no_of_headers)
+            size += 2;
+#endif
+        if (size + buf->len > buf->size) {
+            if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
+                return NULL;
             }
-            det_ctx->hhd_buffers[index] = NULL;
-            det_ctx->hhd_buffers_len[index] = 0;
-            goto end;
         }
-        headers_buffer = new_headers_buffer;
 
-        memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->name), size1);
-        headers_buffer_len += size1;
-        headers_buffer[headers_buffer_len] = ':';
-        headers_buffer[headers_buffer_len + 1] = ' ';
-        headers_buffer_len += 2;
-        memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->value), size2);
-        headers_buffer_len += size2 + 2;
-        /* \r */
-        headers_buffer[headers_buffer_len - 2] = '\r';
-        /* \n */
-        headers_buffer[headers_buffer_len - 1] = '\n';
+        memcpy(buf->buffer + buf->len, bstr_ptr(h->name), bstr_size(h->name));
+        buf->len += bstr_size(h->name);
+        buf->buffer[buf->len++] = ':';
+        buf->buffer[buf->len++] = ' ';
+        memcpy(buf->buffer + buf->len, bstr_ptr(h->value), bstr_size(h->value));
+        buf->len += bstr_size(h->value);
+        buf->buffer[buf->len++] = '\r';
+        buf->buffer[buf->len++] = '\n';
+#if 0 // looks like this breaks existing rules
+        if (i + 1 == no_of_headers) {
+            buf->buffer[buf->len++] = '\r';
+            buf->buffer[buf->len++] = '\n';
+        }
+#endif
     }
 
-    /* store the buffers.  We will need it for further inspection */
-    det_ctx->hhd_buffers[index] = headers_buffer;
-    det_ctx->hhd_buffers_len[index] = headers_buffer_len;
-
-    *buffer_len = (uint32_t)headers_buffer_len;
- end:
-    return headers_buffer;
+    *buffer_len = buf->len;
+    return buf->buffer;
 }
 
 /** \brief HTTP Headers Mpm prefilter callback
@@ -244,11 +177,9 @@ static void PrefilterTxHttpRequestHeaders(DetectEngineThreadCtx *det_ctx,
 
     HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
-                                                    NULL, det_ctx,
-                                                    f, htp_state,
-                                                    flags,
-                                                    &buffer_len);
+    const uint8_t *buffer = GetBufferForTX(tx, idx,
+            NULL, det_ctx, f, htp_state,
+            flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -327,7 +258,7 @@ static void PrefilterTxHttpResponseHeaders(DetectEngineThreadCtx *det_ctx,
 
     HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
+    const uint8_t *buffer = GetBufferForTX(tx, idx,
                                                     NULL, det_ctx,
                                                     f, htp_state,
                                                     flags,
@@ -394,11 +325,9 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
 {
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
-    uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, tx_id,
-                                                    de_ctx, det_ctx,
-                                                    f, htp_state,
-                                                    flags,
-                                                    &buffer_len);
+    uint8_t *buffer = GetBufferForTX(tx, tx_id, de_ctx, det_ctx,
+            f, htp_state,
+            flags, &buffer_len);
     if (buffer_len == 0)
         goto end;
 
@@ -423,20 +352,6 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
-void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
-{
-    if (det_ctx->hhd_buffers_list_len != 0) {
-        int i;
-        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
-            det_ctx->hhd_buffers_len[i] = 0;
-        }
-        det_ctx->hhd_buffers_list_len = 0;
-    }
-    det_ctx->hhd_start_tx_id = 0;
-
-    return;
 }
 
 /**
@@ -499,6 +414,9 @@ void DetectHttpHeaderRegister(void)
             DetectHttpHeaderSetupCallback);
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
+
+    g_keyword_thread_id = DetectRegisterThreadCtxGlobalFuncs("http_header",
+            HttpHeaderThreadDataInit, &g_td_config, HttpHeaderThreadDataFree);
 }
 
 /************************************Unittests*********************************/
