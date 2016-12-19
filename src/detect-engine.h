@@ -53,6 +53,10 @@ DetectEngineCtx *DetectEngineCtxInit(void);
 DetectEngineCtx *DetectEngineCtxInitMinimal(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
+int DetectRegisterThreadCtxGlobalFuncs(const char *name,
+        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
+void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
+
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 //inline uint32_t DetectEngineGetMaxSigId(DetectEngineCtx *);

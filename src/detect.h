@@ -778,6 +778,9 @@ typedef struct DetectEngineThreadCtx_ {
      *        on this beeing the first member */
     uint32_t tenant_id;
 
+    /** ticker that is incremented once per packet. */
+    uint64_t ticker;
+
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
@@ -904,10 +907,12 @@ typedef struct DetectEngineThreadCtx_ {
     } filestore[DETECT_FILESTORE_MAX];
 
     DetectEngineCtx *de_ctx;
-    /** store for keyword contexts that need a per thread storage because of
-     *  thread safety issues */
+    /** store for keyword contexts that need a per thread storage. Per de_ctx. */
     void **keyword_ctxs_array;
     int keyword_ctxs_size;
+    /** store for keyword contexts that need a per thread storage. Global. */
+    int global_keyword_ctxs_size;
+    void **global_keyword_ctxs_array;
 
     uint8_t *base64_decoded;
     int base64_decoded_len;
@@ -1153,6 +1158,9 @@ typedef struct DetectEngineMasterCtx_ {
      *  structures. */
     DetectEngineTenantMapping *tenant_mapping_list;
 
+    /** list of keywords that need thread local ctxs */
+    DetectEngineThreadKeywordCtxItem *keyword_list;
+    int keyword_id;
 } DetectEngineMasterCtx;
 
 /** \brief Signature loader statistics */

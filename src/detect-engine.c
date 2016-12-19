@@ -91,7 +91,8 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
+    0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL, NULL, 0};
 
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
@@ -1387,6 +1388,62 @@ void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
     de_ctx->signum = 0;
 }
 
+static int DetectEngineThreadCtxInitGlobalKeywords(DetectEngineThreadCtx *det_ctx)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->keyword_id > 0) {
+        det_ctx->global_keyword_ctxs_array = SCCalloc(master->keyword_id, sizeof(void *));
+        if (det_ctx->global_keyword_ctxs_array == NULL) {
+            SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx");
+            goto error;
+        }
+        det_ctx->global_keyword_ctxs_size = master->keyword_id;
+
+        DetectEngineThreadKeywordCtxItem *item = master->keyword_list;
+        while (item) {
+            det_ctx->global_keyword_ctxs_array[item->id] = item->InitFunc(item->data);
+            if (det_ctx->global_keyword_ctxs_array[item->id] == NULL) {
+                SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
+                        "for keyword \"%s\" failed", item->name);
+                goto error;
+            }
+            item = item->next;
+        }
+    }
+    SCMutexUnlock(&master->lock);
+    return TM_ECODE_OK;
+error:
+    SCMutexUnlock(&master->lock);
+    return TM_ECODE_FAILED;
+}
+
+static void DetectEngineThreadCtxDeinitGlobalKeywords(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->global_keyword_ctxs_array == NULL ||
+        det_ctx->global_keyword_ctxs_size == 0) {
+        return;
+    }
+
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->keyword_id > 0) {
+        DetectEngineThreadKeywordCtxItem *item = master->keyword_list;
+        while (item) {
+            if (det_ctx->global_keyword_ctxs_array[item->id] != NULL)
+                item->FreeFunc(det_ctx->global_keyword_ctxs_array[item->id]);
+
+            item = item->next;
+        }
+        det_ctx->global_keyword_ctxs_size = 0;
+        SCFree(det_ctx->global_keyword_ctxs_array);
+        det_ctx->global_keyword_ctxs_array = NULL;
+    }
+    SCMutexUnlock(&master->lock);
+}
+
 static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
     if (de_ctx->keyword_id > 0) {
@@ -1605,6 +1662,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
 
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
+    DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
     SCProfilingKeywordThreadSetup(de_ctx->profile_keyword_ctx, det_ctx);
@@ -1823,6 +1881,7 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->base64_decoded);
     }
 
+    DetectEngineThreadCtxDeinitGlobalKeywords(det_ctx);
     if (det_ctx->de_ctx != NULL) {
         DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
 #ifdef UNITTESTS
@@ -1922,6 +1981,75 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
         return NULL;
 
     return det_ctx->keyword_ctxs_array[id];
+}
+
+
+/** \brief Register Thread keyword context Funcs (Global)
+ *
+ *  IDs stay static over reloads and between tenants
+ *
+ *  \param name keyword name for error printing
+ *  \param InitFunc function ptr
+ *  \param FreeFunc function ptr
+ *
+ *  \retval id for retrieval of ctx at runtime
+ *  \retval -1 on error
+ */
+int DetectRegisterThreadCtxGlobalFuncs(const char *name,
+        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *))
+{
+    int id;
+    BUG_ON(InitFunc == NULL || FreeFunc == NULL);
+
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    /* if already registered, return existing id */
+    DetectEngineThreadKeywordCtxItem *item = master->keyword_list;
+    while (item != NULL) {
+        if (strcmp(name, item->name) == 0) {
+            id = item->id;
+            SCMutexUnlock(&master->lock);
+            return id;
+        }
+
+        item = item->next;
+    }
+
+    item = SCCalloc(1, sizeof(*item));
+    if (unlikely(item == NULL))
+        return -1;
+
+    item->InitFunc = InitFunc;
+    item->FreeFunc = FreeFunc;
+    item->name = name;
+    item->data = data;
+
+    item->next = master->keyword_list;
+    master->keyword_list = item;
+    item->id = master->keyword_id++;
+
+    id = item->id;
+    SCMutexUnlock(&master->lock);
+    return id;
+}
+
+/** \brief Retrieve thread local keyword ctx by id
+ *
+ *  \param det_ctx detection engine thread ctx to retrieve the ctx from
+ *  \param id id of the ctx returned by DetectRegisterThreadCtxInitFunc at
+ *            keyword init.
+ *
+ *  \retval ctx or NULL on error
+ */
+void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
+{
+    if (id < 0 || id > det_ctx->global_keyword_ctxs_size ||
+        det_ctx->global_keyword_ctxs_array == NULL) {
+        return NULL;
+    }
+
+    return det_ctx->global_keyword_ctxs_array[id];
 }
 
 /** \brief Check if detection is enabled
@@ -2722,6 +2850,7 @@ int DetectEngineReload(SCInstance *suri)
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len)
 {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    SCLogNotice("det_ctx %p tenant id %u", det_ctx, det_ctx->tenant_id);
     return det_ctx->tenant_id % h->array_size;
 }
 
