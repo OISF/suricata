@@ -78,7 +78,7 @@ int HostBitsTimedoutCheck(Host *h, struct timeval *ts)
 }
 
 /* get the bit with idx from the host */
-static XBit *HostBitGet(Host *h, uint16_t idx)
+static XBit *HostBitGet(Host *h, uint32_t idx)
 {
     GenericVar *gv = HostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
@@ -91,7 +91,7 @@ static XBit *HostBitGet(Host *h, uint16_t idx)
 }
 
 /* add a flowbit to the flow */
-static void HostBitAdd(Host *h, uint16_t idx, uint32_t expire)
+static void HostBitAdd(Host *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {
@@ -114,7 +114,7 @@ static void HostBitAdd(Host *h, uint16_t idx, uint32_t expire)
     }
 }
 
-static void HostBitRemove(Host *h, uint16_t idx)
+static void HostBitRemove(Host *h, uint32_t idx)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb == NULL)
@@ -128,7 +128,7 @@ static void HostBitRemove(Host *h, uint16_t idx)
     }
 }
 
-void HostBitSet(Host *h, uint16_t idx, uint32_t expire)
+void HostBitSet(Host *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {
@@ -136,7 +136,7 @@ void HostBitSet(Host *h, uint16_t idx, uint32_t expire)
     }
 }
 
-void HostBitUnset(Host *h, uint16_t idx)
+void HostBitUnset(Host *h, uint32_t idx)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
@@ -144,7 +144,7 @@ void HostBitUnset(Host *h, uint16_t idx)
     }
 }
 
-void HostBitToggle(Host *h, uint16_t idx, uint32_t expire)
+void HostBitToggle(Host *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
@@ -154,7 +154,7 @@ void HostBitToggle(Host *h, uint16_t idx, uint32_t expire)
     }
 }
 
-int HostBitIsset(Host *h, uint16_t idx, uint32_t ts)
+int HostBitIsset(Host *h, uint32_t idx, uint32_t ts)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
@@ -167,7 +167,7 @@ int HostBitIsset(Host *h, uint16_t idx, uint32_t ts)
     return 0;
 }
 
-int HostBitIsnotset(Host *h, uint16_t idx, uint32_t ts)
+int HostBitIsnotset(Host *h, uint32_t idx, uint32_t ts)
 {
     XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {

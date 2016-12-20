@@ -2550,6 +2550,7 @@ int main(int argc, char **argv)
         }
 
         DetectEngineAddToMaster(de_ctx);
+        DetectEngineBumpVersion();
     } else {
         /* tell the app layer to consider only the log id */
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);

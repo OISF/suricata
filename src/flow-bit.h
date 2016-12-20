@@ -29,7 +29,8 @@
 
 typedef struct FlowBit_ {
     uint8_t type; /* type, DETECT_FLOWBITS in this case */
-    uint16_t idx; /* name idx */
+    uint8_t pad[3];
+    uint32_t idx; /* name idx */
     GenericVar *next; /* right now just implement this as a list,
                        * in the long run we have think of something
                        * faster. */
@@ -38,10 +39,10 @@ typedef struct FlowBit_ {
 void FlowBitFree(FlowBit *);
 void FlowBitRegisterTests(void);
 
-void FlowBitSet(Flow *, uint16_t);
-void FlowBitUnset(Flow *, uint16_t);
-void FlowBitToggle(Flow *, uint16_t);
-int FlowBitIsset(Flow *, uint16_t);
-int FlowBitIsnotset(Flow *, uint16_t);
+void FlowBitSet(Flow *, uint32_t);
+void FlowBitUnset(Flow *, uint32_t);
+void FlowBitToggle(Flow *, uint32_t);
+int FlowBitIsset(Flow *, uint32_t);
+int FlowBitIsnotset(Flow *, uint32_t);
 #endif /* __FLOW_BIT_H__ */
 

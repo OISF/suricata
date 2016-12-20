@@ -317,6 +317,8 @@
 #define BIT_U32(n) (1UL  << (n))
 #define BIT_U64(n) (1ULL << (n))
 
+#define WARN_UNUSED __attribute__((warn_unused_result))
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_IPONLY,
     PROF_DETECT_RULES,
@@ -366,6 +368,7 @@ typedef enum {
     LOGGER_PRELUDE,
     LOGGER_PCAP,
     LOGGER_JSON_DNP3,
+    LOGGER_JSON_VARS,
     LOGGER_SIZE,
 } LoggerId;
 

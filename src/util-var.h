@@ -30,6 +30,7 @@ enum VarTypes {
     VAR_TYPE_PKT_BIT,
     VAR_TYPE_PKT_INT,
     VAR_TYPE_PKT_VAR,
+    VAR_TYPE_PKT_VAR_KV, // key-value
 
     VAR_TYPE_FLOW_BIT,
     VAR_TYPE_FLOW_INT,
@@ -46,13 +47,15 @@ enum VarTypes {
 
 typedef struct GenericVar_ {
     uint8_t type;
-    uint16_t idx;
+    uint8_t pad[3];
+    uint32_t idx;
     struct GenericVar_ *next;
 } GenericVar;
 
 typedef struct XBit_ {
     uint8_t type;       /* type, DETECT_XBITS in this case */
-    uint16_t idx;       /* name idx */
+    uint8_t pad[3];
+    uint32_t idx;       /* name idx */
     GenericVar *next;
     uint32_t expire;
 } XBit;

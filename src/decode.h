@@ -298,12 +298,14 @@ typedef struct PacketEngineEvents_ {
 } PacketEngineEvents;
 
 typedef struct PktVar_ {
-    const char *name;
+    uint32_t id;
     struct PktVar_ *next; /* right now just implement this as a list,
                            * in the long run we have thing of something
                            * faster. */
-    uint8_t *value;
+    uint16_t key_len;
     uint16_t value_len;
+    uint8_t *key;
+    uint8_t *value;
 } PktVar;
 
 #ifdef PROFILING
@@ -551,10 +553,6 @@ typedef struct Packet_
 
     /** data linktype in host order */
     int datalink;
-
-    /* used to hold flowbits only if debuglog is enabled */
-    int debuglog_flowbits_names_len;
-    const char **debuglog_flowbits_names;
 
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr

@@ -47,6 +47,8 @@
 
 #include "stream.h"
 
+#include "util-var-name.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -528,20 +530,21 @@ typedef struct DetectReplaceList_ {
 } DetectReplaceList;
 
 /** only execute flowvar storage if rule matched */
-#define DETECT_FLOWVAR_TYPE_POSTMATCH   1
-/** execute flowvar storage even if rule doesn't match (for lua) */
-#define DETECT_FLOWVAR_TYPE_ALWAYS      2
+#define DETECT_VAR_TYPE_FLOW_POSTMATCH      1
+#define DETECT_VAR_TYPE_PKT_POSTMATCH       2
 
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
-typedef struct DetectFlowvarList_ {
-    uint16_t idx;                       /**< flowvar name idx */
+typedef struct DetectVarList_ {
+    uint32_t idx;                       /**< flowvar name idx */
     uint16_t len;                       /**< data len */
+    uint16_t key_len;
     int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
+    uint8_t *key;
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
                                              post-match, post-non-match */
-    struct DetectFlowvarList_ *next;
-} DetectFlowvarList;
+    struct DetectVarList_ *next;
+} DetectVarList;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
@@ -658,10 +661,6 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *mpm_hash_table;
 
-    HashListTable *variable_names;
-    HashListTable *variable_idxs;
-    uint16_t variable_names_idx;
-
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
 
@@ -709,8 +708,8 @@ typedef struct DetectEngineCtx_ {
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
 
-    /* id used by every detect engine ctx instance */
-    uint32_t id;
+    /** version of the detect engine */
+    uint32_t version;
 
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
@@ -926,8 +925,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* string to replace */
     DetectReplaceList *replist;
-    /* flowvars to store in post match function */
-    DetectFlowvarList *flowvarlist;
+    /* vars to store in post match function */
+    DetectVarList *varlist;
 
     /* Array in which the filestore keyword stores file id and tx id. If the
      * full signature matches, these are processed by a post-match filestore
@@ -1170,6 +1169,9 @@ typedef struct DetectEngineMasterCtx_ {
 
     /** enable multi tenant mode */
     int multi_tenant_enabled;
+
+    /** version, incremented after each 'apply to threads' */
+    uint32_t version;
 
     /** list of active detection engines. This list is used to generate the
      *  threads det_ctx's */

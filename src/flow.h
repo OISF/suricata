@@ -383,10 +383,10 @@ typedef struct Flow_
     AppProto alproto_ts;
     AppProto alproto_tc;
 
-    /** detection engine ctx id used to inspect this flow. Set at initial
+    /** detection engine ctx version used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
      *  de_state and stored sgh ptrs are reset. */
-    uint32_t de_ctx_id;
+    uint32_t de_ctx_version;
 
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;

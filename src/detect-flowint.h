@@ -64,7 +64,7 @@ typedef struct DetectFlowintData_ {
     * against the target */
     char *name;
     /* Internal id of the var */
-    uint16_t idx;
+    uint32_t idx;
 
     /* The modifier/operation/condition we are
     * going to execute */

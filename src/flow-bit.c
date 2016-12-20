@@ -43,7 +43,7 @@
 #include "util-unittest.h"
 
 /* get the flowbit with idx from the flow */
-static FlowBit *FlowBitGet(Flow *f, uint16_t idx)
+static FlowBit *FlowBitGet(Flow *f, uint32_t idx)
 {
     GenericVar *gv = f->flowvar;
     for ( ; gv != NULL; gv = gv->next) {
@@ -56,7 +56,7 @@ static FlowBit *FlowBitGet(Flow *f, uint16_t idx)
 }
 
 /* add a flowbit to the flow */
-static void FlowBitAdd(Flow *f, uint16_t idx)
+static void FlowBitAdd(Flow *f, uint32_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
@@ -71,7 +71,7 @@ static void FlowBitAdd(Flow *f, uint16_t idx)
     }
 }
 
-static void FlowBitRemove(Flow *f, uint16_t idx)
+static void FlowBitRemove(Flow *f, uint32_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL)
@@ -81,17 +81,17 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
     FlowBitFree(fb);
 }
 
-void FlowBitSet(Flow *f, uint16_t idx)
+void FlowBitSet(Flow *f, uint32_t idx)
 {
     FlowBitAdd(f, idx);
 }
 
-void FlowBitUnset(Flow *f, uint16_t idx)
+void FlowBitUnset(Flow *f, uint32_t idx)
 {
     FlowBitRemove(f, idx);
 }
 
-void FlowBitToggle(Flow *f, uint16_t idx)
+void FlowBitToggle(Flow *f, uint32_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
@@ -101,7 +101,7 @@ void FlowBitToggle(Flow *f, uint16_t idx)
     }
 }
 
-int FlowBitIsset(Flow *f, uint16_t idx)
+int FlowBitIsset(Flow *f, uint32_t idx)
 {
     int r = 0;
 
@@ -113,7 +113,7 @@ int FlowBitIsset(Flow *f, uint16_t idx)
     return r;
 }
 
-int FlowBitIsnotset(Flow *f, uint16_t idx)
+int FlowBitIsnotset(Flow *f, uint32_t idx)
 {
     int r = 0;
 

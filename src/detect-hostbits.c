@@ -383,7 +383,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, VAR_TYPE_HOST_BIT);
+    cd->idx = VarNameStoreSetupAdd(fb_name, VAR_TYPE_HOST_BIT);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = VAR_TYPE_HOST_BIT;
@@ -750,16 +750,13 @@ static int HostBitsTestSig04(void)
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
     FAIL_IF_NULL(s);
 
-    idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_HOST_BIT);
+    idx = VarNameStoreSetupAdd("fbt", VAR_TYPE_HOST_BIT);
     FAIL_IF(idx != 1);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);

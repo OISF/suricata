@@ -542,21 +542,19 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    Signature *s)
 {
     /* run the packet match functions */
-    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+    if (smd != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
-        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
         SCLogDebug("running match functions, sm %p", smd);
 
-        if (smd != NULL) {
-            while (1) {
-                KEYWORD_PROFILING_START;
-                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (smd->is_last)
-                    break;
-                smd++;
-            }
+        while (1) {
+            KEYWORD_PROFILING_START;
+            (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->is_last)
+                break;
+            smd++;
         }
     }
 
@@ -844,72 +842,6 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
 }
 #endif
 
-static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEngineCtx *de_ctx)
-{
-#define MALLOC_JUMP 5
-
-    int i = 0;
-
-    GenericVar *gv = p->flow->flowvar;
-
-    while (gv != NULL) {
-        i++;
-        gv = gv->next;
-    }
-    if (i == 0)
-        return;
-
-    p->debuglog_flowbits_names_len = i;
-
-    p->debuglog_flowbits_names = SCMalloc(sizeof(char *) *
-                                          p->debuglog_flowbits_names_len);
-    if (p->debuglog_flowbits_names == NULL) {
-        return;
-    }
-    memset(p->debuglog_flowbits_names, 0,
-           sizeof(char *) * p->debuglog_flowbits_names_len);
-
-    i = 0;
-    gv = p->flow->flowvar;
-    while (gv != NULL) {
-        if (gv->type != DETECT_FLOWBITS) {
-            gv = gv->next;
-            continue;
-        }
-
-        FlowBit *fb = (FlowBit *) gv;
-        const char *name = VariableIdxGetName(de_ctx, fb->idx, VAR_TYPE_FLOW_BIT);
-        if (name != NULL) {
-            p->debuglog_flowbits_names[i] = SCStrdup(name);
-            if (p->debuglog_flowbits_names[i] == NULL) {
-                return;
-            }
-            i++;
-        }
-
-        if (i == p->debuglog_flowbits_names_len) {
-            p->debuglog_flowbits_names_len += MALLOC_JUMP;
-            const char **names = SCRealloc(p->debuglog_flowbits_names,
-                                                   sizeof(char *) *
-                                                   p->debuglog_flowbits_names_len);
-            if (names == NULL) {
-                SCFree(p->debuglog_flowbits_names);
-                p->debuglog_flowbits_names = NULL;
-                p->debuglog_flowbits_names_len = 0;
-                return;
-            }
-            p->debuglog_flowbits_names = names;
-            memset(p->debuglog_flowbits_names +
-                   p->debuglog_flowbits_names_len - MALLOC_JUMP,
-                   0, sizeof(char *) * MALLOC_JUMP);
-        }
-
-        gv = gv->next;
-    }
-
-    return;
-}
-
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
@@ -1080,17 +1012,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
 
             /* live ruleswap check for flow updates */
-            if (pflow->de_ctx_id == 0) {
+            if (pflow->de_ctx_version == 0) {
                 /* first time this flow is inspected, set id */
-                pflow->de_ctx_id = de_ctx->id;
-            } else if (pflow->de_ctx_id != de_ctx->id) {
+                pflow->de_ctx_version = de_ctx->version;
+            } else if (pflow->de_ctx_version != de_ctx->version) {
                 /* first time we inspect flow with this de_ctx, reset */
                 pflow->flags &= ~FLOW_SGH_TOSERVER;
                 pflow->flags &= ~FLOW_SGH_TOCLIENT;
                 pflow->sgh_toserver = NULL;
                 pflow->sgh_toclient = NULL;
 
-                pflow->de_ctx_id = de_ctx->id;
+                pflow->de_ctx_version = de_ctx->version;
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
 
@@ -1539,7 +1471,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
         alerts++;
 next:
-        DetectFlowvarProcessList(det_ctx, pflow);
+        DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
 
@@ -1584,12 +1516,6 @@ end:
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
     if (p->flags & PKT_HAS_FLOW) {
-        if (debuglog_enabled) {
-            if (p->alerts.cnt > 0) {
-                AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(p, de_ctx);
-            }
-        }
-
         /* HACK: prevent the wrong sgh (or NULL) from being stored in the
          * flow's sgh pointers */
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
@@ -4053,6 +3979,10 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 #endif
     SCFree(de_ctx->app_mpms);
     de_ctx->app_mpms = NULL;
+
+    if (!DetectEngineMultiTenantEnabled()) {
+        VarNameStoreActivateStaging();
+    }
     return 0;
 }
 
@@ -5394,59 +5324,42 @@ static int SigTest17 (void)
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
     memset(&th_v, 0, sizeof(th_v));
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 80);
+    FAIL_IF_NULL(p);
 
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    PktVar *pv_hn = PktVarGet(p, "http_host");
-    if (pv_hn != NULL) {
-        if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
-            result = 1;
-        else {
-            printf("\"");
-            PrintRawUriFp(stdout, pv_hn->value, pv_hn->value_len);
-            printf("\" != \"one.example.org\": ");
-        }
-        PktVarFree(pv_hn);
-    } else {
-        printf("Pkt var http_host not captured: ");
-    }
 
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    uint32_t capid = VarNameStoreLookupByName("http_host", VAR_TYPE_PKT_VAR);
+
+    PktVar *pv_hn = PktVarGet(p, capid);
+    FAIL_IF_NULL(pv_hn);
+
+    FAIL_IF(pv_hn->value_len != 15);
+    FAIL_IF_NOT(memcmp(pv_hn->value, "one.example.org", pv_hn->value_len) == 0);
+
+    PktVarFree(pv_hn);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     ConfDeInit();
     ConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
-    return result;
+
+    PASS;
 }
 
 static int SigTest18 (void)

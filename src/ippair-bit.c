@@ -78,7 +78,7 @@ int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts)
 }
 
 /* get the bit with idx from the ippair */
-static XBit *IPPairBitGet(IPPair *h, uint16_t idx)
+static XBit *IPPairBitGet(IPPair *h, uint32_t idx)
 {
     GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
@@ -91,7 +91,7 @@ static XBit *IPPairBitGet(IPPair *h, uint16_t idx)
 }
 
 /* add a flowbit to the flow */
-static void IPPairBitAdd(IPPair *h, uint16_t idx, uint32_t expire)
+static void IPPairBitAdd(IPPair *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
@@ -114,7 +114,7 @@ static void IPPairBitAdd(IPPair *h, uint16_t idx, uint32_t expire)
     }
 }
 
-static void IPPairBitRemove(IPPair *h, uint16_t idx)
+static void IPPairBitRemove(IPPair *h, uint32_t idx)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL)
@@ -127,7 +127,7 @@ static void IPPairBitRemove(IPPair *h, uint16_t idx)
     }
 }
 
-void IPPairBitSet(IPPair *h, uint16_t idx, uint32_t expire)
+void IPPairBitSet(IPPair *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
@@ -135,7 +135,7 @@ void IPPairBitSet(IPPair *h, uint16_t idx, uint32_t expire)
     }
 }
 
-void IPPairBitUnset(IPPair *h, uint16_t idx)
+void IPPairBitUnset(IPPair *h, uint32_t idx)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
@@ -143,7 +143,7 @@ void IPPairBitUnset(IPPair *h, uint16_t idx)
     }
 }
 
-void IPPairBitToggle(IPPair *h, uint16_t idx, uint32_t expire)
+void IPPairBitToggle(IPPair *h, uint32_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
@@ -153,7 +153,7 @@ void IPPairBitToggle(IPPair *h, uint16_t idx, uint32_t expire)
     }
 }
 
-int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
+int IPPairBitIsset(IPPair *h, uint32_t idx, uint32_t ts)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
@@ -167,7 +167,7 @@ int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
     return 0;
 }
 
-int IPPairBitIsnotset(IPPair *h, uint16_t idx, uint32_t ts)
+int IPPairBitIsnotset(IPPair *h, uint32_t idx, uint32_t ts)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
