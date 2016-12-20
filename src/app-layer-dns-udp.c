@@ -316,6 +316,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
             tx->recursion_desired = 1;
         }
 
+        tx->flags = ntohs(dns_header->flags);
         tx->replied = 1;
     }
     if (f != NULL) {
