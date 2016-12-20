@@ -142,6 +142,7 @@
 #include "detect-http-raw-header.h"
 #include "detect-http-uri.h"
 #include "detect-http-protocol.h"
+#include "detect-http-start.h"
 #include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
@@ -4054,6 +4055,7 @@ void SigTableSetup(void)
     DetectHttpHeaderRegister();
     DetectHttpHeaderNamesRegister();
     DetectHttpProtocolRegister();
+    DetectHttpStartRegister();
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
