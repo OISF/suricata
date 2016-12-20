@@ -659,6 +659,7 @@ end:
 
 void MagicRegisterTests(void)
 {
+#ifdef HAVE_MAGIC
 #ifdef UNITTESTS
     UtRegisterTest("MagicInitTest01", MagicInitTest01);
     UtRegisterTest("MagicInitTest02", MagicInitTest02);
@@ -676,4 +677,6 @@ void MagicRegisterTests(void)
     UtRegisterTest("MagicDetectTest10ValgrindError",
                    MagicDetectTest10ValgrindError);
 #endif /* UNITTESTS */
+#endif /* HAVE_MAGIC */
 }
+
