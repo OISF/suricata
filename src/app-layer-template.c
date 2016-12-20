@@ -472,21 +472,21 @@ void RegisterTemplateParsers(void)
             SCLogNotice("Unittest mode, registeringd default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
-                TemplateProbingParser);
+                TemplateProbingParser, NULL);
 
         }
         else {
 
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
-                    TemplateProbingParser)) {
+                    TemplateProbingParser, NULL)) {
                 SCLogNotice("No echo app-layer configuration, enabling echo"
                     " detection TCP detection on port %s.",
                     TEMPLATE_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     TEMPLATE_DEFAULT_PORT, ALPROTO_TEMPLATE, 0,
                     TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
-                    TemplateProbingParser);
+                    TemplateProbingParser, NULL);
             }
 
         }

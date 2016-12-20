@@ -1526,12 +1526,12 @@ void RegisterSMBParsers(void)
                                           ALPROTO_SMB,
                                           SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                           STREAM_TOSERVER,
-                                          SMBProbingParser);
+                                          SMBProbingParser, NULL);
         } else {
             AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_SMB,
                                                 SMB_PROBING_PARSER_MIN_DEPTH, 0,
-                                                SMBProbingParser);
+                                                SMBProbingParser, NULL);
         }
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOSERVER);
@@ -2217,7 +2217,7 @@ int SMBParserTest05(void)
                                   ALPROTO_SMB,
                                   SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
-                                  SMBProbingParser);
+                                  SMBProbingParser, NULL);
 
     AppLayerProtoDetectPrepareState();
     alpd_tctx = AppLayerProtoDetectGetCtxThread();
@@ -2301,7 +2301,7 @@ int SMBParserTest06(void)
                    ALPROTO_SMB,
                    SMB_PROBING_PARSER_MIN_DEPTH, 0,
                    STREAM_TOSERVER,
-                   SMBProbingParser);
+                   SMBProbingParser, NULL);
 
     AppLayerProtoDetectPrepareState();
     alpd_tctx = AppLayerProtoDetectGetCtxThread();
