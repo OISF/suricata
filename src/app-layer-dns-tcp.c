@@ -627,6 +627,28 @@ static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
     return ALPROTO_DNS;
 }
 
+/**
+ * \brief Probing parser for TCP DNS responses.
+ *
+ * This is a minimal parser that just checks that the input contains enough
+ * data for a TCP DNS response.
+ */
+static uint16_t DNSTcpProbeResponse(uint8_t *input, uint32_t len,
+    uint32_t *offset)
+{
+    if (len == 0 || len < sizeof(DNSTcpHeader)) {
+        return ALPROTO_UNKNOWN;
+    }
+
+    DNSTcpHeader *dns_header = (DNSTcpHeader *)input;
+
+    if (ntohs(dns_header->len) < sizeof(DNSHeader)) {
+        return ALPROTO_FAILED;
+    }
+
+    return ALPROTO_DNS;
+}
+
 void RegisterDNSTCPParsers(void)
 {
     char *proto_name = "dns";
@@ -646,7 +668,8 @@ void RegisterDNSTCPParsers(void)
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSTcpHeader),
-                                                DNSTcpProbingParser, NULL);
+                                                DNSTcpProbingParser,
+                                                DNSTcpProbeResponse);
             /* if we have no config, we enable the default port 53 */
             if (!have_cfg) {
                 SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS TCP config found, "
@@ -654,7 +677,8 @@ void RegisterDNSTCPParsers(void)
                                                 "port 53.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53",
                                    ALPROTO_DNS, 0, sizeof(DNSTcpHeader),
-                                   STREAM_TOSERVER, DNSTcpProbingParser, NULL);
+                                   STREAM_TOSERVER, DNSTcpProbingParser,
+                                   DNSTcpProbeResponse);
             }
         }
     } else {
