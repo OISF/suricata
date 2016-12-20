@@ -1592,12 +1592,12 @@ void RegisterDNP3Parsers(void)
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, DNP3_DEFAULT_PORT,
                 ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader), STREAM_TOSERVER,
-                DNP3ProbingParser);
+                DNP3ProbingParser, NULL);
         }
         else {
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_DNP3, 0, sizeof(DNP3LinkHeader),
-                    DNP3ProbingParser)) {
+                    DNP3ProbingParser, NULL)) {
                 return;
             }
         }

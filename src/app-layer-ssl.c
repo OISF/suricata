@@ -1766,12 +1766,12 @@ void RegisterSSLParsers(void)
                                           ALPROTO_TLS,
                                           0, 3,
                                           STREAM_TOSERVER,
-                                          SSLProbingParser);
+                                          SSLProbingParser, NULL);
         } else {
             AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_TLS,
                                                 0, 3,
-                                                SSLProbingParser);
+                                                SSLProbingParser, NULL);
         }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol",

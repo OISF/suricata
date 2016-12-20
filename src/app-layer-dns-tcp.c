@@ -641,12 +641,12 @@ void RegisterDNSTCPParsers(void)
                                           ALPROTO_DNS,
                                           0, sizeof(DNSTcpHeader),
                                           STREAM_TOSERVER,
-                                          DNSTcpProbingParser);
+                                          DNSTcpProbingParser, NULL);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSTcpHeader),
-                                                DNSTcpProbingParser);
+                                                DNSTcpProbingParser, NULL);
             /* if we have no config, we enable the default port 53 */
             if (!have_cfg) {
                 SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS TCP config found, "
@@ -654,7 +654,7 @@ void RegisterDNSTCPParsers(void)
                                                 "port 53.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53",
                                    ALPROTO_DNS, 0, sizeof(DNSTcpHeader),
-                                   STREAM_TOSERVER, DNSTcpProbingParser);
+                                   STREAM_TOSERVER, DNSTcpProbingParser, NULL);
             }
         }
     } else {

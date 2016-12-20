@@ -383,27 +383,27 @@ void RegisterENIPUDPParsers(void)
         if (RunmodeIsUnittests())
         {
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818", ALPROTO_ENIP,
-                    0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
+                    0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser, NULL);
 
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818", ALPROTO_ENIP,
-                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
+                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser, NULL);
 
         } else
         {
             if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
-                    ENIPProbingParser))
+                    ENIPProbingParser, ENIPProbingParser))
             {
                 SCLogDebug(
                         "no ENIP UDP config found enabling ENIP detection on port 44818.");
 
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818",
                         ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER,
-                        ENIPProbingParser);
+                        ENIPProbingParser, NULL);
 
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818",
                         ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
-                        ENIPProbingParser);
+                        ENIPProbingParser, NULL);
             }
         }
 
@@ -471,16 +471,16 @@ void RegisterENIPTCPParsers(void)
         if (RunmodeIsUnittests())
         {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
-                    0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
+                    0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser, NULL);
 
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
-                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
+                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser, NULL);
 
         } else
         {
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
-                    ENIPProbingParser))
+                    ENIPProbingParser, ENIPProbingParser))
             {
                 return;
             }

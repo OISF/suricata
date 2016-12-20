@@ -65,7 +65,8 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
                                    AppProto alproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
-                                   ProbingParserFPtr ProbingParser);
+                                   ProbingParserFPtr ProbingParser1,
+                                   ProbingParserFPtr ProbingParser2);
 /**
  *  \retval bool 0 if no config was found, 1 if config was found
  */
@@ -74,7 +75,8 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
                                          const char *alproto_name,
                                          AppProto alproto,
                                          uint16_t min_depth, uint16_t max_depth,
-                                         ProbingParserFPtr ProbingParser);
+                                         ProbingParserFPtr ProbingParserTs,
+                                         ProbingParserFPtr ProbingParserTc);
 
 /***** PM registration *****/
 
