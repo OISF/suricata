@@ -174,6 +174,7 @@ detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
 detect-http-server-body.c detect-http-server-body.h \
+detect-http-start.c detect-http-start.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-http-ua.c detect-http-ua.h \
