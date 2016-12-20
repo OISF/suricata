@@ -194,6 +194,7 @@ typedef struct DNSAnswerEntry_ {
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
+    uint16_t flags;                                 /**< dns flags */
     uint32_t logged;                                /**< flags for loggers done logging */
     uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */
