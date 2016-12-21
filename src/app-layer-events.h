@@ -50,8 +50,7 @@ enum {
 
 /* the event types for app events */
 typedef enum AppLayerEventType_ {
-    APP_LAYER_EVENT_TYPE_GENERAL = 1,
-    APP_LAYER_EVENT_TYPE_TRANSACTION,
+    APP_LAYER_EVENT_TYPE_TRANSACTION = 1,
     APP_LAYER_EVENT_TYPE_PACKET,
 } AppLayerEventType;
 

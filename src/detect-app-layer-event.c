@@ -326,10 +326,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
         /* DetectAppLayerEventParseAppP2 prints errors */
         return -1;
     }
-    if (event_type == APP_LAYER_EVENT_TYPE_GENERAL)
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    else
-        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
+    SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
     /* We should have set this flag already in SetupP1 */
     s->flags |= SIG_FLAG_APPLAYER;
 
@@ -446,7 +443,7 @@ static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
         return -1;
     }
 
-    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
