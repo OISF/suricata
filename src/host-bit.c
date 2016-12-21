@@ -181,6 +181,25 @@ int HostBitIsnotset(Host *h, uint32_t idx, uint32_t ts)
     return 0;
 }
 
+int HostBitList(Host *h, XBit **iter)
+{
+    GenericVar *gv = (GenericVar *)*iter;
+    if (gv == NULL) {
+        gv = HostGetStorageById(h, host_bit_id);
+    } else {
+        gv = gv->next;
+    }
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_XBITS) {
+            *iter = (XBit *)gv;
+            return 1;
+        }
+    }
+    *iter = NULL;
+    return 0;
+}
+
 /* TESTS */
 #ifdef UNITTESTS
 static int HostBitTest01 (void)

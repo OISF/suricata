@@ -38,4 +38,6 @@ void HostBitUnset(Host *, uint32_t);
 void HostBitToggle(Host *, uint32_t, uint32_t);
 int HostBitIsset(Host *, uint32_t, uint32_t);
 int HostBitIsnotset(Host *, uint32_t, uint32_t);
+int HostBitList(Host *, XBit **);
+
 #endif /* __HOST_BIT_H__ */
