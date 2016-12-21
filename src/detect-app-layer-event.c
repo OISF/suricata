@@ -48,8 +48,6 @@
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                                uint8_t, void *, const Signature *, const SigMatchData *);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
@@ -69,8 +67,6 @@ void DetectAppLayerEventRegister(void)
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].name = "app-layer-event";
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Match =
         DetectAppLayerEventPktMatch;
-    sigmatch_table[DETECT_AL_APP_LAYER_EVENT].AppLayerMatch =
-        DetectAppLayerEventAppMatch;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Setup = DetectAppLayerEventSetupP1;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Free = DetectAppLayerEventFree;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].RegisterTests =
@@ -146,26 +142,6 @@ static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det
 
     return AppLayerDecoderEventsIsEventSet(p->app_layer_events,
                                            aled->event_id);
-}
-
-static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Flow *f, uint8_t flags, void *state,
-                                const Signature *s, const SigMatchData *m)
-{
-    SCEnter();
-    AppLayerDecoderEvents *decoder_events = NULL;
-    int r = 0;
-    DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
-
-    if (r == 0) {
-        decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
-        if (decoder_events != NULL &&
-                AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-            r = 1;
-        }
-    }
-
-    SCReturnInt(r);
 }
 
 static void DetectAppLayerEventSetupCallback(Signature *s)
@@ -326,10 +302,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
         /* DetectAppLayerEventParseAppP2 prints errors */
         return -1;
     }
-    if (event_type == APP_LAYER_EVENT_TYPE_GENERAL)
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    else
-        SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
+    SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
     /* We should have set this flag already in SetupP1 */
     s->flags |= SIG_FLAG_APPLAYER;
 
@@ -446,7 +419,7 @@ static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
         return -1;
     }
 
-    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
