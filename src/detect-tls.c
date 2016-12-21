@@ -95,9 +95,8 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsFingerprintFree(void *);
 
 static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *,
-        const Signature *, const SigMatchData *);
+static int DetectTlsStorePostMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *, const Signature *s, const SigMatchCtx *unused);
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -131,11 +130,11 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
 
-    sigmatch_table[DETECT_AL_TLS_STORE].name = "tls.store";
+    sigmatch_table[DETECT_AL_TLS_STORE].name = "tls_store";
+    sigmatch_table[DETECT_AL_TLS_STORE].alias = "tls.store";
     sigmatch_table[DETECT_AL_TLS_STORE].desc = "store TLS/SSL certificate on disk";
     sigmatch_table[DETECT_AL_TLS_STORE].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsstore";
-    sigmatch_table[DETECT_AL_TLS_STORE].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_STORE].AppLayerMatch = DetectTlsStoreMatch;
+    sigmatch_table[DETECT_AL_TLS_STORE].Match = DetectTlsStorePostMatch;
     sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
     sigmatch_table[DETECT_AL_TLS_STORE].Free  = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
@@ -797,27 +796,26 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     s->alproto = ALPROTO_TLS;
     s->flags |= SIG_FLAG_TLSSTORE;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
     return 0;
 }
 
-/** \warning modifies state */
-static int DetectTlsStoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchData *m)
+/** \warning modifies Flow::alstate */
+static int DetectTlsStorePostMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, const Signature *s, const SigMatchCtx *unused)
 {
     SCEnter();
 
-    SSLState *ssl_state = (SSLState *)state;
+    if (p->flow == NULL)
+        return 0;
+
+    SSLState *ssl_state = FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");
-        SCReturnInt(1);
+        SCReturnInt(0);
     }
 
-    if (s->flags & SIG_FLAG_TLSSTORE) {
-        ssl_state->server_connp.cert_log_flag |= SSL_TLS_LOG_PEM;
-    }
-
+    ssl_state->server_connp.cert_log_flag |= SSL_TLS_LOG_PEM;
     SCReturnInt(1);
 }
 
