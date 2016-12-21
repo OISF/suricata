@@ -50,6 +50,7 @@ vars:
 default-rule-path: @e_sysconfdir@rules
 rule-files:
  - botcc.rules
+ # - botcc.portgrouped.rules
  - ciarmy.rules
  - compromised.rules
  - drop.rules
@@ -67,6 +68,7 @@ rule-files:
 # - emerging-icmp.rules
  - emerging-imap.rules
 # - emerging-inappropriate.rules
+# - emerging-info.rules
  - emerging-malware.rules
  - emerging-misc.rules
  - emerging-mobile_malware.rules
@@ -75,7 +77,8 @@ rule-files:
  - emerging-policy.rules
  - emerging-pop3.rules
  - emerging-rpc.rules
- - emerging-scada.rules
+# - emerging-scada.rules
+# - emerging-scada_special.rules
  - emerging-scan.rules
 # - emerging-shellcode.rules
  - emerging-smtp.rules
