@@ -156,7 +156,7 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
     SCEnter();
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsIssuer,
-        ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
+        ALPROTO_TLS, TLS_STATE_CERT_READY,
         mpm_ctx, NULL, "tls_cert_issuer");
 }
 
@@ -232,7 +232,7 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
     SCEnter();
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSubject,
-        ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
+        ALPROTO_TLS, TLS_STATE_CERT_READY,
         mpm_ctx, NULL, "tls_cert_subject");
 }
 
