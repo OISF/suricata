@@ -783,30 +783,22 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 {
     SigMatch *sm = NULL;
 
-    s->flags |= SIG_FLAG_TLSSTORE;
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        return -1;
+    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)
-        goto error;
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+        return -1;
 
     sm->type = DETECT_AL_TLS_STORE;
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_TLS;
+    s->flags |= SIG_FLAG_TLSSTORE;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
     return 0;
-
-error:
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
-
 }
 
 /** \warning modifies state */
