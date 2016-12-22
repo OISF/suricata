@@ -60,11 +60,12 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *,
-        const Signature *, const SigMatchData *);
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsVersionRegisterTests(void);
 static void DetectTlsVersionFree(void *);
+static int g_tls_generic_list_id = 0;
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -74,13 +75,14 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
     sigmatch_table[DETECT_AL_TLS_VERSION].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsversion";
-    sigmatch_table[DETECT_AL_TLS_VERSION].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerMatch = DetectTlsVersionMatch;
+    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
     sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 }
 
 /**
@@ -95,12 +97,12 @@ void DetectTlsVersionRegister (void)
  * \retval 1 match
  */
 static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchData *m)
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    const DetectTlsVersionData *tls_data = (const DetectTlsVersionData *)m->ctx;
+    const DetectTlsVersionData *tls_data = (const DetectTlsVersionData *)m;
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");
@@ -237,7 +239,7 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->type = DETECT_AL_TLS_VERSION;
     sm->ctx = (void *)tls;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
 
     s->alproto = ALPROTO_TLS;
     return 0;
