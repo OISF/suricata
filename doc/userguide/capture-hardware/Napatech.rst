@@ -12,7 +12,7 @@ Napatech Suricata Installation Guide
 
 	* Basic Configuration
 
-	* Advanced Mutithreaded Configuration
+	* Advanced Multithreaded Configuration
 
 **Introduction:**
 ------------------
@@ -24,18 +24,20 @@ hardware based features:
 
 	* Zero-copy kernel bypass DMA
 
-	* Non blocking PCIe performance
+	* Non-blocking PCIe performance
+	
+	* Port merging
 
-	* Load distrbution to up 128 host buffers
+	* Load distribution to up 128 host buffers
 
-	* Precise timstamping
+	* Precise timestamping
 
 	* Accurate time synchronization
 	
 The Napatech Software Suite (driver package) comes in two varieties, NAC and OEM. 
 The NAC package distributes deb and rpm packages to ease the installation. 
 The OEM package uses a proprietary shell script to handle the installation process.
-In either case, gcc, make adnd the kernel header files are required to compile the kernel module and 
+In either case, gcc, make and the kernel header files are required to compile the kernel module and 
 install the software. 
 
 
@@ -44,7 +46,7 @@ install the software.
 
 *Note that make, gcc, and the kernel headers are required for installation*
 
-*Root privaleges are also required*
+*Root privileges are also required*
 
 Napatech NAC Package:
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,7 +83,7 @@ Napatech OEM Package:
 ^^^^^^^^^^^^^^^^^^^^^^
 
 *Note that you will be prompted to install the Napatech libpcap library. Answer "yes" if you would like to 
-use the Napatech card to capture packets in WIreshark, tcpdump, or another pcap based applicaiton. 
+use the Napatech card to capture packets in WIreshark, tcpdump, or another pcap based application. 
 Libpcap is not needed for Suricata as native Napatech API support is included*
 
 Red Hat Based Distros::
@@ -129,7 +131,7 @@ ntservice.ini::
 **Basic Configuration:**
 -------------------------
 
-For the basical installation we will setup the Napatech capture accelerator to merge all physical 
+For the basic installation we will setup the Napatech capture accelerator to merge all physical 
 ports into single stream that Suricata can read from. for this configuration, Suricata will 
 handle the packet distribution to multiple threads.
 
@@ -150,7 +152,7 @@ a file will the following commands::
 	Setup[numaNode=0] = streamid==0		# Set stream ID 0 to NUMA 0
 	Assign[priority=0; streamid=0]= all	# Assign all phisical ports to stream ID 0
 
-Next excute those command using the ntpl tool::
+Next execute those command using the ntpl tool::
 
 	$ /opt/napatech3/bin/ntpl -f <my_ntpl_file>
 
@@ -161,12 +163,12 @@ Now you are ready to start suricata::
 **Advanced Multithreaded Configuration**
 ------------------------------------------
 
-Now let's do a more adaanced configuration where we will use the load distrbution (RSS - like) capability in the 
-accelerator. We will create 8 streams and setup the accelerator to distrubute the load based on a 5 tuple hash. 
+Now let's do a more advanced configuration where we will use the load distribution (RSS - like) capability in the 
+accelerator. We will create 8 streams and setup the accelerator to distribute the load based on a 5 tuple hash. 
 Increasing buffer size will minimize packet loss only if your CPU cores are fully saturated. Setting the minimum 
 buffer size (16MB) will gave the best performance (minimize L3 cache hits) if your CPU cores are keeping up. 
 
-*Note that it is extremely important that the NUMA node the host buffers are define in is the same phisical CPU 
+*Note that it is extremely important that the NUMA node the host buffers are define in is the same physical CPU 
 socket that the Napatech accelerator is plugged into*
 
 First let's modify the ntservice.ini file to increase the number and size of the host buffers::
@@ -178,7 +180,7 @@ Stop and restart ntservice after making changes to ntservice::
 	$ /opt/napatech3/bin/ntstop.sh -m
 	$ /opt/napatech3/bin/ntstart.sh -m
 	
-Now let's assign the streams to host buffers and configure the load distribution. The load distrution will be 
+Now let's assign the streams to host buffers and configure the load distribution. The load distribution will be 
 setup to support both tunneled and non-tunneled traffic. Create a file that contains the ntpl commands below::
 
 	Delete=All				# Delete any existing filters
@@ -197,11 +199,11 @@ setup to support both tunneled and non-tunneled traffic. Create a file that cont
 	HashMode[priority=4]=HashRoundRobin
 	Assign[priority=0; streamid=(0..7)]= all
 
-Next excute those command using the ntpl tool::
+Next execute those command using the ntpl tool::
 
 	$ /opt/napatech3/bin/ntpl -f <my_ntpl_file>
 
-Now you are ready to start suricata::
+Now you are ready to start Suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
