@@ -2221,11 +2221,6 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires payload");
     }
 
-    if (s->init_data->smlists[DETECT_SM_LIST_DMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
-        SCLogDebug("sig requires dce state");
-    }
-
     SigMatch *sm;
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {

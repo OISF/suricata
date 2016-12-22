@@ -53,12 +53,11 @@
 #define DE_STATE_FLAG_FULL_INSPECT              BIT_U32(0)
 #define DE_STATE_FLAG_SIG_CANT_MATCH            BIT_U32(1)
 
-#define DE_STATE_FLAG_DCE_PAYLOAD_INSPECT       BIT_U32(2)
-#define DE_STATE_FLAG_FILE_TC_INSPECT           BIT_U32(3)
-#define DE_STATE_FLAG_FILE_TS_INSPECT           BIT_U32(4)
+#define DE_STATE_FLAG_FILE_TC_INSPECT           BIT_U32(2)
+#define DE_STATE_FLAG_FILE_TS_INSPECT           BIT_U32(3)
 
 /* first bit position after the built-ins */
-#define DE_STATE_FLAG_BASE                      5UL
+#define DE_STATE_FLAG_BASE                      4UL
 
 /* state flags */
 #define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
