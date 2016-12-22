@@ -332,6 +332,7 @@ static int DetectSshSoftwareVersionTestDetect01(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SSH;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -449,6 +450,7 @@ static int DetectSshSoftwareVersionTestDetect02(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SSH;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -565,6 +567,7 @@ static int DetectSshSoftwareVersionTestDetect03(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_SSH;
+    f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 

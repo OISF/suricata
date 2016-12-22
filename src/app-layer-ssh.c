@@ -494,7 +494,94 @@ static void SSHStateFree(void *state)
     if (s->srv_hdr.banner_buffer != NULL)
         SCFree(s->srv_hdr.banner_buffer);
 
+    //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
+
+    if (s->de_state != NULL) {
+        DetectEngineStateFree(s->de_state);
+    }
+
     SCFree(s);
+}
+
+static int SSHStateHasTxDetectState(void *state)
+{
+    SshState *ssh_state = (SshState *)state;
+    if (ssh_state->de_state)
+        return 1;
+    return 0;
+}
+
+static int SSHSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
+{
+    SshState *ssh_state = (SshState *)state;
+    ssh_state->de_state = de_state;
+    return 0;
+}
+
+static DetectEngineState *SSHGetTxDetectState(void *vtx)
+{
+    SshState *ssh_state = (SshState *)vtx;
+    return ssh_state->de_state;
+}
+
+static void SSHStateTransactionFree(void *state, uint64_t tx_id)
+{
+    /* do nothing */
+}
+
+static void *SSHGetTx(void *state, uint64_t tx_id)
+{
+    SshState *ssh_state = (SshState *)state;
+    return ssh_state;
+}
+
+static uint64_t SSHGetTxCnt(void *state)
+{
+    /* single tx */
+    return 1;
+}
+
+static void SSHSetTxLogged(void *state, void *tx, uint32_t logger)
+{
+    SshState *ssh_state = (SshState *)state;
+    if (ssh_state)
+        ssh_state->logged |= logger;
+}
+
+static int SSHGetTxLogged(void *state, void *tx, uint32_t logger)
+{
+    SshState *ssh_state = (SshState *)state;
+    if (ssh_state && (ssh_state->logged & logger)) {
+        return 1;
+    }
+    return 0;
+}
+
+static int SSHGetAlstateProgressCompletionStatus(uint8_t direction)
+{
+    return SSH_STATE_FINISHED;
+}
+
+static int SSHGetAlstateProgress(void *tx, uint8_t direction)
+{
+    SshState *ssh_state = (SshState *)tx;
+
+    if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
+        ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
+        return SSH_STATE_FINISHED;
+    }
+
+    if (direction == STREAM_TOSERVER) {
+        if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE) {
+            return SSH_STATE_BANNER_DONE;
+        }
+    } else {
+        if (ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
+            return SSH_STATE_BANNER_DONE;
+        }
+    }
+
+    return SSH_STATE_IN_PROGRESS;
 }
 
 static int SSHRegisterPatternsForProtocolDetection(void)
@@ -532,6 +619,22 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
+
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SSH, SSHStateTransactionFree);
+
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateHasTxDetectState,
+                                               SSHGetTxDetectState, SSHSetTxDetectState);
+
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SSH, SSHGetTx);
+
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxCnt);
+
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SSH, SSHGetAlstateProgress);
+
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxLogged, SSHSetTxLogged);
+
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SSH,
+                                                               SSHGetAlstateProgressCompletionStatus);
     } else {
 //        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
 //                  "still on.", proto_name);
