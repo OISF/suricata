@@ -1992,7 +1992,59 @@ static void DCERPCStateFree(void *s)
 
     DCERPCCleanup(&sstate->dcerpc);
 
+    if (sstate->de_state != NULL) {
+        DetectEngineStateFree(sstate->de_state);
+    }
+
     SCFree(s);
+}
+
+static int DCERPCStateHasTxDetectState(void *state)
+{
+    DCERPCState *dce_state = (DCERPCState *)state;
+    if (dce_state->de_state)
+        return 1;
+    return 0;
+}
+
+static int DCERPCSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
+{
+    DCERPCState *dce_state = (DCERPCState *)state;
+    dce_state->de_state = de_state;
+    return 0;
+}
+
+static DetectEngineState *DCERPCGetTxDetectState(void *vtx)
+{
+    DCERPCState *dce_state = (DCERPCState *)vtx;
+    return dce_state->de_state;
+}
+
+static void DCERPCStateTransactionFree(void *state, uint64_t tx_id)
+{
+    /* do nothing */
+}
+
+static void *DCERPCGetTx(void *state, uint64_t tx_id)
+{
+    DCERPCState *dce_state = (DCERPCState *)state;
+    return dce_state;
+}
+
+static uint64_t DCERPCGetTxCnt(void *state)
+{
+    /* single tx */
+    return 1;
+}
+
+static int DCERPCGetAlstateProgressCompletionStatus(uint8_t direction)
+{
+    return 1;
+}
+
+static int DCERPCGetAlstateProgress(void *tx, uint8_t direction)
+{
+    return 0;
 }
 
 static int DCERPCRegisterPatternsForProtocolDetection(void)
@@ -2033,6 +2085,21 @@ void RegisterDCERPCParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCStateAlloc,
                                          DCERPCStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_DCERPC, STREAM_TOSERVER);
+
+
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCStateTransactionFree);
+
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCStateHasTxDetectState,
+                                               DCERPCGetTxDetectState, DCERPCSetTxDetectState);
+
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCGetTx);
+
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCGetTxCnt);
+
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCGetAlstateProgress);
+
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DCERPC,
+                                                               DCERPCGetAlstateProgressCompletionStatus);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
