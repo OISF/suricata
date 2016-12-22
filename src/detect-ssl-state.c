@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -63,8 +63,8 @@ static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *,
         const Signature *, const SigMatchData *);
 static int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
-void DetectSslStateRegisterTests(void);
-void DetectSslStateFree(void *);
+static void DetectSslStateRegisterTests(void);
+static void DetectSslStateFree(void *);
 
 /**
  * \brief Registers the keyword handlers for the "ssl_state" keyword.
@@ -125,7 +125,7 @@ static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssd  Pointer to DetectSslStateData on succese.
  * \retval NULL On failure.
  */
-DetectSslStateData *DetectSslStateParse(char *arg)
+static DetectSslStateData *DetectSslStateParse(char *arg)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -274,11 +274,17 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectSslStateData *ssd = NULL;
     SigMatch *sm = NULL;
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "Rule contains conflicting keywords.  Have non-tls alproto "
+                   "set for a rule containing \"ssl_state\" keyword");
+        goto error;
+    }
     ssd = DetectSslStateParse(arg);
     if (ssd == NULL)
         goto error;
@@ -290,12 +296,6 @@ int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->type = DETECT_AL_SSL_STATE;
     sm->ctx = (SigMatchCtx*)ssd;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "Rule contains conflicting keywords.  Have non-tls alproto "
-                   "set for a rule containing \"ssl_state\" keyword");
-        goto error;
-    }
     s->alproto = ALPROTO_TLS;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
@@ -315,7 +315,7 @@ error:
  *
  * \param ptr pointer to the data to be freed.
  */
-void DetectSslStateFree(void *ptr)
+static void DetectSslStateFree(void *ptr)
 {
     if (ptr != NULL)
         SCFree(ptr);
@@ -327,7 +327,7 @@ void DetectSslStateFree(void *ptr)
 
 #ifdef UNITTESTS
 
-int DetectSslStateTest01(void)
+static int DetectSslStateTest01(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("client_hello");
     FAIL_IF_NULL(ssd);
@@ -336,7 +336,7 @@ int DetectSslStateTest01(void)
     PASS;
 }
 
-int DetectSslStateTest02(void)
+static int DetectSslStateTest02(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
     FAIL_IF_NULL(ssd);
@@ -346,7 +346,7 @@ int DetectSslStateTest02(void)
     PASS;
 }
 
-int DetectSslStateTest03(void)
+static int DetectSslStateTest03(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello");
@@ -358,7 +358,7 @@ int DetectSslStateTest03(void)
     PASS;
 }
 
-int DetectSslStateTest04(void)
+static int DetectSslStateTest04(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -373,7 +373,7 @@ int DetectSslStateTest04(void)
     PASS;
 }
 
-int DetectSslStateTest05(void)
+static int DetectSslStateTest05(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse(", server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -383,7 +383,7 @@ int DetectSslStateTest05(void)
     PASS;
 }
 
-int DetectSslStateTest06(void)
+static int DetectSslStateTest06(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -813,7 +813,7 @@ static int DetectSslStateTest07(void)
  * \brief Test that the "|" character still works as a separate for
  * compatibility with older Suricata rules.
  */
-int DetectSslStateTest08(void)
+static int DetectSslStateTest08(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello|client_hello");
     FAIL_IF_NULL(ssd);
@@ -826,7 +826,7 @@ int DetectSslStateTest08(void)
 /**
  * \test Test parsing of negated states.
  */
-int DetectSslStateTestParseNegate(void)
+static int DetectSslStateTestParseNegate(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("!client_hello");
     FAIL_IF_NULL(ssd);
@@ -845,7 +845,7 @@ int DetectSslStateTestParseNegate(void)
 
 #endif /* UNITTESTS */
 
-void DetectSslStateRegisterTests(void)
+static void DetectSslStateRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01);
@@ -859,6 +859,5 @@ void DetectSslStateRegisterTests(void)
     UtRegisterTest("DetectSslStateTestParseNegate",
         DetectSslStateTestParseNegate);
 #endif
-
     return;
 }

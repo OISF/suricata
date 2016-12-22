@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,8 +64,8 @@ static int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *,
         const Signature *, const SigMatchData *);
 static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, char *);
-void DetectSslVersionRegisterTests(void);
-void DetectSslVersionFree(void *);
+static void DetectSslVersionRegisterTests(void);
+static void DetectSslVersionFree(void *);
 
 /**
  * \brief Registration function for keyword: ssl_version
@@ -163,7 +163,7 @@ static int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssl pointer to DetectSslVersionData on success
  * \retval NULL on failure
  */
-DetectSslVersionData *DetectSslVersionParse(char *str)
+static DetectSslVersionData *DetectSslVersionParse(char *str)
 {
     DetectSslVersionData *ssl = NULL;
 	#define MAX_SUBSTRINGS 30
@@ -280,6 +280,11 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectSslVersionData *ssl = NULL;
     SigMatch *sm = NULL;
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
     ssl = DetectSslVersionParse(str);
     if (ssl == NULL)
         goto error;
@@ -292,11 +297,6 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     sm->type = DETECT_AL_SSL_VERSION;
     sm->ctx = (void *)ssl;
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
 
@@ -330,7 +330,7 @@ void DetectSslVersionFree(void *ptr)
  * \test DetectSslVersionTestParse01 is a test to make sure that we parse the
  *      "ssl_version" option correctly when given valid ssl_version option
  */
-int DetectSslVersionTestParse01(void)
+static int DetectSslVersionTestParse01(void)
 {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("SSlv3");
@@ -345,7 +345,7 @@ int DetectSslVersionTestParse01(void)
  *      "ssl_version" option correctly when given an invalid ssl_version option
  *       it should return ssl = NULL
  */
-int DetectSslVersionTestParse02(void)
+static int DetectSslVersionTestParse02(void)
 {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("2.5");
@@ -358,7 +358,7 @@ int DetectSslVersionTestParse02(void)
  * \test DetectSslVersionTestParse03 is a test to make sure that we parse the
  *      "ssl_version" options correctly when given valid ssl_version options
  */
-int DetectSslVersionTestParse03(void)
+static int DetectSslVersionTestParse03(void)
 {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("SSlv3,tls1.0, !tls1.2");
@@ -654,7 +654,7 @@ static int DetectSslVersionTestDetect03(void)
 /**
  * \brief this function registers unit tests for DetectSslVersion
  */
-void DetectSslVersionRegisterTests(void)
+static void DetectSslVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectSslVersionTestParse01", DetectSslVersionTestParse01);
