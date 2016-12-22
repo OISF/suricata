@@ -173,8 +173,6 @@ static TmEcode JsonSshLogThreadDeinit(ThreadVars *t, void *data)
 
 static void OutputSshLogDeinit(OutputCtx *output_ctx)
 {
-    OutputSshLoggerDisable();
-
     OutputSshCtx *ssh_ctx = output_ctx->data;
     LogFileCtx *logfile_ctx = ssh_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
@@ -185,12 +183,6 @@ static void OutputSshLogDeinit(OutputCtx *output_ctx)
 #define DEFAULT_LOG_FILENAME "ssh.json"
 OutputCtx *OutputSshLogInit(ConfNode *conf)
 {
-    if (OutputSshLoggerEnable() != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'ssh' logger "
-            "can be enabled");
-        return NULL;
-    }
-
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_SSH_LOG_GENERIC, "couldn't create new file_ctx");
@@ -226,8 +218,6 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
 
 static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
 {
-    OutputSshLoggerDisable();
-
     OutputSshCtx *ssh_ctx = output_ctx->data;
     SCFree(ssh_ctx);
     SCFree(output_ctx);
@@ -236,12 +226,6 @@ static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
 OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
-
-    if (OutputSshLoggerEnable() != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'ssh' logger "
-            "can be enabled");
-        return NULL;
-    }
 
     OutputSshCtx *ssh_ctx = SCMalloc(sizeof(OutputSshCtx));
     if (unlikely(ssh_ctx == NULL))
