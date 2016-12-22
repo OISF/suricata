@@ -141,7 +141,6 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
         CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
         CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
         CASE_CODE_STRING(DETECT_SM_LIST_SUPPRESS, "suppress");
@@ -158,7 +157,6 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
-        CASE_CODE(DETECT_SM_LIST_DMATCH);
         CASE_CODE(DETECT_SM_LIST_TMATCH);
         CASE_CODE(DETECT_SM_LIST_POSTMATCH);
         CASE_CODE(DETECT_SM_LIST_SUPPRESS);
@@ -1597,11 +1595,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
             sig->init_data->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
-
-    if (sig->init_data->smlists[DETECT_SM_LIST_DMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    /* for other lists this flag is set when the inspect engines
-     * are registered */
 
     if (!(sig->init_data->init_flags & SIG_FLAG_INIT_FLOW)) {
         sig->flags |= SIG_FLAG_TOSERVER;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Anoop Saldanha <victor@inliniac.net>
  *
  * Implements dce_stub_data keyword
  */
@@ -31,6 +32,8 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -40,7 +43,9 @@
 #include "app-layer-dcerpc.h"
 #include "queue.h"
 #include "stream-tcp-reassemble.h"
+
 #include "detect-dce-stub-data.h"
+#include "detect-dce-iface.h"
 
 #include "util-debug.h"
 
@@ -49,9 +54,140 @@
 
 #include "stream-tcp.h"
 
+#define BUFFER_NAME "dce_stub_data"
+#define KEYWORD_NAME "dce_stub_data"
+
 static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectDceStubDataRegisterTests(void);
+static int g_dce_stub_data_buffer_id = 0;
 
+/** \brief DCERPC Stub Data Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxDceStubDataRequest(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    if (dcerpc_state == NULL)
+        return;
+
+    uint32_t buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+    const uint8_t *buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+static int PrefilterTxDceStubDataRequestRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    int r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataRequest,
+        ALPROTO_DCERPC, 0,
+        mpm_ctx, NULL, KEYWORD_NAME " (request)");
+    if (r == 0) {
+        r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataRequest,
+                ALPROTO_SMB, 0,
+                mpm_ctx, NULL, KEYWORD_NAME " (request)");
+    }
+    return r;
+}
+
+/** \brief DCERPC Stub Data Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxDceStubDataResponse(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    if (dcerpc_state == NULL)
+        return;
+
+    uint32_t buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+    const uint8_t *buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+static int PrefilterTxDceStubDataResponseRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    int r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataResponse,
+        ALPROTO_DCERPC, 0,
+        mpm_ctx, NULL, KEYWORD_NAME " (response)");
+    if (r == 0) {
+        r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataResponse,
+                ALPROTO_SMB, 0,
+                mpm_ctx, NULL, KEYWORD_NAME " (response)");
+    }
+    return r;
+}
+
+static int InspectEngineDceStubData(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
+{
+    uint32_t buffer_len = 0;
+    uint8_t *buffer = NULL;
+
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    if (dcerpc_state == NULL)
+        goto end;
+
+    if (flags & STREAM_TOSERVER) {
+        buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+        buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
+    } else if (flags & STREAM_TOCLIENT) {
+        buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+        buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+    }
+
+    if (buffer == NULL ||buffer_len == 0)
+        goto end;
+
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
+                                          f,
+                                          buffer, buffer_len,
+                                          0,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
+                                          dcerpc_state);
+    if (r == 1)
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+
+end:
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
 /**
  * \brief Registers the keyword handlers for the "dce_stub_data" keyword.
  */
@@ -66,7 +202,26 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_PAYLOAD;
 
-    return;
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterTxDceStubDataRequestRegister);
+    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOCLIENT, 2,
+            PrefilterTxDceStubDataResponseRegister);
+
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            ALPROTO_DCERPC, SIG_FLAG_TOSERVER,
+            InspectEngineDceStubData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT,
+            InspectEngineDceStubData);
+
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            ALPROTO_SMB, SIG_FLAG_TOSERVER,
+            InspectEngineDceStubData);
+    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT,
+            InspectEngineDceStubData);
+
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
 
 /**
@@ -89,7 +244,7 @@ static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         goto error;
     }
 
-    s->init_data->list = DETECT_SM_LIST_DMATCH;
+    s->init_data->list = g_dce_stub_data_buffer_id;
     s->alproto = ALPROTO_DCERPC;
     s->flags |= SIG_FLAG_APPLAYER;
     return 0;
@@ -110,7 +265,7 @@ static int DetectDceStubDataTestParse01(void)
     Signature *s = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any (dce_stub_data; content:\"1\"; sid:1;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_DMATCH]);
+    FAIL_IF_NULL(s->sm_lists[g_dce_stub_data_buffer_id]);
     DetectEngineCtxFree(de_ctx);
     PASS;
 }
