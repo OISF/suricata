@@ -184,9 +184,6 @@ void OutputDeregisterAll(void);
 int OutputDropLoggerEnable(void);
 void OutputDropLoggerDisable(void);
 
-int OutputSshLoggerEnable(void);
-void OutputSshLoggerDisable(void);
-
 void OutputRegisterFileRotationFlag(int *flag);
 void OutputUnregisterFileRotationFlag(int *flag);
 void OutputNotifyFileRotation(void);
