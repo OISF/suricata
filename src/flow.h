@@ -386,7 +386,7 @@ typedef struct Flow_
 
     /** detection engine ctx id used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
-     *  de_state and stored sgh ptrs are reset. */
+     *  stored sgh ptrs are reset. */
     uint32_t de_ctx_id;
 
     /** Thread ID for the stream/detect portion of this flow */
@@ -400,9 +400,6 @@ typedef struct Flow_
      */
     AppLayerParserState *alparser;     /**< parser internal state */
     void *alstate;      /**< application layer state */
-
-    /** detection engine state */
-    struct DetectEngineStateFlow_ *de_state;
 
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
