@@ -60,11 +60,19 @@ static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
 static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *,
-        const Signature *, const SigMatchData *);
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 static int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectSslStateRegisterTests(void);
 static void DetectSslStateFree(void *);
+
+static int InspectTlsGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id);
+
+static int g_tls_generic_list_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "ssl_state" keyword.
@@ -72,14 +80,35 @@ static void DetectSslStateFree(void *);
 void DetectSslStateRegister(void)
 {
     sigmatch_table[DETECT_AL_SSL_STATE].name = "ssl_state";
-    sigmatch_table[DETECT_AL_SSL_STATE].Match = NULL;
-    sigmatch_table[DETECT_AL_SSL_STATE].AppLayerMatch = DetectSslStateMatch;
+    sigmatch_table[DETECT_AL_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
     sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1, &parse_regex1_study);
     DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2, &parse_regex2_study);
+
+    g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
+
+    DetectBufferTypeSetDescriptionByName("tls_generic",
+            "generic ssl/tls inspection");
+
+    DetectAppLayerInspectEngineRegister("tls_generic",
+            ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            InspectTlsGeneric);
+    DetectAppLayerInspectEngineRegister("tls_generic",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            InspectTlsGeneric);
+}
+
+static int InspectTlsGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -97,10 +126,10 @@ void DetectSslStateRegister(void)
  * \retval 0 No match.
  */
 static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *alstate,
-        const Signature *s, const SigMatchData *m)
+        Flow *f, uint8_t flags, void *alstate, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
-    const DetectSslStateData *ssd = (const DetectSslStateData *)m->ctx;
+    const DetectSslStateData *ssd = (const DetectSslStateData *)m;
     SSLState *ssl_state = (SSLState *)alstate;
     if (ssl_state == NULL) {
         SCLogDebug("no app state, no match");
@@ -298,7 +327,7 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
 
     return 0;
 
