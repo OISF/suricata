@@ -89,36 +89,29 @@ void JsonSshLogJSON(json_t *tjs, SshState *ssh_state)
 
 }
 
-static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+                         Flow *f, void *state, void *txptr, uint64_t tx_id)
 {
     JsonSshLogThread *aft = (JsonSshLogThread *)thread_data;
     OutputSshCtx *ssh_ctx = aft->sshlog_ctx;
 
-    if (unlikely(p->flow == NULL)) {
+    SshState *ssh_state = (SshState *)state;
+    if (unlikely(ssh_state == NULL)) {
         return 0;
     }
 
-    /* check if we have SSH state or not */
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto end;
-
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
-    if (unlikely(ssh_state == NULL)) {
-        goto end;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL || ssh_state->srv_hdr.software_version == NULL)
-        goto end;
+    if (ssh_state->cli_hdr.software_version == NULL ||
+            ssh_state->srv_hdr.software_version == NULL)
+        return 0;
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "ssh");//TODO
     if (unlikely(js == NULL))
-        goto end;
+        return 0;
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
         free(js);
-        goto end;
+        return 0;
     }
 
     /* reset */
@@ -132,9 +125,6 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     json_object_clear(js);
     json_decref(js);
 
-    /* we only log the state once */
-    ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED;
-end:
     return 0;
 }
 
@@ -230,6 +220,7 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinit;
 
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
     return output_ctx;
 }
 
@@ -267,58 +258,24 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinitSub;
 
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
     return output_ctx;
-}
-
-/** \internal
- *  \brief Condition function for SSH logger
- *  \retval bool true or false -- log now?
- */
-static int JsonSshCondition(ThreadVars *tv, const Packet *p)
-{
-    if (p->flow == NULL) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        return FALSE;
-    }
-
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto dontlog;
-
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
-    if (ssh_state == NULL) {
-        SCLogDebug("no ssh state, so no logging");
-        goto dontlog;
-    }
-
-    /* we only log the state once */
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_STATE_LOGGED)
-        goto dontlog;
-
-    if (ssh_state->cli_hdr.software_version == NULL ||
-        ssh_state->srv_hdr.software_version == NULL)
-        goto dontlog;
-
-    /* todo: logic to log once */
-
-    return TRUE;
-dontlog:
-    return FALSE;
 }
 
 void JsonSshLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterPacketModule(LOGGER_JSON_SSH, "JsonSshLog", "ssh-json-log",
-        OutputSshLogInit, JsonSshLogger, JsonSshCondition, JsonSshLogThreadInit,
-        JsonSshLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_SSH,
+        "JsonSshLog", "ssh-json-log",
+        OutputSshLogInit, ALPROTO_SSH, JsonSshLogger,
+        SSH_STATE_BANNER_DONE, SSH_STATE_BANNER_DONE,
+        JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterPacketSubModule(LOGGER_JSON_SSH, "eve-log", "JsonSshLog",
-        "eve-log.ssh", OutputSshLogInitSub, JsonSshLogger, JsonSshCondition,
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_SSH,
+        "eve-log", "JsonSshLog", "eve-log.ssh",
+        OutputSshLogInitSub, ALPROTO_SSH, JsonSshLogger,
+        SSH_STATE_BANNER_DONE, SSH_STATE_BANNER_DONE,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
 
