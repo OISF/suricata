@@ -1036,7 +1036,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         int list = DetectBufferTypeGetByName("tls_generic");
         SigMatchAppendSMToList(s, sm, list);
     } else if (lua->alproto == ALPROTO_SSH) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+        int list = DetectBufferTypeGetByName("ssh_banner");
+        SigMatchAppendSMToList(s, sm, list);
     } else if (lua->alproto == ALPROTO_SMTP) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else if (lua->alproto == ALPROTO_DNP3) {
