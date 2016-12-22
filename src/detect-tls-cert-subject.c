@@ -65,7 +65,6 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].name = "tls_cert_subject";
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].desc = "content modifier to match specifically and only on the TLS cert subject buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Setup = DetectTlsSubjectSetup;
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].Free  = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;

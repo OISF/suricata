@@ -77,7 +77,6 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].desc = "content modifier to match on HTTP stat-msg-buffer";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_stat-msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].RegisterTests = DetectHttpStatMsgRegisterTests;

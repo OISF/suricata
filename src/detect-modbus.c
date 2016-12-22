@@ -407,7 +407,6 @@ void DetectModbusRegister(void)
     SCEnter();
     sigmatch_table[DETECT_AL_MODBUS].name          = "modbus";
     sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
-    sigmatch_table[DETECT_AL_MODBUS].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_MODBUS].Setup         = DetectModbusSetup;
     sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
