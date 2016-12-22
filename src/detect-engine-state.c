@@ -303,12 +303,6 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
     return r;
 }
 
-static int StoreState(Flow *f, const uint8_t flags, const uint8_t alversion)
-{
-    DeStateStoreStateVersion(f, alversion, flags);
-    return 1;
-}
-
 static void StoreStateTxHandleFiles(DetectEngineThreadCtx *det_ctx, Flow *f,
                                     DetectEngineState *destate, const uint8_t flags,
                                     const uint64_t tx_id, const uint16_t file_no_match)
@@ -383,7 +377,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint16_t file_no_match = 0;
     uint32_t inspect_flags = 0;
     int alert_cnt = 0;
-    int dmatch = 0;
 
     SCLogDebug("rule %u", s->id);
 
@@ -516,51 +509,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (next_tx_no_progress)
                 break;
         } /* for */
-    }
-    /* DCERPC matches */
-    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
-               (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
-                alproto == ALPROTO_SMB2))
-    {
-        void *alstate = FlowGetAppState(f);
-        if (alstate == NULL) {
-            goto end;
-        }
-
-        KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
-        if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                    flags, alstate) == 1) {
-            inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
-            dmatch = 1;
-        }
-    }
-
-    /* if AMATCH and/or DMATCH are in use, see if we need to
-     * alert and store the state */
-    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL)
-    {
-        /* if dmatch in use and match
-           or
-           sig can't match
-         */
-        if (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-            inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
-        } else {
-            if (dmatch || s->sm_arrays[DETECT_SM_LIST_DMATCH] == NULL)
-            {
-                if (!(s->flags & SIG_FLAG_NOALERT)) {
-                    PacketAlertAppend(det_ctx, s, p, 0,
-                            PACKET_ALERT_FLAG_STATE_MATCH);
-                } else {
-                    DetectSignatureApplyActions(p, s);
-                }
-                alert_cnt = 1;
-
-                inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
-            }
-        }
-
-        StoreState(f, flags, alversion);
     }
  end:
     det_ctx->tx_id = 0;

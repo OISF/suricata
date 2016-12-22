@@ -770,6 +770,7 @@ void DetectPcreFree(void *ptr)
 #ifdef UNITTESTS /* UNITTESTS */
 static int g_file_data_buffer_id = 0;
 static int g_http_header_buffer_id = 0;
+static int g_dce_stub_data_buffer_id = 0;
 
 /**
  * \test DetectPcreParseTest01 make sure we don't allow invalid opts 7.
@@ -960,7 +961,7 @@ int DetectPcreParseTest10(void)
     s->alproto = ALPROTO_DCERPC;
 
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
@@ -969,7 +970,7 @@ int DetectPcreParseTest10(void)
 
     /* failure since we have no preceding content/pcre/bytejump */
     FAIL_IF_NOT(DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    FAIL_IF_NOT(s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
     DetectEngineCtxFree(de_ctx);
@@ -997,9 +998,9 @@ int DetectPcreParseTest11(void)
                                "pcre:/bamboo/R; sid:1;)");
     FAIL_IF(de_ctx == NULL);
     s = de_ctx->sig_list;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
+    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE));
 
@@ -1010,9 +1011,9 @@ int DetectPcreParseTest11(void)
                       "pcre:/bamboo/R; sid:1;)");
     FAIL_IF_NULL(s->next);
     s = s->next;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
+    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     FAIL_IF(data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE));
 
@@ -1023,9 +1024,9 @@ int DetectPcreParseTest11(void)
                       "pcre:/bamboo/RB; sid:1;)");
     FAIL_IF(s->next == NULL);
     s = s->next;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL);
-    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_PCRE);
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL);
+    FAIL_IF_NOT(s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_PCRE);
+    data = (DetectPcreData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     FAIL_IF(!(data->flags & DETECT_PCRE_RAWBYTES) ||
         !(data->flags & DETECT_PCRE_RELATIVE));
 
@@ -1034,7 +1035,7 @@ int DetectPcreParseTest11(void)
                       "content:\"one\"; pcre:/bamboo/; sid:1;)");
     FAIL_IF(s->next == NULL);
     s = s->next;
-    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL);
+    FAIL_IF(s->sm_lists_tail[g_dce_stub_data_buffer_id] != NULL);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -3312,6 +3313,7 @@ void DetectPcreRegisterTests(void)
 #ifdef UNITTESTS /* UNITTESTS */
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
     UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01);
     UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02);

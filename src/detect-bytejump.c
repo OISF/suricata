@@ -640,6 +640,7 @@ static void DetectBytejumpFree(void *ptr)
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 static int g_file_data_buffer_id = 0;
+static int g_dce_stub_data_buffer_id = 0;
 
 /**
  * \test DetectBytejumpTestParse01 is a test to make sure that we return
@@ -832,7 +833,7 @@ static int DetectBytejumpTestParse09(void)
     result &= (DetectBytejumpSetup(NULL, s, "4,0, string, oct, dce") == -1);
     result &= (DetectBytejumpSetup(NULL, s, "4,0, string, hex, dce") == -1);
     result &= (DetectBytejumpSetup(NULL, s, "4,0, from_beginning, dce") == -1);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
     return result;
@@ -865,12 +866,12 @@ static int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -892,12 +893,12 @@ static int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -919,12 +920,12 @@ static int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if ((bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -1290,6 +1291,7 @@ static void DetectBytejumpRegisterTests(void)
 {
 #ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
     UtRegisterTest("DetectBytejumpTestParse01", DetectBytejumpTestParse01);
     UtRegisterTest("DetectBytejumpTestParse02", DetectBytejumpTestParse02);

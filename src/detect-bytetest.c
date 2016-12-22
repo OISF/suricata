@@ -578,6 +578,7 @@ static void DetectBytetestFree(void *ptr)
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
 static int g_file_data_buffer_id = 0;
+static int g_dce_stub_data_buffer_id = 0;
 
 /**
  * \test DetectBytetestTestParse01 is a test to make sure that we return "something"
@@ -1020,12 +1021,12 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1047,12 +1048,12 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1074,12 +1075,12 @@ static int DetectBytetestTestParse20(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTETEST);
-    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTETEST);
+    bd = (DetectBytetestData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if ((bd->flags & DETECT_BYTETEST_DCE) &&
         !(bd->flags & DETECT_BYTETEST_RELATIVE) &&
         (bd->flags & DETECT_BYTETEST_STRING) &&
@@ -1436,6 +1437,7 @@ static void DetectBytetestRegisterTests(void)
 {
 #ifdef UNITTESTS
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
     UtRegisterTest("DetectBytetestTestParse01", DetectBytetestTestParse01);
     UtRegisterTest("DetectBytetestTestParse02", DetectBytetestTestParse02);
