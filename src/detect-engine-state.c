@@ -635,57 +635,18 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    int amatch = 0;
-    /* flow based matches */
-    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
-    smd = s->sm_arrays[DETECT_SM_LIST_AMATCH];
-    if (smd != NULL) {
-        void *alstate = FlowGetAppState(f);
-        if (alstate == NULL) {
-            goto end;
-        }
-
-        while (1) {
-            if (sigmatch_table[smd->type].AppLayerMatch != NULL) {
-                int match = 0;
-                KEYWORD_PROFILING_START;
-                match = sigmatch_table[smd->type].
-                    AppLayerMatch(tv, det_ctx, f, flags, alstate, s, smd);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
-
-                if (match == 0) {
-                    break;
-                } else if (match == 2) {
-                    inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                    break;
-                } else if (match == 1 && smd->is_last) {
-                    amatch = 1;
-                }
-            }
-            if (smd->is_last)
-                break;
-            smd++;
-        }
-    }
-
     /* if AMATCH and/or DMATCH are in use, see if we need to
      * alert and store the state */
-    if ((s->sm_arrays[DETECT_SM_LIST_AMATCH] != NULL ||
-         s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL))
+    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL)
     {
-        /* if dmatch in use and match + amatch in use and match
-           or
-           if dmatch in use and match + amatch not in use
-           or
-           if dmatch not in use + amatch in use and match
+        /* if dmatch in use and match
            or
            sig can't match
          */
         if (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
             inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         } else {
-            if ((amatch || s->sm_arrays[DETECT_SM_LIST_AMATCH] == NULL) &&
-                (dmatch || s->sm_arrays[DETECT_SM_LIST_DMATCH] == NULL))
+            if (dmatch || s->sm_arrays[DETECT_SM_LIST_DMATCH] == NULL)
             {
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                     PacketAlertAppend(det_ctx, s, p, 0,
@@ -936,45 +897,6 @@ static int DoInspectFlowRule(ThreadVars *tv,
 
     RULE_PROFILING_START(p);
 
-    KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
-    if (item->nm != NULL) {
-        void *alstate = FlowGetAppState(f);
-        if (alstate == NULL) {
-            RULE_PROFILING_END(det_ctx, s, 0 /* no match */, p);
-            return -1;
-        }
-
-        smd = item->nm;
-        while(1) {
-            if (sigmatch_table[smd->type].AppLayerMatch != NULL) {
-                int match = 0;
-                KEYWORD_PROFILING_START;
-                match = sigmatch_table[smd->type].
-                    AppLayerMatch(tv, det_ctx, f, flags, alstate, s, smd);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
-
-                if (match == 0)
-                    break;
-                else if (match == 2) {
-                    inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                    break;
-                }
-                else if (match == 1) {
-                    total_matches++;
-
-                    if (smd->is_last)
-                        full_match = 1;
-                }
-            }
-            if (smd->is_last)
-                break;
-            smd++;
-        }
-    } else {
-        /* AMATCH isn't there */
-        full_match = 1;
-    }
-
     /* DCERPC matches */
     if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
             (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
@@ -993,7 +915,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
         }
     }
     /* update full_match with DMATCH result */
-    if (full_match && s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL) {
         full_match = ((inspect_flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT) != 0);
     }
 

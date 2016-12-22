@@ -89,8 +89,6 @@ void DetectLuaRegister(void)
 
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, const Signature *s, const SigMatchData *m);
 static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
@@ -116,7 +114,6 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
     sigmatch_table[DETECT_LUA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
-    sigmatch_table[DETECT_LUA].AppLayerMatch = DetectLuaAppMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
@@ -549,24 +546,6 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
     }
 
     SCReturnInt(ret);
-}
-
-/**
- * \brief match the specified lua script in AMATCH
- *
- * \param t thread local vars
- * \param det_ctx pattern matcher thread local data
- * \param s signature being inspected
- * \param m sigmatch that we will cast into DetectLuaData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchData *m)
-{
-    return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, m->ctx);
 }
 
 /**

@@ -482,7 +482,6 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
     sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
     sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
     sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
@@ -499,7 +498,6 @@ static void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
     sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
     sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3IND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
     sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
@@ -516,7 +514,6 @@ static void DetectDNP3ObjRegister(void)
     sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
     sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
     sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
@@ -540,7 +537,6 @@ static void DetectDNP3DataRegister(void)
 
     sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3_data";
     sigmatch_table[DETECT_AL_DNP3DATA].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
     sigmatch_table[DETECT_AL_DNP3DATA].Free          = NULL;
     sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =

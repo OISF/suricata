@@ -74,7 +74,6 @@ void DetectHttpServerBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].desc = "content modifier to match only on the HTTP response-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_server-body";
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].Setup = DetectHttpServerBodySetup;
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].Free  = DetectHttpServerBodyFree;
     sigmatch_table[DETECT_AL_HTTP_SERVER_BODY].RegisterTests = DetectHttpServerBodyRegisterTests;
