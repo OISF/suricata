@@ -202,6 +202,9 @@ outputs:
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
+            # custom allows to control which tls fields that are included
+            # in eve-log
+            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
