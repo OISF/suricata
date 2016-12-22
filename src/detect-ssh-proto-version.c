@@ -63,11 +63,12 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectSshVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, void *,
-        const Signature *, const SigMatchData *);
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, char *);
-void DetectSshVersionRegisterTests(void);
-void DetectSshVersionFree(void *);
+static void DetectSshVersionRegisterTests(void);
+static void DetectSshVersionFree(void *);
+static int g_ssh_banner_list_id = 0;
 
 /**
  * \brief Registration function for keyword: ssh.protoversion
@@ -75,13 +76,14 @@ void DetectSshVersionFree(void *);
 void DetectSshVersionRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Match = NULL;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerMatch = DetectSshVersionMatch;
+    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerTxMatch = DetectSshVersionMatch;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_ssh_banner_list_id = DetectBufferTypeRegister("ssh_banner");
 }
 
 /**
@@ -96,12 +98,12 @@ void DetectSshVersionRegister(void)
  * \retval 1 match
  */
 static int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state,
-        const Signature *s, const SigMatchData *m)
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    DetectSshVersionData *ssh = (DetectSshVersionData *)m->ctx;
+    DetectSshVersionData *ssh = (DetectSshVersionData *)m;
     SshState *ssh_state = (SshState *)state;
     if (ssh_state == NULL) {
         SCLogDebug("no ssh state, no match");
@@ -215,6 +217,11 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectSshVersionData *ssh = NULL;
     SigMatch *sm = NULL;
 
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_SSH) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        return -1;
+    }
+
     ssh = DetectSshVersionParse(str);
     if (ssh == NULL)
         goto error;
@@ -225,15 +232,10 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     if (sm == NULL)
         goto error;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_SSH) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
-
     sm->type = DETECT_AL_SSH_PROTOVERSION;
     sm->ctx = (void *)ssh;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, g_ssh_banner_list_id);
 
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_SSH;
