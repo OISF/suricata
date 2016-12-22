@@ -49,6 +49,9 @@
 
 #include "detect-dce-iface.h"
 
+static int g_dce_stub_data_buffer_id = 0;
+
+#if 0
 /**
  * \brief Do the content inspection & validation for a signature against dce stub.
  *
@@ -73,7 +76,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
     uint16_t dce_stub_data_len;
     int r = 0;
 
-    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] == NULL || dcerpc_state == NULL) {
+    if (s->sm_arrays[g_dce_stub_data_buffer_id] == NULL || dcerpc_state == NULL) {
         SCReturnInt(0);
     }
 
@@ -87,13 +90,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[g_dce_stub_data_buffer_id],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
                                           0, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[DETECT_SM_LIST_DMATCH], f,
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[g_dce_stub_data_buffer_id], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -110,13 +113,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[g_dce_stub_data_buffer_id],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
                                           0, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[DETECT_SM_LIST_DMATCH], f,
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[g_dce_stub_data_buffer_id], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -125,6 +128,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 
     SCReturnInt(0);
 }
+#endif
 
 /**************************************Unittests*******************************/
 
@@ -7500,7 +7504,7 @@ static int DcePayloadParseTest25(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
@@ -7623,7 +7627,7 @@ static int DcePayloadParseTest26(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
@@ -7749,7 +7753,7 @@ static int DcePayloadParseTest27(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -7758,7 +7762,7 @@ static int DcePayloadParseTest27(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7876,7 +7880,7 @@ static int DcePayloadParseTest28(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -7885,7 +7889,7 @@ static int DcePayloadParseTest28(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8005,7 +8009,7 @@ static int DcePayloadParseTest29(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
@@ -8147,7 +8151,7 @@ static int DcePayloadParseTest30(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
@@ -8294,7 +8298,7 @@ static int DcePayloadParseTest31(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8303,7 +8307,7 @@ static int DcePayloadParseTest31(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8441,7 +8445,7 @@ static int DcePayloadParseTest32(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8450,7 +8454,7 @@ static int DcePayloadParseTest32(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8588,7 +8592,7 @@ static int DcePayloadParseTest33(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8597,7 +8601,7 @@ static int DcePayloadParseTest33(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8731,7 +8735,7 @@ static int DcePayloadParseTest34(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8740,7 +8744,7 @@ static int DcePayloadParseTest34(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8852,7 +8856,7 @@ static int DcePayloadParseTest35(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8861,7 +8865,7 @@ static int DcePayloadParseTest35(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -8940,7 +8944,7 @@ static int DcePayloadParseTest36(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -8949,7 +8953,7 @@ static int DcePayloadParseTest36(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -9045,7 +9049,7 @@ static int DcePayloadParseTest37(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9054,7 +9058,7 @@ static int DcePayloadParseTest37(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -9154,7 +9158,7 @@ static int DcePayloadParseTest38(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9163,7 +9167,7 @@ static int DcePayloadParseTest38(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9270,7 +9274,7 @@ static int DcePayloadParseTest39(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9301,7 +9305,7 @@ static int DcePayloadParseTest39(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     data = (DetectContentData *)sm->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -9359,7 +9363,7 @@ static int DcePayloadParseTest40(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9368,7 +9372,7 @@ static int DcePayloadParseTest40(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9489,7 +9493,7 @@ static int DcePayloadParseTest41(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9498,7 +9502,7 @@ static int DcePayloadParseTest41(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9818,11 +9822,11 @@ static int DcePayloadParseTest44(void)
             "sid:1;)");
     FAIL_IF_NULL(s);
 
-    FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH]);
+    FAIL_IF_NULL(s->init_data->smlists_tail[g_dce_stub_data_buffer_id]);
     FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
 
     /* isdataat:10,relative; */
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     FAIL_IF(sm->type != DETECT_ISDATAAT);
     isd = (DetectIsdataatData *)sm->ctx;
     FAIL_IF(isd->flags & ISDATAAT_RAWBYTES);
@@ -9913,7 +9917,7 @@ static int DcePayloadParseTest45(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -9922,7 +9926,7 @@ static int DcePayloadParseTest45(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -10025,7 +10029,7 @@ static int DcePayloadParseTest46(void)
         goto end;
     }
 
-    if (s->init_data->smlists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
@@ -10034,7 +10038,7 @@ static int DcePayloadParseTest46(void)
         goto end;
     }
 
-    sm = s->init_data->smlists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -10108,6 +10112,7 @@ static int DcePayloadParseTest46(void)
 
 void DcePayloadRegisterTests(void)
 {
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
 #ifdef UNITTESTS
     UtRegisterTest("DcePayloadTest01", DcePayloadTest01);

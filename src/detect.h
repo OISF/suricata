@@ -88,9 +88,6 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
 
-    /* list for DCE matches */
-    DETECT_SM_LIST_DMATCH,
-
     /* base64_data keyword uses some hardcoded logic so consider
      * built-in
      * TODO convert to inspect engine */
