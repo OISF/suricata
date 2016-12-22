@@ -53,11 +53,13 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                        void *, const Signature *, const SigMatchData *);
+static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectDceOpnumFree(void *);
 static void DetectDceOpnumRegisterTests(void);
+static int g_dce_generic_list_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "dce_opnum" keyword.
@@ -66,7 +68,7 @@ void DetectDceOpnumRegister(void)
 {
     sigmatch_table[DETECT_DCE_OPNUM].name = "dce_opnum";
     sigmatch_table[DETECT_DCE_OPNUM].Match = NULL;
-    sigmatch_table[DETECT_DCE_OPNUM].AppLayerMatch = DetectDceOpnumMatch;
+    sigmatch_table[DETECT_DCE_OPNUM].AppLayerTxMatch = DetectDceOpnumMatch;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
@@ -74,6 +76,8 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
 }
 
 /**
@@ -240,12 +244,12 @@ static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  * \retval 0 On no match.
  */
 static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *state,
-                        const Signature *s, const SigMatchData *m)
+                        Flow *f, uint8_t flags, void *state, void *txv,
+                        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m->ctx;
+    DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m;
     DetectDceOpnumRange *dor = dce_data->range;
 
     DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
@@ -291,14 +295,19 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature, option needs a value");
-        goto error;
+        return -1;
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        return -1;
     }
 
     dod = DetectDceOpnumArgParse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature");
-        goto error;
+        return -1;
     }
 
     sm = SigMatchAlloc();
@@ -308,12 +317,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->type = DETECT_DCE_OPNUM;
     sm->ctx = (void *)dod;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
 
     s->alproto = ALPROTO_DCERPC;
     /* Flagged the signature as to inspect the app layer data */
@@ -363,7 +367,7 @@ static int DetectDceOpnumTestParse01(void)
     result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513--") == -1);
     result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
         SigFree(s);
         result &= 1;
     }
@@ -381,8 +385,8 @@ static int DetectDceOpnumTestParse02(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
@@ -408,8 +412,8 @@ static int DetectDceOpnumTestParse03(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
@@ -435,8 +439,8 @@ static int DetectDceOpnumTestParse04(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
@@ -499,8 +503,8 @@ static int DetectDceOpnumTestParse05(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
@@ -563,8 +567,8 @@ static int DetectDceOpnumTestParse06(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
@@ -609,8 +613,8 @@ static int DetectDceOpnumTestParse07(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
+    if (s->sm_lists[g_dce_generic_list_id] != NULL) {
+        temp = s->sm_lists[g_dce_generic_list_id];
         dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
