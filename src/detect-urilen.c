@@ -67,7 +67,6 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].desc = "match on the length of the HTTP uri";
     sigmatch_table[DETECT_AL_URILEN].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#urilen";
     sigmatch_table[DETECT_AL_URILEN].Match = NULL;
-    sigmatch_table[DETECT_AL_URILEN].AppLayerMatch = NULL /**< We handle this at detect-engine-uri.c now */;
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;

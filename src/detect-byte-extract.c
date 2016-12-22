@@ -100,7 +100,6 @@ void DetectByteExtractRegister(void)
 {
     sigmatch_table[DETECT_BYTE_EXTRACT].name = "byte_extract";
     sigmatch_table[DETECT_BYTE_EXTRACT].Match = NULL;
-    sigmatch_table[DETECT_BYTE_EXTRACT].AppLayerMatch = NULL;
     sigmatch_table[DETECT_BYTE_EXTRACT].Setup = DetectByteExtractSetup;
     sigmatch_table[DETECT_BYTE_EXTRACT].Free = DetectByteExtractFree;
     sigmatch_table[DETECT_BYTE_EXTRACT].RegisterTests = DetectByteExtractRegisterTests;

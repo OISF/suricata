@@ -73,7 +73,6 @@ void DetectHttpHRHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].name = "http_raw_host";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].desc = "content modifier to match only on the HTTP host header or the raw hostname from the HTTP uri";
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HOST].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Setup = DetectHttpHRHSetup;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].Free  = DetectHttpHRHFree;
     sigmatch_table[DETECT_AL_HTTP_RAW_HOST].RegisterTests = DetectHttpHRHRegisterTests;
