@@ -126,15 +126,6 @@ static DeStateStore *DeStateStoreAlloc(void)
 
     return d;
 }
-static DeStateStoreFlowRules *DeStateStoreFlowRulesAlloc(void)
-{
-    DeStateStoreFlowRules *d = SCMalloc(sizeof(DeStateStoreFlowRules));
-    if (unlikely(d == NULL))
-        return NULL;
-    memset(d, 0, sizeof(DeStateStoreFlowRules));
-
-    return d;
-}
 
 static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
 {
@@ -203,46 +194,6 @@ static void DeStateSignatureAppend(DetectEngineState *state,
     return;
 }
 
-static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, const Signature *s,
-                                  const SigMatchData *smd, uint32_t inspect_flags,
-                                  uint8_t direction)
-{
-    int jump = 0;
-    int i = 0;
-    DetectEngineStateDirectionFlow *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
-    DeStateStoreFlowRules *store = dir_state->head;
-
-    if (store == NULL) {
-        store = DeStateStoreFlowRulesAlloc();
-        if (store != NULL) {
-            dir_state->head = store;
-            dir_state->tail = store;
-        }
-    } else {
-        jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
-        for (i = 0; i < jump; i++) {
-            store = store->next;
-        }
-        if (store == NULL) {
-            store = DeStateStoreFlowRulesAlloc();
-            if (store != NULL) {
-                dir_state->tail->next = store;
-                dir_state->tail = store;
-            }
-        }
-    }
-
-    if (store == NULL)
-        return;
-
-    SigIntId idx = dir_state->cnt++ % DE_STATE_CHUNK_SIZE;
-    store->store[idx].sid = s->num;
-    store->store[idx].flags = inspect_flags;
-    store->store[idx].nm = smd;
-
-    return;
-}
-
 static void DeStateStoreStateVersion(Flow *f,
                                      const uint8_t alversion, uint8_t direction)
 {
@@ -274,16 +225,6 @@ DetectEngineState *DetectEngineStateAlloc(void)
     return d;
 }
 
-DetectEngineStateFlow *DetectEngineStateFlowAlloc(void)
-{
-    DetectEngineStateFlow *d = SCMalloc(sizeof(DetectEngineStateFlow));
-    if (unlikely(d == NULL))
-        return NULL;
-    memset(d, 0, sizeof(DetectEngineStateFlow));
-
-    return d;
-}
-
 void DetectEngineStateFree(DetectEngineState *state)
 {
     DeStateStore *store;
@@ -303,32 +244,8 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
-void DetectEngineStateFlowFree(DetectEngineStateFlow *state)
-{
-    DeStateStoreFlowRules *store;
-    DeStateStoreFlowRules *store_next;
-    int i = 0;
-
-    for (i = 0; i < 2; i++) {
-        store = state->dir_state[i].head;
-        while (store != NULL) {
-            store_next = store->next;
-            SCFree(store);
-            store = store_next;
-        }
-    }
-    SCFree(state);
-
-    return;
-}
-
 static int HasStoredSigs(Flow *f, uint8_t flags)
 {
-    if (f->de_state != NULL && f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt != 0) {
-        SCLogDebug("global sigs present");
-        return 1;
-    }
-
     if (AppLayerParserProtocolSupportsTxs(f->proto, f->alproto)) {
         AppProto alproto = f->alproto;
         void *alstate = FlowGetAppState(f);
@@ -372,18 +289,13 @@ static int HasStoredSigs(Flow *f, uint8_t flags)
  *
  *  \retval 0 no inspectable state
  *  \retval 1 inspectable state
- *  \retval 2 inspectable state, but no update
  */
 int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
                                    const uint8_t alversion, uint8_t flags)
 {
     int r = 0;
 
-    if (!(flags & STREAM_EOF) && f->de_state &&
-               f->detect_alversion[flags & STREAM_TOSERVER ? 0 : 1] == alversion) {
-        SCLogDebug("unchanged state");
-        r = 2;
-    } else if (HasStoredSigs(f, flags)) {
+    if (HasStoredSigs(f, flags)) {
         r = 1;
     } else {
         r = 0;
@@ -391,20 +303,8 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
     return r;
 }
 
-static int StoreState(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags, const uint8_t alversion,
-        const Signature *s, const SigMatchData *smd,
-        const uint32_t inspect_flags,
-        const uint16_t file_no_match)
+static int StoreState(Flow *f, const uint8_t flags, const uint8_t alversion)
 {
-    if (f->de_state == NULL) {
-        f->de_state = DetectEngineStateFlowAlloc();
-        if (f->de_state == NULL) {
-            return 0;
-        }
-    }
-
-    DeStateFlowRuleAppend(f->de_state, s, smd, inspect_flags, flags);
     DeStateStoreStateVersion(f, alversion, flags);
     return 1;
 }
@@ -660,8 +560,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
         }
 
-        StoreState(det_ctx, f, flags, alversion,
-                s, smd, inspect_flags, file_no_match);
+        StoreState(f, flags, alversion);
     }
  end:
     det_ctx->tx_id = 0;
@@ -873,82 +772,6 @@ static int DoInspectItem(ThreadVars *tv,
     return 1;
 }
 
-/** \internal
- *  \brief Continue Detection for a single "flow" rule (AMATCH)
- */
-static int DoInspectFlowRule(ThreadVars *tv,
-    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    DeStateStoreFlowRule *item, const uint8_t dir_state_flags,
-    Packet *p, Flow *f, AppProto alproto, uint8_t flags)
-{
-    /* flag rules that are either full inspected or unable to match
-     * in the de_state_sig_array so that prefilter filters them out */
-    if (item->flags & (DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_SIG_CANT_MATCH)) {
-        det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-        return 0;
-    }
-
-    uint8_t alert = 0;
-    uint32_t inspect_flags = item->flags;
-    int total_matches = 0;
-    int full_match = 0;
-    const SigMatchData *smd = NULL;
-    const Signature *s = de_ctx->sig_array[item->sid];
-
-    RULE_PROFILING_START(p);
-
-    /* DCERPC matches */
-    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
-            (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
-             alproto == ALPROTO_SMB2) &&
-            !(item->flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT))
-    {
-        void *alstate = FlowGetAppState(f);
-        if (alstate != NULL) {
-            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
-            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                        flags, alstate) == 1)
-            {
-                total_matches++;
-                inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
-            }
-        }
-    }
-    /* update full_match with DMATCH result */
-    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL) {
-        full_match = ((inspect_flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT) != 0);
-    }
-
-    /* check the results */
-    if (total_matches > 0 && (full_match || (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)))
-    {
-        if (full_match)
-            alert = 1;
-        inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
-    }
-    /* prevent the rule loop from reinspecting this rule */
-    det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-    RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
-
-    /* store the progress in the state */
-    item->flags |= inspect_flags;
-    item->nm = smd;
-
-    if (alert) {
-        SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
-
-        if (!(s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertAppend(det_ctx, s, p, 0,
-                    PACKET_ALERT_FLAG_STATE_MATCH);
-        } else {
-            DetectSignatureApplyActions(p, s);
-        }
-    }
-
-    DetectFlowvarProcessList(det_ctx, f);
-    return 1;
-}
-
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
@@ -1040,29 +863,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    /* continue on flow based state rules (AMATCH) */
-    if (f->de_state != NULL) {
-        DetectEngineStateDirectionFlow *dir_state = &f->de_state->dir_state[direction];
-        DeStateStoreFlowRules *store = dir_state->head;
-        /* Loop through stored 'items' (stateful rules) and inspect them */
-        for (; store != NULL; store = store->next) {
-            for (store_cnt = 0;
-                    store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
-                    store_cnt++, state_cnt++)
-            {
-                DeStateStoreFlowRule *rule = &store->store[store_cnt];
-
-                int r = DoInspectFlowRule(tv, de_ctx, det_ctx,
-                        rule, dir_state->flags,
-                        p, f, alproto, flags);
-                if (r < 0) {
-                    goto end;
-                }
-            }
-        }
-        DeStateStoreStateVersion(f, alversion, flags);
-    }
-
 end:
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
@@ -1080,22 +880,6 @@ void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
         AppLayerParserSetTransactionInspectId(f->alparser, f->proto,
                                               f->alproto, f->alstate, flags);
     }
-    return;
-}
-
-void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction)
-{
-    if (state != NULL) {
-        if (direction & STREAM_TOSERVER) {
-            state->dir_state[0].cnt = 0;
-            state->dir_state[0].flags = 0;
-        }
-        if (direction & STREAM_TOCLIENT) {
-            state->dir_state[1].cnt = 0;
-            state->dir_state[1].flags = 0;
-        }
-    }
-
     return;
 }
 
