@@ -98,6 +98,13 @@ static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectLuaSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(void *);
+static int g_smtp_generic_list_id = 0;
+
+static int InspectSmtpGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id);
 
 /**
  * \brief Registration function for keyword: lua
@@ -115,8 +122,27 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
 
+    g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
+
+    DetectAppLayerInspectEngineRegister("smtp_generic",
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            InspectSmtpGeneric);
+    DetectAppLayerInspectEngineRegister("smtp_generic",
+            ALPROTO_SMTP, SIG_FLAG_TOCLIENT,
+            InspectSmtpGeneric);
+
 	SCLogDebug("registering lua rule option");
     return;
+}
+
+static int InspectSmtpGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
 }
 
 #define DATATYPE_PACKET                     (1<<0)
@@ -1039,7 +1065,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         int list = DetectBufferTypeGetByName("ssh_banner");
         SigMatchAppendSMToList(s, sm, list);
     } else if (lua->alproto == ALPROTO_SMTP) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+        SigMatchAppendSMToList(s, sm, g_smtp_generic_list_id);
     } else if (lua->alproto == ALPROTO_DNP3) {
         int list = DetectBufferTypeGetByName("dnp3");
         SigMatchAppendSMToList(s, sm, list);
