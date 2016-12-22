@@ -303,6 +303,13 @@ static void FTPStateFree(void *s)
         SCFree(fstate->line_state[0].db);
     if (fstate->line_state[1].db)
         SCFree(fstate->line_state[1].db);
+
+    //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
+
+    if (fstate->de_state != NULL) {
+        DetectEngineStateFree(fstate->de_state);
+    }
+
     SCFree(s);
 #ifdef DEBUG
     SCMutexLock(&ftp_state_mem_lock);
@@ -311,6 +318,64 @@ static void FTPStateFree(void *s)
     SCMutexUnlock(&ftp_state_mem_lock);
 #endif
 }
+
+static int FTPStateHasTxDetectState(void *state)
+{
+    FtpState *ssh_state = (FtpState *)state;
+    if (ssh_state->de_state)
+        return 1;
+    return 0;
+}
+
+static int FTPSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
+{
+    FtpState *ssh_state = (FtpState *)state;
+    ssh_state->de_state = de_state;
+    return 0;
+}
+
+static DetectEngineState *FTPGetTxDetectState(void *vtx)
+{
+    FtpState *ssh_state = (FtpState *)vtx;
+    return ssh_state->de_state;
+}
+
+static void FTPStateTransactionFree(void *state, uint64_t tx_id)
+{
+    /* do nothing */
+}
+
+static void *FTPGetTx(void *state, uint64_t tx_id)
+{
+    FtpState *ssh_state = (FtpState *)state;
+    return ssh_state;
+}
+
+static uint64_t FTPGetTxCnt(void *state)
+{
+    /* single tx */
+    return 1;
+}
+
+static int FTPGetAlstateProgressCompletionStatus(uint8_t direction)
+{
+    return FTP_STATE_FINISHED;
+}
+
+static int FTPGetAlstateProgress(void *tx, uint8_t direction)
+{
+    FtpState *ftp_state = (FtpState *)tx;
+
+    if (direction == STREAM_TOSERVER &&
+        ftp_state->command == FTP_COMMAND_PORT) {
+        return FTP_STATE_PORT_DONE;
+    }
+
+    /* TODO: figure out further progress handling */
+
+    return FTP_STATE_IN_PROGRESS;
+}
+
 
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
@@ -351,6 +416,20 @@ void RegisterFTPParsers(void)
                                      FTPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
+
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTP, FTPStateTransactionFree);
+
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateHasTxDetectState,
+                                               FTPGetTxDetectState, FTPSetTxDetectState);
+
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
+
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_FTP, FTPGetTxCnt);
+
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_FTP, FTPGetAlstateProgress);
+
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_FTP,
+                                                               FTPGetAlstateProgressCompletionStatus);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
