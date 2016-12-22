@@ -849,22 +849,6 @@ void OutputDropLoggerDisable(void)
         drop_loggers--;
 }
 
-static int ssh_loggers = 0;
-
-int OutputSshLoggerEnable(void)
-{
-    if (ssh_loggers)
-        return -1;
-    ssh_loggers++;
-    return 0;
-}
-
-void OutputSshLoggerDisable(void)
-{
-    if (ssh_loggers)
-        ssh_loggers--;
-}
-
 /**
  * \brief Register a flag for file rotation notification.
  *
