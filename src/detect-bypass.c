@@ -63,7 +63,6 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].desc = "call the bypass callback when the match of a sig is complete";
     sigmatch_table[DETECT_BYPASS].url = "";
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
-    sigmatch_table[DETECT_BYPASS].AppLayerMatch = NULL;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
     sigmatch_table[DETECT_BYPASS].RegisterTests = DetectBypassRegisterTests;

@@ -69,7 +69,6 @@ static int g_http_uri_buffer_id = 0;
 void DetectUricontentRegister (void)
 {
     sigmatch_table[DETECT_URICONTENT].name = "uricontent";
-    sigmatch_table[DETECT_URICONTENT].AppLayerMatch = NULL;
     sigmatch_table[DETECT_URICONTENT].Match = NULL;
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
