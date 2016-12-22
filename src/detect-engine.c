@@ -2906,8 +2906,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_PMATCH:
             return "packet/stream payload";
 
-        case DETECT_SM_LIST_AMATCH:
-            return "generic app layer";
         case DETECT_SM_LIST_DMATCH:
             return "dcerpc";
         case DETECT_SM_LIST_TMATCH:

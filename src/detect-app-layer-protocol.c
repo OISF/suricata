@@ -355,7 +355,6 @@ static int DetectAppLayerProtocolTest04(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
@@ -382,7 +381,6 @@ static int DetectAppLayerProtocolTest05(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 

@@ -1914,9 +1914,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
-        return 0;
-
     /* for now assume that all registered buffer types are incompatible */
     const int nlists = DetectBufferTypeMaxId();
     for (int i = 0; i < nlists; i++) {
@@ -1984,9 +1981,6 @@ static int SignatureIsPDOnly(const Signature *s)
         return 0;
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
-        return 0;
-
-    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
@@ -2084,8 +2078,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
         SCReturnInt(0);
     }
 
-    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL ||
-        s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
     {
         SCReturnInt(0);
     }
@@ -2239,19 +2232,6 @@ static int SignatureCreateMask(Signature *s)
     }
 
     SigMatch *sm;
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
-        switch(sm->type) {
-            case DETECT_AL_URILEN:
-            case DETECT_AL_HTTP_URI:
-                s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                SCLogDebug("sig requires dce http state");
-                break;
-            case DETECT_AL_APP_LAYER_EVENT:
-                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
-                break;
-        }
-    }
-
     for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_FLOWBITS:
@@ -2386,11 +2366,6 @@ static int SignatureCreateMask(Signature *s)
     }
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
-        s->mask |= SIG_MASK_REQUIRE_FLOW;
-        SCLogDebug("sig requires flow");
-    }
-
-    if (s->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
