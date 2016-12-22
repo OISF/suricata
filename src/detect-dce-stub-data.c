@@ -110,7 +110,6 @@ static int DetectDceStubDataTestParse01(void)
     Signature *s = DetectEngineAppendSig(de_ctx,
             "alert tcp any any -> any any (dce_stub_data; content:\"1\"; sid:1;)");
     FAIL_IF_NULL(s);
-    FAIL_IF_NOT_NULL(s->sm_lists[DETECT_SM_LIST_AMATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_DMATCH]);
     DetectEngineCtxFree(de_ctx);
     PASS;
