@@ -79,7 +79,6 @@ void DetectHttpResponseLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].desc = "content modifier to match only on the HTTP response line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#http_response-line";
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].Setup = DetectHttpResponseLineSetup;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].RegisterTests = DetectHttpResponseLineRegisterTests;
 

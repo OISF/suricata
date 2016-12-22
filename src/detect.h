@@ -924,11 +924,6 @@ typedef struct SigTableElmt_ {
     /** Packet match function pointer */
     int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
-    /** AppLayer match function  pointer */
-    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *,
-            Flow *, uint8_t flags, void *alstate,
-            const Signature *, const SigMatchData *);
-
     /** AppLayer TX match function pointer */
     int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,
             uint8_t flags, void *alstate, void *txv,

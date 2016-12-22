@@ -53,7 +53,6 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "Rules for detecting CIP Service ";
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
-    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
@@ -315,7 +314,6 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].desc
             = "Rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
-    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
