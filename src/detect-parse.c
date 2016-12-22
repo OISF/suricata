@@ -145,7 +145,6 @@ const char *DetectListToHumanString(int list)
     switch (list) {
         CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
         CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
-        CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
         CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
         CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
@@ -163,7 +162,6 @@ const char *DetectListToString(int list)
     switch (list) {
         CASE_CODE(DETECT_SM_LIST_MATCH);
         CASE_CODE(DETECT_SM_LIST_PMATCH);
-        CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
         CASE_CODE(DETECT_SM_LIST_TMATCH);
         CASE_CODE(DETECT_SM_LIST_POSTMATCH);
@@ -1465,19 +1463,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    for (sm = s->init_data->smlists[DETECT_SM_LIST_AMATCH]; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_AL_APP_LAYER_PROTOCOL)
-            continue;
-        if (((DetectAppLayerProtocolData *)sm->ctx)->negated)
-            break;
-    }
-    if (sm != NULL && s->alproto != ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "We can't have "
-                   "the rule match on a fixed alproto and at the same time"
-                   "have an app-layer-protocol keyword set.");
-        SCReturnInt(0);
-    }
-
     /* TCP: pkt vs stream vs depth/offset */
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
         if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
@@ -1617,12 +1602,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         }
     }
 
-    if (sig->init_data->smlists[DETECT_SM_LIST_AMATCH] != NULL)
-        sig->flags |= SIG_FLAG_APPLAYER;
-
     if (sig->init_data->smlists[DETECT_SM_LIST_DMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->init_data->smlists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     /* for other lists this flag is set when the inspect engines
      * are registered */
