@@ -705,7 +705,6 @@ static int DetectDceStubDataTestParse02(void)
  */
 static int DetectDceStubDataTestParse03(void)
 {
-    int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
     Packet *p = NULL;
@@ -1157,8 +1156,7 @@ static int DetectDceStubDataTestParse03(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -1167,53 +1165,34 @@ static int DetectDceStubDataTestParse03(void)
                                    "(msg:\"DCERPC\"; "
                                    "dce_stub_data; content:\"|42 42 42 42|\";"
                                    "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF(s == NULL);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
                             STREAM_TOSERVER | STREAM_START, dcerpc_request,
                             dcerpc_request_len);
-    if (r != 0) {
-        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     dcerpc_state = f.alstate;
-    if (dcerpc_state == NULL) {
-        SCLogDebug("no dcerpc state: ");
-        goto end;
-    }
+    FAIL_IF (dcerpc_state == NULL);
 
     p->flowflags &=~ FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(!PacketAlertCheck(p, 1));
 
-    if (!PacketAlertCheck(p, 1))
-        goto end;
-
-    result = 1;
-
- end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 static int DetectDceStubDataTestParse04(void)
