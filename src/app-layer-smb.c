@@ -670,7 +670,7 @@ static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
     int32_t parsed = 0;
 
     if (sstate->andx.paddingparsed) {
-        parsed = DCERPCParser(&sstate->dcerpc, input, input_len);
+        parsed = DCERPCParser(&sstate->ds.dcerpc, input, input_len);
         if (parsed == -1 || parsed > sstate->bytecount.bytecountleft || parsed > (int32_t)input_len) {
             SCReturnInt(-1);
         } else {
@@ -1432,7 +1432,7 @@ static void *SMBStateAlloc(void)
         SCReturnPtr(NULL, "void");
     }
 
-    DCERPCInit(&s->dcerpc);
+    DCERPCInit(&s->ds.dcerpc);
 
     SCReturnPtr(s, "void");
 }
@@ -1445,7 +1445,7 @@ static void SMBStateFree(void *s)
     SCEnter();
     SMBState *sstate = (SMBState *) s;
 
-    DCERPCCleanup(&sstate->dcerpc);
+    DCERPCCleanup(&sstate->ds.dcerpc);
 
     SCFree(s);
     SCReturn;
@@ -1703,7 +1703,7 @@ int SMBParserTest02(void)
         goto end;
     }
 
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    printUUID("BIND", smb_state->ds.dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -2010,7 +2010,7 @@ int SMBParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    printUUID("BIND", smb_state->ds.dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     if (alp_tctx != NULL)

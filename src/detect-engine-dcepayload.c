@@ -47,6 +47,8 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#include "detect-dce-iface.h"
+
 /**
  * \brief Do the content inspection & validation for a signature against dce stub.
  *
@@ -66,7 +68,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
                                   Flow *f, uint8_t flags, void *alstate)
 {
     SCEnter();
-    DCERPCState *dcerpc_state = (DCERPCState *)alstate;
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, alstate);
     uint8_t *dce_stub_data = NULL;
     uint16_t dce_stub_data_len;
     int r = 0;

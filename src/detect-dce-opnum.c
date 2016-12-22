@@ -41,6 +41,7 @@
 #include "queue.h"
 #include "stream-tcp-reassemble.h"
 #include "detect-dce-opnum.h"
+#include "detect-dce-iface.h"
 
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -247,7 +248,7 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m->ctx;
     DetectDceOpnumRange *dor = dce_data->range;
 
-    DCERPCState *dcerpc_state = (DCERPCState *)state;
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);

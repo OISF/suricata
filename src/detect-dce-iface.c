@@ -229,6 +229,24 @@ static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
     }
 }
 
+#include "app-layer-smb.h"
+DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
+{
+    switch(alproto) {
+        case ALPROTO_DCERPC:
+            return alstate;
+        case ALPROTO_SMB: {
+            SMBState *smb_state = (SMBState *)alstate;
+            return &smb_state->ds;
+        }
+        case ALPROTO_SMB2:
+            // not implemented
+            return NULL;
+    }
+
+    return NULL;
+}
+
 /**
  * \brief App layer match function for the "dce_iface" keyword.
  *
@@ -253,7 +271,7 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DCERPCUuidEntry *item = NULL;
     int i = 0;
     DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
-    DCERPCState *dcerpc_state = (DCERPCState *)state;
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);
