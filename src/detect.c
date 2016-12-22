@@ -1100,8 +1100,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
 
-                DetectEngineStateReset(pflow->de_state,
-                        (STREAM_TOSERVER|STREAM_TOCLIENT));
                 DetectEngineStateResetTxs(pflow);
             }
 
@@ -1231,9 +1229,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
                                            flow_flags, alproto, alversion);
-        } else if (has_inspectable_state == 2) {
-            /* no inspectable state, so pretend we don't have a state at all */
-            has_state = 0;
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
