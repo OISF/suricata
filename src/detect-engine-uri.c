@@ -225,8 +225,6 @@ static int UriTestSig01(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -348,8 +346,6 @@ static int UriTestSig02(void)
         printf("sig 1 alerted with payload2, but it should not: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -473,8 +469,6 @@ static int UriTestSig03(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -596,8 +590,6 @@ static int UriTestSig04(void)
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -721,8 +713,6 @@ static int UriTestSig05(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -844,8 +834,6 @@ static int UriTestSig06(void)
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -969,8 +957,6 @@ static int UriTestSig07(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -1092,8 +1078,6 @@ static int UriTestSig08(void)
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -1217,8 +1201,6 @@ static int UriTestSig09(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -1340,8 +1322,6 @@ static int UriTestSig10(void)
         printf("sig 1 alerted, but it should not: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -1466,8 +1446,6 @@ static int UriTestSig11(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -1591,8 +1569,6 @@ static int UriTestSig12(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -1714,8 +1690,6 @@ static int UriTestSig13(void)
         printf("sig 1 didnt alert with pkt, but it should: ");
         goto end;
     }
-
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -1840,8 +1814,6 @@ static int UriTestSig14(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -1965,8 +1937,6 @@ static int UriTestSig15(void)
         goto end;
     }
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
@@ -2089,7 +2059,6 @@ static int UriTestSig16(void)
     }
     p->alerts.cnt = 0;
 
-    DetectEngineStateReset(f.de_state, STREAM_TOSERVER | STREAM_TOCLIENT);
     p->payload = http_buf2;
     p->payload_len = http_buf2_len;
 

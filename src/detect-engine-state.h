@@ -31,19 +31,6 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-/* On DeState and locking.
- *
- * The DeState is part of a flow, but it can't be protected by the flow lock.
- * Reason is we need to lock the DeState data for an entire detection run,
- * as we're looping through on "continued" detection and rely on only a single
- * detection instance setting it up on first run. We can't keep the entire flow
- * locked during detection for performance reasons, it would slow us down too
- * much.
- *
- * So a new lock was introduced. The only part of the process where we need
- * the flow lock is obviously when we're getting/setting the de_state ptr from
- * to the flow.
- */
 
 #ifndef __DETECT_ENGINE_STATE_H__
 #define __DETECT_ENGINE_STATE_H__
@@ -96,8 +83,6 @@
 #define DE_STATE_MATCH_HAS_NEW_STATE 0x00
 #define DE_STATE_MATCH_NO_NEW_STATE  0x80
 
-/* TX BASED (inspect engines) */
-
 typedef struct DeStateStoreItem_ {
     uint32_t flags;
     SigIntId sid;
@@ -120,30 +105,6 @@ typedef struct DetectEngineState_ {
     DetectEngineStateDirection dir_state[2];
 } DetectEngineState;
 
-/* FLOW BASED (AMATCH) */
-
-typedef struct DeStateStoreFlowRule_ {
-    const SigMatchData *nm;
-    uint32_t flags;
-    SigIntId sid;
-} DeStateStoreFlowRule;
-
-typedef struct DeStateStoreFlowRules_ {
-    DeStateStoreFlowRule store[DE_STATE_CHUNK_SIZE];
-    struct DeStateStoreFlowRules_ *next;
-} DeStateStoreFlowRules;
-
-typedef struct DetectEngineStateDirectionFlow_ {
-    DeStateStoreFlowRules *head;
-    DeStateStoreFlowRules *tail;
-    SigIntId cnt;
-    uint8_t flags;
-} DetectEngineStateDirectionFlow;
-
-typedef struct DetectEngineStateFlow_ {
-    DetectEngineStateDirectionFlow dir_state[2];
-} DetectEngineStateFlow;
-
 /**
  * \brief Alloc a DetectEngineState object.
  *
@@ -157,7 +118,6 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void DetectEngineStateFree(DetectEngineState *state);
-void DetectEngineStateFlowFree(DetectEngineStateFlow *state);
 
 /**
  * \brief Check if a flow already contains(newly updated as well) de state.
@@ -215,14 +175,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
  *  \param flags direction and disruption flags
  */
 void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags);
-
-/**
- * \brief Reset a DetectEngineState state.
- *
- * \param state     Pointer to the state(LOCKED).
- * \param direction Direction flags - STREAM_TOSERVER or STREAM_TOCLIENT.
- */
-void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction);
 
 void DetectEngineStateResetTxs(Flow *f);
 
