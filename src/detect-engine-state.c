@@ -616,9 +616,9 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (next_tx_no_progress)
                 break;
         } /* for */
-
+    }
     /* DCERPC matches */
-    } else if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
+    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
                (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
                 alproto == ALPROTO_SMB2))
     {
