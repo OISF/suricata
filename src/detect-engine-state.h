@@ -59,10 +59,13 @@
 /* first bit position after the built-ins */
 #define DE_STATE_FLAG_BASE                      4UL
 
-/* state flags */
-#define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
-#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW         0x0002
-#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW         0x0004
+/* state flags
+ *
+ * Used by app-layer-parsers to notify us that new files
+ * are available in the tx.
+ */
+#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW    BIT_U8(0)
+#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW    BIT_U8(1)
 
 /* We have 2 possible state values to be used by ContinueDetection() while
  * trying to figure if we have fresh state to install or not.
