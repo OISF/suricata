@@ -63,7 +63,7 @@ typedef struct SCProfileKeywordDetectCtx_ {
 static int profiling_keywords_output_to_file = 0;
 int profiling_keyword_enabled = 0;
 __thread int profiling_keyword_entered = 0;
-static char *profiling_file_name = "";
+static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 
 void SCProfilingKeywordsGlobalInit(void)
@@ -80,12 +80,8 @@ void SCProfilingKeywordsGlobalInit(void)
                 char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
-                profiling_file_name = SCMalloc(PATH_MAX);
-                if (unlikely(profiling_file_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
-                    exit(EXIT_FAILURE);
-                }
-                snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s",
+                        log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
