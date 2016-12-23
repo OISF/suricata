@@ -543,7 +543,6 @@ static void DetectDNP3DataRegister(void)
         DetectDNP3DataRegisterTests;
 
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerInspectEngineRegister("dnp3_data",
             ALPROTO_DNP3, SIG_FLAG_TOSERVER,

@@ -82,7 +82,6 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("http_stat_code", SIG_FLAG_TOCLIENT, 4,
             PrefilterTxHttpStatCodeRegister);

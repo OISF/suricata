@@ -57,8 +57,6 @@ void DetectDistanceRegister(void)
     sigmatch_table[DETECT_DISTANCE].Setup = DetectDistanceSetup;
     sigmatch_table[DETECT_DISTANCE].Free  = NULL;
     sigmatch_table[DETECT_DISTANCE].RegisterTests = DetectDistanceRegisterTests;
-
-    sigmatch_table[DETECT_DISTANCE].flags |= SIGMATCH_PAYLOAD;
 }
 
 static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,

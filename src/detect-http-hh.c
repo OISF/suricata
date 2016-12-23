@@ -79,7 +79,6 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister("http_host", SIG_FLAG_TOSERVER, 2,
             PrefilterTxHostnameRegister);

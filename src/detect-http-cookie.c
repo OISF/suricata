@@ -81,7 +81,6 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("http_cookie", SIG_FLAG_TOSERVER, 2,
             PrefilterTxRequestCookieRegister);

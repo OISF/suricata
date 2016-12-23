@@ -75,7 +75,6 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
 
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("dns_query", SIG_FLAG_TOSERVER, 2,
             PrefilterTxDnsQueryRegister);

@@ -305,7 +305,6 @@ void DetectHttpStartRegister(void)
     sigmatch_table[DETECT_AL_HTTP_START].Setup = DetectHttpStartSetup;
 
     sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_START].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestStartRegister);
