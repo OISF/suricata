@@ -75,7 +75,6 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_URI].RegisterTests = DetectHttpUriRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2,
             PrefilterTxUriRegister);

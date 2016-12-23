@@ -79,7 +79,6 @@ void DetectHttpRawHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpRawHeaderRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("http_raw_header", SIG_FLAG_TOSERVER, 2,
             PrefilterTxRequestHeadersRawRegister);

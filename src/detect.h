@@ -1089,13 +1089,11 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_IPONLY_COMPAT  (1 << 1)
 /** sigmatch is compatible with a decode event only rule */
 #define SIGMATCH_DEONLY_COMPAT  (1 << 2)
-/**< Flag to indicate that the signature inspects the packet payload */
-#define SIGMATCH_PAYLOAD        (1 << 3)
 /**< Flag to indicate that the signature is not built-in */
-#define SIGMATCH_NOT_BUILT      (1 << 4)
+#define SIGMATCH_NOT_BUILT      (1 << 3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT   (1 << 5)
+#define SIGMATCH_OPTIONAL_OPT   (1 << 4)
 
 enum DetectEngineTenantSelectors
 {

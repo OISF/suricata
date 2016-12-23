@@ -56,7 +56,6 @@ void DetectTemplateBufferRegister(void)
         DetectTemplateBufferRegisterTests;
 
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_PAYLOAD;
 
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister("template_buffer",

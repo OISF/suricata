@@ -104,8 +104,6 @@ void DetectByteExtractRegister(void)
     sigmatch_table[DETECT_BYTE_EXTRACT].Free = DetectByteExtractFree;
     sigmatch_table[DETECT_BYTE_EXTRACT].RegisterTests = DetectByteExtractRegisterTests;
 
-    sigmatch_table[DETECT_BYTE_EXTRACT].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

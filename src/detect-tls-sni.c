@@ -71,7 +71,6 @@ void DetectTlsSniRegister(void)
     sigmatch_table[DETECT_AL_TLS_SNI].RegisterTests = DetectTlsSniRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("tls_sni", SIG_FLAG_TOSERVER, 2,
             PrefilterTxTlsSniRegister);

@@ -59,8 +59,6 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
-
-    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
 }
 
 /**

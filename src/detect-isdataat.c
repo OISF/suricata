@@ -73,8 +73,6 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
 
-    sigmatch_table[DETECT_ISDATAAT].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
