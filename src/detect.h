@@ -985,9 +985,6 @@ typedef struct SigTableElmt_ {
 
     uint8_t flags;
 
-    /** unused: warn user. Will be removed in the future. */
-    AppProto alproto __attribute__((deprecated));
-
     char *name;     /**< keyword name alias */
     char *alias;    /**< name alias */
     char *desc;
