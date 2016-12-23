@@ -102,14 +102,14 @@ static SCProfilePacketData prefilter6[256][256];
 struct ProfileProtoRecords packet_profile_flowworker_data[PROFILE_FLOWWORKER_SIZE];
 
 int profiling_packets_enabled = 0;
-int profiling_packets_csv_enabled = 0;
-
 int profiling_output_to_file = 0;
-int profiling_packets_output_to_file = 0;
-char *profiling_file_name;
-char *profiling_packets_file_name;
-char *profiling_csv_file_name;
-const char *profiling_packets_file_mode = "a";
+
+static int profiling_packets_csv_enabled = 0;
+static int profiling_packets_output_to_file = 0;
+static char *profiling_file_name;
+static char profiling_packets_file_name[PATH_MAX];
+static char *profiling_csv_file_name;
+const static char *profiling_packets_file_mode = "a";
 
 static int rate = 1;
 static SC_ATOMIC_DECLARE(uint64_t, samples);
@@ -187,13 +187,8 @@ SCProfilingInit(void)
                 char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
-                profiling_packets_file_name = SCMalloc(PATH_MAX);
-                if (unlikely(profiling_packets_file_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
-                    exit(EXIT_FAILURE);
-                }
-
-                snprintf(profiling_packets_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+                snprintf(profiling_packets_file_name, sizeof(profiling_packets_file_name),
+                        "%s/%s", log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
