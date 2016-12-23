@@ -212,6 +212,7 @@ detect-rpc.c detect-rpc.h \
 detect-sameip.c detect-sameip.h \
 detect-seq.c detect-seq.h \
 detect-sid.c detect-sid.h \
+detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software-version.c detect-ssh-software-version.h \
 detect-ssl-state.c detect-ssl-state.h \
