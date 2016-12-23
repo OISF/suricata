@@ -147,11 +147,11 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
  * \retval 1 match
  */
 int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
     int ret = 0;
-    DetectFileHashData *filehash = (DetectFileHashData *)m->ctx;
+    DetectFileHashData *filehash = (DetectFileHashData *)m;
 
     if (file->txid < det_ctx->tx_id) {
         SCReturnInt(0);

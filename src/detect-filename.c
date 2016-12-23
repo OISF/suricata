@@ -53,7 +53,7 @@
 #include "app-layer-parser.h"
 
 static int DetectFilenameMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-        uint8_t, File *, const Signature *, const SigMatchData *);
+        uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilenameRegisterTests(void);
 static void DetectFilenameFree(void *);
@@ -104,12 +104,12 @@ void DetectFilenameRegister(void)
  * \retval 1 match
  */
 static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
     int ret = 0;
 
-    DetectFilenameData *filename = (DetectFilenameData *)m->ctx;
+    DetectFilenameData *filename = (DetectFilenameData *)m;
 
     if (file->name == NULL)
         SCReturnInt(0);
