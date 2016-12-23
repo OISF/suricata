@@ -83,7 +83,6 @@ void DetectHttpRequestLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].RegisterTests = DetectHttpRequestLineRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister("http_request_line", SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestLineRegister);

@@ -69,7 +69,6 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
-    sigmatch_table[DETECT_FILESIZE].flags |= SIGMATCH_PAYLOAD; /** XXX necessary? */
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 

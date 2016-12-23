@@ -70,7 +70,6 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("tls_cert_subject", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxTlsSubjectRegister);

@@ -51,8 +51,6 @@ void DetectPktvarRegister (void)
     sigmatch_table[DETECT_PKTVAR].Free  = NULL;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
-    sigmatch_table[DETECT_PKTVAR].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

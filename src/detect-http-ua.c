@@ -79,7 +79,6 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].RegisterTests = DetectHttpUARegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister("http_user_agent", SIG_FLAG_TOSERVER, 2,
             PrefilterTxUARegister);

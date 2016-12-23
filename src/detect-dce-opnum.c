@@ -73,8 +73,6 @@ void DetectDceOpnumRegister(void)
     sigmatch_table[DETECT_DCE_OPNUM].Free  = DetectDceOpnumFree;
     sigmatch_table[DETECT_DCE_OPNUM].RegisterTests = DetectDceOpnumRegisterTests;
 
-    sigmatch_table[DETECT_DCE_OPNUM].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");

@@ -48,7 +48,6 @@ void DetectRawbytesRegister (void)
     sigmatch_table[DETECT_RAWBYTES].RegisterTests = NULL;
 
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_PAYLOAD;
 }
 
 static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)

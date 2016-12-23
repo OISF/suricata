@@ -70,7 +70,6 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
-    sigmatch_table[DETECT_AL_URILEN].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 

@@ -48,7 +48,6 @@ void DetectBase64DecodeRegister(void)
     sigmatch_table[DETECT_BASE64_DECODE].RegisterTests =
         DetectBase64DecodeRegisterTests;
 
-    sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_PAYLOAD;
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(decode_pattern, &decode_pcre, &decode_pcre_study);

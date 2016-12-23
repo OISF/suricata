@@ -94,8 +94,6 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
 
-    sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
-
     intmax_t val = 0;
 
     if (!ConfGetInt("pcre.match-limit", &val)) {
