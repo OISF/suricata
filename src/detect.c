@@ -184,6 +184,7 @@
 #include "detect-tls-version.h"
 #include "detect-ssh-proto.h"
 #include "detect-ssh-proto-version.h"
+#include "detect-ssh-software.h"
 #include "detect-ssh-software-version.h"
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
@@ -4090,6 +4091,7 @@ void SigTableSetup(void)
     DetectAsn1Register();
     DetectSshProtocolRegister();
     DetectSshVersionRegister();
+    DetectSshSoftwareRegister();
     DetectSshSoftwareVersionRegister();
     DetectSslStateRegister();
     DetectSslVersionRegister();
