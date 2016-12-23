@@ -50,7 +50,7 @@ static pcre_extra *parse_regex_study;
 
 /*prototypes*/
 static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchData *m);
+        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m);
 static int DetectFilesizeSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilesizeFree (void *);
 static void DetectFilesizeRegisterTests (void);
@@ -91,11 +91,11 @@ void DetectFilesizeRegister(void)
  * \retval 1 match
  */
 static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
+        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    DetectFilesizeData *fsd = (DetectFilesizeData *)m->ctx;
+    DetectFilesizeData *fsd = (DetectFilesizeData *)m;
     int ret = 0;
     uint64_t file_size = FileTrackedSize(file);
 
