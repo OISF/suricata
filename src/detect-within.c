@@ -55,8 +55,6 @@ void DetectWithinRegister(void)
     sigmatch_table[DETECT_WITHIN].Setup = DetectWithinSetup;
     sigmatch_table[DETECT_WITHIN].Free  = NULL;
     sigmatch_table[DETECT_WITHIN].RegisterTests = DetectWithinRegisterTests;
-
-    sigmatch_table[DETECT_WITHIN].flags |= SIGMATCH_PAYLOAD;
 }
 
 /** \brief Setup within pattern (content/uricontent) modifier.

@@ -76,8 +76,6 @@ void DetectBytetestRegister (void)
     sigmatch_table[DETECT_BYTETEST].Free  = DetectBytetestFree;
     sigmatch_table[DETECT_BYTETEST].RegisterTests = DetectBytetestRegisterTests;
 
-    sigmatch_table[DETECT_BYTETEST].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

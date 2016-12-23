@@ -216,7 +216,6 @@ void DetectHttpProtocolRegister(void)
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].Setup = DetectHttpProtocolSetup;
 
     sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_PROTOCOL].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestProtocolRegister);

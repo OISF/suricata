@@ -2043,19 +2043,6 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         return 1;
     }
-#if 0
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL)
-        return 0;
-
-    for (; sm != NULL; sm = sm->next) {
-        if (sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD) {
-            if (!(de_ctx->flags & DE_QUIET))
-                SCLogDebug("Signature (%" PRIu32 "): is inspecting payload.", s->id);
-            return 1;
-        }
-    }
-#endif
     return 0;
 }
 
@@ -3898,12 +3885,6 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("compatible with decoder event only rule");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_PAYLOAD) {
-        if (prev == 1)
-            printf("%c", sep);
-        printf("payload inspecting keyword");
         prev = 1;
     }
     if (e->SupportsPrefilter) {

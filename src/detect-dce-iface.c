@@ -78,8 +78,6 @@ void DetectDceIfaceRegister(void)
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
 
-    sigmatch_table[DETECT_DCE_IFACE].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
