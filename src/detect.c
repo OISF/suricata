@@ -1734,9 +1734,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     }
 
     if (p->flow) {
-        det_ctx->flow_locked = 1;
         DetectFlow(tv, de_ctx, det_ctx, p);
-        det_ctx->flow_locked = 0;
     } else {
         DetectNoFlow(tv, de_ctx, det_ctx, p);
     }
