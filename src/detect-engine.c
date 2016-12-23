@@ -2440,7 +2440,7 @@ int DetectEngineMTApply(void)
     } else {
         DetectEngineCtx *list = master->list;
         for ( ; list != NULL; list = list->next) {
-            SCLogInfo("list %p tenant %u", list, list->tenant_id);
+            SCLogDebug("list %p tenant %u", list, list->tenant_id);
 
             if (list->tenant_id == 0) {
                 minimal_de_ctx = list;
