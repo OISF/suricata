@@ -75,8 +75,6 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
 
-    sigmatch_table[DETECT_BYTEJUMP].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 

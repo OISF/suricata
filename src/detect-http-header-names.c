@@ -380,7 +380,6 @@ void DetectHttpHeaderNamesRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].Setup = DetectHttpHeaderNamesSetup;
 
     sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_NOOPT ;
-    sigmatch_table[DETECT_AL_HTTP_HEADER_NAMES].flags |= SIGMATCH_PAYLOAD ;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxHttpRequestHeaderNamesRegister);

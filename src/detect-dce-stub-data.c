@@ -200,7 +200,6 @@ void DetectDceStubDataRegister(void)
     sigmatch_table[DETECT_DCE_STUB_DATA].RegisterTests = DetectDceStubDataRegisterTests;
 
     sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_DCE_STUB_DATA].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
             PrefilterTxDceStubDataRequestRegister);

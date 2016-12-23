@@ -70,7 +70,6 @@ void DetectTlsIssuerRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_PAYLOAD;
 
     DetectAppLayerMpmRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxTlsIssuerRegister);

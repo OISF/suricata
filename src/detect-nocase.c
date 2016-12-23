@@ -55,7 +55,6 @@ void DetectNocaseRegister(void)
     sigmatch_table[DETECT_NOCASE].RegisterTests = NULL;
 
     sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_NOCASE].flags |= SIGMATCH_PAYLOAD;
 }
 
 /**

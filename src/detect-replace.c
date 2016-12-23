@@ -69,8 +69,6 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
     sigmatch_table[DETECT_REPLACE].Free  = NULL;
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
-
-    sigmatch_table[DETECT_REPLACE].flags |= SIGMATCH_PAYLOAD;
 }
 
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)

@@ -50,8 +50,6 @@ void DetectOffsetRegister (void)
     sigmatch_table[DETECT_OFFSET].Setup = DetectOffsetSetup;
     sigmatch_table[DETECT_OFFSET].Free  = NULL;
     sigmatch_table[DETECT_OFFSET].RegisterTests = NULL;
-
-    sigmatch_table[DETECT_OFFSET].flags |= SIGMATCH_PAYLOAD;
 }
 
 int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
