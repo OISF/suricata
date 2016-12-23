@@ -60,7 +60,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Flow *, uint8_t, File *, const Signature *, const SigMatchData *);
+        Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilestoreFree(void *);
 static void DetectFilestoreRegisterTests(void);
@@ -249,7 +249,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  *       needs to be put behind a api.
  */
 static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-        uint8_t flags, File *file, const Signature *s, const SigMatchData *m)
+        uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     uint16_t file_id = 0;
 

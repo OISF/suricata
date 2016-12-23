@@ -927,7 +927,7 @@ typedef struct SigTableElmt_ {
     int (*FileMatch)(ThreadVars *,  /**< thread local vars */
         DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
-        uint8_t flags, File *, const Signature *, const SigMatchData *);
+        uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
