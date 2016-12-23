@@ -28,7 +28,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 
-#include "util-detect-file-hash.h"
+#include "detect-file-hash-common.h"
 
 #include "app-layer-htp.h"
 
