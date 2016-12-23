@@ -940,10 +940,10 @@ typedef struct SigTableElmt_ {
 
     uint8_t flags;
 
-    char *name;     /**< keyword name alias */
-    char *alias;    /**< name alias */
-    char *desc;
-    char *url;
+    const char *name;     /**< keyword name alias */
+    const char *alias;    /**< name alias */
+    const char *desc;
+    const char *url;
 
 } SigTableElmt;
 
