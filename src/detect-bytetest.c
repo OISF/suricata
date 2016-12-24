@@ -467,8 +467,8 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
             sm_list = DETECT_SM_LIST_PMATCH;
         }
 
-        s->alproto = ALPROTO_DCERPC;
-        s->flags |= SIG_FLAG_APPLAYER;
+        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+            goto error;
 
     } else if (data->flags & DETECT_BYTETEST_RELATIVE) {
         prev_pm = DetectGetLastSMFromLists(s,
@@ -488,11 +488,6 @@ static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
     }
 
     if (data->flags & DETECT_BYTETEST_DCE) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
-                       "bytetest with dce enabled");
-            goto error;
-        }
         if ((data->flags & DETECT_BYTETEST_STRING) ||
             (data->flags & DETECT_BYTETEST_LITTLE) ||
             (data->flags & DETECT_BYTETEST_BIG) ||

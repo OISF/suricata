@@ -247,11 +247,8 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     DetectUrilenData *urilend = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+        return -1;
 
     urilend = DetectUrilenParse(urilenstr);
     if (urilend == NULL)
@@ -266,10 +263,6 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
         SigMatchAppendSMToList(s, sm, g_http_raw_uri_buffer_id);
     else
         SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_HTTP;
 
     SCReturnInt(0);
 

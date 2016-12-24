@@ -366,10 +366,8 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     DetectModbus    *modbus = NULL;
     SigMatch        *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_MODBUS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_MODBUS) != 0)
+        return -1;
 
     if ((modbus = DetectModbusFunctionParse(str)) == NULL) {
         if ((modbus = DetectModbusAccessParse(str)) == NULL) {
@@ -387,7 +385,6 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->ctx     = (void *) modbus;
 
     SigMatchAppendSMToList(s, sm, g_modbus_buffer_id);
-    s->alproto = ALPROTO_MODBUS;
 
     SCReturnInt(0);
 

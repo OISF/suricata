@@ -237,19 +237,11 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+        return -1;
 
     s->init_data->list = g_dce_stub_data_buffer_id;
-    s->alproto = ALPROTO_DCERPC;
-    s->flags |= SIG_FLAG_APPLAYER;
     return 0;
-
- error:
-    return -1;
 }
 
 /************************************Unittests*********************************/
