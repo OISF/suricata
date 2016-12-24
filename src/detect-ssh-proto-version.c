@@ -217,10 +217,8 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectSshVersionData *ssh = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_SSH) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_SSH) != 0)
         return -1;
-    }
 
     ssh = DetectSshVersionParse(str);
     if (ssh == NULL)
@@ -236,9 +234,6 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->ctx = (void *)ssh;
 
     SigMatchAppendSMToList(s, sm, g_ssh_banner_list_id);
-
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_SSH;
     return 0;
 
 error:

@@ -561,12 +561,9 @@ static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     }
 
     if (data->endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
-                       "byte_extract with dce enabled");
+        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
             goto error;
-        }
-        s->alproto = ALPROTO_DCERPC;
+
         if ((data->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) ||
             (data->base == DETECT_BYTE_EXTRACT_BASE_DEC) ||
             (data->base == DETECT_BYTE_EXTRACT_BASE_HEX) ||

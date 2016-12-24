@@ -308,12 +308,9 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     DetectSslStateData *ssd = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "Rule contains conflicting keywords.  Have non-tls alproto "
-                   "set for a rule containing \"ssl_state\" keyword");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
+
     ssd = DetectSslStateParse(arg);
     if (ssd == NULL)
         goto error;
@@ -325,10 +322,7 @@ static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->type = DETECT_AL_SSL_STATE;
     sm->ctx = (SigMatchCtx*)ssd;
 
-    s->alproto = ALPROTO_TLS;
-
     SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
-
     return 0;
 
 error:

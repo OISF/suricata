@@ -282,10 +282,8 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectSslVersionData *ssl = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
 
     ssl = DetectSslVersionParse(str);
     if (ssl == NULL)
@@ -301,8 +299,6 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->ctx = (void *)ssl;
 
     SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
-
-    s->alproto = ALPROTO_TLS;
     return 0;
 
 error:

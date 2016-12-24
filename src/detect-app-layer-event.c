@@ -336,23 +336,13 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, cha
     sm->type = DETECT_AL_APP_LAYER_EVENT;
     sm->ctx = (SigMatchCtx *)data;
 
-    if (s->alproto != ALPROTO_UNKNOWN) {
-        if (s->alproto != data->alproto) {
-            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains "
-                       "conflicting keywords needing different alprotos");
-            goto error;
-        }
-    } else {
-        s->alproto = data->alproto;
-    }
-
     if (event_type == APP_LAYER_EVENT_TYPE_PACKET) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     } else {
-        /* We push it to this list temporarily.  We deal with
-         * these in DetectAppLayerEventPrepare(). */
+        if (DetectSignatureSetAppProto(s, data->alproto) != 0)
+            goto error;
+
         SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
-        s->flags |= SIG_FLAG_APPLAYER;
     }
 
     return 0;
