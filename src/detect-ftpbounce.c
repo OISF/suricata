@@ -225,10 +225,8 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbounces
 
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_FTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_FTP) != 0)
         return -1;
-    }
 
     sm = SigMatchAlloc();
     if (sm == NULL) {
@@ -249,9 +247,6 @@ int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbounces
     sm->ctx = NULL;
 
     SigMatchAppendSMToList(s, sm, g_ftp_request_list_id);
-
-    s->alproto = ALPROTO_FTP;
-    s->flags |= SIG_FLAG_APPLAYER;
     SCReturnInt(0);
 }
 

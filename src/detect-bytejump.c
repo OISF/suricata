@@ -539,8 +539,8 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
             sm_list = DETECT_SM_LIST_PMATCH;
         }
 
-        s->alproto = ALPROTO_DCERPC;
-        s->flags |= SIG_FLAG_APPLAYER;
+        if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+            goto error;
 
     } else if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
         prev_pm = DetectGetLastSMFromLists(s,
@@ -560,11 +560,6 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *opts
     }
 
     if (data->flags & DETECT_BYTEJUMP_DCE) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Non dce alproto sig has "
-                       "bytejump with dce enabled");
-            goto error;
-        }
         if ((data->flags & DETECT_BYTEJUMP_STRING) ||
             (data->flags & DETECT_BYTEJUMP_LITTLE) ||
             (data->flags & DETECT_BYTEJUMP_BIG) ||
