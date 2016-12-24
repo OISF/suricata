@@ -1193,6 +1193,26 @@ void SigFree(Signature *s)
     SCFree(s);
 }
 
+int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
+{
+    if (alproto == ALPROTO_UNKNOWN ||
+        alproto >= ALPROTO_FAILED) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid alproto %u", alproto);
+        return -1;
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+            "can't set rule app proto to %s: already set to %s",
+            AppProtoToString(alproto), AppProtoToString(s->alproto));
+        return -1;
+    }
+
+    s->alproto = alproto;
+    s->flags |= SIG_FLAG_APPLAYER;
+    return 0;
+}
+
 /**
  *  \internal
  *  \brief build address match array for cache efficient matching

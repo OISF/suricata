@@ -319,10 +319,8 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
 
     tls = DetectTlsSubjectParse(str);
     if (tls == NULL)
@@ -337,11 +335,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->type = DETECT_AL_TLS_SUBJECT;
     sm->ctx = (void *)tls;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
     SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
-
     return 0;
 
 error:
@@ -532,10 +526,8 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
 
     tls = DetectTlsIssuerDNParse(str);
     if (tls == NULL)
@@ -550,11 +542,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     sm->type = DETECT_AL_TLS_ISSUERDN;
     sm->ctx = (void *)tls;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
     SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
-
     return 0;
 
 error:
@@ -735,10 +723,8 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, cha
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
 
     tls = DetectTlsFingerprintParse(str);
     if (tls == NULL)
@@ -753,11 +739,7 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, cha
     sm->type = DETECT_AL_TLS_FINGERPRINT;
     sm->ctx = (void *)tls;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
     SigMatchAppendSMToList(s, sm, g_tls_cert_list_id);
-
     return 0;
 
 error:
@@ -797,18 +779,14 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 {
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
-    }
 
     sm = SigMatchAlloc();
     if (sm == NULL)
         return -1;
 
     sm->type = DETECT_AL_TLS_STORE;
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
     s->flags |= SIG_FLAG_TLSSTORE;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);

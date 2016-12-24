@@ -370,10 +370,8 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     DetectDceIfaceData *did = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
         return -1;
-    }
 
     did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {
@@ -390,10 +388,6 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->ctx = (void *)did;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
-
-    s->alproto = ALPROTO_DCERPC;
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
     return 0;
 
  error:

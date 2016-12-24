@@ -207,12 +207,8 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectCipServiceData *cipserviced = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP)
-    {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0)
+        return -1;
 
     cipserviced = DetectCipServiceParse(rulestr);
     if (cipserviced == NULL)
@@ -225,10 +221,7 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_CIPSERVICE;
     sm->ctx = (void *) cipserviced;
 
-    s->alproto = ALPROTO_ENIP;
-
     SigMatchAppendSMToList(s, sm, g_cip_buffer_id);
-
     SCReturnInt(0);
 
 error:
@@ -384,12 +377,8 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectEnipCommandData *enipcmdd = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP)
-    {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                "rule contains conflicting keywords.");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_ENIP) != 0)
+        return -1;
 
     enipcmdd = DetectEnipCommandParse(rulestr);
     if (enipcmdd == NULL)
@@ -402,9 +391,7 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_ENIPCOMMAND;
     sm->ctx = (void *) enipcmdd;
 
-    s->alproto = ALPROTO_ENIP;
     SigMatchAppendSMToList(s, sm, g_enip_buffer_id);
-
     SCReturnInt(0);
 
 error:
