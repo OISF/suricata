@@ -605,6 +605,7 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
             return;
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
+        dns_state->transaction_max++;
         tx->tx_num = dns_state->transaction_max;
     }
 
