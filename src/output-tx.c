@@ -163,11 +163,11 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+    uint64_t max_id = tx_id;
+    int not_logged = 0;
 
     for (; tx_id < total_txs; tx_id++)
     {
-        int logger_not_logged = 0;
-
         void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging");
@@ -208,19 +208,19 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
                             SCLogDebug("conditions not met, not logging");
-                            logger_not_logged = 1;
+                            not_logged = 1;
                             goto next;
                         }
                     } else {
                         if (tx_progress_tc < logger->tc_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            logger_not_logged = 1;
+                            not_logged = 1;
                             goto next;
                         }
 
                         if (tx_progress_ts < logger->ts_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            logger_not_logged = 1;
+                            not_logged = 1;
                             goto next;
                         }
                     }
@@ -238,15 +238,20 @@ next:
             logger = logger->next;
             store = store->next;
 
+            if (!not_logged) {
+                max_id = tx_id;
+            }
+
             BUG_ON(logger == NULL && store != NULL);
             BUG_ON(logger != NULL && store == NULL);
         }
 
-        if (!logger_not_logged) {
-            SCLogDebug("updating log tx_id %"PRIu64, tx_id);
-            AppLayerParserSetTransactionLogId(f->alparser);
-        }
     }
+
+    /* Update the the last ID that has been logged with all
+     * transactions before it. */
+    SCLogDebug("updating log tx_id %"PRIu64, max_id);
+    AppLayerParserSetTransactionLogId(f->alparser, max_id);
 
 end:
     return TM_ECODE_OK;
