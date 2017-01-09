@@ -163,10 +163,17 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+    uint64_t max_id = tx_id;
+    int logged = 0;
+    int gap = 0;
 
     for (; tx_id < total_txs; tx_id++)
     {
-        int logger_not_logged = 0;
+        /* Track the number of loggers, of the eligible loggers that
+         * actually logged this transaction. They all must have logged
+         * before the transaction is considered logged. */
+        int number_of_loggers = 0;
+        int loggers_that_logged = 0;
 
         void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
         if (tx == NULL) {
@@ -195,10 +202,12 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
             if (logger->alproto == alproto) {
                 SCLogDebug("alproto match, logging tx_id %"PRIu64, tx_id);
 
+                number_of_loggers++;
+
                 if (AppLayerParserGetTxLogged(p->proto, alproto, alstate, tx,
                         logger->id)) {
                     SCLogDebug("logger has already logged this transaction");
-
+                    loggers_that_logged++;
                     goto next;
                 }
 
@@ -208,30 +217,30 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
                             SCLogDebug("conditions not met, not logging");
-                            logger_not_logged = 1;
                             goto next;
                         }
                     } else {
                         if (tx_progress_tc < logger->tc_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            logger_not_logged = 1;
                             goto next;
                         }
 
                         if (tx_progress_ts < logger->ts_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            logger_not_logged = 1;
                             goto next;
                         }
                     }
                 }
 
+                SCLogDebug("Logging tx_id %"PRIu64" to logger %d", tx_id,
+                    logger->logger_id);
                 PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
                 PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
                 AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
                                           logger->id);
+                loggers_that_logged++;
             }
 
 next:
@@ -242,10 +251,25 @@ next:
             BUG_ON(logger != NULL && store == NULL);
         }
 
-        if (!logger_not_logged) {
-            SCLogDebug("updating log tx_id %"PRIu64, tx_id);
-            AppLayerParserSetTransactionLogId(f->alparser);
+        /* If all loggers logged set a flag and update the last tx_id
+         * that was logged.
+         *
+         * If not all loggers were logged we flag that there was a gap
+         * so any subsequent transactions in this loop don't increase
+         * the maximum ID that was logged. */
+        if (!gap && loggers_that_logged == number_of_loggers) {
+            logged = 1;
+            max_id = tx_id;
+        } else {
+            gap = 1;
         }
+    }
+
+    /* Update the the last ID that has been logged with all
+     * transactions before it. */
+    if (logged) {
+        SCLogDebug("updating log tx_id %"PRIu64, max_id);
+        AppLayerParserSetTransactionLogId(f->alparser, max_id + 1);
     }
 
 end:
