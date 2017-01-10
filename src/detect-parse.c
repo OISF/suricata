@@ -104,11 +104,7 @@ typedef struct SigDuplWrapper_ {
                            ")"
 
 /* if enclosed in [], spaces are allowed */
-#define CONFIG_PCRE_PORT   "(" \
-                            "[\\:A-z0-9_\\$\\!,]+"\
-                           "|"\
-                            "\\[[\\:A-z0-9_\\$\\!,\\s]+\\]"\
-                           ")"
+#define CONFIG_PCRE_PORT   "([\\[\\]\\:A-z0-9_\\$\\!,\\s]+)"
 
 /* format: action space(s) protocol spaces(s) src space(s) sp spaces(s) dir spaces(s) dst spaces(s) dp spaces(s) options */
 #define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9\\-]+)\\s+" \
