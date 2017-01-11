@@ -959,8 +959,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
 
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2, var_list) < 0)
+                {
+                    if (temp_rule_var_address != rule_var_address)
+                        SCFree(temp_rule_var_address);
                     goto error;
-
+                }
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_address != rule_var_address)
