@@ -442,6 +442,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 ssl_state->curr_connp->trec_len = 0;
                 /* error, skip packet */
                 parsed += input_len;
+                (void)parsed; /* for scan-build */
                 ssl_state->curr_connp->bytes_processed += input_len;
                 return -1;
             }
@@ -1258,6 +1259,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
                 parsed += retval;
                 input_len -= retval;
+                (void)input_len; /* for scan-build */
 
                 if (ssl_state->curr_connp->bytes_processed ==
                         ssl_state->curr_connp->record_length +
