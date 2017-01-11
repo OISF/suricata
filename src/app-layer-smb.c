@@ -678,6 +678,7 @@ static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
             sstate->bytesprocessed += parsed;
             sstate->bytecount.bytecountleft -= parsed;
             input_len -= parsed;
+            (void)input_len; /* for scan-build */
         }
     }
     SCReturnInt(parsed);
@@ -833,7 +834,9 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
             sres = DataParser(sstate, pstate, input + parsed, input_len);
             if (sres != -1 && sres <= (int32_t)input_len) {
                 parsed += (uint32_t)sres;
+                (void)parsed; /* for scan-build */
                 input_len -= (uint32_t)sres;
+                (void)input_len; /* for scan-build */
             } else { /* Did not Validate as DCERPC over SMB */
                 while (sstate->bytecount.bytecountleft-- && input_len--) {
                     SCLogDebug("0x%02x bytecount %"PRIu16"/%"PRIu16" input_len %"PRIu32, *p,
