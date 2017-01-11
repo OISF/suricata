@@ -82,10 +82,16 @@
  * For details on the use of these macros, see the queue(3) manual page.
  */
 
-#if defined(QUEUE_MACRO_DEBUG) || (defined(_KERNEL) && defined(DIAGNOSTIC))
+#if defined(__clang_analyzer__) || defined(QUEUE_MACRO_DEBUG) || (defined(_KERNEL) && defined(DIAGNOSTIC))
 #define _Q_INVALIDATE(a) ((a) = ((void *)-1))
 #else
 #define _Q_INVALIDATE(a)
+#endif
+
+#if defined(__clang_analyzer__)
+#define _Q_ASSERT(a) assert((a))
+#else
+#define _Q_ASSERT(a)
 #endif
 
 /*
@@ -377,9 +383,12 @@ struct {								\
 } while (0)
 
 #define TAILQ_INSERT_TAIL(head, elm, field) do {			\
+	_Q_ASSERT((elm));						\
+	_Q_ASSERT((head));						\
 	(elm)->field.tqe_next = NULL;					\
 	(elm)->field.tqe_prev = (head)->tqh_last;			\
 	*(head)->tqh_last = (elm);					\
+	_Q_ASSERT(*(head)->tqh_last);					\
 	(head)->tqh_last = &(elm)->field.tqe_next;			\
 } while (0)
 
@@ -407,6 +416,7 @@ struct {								\
 	else								\
 		(head)->tqh_last = (elm)->field.tqe_prev;		\
 	*(elm)->field.tqe_prev = (elm)->field.tqe_next;			\
+	_Q_ASSERT((head)->tqh_first != (elm));				\
 	_Q_INVALIDATE((elm)->field.tqe_prev);				\
 	_Q_INVALIDATE((elm)->field.tqe_next);				\
 } while (0)
