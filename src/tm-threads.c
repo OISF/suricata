@@ -1448,13 +1448,20 @@ void TmThreadRemove(ThreadVars *tv, int type)
  *
  * \param tv A ThreadVars instance corresponding to the thread that has to be
  *           killed.
+ *
+ * \retval r 1 killed succesfully
+ *           0 not yet ready, needs another look
  */
-void TmThreadKillThread(ThreadVars *tv)
+static int TmThreadKillThread(ThreadVars *tv)
 {
     int i = 0;
 
-    if (tv == NULL)
-        return;
+    BUG_ON(tv == NULL);
+
+    /* kill only once :) */
+    if (TmThreadsCheckFlag(tv, THV_DEAD)) {
+        return 1;
+    }
 
     if (tv->inq != NULL) {
         /* we wait till we dry out all the inq packets, before we
@@ -1463,8 +1470,8 @@ void TmThreadKillThread(ThreadVars *tv)
         if (!(strlen(tv->inq->name) == strlen("packetpool") &&
               strcasecmp(tv->inq->name, "packetpool") == 0)) {
             PacketQueue *q = &trans_q[tv->inq->id];
-            while (q->len != 0) {
-                usleep(1000);
+            if (q->len != 0) {
+                return 0;
             }
         }
     }
@@ -1475,15 +1482,7 @@ void TmThreadKillThread(ThreadVars *tv)
     TmThreadsSetFlag(tv, THV_DEINIT);
 
     /* to be sure, signal more */
-    int cnt = 0;
-    while (1) {
-        if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-            SCLogDebug("signalled the thread %" PRId32 " times", cnt);
-            break;
-        }
-
-        cnt++;
-
+    if (!(TmThreadsCheckFlag(tv, THV_CLOSED))) {
         if (tv->InShutdownHandler != NULL) {
             tv->InShutdownHandler(tv);
         }
@@ -1500,8 +1499,7 @@ void TmThreadKillThread(ThreadVars *tv)
         if (tv->ctrl_cond != NULL ) {
             pthread_cond_broadcast(tv->ctrl_cond);
         }
-
-        usleep(100);
+        return 0;
     }
 
     if (tv->outctx != NULL) {
@@ -1511,14 +1509,15 @@ void TmThreadKillThread(ThreadVars *tv)
 
         if (tmqh->OutHandlerCtxFree != NULL) {
             tmqh->OutHandlerCtxFree(tv->outctx);
+            tv->outctx = NULL;
         }
     }
 
-    /* join it */
+    /* join it and flag it as dead */
     pthread_join(tv->t, NULL);
     SCLogDebug("thread %s stopped", tv->name);
-
-    return;
+    TmThreadsSetFlag(tv, THV_DEAD);
+    return 1;
 }
 
 /** \internal
@@ -1798,18 +1797,27 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
     return slots;
 }
 
+#define MIN_WAIT_TIME 100
 void TmThreadKillThreadsFamily(int family)
 {
     ThreadVars *tv = NULL;
+    unsigned int sleep = MIN_WAIT_TIME;
 
-    if ((family < 0) || (family >= TVT_MAX))
-        return;
+    BUG_ON((family < 0) || (family >= TVT_MAX));
 
+again:
     SCMutexLock(&tv_root_lock);
     tv = tv_root[family];
 
     while (tv) {
-        TmThreadKillThread(tv);
+        int r = TmThreadKillThread(tv);
+        if (r == 0) {
+            SCMutexUnlock(&tv_root_lock);
+            usleep(sleep);
+            sleep += MIN_WAIT_TIME; /* slowly back off */
+            goto again;
+        }
+        sleep = MIN_WAIT_TIME; /* reset */
 
         tv = tv->next;
     }
@@ -2128,16 +2136,37 @@ TmEcode TmThreadWaitOnThreadInit(void)
     int i = 0;
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
+
+    uint64_t slept = 0;
+
 again:
     SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
+            if (TmThreadsCheckFlag(tv, (THV_CLOSED|THV_DEAD))) {
+                SCMutexUnlock(&tv_root_lock);
+
+                SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                        "initialize: flags %04x", tv->name,
+                        SC_ATOMIC_GET(tv->flags));
+                return TM_ECODE_FAILED;
+            }
+
             if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
                 SCMutexUnlock(&tv_root_lock);
+
+                if (slept > (120*1000000)) {
+                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                            "initialize in time: flags %04x", tv->name,
+                            SC_ATOMIC_GET(tv->flags));
+                    return TM_ECODE_FAILED;
+                }
+
                 /* sleep a little to give the thread some
                  * time to finish initialization */
                 usleep(100);
+                slept += 100;
                 goto again;
             }
 
