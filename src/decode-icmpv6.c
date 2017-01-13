@@ -254,7 +254,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("ICMP6_ECHO_REPLY id: %u seq: %u",
                        p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
 
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
@@ -265,37 +265,37 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case ND_ROUTER_SOLICIT:
             SCLogDebug("ND_ROUTER_SOLICIT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_ROUTER_ADVERT:
             SCLogDebug("ND_ROUTER_ADVERT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_NEIGHBOR_SOLICIT:
             SCLogDebug("ND_NEIGHBOR_SOLICIT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_NEIGHBOR_ADVERT:
             SCLogDebug("ND_NEIGHBOR_ADVERT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case ND_REDIRECT:
             SCLogDebug("ND_REDIRECT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         case MLD_LISTENER_QUERY:
             SCLogDebug("MLD_LISTENER_QUERY");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_HLIM(p) != 1) {
@@ -304,7 +304,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case MLD_LISTENER_REPORT:
             SCLogDebug("MLD_LISTENER_REPORT");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_HLIM(p) != 1) {
@@ -313,11 +313,134 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             break;
         case MLD_LISTENER_REDUCTION:
             SCLogDebug("MLD_LISTENER_REDUCTION");
-            if (p->icmpv6h->code != 0) {
+            if (ICMPV6_GET_CODE(p) != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             if (IPV6_GET_HLIM(p) != 1) {
                 ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
+            }
+            break;
+        case ICMP6_RR:
+            SCLogDebug("ICMP6_RR");
+            if (ICMPV6_GET_CODE(p) > 2 && ICMPV6_GET_CODE(p) != 255) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ICMP6_NI_QUERY:
+            SCLogDebug("ICMP6_NI_QUERY");
+            if (ICMPV6_GET_CODE(p) > 2) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ICMP6_NI_REPLY:
+            SCLogDebug("ICMP6_NI_REPLY");
+            if (ICMPV6_GET_CODE(p) > 2) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ND_INVERSE_SOLICIT:
+            SCLogDebug("ND_INVERSE_SOLICIT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ND_INVERSE_ADVERT:
+            SCLogDebug("ND_INVERSE_ADVERT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MLD_V2_LIST_REPORT:
+            SCLogDebug("MLD_V2_LIST_REPORT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case HOME_AGENT_AD_REQUEST:
+            SCLogDebug("HOME_AGENT_AD_REQUEST");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case HOME_AGENT_AD_REPLY:
+            SCLogDebug("HOME_AGENT_AD_REPLY");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MOBILE_PREFIX_SOLICIT:
+            SCLogDebug("MOBILE_PREFIX_SOLICIT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MOBILE_PREFIX_ADVERT:
+            SCLogDebug("MOBILE_PREFIX_ADVERT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case CERT_PATH_SOLICIT:
+            SCLogDebug("CERT_PATH_SOLICIT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case CERT_PATH_ADVERT:
+            SCLogDebug("CERT_PATH_ADVERT");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case ICMP6_MOBILE_EXPERIMENTAL:
+            SCLogDebug("ICMP6_MOBILE_EXPERIMENTAL");
+            break;
+        case MC_ROUTER_ADVERT:
+            SCLogDebug("MC_ROUTER_ADVERT");
+            break;
+        case MC_ROUTER_SOLICIT:
+            SCLogDebug("MC_ROUTER_SOLICIT");
+            break;
+        case MC_ROUTER_TERMINATE:
+            SCLogDebug("MC_ROUTER_TERMINATE");
+            break;
+        case FMIPV6_MSG:
+            SCLogDebug("FMIPV6_MSG");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case RPL_CONTROL_MSG:
+            SCLogDebug("RPL_CONTROL_MSG");
+            if (ICMPV6_GET_CODE(p) > 3 && ICMPV6_GET_CODE(p) < 128) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            if (ICMPV6_GET_CODE(p) > 132) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case LOCATOR_UDATE_MSG:
+            SCLogDebug("LOCATOR_UDATE_MSG");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case DUPL_ADDR_REQUEST:
+            SCLogDebug("DUPL_ADDR_REQUEST");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case DUPL_ADDR_CONFIRM:
+            SCLogDebug("DUPL_ADDR_CONFIRM");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            break;
+        case MPL_CONTROL_MSG:
+            SCLogDebug("MPL_CONTROL_MSG");
+            if (ICMPV6_GET_CODE(p) != 0) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
             break;
         default:
