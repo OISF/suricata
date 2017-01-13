@@ -299,7 +299,8 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
     return 0;
 }
 
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer,
+                     size_t flags)
 {
     if (file_ctx->sensor_name) {
         json_object_set_new(js, "host",
@@ -315,9 +316,14 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
         .expand_by = OUTPUT_BUFFER_SIZE
     };
 
+    if (flags == 0) {
+        /* default flags */
+        flags = JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+                JSON_ESCAPE_SLASH;
+    }
+
     int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
+            flags);
     if (r != 0)
         return TM_ECODE_OK;
 

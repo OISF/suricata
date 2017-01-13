@@ -386,7 +386,8 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
 
-    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
+    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer,
+                     0 /* no custom flags */);
     json_object_del(js, "http");
 
     json_object_clear(js);
