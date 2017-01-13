@@ -104,7 +104,8 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     json_object_set_new(js, "template", templatejs);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
+    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer,
+                     0 /* no custom flags */);
 
     json_decref(js);
     return TM_ECODE_OK;

@@ -101,7 +101,8 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     }
 
     if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, &jhl->buffer);
+        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, &jhl->buffer,
+                         0 /* no custom flags */);
     }
     json_object_del(js, "email");
     if (sjs) {

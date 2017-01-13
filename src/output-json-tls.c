@@ -336,7 +336,8 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     json_object_set_new(js, "tls", tjs);
 
-    OutputJSONBuffer(js, tls_ctx->file_ctx, &aft->buffer);
+    OutputJSONBuffer(js, tls_ctx->file_ctx, &aft->buffer,
+                     JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII);
     json_object_clear(js);
     json_decref(js);
 
