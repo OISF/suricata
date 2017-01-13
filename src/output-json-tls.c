@@ -66,6 +66,8 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_NOTBEFORE   (1 << 4)
 #define LOG_TLS_FIELD_NOTAFTER    (1 << 5)
 #define LOG_TLS_FIELD_SNI         (1 << 6)
+#define LOG_TLS_FIELD_CERTIFICATE (1 << 7)
+#define LOG_TLS_FIELD_CHAIN       (1 << 8)
 
 typedef struct {
     char *name;
@@ -80,6 +82,8 @@ TlsFields tls_fields[] = {
     { "not_before",  LOG_TLS_FIELD_NOTBEFORE },
     { "not_after",   LOG_TLS_FIELD_NOTAFTER },
     { "sni",         LOG_TLS_FIELD_SNI },
+    { "certificate", LOG_TLS_FIELD_CERTIFICATE },
+    { "chain",       LOG_TLS_FIELD_CHAIN },
     { NULL,          -1 }
 };
 
@@ -178,6 +182,51 @@ static void JsonTlsLogNotAfter(json_t *js, SSLState *ssl_state)
     }
 }
 
+static void JsonTlsLogCertificate(json_t *js, SSLState *ssl_state)
+{
+    if ((ssl_state->server_connp.cert_input == NULL) ||
+            (ssl_state->server_connp.cert_input_len == 0)) {
+        return;
+    }
+
+    SSLCertsChain *cert = TAILQ_FIRST(&ssl_state->server_connp.certs);
+    if (cert == NULL) {
+        return;
+    }
+
+    unsigned long len = cert->cert_len * 2;
+    uint8_t encoded[len];
+    if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
+                     SC_BASE64_OK) {
+        json_object_set_new(js, "certificate", json_string((char *)encoded));
+    }
+}
+
+static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
+{
+    if ((ssl_state->server_connp.cert_input == NULL) ||
+            (ssl_state->server_connp.cert_input_len == 0)) {
+        return;
+    }
+
+    json_t *chain = json_array();
+    if (chain == NULL) {
+        return;
+    }
+
+    SSLCertsChain *cert;
+    TAILQ_FOREACH(cert, &ssl_state->server_connp.certs, next) {
+        unsigned long len = cert->cert_len * 2;
+        uint8_t encoded[len];
+        if (Base64Encode(cert->cert_data, cert->cert_len, encoded, &len) ==
+                         SC_BASE64_OK) {
+            json_array_append_new(chain, json_string((char *)encoded));
+        }
+    }
+
+    json_object_set_new(js, "chain", chain);
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls.subject */
@@ -217,6 +266,14 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls.notafter */
     if (tls_ctx->fields & LOG_TLS_FIELD_NOTAFTER)
         JsonTlsLogNotAfter(js, ssl_state);
+
+    /* tls.certificate */
+    if (tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE)
+        JsonTlsLogCertificate(js, ssl_state);
+
+    /* tls.chain */
+    if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
+        JsonTlsLogChain(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -446,6 +503,14 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     tls_ctx->file_ctx = ojc->file_ctx;
+
+    if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
+            (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
+        SCLogWarning(SC_WARN_DUPLICATE_OUTPUT,
+                     "Both 'certificate' and 'chain' contains the top "
+                     "certificate, so only one of them should be enabled "
+                     "at a time");
+    }
 
     output_ctx->data = tls_ctx;
     output_ctx->DeInit = OutputTlsLogDeinitSub;
