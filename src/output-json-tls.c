@@ -54,6 +54,11 @@
 SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define MODULE_NAME "LogTlsLog"
+#define DEFAULT_LOG_FILENAME "tls.json"
+
+#define OUTPUT_BUFFER_SIZE 65535
+
+#define SSL_VERSION_LENGTH 13
 
 #define LOG_TLS_DEFAULT     0
 #define LOG_TLS_EXTENDED    (1 << 0)
@@ -98,8 +103,6 @@ typedef struct JsonTlsLogThread_ {
     OutputTlsCtx *tlslog_ctx;
     MemBuffer *buffer;
 } JsonTlsLogThread;
-
-#define SSL_VERSION_LENGTH 13
 
 static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
 {
@@ -226,49 +229,49 @@ static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
 
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
-    /* tls.subject */
+    /* tls subject */
     JsonTlsLogSubject(js, ssl_state);
 
-    /* tls.issuerdn */
+    /* tls issuerdn */
     JsonTlsLogIssuer(js, ssl_state);
 }
 
 static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
                                  SSLState *ssl_state)
 {
-    /* tls.subject */
+    /* tls subject */
     if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT)
         JsonTlsLogSubject(js, ssl_state);
 
-    /* tls.issuerdn */
+    /* tls issuerdn */
     if (tls_ctx->fields & LOG_TLS_FIELD_ISSUER)
         JsonTlsLogIssuer(js, ssl_state);
 
-    /* tls.fingerprint */
+    /* tls fingerprint */
     if (tls_ctx->fields & LOG_TLS_FIELD_FINGERPRINT)
         JsonTlsLogFingerprint(js, ssl_state);
 
-    /* tls.sni */
+    /* tls sni */
     if (tls_ctx->fields & LOG_TLS_FIELD_SNI)
         JsonTlsLogSni(js, ssl_state);
 
-    /* tls.version */
+    /* tls version */
     if (tls_ctx->fields & LOG_TLS_FIELD_VERSION)
         JsonTlsLogVersion(js, ssl_state);
 
-    /* tls.notbefore */
+    /* tls notbefore */
     if (tls_ctx->fields & LOG_TLS_FIELD_NOTBEFORE)
         JsonTlsLogNotBefore(js, ssl_state);
 
-    /* tls.notafter */
+    /* tls notafter */
     if (tls_ctx->fields & LOG_TLS_FIELD_NOTAFTER)
         JsonTlsLogNotAfter(js, ssl_state);
 
-    /* tls.certificate */
+    /* tls certificate */
     if (tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE)
         JsonTlsLogCertificate(js, ssl_state);
 
-    /* tls.chain */
+    /* tls chain */
     if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
         JsonTlsLogChain(js, ssl_state);
 }
@@ -277,19 +280,19 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 {
     JsonTlsLogJSONBasic(tjs, state);
 
-    /* tls.fingerprint */
+    /* tls fingerprint */
     JsonTlsLogFingerprint(tjs, state);
 
-    /* tls.sni */
+    /* tls sni */
     JsonTlsLogSni(tjs, state);
 
-    /* tls.version */
+    /* tls version */
     JsonTlsLogVersion(tjs, state);
 
-    /* tls.notbefore */
+    /* tls notbefore */
     JsonTlsLogNotBefore(tjs, state);
 
-    /* tls.notafter */
+    /* tls notafter */
     JsonTlsLogNotAfter(tjs, state);
 }
 
@@ -305,12 +308,14 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)
+            ssl_state->server_connp.cert0_subject == NULL) {
         return 0;
+    }
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "tls");
-    if (unlikely(js == NULL))
+    if (unlikely(js == NULL)) {
         return 0;
+    }
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
@@ -343,22 +348,22 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     return 0;
 }
 
-#define OUTPUT_BUFFER_SIZE 65535
 static TmEcode JsonTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
     JsonTlsLogThread *aft = SCMalloc(sizeof(JsonTlsLogThread));
-    if (unlikely(aft == NULL))
+    if (unlikely(aft == NULL)) {
         return TM_ECODE_FAILED;
+    }
+
     memset(aft, 0, sizeof(JsonTlsLogThread));
 
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for EveLogTLS.  \"initdata\" argument NULL");
+    if (initdata == NULL) {
+        SCLogDebug("Error getting context for eve-log tls 'initdata' argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
 
-    /* Use the Ouptut Context (file pointer and mutex) */
+    /* use the Output Context (file pointer and mutex) */
     aft->tlslog_ctx = ((OutputCtx *)initdata)->data;
 
     aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
@@ -379,6 +384,7 @@ static TmEcode JsonTlsLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->buffer);
+
     /* clear memory */
     memset(aft, 0, sizeof(JsonTlsLogThread));
 
@@ -441,11 +447,10 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-#define DEFAULT_LOG_FILENAME "tls.json"
 OutputCtx *OutputTlsLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
-    if(file_ctx == NULL) {
+    if (file_ctx == NULL) {
         SCLogError(SC_ERR_TLS_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
@@ -538,4 +543,5 @@ void JsonTlsLogRegister (void)
 {
 }
 
-#endif
+#endif /* HAVE_LIBJANSSON */
+
