@@ -53,6 +53,29 @@
 #define ND_NEIGHBOR_ADVERT          136
 #define ND_REDIRECT                 137
 
+#define ICMP6_RR                    138
+#define ICMP6_NI_QUERY              139
+#define ICMP6_NI_REPLY              140
+#define ND_INVERSE_SOLICIT          141
+#define ND_INVERSE_ADVERT           142
+#define MLD_V2_LIST_REPORT          143
+#define HOME_AGENT_AD_REQUEST       144
+#define HOME_AGENT_AD_REPLY         145
+#define MOBILE_PREFIX_SOLICIT       146
+#define MOBILE_PREFIX_ADVERT        147
+#define CERT_PATH_SOLICIT           148
+#define CERT_PATH_ADVERT            149
+#define ICMP6_MOBILE_EXPERIMENTAL   150
+#define MC_ROUTER_ADVERT            151
+#define MC_ROUTER_SOLICIT           152
+#define MC_ROUTER_TERMINATE         153
+#define FMIPV6_MSG                  154
+#define RPL_CONTROL_MSG             155
+#define LOCATOR_UDATE_MSG           156
+#define DUPL_ADDR_REQUEST           157
+#define DUPL_ADDR_CONFIRM           158
+#define MPL_CONTROL_MSG             159
+
 /** Destination Unreachable Message (type=1) Code: */
 
 #define ICMP6_DST_UNREACH_NOROUTE       0 /* no route to destination */
