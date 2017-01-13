@@ -178,6 +178,22 @@ Example:
       end
   end
 
+SCFlowHasAlerts
+~~~~~~~~~~~~~~~
+
+Returns true if flow has alerts.
+
+Example:
+
+::
+
+  function log(args)
+      has_alerts = SCFlowHasAlerts()
+      if has_alerts then
+          -- do something
+      end
+  end
+
 SCFlowStats
 ~~~~~~~~~~~
 
