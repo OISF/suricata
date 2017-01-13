@@ -72,7 +72,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** packet to client direction has been logged in drop file (only in IPS mode) */
 #define FLOW_TOCLIENT_DROP_LOGGED       BIT_U32(11)
 
-// vacancy bit 12
+/** flow has alerts */
+#define FLOW_HAS_ALERTS                 BIT_U32(12)
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)
@@ -458,6 +459,8 @@ void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
+void FlowSetHasAlertsFlag(Flow *);
+int FlowHasAlerts(const Flow *);
 
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);

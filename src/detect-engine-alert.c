@@ -327,6 +327,12 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
      * keyword context for sessions and hosts */
     if (!(p->flags & PKT_PSEUDO_STREAM_END))
         TagHandlePacket(de_ctx, det_ctx, p);
+
+    /* Set flag on flow to indicate that it has alerts */
+    if (p->flow != NULL && p->alerts.cnt > 0) {
+        FlowSetHasAlertsFlag(p->flow);
+    }
+
 }
 
 
