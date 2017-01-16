@@ -244,6 +244,11 @@ outputs:
       # is parsed as bytes.
       #limit: 32mb
 
+      # By default unified2 log files have the file creation time (in
+      # unix epoch format) appended to the filename. Set this to yes to
+      # disable this behaviour.
+      #nostamp: no
+
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
 
