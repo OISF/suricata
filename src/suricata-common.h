@@ -57,6 +57,10 @@
 #include <stdint.h>
 #endif
 
+#if HAVE_STDBOOL_H
+#include <stdbool.h>
+#endif
+
 #if HAVE_STDARG_H
 #include <stdarg.h>
 #endif
