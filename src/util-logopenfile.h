@@ -123,6 +123,9 @@ typedef struct LogFileCtx_ {
 
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
+
+    /* Set to true if the filename should not be timestamped. */
+    bool nostamp;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
