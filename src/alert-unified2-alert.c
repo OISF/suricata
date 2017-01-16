@@ -244,11 +244,9 @@ void Unified2AlertRegister(void)
 /**
  *  \brief Function to close unified2 file
  *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param aun Unified2 thread variable.
  */
-
-int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun)
+static int Unified2AlertCloseFile(Unified2AlertThread *aun)
 {
     if (aun->unified2alert_ctx->file_ctx->fp != NULL) {
         fclose(aun->unified2alert_ctx->file_ctx->fp);
@@ -261,15 +259,13 @@ int Unified2AlertCloseFile(ThreadVars *t, Unified2AlertThread *aun)
 /**
  *  \brief Function to rotate unified2 file
  *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
  *  \param aun Unified2 thread variable.
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-
-int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun)
+static int Unified2AlertRotateFile(Unified2AlertThread *aun)
 {
-    if (Unified2AlertCloseFile(t,aun) < 0) {
+    if (Unified2AlertCloseFile(aun) < 0) {
         SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC,
                    "Error: Unified2AlertCloseFile failed");
         return -1;
@@ -928,7 +924,7 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         SCMutexLock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
         if ((aun->unified2alert_ctx->file_ctx->size_current + length) >
               aun->unified2alert_ctx->file_ctx->size_limit) {
-            if (Unified2AlertRotateFile(t,aun) < 0) {
+            if (Unified2AlertRotateFile(aun) < 0) {
                 aun->unified2alert_ctx->file_ctx->alerts += i;
                 SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
                 return -1;
@@ -1105,7 +1101,7 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
 
         if ((aun->unified2alert_ctx->file_ctx->size_current + length) >
               aun->unified2alert_ctx->file_ctx->size_limit) {
-            if (Unified2AlertRotateFile(tv,aun) < 0) {
+            if (Unified2AlertRotateFile(aun) < 0) {
                 aun->unified2alert_ctx->file_ctx->alerts += i;
                 SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
                 return -1;
@@ -1920,7 +1916,7 @@ static int Unified2TestRotate01(void)
 
     TimeSetIncrementTime(1);
 
-    ret = Unified2AlertRotateFile(&tv, data);
+    ret = Unified2AlertRotateFile(data);
     if (ret == -1)
         goto error;
 
