@@ -314,7 +314,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
 
         tx->replied = 1;
     }
-    if (dns_state != NULL && f != NULL) {
+    if (f != NULL) {
         dns_state->last_resp = f->lastts;
     }
     SCReturnInt(1);
