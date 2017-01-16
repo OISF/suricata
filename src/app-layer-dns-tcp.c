@@ -363,7 +363,7 @@ next_record:
             goto bad_data;
     }
 
-    if (dns_state != NULL && f != NULL) {
+    if (f != NULL) {
         dns_state->last_req = f->lastts;
     }
 
@@ -582,7 +582,7 @@ next_record:
             goto bad_data;
     }
 
-    if (dns_state != NULL && f != NULL) {
+    if (f != NULL) {
         dns_state->last_req = f->lastts;
     }
 
