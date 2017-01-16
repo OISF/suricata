@@ -225,21 +225,27 @@
 #endif
 #endif
 
-#if CPPCHECK==1
-#define BUG_ON(x) if (((x))) exit(1)
-#else
-#ifdef HAVE_ASSERT_H
-#include <assert.h>
-#define BUG_ON(x) assert(!(x))
-#else
-#define BUG_ON(x)
-#endif
-#endif
-
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
 #define xstr(s) str(s)
 #define str(s) #s
+
+#if CPPCHECK==1
+    #define BUG_ON(x) if (((x))) exit(1)
+#else
+    #if defined HAVE_ASSERT_H && !defined NDEBUG
+    #include <assert.h>
+        #define BUG_ON(x) assert(!(x))
+    #else
+        #define BUG_ON(x) do {      \
+            if (((x))) {            \
+                fprintf(stderr, "BUG at %s:%d(%s)\n", __FILE__, __LINE__, __func__);    \
+                fprintf(stderr, "Code: '%s'\n", xstr((x)));                             \
+                exit(EXIT_FAILURE); \
+            }                       \
+        } while(0)
+    #endif
+#endif
 
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory
