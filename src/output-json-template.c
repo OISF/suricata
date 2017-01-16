@@ -110,9 +110,6 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
     return TM_ECODE_OK;
     
 error:
-    if (templatejs != NULL) {
-        json_decref(templatejs);
-    }
     json_decref(js);
     return TM_ECODE_FAILED;
 }
