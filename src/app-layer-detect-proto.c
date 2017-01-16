@@ -437,8 +437,6 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         mask = pp_port_dp->alproto_mask;
     else if (pp_port_sp)
         mask = pp_port_sp->alproto_mask;
-    else
-        mask = 0;
 
     if (alproto_masks[0] == mask) {
         FLOW_SET_PP_DONE(f, direction);
