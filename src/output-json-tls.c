@@ -97,6 +97,12 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
                             json_string(state->client_connp.sni));
     }
 
+    /* tls.serial */
+    if (state->server_connp.cert0_serial) {
+        json_object_set_new(tjs, "serial",
+                            json_string(state->server_connp.cert0_serial));
+    }
+
     /* tls.version */
     switch (state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
