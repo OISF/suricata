@@ -177,6 +177,21 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                 }
             }
 
+            rc = Asn1DerGetSerial(cert, buffer, sizeof(buffer), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    if (ssl_state->server_connp.cert0_serial == NULL) {
+                        ssl_state->server_connp.cert0_serial = SCStrdup(buffer);
+                    }
+                    if (ssl_state->server_connp.cert0_serial == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
+                }
+            }
+
             rc = Asn1DerGetValidity(cert, &not_before, &not_after, &errcode);
             if (rc != 0) {
                 TLSCertificateErrCodeToWarning(ssl_state, errcode);
