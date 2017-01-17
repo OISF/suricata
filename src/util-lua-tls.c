@@ -240,6 +240,38 @@ static int TlsGetSNI(lua_State *luastate)
     return r;
 }
 
+static int GetCertSerial(lua_State *luastate, const Flow *f)
+{
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
+
+    SSLState *ssl_state = (SSLState *)state;
+
+    if (ssl_state->server_connp.cert0_serial == NULL)
+        return LuaCallbackError(luastate, "error: no certificate serial");
+
+    return LuaPushStringBuffer(luastate,
+                               (uint8_t *)ssl_state->server_connp.cert0_serial,
+                               strlen(ssl_state->server_connp.cert0_serial));
+}
+
+static int TlsGetCertSerial(lua_State *luastate)
+{
+    int r;
+
+    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
+        return LuaCallbackError(luastate, "error: protocol not tls");
+
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    r = GetCertSerial(luastate, f);
+
+    return r;
+}
+
 static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
 {
     void *state = FlowGetAppState(f);
@@ -311,6 +343,9 @@ int LuaRegisterTlsFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, TlsGetSNI);
     lua_setglobal(luastate, "TlsGetSNI");
+
+    lua_pushcfunction(luastate, TlsGetCertSerial);
+    lua_setglobal(luastate, "TlsGetCertSerial");
 
     lua_pushcfunction(luastate, TlsGetCertChain);
     lua_setglobal(luastate, "TlsGetCertChain");
