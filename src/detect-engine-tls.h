@@ -26,6 +26,7 @@
 int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsSerialRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
@@ -41,6 +42,11 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id);
+
+int DetectEngineInspectTlsSerial(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                 DetectEngineThreadCtx *det_ctx,
+                                 Signature *s, Flow *f, uint8_t flags,
+                                 void *alstate, void *txv, uint64_t tx_id);
 
 int DetectEngineInspectTlsValidity(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
