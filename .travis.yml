@@ -24,6 +24,13 @@ matrix:
         - NAME="linux,gcc,cocci"
         - *default-cflags
         - ENABLE_COCCI="yes"
+    # Linux, gcc, -DNDEBUG.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,ndebug"
+        - *default-cflags
+        - EXTRA_CFLAGS="-DNDEBUG"
     # Linux, clang. For this build we'll also enable -Wshadow.
     - os: linux
       compiler: clang
