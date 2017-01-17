@@ -27,6 +27,18 @@ Examples::
 
 ``tls_cert_issuer`` is a 'Sticky buffer'.
 
+tls_cert_serial
+---------------
+
+Match on the serial number in a certificate.
+
+Example::
+
+  alert tls any any -> any any (msg:"match cert serial"; \
+    tls_cert_serial; content:"5C:19:B7:B1:32:3B:1C:A1"; sid:200012;)
+
+``tls_cert_serial`` is a 'Sticky buffer'.
+
 tls_cert_notbefore
 ------------------
 
