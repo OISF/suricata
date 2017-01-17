@@ -67,12 +67,13 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_VERSION     (1 << 0)
 #define LOG_TLS_FIELD_SUBJECT     (1 << 1)
 #define LOG_TLS_FIELD_ISSUER      (1 << 2)
-#define LOG_TLS_FIELD_FINGERPRINT (1 << 3)
-#define LOG_TLS_FIELD_NOTBEFORE   (1 << 4)
-#define LOG_TLS_FIELD_NOTAFTER    (1 << 5)
-#define LOG_TLS_FIELD_SNI         (1 << 6)
-#define LOG_TLS_FIELD_CERTIFICATE (1 << 7)
-#define LOG_TLS_FIELD_CHAIN       (1 << 8)
+#define LOG_TLS_FIELD_SERIAL      (1 << 3)
+#define LOG_TLS_FIELD_FINGERPRINT (1 << 4)
+#define LOG_TLS_FIELD_NOTBEFORE   (1 << 5)
+#define LOG_TLS_FIELD_NOTAFTER    (1 << 6)
+#define LOG_TLS_FIELD_SNI         (1 << 7)
+#define LOG_TLS_FIELD_CERTIFICATE (1 << 8)
+#define LOG_TLS_FIELD_CHAIN       (1 << 9)
 
 typedef struct {
     char *name;
@@ -83,6 +84,7 @@ TlsFields tls_fields[] = {
     { "version",     LOG_TLS_FIELD_VERSION },
     { "subject",     LOG_TLS_FIELD_SUBJECT },
     { "issuer",      LOG_TLS_FIELD_ISSUER },
+    { "serial",      LOG_TLS_FIELD_SERIAL },
     { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
     { "not_before",  LOG_TLS_FIELD_NOTBEFORE },
     { "not_after",   LOG_TLS_FIELD_NOTAFTER },
@@ -127,6 +129,14 @@ static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
     if (ssl_state->client_connp.sni) {
         json_object_set_new(js, "sni",
                             json_string(ssl_state->client_connp.sni));
+    }
+}
+
+static void JsonTlsLogSerial(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_serial) {
+        json_object_set_new(js, "serial",
+                            json_string(ssl_state->server_connp.cert0_serial));
     }
 }
 
@@ -250,6 +260,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     if (tls_ctx->fields & LOG_TLS_FIELD_ISSUER)
         JsonTlsLogIssuer(js, ssl_state);
 
+    /* tls serial */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SERIAL)
+        JsonTlsLogSerial(js, ssl_state);
+
     /* tls fingerprint */
     if (tls_ctx->fields & LOG_TLS_FIELD_FINGERPRINT)
         JsonTlsLogFingerprint(js, ssl_state);
@@ -282,6 +296,9 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 {
     JsonTlsLogJSONBasic(tjs, state);
+
+    /* tls serial */
+    JsonTlsLogSerial(tjs, state);
 
     /* tls fingerprint */
     JsonTlsLogFingerprint(tjs, state);
