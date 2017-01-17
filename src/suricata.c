@@ -2268,6 +2268,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
             break;
     }
 
+    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+        StreamTcpInitConfig(STREAM_VERBOSE);
+    }
+
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
@@ -2504,7 +2508,6 @@ int main(int argc, char **argv)
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
-        StreamTcpInitConfig(STREAM_VERBOSE);
         IPPairInitConfig(IPPAIR_VERBOSE);
         AppLayerRegisterGlobalCounters();
     }
