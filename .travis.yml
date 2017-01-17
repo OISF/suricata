@@ -73,6 +73,7 @@ script:
   - sh autogen.sh
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
         ./configure --enable-nfqueue --enable-unittests --enable-hiredis ${ARGS}
     fi
   - |
