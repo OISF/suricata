@@ -300,29 +300,19 @@ static SCError SCLogMessageGetBuffer(
         blue = "\x1b[34m";
         reset = "\x1b[0m";
     }
-
     /* no of characters_written(cw) by snprintf */
     int cw = 0;
 
-    if (sc_log_module_initialized != 1) {
-#ifdef DEBUG
-        printf("Logging module not initialized.  Call SCLogInitLogModule(), "
-               "before using the logging API\n");
-#endif
-        return SC_ERR_LOG_MODULE_NOT_INIT;
-    }
+    BUG_ON(sc_log_module_initialized != 1);
 
-    char *temp_fmt = strdup(log_format);
-    if (unlikely(temp_fmt == NULL)) {
-        return SC_ERR_MEM_ALLOC;
-    }
-    char *temp_fmt_h = temp_fmt;
+    /* make a copy of the format string as it will be modified below */
+    char local_format[strlen(log_format) + 1];
+    strlcpy(local_format, log_format, sizeof(local_format));
+    char *temp_fmt = local_format;
     char *substr = temp_fmt;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-            if (temp_fmt_h != NULL)
-                SCFree(temp_fmt_h);
             return SC_OK;
         }
         switch(temp_fmt[1]) {
@@ -338,7 +328,7 @@ static SCError SCLogMessageGetBuffer(
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
                               tms->tm_sec, reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -350,7 +340,7 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%u%s", substr, yellow, getpid(), reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -362,12 +352,13 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%lu%s", substr, yellow, SCGetThreadIdLong(), reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
                 substr++;
                 break;
+
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
 /* disabled to prevent dead lock:
@@ -382,12 +373,13 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s", substr, "N/A");
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
                 substr++;
                 break;
+
             case SC_LOG_FMT_LOG_LEVEL:
                 temp_fmt[0] = '\0';
                 s = SCMapEnumValueToName(log_level, sc_log_level_map);
@@ -409,7 +401,7 @@ static SCError SCLogMessageGetBuffer(
                                   "%s%s", substr, "INVALID");
                 }
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -421,7 +413,7 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%s%s", substr, blue, file, reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -433,7 +425,7 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%u%s", substr, green, line, reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -445,7 +437,7 @@ static SCError SCLogMessageGetBuffer(
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s%s%s", substr, green, function, reset);
                 if (cw < 0)
-                    goto error;
+                    return SC_ERR_SPRINTF;
                 temp += cw;
                 temp_fmt++;
                 substr = temp_fmt;
@@ -456,29 +448,25 @@ static SCError SCLogMessageGetBuffer(
         temp_fmt++;
 	}
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        if (temp_fmt_h != NULL)
-            SCFree(temp_fmt_h);
         return SC_OK;
     }
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", substr);
-    if (cw < 0)
-        goto error;
+    if (cw < 0) {
+        return SC_ERR_SPRINTF;
+    }
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        if (temp_fmt_h != NULL)
-            SCFree(temp_fmt_h);
         return SC_OK;
     }
 
     if (error_code != SC_OK) {
         cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                 "[%sERRCODE%s: %s%s%s(%s%d%s)] - ", yellow, reset, red, SCErrorToString(error_code), reset, yellow, error_code, reset);
-        if (cw < 0)
-            goto error;
+        if (cw < 0) {
+            return SC_ERR_SPRINTF;
+        }
         temp += cw;
         if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-            if (temp_fmt_h != NULL)
-                SCFree(temp_fmt_h);
             return SC_OK;
         }
     }
@@ -489,16 +477,13 @@ static SCError SCLogMessageGetBuffer(
     else if (log_level <= SC_LOG_NOTICE)
         hi = yellow;
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", hi, message, reset);
-    if (cw < 0)
-        goto error;
+    if (cw < 0) {
+        return SC_ERR_SPRINTF;
+    }
     temp += cw;
     if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
-        if (temp_fmt_h != NULL)
-            SCFree(temp_fmt_h);
         return SC_OK;
     }
-
-    SCFree(temp_fmt_h);
 
     if (sc_log_config->op_filter_regex != NULL) {
 #define MAX_SUBSTRINGS 30
@@ -514,11 +499,6 @@ static SCError SCLogMessageGetBuffer(
     }
 
     return SC_OK;
-
- error:
-    if (temp_fmt_h != NULL)
-        SCFree(temp_fmt_h);
-    return SC_ERR_SPRINTF;
 }
 
 static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)

@@ -1553,7 +1553,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                                    (dcerpc->dcerpchdr.type == BIND) ?
                                    "BIND" : "ALTER_CONTEXT");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1579,7 +1581,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         //parsed -= input_len;
                         SCLogDebug("Error Parsing CTX Item %u\n", parsed);
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
@@ -1606,7 +1610,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         } else {
                             SCLogDebug("Error Parsing DCERPC");
                             parsed = 0;
+                            (void)parsed; /* for scan-build */
                             input_len = 0;
+                            (void)input_len; /* for scan-build */
                             DCERPCResetParsingState(dcerpc);
                             SCReturnInt(0);
                         }
@@ -1633,7 +1639,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                                    (dcerpc->dcerpchdr.type == BIND_ACK) ?
                                    "BIND_ACK" : "ALTER_CONTEXT_RESP");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1652,7 +1660,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     } else if (input_len) {
                         SCLogDebug("Error parsing Secondary Address");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1679,7 +1689,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     } else if (input_len) {
                         SCLogDebug("Error parsing DCERPC Padding");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1698,7 +1710,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     } else if (input_len) {
                         SCLogDebug("Error parsing CTX Items");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1721,7 +1735,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     } else if (input_len) {
                         SCLogDebug("Error parsing CTX Items");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
@@ -1759,7 +1775,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         } else {
                             SCLogDebug("Error Parsing DCERPC");
                             parsed = 0;
+                            (void)parsed; /* for scan-build */
                             input_len = 0;
+                            (void)input_len; /* for scan-build */
                             DCERPCResetParsingState(dcerpc);
                             SCReturnInt(0);
                         }
@@ -1783,8 +1801,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         SCLogDebug("Error parsing DCERPC %s",
                                    (dcerpc->dcerpchdr.type == REQUEST) ? "REQUEST" : "RESPONSE");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         dcerpc->padleft = 0;
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1800,7 +1820,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     } else if (input_len) {
                         SCLogDebug("Error parsing DCERPC Stub Data");
                         parsed = 0;
+                        (void)parsed; /* for scan-build */
                         input_len = 0;
+                        (void)input_len; /* for scan-build */
                         DCERPCResetParsingState(dcerpc);
                         SCReturnInt(0);
                     }
@@ -1842,7 +1864,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         } else {
                             SCLogDebug("Error Parsing DCERPC");
                             parsed = 0;
+                            (void)parsed; /* for scan-build */
                             input_len = 0;
+                            (void)input_len; /* for scan-build */
                             DCERPCResetParsingState(dcerpc);
                             SCReturnInt(0);
                         }
@@ -1875,7 +1899,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                 } else {
                     SCLogDebug("Error Parsing DCERPC");
                     parsed = 0;
+                    (void)parsed; /* for scan-build */
                     input_len = 0;
+                    (void)input_len; /* for scan-build */
                     DCERPCResetParsingState(dcerpc);
                     SCReturnInt(0);
                 }

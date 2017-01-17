@@ -719,7 +719,6 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
         uint16_t *curr_loc = (uint16_t *)ctx->state_table_mod;
         uint16_t *no_of_entries = NULL;
         uint16_t *ascii_codes = NULL;
-        state = 0;
         uint16_t ascii_code = 0;
         uint16_t k = 0;
         for (state = 0; state < ctx->state_count; state++) {
@@ -794,7 +793,6 @@ static inline void SCACBSCreateModDeltaTable(MpmCtx *mpm_ctx)
         uint32_t *curr_loc = (uint32_t *)ctx->state_table_mod;
         uint32_t *no_of_entries = NULL;
         uint32_t *ascii_codes = NULL;
-        state = 0;
         uint32_t ascii_code = 0;
         uint32_t k = 0;
         for (state = 0; state < ctx->state_count; state++) {
@@ -1192,7 +1190,6 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     int low = 0;
                     int high = no_of_entries;
                     int mid;
-                    state = 0;
                     while (low <= high) {
                         mid = (low + high) / 2;
                         if (ascii_codes[mid] == buf_local) {
@@ -1276,7 +1273,6 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     int low = 0;
                     int high = no_of_entries;
                     int mid;
-                    state = 0;
                     while (low <= high) {
                         mid = (low + high) / 2;
                         if (ascii_codes[mid] == buf_local) {
