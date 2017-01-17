@@ -2506,6 +2506,8 @@ static int PostConfLoadedSetup(SCInstance *suri)
             break;
     }
 
+    StreamTcpParseConfig(STREAM_VERBOSE);
+
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick

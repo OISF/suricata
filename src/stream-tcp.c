@@ -303,18 +303,9 @@ static void StreamTcpSessionPoolCleanup(void *s)
     }
 }
 
-/** \brief          To initialize the stream global configuration data
- *
- *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
- *                  be get printed.
- */
-
-void StreamTcpInitConfig(char quiet)
-{
+void StreamTcpParseConfig(char quiet) {
     intmax_t value = 0;
     uint16_t rdrange = 10;
-
-    SCLogDebug("Initializing Stream");
 
     memset(&stream_config,  0, sizeof(stream_config));
 
@@ -475,7 +466,6 @@ void StreamTcpInitConfig(char quiet)
     } else {
         stream_config.reassembly_depth = 0;
     }
-
     if (!quiet) {
         SCLogConfig("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }
@@ -577,6 +567,21 @@ void StreamTcpInitConfig(char quiet)
     if (!quiet)
         SCLogConfig("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
 
+}
+
+/** \brief          To initialize the stream global configuration data
+ *
+ *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
+ *                  be get printed.
+ */
+
+void StreamTcpInitConfig(char quiet)
+{
+    SCLogDebug("Initializing Stream");
+
+    if (RunmodeIsUnittests()) {
+        StreamTcpParseConfig(STREAM_VERBOSE);
+    }
     /* init the memcap/use tracking */
     SC_ATOMIC_INIT(st_memuse);
     StatsRegisterGlobalCounter("tcp.memuse", StreamTcpMemuseCounter);
