@@ -441,6 +441,22 @@ Example:
   end
 
 
+TlsGetCertSerial
+~~~~~~~~~~~~~~~~
+
+Get TLS certificate serial number through TlsGetCertSerial.
+
+Example:
+
+::
+
+  function log (args)
+      serial = TlsGetCertSerial()
+      if serial then
+          -- do something
+      end
+  end
+
 SSH
 ---
 
