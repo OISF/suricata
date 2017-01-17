@@ -574,19 +574,23 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
 #ifdef HAVE_NSS
+        int hash_done = 0;
         /* no storage but forced hashing */
         if (ffc->tail->md5_ctx) {
             HASH_Update(ffc->tail->md5_ctx, data, data_len);
-            SCReturnInt(0);
+            hash_done = 1;
         }
         if (ffc->tail->sha1_ctx) {
             HASH_Update(ffc->tail->sha1_ctx, data, data_len);
-            SCReturnInt(0);
+            hash_done = 1;
         }
         if (ffc->tail->sha256_ctx) {
             HASH_Update(ffc->tail->sha256_ctx, data, data_len);
-            SCReturnInt(0);
+            hash_done = 1;
         }
+
+        if (hash_done)
+            SCReturnInt(0);
 #endif
         if (g_file_force_tracking || (!(ffc->tail->flags & FILE_NOTRACK)))
             SCReturnInt(0);
