@@ -3,8 +3,8 @@
 Napatech Suricata Installation Guide
 =============================================================
 
-**Contents:**
---------------
+Contents
+--------
 
 	* Introduction
 
@@ -14,8 +14,8 @@ Napatech Suricata Installation Guide
 
 	* Advanced Multithreaded Configuration
 
-**Introduction:**
-------------------
+Introduction
+------------
 
 Napatech packet capture accelerator cards can greatly improve the performance of your Suricata deployment using these
 hardware based features:
@@ -41,29 +41,29 @@ In either case, gcc, make and the kernel header files are required to compile th
 install the software.
 
 
-**Package Installation:**
-------------------------------------
+Package Installation
+--------------------
 
 *Note that make, gcc, and the kernel headers are required for installation*
 
 *Root privileges are also required*
 
-Napatech NAC Package:
-^^^^^^^^^^^^^^^^^^^^^^^^
+Napatech NAC Package
+^^^^^^^^^^^^^^^^^^^^
 
 Red Hat Based Distros::
 
-        $  yum install kernel-devel-$(uname -r) gcc make ncurses-libs
-        $  yum install nac-pcap-<release>.x86_64.rpm
+    $ yum install kernel-devel-$(uname -r) gcc make ncurses-libs
+    $ yum install nac-pcap-<release>.x86_64.rpm
 
 Some distributions will require you to use the --nogpgcheck option with yum for the NAC Software Suite package file::
 
-        $  yum --nogpgcheck install nac-pcap-<release>.x86_64.rpm
+    $ yum --nogpgcheck install nac-pcap-<release>.x86_64.rpm
 
 Debian Based Distros::
 
-	$  apt-get install linux-headers-$(uname .r) gcc make libncurses5
-	$  dpkg .i nac-pcap_<release>_amd64.deb
+	$ apt-get install linux-headers-$(uname .r) gcc make libncurses5
+	$ dpkg .i nac-pcap_<release>_amd64.deb
 
 To complete installation for all distros stop ntservice::
 
@@ -79,8 +79,8 @@ Restart ntservice (a new ntservice.ini configuration file will be generated auto
 	$ /opt/napatech3/bin/ntstart.sh -m
 
 
-Napatech OEM Package:
-^^^^^^^^^^^^^^^^^^^^^^
+Napatech OEM Package
+^^^^^^^^^^^^^^^^^^^^
 
 *Note that you will be prompted to install the Napatech libpcap library. Answer "yes" if you would like to
 use the Napatech card to capture packets in WIreshark, tcpdump, or another pcap based application.
@@ -88,20 +88,20 @@ Libpcap is not needed for Suricata as native Napatech API support is included*
 
 Red Hat Based Distros::
 
-        $  yum install kernel-devel-$(uname -r) gcc make
-	$  ./package_install_3gd.sh
+    $ yum install kernel-devel-$(uname -r) gcc make
+	$ ./package_install_3gd.sh
 
 Debian Based Distros::
 
-        $  apt-get install linux-headers-$(uname .r) gcc make
-	$  ./package_install_3gd.sh
+    $ apt-get install linux-headers-$(uname .r) gcc make
+	$ ./package_install_3gd.sh
 
 To complete installation for all distros ntservice::
 
 	$ /opt/napatech3/bin/ntstart.sh -m
 
-**Suricata Installation:**
----------------------------
+Suricata Installation
+---------------------
 
 After downloading and extracting the Suricata tarball, you need to run configure to enable Napatech support and
 prepare for compilation::
@@ -128,8 +128,8 @@ ntservice.ini::
 		streams: [0, 1, 2, 3, 4, 5, 6, 7]
 
 
-**Basic Configuration:**
--------------------------
+Basic Configuration
+-------------------
 
 For the basic installation we will setup the Napatech capture accelerator to merge all physical
 ports into single stream that Suricata can read from. for this configuration, Suricata will
@@ -160,8 +160,8 @@ Now you are ready to start suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
-**Advanced Multithreaded Configuration**
-------------------------------------------
+Advanced Multithreaded Configuration
+------------------------------------
 
 Now let's do a more advanced configuration where we will use the load distribution (RSS - like) capability in the
 accelerator. We will create 8 streams and setup the accelerator to distribute the load based on a 5 tuple hash.
@@ -207,10 +207,9 @@ Now you are ready to start Suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
-Questions?
 
-	Contact a support engineer at: ntsupport@napatech.com
+Support
+-------
 
-Happy capturing!
+Contact a support engineer at: ntsupport@napatech.com
 
-PAS
