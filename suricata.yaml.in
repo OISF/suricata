@@ -706,7 +706,7 @@ app-layer:
     smb:
       enabled: yes
       detection-ports:
-        dp: 139
+        dp: 139, 445
     # smb2 detection is disabled internally inside the engine.
     #smb2:
     #  enabled: yes
