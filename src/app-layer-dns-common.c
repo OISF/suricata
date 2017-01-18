@@ -475,7 +475,7 @@ void DNSStateFree(void *s)
  */
 int DNSValidateRequestHeader(DNSState *dns_state, const DNSHeader *dns_header)
 {
-    uint16_t flags = ntohs(dns_header->flags);
+    uint16_t flags = (dns_header->flags);
 
     if ((flags & 0x8000) != 0) {
         SCLogDebug("not a request 0x%04x", flags);
