@@ -50,6 +50,9 @@
 
 #include "app-layer-dns-udp.h"
 
+/* Reference to Rust function. */
+void dns_header_parse(uint8_t *, uint32_t, DNSHeader *);
+
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -197,12 +200,16 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         goto insufficient_data;
     }
 
-    DNSHeader *dns_header = (DNSHeader *)input;
-    SCLogDebug("DNS %p %04x %04x", dns_header, ntohs(dns_header->tx_id), dns_header->flags);
+    /* Call out to Rust to parse DNS header. */
+    DNSHeader _dns_header;
+    DNSHeader *dns_header = &_dns_header;
+    dns_header_parse(input, input_len, &_dns_header);
+
+    SCLogDebug("DNS %p %04x %04x", dns_header, (dns_header->tx_id), dns_header->flags);
 
     DNSTransaction *tx = NULL;
     int found = 0;
-    if ((tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id))) != NULL)
+    if ((tx = DNSTransactionFindByTxId(dns_state, (dns_header->tx_id))) != NULL)
         found = 1;
 
     if (!found) {
@@ -215,11 +222,11 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     if (DNSValidateResponseHeader(dns_state, dns_header) < 0)
         goto bad_data;
 
-    SCLogDebug("queries %04x", ntohs(dns_header->questions));
+    SCLogDebug("queries %04x", (dns_header->questions));
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
+    for (q = 0; q < (dns_header->questions); q++) {
         uint8_t fqdn[DNS_MAX_SIZE];
         uint16_t fqdn_offset = 0;
 
@@ -273,8 +280,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         data += sizeof(DNSQueryTrailer);
     }
 
-    SCLogDebug("answer_rr %04x", ntohs(dns_header->answer_rr));
-    for (q = 0; q < ntohs(dns_header->answer_rr); q++) {
+    SCLogDebug("answer_rr %04x", (dns_header->answer_rr));
+    for (q = 0; q < (dns_header->answer_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_ANSWER,
                 input, input_len, data);
         if (data == NULL) {
@@ -282,8 +289,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
     }
 
-    SCLogDebug("authority_rr %04x", ntohs(dns_header->authority_rr));
-    for (q = 0; q < ntohs(dns_header->authority_rr); q++) {
+    SCLogDebug("authority_rr %04x", (dns_header->authority_rr));
+    for (q = 0; q < (dns_header->authority_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_AUTHORITY,
                 input, input_len, data);
         if (data == NULL) {
@@ -294,11 +301,11 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     /* if we previously didn't have a tx, it could have been created by the
      * above code, so lets check again */
     if (tx == NULL) {
-        tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id));
+        tx = DNSTransactionFindByTxId(dns_state, (dns_header->tx_id));
     }
     if (tx != NULL) {
         /* parse rcode, e.g. "noerror" or "nxdomain" */
-        uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+        uint8_t rcode = (dns_header->flags) & 0x0F;
         if (rcode <= DNS_RCODE_NOTZONE) {
             SCLogDebug("rcode %u", rcode);
             tx->rcode = rcode;
@@ -307,7 +314,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
             SCLogDebug("unexpected DNS rcode %u", rcode);
         }
 
-        if (ntohs(dns_header->flags) & 0x0080) {
+        if ((dns_header->flags) & 0x0080) {
             SCLogDebug("recursion desired");
             tx->recursion_desired = 1;
         }
