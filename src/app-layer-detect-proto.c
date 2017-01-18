@@ -399,18 +399,18 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
             continue;
         }
 
-       if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
+        if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
             alproto = pe->ProbingParserTs(buf, buflen, NULL);
-       } else if (pe->ProbingParserTc != NULL) {
+        } else if (pe->ProbingParserTc != NULL) {
             alproto = pe->ProbingParserTc(buf, buflen, NULL);
-       }
-       if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
-           goto end;
-       if (alproto == ALPROTO_FAILED ||
-           (pe->max_depth != 0 && buflen > pe->max_depth)) {
-           alproto_masks[0] |= pe->alproto_mask;
-       }
-       pe = pe->next;
+        }
+        if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
+            goto end;
+        if (alproto == ALPROTO_FAILED ||
+            (pe->max_depth != 0 && buflen > pe->max_depth)) {
+            alproto_masks[0] |= pe->alproto_mask;
+        }
+        pe = pe->next;
     }
     pe = pe2;
     while (pe != NULL) {
