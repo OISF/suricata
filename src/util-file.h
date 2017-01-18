@@ -70,6 +70,7 @@ typedef struct File_ {
     uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
                                      *   flag is set */
     uint64_t content_stored;
+    uint64_t size;
 } File;
 
 typedef struct FileContainer_ {
