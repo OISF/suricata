@@ -657,6 +657,7 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
         if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
             cd->ext[i] = SCMalloc(sizeof(hs_expr_ext_t));
             if (cd->ext[i] == NULL) {
+                SCMutexUnlock(&g_db_table_mutex);
                 goto error;
             }
             memset(cd->ext[i], 0, sizeof(hs_expr_ext_t));
@@ -685,6 +686,7 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
             SCLogError(SC_ERR_FATAL, "compile error: %s", compile_err->message);
         }
         hs_free_compile_error(compile_err);
+        SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
 
@@ -695,12 +697,14 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     SCMutexUnlock(&g_scratch_proto_mutex);
     if (err != HS_SUCCESS) {
         SCLogError(SC_ERR_FATAL, "failed to allocate scratch");
+        SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
 
     err = hs_database_size(pd->hs_db, &ctx->hs_db_size);
     if (err != HS_SUCCESS) {
         SCLogError(SC_ERR_FATAL, "failed to query database size");
+        SCMutexUnlock(&g_db_table_mutex);
         goto error;
     }
 
@@ -719,7 +723,6 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
     return 0;
 
 error:
-    SCMutexUnlock(&g_db_table_mutex);
     if (pd) {
         PatternDatabaseFree(pd);
     }
