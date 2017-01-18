@@ -78,7 +78,10 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
         goto insufficient_data;
     }
 
-    DNSHeader *dns_header = (DNSHeader *)input;
+    /* Call out to Rust to parse DNS header. */
+    DNSHeader _dns_header;
+    DNSHeader *dns_header = &_dns_header;
+    dns_header_parse(input, input_len, &_dns_header);
     SCLogDebug("DNS %p", dns_header);
 
     if (DNSValidateRequestHeader(dns_state, dns_header) < 0)
@@ -94,7 +97,7 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
+    for (q = 0; q < (dns_header->questions); q++) {
         uint8_t fqdn[DNS_MAX_SIZE];
         uint16_t fqdn_offset = 0;
 
@@ -158,7 +161,7 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
         if (dns_state != NULL) {
             DNSStoreQueryInState(dns_state, fqdn, fqdn_offset,
                     ntohs(trailer->type), ntohs(trailer->class),
-                    ntohs(dns_header->tx_id));
+                    (dns_header->tx_id));
         }
     }
 
