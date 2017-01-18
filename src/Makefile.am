@@ -452,7 +452,7 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} \
-	../rust/target/debug/libsuricata_rust.a -ldl
+	../rust/target/release/libsuricata_rust.a -ldl
 suricata_LDADD = $(HTP_LDADD)
 
 # Rules to build CUDA ptx modules
