@@ -420,7 +420,11 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
             continue;
         }
 
-        alproto = pe->ProbingParserTs(buf, buflen, NULL);
+        if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
+            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+        } else if (pe->ProbingParserTc != NULL) {
+            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+        }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
         if (alproto == ALPROTO_FAILED ||
