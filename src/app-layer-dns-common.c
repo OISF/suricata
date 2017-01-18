@@ -503,7 +503,7 @@ bad_data:
  */
 int DNSValidateResponseHeader(DNSState *dns_state, const DNSHeader *dns_header)
 {
-    uint16_t flags = ntohs(dns_header->flags);
+    uint16_t flags = (dns_header->flags);
 
     if ((flags & 0x8000) == 0) {
         SCLogDebug("not a response 0x%04x", flags);
@@ -858,7 +858,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, 4, ntohs(dns_header->tx_id));
+                        data, 4, (dns_header->tx_id));
             } else {
                 SCLogDebug("invalid length for A response data: %u", ntohs(head->len));
                 goto bad_data;
@@ -876,7 +876,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, 16, ntohs(dns_header->tx_id));
+                        data, 16, (dns_header->tx_id));
             } else {
                 SCLogDebug("invalid length for AAAA response data: %u", ntohs(head->len));
                 goto bad_data;
@@ -907,7 +907,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    name, name_len, ntohs(dns_header->tx_id));
+                    name, name_len, (dns_header->tx_id));
 
             data += ntohs(head->len);
             break;
@@ -970,7 +970,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    pname, pname_len, ntohs(dns_header->tx_id));
+                    pname, pname_len, (dns_header->tx_id));
 
             data += ntohs(head->len);
             break;
@@ -995,7 +995,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        (uint8_t*)tdata, (uint16_t)txtlen, ntohs(dns_header->tx_id));
+                        (uint8_t*)tdata, (uint16_t)txtlen, (dns_header->tx_id));
 
                 txtdatalen -= txtlen;
                 tdata += txtlen;
@@ -1020,7 +1020,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    data, ntohs(head->len), ntohs(dns_header->tx_id));
+                    data, ntohs(head->len), (dns_header->tx_id));
 
             data += datalen;
             break;
@@ -1029,7 +1029,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         {
             DNSStoreAnswerInState(dns_state, list, NULL, 0,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    NULL, 0, ntohs(dns_header->tx_id));
+                    NULL, 0, (dns_header->tx_id));
 
             //PrintRawDataFp(stdout, data, ntohs(head->len));
             data += datalen;
