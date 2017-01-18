@@ -1500,18 +1500,17 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
 
 static int SMBRegisterPatternsForProtocolDetection(void)
 {
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
-                                               "|ff|SMB", 8, 4, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB2,
-                                               "|fe|SMB", 8, 4, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
+    int r = 0;
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOCLIENT);
 
-    return 0;
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB2,
+            "|fe|SMB", 8, 4, STREAM_TOSERVER);
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB2,
+            "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    return r == 0 ? 0 : -1;
 }
 
 void RegisterSMBParsers(void)
@@ -1529,12 +1528,12 @@ void RegisterSMBParsers(void)
                                           ALPROTO_SMB,
                                           SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                           STREAM_TOSERVER,
-                                          SMBProbingParser, NULL);
+                                          SMBProbingParser, SMBProbingParser);
         } else {
             AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_SMB,
                                                 SMB_PROBING_PARSER_MIN_DEPTH, 0,
-                                                SMBProbingParser, NULL);
+                                                SMBProbingParser, SMBProbingParser);
         }
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOSERVER);
