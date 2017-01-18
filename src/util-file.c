@@ -565,6 +565,8 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
         SCReturnInt(-1);
     }
 
+    ffc->tail->size += data_len;
+
     if (ffc->tail->state != FILE_STATE_OPENED) {
         if (ffc->tail->flags & FILE_NOSTORE) {
             SCReturnInt(-2);
@@ -699,6 +701,7 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
     FileContainerAdd(ffc, ff);
 
     if (data != NULL) {
+        ff->size += data_len;
         if (AppendData(ff, data, data_len) != 0) {
             ff->state = FILE_STATE_ERROR;
             SCReturnPtr(NULL, "File");
@@ -723,6 +726,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
     }
 
     if (data != NULL) {
+        ff->size += data_len;
         if (ff->flags & FILE_NOSTORE) {
 #ifdef HAVE_NSS
             /* no storage but hashing */
