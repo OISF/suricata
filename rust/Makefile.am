@@ -1,5 +1,1 @@
-all:
-	cargo build --release
-
-clean:
-	cargo clean
+SUBDIRS = dns
