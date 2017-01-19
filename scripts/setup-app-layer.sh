@@ -1,9 +1,15 @@
-#! /bin/sh
+#! /usr/bin/env bash
 #
 # Script to provision a new application layer detector and parser.
 
 set -e
 #set -x
+
+# Fail if "ed" is not available.
+if ! which edx > /dev/null 2>&1; then
+    echo "error: the program \"ed\" is required for this script"
+    exit 1
+fi
 
 function usage() {
     cat <<EOF
