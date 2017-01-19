@@ -93,7 +93,7 @@ static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, F
 
     DetectFilesizeData *fsd = (DetectFilesizeData *)m->ctx;
     int ret = 0;
-    uint64_t file_size = FileSize(file);
+    uint64_t file_size = FileTrackedSize(file);
 
     SCLogDebug("file size %"PRIu64", check %"PRIu64, file_size, fsd->size1);
 

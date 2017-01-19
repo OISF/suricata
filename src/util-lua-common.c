@@ -650,7 +650,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushnumber(luastate, file->file_id);
     lua_pushnumber(luastate, file->txid);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
-    lua_pushnumber(luastate, FileSize(file));
+    lua_pushnumber(luastate, FileTrackedSize(file));
     lua_pushstring (luastate,
 #ifdef HAVE_MAGIC
                     file->magic

@@ -183,7 +183,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 
             /* if we have no data chunks left to log, we should still
              * close the logger(s) */
-            if (FileSize(ff) == ff->content_stored &&
+            if (FileDataSize(ff) == ff->content_stored &&
                 (file_trunc || file_close)) {
                 CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE);
                 ff->flags |= FILE_STORED;

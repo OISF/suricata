@@ -291,7 +291,7 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
                 fprintf(fp, "STATE:             UNKNOWN\n");
                 break;
         }
-        fprintf(fp, "SIZE:              %"PRIu64"\n", FileSize(ff));
+        fprintf(fp, "SIZE:              %"PRIu64"\n", FileTrackedSize(ff));
 
         fclose(fp);
     } else {

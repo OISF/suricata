@@ -96,7 +96,7 @@ static const uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     const uint8_t *buffer = NULL;
     *buffer_len = 0;
     *stream_start_offset = 0;
-    uint64_t file_size = FileSize(curr_file);
+    uint64_t file_size = FileDataSize(curr_file);
 
     if (det_ctx->smtp_buffers_list_len == 0) {
         if (SMTPCreateSpace(det_ctx, 1) < 0)
@@ -160,7 +160,7 @@ static const uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     det_ctx->smtp[index].offset = curr_file->content_inspected;
 
     /* updat inspected tracker */
-    curr_file->content_inspected = FileSize(curr_file);
+    curr_file->content_inspected = FileDataSize(curr_file);
 
     SCLogDebug("content_inspected %u, offset %u", (uint)curr_file->content_inspected, (uint)det_ctx->smtp[index].offset);
 

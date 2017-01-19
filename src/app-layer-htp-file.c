@@ -633,11 +633,11 @@ static int HTPFileParserTest03(void)
     }
 
     if (http_state->files_ts->head == NULL ||
-        FileSize(http_state->files_ts->head) != 11)
+        FileDataSize(http_state->files_ts->head) != 11)
     {
         if (http_state->files_ts->head != NULL)
             printf("filedata len not 11 but %"PRIu64": ",
-                    FileSize(http_state->files_ts->head));
+                    FileDataSize(http_state->files_ts->head));
         goto end;
     }
 
