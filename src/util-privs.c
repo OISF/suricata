@@ -77,6 +77,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                     CAP_NET_RAW,            /* needed for pcap live mode */
                     CAP_SYS_NICE,
+                    CAP_NET_ADMIN,
                     -1);
             break;
         case RUNMODE_PFRING:
