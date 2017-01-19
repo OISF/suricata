@@ -962,7 +962,7 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
             timestamp_pattern, pcre_erroffset, pcre_errbuf);
     }
     pcre_timestamp_extra = pcre_study(pcre_timestamp_code, 0, &pcre_errbuf);
-    if (pcre_timestamp_extra == NULL) {
+    if (pcre_errbuf != NULL) {
         FatalError(SC_ERR_PCRE_STUDY, "Fail to study pcre: %s", pcre_errbuf);
     }
 
