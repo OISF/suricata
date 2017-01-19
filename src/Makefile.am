@@ -37,6 +37,7 @@ app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
+app-layer-quic.c app-layer-quic.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
