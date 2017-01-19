@@ -1,1 +1,1 @@
-SUBDIRS = dns
+SUBDIRS = dns quic
