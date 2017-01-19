@@ -118,6 +118,9 @@ typedef struct LogFileCtx_ {
      * allow for rotataion. */
     uint8_t is_regular;
 
+    /* JSON flags */
+    size_t json_flags;
+
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
 } LogFileCtx;
