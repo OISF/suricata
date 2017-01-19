@@ -110,7 +110,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
-            uint64_t file_size = FileSize(file);
+            uint64_t file_size = FileDataSize(file);
             if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file_size == 0) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

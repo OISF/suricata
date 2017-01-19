@@ -101,12 +101,12 @@ int FileMagicSize(void)
 }
 
 /**
- *  \brief get the size of the file
+ *  \brief get the size of the file data
  *
  *  This doesn't reflect how much of the file we have in memory, just the
- *  total size tracked so far.
+ *  total size of filedata so far.
  */
-uint64_t FileSize(const File *file)
+uint64_t FileDataSize(const File *file)
 {
     if (file != NULL && file->sb != NULL) {
         SCLogDebug("returning %"PRIu64,
@@ -114,6 +114,20 @@ uint64_t FileSize(const File *file)
         return file->sb->stream_offset + file->sb->buf_offset;
     }
     SCLogDebug("returning 0 (default)");
+    return 0;
+}
+
+/**
+ *  \brief get the size of the file
+ *
+ *  This doesn't reflect how much of the file we have in memory, just the
+ *  total size of file so far.
+ */
+uint64_t FileTrackedSize(const File *file)
+{
+    if (file != NULL) {
+        return file->size;
+    }
     return 0;
 }
 
@@ -133,7 +147,7 @@ static int FilePruneFile(File *file)
 
     uint64_t left_edge = file->content_stored;
     if (file->flags & FILE_NOSTORE) {
-        left_edge = FileSize(file);
+        left_edge = FileDataSize(file);
     }
     if (file->flags & FILE_USE_DETECT) {
         left_edge = MIN(left_edge, file->content_inspected);
@@ -143,7 +157,7 @@ static int FilePruneFile(File *file)
         StreamingBufferSlideToOffset(file->sb, left_edge);
     }
 
-    if (left_edge != FileSize(file)) {
+    if (left_edge != FileDataSize(file)) {
         SCReturnInt(0);
     }
 
@@ -346,7 +360,7 @@ static int FileStoreNoStoreCheck(File *ff)
 
     if (ff->flags & FILE_NOSTORE) {
         if (ff->state == FILE_STATE_OPENED &&
-            FileSize(ff) >= (uint64_t)FileMagicSize())
+            FileDataSize(ff) >= (uint64_t)FileMagicSize())
         {
             SCReturnInt(1);
         }
@@ -500,7 +514,7 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
             ff->state = FILE_STATE_ERROR;
             SCReturnPtr(NULL, "File");
         }
-        SCLogDebug("file size is now %"PRIu64, FileSize(ff));
+        SCLogDebug("file size is now %"PRIu64, FileTrackedSize(ff));
     }
 
     SCReturnPtr(ff, "File");
@@ -736,7 +750,7 @@ void FileDisableStoringForFile(File *ff)
     SCLogDebug("not storing this file");
     ff->flags |= FILE_NOSTORE;
 
-    if (ff->state == FILE_STATE_OPENED && FileSize(ff) >= (uint64_t)FileMagicSize()) {
+    if (ff->state == FILE_STATE_OPENED && FileDataSize(ff) >= (uint64_t)FileMagicSize()) {
         if (g_file_force_md5 == 0 && g_file_force_tracking == 0) {
             (void)FileCloseFilePtr(ff, NULL, 0,
                     (FILE_TRUNCATED|FILE_NOSTORE));

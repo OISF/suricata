@@ -190,6 +190,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t);
 
 void FileTruncateAllOpenFiles(FileContainer *);
 
-uint64_t FileSize(const File *file);
+uint64_t FileDataSize(const File *file);
+uint64_t FileTrackedSize(const File *file);
 
 #endif /* __UTIL_FILE_H__ */

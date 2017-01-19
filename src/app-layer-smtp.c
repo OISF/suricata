@@ -371,7 +371,7 @@ static void SMTPPruneFiles(FileContainer *files)
         if (file->sb->stream_offset == 0)
             window = MAX(window, smtp_config.content_inspect_min_size);
 
-        uint64_t file_size = FileSize(file);
+        uint64_t file_size = FileDataSize(file);
         uint64_t data_size = file_size - file->sb->stream_offset;
 
         SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
@@ -4847,8 +4847,8 @@ static int SMTPParserTest14(void)
             printf("smtp-mime file name is incorrect");
             goto end;
         }
-        if (FileSize(file) != filesize){
-            printf("smtp-mime file size %"PRIu64" is incorrect", FileSize(file));
+        if (FileTrackedSize(file) != filesize){
+            printf("smtp-mime file size %"PRIu64" is incorrect", FileDataSize(file));
             goto end;
         }
         static uint8_t org_binary[] = {
@@ -5134,7 +5134,7 @@ static int SMTPProcessDataChunkTest05(void){
     FAIL_IF(file == NULL);
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     FAIL_IF(ret != 0);
-    FAIL_IF((uint32_t)FileSize(file) != 106);
+    FAIL_IF((uint32_t)FileDataSize(file) != 106);
     SMTPStateFree(smtp_state);
     FLOW_DESTROY(&f);
     PASS;
