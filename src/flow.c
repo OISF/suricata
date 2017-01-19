@@ -157,6 +157,30 @@ void FlowSetIPOnlyFlag(Flow *f, int direction)
     return;
 }
 
+/** \brief Set flag to indicate that flow has alerts
+ *
+ * \param f flow
+ */
+void FlowSetHasAlertsFlag(Flow *f)
+{
+    f->flags |= FLOW_HAS_ALERTS;
+}
+
+/** \brief Check if flow has alerts
+ *
+ * \param f flow
+ * \retval 1 has alerts
+ * \retval 0 has not alerts
+ */
+int FlowHasAlerts(const Flow *f)
+{
+    if (f->flags & FLOW_HAS_ALERTS) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /**
  *  \brief determine the direction of the packet compared to the flow
  *  \retval 0 to_server
