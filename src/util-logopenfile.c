@@ -256,6 +256,35 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (append == NULL)
         append = DEFAULT_LOG_MODE_APPEND;
 
+    /* JSON flags */
+#ifdef HAVE_LIBJANSSON
+    log_ctx->json_flags = JSON_PRESERVE_ORDER|JSON_COMPACT|
+                          JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH;
+
+    ConfNode *json_flags = ConfNodeLookupChild(conf, "json");
+
+    if (json_flags != 0) {
+        const char *preserve_order = ConfNodeLookupChildValue(json_flags,
+                                                              "preserve-order");
+        if (preserve_order != NULL && ConfValIsFalse(preserve_order))
+            log_ctx->json_flags &= ~(JSON_PRESERVE_ORDER);
+
+        const char *compact = ConfNodeLookupChildValue(json_flags, "compact");
+        if (compact != NULL && ConfValIsFalse(compact))
+            log_ctx->json_flags &= ~(JSON_COMPACT);
+
+        const char *ensure_ascii = ConfNodeLookupChildValue(json_flags,
+                                                            "ensure-ascii");
+        if (ensure_ascii != NULL && ConfValIsFalse(ensure_ascii))
+            log_ctx->json_flags &= ~(JSON_ENSURE_ASCII);
+
+        const char *escape_slash = ConfNodeLookupChildValue(json_flags,
+                                                            "escape-slash");
+        if (escape_slash != NULL && ConfValIsFalse(escape_slash))
+            log_ctx->json_flags &= ~(JSON_ESCAPE_SLASH);
+    }
+#endif /* HAVE_LIBJANSSON */
+
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
         /* Don't bail. May be able to connect later. */
