@@ -698,6 +698,8 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                         printf("            alproto: ALPROTO_ENIP\n");
                     else if (pp_pe->alproto == ALPROTO_QUIC)
                         printf("            alproto: ALPROTO_QUIC\n");
+                    else if (pp_pe->alproto == ALPROTO_NFS3TCP)
+                        printf("            alproto: ALPROTO_NFS3TCP\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -757,6 +759,8 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                     printf("            alproto: ALPROTO_ENIP\n");
                 else if (pp_pe->alproto == ALPROTO_QUIC)
                     printf("            alproto: ALPROTO_QUIC\n");
+                else if (pp_pe->alproto == ALPROTO_NFS3TCP)
+                    printf("            alproto: ALPROTO_NFS3TCP\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)

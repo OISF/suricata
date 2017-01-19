@@ -38,6 +38,7 @@ app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
 app-layer-quic.c app-layer-quic.h \
+app-layer-nfs3tcp.c app-layer-nfs3tcp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -456,6 +457,7 @@ suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} \
 	../rust/dns/target/release/libsuricata_rust.a \
 	../rust/quic/target/release/libquic_parser.a \
 	../rust/smb/target/release/libsmb_parser.a \
+	../rust/nfs/nfs3tcp/target/release/libnfs3_parser.a \
     -ldl -lm
 suricata_LDADD = $(HTP_LDADD)
 

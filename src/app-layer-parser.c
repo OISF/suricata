@@ -61,6 +61,7 @@
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-quic.h"
+#include "app-layer-nfs3tcp.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1226,6 +1227,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterENIPTCPParsers();
     RegisterDNP3Parsers();
     RegisterquicParsers();
+    RegisterNfs3TcpParsers();
     RegisterTemplateParsers();
 
     /** IMAP */

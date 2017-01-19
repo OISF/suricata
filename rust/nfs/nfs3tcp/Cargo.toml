@@ -1,0 +1,21 @@
+[package]
+description = "Parser for the NFSv3 protocol"
+license = "GPL-2.0"
+keywords = ["NFS", "NFSv3", "protocol","parser","nom"]
+#homepage = "https://github.com/inliniac/quic-parser"
+#repository = "https://github.com/inliniac/quic-parser.git"
+name = "nfs3-parser"
+version = "0.0.1"
+authors = ["Victor Julien <victor@inliniac.net>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+libc = "0.2.0"
+nom = "^2.0"
+#byteorder = "1.0.0"
+
+[profile.release]
+debug = true
+
