@@ -394,7 +394,11 @@
     AC_ARG_ENABLE(debug-validation,
            AS_HELP_STRING([--enable-debug-validation], [Enable (debug) validation code output]),,[enable_debug_validation=no])
     AS_IF([test "x$enable_debug_validation" = "xyes"], [
-        AC_DEFINE([DEBUG_VALIDATION],[1],[Enable (debug) validation code output])
+        if test "$enable_unittests" = "yes"; then
+            AC_MSG_ERROR([debug_validation can't be enabled with enabled unittests!])
+        else
+            AC_DEFINE([DEBUG_VALIDATION],[1],[Enable (debug) validation code output])
+        fi
     ])
 
   # profiling support
