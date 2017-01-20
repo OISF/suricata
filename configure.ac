@@ -618,6 +618,7 @@
         fi
 
         AC_CHECK_LIB(hs,hs_compile,,HYPERSCAN="no")
+        AC_CHECK_FUNCS(hs_valid_platform)
         enable_hyperscan="yes"
         if test "$HYPERSCAN" = "no"; then
             echo

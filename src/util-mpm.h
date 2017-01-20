@@ -43,18 +43,6 @@ enum {
     MPM_TABLE_SIZE,
 };
 
-/* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
- * If Hyperscan is available, use it. Otherwise, use AC. */
-#ifdef BUILD_HYPERSCAN
-# define DEFAULT_MPM    MPM_HS
-#else
-# ifdef __tile__
-#  define DEFAULT_MPM   MPM_AC_TILE
-# else
-#  define DEFAULT_MPM   MPM_AC
-# endif
-#endif
-
 /* Internal Pattern Index: 0 to pattern_cnt-1 */
 typedef uint32_t MpmPatternIndex;
 
@@ -171,6 +159,7 @@ typedef struct MpmTableElmt_ {
 } MpmTableElmt;
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
+int mpm_default_matcher;
 
 /* macros decides if cuda is enabled for the platform or not */
 #ifdef __SC_CUDA_SUPPORT__

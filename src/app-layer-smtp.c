@@ -157,7 +157,7 @@ typedef struct SMTPThreadCtx_ {
     PrefilterRuleStore *pmq;
 } SMTPThreadCtx;
 
-#define SMTP_MPM DEFAULT_MPM
+#define SMTP_MPM mpm_default_matcher
 
 static MpmCtx *smtp_mpm_ctx = NULL;
 

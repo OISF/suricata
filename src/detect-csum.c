@@ -1544,7 +1544,7 @@ int DetectCsumICMPV6Test01(void)
         printf("DetectEngineCtxInit failure\n");
         goto end;
     }
-    de_ctx->mpm_matcher = DEFAULT_MPM;
+    de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
