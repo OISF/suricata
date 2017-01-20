@@ -46,6 +46,9 @@
 #include "detect-engine-mpm.h"
 #endif
 #include "util-memcpy.h"
+#ifdef BUILD_HYPERSCAN
+#include "hs.h"
+#endif
 
 /**
  * \brief Register a new Mpm Context.
@@ -402,15 +405,46 @@ void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
     mpm_table[matcher].InitCtx(mpm_ctx);
 }
 
+/* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
+ * If Hyperscan is available, use it. Otherwise, use AC. */
+#ifdef BUILD_HYPERSCAN
+# define DEFAULT_MPM     MPM_HS
+# ifdef __tile__
+#  define DEFAULT_MPM_AC MPM_AC_TILE
+# else
+#  define DEFAULT_MPM_AC MPM_AC
+# endif
+#else
+# ifdef __tile__
+#  define DEFAULT_MPM    MPM_AC_TILE
+# else
+#  define DEFAULT_MPM    MPM_AC
+# endif
+#endif
+
 void MpmTableSetup(void)
 {
     memset(mpm_table, 0, sizeof(mpm_table));
+    mpm_default_matcher = DEFAULT_MPM;
 
     MpmACRegister();
     MpmACBSRegister();
     MpmACTileRegister();
 #ifdef BUILD_HYPERSCAN
-    MpmHSRegister();
+    #ifdef HAVE_HS_VALID_PLATFORM
+    /* Enable runtime check for SSSE3. Do not use Hyperscan MPM matcher if
+     * check is not successful. */
+        if (hs_valid_platform() != HS_SUCCESS) {
+            SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
+                      "MPM");
+            /* Fall back to best Aho-Corasick variant. */
+            mpm_default_matcher = DEFAULT_MPM_AC;
+        } else {
+            MpmHSRegister();
+        }
+    #else
+        MpmHSRegister();
+    #endif /* HAVE_HS_VALID_PLATFORM */
 #endif /* BUILD_HYPERSCAN */
 #ifdef __SC_CUDA_SUPPORT__
     MpmACCudaRegister();
