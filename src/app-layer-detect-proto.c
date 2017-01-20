@@ -1550,7 +1550,7 @@ int AppLayerProtoDetectSetup(void)
 #ifdef __SC_CUDA_SUPPORT__
     /* CUDA won't work here, so fall back to AC */
     if (mpm_matcher == MPM_AC_CUDA)
-        mpm_matcher = DEFAULT_MPM;
+        mpm_matcher = mpm_default_matcher;
 #endif
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);

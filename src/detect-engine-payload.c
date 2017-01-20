@@ -214,7 +214,7 @@ static int PayloadTestSig01 (void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (content:\"abc\"; content:\"d\"; distance:0; within:1; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -236,7 +236,7 @@ static int PayloadTestSig02 (void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (content:\"abc\"; nocase; content:\"d\"; distance:0; within:1; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -258,7 +258,7 @@ static int PayloadTestSig03 (void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:4; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -283,7 +283,7 @@ static int PayloadTestSig04(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"this\"; content:\"is\"; within:6; content:\"big\"; within:8; "
         "content:\"string\"; within:8; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -308,7 +308,7 @@ static int PayloadTestSig05(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"this\"; content:\"is\"; within:9; content:\"big\"; within:12; "
         "content:\"string\"; within:8; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -333,7 +333,7 @@ static int PayloadTestSig06(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"now\"; content:\"this\"; content:\"is\"; within:12; content:\"big\"; within:8; "
         "content:\"string\"; within:8; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -358,7 +358,7 @@ static int PayloadTestSig07(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"thus\"; offset:8; content:\"is\"; within:6; content:\"big\"; within:8; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -384,7 +384,7 @@ static int PayloadTestSig08(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"fix\"; content:\"this\"; within:6; content:!\"and\"; distance:0; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) != 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) != 1) {
         goto end;
     }
 
@@ -408,7 +408,7 @@ static int PayloadTestSig09(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "pcre:/super/; content:\"nova\"; within:7; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -433,7 +433,7 @@ static int PayloadTestSig10(void)
     char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
         "byte_test:4,>,2,0,relative; sid:11;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 1) {
         result = 0;
         goto end;
     }
@@ -458,7 +458,7 @@ static int PayloadTestSig11(void)
     char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
         "byte_jump:1,0,relative; sid:11;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 1) {
         result = 0;
         goto end;
     }
@@ -483,7 +483,7 @@ static int PayloadTestSig12(void)
     char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
         "isdataat:10,relative; sid:11;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 1) {
         result = 0;
         goto end;
     }
@@ -523,7 +523,7 @@ static int PayloadTestSig13(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
-    uint16_t mpm_type = DEFAULT_MPM;
+    uint16_t mpm_type = mpm_default_matcher;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"aa\"; content:\"aa\"; distance:0; content:\"aa\"; distance:0; "
@@ -605,7 +605,7 @@ static int PayloadTestSig14(void)
 
     //char sig[] = "alert tcp any any -> any any (content:\"User-Agent: Mozilla/5.0 (Macintosh; \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b4) Gecko/20090423 Firefox/3.6 GTB5\"; sid:1; rev:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 1) {
         goto end;
     }
 
@@ -626,7 +626,7 @@ static int PayloadTestSig15(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"nova\"; isdataat:18,relative; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -649,7 +649,7 @@ static int PayloadTestSig16(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"nova\"; isdataat:!20,relative; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -673,7 +673,7 @@ static int PayloadTestSig17(void)
         "content:\"%\"; depth:4; offset:0; "
         "content:\"%\"; within:2; distance:1; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -702,7 +702,7 @@ static int PayloadTestSig18(void)
         "byte_extract:1,2,one,string,dec,relative; "
         "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -731,7 +731,7 @@ static int PayloadTestSig19(void)
         "byte_extract:1,2,one,string,hex,relative; "
         "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -760,7 +760,7 @@ static int PayloadTestSig20(void)
         "byte_extract:1,2,one,string,dec,relative; "
         "content:\"|06 35 07 08|\"; offset:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -789,7 +789,7 @@ static int PayloadTestSig21(void)
         "byte_extract:1,2,one,string,dec,relative; "
         "content:\"|03 04 05 06|\"; depth:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -818,7 +818,7 @@ static int PayloadTestSig22(void)
         "byte_extract:1,2,one,string,dec,relative; "
         "content:\"|09 0A 0B 0C|\"; within:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -848,7 +848,7 @@ static int PayloadTestSig23(void)
         "byte_extract:1,3,two,string,dec,relative; "
         "byte_test:1,=,one,two,string,dec,relative; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -878,7 +878,7 @@ static int PayloadTestSig24(void)
         "byte_jump:1,one,string,dec,relative; "
         "content:\"|0D 0E 0F|\"; distance:0; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -910,7 +910,7 @@ static int PayloadTestSig25(void)
         "byte_extract:1,-4,one,string,dec,relative; "
         "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -942,7 +942,7 @@ static int PayloadTestSig26(void)
         "byte_extract:1,-3000,one,string,dec,relative; "
         "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) != 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) != 0) {
         result = 0;
         goto end;
     }
@@ -970,7 +970,7 @@ static int PayloadTestSig27(void)
         "depth:5; sid:1;)";
 
     p->flags |= PKT_STREAM_ADD;
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) != 1)
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) != 1)
         goto end;
 
     result = 1;
@@ -996,7 +996,7 @@ static int PayloadTestSig28(void)
         "offset:4; depth:12; sid:1;)";
 
     p->flags |= PKT_STREAM_ADD;
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) != 1)
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) != 1)
         goto end;
 
     result = 1;
@@ -1020,7 +1020,7 @@ static int PayloadTestSig29(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "pcre:/^.{4}/; content:\"nova\"; within:4; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 1) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 1) {
         result = 0;
         goto end;
     }
@@ -1041,7 +1041,7 @@ static int PayloadTestSig30(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (content:\"one\"; pcre:\"/^two/R\"; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -1062,7 +1062,7 @@ static int PayloadTestSig31(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (content:\"one\"; pcre:\"/(fiv|^two)/R\"; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0) {
         result = 0;
         goto end;
     }
@@ -1087,7 +1087,7 @@ static int PayloadTestSig32(void)
     char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
         "content:\"message\"; byte_jump:2,-14,string,dec,relative; content:\"card\"; within:4; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0)
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0)
         goto end;
 
     result = 1;
@@ -1110,7 +1110,7 @@ static int PayloadTestSig33(void)
     char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
         "content:\"message\"; byte_test:1,=,2,-14,string,dec,relative; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0)
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0)
         goto end;
 
     result = 1;
@@ -1133,7 +1133,7 @@ static int PayloadTestSig34(void)
     char sig[] = "alert tcp any any -> any any (msg:\"crash\"; "
         "content:\"message\"; byte_extract:1,-14,boom,string,dec,relative; sid:1;)";
 
-    if (UTHPacketMatchSigMpm(p, sig, DEFAULT_MPM) == 0)
+    if (UTHPacketMatchSigMpm(p, sig, mpm_default_matcher) == 0)
         goto end;
 
     result = 1;

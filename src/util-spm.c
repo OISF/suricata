@@ -55,6 +55,9 @@
 #include "util-spm-bm.h"
 #include "util-spm-hs.h"
 #include "util-clock.h"
+#ifdef BUILD_HYPERSCAN
+#include "hs.h"
+#endif
 
 /**
  * \brief Returns the single pattern matcher algorithm to be used, based on the
@@ -89,7 +92,20 @@ default_matcher:
     /* When Suricata is built with Hyperscan support, default to using it for
      * SPM. */
 #ifdef BUILD_HYPERSCAN
-    return SPM_HS;
+    #ifdef HAVE_HS_VALID_PLATFORM
+    /* Enable runtime check for SSSE3. Do not use Hyperscan SPM matcher if
+     * check is not successful. */
+        if (hs_valid_platform() != HS_SUCCESS) {
+            SCLogInfo("SSSE3 support not detected, disabling Hyperscan for "
+                      "SPM");
+            /* Use Boyer-Moore as fallback. */
+            return SPM_BM;
+        } else {
+            return SPM_HS;
+        }
+    #else
+        return SPM_HS;
+    #endif
 #else
     /* Otherwise, default to Boyer-Moore */
     return SPM_BM;
@@ -102,7 +118,13 @@ void SpmTableSetup(void)
 
     SpmBMRegister();
 #ifdef BUILD_HYPERSCAN
-    SpmHSRegister();
+    #ifdef HAVE_HS_VALID_PLATFORM
+        if (hs_valid_platform() == HS_SUCCESS) {
+            SpmHSRegister();
+        }
+    #else
+        SpmHSRegister();
+    #endif
 #endif
 }
 
