@@ -455,7 +455,8 @@ AM_CPPFLAGS = $(all_includes)
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS} \
 	../rust/dns/target/release/libsuricata_rust.a \
 	../rust/quic/target/release/libquic_parser.a \
-    -ldl
+	../rust/smb/target/release/libsmb_parser.a \
+    -ldl -lm
 suricata_LDADD = $(HTP_LDADD)
 
 # Rules to build CUDA ptx modules
