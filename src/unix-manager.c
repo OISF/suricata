@@ -31,8 +31,8 @@
 
 #include "util-privs.h"
 #include "util-debug.h"
+#include "util-device.h"
 #include "util-signal.h"
-
 #include "util-buffer.h"
 
 #include <sys/un.h>
@@ -1011,6 +1011,19 @@ void UnixManagerThreadSpawn(int mode)
     return;
 }
 
+// TODO can't think of a good name
+void UnixManagerThreadSpawnNonRunmode(void)
+{
+    /* Spawn the unix socket manager thread */
+    int unix_socket = ConfUnixSocketIsEnable();
+    if (unix_socket == 1) {
+        UnixManagerThreadSpawn(0);
+        UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
+                UNIX_CMD_TAKE_ARGS);
+        UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+    }
+}
+
 /**
  * \brief Used to kill unix manager thread(s).
  *
@@ -1061,6 +1074,11 @@ void UnixManagerThreadSpawn(int mode)
 }
 
 void UnixSocketKillSocketThread(void)
+{
+    return;
+}
+
+void UnixManagerThreadSpawnNonRunmode(void)
 {
     return;
 }
