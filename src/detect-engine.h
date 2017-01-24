@@ -28,11 +28,34 @@
 #include "tm-threads.h"
 #include "flow-private.h"
 
+int DetectBufferTypeRegister(const char *name);
+int DetectBufferTypeGetByName(const char *name);
+const char *DetectBufferTypeGetNameById(const int id);
+void DetectBufferTypeSupportsMpm(const char *name);
+void DetectBufferTypeSupportsPacket(const char *name);
+_Bool DetectBufferTypeSupportsMpmGetById(const int id);
+_Bool DetectBufferTypeSupportsPacketGetById(const int id);
+int DetectBufferTypeMaxId(void);
+void DetectBufferTypeFinalizeRegistration(void);
+void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
+const char *DetectBufferTypeGetDescriptionById(const int id);
+const char *DetectBufferTypeGetDescriptionByName(const char *name);
+void DetectBufferTypeRegisterSetupCallback(const char *name,
+        void (*Callback)(Signature *));
+void DetectBufferRunSetupCallback(const int id, Signature *s);
+void DetectBufferTypeRegisterValidateCallback(const char *name,
+        _Bool (*ValidateCallback)(const Signature *));
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s);
+
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
 DetectEngineCtx *DetectEngineCtxInitMinimal(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
+
+int DetectRegisterThreadCtxGlobalFuncs(const char *name,
+        void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *));
+void *DetectThreadCtxGetGlobalKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
@@ -70,29 +93,24 @@ int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
 int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
 
 int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
-                                   DetectEngineThreadCtx *, const Signature *,
+                                   DetectEngineThreadCtx *,
+                                   const Signature *, const SigMatchData *,
                                    Flow *, const uint8_t, void *, void *,
-                                   uint64_t, const int);
+                                   uint64_t);
 
 /**
  * \brief Registers an app inspection engine.
  *
+ * \param name Name of the detection list
  * \param alproto App layer protocol for which we will register the engine.
  * \param direction The direction for the engine: SIG_FLAG_TOSERVER or
  *                  SIG_FLAG_TOCLIENT
- * \param sm_list The SigMatch list against which the engine works.
  * \param Callback The engine callback.
  */
-void DetectAppLayerInspectEngineRegister(AppProto alproto,
-                                 uint32_t dir,
-                                 int32_t sm_list,
-                                 int (*Callback)(ThreadVars *tv,
-                                     DetectEngineCtx *de_ctx,
-                                     DetectEngineThreadCtx *det_ctx,
-                                     Signature *sig, Flow *f,
-                                     uint8_t flags, void *alstate,
-                                     void *tx, uint64_t tx_id));
+void DetectAppLayerInspectEngineRegister(const char *name,
+        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
+void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 
 #endif /* __DETECT_ENGINE_H__ */

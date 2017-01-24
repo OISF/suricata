@@ -17,6 +17,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-parse.h"
 
@@ -45,28 +46,14 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *pm = NULL;
 
     /* Check for a preceding base64_decode. */
-    pm = SigMatchGetLastSMFromLists(s, 28,
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-        DETECT_BASE64_DECODE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+    pm = DetectGetLastSMFromLists(s, DETECT_BASE64_DECODE, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
             "\"base64_data\" keyword seen without preceding base64_decode.");
         return -1;
     }
 
-    s->list = DETECT_SM_LIST_BASE64_DATA;
+    s->init_data->list = DETECT_SM_LIST_BASE64_DATA;
     return 0;
 }
 
@@ -75,7 +62,7 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 {
     if (det_ctx->base64_decoded_len) {
         return DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_BASE64_DATA], f, det_ctx->base64_decoded,
+            s->sm_arrays[DETECT_SM_LIST_BASE64_DATA], f, det_ctx->base64_decoded,
             det_ctx->base64_decoded_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
@@ -86,6 +73,8 @@ int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
 #ifdef UNITTESTS
 
 #include "detect-engine.h"
+
+static int g_file_data_buffer_id = 0;
 
 static int DetectBase64DataSetupTest01(void)
 {
@@ -164,7 +153,7 @@ static int DetectBase64DataSetupTest02(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA];
+    sm = de_ctx->sig_list->sm_lists[g_file_data_buffer_id];
     if (sm == NULL) {
         printf("DETECT_SM_LIST_FILEDATA is NULL: ");
         goto end;
@@ -262,6 +251,8 @@ end:
 static void DetectBase64DataRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+
     UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
     UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02);
     UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03);

@@ -161,7 +161,8 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
     return 0;
 }
 
-static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint32_t inspect_flags, uint8_t direction)
+static void DeStateSignatureAppend(DetectEngineState *state,
+        const Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
     int jump = 0;
     int i = 0;
@@ -202,9 +203,9 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint3
     return;
 }
 
-static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
-                                   SigMatch *sm, uint32_t inspect_flags,
-                                   uint8_t direction)
+static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, const Signature *s,
+                                  const SigMatchData *smd, uint32_t inspect_flags,
+                                  uint8_t direction)
 {
     int jump = 0;
     int i = 0;
@@ -237,7 +238,7 @@ static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
     SigIntId idx = dir_state->cnt++ % DE_STATE_CHUNK_SIZE;
     store->store[idx].sid = s->num;
     store->store[idx].flags = inspect_flags;
-    store->store[idx].nm = sm;
+    store->store[idx].nm = smd;
 
     return;
 }
@@ -392,7 +393,8 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
 
 static int StoreState(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint8_t alversion,
-        Signature *s, SigMatch *sm, const uint32_t inspect_flags,
+        const Signature *s, const SigMatchData *smd,
+        const uint32_t inspect_flags,
         const uint16_t file_no_match)
 {
     if (f->de_state == NULL) {
@@ -402,7 +404,7 @@ static int StoreState(DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    DeStateFlowRuleAppend(f->de_state, s, sm, inspect_flags, flags);
+    DeStateFlowRuleAppend(f->de_state, s, smd, inspect_flags, flags);
     DeStateStoreStateVersion(f, alversion, flags);
     return 1;
 }
@@ -445,7 +447,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
 static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint8_t alversion,
         const uint64_t tx_id, void *tx,
-        Signature *s, SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
 {
     if (AppLayerParserSupportsTxDetectState(f->proto, f->alproto)) {
@@ -474,10 +476,10 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
 
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Packet *p, Flow *f, uint8_t flags,
+                                const Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 AppProto alproto, const uint8_t alversion)
 {
-    SigMatch *sm = NULL;
+    SigMatchData *smd = NULL;
     uint16_t file_no_match = 0;
     uint32_t inspect_flags = 0;
     int alert_cnt = 0;
@@ -531,12 +533,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 SCLogDebug("inspect_flags %x", inspect_flags);
                 if (direction == engine->dir) {
                     KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                    int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
-                                             flags, alstate,
-                                             tx, tx_id);
+                    int match = engine->Callback(tv, de_ctx, det_ctx,
+                            s, engine->smd, f, flags, alstate, tx, tx_id);
                     SCLogDebug("engine %p match %d", engine, match);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);
                         engine = engine->next;
                         total_matches++;
                         continue;
@@ -549,10 +550,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         continue;
                     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);;
                     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                        inspect_flags |= engine->inspect_flags;
+                        inspect_flags |= BIT_U32(engine->id);
                         file_no_match++;
                     }
                     break;
@@ -605,7 +606,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
                     /* store */
                     StoreStateTx(det_ctx, f, flags, alversion, tx_id, tx,
-                            s, sm, inspect_flags, file_no_match, check_before_add);
+                            s, smd, inspect_flags, file_no_match, check_before_add);
                 } else {
                     StoreStateTxFileOnly(det_ctx, f, flags, tx_id, tx, file_no_match);
                 }
@@ -617,7 +618,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         } /* for */
 
     /* DCERPC matches */
-    } else if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL &&
+    } else if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
                (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
                 alproto == ALPROTO_SMB2))
     {
@@ -647,29 +648,29 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int amatch = 0;
     /* flow based matches */
     KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_AMATCH);
-    sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    if (sm != NULL) {
+    smd = s->sm_arrays[DETECT_SM_LIST_AMATCH];
+    if (smd != NULL) {
         void *alstate = FlowGetAppState(f);
         if (alstate == NULL) {
             goto end;
         }
 
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
+        while (1) {
+            if (sigmatch_table[smd->type].AppLayerMatch != NULL) {
                 int match = 0;
                 if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                     SMBState *smb_state = (SMBState *)alstate;
                     if (smb_state->dcerpc_present) {
                         KEYWORD_PROFILING_START;
-                        match = sigmatch_table[sm->type].
-                            AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
+                        match = sigmatch_table[smd->type].
+                            AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, smd);
+                        KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
                     }
                 } else {
                     KEYWORD_PROFILING_START;
-                    match = sigmatch_table[sm->type].
-                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
+                    match = sigmatch_table[smd->type].
+                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, smd);
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
                 }
 
                 if (match == 0) {
@@ -677,17 +678,20 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 } else if (match == 2) {
                     inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                     break;
-                } else if (match == 1 && sm->next == NULL) {
+                } else if (match == 1 && smd->is_last) {
                     amatch = 1;
                 }
             }
+            if (smd->is_last)
+                break;
+            smd++;
         }
     }
 
     /* if AMATCH and/or DMATCH are in use, see if we need to
      * alert and store the state */
-    if ((s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL ||
-         s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL))
+    if ((s->sm_arrays[DETECT_SM_LIST_AMATCH] != NULL ||
+         s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL))
     {
         /* if dmatch in use and match + amatch in use and match
            or
@@ -700,8 +704,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         if (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
             inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         } else {
-            if ((amatch || s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) &&
-                (dmatch || s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL))
+            if ((amatch || s->sm_arrays[DETECT_SM_LIST_AMATCH] == NULL) &&
+                (dmatch || s->sm_arrays[DETECT_SM_LIST_DMATCH] == NULL))
             {
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                     PacketAlertAppend(det_ctx, s, p, 0,
@@ -716,7 +720,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
 
         StoreState(det_ctx, f, flags, alversion,
-                s, sm, inspect_flags, file_no_match);
+                s, smd, inspect_flags, file_no_match);
     }
  end:
     det_ctx->tx_id = 0;
@@ -852,15 +856,16 @@ static int DoInspectItem(ThreadVars *tv,
     }
 
     while (engine != NULL) {
-        if (!(item->flags & engine->inspect_flags) &&
+        if (!(item->flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
             SCLogDebug("inspect_flags %x", inspect_flags);
             KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-            int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
-                    flags, alstate, inspect_tx, inspect_tx_id);
+            int match = engine->Callback(tv, de_ctx, det_ctx,
+                    s, engine->smd,
+                    f, flags, alstate, inspect_tx, inspect_tx_id);
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
                 engine = engine->next;
                 total_matches++;
                 continue;
@@ -873,10 +878,10 @@ static int DoInspectItem(ThreadVars *tv,
                 continue;
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
             } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                 inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                inspect_flags |= engine->inspect_flags;
+                inspect_flags |= BIT_U32(engine->id);
                 (*file_no_match)++;
             }
             break;
@@ -946,8 +951,8 @@ static int DoInspectFlowRule(ThreadVars *tv,
     uint32_t inspect_flags = item->flags;
     int total_matches = 0;
     int full_match = 0;
-    SigMatch *sm = NULL;
-    Signature *s = de_ctx->sig_array[item->sid];
+    const SigMatchData *smd = NULL;
+    const Signature *s = de_ctx->sig_array[item->sid];
 
     RULE_PROFILING_START(p);
 
@@ -959,39 +964,49 @@ static int DoInspectFlowRule(ThreadVars *tv,
             return -1;
         }
 
-        for (sm = item->nm; sm != NULL; sm = sm->next) {
-            if (sigmatch_table[sm->type].AppLayerMatch != NULL)
-            {
+        smd = item->nm;
+        while(1) {
+            if (sigmatch_table[smd->type].AppLayerMatch != NULL) {
                 int match = 0;
                 if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                     SMBState *smb_state = (SMBState *)alstate;
                     if (smb_state->dcerpc_present) {
                         KEYWORD_PROFILING_START;
-                        match = sigmatch_table[sm->type].
-                            AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
+                        match = sigmatch_table[smd->type].
+                            AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, smd);
+                        KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
                     }
                 } else {
                     KEYWORD_PROFILING_START;
-                    match = sigmatch_table[sm->type].
-                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
+                    match = sigmatch_table[smd->type].
+                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, smd);
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
                 }
 
                 if (match == 0)
                     break;
-                else if (match == 2)
+                else if (match == 2) {
                     inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
-                else if (match == 1)
+                    break;
+                }
+                else if (match == 1) {
                     total_matches++;
+
+                    if (smd->is_last)
+                        full_match = 1;
+                }
             }
+            if (smd->is_last)
+                break;
+            smd++;
         }
+    } else {
+        /* AMATCH isn't there */
+        full_match = 1;
     }
-    /* AMATCH part checked out, or isn't there at all */
-    full_match = (sm == NULL);
 
     /* DCERPC matches */
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL &&
+    if (s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL &&
             (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
              alproto == ALPROTO_SMB2) &&
             !(item->flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT))
@@ -1019,7 +1034,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
         }
     }
     /* update full_match with DMATCH result */
-    if (full_match && s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (full_match && s->sm_arrays[DETECT_SM_LIST_DMATCH] != NULL) {
         full_match = ((inspect_flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT) != 0);
     }
 
@@ -1036,7 +1051,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
 
     /* store the progress in the state */
     item->flags |= inspect_flags;
-    item->nm = sm;
+    item->nm = smd;
 
     if (alert) {
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);

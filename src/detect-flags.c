@@ -58,7 +58,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFlagsFree(void *);
 
@@ -138,7 +139,8 @@ static inline int FlagsMatch(const uint8_t pflags, const uint8_t modifier,
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -517,7 +519,7 @@ static void DetectFlagsFree(void *de_ptr)
 int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
             {
@@ -536,7 +538,7 @@ int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
 int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
             {
@@ -604,7 +606,7 @@ static int PrefilterSetupTcpFlags(SigGroupHead *sgh)
 static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FLAGS:
                 return TRUE;
