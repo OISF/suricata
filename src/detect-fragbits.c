@@ -68,7 +68,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFragBitsFree(void *);
 
@@ -136,7 +137,7 @@ FragBitsMatch(const uint8_t pbits, const uint8_t modifier,
  * \retval 1 match
  */
 static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     if (!ctx || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -377,7 +378,7 @@ static int PrefilterSetupFragBits(SigGroupHead *sgh)
 static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_FRAGBITS:
                 return TRUE;

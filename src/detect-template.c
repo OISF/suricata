@@ -40,7 +40,7 @@ static pcre_extra *parse_regex_study;
 
 /* Prototypes of functions registered in DetectTemplateRegister below */
 static int DetectTemplateMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Packet *, Signature *, const SigMatchCtx *);
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectTemplateSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTemplateFree (void *);
 static void DetectTemplateRegisterTests (void);
@@ -84,7 +84,7 @@ void DetectTemplateRegister(void) {
  * \retval 1 match
  */
 static int DetectTemplateMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                Signature *s, const SigMatchCtx *ctx)
+                                const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     const DetectTemplateData *templated = (const DetectTemplateData *) ctx;

@@ -28,7 +28,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 
-#include "util-detect-file-hash.h"
+#include "detect-file-hash-common.h"
 
 #include "app-layer-htp.h"
 
@@ -147,11 +147,11 @@ static int HashMatchHashTable(ROHashTable *hash_table, uint8_t *hash,
  * \retval 1 match
  */
 int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, Signature *s, SigMatch *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
     int ret = 0;
-    DetectFileHashData *filehash = (DetectFileHashData *)m->ctx;
+    DetectFileHashData *filehash = (DetectFileHashData *)m;
 
     if (file->txid < det_ctx->tx_id) {
         SCReturnInt(0);
@@ -303,7 +303,7 @@ error:
  * \retval -1 on Failure
  */
 int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, char *str,
-        uint32_t type)
+        uint32_t type, int list)
 {
     DetectFileHashData *filehash = NULL;
     SigMatch *sm = NULL;
@@ -321,7 +321,7 @@ int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, char *str,
     sm->type = type;
     sm->ctx = (void *)filehash;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, list);
 
     s->file_flags |= FILE_SIG_NEED_FILE;
 

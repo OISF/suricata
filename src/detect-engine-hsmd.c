@@ -111,11 +111,9 @@ int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  * \retval 1 Match.
  */
 int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
-                                   DetectEngineCtx *de_ctx,
-                                   DetectEngineThreadCtx *det_ctx,
-                                   Signature *s, Flow *f, uint8_t flags,
-                                   void *alstate,
-                                   void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->response_message == NULL) {
@@ -128,8 +126,7 @@ int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
     det_ctx->discontinue_matching = 0;
     det_ctx->buffer_offset = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-                                          s->sm_lists[DETECT_SM_LIST_HSMDMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_message),
                                           bstr_len(tx->response_message),

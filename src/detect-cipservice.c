@@ -42,6 +42,7 @@
 static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
+static int g_cip_buffer_id = 0;
 
 /**
  * \brief Registration function for cip_service: keyword
@@ -52,18 +53,19 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "Rules for detecting CIP Service ";
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
-    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = NULL;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_CIP_MATCH,
+    DetectAppLayerInspectEngineRegister("cip",
+            ALPROTO_ENIP, SIG_FLAG_TOSERVER,
             DetectEngineInspectCIP);
-    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_CIP_MATCH,
+    DetectAppLayerInspectEngineRegister("cip",
+            ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectCIP);
+
+    g_cip_buffer_id = DetectBufferTypeGetByName("cip");
 
     SCReturn;
 }
@@ -225,7 +227,7 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
 
     s->alproto = ALPROTO_ENIP;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_CIP_MATCH);
+    SigMatchAppendSMToList(s, sm, g_cip_buffer_id);
 
     SCReturnInt(0);
 
@@ -242,7 +244,7 @@ error:
  *
  * \param ptr pointer to DetectCipServiceData
  */
-void DetectCipServiceFree(void *ptr)
+static void DetectCipServiceFree(void *ptr)
 {
     DetectCipServiceData *cipserviced = (DetectCipServiceData *) ptr;
     SCFree(cipserviced);
@@ -281,7 +283,7 @@ static int DetectCipServiceSignatureTest01 (void)
 /**
  * \brief this function registers unit tests for DetectCipService
  */
-void DetectCipServiceRegisterTests(void)
+static void DetectCipServiceRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectCipServiceParseTest01",
@@ -301,6 +303,7 @@ void DetectCipServiceRegisterTests(void)
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
+static int g_enip_buffer_id = 0;
 
 /**
  * \brief Registration function for enip_command: keyword
@@ -311,18 +314,19 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].desc
             = "Rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
-    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_ENIP_MATCH,
+    DetectAppLayerInspectEngineRegister("enip",
+            ALPROTO_ENIP, SIG_FLAG_TOSERVER,
             DetectEngineInspectENIP);
-    DetectAppLayerInspectEngineRegister(ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_ENIP_MATCH,
+    DetectAppLayerInspectEngineRegister("enip",
+            ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectENIP);
+
+    g_enip_buffer_id = DetectBufferTypeGetByName("enip");
 }
 
 /**
@@ -399,7 +403,7 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->ctx = (void *) enipcmdd;
 
     s->alproto = ALPROTO_ENIP;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
+    SigMatchAppendSMToList(s, sm, g_enip_buffer_id);
 
     SCReturnInt(0);
 
@@ -416,7 +420,7 @@ error:
  *
  * \param ptr pointer to DetectEnipCommandData
  */
-void DetectEnipCommandFree(void *ptr)
+static void DetectEnipCommandFree(void *ptr)
 {
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) ptr;
     SCFree(enipcmdd);
@@ -460,7 +464,7 @@ static int DetectEnipCommandSignatureTest01 (void)
 /**
  * \brief this function registers unit tests for DetectEnipCommand
  */
-void DetectEnipCommandRegisterTests(void)
+static void DetectEnipCommandRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectEnipCommandParseTest01",

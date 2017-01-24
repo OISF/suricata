@@ -1412,10 +1412,11 @@ profiling:
     append: yes
 
     # Sort options: ticks, avgticks, checks, matches, maxticks
-    sort: avgticks
+    # If commented out all the sort options will be used.
+    #sort: avgticks
 
-    # Limit the number of items printed at exit (ignored for json).
-    limit: 100
+    # Limit the number of sids for which stats are shown at exit (per sort).
+    limit: 10
 
     # output to json
     json: @e_enable_evelog@

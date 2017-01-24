@@ -63,7 +63,7 @@ typedef struct SCProfileKeywordDetectCtx_ {
 static int profiling_keywords_output_to_file = 0;
 int profiling_keyword_enabled = 0;
 __thread int profiling_keyword_entered = 0;
-static char *profiling_file_name = "";
+static char profiling_file_name[PATH_MAX];
 static const char *profiling_file_mode = "a";
 
 void SCProfilingKeywordsGlobalInit(void)
@@ -80,12 +80,8 @@ void SCProfilingKeywordsGlobalInit(void)
                 char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
-                profiling_file_name = SCMalloc(PATH_MAX);
-                if (unlikely(profiling_file_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "can't duplicate file name");
-                    exit(EXIT_FAILURE);
-                }
-                snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+                snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s",
+                        log_dir, filename);
 
                 const char *v = ConfNodeLookupChildValue(conf, "append");
                 if (v == NULL || ConfValIsTrue(v)) {
@@ -163,6 +159,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
     if (profiling_keyword_enabled == 0)
         return;
 
+    const int nlists = DetectBufferTypeMaxId();
     gettimeofday(&tval, NULL);
     tms = SCLocalTime(tval.tv_sec, &local_tm);
 
@@ -190,16 +187,23 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
     /* global stats first */
     DoDump(de_ctx->profile_keyword_ctx, fp, "total");
     /* per buffer stats next, but only if there are stats to print */
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = 0; i < nlists; i++) {
         int j;
         uint64_t checks = 0;
         for (j = 0; j < DETECT_TBLSIZE; j++) {
             checks += de_ctx->profile_keyword_ctx_per_list[i]->data[j].checks;
         }
 
-        if (checks)
-            DoDump(de_ctx->profile_keyword_ctx_per_list[i], fp,
-                    DetectSigmatchListEnumToString(i));
+        if (checks) {
+            const char *name = NULL;
+            if (i < DETECT_SM_LIST_DYNAMIC_START) {
+                name = DetectSigmatchListEnumToString(i);
+            } else {
+                name = DetectBufferTypeGetNameById(i);
+            }
+
+            DoDump(de_ctx->profile_keyword_ctx_per_list[i], fp, name);
+        }
     }
 
     fprintf(fp,"\n");
@@ -232,7 +236,7 @@ SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t
             p->ticks_no_match += ticks;
 
         /* store per list (buffer type) as well */
-        if (det_ctx->keyword_perf_list >= 0 && det_ctx->keyword_perf_list < DETECT_SM_LIST_MAX) {
+        if (det_ctx->keyword_perf_list >= 0) {// && det_ctx->keyword_perf_list < DETECT_SM_LIST_MAX) {
             p = &det_ctx->keyword_perf_data_per_list[det_ctx->keyword_perf_list][id];
             p->checks++;
             p->matches += match;
@@ -278,10 +282,13 @@ void SCProfilingKeywordDestroyCtx(DetectEngineCtx *de_ctx)
         SCProfilingKeywordDump(de_ctx);
 
         DetroyCtx(de_ctx->profile_keyword_ctx);
+
+        const int nlists = DetectBufferTypeMaxId();
         int i;
-        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        for (i = 0; i < nlists; i++) {
             DetroyCtx(de_ctx->profile_keyword_ctx_per_list[i]);
         }
+        SCFree(de_ctx->profile_keyword_ctx_per_list);
     }
 }
 
@@ -296,8 +303,12 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
         det_ctx->keyword_perf_data = a;
     }
 
+    const int nlists = DetectBufferTypeMaxId();
+    det_ctx->keyword_perf_data_per_list = SCCalloc(nlists, sizeof(SCProfileKeywordData *));
+    BUG_ON(det_ctx->keyword_perf_data_per_list == NULL);
+
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = 0; i < nlists; i++) {
         SCProfileKeywordData *b = SCMalloc(sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
         if (b != NULL) {
             memset(b, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
@@ -324,8 +335,9 @@ static void SCProfilingKeywordThreadMerge(DetectEngineCtx *de_ctx, DetectEngineT
             de_ctx->profile_keyword_ctx->data[i].max = det_ctx->keyword_perf_data[i].max;
     }
 
+    const int nlists = DetectBufferTypeMaxId();
     int j;
-    for (j = 0; j < DETECT_SM_LIST_MAX; j++) {
+    for (j = 0; j < nlists; j++) {
         for (i = 0; i < DETECT_TBLSIZE; i++) {
             de_ctx->profile_keyword_ctx_per_list[j]->data[i].checks += det_ctx->keyword_perf_data_per_list[j][i].checks;
             de_ctx->profile_keyword_ctx_per_list[j]->data[i].matches += det_ctx->keyword_perf_data_per_list[j][i].matches;
@@ -349,12 +361,13 @@ void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx)
     SCFree(det_ctx->keyword_perf_data);
     det_ctx->keyword_perf_data = NULL;
 
+    const int nlists = DetectBufferTypeMaxId();
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = 0; i < nlists; i++) {
         SCFree(det_ctx->keyword_perf_data_per_list[i]);
         det_ctx->keyword_perf_data_per_list[i] = NULL;
     }
-
+    SCFree(det_ctx->keyword_perf_data_per_list);
 }
 
 /**
@@ -368,6 +381,8 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
     if (profiling_keyword_enabled == 0)
         return;
 
+    const int nlists = DetectBufferTypeMaxId();
+
     de_ctx->profile_keyword_ctx = SCProfilingKeywordInitCtx();
     BUG_ON(de_ctx->profile_keyword_ctx == NULL);
 
@@ -375,8 +390,11 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(de_ctx->profile_keyword_ctx->data == NULL);
     memset(de_ctx->profile_keyword_ctx->data, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
 
+    de_ctx->profile_keyword_ctx_per_list = SCCalloc(nlists, sizeof(SCProfileKeywordDetectCtx *));
+    BUG_ON(de_ctx->profile_keyword_ctx_per_list == NULL);
+
     int i;
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+    for (i = 0; i < nlists; i++) {
         de_ctx->profile_keyword_ctx_per_list[i] = SCProfilingKeywordInitCtx();
         BUG_ON(de_ctx->profile_keyword_ctx_per_list[i] == NULL);
         de_ctx->profile_keyword_ctx_per_list[i]->data = SCMalloc(sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);

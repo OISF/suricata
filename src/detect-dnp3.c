@@ -27,6 +27,9 @@
 
 #include "app-layer-dnp3.h"
 
+static int g_dnp3_match_buffer_id = 0;
+static int g_dnp3_data_buffer_id = 0;
+
 /**
  * The detection struct.
  */
@@ -139,8 +142,8 @@ static char *TrimString(char *str)
 }
 
 static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
+    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
     DNP3Transaction *tx = (DNP3Transaction *)txv;
@@ -150,12 +153,12 @@ static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     /* Content match - should probably be put into its own file. */
     if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_DNP3_DATA_MATCH], f, tx->request_buffer,
+            smd, f, tx->request_buffer,
             tx->request_buffer_len, 0, 0, NULL);
     }
     else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
         r = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_DNP3_DATA_MATCH], f, tx->response_buffer,
+            smd, f, tx->response_buffer,
             tx->response_buffer_len, 0, 0, NULL);
     }
 
@@ -163,11 +166,11 @@ static int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
 }
 
 static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
+    DetectEngineThreadCtx *det_ctx, const Signature *s, const SigMatchData *smd,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
-        alstate, txv, tx_id, DETECT_SM_LIST_DNP3_MATCH);
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+        f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -227,7 +230,7 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     s->alproto = ALPROTO_DNP3;
     s->flags |= SIG_FLAG_STATE_MATCH;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
+    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
     SCReturnInt(0);
 error:
@@ -314,7 +317,7 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     s->alproto = ALPROTO_DNP3;
     s->flags |= SIG_FLAG_STATE_MATCH;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
+    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
     SCReturnInt(0);
 error:
@@ -387,7 +390,7 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->ctx = (void *)detect;
     s->alproto = ALPROTO_DNP3;
     s->flags |= SIG_FLAG_STATE_MATCH;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
+    SigMatchAppendSMToList(s, sm, g_dnp3_match_buffer_id);
 
     SCReturnInt(1);
 fail:
@@ -479,7 +482,6 @@ static void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_AL_DNP3FUNC].name          = "dnp3_func";
     sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3.func";
     sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
     sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
@@ -496,7 +498,6 @@ static void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_AL_DNP3IND].name          = "dnp3_ind";
     sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3.ind";
     sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3IND].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
     sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
@@ -513,7 +514,6 @@ static void DetectDNP3ObjRegister(void)
     sigmatch_table[DETECT_AL_DNP3OBJ].name          = "dnp3_obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3.obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
     sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
     sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
@@ -526,7 +526,7 @@ static void DetectDNP3ObjRegister(void)
 static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    s->list = DETECT_SM_LIST_DNP3_DATA_MATCH;
+    s->init_data->list = g_dnp3_data_buffer_id;
     s->alproto = ALPROTO_DNP3;
     SCReturnInt(0);
 }
@@ -537,20 +537,21 @@ static void DetectDNP3DataRegister(void)
 
     sigmatch_table[DETECT_AL_DNP3DATA].name          = "dnp3_data";
     sigmatch_table[DETECT_AL_DNP3DATA].Match         = NULL;
-    sigmatch_table[DETECT_AL_DNP3DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNP3DATA].Setup         = DetectDNP3DataSetup;
     sigmatch_table[DETECT_AL_DNP3DATA].Free          = NULL;
     sigmatch_table[DETECT_AL_DNP3DATA].RegisterTests =
         DetectDNP3DataRegisterTests;
 
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_PAYLOAD;
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNP3, SIG_FLAG_TOSERVER,
-        DETECT_SM_LIST_DNP3_DATA_MATCH, DetectEngineInspectDNP3Data);
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
-        DETECT_SM_LIST_DNP3_DATA_MATCH, DetectEngineInspectDNP3Data);
+    DetectAppLayerInspectEngineRegister("dnp3_data",
+            ALPROTO_DNP3, SIG_FLAG_TOSERVER,
+            DetectEngineInspectDNP3Data);
+    DetectAppLayerInspectEngineRegister("dnp3_data",
+            ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
+            DetectEngineInspectDNP3Data);
 
+    g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
     SCReturn;
 }
 
@@ -563,10 +564,15 @@ void DetectDNP3Register(void)
     DetectDNP3ObjRegister();
 
     /* Register the list of func, ind and obj. */
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNP3, SIG_FLAG_TOSERVER,
-        DETECT_SM_LIST_DNP3_MATCH, DetectEngineInspectDNP3);
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
-        DETECT_SM_LIST_DNP3_MATCH, DetectEngineInspectDNP3);
+    DetectAppLayerInspectEngineRegister("dnp3",
+            ALPROTO_DNP3, SIG_FLAG_TOSERVER,
+            DetectEngineInspectDNP3);
+    DetectAppLayerInspectEngineRegister("dnp3",
+            ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
+            DetectEngineInspectDNP3);
+
+    g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");
+
 }
 
 #ifdef UNITTESTS
@@ -625,10 +631,10 @@ static int DetectDNP3FuncTest01(void)
         "dnp3_func:2; sid:5000009; rev:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH]);
-    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH]->ctx);
+    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]);
+    FAIL_IF_NULL(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx);
 
-    dnp3func = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH]->ctx;
+    dnp3func = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx;
     FAIL_IF(dnp3func->function_code != 2);
 
     if (de_ctx != NULL) {
@@ -691,10 +697,10 @@ static int DetectDNP3ObjSetupTest(void)
         "dnp3_obj:99,99; sid:1; rev:1;)");
     FAIL_IF(de_ctx->sig_list == NULL);
 
-    FAIL_IF(de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH] == NULL);
-    FAIL_IF(de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH]->ctx == NULL);
+    FAIL_IF(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id] == NULL);
+    FAIL_IF(de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx == NULL);
 
-    detect = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_DNP3_MATCH]->ctx;
+    detect = (DetectDNP3 *)de_ctx->sig_list->sm_lists_tail[g_dnp3_match_buffer_id]->ctx;
     FAIL_IF(detect->obj_group != 99);
     FAIL_IF(detect->obj_variation != 99);
 

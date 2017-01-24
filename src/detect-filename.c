@@ -53,10 +53,11 @@
 #include "app-layer-parser.h"
 
 static int DetectFilenameMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-        uint8_t, File *, Signature *, SigMatch *);
+        uint8_t, File *, const Signature *, const SigMatchCtx *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilenameRegisterTests(void);
 static void DetectFilenameFree(void *);
+static int g_file_match_list_id = 0;
 
 /**
  * \brief Registration function for keyword: filename
@@ -71,16 +72,18 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_FILEMATCH,
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
             DetectFileInspectHttp);
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_FILEMATCH,
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectFileInspectHttp);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_SMTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_FILEMATCH,
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
             DetectFileInspectSmtp);
+
+    g_file_match_list_id = DetectBufferTypeGetByName("files");
 
 	SCLogDebug("registering filename rule option");
     return;
@@ -101,12 +104,12 @@ void DetectFilenameRegister(void)
  * \retval 1 match
  */
 static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, File *file, Signature *s, SigMatch *m)
+        Flow *f, uint8_t flags, File *file, const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
     int ret = 0;
 
-    DetectFilenameData *filename = (DetectFilenameData *)m->ctx;
+    DetectFilenameData *filename = (DetectFilenameData *)m;
 
     if (file->name == NULL)
         SCReturnInt(0);
@@ -225,7 +228,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     sm->type = DETECT_FILENAME;
     sm->ctx = (void *)filename;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+    SigMatchAppendSMToList(s, sm, g_file_match_list_id);
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;

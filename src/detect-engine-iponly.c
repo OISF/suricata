@@ -941,20 +941,22 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
                          Signature *s, Packet *p)
 {
     KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-
-    while (sm != NULL) {
-        BUG_ON(!(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT));
-        KEYWORD_PROFILING_START;
-        if (sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm->ctx) > 0) {
-            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
-            sm = sm->next;
-            continue;
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
+    if (smd) {
+        while (1) {
+            BUG_ON(!(sigmatch_table[smd->type].flags & SIGMATCH_IPONLY_COMPAT));
+            KEYWORD_PROFILING_START;
+            if (sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx) > 0) {
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+                continue;
+            }
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+            return 0;
         }
-        KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
-        return 0;
     }
-
     return 1;
 }
 
@@ -1795,7 +1797,7 @@ end:
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig05(void)
+static int IPOnlyTestSig05(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1832,7 +1834,7 @@ int IPOnlyTestSig05(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig06(void)
+static int IPOnlyTestSig06(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1873,7 +1875,7 @@ int IPOnlyTestSig06(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig07(void)
+static int IPOnlyTestSig07(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1911,7 +1913,7 @@ int IPOnlyTestSig07(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig08(void)
+static int IPOnlyTestSig08(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1948,7 +1950,7 @@ int IPOnlyTestSig08(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match)
  */
-int IPOnlyTestSig09(void)
+static int IPOnlyTestSig09(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1985,7 +1987,7 @@ int IPOnlyTestSig09(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match)
  */
-int IPOnlyTestSig10(void)
+static int IPOnlyTestSig10(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2026,7 +2028,7 @@ int IPOnlyTestSig10(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (all should match) with ipv4 and ipv6 mixed
  */
-int IPOnlyTestSig11(void)
+static int IPOnlyTestSig11(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2065,7 +2067,7 @@ int IPOnlyTestSig11(void)
  * \test Test a set of ip only signatures making use a lot of
  * addresses for src and dst (none should match) with ipv4 and ipv6 mixed
  */
-int IPOnlyTestSig12(void)
+static int IPOnlyTestSig12(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2133,7 +2135,7 @@ static int IPOnlyTestSig14(void)
     PASS;
 }
 
-int IPOnlyTestSig15(void)
+static int IPOnlyTestSig15(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2187,7 +2189,7 @@ int IPOnlyTestSig15(void)
 /**
  * \brief Unittest to show #599.  We fail to match if we have negated addresses.
  */
-int IPOnlyTestSig16(void)
+static int IPOnlyTestSig16(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -2218,7 +2220,7 @@ int IPOnlyTestSig16(void)
 /**
  * \brief Unittest to show #611. Ports on portless protocols.
  */
-int IPOnlyTestSig17(void)
+static int IPOnlyTestSig17(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
