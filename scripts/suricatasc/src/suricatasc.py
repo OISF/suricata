@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -278,6 +278,39 @@ class SuricataSC:
                     arguments = {}
                     arguments["id"] = int(tenantid)
                     arguments["filename"] = filename
+            elif "add-hostbit" in command:
+                try:
+                    [cmd, ipaddress, hostbit, expire] = command.split(' ')
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "add-hostbit":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["ipaddress"] = ipaddress
+                    arguments["hostbit"] = hostbit
+                    arguments["expire"] = int(expire)
+            elif "remove-hostbit" in command:
+                try:
+                    [cmd, ipaddress, hostbit] = command.split(' ', 2)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "remove-hostbit":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["ipaddress"] = ipaddress
+                    arguments["hostbit"] = hostbit
+            elif "list-hostbit" in command:
+                try:
+                    [cmd, ipaddress] = command.split(' ')
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "list-hostbit":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["ipaddress"] = ipaddress
             else:
                 cmd = command
         else:

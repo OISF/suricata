@@ -104,7 +104,7 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * return zero(not match).
      */
     if (sfd->targettype == FLOWINT_TARGET_VAR) {
-        uint16_t tvar_idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, VAR_TYPE_FLOW_INT);
+        uint32_t tvar_idx = VarNameStoreLookupByName(sfd->target.tvar.name, VAR_TYPE_FLOW_INT);
 
         fvt = FlowVarGet(p->flow, tvar_idx);
             /* We don't have that variable initialized yet */
@@ -326,8 +326,8 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, char *rawstr)
         SCLogError(SC_ERR_MEM_ALLOC, "malloc from strdup failed");
         goto error;
     }
-    if (de_ctx != NULL)
-        sfd->idx = VariableNameGetIdx(de_ctx, varname, VAR_TYPE_FLOW_INT);
+    sfd->idx = VarNameStoreSetupAdd(varname, VAR_TYPE_FLOW_INT);
+    SCLogDebug("sfd->name %s id %u", sfd->name, sfd->idx);
     sfd->modifier = modifier;
 
     pcre_free_substring(varname);

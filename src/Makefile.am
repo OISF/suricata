@@ -278,6 +278,7 @@ output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-json-template.c output-json-template.h \
+output-json-vars.c output-json-vars.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
 output-stats.c output-stats.h \

@@ -25,8 +25,48 @@ Threading
 Due to subtle timing issues between threads the order of sets and checks
 can be slightly unpredictible.
 
-Example: create a SSH blacklist
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Unix Socket
+-----------
+
+Hostbits can be added, removed and listed through the unix socket.
+
+Add::
+
+    suricatasc -c "add-hostbit <ip> <bit name> <expire in seconds>"
+    suricatasc -c "add-hostbit 1.2.3.4 blacklist 3600"
+
+If an hostbit is added for an existing hostbit, it's expiry timer is updated.
+
+Remove::
+
+    suricatasc -c "remove-hostbit <ip> <bit name>"
+    suricatasc -c "remove-hostbit 1.2.3.4 blacklist"
+
+List::
+
+    suricatasc -c "list-hostbit <ip>"
+    suricatasc -c "list-hostbit 1.2.3.4"
+
+This results in::
+
+    {
+        "message":
+        {
+           "count": 1,
+           "hostbits":
+                [{
+                    "expire": 89,
+                    "name": "blacklist"
+                }]
+        },
+        "return": "OK"
+    }
+
+Examples
+--------
+
+Creating a SSH blacklist
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Below is an example of rules incoming to a SSH server.
 
@@ -46,3 +86,4 @@ that is on that 'badssh' list::
 
     drop ssh any any -> $MYSERVER 22 (msg:"DROP BLACKLISTED";       \
       xbits:isset, badssh, track ip_src; sid:4000000006;)
+

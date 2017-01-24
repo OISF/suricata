@@ -84,14 +84,12 @@
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
-static uint32_t detect_engine_ctx_id = 1;
-
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
 
 static int DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, 99, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
 
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
@@ -583,7 +581,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     if (minimal) {
         de_ctx->minimal = 1;
-        de_ctx->id = detect_engine_ctx_id++;
+        de_ctx->version = DetectEngineGetVersion();
+        SCLogDebug("minimal with version %u", de_ctx->version);
         return de_ctx;
     }
 
@@ -612,7 +611,6 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     SigGroupHeadHashInit(de_ctx);
     MpmStoreInit(de_ctx);
     ThresholdHashInit(de_ctx);
-    VariableNameInitHash(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
 
@@ -635,7 +633,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
     }
 
-    de_ctx->id = detect_engine_ctx_id++;
+    de_ctx->version = DetectEngineGetVersion();
+    VarNameStoreSetupStaging(de_ctx->version);
+    SCLogDebug("dectx with version %u", de_ctx->version);
     return de_ctx;
 error:
     if (de_ctx != NULL) {
@@ -710,8 +710,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SigCleanSignatures(de_ctx);
     SCFree(de_ctx->app_mpms);
     de_ctx->app_mpms = NULL;
-
-    VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);
 
@@ -743,6 +741,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectPortCleanupList(de_ctx->tcp_whitelist);
     DetectPortCleanupList(de_ctx->udp_whitelist);
+
+    /* freed our var name hash */
+    VarNameStoreFree(de_ctx->version);
 
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
@@ -1618,6 +1619,25 @@ int DetectEngineEnabled(void)
     return 1;
 }
 
+uint32_t DetectEngineGetVersion(void)
+{
+    uint32_t version;
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    version = master->version;
+    SCMutexUnlock(&master->lock);
+    return version;
+}
+
+void DetectEngineBumpVersion(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    master->version++;
+    SCLogDebug("master version now %u", master->version);
+    SCMutexUnlock(&master->lock);
+}
+
 DetectEngineCtx *DetectEngineGetCurrent(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
@@ -2035,6 +2055,9 @@ int DetectEngineMultiTenantSetup(void)
         if (DetectLoadersSync() != 0) {
             goto error;
         }
+
+        VarNameStoreActivateStaging();
+
     } else {
         SCLogDebug("multi-detect not enabled (multi tenancy)");
     }
@@ -2391,6 +2414,8 @@ int DetectEngineReload(SCInstance *suri)
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
+
+    DetectEngineBumpVersion();
 
     SCLogDebug("old_de_ctx should have been freed");
 

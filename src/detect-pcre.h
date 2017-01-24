@@ -27,11 +27,12 @@
 #define DETECT_PCRE_RELATIVE            0x00001
 #define DETECT_PCRE_RAWBYTES            0x00002
 #define DETECT_PCRE_CASELESS            0x00004
-#define DETECT_PCRE_CAPTURE_PKT         0x00008
-#define DETECT_PCRE_CAPTURE_FLOW        0x00010
+
 #define DETECT_PCRE_MATCH_LIMIT         0x00020
 #define DETECT_PCRE_RELATIVE_NEXT       0x00040
 #define DETECT_PCRE_NEGATE              0x00080
+
+#define DETECT_PCRE_CAPTURE_MAX         8
 
 typedef struct DetectPcreData_ {
     /* pcre options */
@@ -39,8 +40,9 @@ typedef struct DetectPcreData_ {
     pcre_extra *sd;
     int opts;
     uint16_t flags;
-    uint16_t capidx;
-    char *capname;
+    uint8_t idx;
+    uint8_t captypes[DETECT_PCRE_CAPTURE_MAX];
+    uint32_t capids[DETECT_PCRE_CAPTURE_MAX];
 } DetectPcreData;
 
 /* prototypes */

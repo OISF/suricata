@@ -923,7 +923,7 @@ static int DoInspectItem(ThreadVars *tv,
         SCLogDebug("MATCH: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
     }
 
-    DetectFlowvarProcessList(det_ctx, f);
+    DetectVarProcessList(det_ctx, f, p);
     return 1;
 }
 
@@ -1049,7 +1049,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
         }
     }
 
-    DetectFlowvarProcessList(det_ctx, f);
+    DetectVarProcessList(det_ctx, f, p);
     return 1;
 }
 
