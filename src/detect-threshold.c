@@ -64,7 +64,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectThresholdFree(void *);
 
@@ -87,7 +88,8 @@ void DetectThresholdRegister(void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     return 1;
 }
@@ -227,10 +229,10 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
     SigMatch *tmpm = NULL;
 
     /* checks if there is a previous instance of detection_filter */
-    tmpm = SigMatchGetLastSMFromLists(s, 2,
-                                      DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_MATCH]);
+    tmpm = DetectGetLastSMFromLists(s, DETECT_DETECTION_FILTER, -1);
     if (tmpm != NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and \"threshold\" are not allowed in the same rule");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and "
+                "\"threshold\" are not allowed in the same rule");
         SCReturnInt(-1);
     }
 

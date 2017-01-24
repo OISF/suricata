@@ -24,6 +24,8 @@
 #ifndef __DETECT_DCE_IFACE_H__
 #define __DETECT_DCE_IFACE_H__
 
+#include "app-layer-dcerpc.h"
+
 typedef enum DetectDceIfaceOperators_ {
     DETECT_DCE_IFACE_OP_NONE = 0,
     DETECT_DCE_IFACE_OP_LT,
@@ -40,6 +42,7 @@ typedef struct DetectDceIfaceData_ {
 } DetectDceIfaceData;
 
 void DetectDceIfaceRegister(void);
-void DetectDceIfaceRegisterTests(void);
+
+DCERPCState *DetectDceGetState(AppProto alproto, void *alstate);
 
 #endif /* __DETECT_DCE_IFACE_H__ */

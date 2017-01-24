@@ -49,7 +49,8 @@
 #include "util-unittest-helper.h"
 #include "util-device.h"
 
-int DetectBypassMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectBypassMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectBypassSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectBypassRegisterTests(void);
 
@@ -62,7 +63,6 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].desc = "call the bypass callback when the match of a sig is complete";
     sigmatch_table[DETECT_BYPASS].url = "";
     sigmatch_table[DETECT_BYPASS].Match = DetectBypassMatch;
-    sigmatch_table[DETECT_BYPASS].AppLayerMatch = NULL;
     sigmatch_table[DETECT_BYPASS].Setup = DetectBypassSetup;
     sigmatch_table[DETECT_BYPASS].Free  = NULL;
     sigmatch_table[DETECT_BYPASS].RegisterTests = DetectBypassRegisterTests;
@@ -91,7 +91,8 @@ static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     return 0;
 }
 
-int DetectBypassMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectBypassMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     PacketBypassCallback(p);
 
@@ -230,7 +231,7 @@ static int DetectBypassTestSig01(void)
 }
 #endif /* UNITTESTS */
 
-void DetectBypassRegisterTests(void)
+static void DetectBypassRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectBypassTestSig01", DetectBypassTestSig01);

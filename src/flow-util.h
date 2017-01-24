@@ -61,7 +61,6 @@
         (f)->detect_alversion[1] = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
-        (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         (f)->flowvar = NULL; \
@@ -102,9 +101,6 @@
         (f)->thread_id = 0; \
         (f)->detect_alversion[0] = 0; \
         (f)->detect_alversion[1] = 0; \
-        if ((f)->de_state != NULL) { \
-            DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \
-        } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
@@ -118,9 +114,6 @@
         SC_ATOMIC_DESTROY((f)->use_cnt); \
         \
         FLOWLOCK_DESTROY((f)); \
-        if ((f)->de_state != NULL) { \
-            DetectEngineStateFlowFree((f)->de_state); \
-        } \
         GenericVarFree((f)->flowvar); \
     } while(0)
 

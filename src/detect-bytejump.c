@@ -60,7 +60,12 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-void DetectBytejumpRegisterTests(void);
+static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
+static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr);
+static void DetectBytejumpFree(void *ptr);
+static void DetectBytejumpRegisterTests(void);
 
 void DetectBytejumpRegister (void)
 {
@@ -69,8 +74,6 @@ void DetectBytejumpRegister (void)
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
     sigmatch_table[DETECT_BYTEJUMP].Free  = DetectBytejumpFree;
     sigmatch_table[DETECT_BYTEJUMP].RegisterTests = DetectBytejumpRegisterTests;
-
-    sigmatch_table[DETECT_BYTEJUMP].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
@@ -84,7 +87,7 @@ void DetectBytejumpRegister (void)
  *  \retval 1 match
  *  \retval 0 no match
  */
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                           const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset)
 {
@@ -196,8 +199,8 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCReturnInt(1);
 }
 
-int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;
@@ -306,7 +309,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return 1;
 }
 
-DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
+static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
 {
     DetectBytejumpData *data = NULL;
     char args[10][64];
@@ -500,7 +503,7 @@ error:
     return NULL;
 }
 
-int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
@@ -513,32 +516,18 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         goto error;
 
     int sm_list;
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_FILEDATA) {
-            if (data->flags & DETECT_BYTEJUMP_DCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytejump specified "
-                           "with file_data option set.");
-                goto error;
-            }
-            AppLayerHtpEnableResponseBodyCallback();
-        }
-        sm_list = s->list;
-        s->flags |= SIG_FLAG_APPLAYER;
-        if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-            prev_pm = SigMatchGetLastSMFromLists(s, 4,
-                                                 DETECT_CONTENT, s->sm_lists_tail[sm_list],
-                                                 DETECT_PCRE, s->sm_lists_tail[sm_list]);
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        sm_list = s->init_data->list;
 
+        if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
+            prev_pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, DETECT_PCRE, -1);
         }
     } else if (data->flags & DETECT_BYTEJUMP_DCE) {
         if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-            prev_pm = SigMatchGetLastSMFromLists(s, 12,
-                                                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                 DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+            prev_pm = DetectGetLastSMFromLists(s,
+                    DETECT_CONTENT, DETECT_PCRE,
+                    DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
+                    DETECT_ISDATAAT, -1);
             if (prev_pm == NULL) {
                 sm_list = DETECT_SM_LIST_PMATCH;
             } else {
@@ -554,96 +543,10 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         s->flags |= SIG_FLAG_APPLAYER;
 
     } else if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        prev_pm = SigMatchGetLastSMFromLists(s, 168,
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
+        prev_pm = DetectGetLastSMFromLists(s,
+                DETECT_CONTENT, DETECT_PCRE,
+                DETECT_BYTETEST, DETECT_BYTEJUMP, DETECT_BYTE_EXTRACT,
+                DETECT_ISDATAAT, -1);
         if (prev_pm == NULL) {
             sm_list = DETECT_SM_LIST_PMATCH;
         } else {
@@ -721,7 +624,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
  *
  * \param data pointer to DetectBytejumpData
  */
-void DetectBytejumpFree(void *ptr)
+static void DetectBytejumpFree(void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -734,11 +637,14 @@ void DetectBytejumpFree(void *ptr)
 /* UNITTESTS */
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"
+static int g_file_data_buffer_id = 0;
+static int g_dce_stub_data_buffer_id = 0;
+
 /**
  * \test DetectBytejumpTestParse01 is a test to make sure that we return
  * "something" when given valid bytejump opt
  */
-int DetectBytejumpTestParse01(void)
+static int DetectBytejumpTestParse01(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -754,7 +660,7 @@ int DetectBytejumpTestParse01(void)
 /**
  * \test DetectBytejumpTestParse02 is a test for setting the required opts
  */
-int DetectBytejumpTestParse02(void)
+static int DetectBytejumpTestParse02(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -778,7 +684,7 @@ int DetectBytejumpTestParse02(void)
 /**
  * \test DetectBytejumpTestParse03 is a test for setting the optional flags
  */
-int DetectBytejumpTestParse03(void)
+static int DetectBytejumpTestParse03(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -810,7 +716,7 @@ int DetectBytejumpTestParse03(void)
  *
  * \todo This fails becuase we can only have 9 captures and there are 10.
  */
-int DetectBytejumpTestParse04(void)
+static int DetectBytejumpTestParse04(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -840,7 +746,7 @@ int DetectBytejumpTestParse04(void)
 /**
  * \test DetectBytejumpTestParse05 is a test for setting base without string
  */
-int DetectBytejumpTestParse05(void)
+static int DetectBytejumpTestParse05(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -856,7 +762,7 @@ int DetectBytejumpTestParse05(void)
 /**
  * \test DetectBytejumpTestParse06 is a test for too many bytes to extract
  */
-int DetectBytejumpTestParse06(void)
+static int DetectBytejumpTestParse06(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -871,7 +777,7 @@ int DetectBytejumpTestParse06(void)
 /**
  * \test DetectBytejumpTestParse07 is a test for too many string bytes to extract
  */
-int DetectBytejumpTestParse07(void)
+static int DetectBytejumpTestParse07(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -886,7 +792,7 @@ int DetectBytejumpTestParse07(void)
 /**
  * \test DetectBytejumpTestParse08 is a test for offset too big
  */
-int DetectBytejumpTestParse08(void)
+static int DetectBytejumpTestParse08(void)
 {
     int result = 0;
     DetectBytejumpData *data = NULL;
@@ -901,7 +807,7 @@ int DetectBytejumpTestParse08(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse09(void)
+static int DetectBytejumpTestParse09(void)
 {
     Signature *s = SigAlloc();
     if (s == NULL)
@@ -925,7 +831,7 @@ int DetectBytejumpTestParse09(void)
     result &= (DetectBytejumpSetup(NULL, s, "4,0, string, oct, dce") == -1);
     result &= (DetectBytejumpSetup(NULL, s, "4,0, string, hex, dce") == -1);
     result &= (DetectBytejumpSetup(NULL, s, "4,0, from_beginning, dce") == -1);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
     return result;
@@ -934,7 +840,7 @@ int DetectBytejumpTestParse09(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse10(void)
+static int DetectBytejumpTestParse10(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -958,12 +864,12 @@ int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -985,12 +891,12 @@ int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (!(bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -1012,12 +918,12 @@ int DetectBytejumpTestParse10(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_BYTEJUMP);
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_BYTEJUMP);
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if ((bd->flags & DETECT_BYTEJUMP_DCE) &&
         !(bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -1038,7 +944,7 @@ int DetectBytejumpTestParse10(void)
 /**
  * \test Test dce option.
  */
-int DetectBytejumpTestParse11(void)
+static int DetectBytejumpTestParse11(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1157,15 +1063,15 @@ static int DetectBytejumpTestParse12(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (s->sm_lists_tail[g_file_data_buffer_id] == NULL) {
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_BYTEJUMP) {
+    if (s->sm_lists_tail[g_file_data_buffer_id]->type != DETECT_BYTEJUMP) {
         goto end;
     }
 
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
+    bd = (DetectBytejumpData *)s->sm_lists_tail[g_file_data_buffer_id]->ctx;
     if ((bd->flags & DETECT_BYTEJUMP_DCE) &&
         (bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&
@@ -1189,7 +1095,7 @@ static int DetectBytejumpTestParse12(void)
  * byte_jump and byte_jump relative works if the previous keyword is pcre
  * (bug 142)
  */
-int DetectByteJumpTestPacket01 (void)
+static int DetectByteJumpTestPacket01 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
@@ -1221,7 +1127,7 @@ end:
  * byte_jump and byte_jump relative works if the previous keyword is byte_jump
  * (bug 165)
  */
-int DetectByteJumpTestPacket02 (void)
+static int DetectByteJumpTestPacket02 (void)
 {
     int result = 0;
     uint8_t buf[] = { 0x00, 0x00, 0x00, 0x77, 0xff, 0x53,
@@ -1249,7 +1155,7 @@ end:
     return result;
 }
 
-int DetectByteJumpTestPacket03(void)
+static int DetectByteJumpTestPacket03(void)
 {
     int result = 0;
     uint8_t *buf = NULL;
@@ -1284,7 +1190,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket04 (void)
+static int DetectByteJumpTestPacket04 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
@@ -1307,7 +1213,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket05 (void)
+static int DetectByteJumpTestPacket05 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XYZ04abcdABCD";
@@ -1330,7 +1236,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket06 (void)
+static int DetectByteJumpTestPacket06 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
@@ -1353,7 +1259,7 @@ end:
 /**
  * \test check matches of with from_beginning (bug 626/627)
  */
-int DetectByteJumpTestPacket07 (void)
+static int DetectByteJumpTestPacket07 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"XX04abcdABCD";
@@ -1379,9 +1285,12 @@ end:
 /**
  * \brief this function registers unit tests for DetectBytejump
  */
-void DetectBytejumpRegisterTests(void)
+static void DetectBytejumpRegisterTests(void)
 {
 #ifdef UNITTESTS
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
+
     UtRegisterTest("DetectBytejumpTestParse01", DetectBytejumpTestParse01);
     UtRegisterTest("DetectBytejumpTestParse02", DetectBytejumpTestParse02);
     UtRegisterTest("DetectBytejumpTestParse03", DetectBytejumpTestParse03);

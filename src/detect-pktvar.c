@@ -39,7 +39,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectPktvarRegister (void)
@@ -50,8 +51,6 @@ void DetectPktvarRegister (void)
     sigmatch_table[DETECT_PKTVAR].Free  = NULL;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
-    sigmatch_table[DETECT_PKTVAR].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
@@ -61,7 +60,8 @@ void DetectPktvarRegister (void)
  *        -1: error
  */
 
-int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     const DetectPktvarData *pd = (const DetectPktvarData *)ctx;

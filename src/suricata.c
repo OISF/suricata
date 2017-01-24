@@ -2147,7 +2147,6 @@ static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
             return TM_ECODE_FAILED;
     }
 
-    SCThresholdConfInitContext(de_ctx, NULL);
     return TM_ECODE_OK;
 }
 

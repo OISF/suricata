@@ -42,7 +42,7 @@
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, const SigMatchCtx *);
+                          Packet *, const Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 static int PrefilterSetupTcpSeq(SigGroupHead *sgh);
@@ -75,7 +75,7 @@ void DetectSeqRegister(void)
  * \retval 1 match
  */
 static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, const SigMatchCtx *ctx)
+                          Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectSeqData *data = (const DetectSeqData *)ctx;
 
@@ -189,7 +189,7 @@ static int PrefilterSetupTcpSeq(SigGroupHead *sgh)
 static _Bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_SEQ:
                 return TRUE;

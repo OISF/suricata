@@ -48,7 +48,6 @@ void DetectRawbytesRegister (void)
     sigmatch_table[DETECT_RAWBYTES].RegisterTests = NULL;
 
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_PAYLOAD;
 }
 
 static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
@@ -60,13 +59,13 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         return -1;
     }
 
-    if (s->list != DETECT_SM_LIST_NOTSET) {
+    if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
         SCLogError(SC_ERR_RAWBYTES_FILE_DATA, "\"rawbytes\" cannot be combined with \"file_data\"");
         SCReturnInt(-1);
     }
 
-    SigMatch *pm =  SigMatchGetLastSMFromLists(s, 2,
-                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    SigMatch *pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
+        DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceding content option");
         SCReturnInt(-1);

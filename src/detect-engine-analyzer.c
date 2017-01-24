@@ -77,7 +77,7 @@ void EngineAnalysisFP(Signature *s, char *line)
     int fast_pattern_only_set = 0;
     int fast_pattern_chop_set = 0;
     DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->mpm_sm;
+    SigMatch *mpm_sm = s->init_data->mpm_sm;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -95,9 +95,9 @@ void EngineAnalysisFP(Signature *s, char *line)
     fprintf(fp_engine_analysis_FD, "%s\n", line);
 
     fprintf(fp_engine_analysis_FD, "    Fast Pattern analysis:\n");
-    if (s->prefilter_sm != NULL) {
+    if (s->init_data->prefilter_sm != NULL) {
         fprintf(fp_engine_analysis_FD, "        Prefilter on: %s\n",
-                sigmatch_table[s->prefilter_sm->type].name);
+                sigmatch_table[s->init_data->prefilter_sm->type].name);
         fprintf(fp_engine_analysis_FD, "\n");
         return;
     }
@@ -112,28 +112,13 @@ void EngineAnalysisFP(Signature *s, char *line)
     int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
-    else if (list_type == DETECT_SM_LIST_UMATCH)
-        fprintf(fp_engine_analysis_FD, "http uri content\n");
-    else if (list_type == DETECT_SM_LIST_HRUDMATCH)
-        fprintf(fp_engine_analysis_FD, "http raw uri content\n");
-    else if (list_type == DETECT_SM_LIST_HHDMATCH)
-        fprintf(fp_engine_analysis_FD, "http header content\n");
-    else if (list_type == DETECT_SM_LIST_HRHDMATCH)
-        fprintf(fp_engine_analysis_FD, "http raw header content\n");
-    else if (list_type == DETECT_SM_LIST_HMDMATCH)
-        fprintf(fp_engine_analysis_FD, "http method content\n");
-    else if (list_type == DETECT_SM_LIST_HCDMATCH)
-        fprintf(fp_engine_analysis_FD, "http cookie content\n");
-    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
-        fprintf(fp_engine_analysis_FD, "http client body content\n");
-    else if (list_type == DETECT_SM_LIST_FILEDATA)
-        fprintf(fp_engine_analysis_FD, "http server body content\n");
-    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
-        fprintf(fp_engine_analysis_FD, "http stat code content\n");
-    else if (list_type == DETECT_SM_LIST_HSMDMATCH)
-        fprintf(fp_engine_analysis_FD, "http stat msg content\n");
-    else if (list_type == DETECT_SM_LIST_HUADMATCH)
-        fprintf(fp_engine_analysis_FD, "http user agent content\n");
+    else {
+        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
+        const char *name = DetectBufferTypeGetNameById(list_type);
+        if (desc && name) {
+            fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
+        }
+    }
 
     int flags_set = 0;
     fprintf(fp_engine_analysis_FD, "        Flags:");
@@ -412,7 +397,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
 static void EngineAnalysisRulesPrintFP(const Signature *s)
 {
     DetectContentData *fp_cd = NULL;
-    SigMatch *mpm_sm = s->mpm_sm;
+    SigMatch *mpm_sm = s->init_data->mpm_sm;
 
     if (mpm_sm != NULL) {
         fp_cd = (DetectContentData *)mpm_sm->ctx;
@@ -461,38 +446,13 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "%s",
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
-    else if (list_type == DETECT_SM_LIST_UMATCH)
-        fprintf(rule_engine_analysis_FD, "http uri content");
-    else if (list_type == DETECT_SM_LIST_HRUDMATCH)
-        fprintf(rule_engine_analysis_FD, "http raw uri content");
-    else if (list_type == DETECT_SM_LIST_HHDMATCH)
-        fprintf(rule_engine_analysis_FD, "http header content");
-    else if (list_type == DETECT_SM_LIST_HRHDMATCH)
-        fprintf(rule_engine_analysis_FD, "http raw header content");
-    else if (list_type == DETECT_SM_LIST_HMDMATCH)
-        fprintf(rule_engine_analysis_FD, "http method content");
-    else if (list_type == DETECT_SM_LIST_HCDMATCH)
-        fprintf(rule_engine_analysis_FD, "http cookie content");
-    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
-        fprintf(rule_engine_analysis_FD, "http client body content");
-    else if (list_type == DETECT_SM_LIST_FILEDATA)
-        fprintf(rule_engine_analysis_FD, "http server body content");
-    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
-        fprintf(rule_engine_analysis_FD, "http stat code content");
-    else if (list_type == DETECT_SM_LIST_HSMDMATCH)
-        fprintf(rule_engine_analysis_FD, "http stat msg content");
-    else if (list_type == DETECT_SM_LIST_HUADMATCH)
-        fprintf(rule_engine_analysis_FD, "http user agent content");
-    else if (list_type == DETECT_SM_LIST_DNSQUERYNAME_MATCH)
-        fprintf(rule_engine_analysis_FD, "dns query name content");
-    else if (list_type == DETECT_SM_LIST_TLSSNI_MATCH)
-        fprintf(rule_engine_analysis_FD, "tls sni extension content");
-    else if (list_type == DETECT_SM_LIST_TLSISSUER_MATCH)
-        fprintf(rule_engine_analysis_FD, "tls issuer content");
-    else if (list_type == DETECT_SM_LIST_TLSSUBJECT_MATCH)
-        fprintf(rule_engine_analysis_FD, "tls subject content");
-    else if (list_type == DETECT_SM_LIST_DNP3_DATA_MATCH)
-        fprintf(rule_engine_analysis_FD, "dnp3 data content");
+    else {
+        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
+        const char *name = DetectBufferTypeGetNameById(list_type);
+        if (desc && name) {
+            fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
+        }
+    }
 
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 
@@ -539,7 +499,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     //uint32_t rule_flowvar = 0;
     uint32_t rule_content_http = 0;
     uint32_t rule_content_offset_depth = 0;
-    uint32_t list_id = 0;
+    int32_t list_id = 0;
     uint32_t rule_warning = 0;
     uint32_t raw_http_buf = 0;
     uint32_t norm_http_buf = 0;
@@ -574,7 +534,20 @@ void EngineAnalysisRules(const Signature *s, const char *line)
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
-    if (s->init_flags & SIG_FLAG_INIT_BIDIREC) {
+    const int nlists = DetectBufferTypeMaxId();
+    const int filedata_id = DetectBufferTypeGetByName("file_data");
+    const int httpmethod_id = DetectBufferTypeGetByName("http_method");
+    const int httpuri_id = DetectBufferTypeGetByName("http_uri");
+    const int httpuseragent_id = DetectBufferTypeGetByName("http_user_agent");
+    const int httpcookie_id = DetectBufferTypeGetByName("http_cookie");
+    const int httpstatcode_id = DetectBufferTypeGetByName("http_stat_code");
+    const int httpstatmsg_id = DetectBufferTypeGetByName("http_stat_msg");
+    const int httpheader_id = DetectBufferTypeGetByName("http_header");
+    const int httprawheader_id = DetectBufferTypeGetByName("http_raw_header");
+    const int httpclientbody_id = DetectBufferTypeGetByName("http_client_body");
+    const int httprawuri_id = DetectBufferTypeGetByName("http_raw_uri");
+
+    if (s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
     }
 
@@ -592,62 +565,61 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         rule_ipv6_only += 1;
     }
 
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
-
+    for (list_id = 0; list_id < nlists; list_id++) {
         SigMatch *sm = NULL;
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_PCRE) {
-                if (list_id == DETECT_SM_LIST_HCBDMATCH) {
+                if (list_id == httpclientbody_id) {
                     rule_pcre_http += 1;
                     http_client_body_buf += 1;
                     raw_http_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_UMATCH) {
+                else if (list_id == httpuri_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_uri_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HHDMATCH) {
+                else if (list_id == httpheader_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_header_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HCDMATCH) {
+                else if (list_id == httpcookie_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_cookie_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_FILEDATA) {
+                else if (list_id == filedata_id) {
                     rule_pcre_http += 1;
                     http_server_body_buf += 1;
                     raw_http_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HRHDMATCH) {
+                else if (list_id == httprawheader_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_raw_header_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HMDMATCH) {
+                else if (list_id == httpmethod_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_method_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HRUDMATCH) {
+                else if (list_id == httprawuri_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_raw_uri_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSMDMATCH) {
+                else if (list_id == httpstatmsg_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_stat_msg_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSCDMATCH) {
+                else if (list_id == httpstatcode_id) {
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HUADMATCH) {
+                else if (list_id == httpuseragent_id) {
                     rule_pcre_http += 1;
                     norm_http_buf += 1;
                     http_ua_buf += 1;
@@ -658,9 +630,9 @@ void EngineAnalysisRules(const Signature *s, const char *line)
             }
             else if (sm->type == DETECT_CONTENT) {
 
-                if (list_id == DETECT_SM_LIST_UMATCH
-                          || list_id == DETECT_SM_LIST_HHDMATCH
-                          || list_id == DETECT_SM_LIST_HCDMATCH) {
+                if (list_id == httpuri_id
+                          || list_id == httpheader_id
+                          || list_id == httpcookie_id) {
                     rule_content_http += 1;
                     norm_http_buf += 1;
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -668,47 +640,47 @@ void EngineAnalysisRules(const Signature *s, const char *line)
                         warn_encoding_norm_http_buf += 1;
                         rule_warning += 1;
                     }
-                    if (list_id == DETECT_SM_LIST_UMATCH) {
+                    if (list_id == httpuri_id) {
                         http_uri_buf += 1;
                     }
-                    else if (list_id == DETECT_SM_LIST_HHDMATCH) {
+                    else if (list_id == httpheader_id) {
                         http_header_buf += 1;
                     }
-                    else if (list_id == DETECT_SM_LIST_HCDMATCH) {
+                    else if (list_id == httpcookie_id) {
                         http_cookie_buf += 1;
                     }
                 }
-                else if (list_id == DETECT_SM_LIST_HCBDMATCH) {
+                else if (list_id == httpclientbody_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_client_body_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_FILEDATA) {
+                else if (list_id == filedata_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_server_body_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HRHDMATCH) {
+                else if (list_id == httprawheader_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_raw_header_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HRUDMATCH) {
+                else if (list_id == httprawuri_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_raw_uri_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSMDMATCH) {
+                else if (list_id == httpstatmsg_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_stat_msg_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSCDMATCH) {
+                else if (list_id == httpstatcode_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HMDMATCH) {
+                else if (list_id == httpmethod_id) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_method_buf += 1;
@@ -822,8 +794,8 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         rule_warning += 1;
         warn_offset_depth_alproto = 1;
     }
-    if (s->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
-        SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+    if (s->init_data->mpm_sm != NULL && s->alproto == ALPROTO_HTTP &&
+        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
         rule_warning += 1;
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
@@ -868,9 +840,9 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         }
 
         /* print fast pattern info */
-        if (s->prefilter_sm) {
+        if (s->init_data->prefilter_sm) {
             fprintf(rule_engine_analysis_FD, "    Prefilter on: %s.\n",
-                    sigmatch_table[s->prefilter_sm->type].name);
+                    sigmatch_table[s->init_data->prefilter_sm->type].name);
         } else {
             EngineAnalysisRulesPrintFP(s);
         }
