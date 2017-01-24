@@ -195,5 +195,9 @@ int IsRuleReloadSet(int quiet);
 
 extern int run_mode;
 
+void PreRunInit(const int runmode);
+void PreRunPostPrivsDropInit(const int runmode);
+void PostRunDeinit(const int runmode, struct timeval *start_time);
+
 #endif /* __SURICATA_H__ */
 

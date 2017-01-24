@@ -50,6 +50,8 @@
 #include "source-pfring.h"
 
 #include "tmqh-flow.h"
+#include "flow-manager.h"
+#include "counters.h"
 
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
@@ -392,7 +394,12 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();
 
-    return;
+    if (runmode != RUNMODE_UNIX_SOCKET) {
+        /* spawn management threads */
+        FlowManagerThreadSpawn();
+        FlowRecyclerThreadSpawn();
+        StatsSpawnThreads();
+    }
 }
 
 /**
