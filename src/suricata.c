@@ -1037,10 +1037,11 @@ static TmEcode ParseInterfacesList(int runmode, char *pcap_dev)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static void SCInstanceInit(SCInstance *suri)
+static void SCInstanceInit(SCInstance *suri, const char *progname)
 {
     memset(suri, 0x00, sizeof(*suri));
 
+    suri->progname = progname;
     suri->run_mode = RUNMODE_UNKNOWN;
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -2383,6 +2384,72 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
     return TM_ECODE_OK;
 }
+
+static void PostRunStartedDetectSetup(SCInstance *suri)
+{
+    /* registering signal handlers we use.  We register usr2 here, so that one
+     * can't call it during the first sig load phase or while threads are still
+     * starting up. */
+    if (DetectEngineEnabled() && suri->sig_file == NULL &&
+            suri->delayed_detect == 0)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+
+    if (suri->delayed_detect) {
+        /* force 'reload', this will load the rules and swap engines */
+        DetectEngineReload(suri);
+        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
+    }
+}
+
+static void PostConfLoadedDetectSetup(SCInstance *suri)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    if (!suri->disabled_detect) {
+        SCClassConfInit();
+        SCReferenceConfInit();
+        SetupDelayedDetect(suri);
+        int mt_enabled = 0;
+        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
+        int default_tenant = 0;
+        if (mt_enabled)
+            (void)ConfGetBool("multi-detect.default", &default_tenant);
+        if (DetectEngineMultiTenantSetup() == -1) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing multi-detect "
+                    "detection engine contexts failed.");
+            exit(EXIT_FAILURE);
+        }
+        if ((suri->delayed_detect || (mt_enabled && !default_tenant)) &&
+            (suri->run_mode != RUNMODE_CONF_TEST)) {
+            de_ctx = DetectEngineCtxInitMinimal();
+        } else {
+            de_ctx = DetectEngineCtxInit();
+        }
+        if (de_ctx == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                    "context failed.");
+            exit(EXIT_FAILURE);
+        }
+
+#ifdef __SC_CUDA_SUPPORT__
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+            CudaVarsSetDeCtx(de_ctx);
+#endif /* __SC_CUDA_SUPPORT__ */
+
+        if (!de_ctx->minimal) {
+            if (LoadSignatures(de_ctx, suri) != TM_ECODE_OK)
+                exit(EXIT_FAILURE);
+            if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
+                exit(EXIT_SUCCESS);
+            }
+        }
+
+        DetectEngineAddToMaster(de_ctx);
+    } else {
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
+    }
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
@@ -2567,12 +2634,58 @@ static int PostConfLoadedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
+static void SuricataMainLoop(SCInstance *suri)
+{
+    while(1) {
+        if (sigterm_count || sigint_count) {
+            suricata_ctl_flags |= SURICATA_STOP;
+        }
+
+        if (suricata_ctl_flags & SURICATA_STOP) {
+            SCLogNotice("Signal Received.  Stopping engine.");
+            break;
+        }
+
+        TmThreadCheckThreadState();
+
+        if (sighup_count > 0) {
+            OutputNotifyFileRotation();
+            sighup_count--;
+        }
+
+        if (sigusr2_count > 0) {
+            if (suri->sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                sigusr2_count--;
+            } else {
+                if (!(DetectEngineReloadIsStart())) {
+                    DetectEngineReloadStart();
+                    DetectEngineReload(suri);
+                    DetectEngineReloadSetDone();
+                    sigusr2_count--;
+                }
+            }
+
+        } else if (DetectEngineReloadIsStart()) {
+            if (suri->sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                DetectEngineReloadSetDone();
+            } else {
+                DetectEngineReload(suri);
+                DetectEngineReloadSetDone();
+            }
+        }
+
+        usleep(10* 1000);
+    }
+}
+
 int main(int argc, char **argv)
 {
     SCInstance suri;
-
-    SCInstanceInit(&suri);
-    suri.progname = argv[0];
+    SCInstanceInit(&suri, argv[0]);
 
     SC_ATOMIC_INIT(engine_stage);
 
@@ -2627,7 +2740,6 @@ int main(int argc, char **argv)
     SCLogLoadConfig(suri.daemon, suri.verbose);
 
     SCPrintVersion();
-
     UtilCpuPrintSummary();
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
@@ -2637,52 +2749,7 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-
-    DetectEngineCtx *de_ctx = NULL;
-    if (!suri.disabled_detect) {
-        SCClassConfInit();
-        SCReferenceConfInit();
-        SetupDelayedDetect(&suri);
-        int mt_enabled = 0;
-        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
-        int default_tenant = 0;
-        if (mt_enabled)
-            (void)ConfGetBool("multi-detect.default", &default_tenant);
-        if (DetectEngineMultiTenantSetup() == -1) {
-            SCLogError(SC_ERR_INITIALIZATION, "initializing multi-detect "
-                    "detection engine contexts failed.");
-            exit(EXIT_FAILURE);
-        }
-        if ((suri.delayed_detect || (mt_enabled && !default_tenant)) &&
-            (suri.run_mode != RUNMODE_CONF_TEST)) {
-            de_ctx = DetectEngineCtxInitMinimal();
-        } else {
-            de_ctx = DetectEngineCtxInit();
-        }
-        if (de_ctx == NULL) {
-            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-                    "context failed.");
-            exit(EXIT_FAILURE);
-        }
-
-#ifdef __SC_CUDA_SUPPORT__
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-            CudaVarsSetDeCtx(de_ctx);
-#endif /* __SC_CUDA_SUPPORT__ */
-
-        if (!de_ctx->minimal) {
-            if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-                exit(EXIT_FAILURE);
-            if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-                exit(EXIT_SUCCESS);
-            }
-        }
-
-        DetectEngineAddToMaster(de_ctx);
-    } else {
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
-    }
+    PostConfLoadedDetectSetup(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
     PreRunPostPrivsDropInit(suri.run_mode);
@@ -2713,18 +2780,8 @@ int main(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
-    /* registering singal handlers we use.  We register usr2 here, so that one
-     * can't call it during the first sig load phase or while threads are still
-     * starting up. */
-    if (DetectEngineEnabled() && suri.sig_file == NULL &&
-            suri.delayed_detect == 0)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
-    if (suri.delayed_detect) {
-        /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload(&suri);
-        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
-    }
+    PostRunStartedDetectSetup(&suri);
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
@@ -2733,51 +2790,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-    int engine_retval = EXIT_SUCCESS;
-    while(1) {
-        if (sigterm_count || sigint_count) {
-            suricata_ctl_flags |= SURICATA_STOP;
-        }
-
-        if (suricata_ctl_flags & SURICATA_STOP) {
-            SCLogNotice("Signal Received.  Stopping engine.");
-            break;
-        }
-
-        TmThreadCheckThreadState();
-
-        if (sighup_count > 0) {
-            OutputNotifyFileRotation();
-            sighup_count--;
-        }
-
-        if (sigusr2_count > 0) {
-            if (suri.sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
-                sigusr2_count--;
-            } else {
-                if (!(DetectEngineReloadIsStart())) {
-                    DetectEngineReloadStart();
-                    DetectEngineReload(&suri);
-                    DetectEngineReloadSetDone();
-                    sigusr2_count--;
-                }
-            }
-
-        } else if (DetectEngineReloadIsStart()) {
-            if (suri.sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
-            } else {
-                DetectEngineReload(&suri);
-                DetectEngineReloadSetDone();
-            }
-        }
-
-        usleep(10* 1000);
-    }
+    SuricataMainLoop(&suri);
 
     /* Update the engine stage/status flag */
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
@@ -2789,11 +2802,5 @@ int main(int argc, char **argv)
 
     GlobalsDestroy(&suri);
 
-#ifdef OS_WIN32
-	if (daemon) {
-		return 0;
-	}
-#endif /* OS_WIN32 */
-
-    exit(engine_retval);
+    exit(EXIT_SUCCESS);
 }
