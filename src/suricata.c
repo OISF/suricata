@@ -312,7 +312,7 @@ void CreateLowercaseTable()
     }
 }
 
-void GlobalInits()
+void GlobalsInitPreConfig()
 {
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
@@ -343,6 +343,77 @@ void GlobalInits()
 
     TimeInit();
     SupportFastPatternForSigMatchTypes();
+}
+
+void GlobalsDestroy(SCInstance *suri)
+{
+    HostShutdown();
+    HTPFreeConfig();
+    HTPAtExitPrintStats();
+
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
+#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
+    print_mem_flag = 0;
+#endif
+#endif
+
+    SCPidfileRemove(suri->pid_filename);
+
+    AppLayerHtpPrintStats();
+
+    /* TODO this can do into it's own func */
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx) {
+        DetectEngineMoveToFreeList(de_ctx);
+        DetectEngineDeReference(&de_ctx);
+    }
+    DetectEnginePruneFreeList();
+
+    AppLayerDeSetup();
+
+    TagDestroyCtx();
+
+    LiveDeviceListClean();
+    OutputDeregisterAll();
+    TimeDeinit();
+    SCProtoNameDeInit();
+    if (!suri->disabled_detect) {
+        SCReferenceConfDeinit();
+        SCClassConfDeinit();
+    }
+#ifdef HAVE_MAGIC
+    MagicDeinit();
+#endif
+    TmqhCleanup();
+    TmModuleRunDeInit();
+    ParseSizeDeinit();
+#ifdef HAVE_NSS
+    NSS_Shutdown();
+    PR_Cleanup();
+#endif
+
+#ifdef HAVE_AF_PACKET
+    AFPPeersListClean();
+#endif
+
+    SC_ATOMIC_DESTROY(engine_stage);
+
+#ifdef BUILD_HYPERSCAN
+    MpmHSGlobalCleanup();
+#endif
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        MpmCudaBufferDeSetup();
+    CudaHandlerFreeProfiles();
+#endif
+    ConfDeInit();
+#ifdef HAVE_LUAJIT
+    LuajitFreeStatesPool();
+#endif
+    SCLogDeInitLogModule();
+    DetectParseFreeRegexes();
 }
 
 /** \brief make sure threads can stop the engine by calling this
@@ -2539,7 +2610,7 @@ int main(int argc, char **argv)
     }
 
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
-    GlobalInits();
+    GlobalsInitPreConfig();
 
     /* Load yaml configuration file if provided. */
     if (LoadYamlConfig(&suri) != TM_ECODE_OK) {
@@ -2613,8 +2684,6 @@ int main(int argc, char **argv)
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
-    SCSetStartTime(&suri);
-
     SCDropMainThreadCaps(suri.userid, suri.groupid);
     PreRunPostPrivsDropInit(suri.run_mode);
 
@@ -2626,6 +2695,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    SCSetStartTime(&suri);
     RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode();
@@ -2717,55 +2787,7 @@ int main(int argc, char **argv)
     /* kill remaining threads */
     TmThreadKillThreads();
 
-    HostShutdown();
-    HTPFreeConfig();
-    HTPAtExitPrintStats();
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
-#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
-    print_mem_flag = 0;
-#endif
-#endif
-
-    SCPidfileRemove(suri.pid_filename);
-
-    AppLayerHtpPrintStats();
-
-    /** TODO this can do into it's own func */
-    de_ctx = DetectEngineGetCurrent();
-    if (de_ctx) {
-        DetectEngineMoveToFreeList(de_ctx);
-        DetectEngineDeReference(&de_ctx);
-    }
-    DetectEnginePruneFreeList();
-
-    AppLayerDeSetup();
-
-    TagDestroyCtx();
-
-    LiveDeviceListClean();
-    OutputDeregisterAll();
-    TimeDeinit();
-    SCProtoNameDeInit();
-    if (!suri.disabled_detect) {
-        SCReferenceConfDeinit();
-        SCClassConfDeinit();
-    }
-#ifdef HAVE_MAGIC
-    MagicDeinit();
-#endif
-    TmqhCleanup();
-    TmModuleRunDeInit();
-    ParseSizeDeinit();
-#ifdef HAVE_NSS
-    NSS_Shutdown();
-    PR_Cleanup();
-#endif
-
-#ifdef HAVE_AF_PACKET
-    AFPPeersListClean();
-#endif
+    GlobalsDestroy(&suri);
 
 #ifdef OS_WIN32
 	if (daemon) {
@@ -2773,22 +2795,5 @@ int main(int argc, char **argv)
 	}
 #endif /* OS_WIN32 */
 
-    SC_ATOMIC_DESTROY(engine_stage);
-
-#ifdef BUILD_HYPERSCAN
-    MpmHSGlobalCleanup();
-#endif
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        MpmCudaBufferDeSetup();
-    CudaHandlerFreeProfiles();
-#endif
-    ConfDeInit();
-#ifdef HAVE_LUAJIT
-    LuajitFreeStatesPool();
-#endif
-    SCLogDeInitLogModule();
-    DetectParseFreeRegexes();
     exit(engine_retval);
 }
