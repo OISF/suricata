@@ -169,7 +169,7 @@ typedef struct SCInstance_ {
 
 
 /* memset to zeros, and mutex init! */
-void GlobalInits();
+void GlobalsInitPreConfig();
 
 extern volatile uint8_t suricata_ctl_flags;
 
