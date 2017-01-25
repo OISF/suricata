@@ -128,77 +128,9 @@
 void RegisterAllModules();
 void TmqhSetup (void);
 
-/**
- * Run or list unittests
- *
- * \param list_unittests If set to 1, list unittests. Run them if set to 0.
- * \param regex_arg A regular expression to select unittests to run
- *
- * This function is terminal and will call exit after being called.
- */
-
-void RunUnittests(int list_unittests, char *regex_arg)
-{
 #ifdef UNITTESTS
-    /* Initializations for global vars, queues, etc (memsets, mutex init..) */
-    GlobalInits();
-    TimeInit();
-    SupportFastPatternForSigMatchTypes();
-#ifdef HAVE_LUAJIT
-    if (LuajitSetupStatesPool() != 0) {
-        exit(EXIT_FAILURE);
-    }
-#endif
-
-    default_packet_size = DEFAULT_PACKET_SIZE;
-#ifdef __SC_CUDA_SUPPORT__
-    /* Init the CUDA environment */
-    SCCudaInitCudaEnvironment();
-    CudaBufferInit();
-#endif
-    /* load the pattern matchers */
-    MpmTableSetup();
-#ifdef __SC_CUDA_SUPPORT__
-    MpmCudaEnvironmentSetup();
-#endif
-    SpmTableSetup();
-
-    AppLayerSetup();
-
-    /* hardcoded initialization code */
-    SigTableSetup(); /* load the rule keywords */
-    TmqhSetup();
-
-    StorageInit();
-    CIDRInit();
-    SigParsePrepare();
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
-#endif
-    SCReputationInitCtx();
-    SCProtoNameInit();
-
-    TagInitCtx();
-    SCReferenceConfInit();
-    SCClassConfInit();
-
-    UtInitialize();
-
-    RegisterAllModules();
-
-    HostBitInitCtx();
-
-    StorageFinalize();
-   /* test and initialize the unittesting subsystem */
-    if(regex_arg == NULL){
-        regex_arg = ".*";
-        UtRunSelftest(regex_arg); /* inits and cleans up again */
-    }
-
-    AppLayerHtpEnableRequestBodyCallback();
-    AppLayerHtpNeedFileInspection();
-
+static void RegisterUnittests(void)
+{
     UTHRegisterTests();
     StreamTcpRegisterTests();
     SigRegisterTests();
@@ -290,6 +222,75 @@ void RunUnittests(int list_unittests, char *regex_arg)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+}
+#endif
+
+/**
+ * Run or list unittests
+ *
+ * \param list_unittests If set to 1, list unittests. Run them if set to 0.
+ * \param regex_arg A regular expression to select unittests to run
+ *
+ * This function is terminal and will call exit after being called.
+ */
+
+void RunUnittests(int list_unittests, char *regex_arg)
+{
+#ifdef UNITTESTS
+    /* Initializations for global vars, queues, etc (memsets, mutex init..) */
+    GlobalsInitPreConfig();
+
+#ifdef HAVE_LUAJIT
+    if (LuajitSetupStatesPool() != 0) {
+        exit(EXIT_FAILURE);
+    }
+#endif
+
+    default_packet_size = DEFAULT_PACKET_SIZE;
+    /* load the pattern matchers */
+    MpmTableSetup();
+#ifdef __SC_CUDA_SUPPORT__
+    MpmCudaEnvironmentSetup();
+#endif
+    SpmTableSetup();
+
+    AppLayerSetup();
+
+    /* hardcoded initialization code */
+    SigTableSetup(); /* load the rule keywords */
+    TmqhSetup();
+
+    StorageInit();
+    CIDRInit();
+    SigParsePrepare();
+
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
+#endif
+    SCReputationInitCtx();
+    SCProtoNameInit();
+
+    TagInitCtx();
+    SCReferenceConfInit();
+    SCClassConfInit();
+
+    UtInitialize();
+
+    RegisterAllModules();
+
+    HostBitInitCtx();
+
+    StorageFinalize();
+   /* test and initialize the unittesting subsystem */
+    if(regex_arg == NULL){
+        regex_arg = ".*";
+        UtRunSelftest(regex_arg); /* inits and cleans up again */
+    }
+
+    AppLayerHtpEnableRequestBodyCallback();
+    AppLayerHtpNeedFileInspection();
+
+    RegisterUnittests();
 
     if (list_unittests) {
         UtListTests(regex_arg);
