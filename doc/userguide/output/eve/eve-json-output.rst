@@ -246,3 +246,26 @@ For most output types, you can add multiple:
 
 Except for ``drop`` for which only a single logger instance is supported.
 
+JSON flags
+~~~~~~~~~~
+
+Several flags can be specified to control the JSON output in EVE:
+
+::
+
+  outputs:
+    - eve-log:
+        json:
+          # Sort object keys in the same order as they were inserted
+          preserve-order: yes
+
+          # Make the output more compact
+          compact: yes
+
+          # Escape all unicode characters outside the ASCII range
+          ensure-ascii: yes
+
+          # Escape the '/' characters in string with '\/'
+          escape-slash: yes
+
+All these flags are enabled by default, and can be modified per EVE instance.
