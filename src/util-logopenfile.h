@@ -114,6 +114,9 @@ typedef struct LogFileCtx_ {
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
 
+    /* flag to store the options */
+    uint8_t options_flags;
+
     /* Flag if file is a regular file or not.  Only regular files
      * allow for rotataion. */
     uint8_t is_regular;
@@ -128,6 +131,8 @@ typedef struct LogFileCtx_ {
 /* flags for LogFileCtx */
 #define LOGFILE_HEADER_WRITTEN 0x01
 #define LOGFILE_ALERTS_PRINTED 0x02
+
+#define LOGFILE_LOG_ETHERNET   0x01
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
