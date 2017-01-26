@@ -15,6 +15,10 @@ Examples::
 
 ``tls_cert_subject`` is a 'Sticky buffer'.
 
+Can use ``fast_pattern`` for content matches that apply to the ``tls_cert_subject`` buffer.
+
+Support added in Suricata 3.2.
+
 tls_cert_issuer
 ---------------
 
@@ -26,6 +30,26 @@ Examples::
   tls_cert_issuer; content:"StartCom"; nocase; pcre:"/StartCom$/";
 
 ``tls_cert_issuer`` is a 'Sticky buffer'.
+
+Can use ``fast_pattern`` for content matches that apply to the ``tls_cert_issuer`` buffer.
+
+Support added in Suricata 3.2.
+
+tls_sni
+-------
+
+Match in the TLS Sever Name Indication ("SNI") field.
+
+Example::
+
+  alert tls any any -> any any (msg:"match cert tls_sni"; \
+     tls_sni; content:"ton.twimg.com"; sid:200004;)
+
+``tls_sni`` is a 'Sticky buffer'.
+
+Can use ``fast_pattern`` for content matches that apply to the ``tls_sni`` buffer.
+
+Support added in Suricata 3.1.
 
 tls_cert_notbefore
 ------------------
@@ -47,6 +71,8 @@ Example::
   alert tls any any -> any any (msg:"match cert NotAfter"; \
     tls_cert_notafter:>2015; sid:200006;)
 
+Support added in Suricata 3.2.
+
 tls_cert_expired
 ----------------
 
@@ -56,6 +82,8 @@ from the certificate.
 Usage::
 
   tls_cert_expired;
+
+Support added in Suricata 3.2.
 
 tls_cert_valid
 --------------
@@ -67,6 +95,8 @@ of ``tls_cert_expired``.
 Usage::
 
   tls_cert_valid;
+
+Support added in Suricata 3.2.
 
 tls.version
 -----------
