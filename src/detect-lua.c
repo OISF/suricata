@@ -88,9 +88,9 @@ void DetectLuaRegister(void)
 #include "util-lua.h"
 
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Packet *, Signature *, const SigMatchCtx *);
+        Packet *, const Signature *, const SigMatchCtx *);
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+        Flow *f, uint8_t flags, void *state, const Signature *s, const SigMatchData *m);
 static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
@@ -186,7 +186,7 @@ void LuaDumpStack(lua_State *state)
 }
 
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
-        Signature *s, SigMatch *sm,
+        const Signature *s, const SigMatchData *smd,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
         Flow *f)
 {
@@ -196,7 +196,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
     if (buffer == NULL || buffer_len == 0)
         SCReturnInt(0);
 
-    DetectLuaData *lua = (DetectLuaData *)sm->ctx;
+    DetectLuaData *lua = (DetectLuaData *)smd->ctx;
     if (lua == NULL)
         SCReturnInt(0);
 
@@ -292,7 +292,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
  * \retval 1 match
  */
 static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -537,7 +537,8 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
  * \retval 1 match
  */
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatchData *m)
 {
     return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, m->ctx);
 }
@@ -990,33 +991,46 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     } else if (lua->alproto == ALPROTO_HTTP) {
-        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEDATA);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_URI)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-        else if (lua->flags & DATATYPE_HTTP_URI_RAW)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_REQUEST_UA)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HUADMATCH);
-        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS))
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
-        else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW))
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
-        else if (lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
-        else
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HTTP_REQLINEMATCH);
+        if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
+            int list = DetectBufferTypeGetByName("file_data");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY) {
+            int list = DetectBufferTypeGetByName("http_client_body");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_URI) {
+            int list = DetectBufferTypeGetByName("http_uri");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_URI_RAW) {
+            int list = DetectBufferTypeGetByName("http_raw_uri");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
+                 lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
+        {
+            int list = DetectBufferTypeGetByName("http_cookie");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
+            int list = DetectBufferTypeGetByName("http_user_agent");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS)) {
+            int list = DetectBufferTypeGetByName("http_header");
+            SigMatchAppendSMToList(s, sm, list);
+        } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
+            int list = DetectBufferTypeGetByName("http_raw_header");
+            SigMatchAppendSMToList(s, sm, list);
+        } else {
+            int list = DetectBufferTypeGetByName("http_request_line");
+            SigMatchAppendSMToList(s, sm, list);
+        }
     } else if (lua->alproto == ALPROTO_DNS) {
         if (lua->flags & DATATYPE_DNS_RRNAME) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
+            int list = DetectBufferTypeGetByName("dns_query");
+            SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_DNS_REQUEST) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSREQUEST_MATCH);
+            int list = DetectBufferTypeGetByName("dns_request");
+            SigMatchAppendSMToList(s, sm, list);
         } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
+            int list = DetectBufferTypeGetByName("dns_response");
+            SigMatchAppendSMToList(s, sm, list);
         }
     } else if (lua->alproto == ALPROTO_TLS) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
@@ -1025,7 +1039,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     } else if (lua->alproto == ALPROTO_SMTP) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else if (lua->alproto == ALPROTO_DNP3) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
+        int list = DetectBufferTypeGetByName("dnp3");
+        SigMatchAppendSMToList(s, sm, list);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
                    AppLayerGetProtoName(lua->alproto));
@@ -1051,7 +1066,7 @@ void DetectLuaPostSetup(Signature *s)
     SigMatch *sm;
 
     for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
+        for (sm = s->init_data->smlists[i]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_LUA)
                 continue;
 

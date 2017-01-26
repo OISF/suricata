@@ -43,7 +43,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, char *);
 void IpOptsRegisterTests(void);
 void DetectIpOptsFree(void *);
@@ -98,7 +99,8 @@ struct DetectIpOpts_ {
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 

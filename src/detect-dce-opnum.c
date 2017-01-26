@@ -52,10 +52,11 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
-                        void *, Signature *, SigMatch *);
+static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
+                        void *, const Signature *, const SigMatchData *);
 static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
-void DetectDceOpnumFree(void *);
+static void DetectDceOpnumFree(void *);
+static void DetectDceOpnumRegisterTests(void);
 
 /**
  * \brief Registers the keyword handlers for the "dce_opnum" keyword.
@@ -80,7 +81,7 @@ void DetectDceOpnumRegister(void)
  *
  * \retval dor Pointer to the new instance DetectDceOpnumRange.
  */
-static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
+static DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
 {
     DetectDceOpnumRange *dor = NULL;
 
@@ -101,7 +102,7 @@ static inline DetectDceOpnumRange *DetectDceOpnumAllocDetectDceOpnumRange(void)
  * \retval did Pointer to a DetectDceIfaceData instance that holds the data
  *             from the parsed arg.
  */
-static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
+static DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 {
     DetectDceOpnumData *dod = NULL;
 
@@ -237,8 +238,9 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
  * \retval 1 On Match.
  * \retval 0 On no match.
  */
-int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                        uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                        Flow *f, uint8_t flags, void *state,
+                        const Signature *s, const SigMatchData *m)
 {
     SCEnter();
 
@@ -324,7 +326,7 @@ static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return -1;
 }
 
-void DetectDceOpnumFree(void *ptr)
+static void DetectDceOpnumFree(void *ptr)
 {
     DetectDceOpnumData *dod = ptr;
     DetectDceOpnumRange *dor = NULL;
@@ -352,8 +354,6 @@ static int DetectDceOpnumTestParse01(void)
     Signature *s = SigAlloc();
     int result = 0;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
     result &= (DetectDceOpnumSetup(NULL, s, "12,24") == 0);
     result &= (DetectDceOpnumSetup(NULL, s, "12,12-24") == 0);
@@ -377,8 +377,6 @@ static int DetectDceOpnumTestParse02(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
@@ -407,8 +405,6 @@ static int DetectDceOpnumTestParse03(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -435,8 +431,6 @@ static int DetectDceOpnumTestParse04(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
@@ -502,8 +496,6 @@ static int DetectDceOpnumTestParse05(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -568,8 +560,6 @@ static int DetectDceOpnumTestParse06(void)
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
 
-    memset(s, 0, sizeof(Signature));
-
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
@@ -615,8 +605,6 @@ static int DetectDceOpnumTestParse07(void)
     DetectDceOpnumData *dod = NULL;
     DetectDceOpnumRange *dor = NULL;
     SigMatch *temp = NULL;
-
-    memset(s, 0, sizeof(Signature));
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
@@ -2901,12 +2889,10 @@ static int DetectDceOpnumTestParse13(void)
     return result;
 }
 #endif
+#endif /* UNITTESTS */
 
-
-#endif
-void DetectDceOpnumRegisterTests(void)
+static void DetectDceOpnumRegisterTests(void)
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
     UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
@@ -2926,6 +2912,4 @@ void DetectDceOpnumRegisterTests(void)
     UtRegisterTest("DetectDceOpnumTestParse13", DetectDceOpnumTestParse13, 1);
 #endif
 #endif
-
-    return;
 }

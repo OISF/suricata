@@ -46,7 +46,7 @@
 #include "util-unittest-helper.h"
 
 static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
-void DetectDistanceRegisterTests(void);
+static void DetectDistanceRegisterTests(void);
 
 void DetectDistanceRegister(void)
 {
@@ -80,26 +80,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         dubbed = 1;
     }
 
-    /* retrive the sm to apply the depth against */
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        pm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[s->list]);
-    } else {
-        pm =  SigMatchGetLastSMFromLists(s, 28,
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]);
-    }
+    /* retrieve the sm to apply the distance against */
+    pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "distance needs "
                    "preceding content, uricontent option, http_client_body, "
@@ -147,9 +129,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     }
     cd->flags |= DETECT_CONTENT_DISTANCE;
 
-    SigMatch *prev_pm = SigMatchGetLastSMFromLists(s, 4,
-                                                   DETECT_CONTENT, pm->prev,
-                                                   DETECT_PCRE, pm->prev);
+    SigMatch *prev_pm = DetectGetLastSMByListPtr(s, pm->prev,
+            DETECT_CONTENT, DETECT_PCRE, -1);
     if (prev_pm == NULL) {
         ret = 0;
         goto end;
@@ -236,7 +217,7 @@ end:
  * distance works, if the previous keyword is byte_jump and content
  * (bug 163)
  */
-int DetectDistanceTestPacket01 (void)
+static int DetectDistanceTestPacket01 (void)
 {
     int result = 0;
     uint8_t buf[] = { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -260,7 +241,7 @@ end:
 }
 #endif /* UNITTESTS */
 
-void DetectDistanceRegisterTests(void)
+static void DetectDistanceRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectDistanceTest01 -- distance / within mix",

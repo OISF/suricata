@@ -50,7 +50,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectTosSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectTosMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                          Signature *, const SigMatchCtx *);
+                          const Signature *, const SigMatchCtx *);
 static void DetectTosRegisterTests(void);
 static void DetectTosFree(void *);
 
@@ -82,8 +82,8 @@ void DetectTosRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTosMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
-                   Signature *s, const SigMatchCtx *ctx)
+static int DetectTosMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
+                   const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectTosData *tosd = (const DetectTosData *)ctx;
     int result = 0;

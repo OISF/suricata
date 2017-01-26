@@ -59,7 +59,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *,
+        const Signature *, const SigMatchData *);
 static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, char *);
 void DetectTlsVersionRegisterTests(void);
 void DetectTlsVersionFree(void *);
@@ -92,11 +94,13 @@ void DetectTlsVersionRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatchData *m)
 {
     SCEnter();
 
-    DetectTlsVersionData *tls_data = (DetectTlsVersionData *)m->ctx;
+    const DetectTlsVersionData *tls_data = (const DetectTlsVersionData *)m->ctx;
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");

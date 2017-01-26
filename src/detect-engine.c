@@ -101,18 +101,16 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
-void DetectAppLayerInspectEngineRegister(AppProto alproto,
-        uint32_t dir, int32_t sm_list,
-        int (*Callback)(ThreadVars *tv,
-            DetectEngineCtx *de_ctx,
-            DetectEngineThreadCtx *det_ctx,
-            Signature *sig, Flow *f,
-            uint8_t flags, void *alstate,
-            void *tx, uint64_t tx_id))
+void DetectAppLayerInspectEngineRegister(const char *name,
+        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback)
 {
+    DetectBufferTypeRegister(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    BUG_ON(sm_list == -1);
+
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
+        (sm_list < DETECT_SM_LIST_MATCH) ||
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
@@ -150,9 +148,22 @@ void DetectAppLayerInspectEngineRegister(AppProto alproto,
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
+    const int nlists = DetectBufferTypeMaxId();
+    SigMatchData *ptrs[nlists];
+    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
+
+    /* convert lists to SigMatchData arrays */
+    int i = 0;
+    for (i = DETECT_SM_LIST_DYNAMIC_START; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+
+        ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
+    }
+
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
-        if (s->sm_lists[t->sm_list] == NULL)
+        if (ptrs[t->sm_list] == NULL)
             goto next;
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
@@ -174,11 +185,12 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
+        new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
-            new_engine->inspect_flags = BIT_U32(DE_STATE_FLAG_BASE); // start beyond the built-ins
+            new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
         } else {
             DetectEngineAppInspectionEngine *a = s->app_inspect;
             while (a->next != NULL) {
@@ -187,14 +199,327 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             a->next = new_engine;
             new_engine->id = a->id + 1;
-            new_engine->inspect_flags = BIT_U32(new_engine->id + DE_STATE_FLAG_BASE);
         }
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
+
+        s->flags |= SIG_FLAG_STATE_MATCH;
 next:
         t = t->next;
     }
 
     return 0;
+}
+
+/** \brief free app inspect engines for a signature
+ *
+ *  For lists that are registered multiple times, like http_header and
+ *  http_cookie, making the engines owner of the lists is complicated.
+ *  Multiple engines in a sig may be pointing to the same list. To
+ *  address this the 'free' code needs to be extra careful about not
+ *  double freeing, so it takes an approach to first fill an array
+ *  of the to-free pointers before freeing them.
+ */
+void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
+{
+    const int nlists = DetectBufferTypeMaxId();
+    SigMatchData *ptrs[nlists];
+    memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
+
+    /* free engines and put smd in the array */
+    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    while (ie) {
+        DetectEngineAppInspectionEngine *next = ie->next;
+        BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->smd);
+        ptrs[ie->sm_list] = ie->smd;
+        SCFree(ie);
+        ie = next;
+    }
+
+    /* free the smds */
+    int i;
+    for (i = 0; i < nlists; i++)
+    {
+        if (ptrs[i] == NULL)
+            continue;
+
+        SigMatchData *smd = ptrs[i];
+        while(1) {
+            if (sigmatch_table[smd->type].Free != NULL) {
+                sigmatch_table[smd->type].Free(smd->ctx);
+            }
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+        SCFree(ptrs[i]);
+    }
+}
+
+/* code for registering buffers */
+
+#include "util-hash-lookup3.h"
+
+static HashListTable *g_buffer_type_hash = NULL;
+static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
+static int g_buffer_type_reg_closed = 0;
+
+typedef struct DetectBufferType_ {
+    const char *string;
+    const char *description;
+    int id;
+    _Bool mpm;
+    _Bool packet; /**< compat to packet matches */
+    void (*SetupCallback)(Signature *);
+    _Bool (*ValidateCallback)(const Signature *);
+} DetectBufferType;
+
+static DetectBufferType **g_buffer_type_map = NULL;
+
+int DetectBufferTypeMaxId(void)
+{
+    return g_buffer_type_id;
+}
+
+static uint32_t DetectBufferTypeHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    const DetectBufferType *map = (DetectBufferType *)data;
+    uint32_t hash = 0;
+
+    hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    hash %= ht->array_size;
+
+    return hash;
+}
+
+static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
+                                        uint16_t len2)
+{
+    DetectBufferType *map1 = (DetectBufferType *)data1;
+    DetectBufferType *map2 = (DetectBufferType *)data2;
+
+    int r = (strcmp(map1->string, map2->string) == 0);
+    return r;
+}
+
+static void DetectBufferTypeFreeFunc(void *data)
+{
+    DetectBufferType *map = (DetectBufferType *)data;
+    if (map != NULL) {
+        SCFree(map);
+    }
+}
+
+int DetectBufferTypeInit(void)
+{
+    BUG_ON(g_buffer_type_hash);
+    g_buffer_type_hash = HashListTableInit(256,
+            DetectBufferTypeHashFunc,
+            DetectBufferTypeCompareFunc,
+            DetectBufferTypeFreeFunc);
+    if (g_buffer_type_hash == NULL)
+        return -1;
+
+    return 0;
+}
+
+void DetectBufferTypeFree(void)
+{
+    if (g_buffer_type_hash == NULL)
+        return;
+
+    HashListTableFree(g_buffer_type_hash);
+    g_buffer_type_hash = NULL;
+    return;
+}
+
+int DetectBufferTypeAdd(const char *string)
+{
+    DetectBufferType *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL)
+        return -1;
+
+    map->string = string;
+    map->id = g_buffer_type_id++;
+
+    BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
+    SCLogDebug("buffer %s registered with id %d", map->string, map->id);
+    return map->id;
+}
+
+DetectBufferType *DetectBufferTypeLookupByName(const char *string)
+{
+    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, NULL, NULL };
+
+    DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
+    return res;
+}
+
+int DetectBufferTypeRegister(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    if (g_buffer_type_hash == NULL)
+        DetectBufferTypeInit();
+
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return DetectBufferTypeAdd(name);
+    } else {
+        return exists->id;
+    }
+}
+
+void DetectBufferTypeSupportsPacket(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->packet = TRUE;
+    SCLogDebug("%p %s -- %d supports packet inspection", exists, name, exists->id);
+}
+
+void DetectBufferTypeSupportsMpm(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->mpm = TRUE;
+    SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
+}
+
+int DetectBufferTypeGetByName(const char *name)
+{
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return -1;
+    }
+    return exists->id;
+}
+
+const char *DetectBufferTypeGetNameById(const int id)
+{
+    BUG_ON(id < 0 || id >= g_buffer_type_id);
+    BUG_ON(g_buffer_type_map == NULL);
+
+    if (g_buffer_type_map[id] == NULL)
+        return NULL;
+
+    return g_buffer_type_map[id]->string;
+}
+
+const DetectBufferType *DetectBufferTypeGetById(const int id)
+{
+    BUG_ON(id < 0 || id >= g_buffer_type_id);
+    BUG_ON(g_buffer_type_map == NULL);
+
+    return g_buffer_type_map[id];
+}
+
+void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
+{
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return;
+    }
+    exists->description = desc;
+}
+
+const char *DetectBufferTypeGetDescriptionById(const int id)
+{
+    const DetectBufferType *exists = DetectBufferTypeGetById(id);
+    if (!exists) {
+        return NULL;
+    }
+    return exists->description;
+}
+
+const char *DetectBufferTypeGetDescriptionByName(const char *name)
+{
+    const DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    if (!exists) {
+        return NULL;
+    }
+    return exists->description;
+}
+
+_Bool DetectBufferTypeSupportsPacketGetById(const int id)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map == NULL)
+        return FALSE;
+    SCLogDebug("map %p id %d packet? %d", map, id, map->packet);
+    return map->packet;
+}
+
+_Bool DetectBufferTypeSupportsMpmGetById(const int id)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map == NULL)
+        return FALSE;
+    SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
+    return map->mpm;
+}
+
+void DetectBufferTypeRegisterSetupCallback(const char *name,
+        void (*SetupCallback)(Signature *))
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->SetupCallback = SetupCallback;
+}
+
+void DetectBufferRunSetupCallback(const int id, Signature *s)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map && map->SetupCallback) {
+        map->SetupCallback(s);
+    }
+}
+
+void DetectBufferTypeRegisterValidateCallback(const char *name,
+        _Bool (*ValidateCallback)(const Signature *))
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->ValidateCallback = ValidateCallback;
+}
+
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s)
+{
+    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    if (map && map->ValidateCallback) {
+        return map->ValidateCallback(s);
+    }
+    return TRUE;
+}
+
+void DetectBufferTypeFinalizeRegistration(void)
+{
+    BUG_ON(g_buffer_type_hash == NULL);
+
+    const int size = g_buffer_type_id;
+    BUG_ON(!(size > 0));
+
+    g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
+    BUG_ON(!g_buffer_type_map);
+
+    SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
+    HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
+    while (b) {
+        DetectBufferType *map = HashListTableGetListData(b);
+        g_buffer_type_map[map->id] = map;
+        SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
+                "Callbacks: Setup %p Validate %p", map->string, map->id,
+                map->mpm ? "true" : "false", map->packet ? "true" : "false",
+                map->description, map->SetupCallback, map->ValidateCallback);
+        b = HashListTableGetListNext(b);
+    }
+    g_buffer_type_reg_closed = 1;
 }
 
 /* code to control the main thread to do a reload */
@@ -276,13 +601,10 @@ int DetectEngineReloadIsDone(void)
 int DetectEngineInspectGenericList(ThreadVars *tv,
                                    const DetectEngineCtx *de_ctx,
                                    DetectEngineThreadCtx *det_ctx,
-                                   const Signature *s, Flow *f, const uint8_t flags,
-                                   void *alstate, void *txv, uint64_t tx_id, const int list)
+                                   const Signature *s, const SigMatchData *smd,
+                                   Flow *f, const uint8_t flags,
+                                   void *alstate, void *txv, uint64_t tx_id)
 {
-#ifdef PROFILING
-    KEYWORD_PROFILING_SET_LIST(det_ctx, list);
-#endif
-    SigMatchData *smd = s->sm_arrays[list];
     SCLogDebug("running match functions, sm %p", smd);
     if (smd != NULL) {
         while (1) {
@@ -2374,7 +2696,6 @@ int DetectEngineReload(SCInstance *suri)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
-    SCThresholdConfInitContext(new_de_ctx, NULL);
     SCLogDebug("set up new_de_ctx %p", new_de_ctx);
 
     /* add to master */
@@ -2471,39 +2792,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_PMATCH:
             return "packet/stream payload";
 
-        case DETECT_SM_LIST_UMATCH:
-            return "http uri";
-        case DETECT_SM_LIST_HRUDMATCH:
-            return "http raw uri";
-        case DETECT_SM_LIST_HCBDMATCH:
-            return "http client body";
-        case DETECT_SM_LIST_FILEDATA:
-            return "http server body";
-        case DETECT_SM_LIST_HHDMATCH:
-            return "http headers";
-        case DETECT_SM_LIST_HRHDMATCH:
-            return "http raw headers";
-        case DETECT_SM_LIST_HSMDMATCH:
-            return "http stat msg";
-        case DETECT_SM_LIST_HSCDMATCH:
-            return "http stat code";
-        case DETECT_SM_LIST_HHHDMATCH:
-            return "http host";
-        case DETECT_SM_LIST_HRHHDMATCH:
-            return "http raw host header";
-        case DETECT_SM_LIST_HMDMATCH:
-            return "http method";
-        case DETECT_SM_LIST_HCDMATCH:
-            return "http cookie";
-        case DETECT_SM_LIST_HUADMATCH:
-            return "http user-agent";
-        case DETECT_SM_LIST_HTTP_REQLINEMATCH:
-            return "http request line";
-        case DETECT_SM_LIST_HTTP_RESLINEMATCH:
-            return "http response line";
-        case DETECT_SM_LIST_APP_EVENT:
-            return "app layer events";
-
         case DETECT_SM_LIST_AMATCH:
             return "generic app layer";
         case DETECT_SM_LIST_DMATCH:
@@ -2511,42 +2799,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_TMATCH:
             return "tag";
 
-        case DETECT_SM_LIST_FILEMATCH:
-            return "file";
-
-        case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-            return "dns query name";
-        case DETECT_SM_LIST_DNSREQUEST_MATCH:
-            return "dns request";
-        case DETECT_SM_LIST_DNSRESPONSE_MATCH:
-            return "dns response";
-
-        case DETECT_SM_LIST_TLSSNI_MATCH:
-            return "tls sni extension";
-        case DETECT_SM_LIST_TLSISSUER_MATCH:
-            return "tls issuer";
-        case DETECT_SM_LIST_TLSSUBJECT_MATCH:
-            return "tls subject";
-        case DETECT_SM_LIST_TLSVALIDITY_MATCH:
-            return "tls validity";
-
-        case DETECT_SM_LIST_MODBUS_MATCH:
-            return "modbus";
-        case DETECT_SM_LIST_DNP3_DATA_MATCH:
-            return "dnp3_data";
-        case DETECT_SM_LIST_DNP3_MATCH:
-            return "dnp3";
-
-        case DETECT_SM_LIST_CIP_MATCH:
-            return "cip";
-        case DETECT_SM_LIST_ENIP_MATCH:
-            return "enip";
-
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
-
-        case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
-            return "template_buffer";
 
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
@@ -2558,8 +2812,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MAX:
             return "max (internal)";
-        case DETECT_SM_LIST_NOTSET:
-            return "not set (internal)";
     }
     return "error";
 }

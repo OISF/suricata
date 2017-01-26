@@ -60,16 +60,15 @@
 #include "stream-tcp.h"
 #include "detect-http-response-line.h"
 
-int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, char *);
-void DetectHttpResponseLineRegisterTests(void);
-void DetectHttpResponseLineFree(void *);
+static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, char *);
+static void DetectHttpResponseLineRegisterTests(void);
 static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id);
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static void DetectHttpResponseLineSetupCallback(Signature *s);
+static int g_http_response_line_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "http_response_line" keyword.
@@ -87,15 +86,20 @@ void DetectHttpResponseLineRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_RESPONSE_LINE].flags |= SIGMATCH_PAYLOAD ;
 
-    DetectMpmAppLayerRegister("http_response_line", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HTTP_RESLINEMATCH, 2,
+    DetectAppLayerMpmRegister("http_response_line", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseLineRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HTTP_RESLINEMATCH,
+    DetectAppLayerInspectEngineRegister("http_response_line",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpResponseLine);
 
-    return;
+    DetectBufferTypeSetDescriptionByName("http_response_line",
+            "http response line");
+
+    DetectBufferTypeRegisterSetupCallback("http_response_line",
+            DetectHttpResponseLineSetupCallback);
+
+    g_http_response_line_id = DetectBufferTypeGetByName("http_response_line");
 }
 
 /**
@@ -111,11 +115,17 @@ void DetectHttpResponseLineRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    s->list = DETECT_SM_LIST_HTTP_RESLINEMATCH;
+    s->init_data->list = g_http_response_line_id;
     s->alproto = ALPROTO_HTTP;
     return 0;
+}
+
+static void DetectHttpResponseLineSetupCallback(Signature *s)
+{
+    SCLogDebug("callback invoked by %u", s->id);
+    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /** \brief HTTP response line Mpm prefilter callback
@@ -173,11 +183,9 @@ static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
  * \retval 2 Sig can't match.
  */
 int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
 
@@ -198,7 +206,7 @@ int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
 #endif
 
     /* run the inspection against the buffer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HTTP_RESLINEMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           bstr_ptr(tx->response_line),
                                           bstr_len(tx->response_line),

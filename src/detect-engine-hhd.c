@@ -382,11 +382,9 @@ int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 }
 
 int DetectEngineInspectHttpHeader(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
@@ -401,7 +399,7 @@ int DetectEngineInspectHttpHeader(ThreadVars *tv,
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHDMATCH],
+    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer,
                                           buffer_len,
@@ -3202,10 +3200,7 @@ static int DetectEngineHttpHeaderTest28(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 didn't match but should have");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p2, 1));
 
     result = 1;
 

@@ -97,10 +97,10 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                              DetectEngineThreadCtx *det_ctx, Signature *s,
-                              Flow *f, uint8_t flags, void *alstate, void *txv,
-                              uint64_t tx_id)
+int DetectEngineInspectTlsSni(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint16_t buffer_len;
@@ -114,8 +114,7 @@ int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
     buffer = (uint8_t *)ssl_state->client_connp.sni;
     buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSSNI_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -173,10 +172,10 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                 DetectEngineThreadCtx *det_ctx, Signature *s,
-                                 Flow *f, uint8_t flags, void *alstate, void *txv,
-                                 uint64_t tx_id)
+int DetectEngineInspectTlsIssuer(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint32_t buffer_len;
@@ -190,8 +189,7 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
     buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
@@ -249,10 +247,10 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 0       No match
  *  \retval 1       Match
  */
-int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
-                                  Flow *f, uint8_t flags, void *alstate, void *txv,
-                                  uint64_t tx_id)
+int DetectEngineInspectTlsSubject(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
     uint32_t buffer_len;
@@ -266,20 +264,19 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
     buffer_len = strlen(ssl_state->server_connp.cert0_subject);
 
-    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
-            s->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH],
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
             f, buffer, buffer_len, 0,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
 }
 
-int DetectEngineInspectTlsValidity(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
-                                  Flow *f, uint8_t flags, void *alstate,
-                                  void *txv, uint64_t tx_id)
+int DetectEngineInspectTlsValidity(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, f, flags,
-                                          alstate, txv, tx_id,
-                                          DETECT_SM_LIST_TLSVALIDITY_MATCH);
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
 }

@@ -60,8 +60,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                          uint8_t, void *, Signature *, SigMatch *);
+static int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *,
+        const Signature *, const SigMatchData *);
 static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, char *);
 void DetectSslVersionRegisterTests(void);
 void DetectSslVersionFree(void *);
@@ -92,8 +93,9 @@ void DetectSslVersionRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatchData *m)
 {
     SCEnter();
 
@@ -101,7 +103,7 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     uint16_t ver = 0;
     uint8_t sig_ver = TLS_UNKNOWN;
 
-    DetectSslVersionData *ssl = (DetectSslVersionData *)m->ctx;
+    const DetectSslVersionData *ssl = (const DetectSslVersionData *)m->ctx;
     SSLState *app_state = (SSLState *)state;
     if (app_state == NULL) {
         SCLogDebug("no app state, no match");

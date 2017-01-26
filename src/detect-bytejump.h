@@ -59,43 +59,6 @@ typedef struct DetectBytejumpData_ {
 void DetectBytejumpRegister (void);
 
 /**
- * This function is used to add the parsed byte_jump data
- * into the current signature.
- *
- * \param de_ctx pointer to the Detection Engine Context
- * \param s pointer to the Current Signature
- * \param optstr pointer to the user provided options
- *
- * \retval 0 on Success
- * \retval -1 on Failure
- */
-int DetectBytejumpSetup(DetectEngineCtx *, Signature *, char *);
-
-/**
- * \brief this function will free memory associated with DetectBytejumpData
- *
- * \param data pointer to DetectBytejumpData
- */
-void DetectBytejumpFree(void *ptr);
-
-/**
- * This function is used to parse byte_jump options passed via
- *
- * byte_jump: bytes, offset [,flags [, ...]]
- *
- * flags: "big", "little", "relative", "string", "oct", "dec", "hex"
- *        "align", "from beginning", "multiplier N", "post_offset N"
- *
- * \param optstr Pointer to the user provided byte_jump options
- * \param offset Used to pass the offset back, if byte_jump uses a byte_extract
- *               var.
- *
- * \retval data pointer to DetectBytejumpData on success
- * \retval NULL on failure
- */
-DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
-
-/**
  * This function is used to match byte_jump
  *
  * \param t pointer to thread vars
@@ -112,9 +75,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
  *       does: if (DetectBytejumpMatch(...)) { match }, then they catch an
  *       error as a match.
  */
-int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx);
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, const SigMatchCtx *,
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *, const Signature *, const SigMatchCtx *,
                           uint8_t *, uint32_t, uint8_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
