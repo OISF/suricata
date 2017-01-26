@@ -48,6 +48,9 @@
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFiledataRegisterTests(void);
+static void DetectFiledataSetupCallback(Signature *s);
+static int g_file_data_buffer_id = 0;
+
 /**
  * \brief Registration function for keyword: file_data
  */
@@ -57,25 +60,30 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].desc = "make content keywords match on HTTP response body";
     sigmatch_table[DETECT_FILE_DATA].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#file-data";
     sigmatch_table[DETECT_FILE_DATA].Match = NULL;
-    sigmatch_table[DETECT_FILE_DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
     sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_FILEDATA, 2,
+    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOSERVER, 2,
             PrefilterTxSmtpFiledataRegister);
-    DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_FILEDATA, 2,
+    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxHttpResponseBodyRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_FILEDATA,
+    DetectAppLayerInspectEngineRegister("file_data",
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
             DetectEngineInspectHttpServerBody);
-    DetectAppLayerInspectEngineRegister(ALPROTO_SMTP, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_FILEDATA,
+    DetectAppLayerInspectEngineRegister("file_data",
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
             DetectEngineInspectSMTPFiledata);
+
+    DetectBufferTypeRegisterSetupCallback("file_data",
+            DetectFiledataSetupCallback);
+
+    DetectBufferTypeSetDescriptionByName("file_data",
+            "http response body or smtp attachments data");
+
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
 /**
@@ -93,31 +101,48 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 {
     SCEnter();
 
-    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
-        s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP) {
+    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
+        (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
+        s->alproto != ALPROTO_SMTP)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
 
-    if (s->alproto == ALPROTO_HTTP && (s->init_flags & SIG_FLAG_INIT_FLOW) &&
+    if (s->alproto == ALPROTO_HTTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http.");
-            return -1;
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
+                "flow:to_server or flow:from_client with http.");
+        return -1;
     }
 
-    if (s->alproto == ALPROTO_SMTP && (s->init_flags & SIG_FLAG_INIT_FLOW) &&
+    if (s->alproto == ALPROTO_SMTP && (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) &&
         !(s->flags & SIG_FLAG_TOSERVER) && (s->flags & SIG_FLAG_TOCLIENT)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_client or from_server with smtp.");
-            return -1;
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with "
+                "flow:to_client or flow:from_server with smtp.");
+        return -1;
     }
 
-    s->list = DETECT_SM_LIST_FILEDATA;
-
+    s->init_data->list = DetectBufferTypeGetByName("file_data");
     return 0;
 }
 
+static void DetectFiledataSetupCallback(Signature *s)
+{
+    if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
+        AppLayerHtpEnableRequestBodyCallback();
+    }
+    if (s->alproto == ALPROTO_HTTP) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+    } else if (s->alproto == ALPROTO_SMTP) {
+        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+    }
+
+    SCLogDebug("callback invoked by %u", s->id);
+}
+
 #ifdef UNITTESTS
+#include "detect-isdataat.h"
+
 static int DetectFiledataParseTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -141,7 +166,7 @@ static int DetectFiledataParseTest01(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
        printf("content not in FILEDATA list: ");
        goto end;
     }
@@ -178,7 +203,7 @@ static int DetectFiledataParseTest02(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
        printf("content not in FILEDATA list: ");
        goto end;
     }
@@ -215,7 +240,7 @@ static int DetectFiledataParseTest03(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
        printf("content not in FILEDATA list: ");
        goto end;
     }
@@ -284,6 +309,60 @@ end:
 
     return result;
 }
+
+static int DetectFiledataIsdataatParseTest1(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "file_data; content:\"one\"; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists[g_file_data_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_CONTENT);
+    sm = sm->next;
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectFiledataIsdataatParseTest2(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any ("
+            "file_data; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_file_data_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif
 
 void DetectFiledataRegisterTests(void)
@@ -294,5 +373,10 @@ void DetectFiledataRegisterTests(void)
     UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
     UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
     UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05);
+
+    UtRegisterTest("DetectFiledataIsdataatParseTest1",
+            DetectFiledataIsdataatParseTest1);
+    UtRegisterTest("DetectFiledataIsdataatParseTest2",
+            DetectFiledataIsdataatParseTest2);
 #endif
 }

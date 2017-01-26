@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,59 +34,78 @@
 #include "pkt-var.h"
 #include "util-debug.h"
 
-/* puts a new value into a pktvar */
-void PktVarUpdate(PktVar *pv, uint8_t *value, uint16_t size)
-{
-    if (pv->value) SCFree(pv->value);
-    pv->value = value;
-    pv->value_len = size;
-}
-
 /* get the pktvar with name 'name' from the pkt
  *
  * name is a normal string*/
-PktVar *PktVarGet(Packet *p, const char *name)
+PktVar *PktVarGet(Packet *p, uint32_t id)
 {
     PktVar *pv = p->pktvar;
 
     for (;pv != NULL; pv = pv->next) {
-        if (pv->name && strcmp(pv->name, name) == 0)
+        if (pv->id == id)
             return pv;
     }
 
     return NULL;
 }
 
-/* add a pktvar to the pkt, or update it */
-void PktVarAdd(Packet *p, const char *name, uint8_t *value, uint16_t size)
+/**
+ *  \brief add a key-value pktvar to the pkt
+ *  \retval r 0 ok, -1 error
+ */
+int PktVarAddKeyValue(Packet *p, uint8_t *key, uint16_t ksize, uint8_t *value, uint16_t size)
 {
-    //printf("Adding packet var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
+    PktVar *pv = SCCalloc(1, sizeof(PktVar));
+    if (unlikely(pv == NULL))
+        return -1;
 
-    PktVar *pv = PktVarGet(p, name);
-    if (pv == NULL) {
-        pv = SCMalloc(sizeof(PktVar));
-        if (unlikely(pv == NULL))
-            return;
+    pv->key = key;
+    pv->key_len = ksize;
+    pv->value = value;
+    pv->value_len = size;
 
-        pv->name = name;
-        pv->value = value;
-        pv->value_len = size;
-        pv->next = NULL;
-
-        PktVar *tpv = p->pktvar;
-        if (p->pktvar == NULL) p->pktvar = pv;
-        else {
-            while(tpv) {
-                if (tpv->next == NULL) {
-                    tpv->next = pv;
-                    return;
-                }
-                tpv = tpv->next;
+    PktVar *tpv = p->pktvar;
+    if (p->pktvar == NULL)
+        p->pktvar = pv;
+    else {
+        while(tpv) {
+            if (tpv->next == NULL) {
+                tpv->next = pv;
+                return 0;
             }
+            tpv = tpv->next;
         }
-    } else {
-        PktVarUpdate(pv, value, size);
     }
+    return 0;
+}
+
+/**
+ *  \brief add a key-value pktvar to the pkt
+ *  \retval r 0 ok, -1 error
+ */
+int PktVarAdd(Packet *p, uint32_t id, uint8_t *value, uint16_t size)
+{
+    PktVar *pv = SCCalloc(1, sizeof(PktVar));
+    if (unlikely(pv == NULL))
+        return -1;
+
+    pv->id = id;
+    pv->value = value;
+    pv->value_len = size;
+
+    PktVar *tpv = p->pktvar;
+    if (p->pktvar == NULL)
+        p->pktvar = pv;
+    else {
+        while(tpv) {
+            if (tpv->next == NULL) {
+                tpv->next = pv;
+                return 0;
+            }
+            tpv = tpv->next;
+        }
+    }
+    return 0;
 }
 
 void PktVarFree(PktVar *pv)
@@ -94,7 +113,8 @@ void PktVarFree(PktVar *pv)
     if (pv == NULL)
         return;
 
-    pv->name = NULL;
+    if (pv->key != NULL)
+        SCFree(pv->key);
     if (pv->value != NULL)
         SCFree(pv->value);
     PktVar *pv_next = pv->next;
@@ -104,21 +124,3 @@ void PktVarFree(PktVar *pv)
     if (pv_next != NULL)
         PktVarFree(pv_next);
 }
-
-void PktVarPrint(PktVar *pv)
-{
-    uint16_t i;
-
-    if (pv == NULL)
-        return;
-
-    printf("Name \"%s\", Value \"", pv->name);
-    for (i = 0; i < pv->value_len; i++) {
-        if (isprint(pv->value[i])) printf("%c", pv->value[i]);
-        else                       printf("\\%02X", pv->value[i]);
-    }
-    printf("\", Len \"%" PRIu32 "\"\n", pv->value_len);
-
-    PktVarPrint(pv->next);
-}
-

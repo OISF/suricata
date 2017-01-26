@@ -68,11 +68,12 @@ static int DetectTlsValidSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsNotBeforeSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsNotAfterSetup (DetectEngineCtx *, Signature *s, char *str);
 static int DetectTlsValiditySetup (DetectEngineCtx *, Signature *s, char *str, uint8_t);
-void TlsNotBeforeRegisterTests(void);
-void TlsNotAfterRegisterTests(void);
-void TlsExpiredRegisterTests(void);
-void TlsValidRegisterTests(void);
+static void TlsNotBeforeRegisterTests(void);
+static void TlsNotAfterRegisterTests(void);
+static void TlsExpiredRegisterTests(void);
+static void TlsValidRegisterTests(void);
 static void DetectTlsValidityFree(void *);
+static int g_tls_validity_buffer_id = 0;
 
 /**
  * \brief Registration function for tls validity keywords.
@@ -119,9 +120,11 @@ void DetectTlsValidityRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSVALIDITY_MATCH,
+    DetectAppLayerInspectEngineRegister("tls_validity",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTlsValidity);
+
+    g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls_validity");
 }
 
 /**
@@ -418,6 +421,9 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
+
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
@@ -430,12 +436,6 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (sm == NULL)
         goto error;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "rule contains conflicting keywords.");
-        goto error;
-    }
-
     dd->mode = DETECT_TLS_VALIDITY_EX;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
@@ -444,11 +444,7 @@ static int DetectTlsExpiredSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_TLS_EXPIRED;
     sm->ctx = (void *)dd;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
-
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
     return 0;
 
 error:
@@ -476,6 +472,9 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
+
     dd = SCCalloc(1, sizeof(DetectTlsValidityData));
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Allocation \'%s\' failed", rawstr);
@@ -488,12 +487,6 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     if (sm == NULL)
         goto error;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "rule contains conflicting keywords.");
-        goto error;
-    }
-
     dd->mode = DETECT_TLS_VALIDITY_VA;
     dd->type = DETECT_TLS_TYPE_NOTAFTER;
     dd->epoch = 0;
@@ -502,11 +495,7 @@ static int DetectTlsValidSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_TLS_VALID;
     sm->ctx = (void *)dd;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
-
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
     return 0;
 
 error:
@@ -573,6 +562,9 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     SCLogDebug("\'%s\'", rawstr);
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
+
     dd = DetectTlsValidityParse(rawstr);
     if (dd == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Parsing \'%s\' failed", rawstr);
@@ -584,12 +576,6 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "rule contains conflicting keywords.");
-        goto error;
-    }
 
     if (type == DETECT_TLS_TYPE_NOTBEFORE) {
         dd->type = DETECT_TLS_TYPE_NOTBEFORE;
@@ -605,11 +591,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
 
     sm->ctx = (void *)dd;
 
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_TLS;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
-
+    SigMatchAppendSMToList(s, sm, g_tls_validity_buffer_id);
     return 0;
 
 error:

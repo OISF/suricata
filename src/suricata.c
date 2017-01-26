@@ -2147,7 +2147,6 @@ static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
             return TM_ECODE_FAILED;
     }
 
-    SCThresholdConfInitContext(de_ctx, NULL);
     return TM_ECODE_OK;
 }
 
@@ -2550,6 +2549,7 @@ int main(int argc, char **argv)
         }
 
         DetectEngineAddToMaster(de_ctx);
+        DetectEngineBumpVersion();
     } else {
         /* tell the app layer to consider only the log id */
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);

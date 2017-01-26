@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,10 +24,10 @@
 #ifndef __PKT_VAR_H__
 #define __PKT_VAR_H__
 
-void PktVarAdd(Packet *, const char *, uint8_t *, uint16_t);
-PktVar *PktVarGet(Packet *, const char *);
+int WARN_UNUSED PktVarAddKeyValue(Packet *, uint8_t *, uint16_t, uint8_t *, uint16_t);
+int WARN_UNUSED PktVarAdd(Packet *, uint32_t id, uint8_t *, uint16_t);
+PktVar *PktVarGet(Packet *, uint32_t id);
 void PktVarFree(PktVar *);
-void PktVarPrint(PktVar *);
 
 #endif /* __PKT_VAR_H__ */
 

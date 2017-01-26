@@ -235,6 +235,13 @@ int SSLGetAlstateProgress(void *tx, uint8_t direction)
         return TLS_HANDSHAKE_DONE;
     }
 
+    if (direction == STREAM_TOSERVER &&
+        (ssl_state->server_connp.cert0_subject != NULL ||
+         ssl_state->server_connp.cert0_issuerdn != NULL))
+    {
+        return TLS_STATE_CERT_READY;
+    }
+
     return TLS_STATE_IN_PROGRESS;
 }
 
