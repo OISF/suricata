@@ -1220,7 +1220,9 @@ stream:
     #    prealloc: 512
     #  - size: 768
     #    prealloc: 1024
-    #  - size: 1448
+    # 'from_mtu' means that the size is mtu - 40,
+    # or 1460 if mtu couldn't be determined.
+    #  - size: from_mtu
     #    prealloc: 1024
     #  - size: 65535
     #    prealloc: 128
