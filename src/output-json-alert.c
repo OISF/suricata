@@ -218,6 +218,29 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     json_object_set_new(js, "alert", ajs);
 }
 
+static void AlertJsonTunnel(const Packet *p, json_t *js)
+{
+    json_t *tunnel = json_object();
+    if (tunnel == NULL)
+        return;
+
+    if (p->root == NULL) {
+        json_decref(tunnel);
+        return;
+    }
+
+    /* get a lock to access root packet fields */
+    SCMutex *m = &p->root->tunnel_mutex;
+
+    SCMutexLock(m);
+    JsonFiveTuple((const Packet *)p->root, 0, tunnel);
+    SCMutexUnlock(m);
+
+    json_object_set_new(tunnel, "depth", json_integer(p->recursion_level));
+
+    json_object_set_new(js, "tunnel", tunnel);
+}
+
 static void AlertJsonPacket(const Packet *p, json_t *js)
 {
     unsigned long len = GET_PKT_LEN(p) * 2;
@@ -260,6 +283,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* alert */
         AlertJsonHeader(p, pa, js);
+
+        if (IS_TUNNEL_PKT(p)) {
+            AlertJsonTunnel(p, js);
+        }
 
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {
