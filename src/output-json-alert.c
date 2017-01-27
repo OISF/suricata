@@ -277,7 +277,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* tls alert */
                 if (proto == ALPROTO_TLS)
                     AlertJsonTls(p->flow, js);
             }
@@ -287,7 +287,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* ssh alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
             }
@@ -297,7 +297,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* smtp alert */
                 if (proto == ALPROTO_SMTP) {
                     hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
@@ -313,6 +313,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (json_output_ctx->flags & LOG_JSON_DNP3) {
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* dnp3 alert */
                 if (proto == ALPROTO_DNP3) {
                     AlertJsonDnp3(p->flow, js);
                 }
