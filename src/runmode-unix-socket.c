@@ -299,102 +299,57 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         this->currentfile = NULL;
 
-        /* needed by FlowForceReassembly */
-        PacketPoolInit();
-
-        /* handle graceful shutdown of the flow engine, it's helper
-         * threads and the packet threads */
-        FlowDisableFlowManagerThread();
-        TmThreadDisableReceiveThreads();
-        FlowForceReassembly();
-        TmThreadDisablePacketThreads();
-        FlowDisableFlowRecyclerThread();
-
-        /* kill the stats threads */
-        TmThreadKillThreadsFamily(TVT_MGMT);
-        TmThreadClearThreadsFamily(TVT_MGMT);
-
-        /* kill packet threads -- already in 'disabled' state */
-        TmThreadKillThreadsFamily(TVT_PPT);
-        TmThreadClearThreadsFamily(TVT_PPT);
-
-        PacketPoolDestroy();
-
-        /* mgt and ppt threads killed, we can run non thread-safe
-         * shutdown functions */
-        StatsReleaseResources();
-        RunModeShutDown();
-        FlowShutdown();
-        IPPairShutdown();
-        HostCleanup();
-        StreamTcpFreeConfig(STREAM_VERBOSE);
-        DefragDestroy();
-        TmqResetQueues();
-#ifdef PROFILING
-        if (profiling_rules_enabled)
-            SCProfilingDump();
-        SCProfilingDestroy();
-#endif
+        PostRunDeinit(RUNMODE_PCAP_FILE, NULL /* no ts */);
     }
-    if (!TAILQ_EMPTY(&this->files)) {
-        PcapFiles *cfile = TAILQ_FIRST(&this->files);
-        TAILQ_REMOVE(&this->files, cfile, next);
-        SCLogInfo("Starting run for '%s'", cfile->filename);
-        unix_manager_file_task_running = 1;
-        this->running = 1;
-        if (ConfSet("pcap-file.file", cfile->filename) != 1) {
+    if (TAILQ_EMPTY(&this->files)) {
+        // nothing to do
+        return TM_ECODE_OK;
+    }
+
+    PcapFiles *cfile = TAILQ_FIRST(&this->files);
+    TAILQ_REMOVE(&this->files, cfile, next);
+    SCLogInfo("Starting run for '%s'", cfile->filename);
+    unix_manager_file_task_running = 1;
+    this->running = 1;
+    if (ConfSet("pcap-file.file", cfile->filename) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                "Can not set working file to '%s'", cfile->filename);
+        PcapFilesFree(cfile);
+        return TM_ECODE_FAILED;
+    }
+    if (cfile->output_dir) {
+        if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENTS,
-                       "Can not set working file to '%s'", cfile->filename);
+                    "Can not set output dir to '%s'", cfile->output_dir);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
-        if (cfile->output_dir) {
-            if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
-                SCLogError(SC_ERR_INVALID_ARGUMENTS,
-                           "Can not set output dir to '%s'", cfile->output_dir);
-                PcapFilesFree(cfile);
-                return TM_ECODE_FAILED;
-            }
-        }
-        if (cfile->tenant_id > 0) {
-            char tstr[16];
-            snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
-            if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
-                SCLogError(SC_ERR_INVALID_ARGUMENTS,
-                           "Can not set working tenant-id to '%s'", tstr);
-                PcapFilesFree(cfile);
-                return TM_ECODE_FAILED;
-            }
-        } else {
-            SCLogInfo("pcap-file.tenant-id not set");
-        }
-        this->currentfile = SCStrdup(cfile->filename);
-        if (unlikely(this->currentfile == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed file name allocation");
+    }
+    if (cfile->tenant_id > 0) {
+        char tstr[16];
+        snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
+        if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
+            SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                    "Can not set working tenant-id to '%s'", tstr);
+            PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
-        PcapFilesFree(cfile);
-        StatsInit();
-#ifdef PROFILING
-        SCProfilingRulesGlobalInit();
-        SCProfilingKeywordsGlobalInit();
-        SCProfilingSghsGlobalInit();
-        SCProfilingInit();
-#endif /* PROFILING */
-        DefragInit();
-        FlowInitConfig(FLOW_QUIET);
-        IPPairInitConfig(FLOW_QUIET);
-        StreamTcpInitConfig(STREAM_VERBOSE);
-        AppLayerRegisterGlobalCounters();
-        RunModeInitializeOutputs();
-        StatsSetupPostConfig();
-        RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
-        FlowManagerThreadSpawn();
-        FlowRecyclerThreadSpawn();
-        StatsSpawnThreads();
-        /* Un-pause all the paused threads */
-        TmThreadContinueThreads();
+    } else {
+        SCLogInfo("pcap-file.tenant-id not set");
     }
+    this->currentfile = SCStrdup(cfile->filename);
+    if (unlikely(this->currentfile == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed file name allocation");
+        return TM_ECODE_FAILED;
+    }
+    PcapFilesFree(cfile);
+
+    PreRunInit(RUNMODE_PCAP_FILE);
+    PreRunPostPrivsDropInit(RUNMODE_PCAP_FILE);
+    RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
+
+    /* Un-pause all the paused threads */
+    TmThreadContinueThreads();
     return TM_ECODE_OK;
 }
 #endif

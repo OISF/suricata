@@ -387,7 +387,7 @@ static int DetectTlsSubjectTest02(void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    de_ctx->mpm_matcher = DEFAULT_MPM;
+    de_ctx->mpm_matcher = mpm_default_matcher;
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "

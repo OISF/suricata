@@ -211,7 +211,10 @@ intmax_t max_pending_packets;
 int g_detect_disabled = 0;
 
 /** set caps or not */
-int sc_set_caps;
+int sc_set_caps = FALSE;
+
+/** highest mtu of the interfaces we monitor */
+int g_default_mtu = 0;
 
 int EngineModeIsIPS(void)
 {
@@ -312,8 +315,14 @@ void CreateLowercaseTable()
     }
 }
 
-void GlobalInits()
+void GlobalsInitPreConfig()
 {
+#ifdef __SC_CUDA_SUPPORT__
+    /* Init the CUDA environment */
+    SCCudaInitCudaEnvironment();
+    CudaBufferInit();
+#endif
+
     memset(trans_q, 0, sizeof(trans_q));
     memset(data_queues, 0, sizeof(data_queues));
 
@@ -334,6 +343,80 @@ void GlobalInits()
     }
 
     CreateLowercaseTable();
+
+    TimeInit();
+    SupportFastPatternForSigMatchTypes();
+}
+
+void GlobalsDestroy(SCInstance *suri)
+{
+    HostShutdown();
+    HTPFreeConfig();
+    HTPAtExitPrintStats();
+
+#ifdef DBG_MEM_ALLOC
+    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
+#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
+    print_mem_flag = 0;
+#endif
+#endif
+
+    AppLayerHtpPrintStats();
+
+    /* TODO this can do into it's own func */
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx) {
+        DetectEngineMoveToFreeList(de_ctx);
+        DetectEngineDeReference(&de_ctx);
+    }
+    DetectEnginePruneFreeList();
+
+    AppLayerDeSetup();
+
+    TagDestroyCtx();
+
+    LiveDeviceListClean();
+    OutputDeregisterAll();
+    TimeDeinit();
+    SCProtoNameDeInit();
+    if (!suri->disabled_detect) {
+        SCReferenceConfDeinit();
+        SCClassConfDeinit();
+    }
+#ifdef HAVE_MAGIC
+    MagicDeinit();
+#endif
+    TmqhCleanup();
+    TmModuleRunDeInit();
+    ParseSizeDeinit();
+#ifdef HAVE_NSS
+    NSS_Shutdown();
+    PR_Cleanup();
+#endif
+
+#ifdef HAVE_AF_PACKET
+    AFPPeersListClean();
+#endif
+
+    SC_ATOMIC_DESTROY(engine_stage);
+
+#ifdef BUILD_HYPERSCAN
+    MpmHSGlobalCleanup();
+#endif
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        MpmCudaBufferDeSetup();
+    CudaHandlerFreeProfiles();
+#endif
+    ConfDeInit();
+#ifdef HAVE_LUAJIT
+    LuajitFreeStatesPool();
+#endif
+    SCLogDeInitLogModule();
+    DetectParseFreeRegexes();
+
+    SCPidfileRemove(suri->pid_filename);
 }
 
 /** \brief make sure threads can stop the engine by calling this
@@ -957,10 +1040,11 @@ static TmEcode ParseInterfacesList(int runmode, char *pcap_dev)
     SCReturnInt(TM_ECODE_OK);
 }
 
-static void SCInstanceInit(SCInstance *suri)
+static void SCInstanceInit(SCInstance *suri, const char *progname)
 {
     memset(suri, 0x00, sizeof(*suri));
 
+    suri->progname = progname;
     suri->run_mode = RUNMODE_UNKNOWN;
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1022,13 +1106,15 @@ static void SCSetStartTime(SCInstance *suri)
     gettimeofday(&suri->start_time, NULL);
 }
 
-static void SCPrintElapsedTime(SCInstance *suri)
+static void SCPrintElapsedTime(struct timeval *start_time)
 {
+    if (start_time == NULL)
+        return;
     struct timeval end_time;
     memset(&end_time, 0, sizeof(end_time));
     gettimeofday(&end_time, NULL);
-    uint64_t milliseconds = ((end_time.tv_sec - suri->start_time.tv_sec) * 1000) +
-        (((1000000 + end_time.tv_usec - suri->start_time.tv_usec) / 1000) - 1000);
+    uint64_t milliseconds = ((end_time.tv_sec - start_time->tv_sec) * 1000) +
+        (((1000000 + end_time.tv_usec - start_time->tv_usec) / 1000) - 1000);
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
@@ -2032,6 +2118,89 @@ static int InitSignalHandler(SCInstance *suri)
     return TM_ECODE_OK;
 }
 
+/* initialization code for both the main modes and for
+ * unix socket mode.
+ *
+ * Will be run once per pcap in unix-socket mode */
+void PreRunInit(const int runmode)
+{
+    if (runmode == RUNMODE_UNIX_SOCKET)
+        return;
+
+    StatsInit();
+#ifdef PROFILING
+    SCProfilingRulesGlobalInit();
+    SCProfilingKeywordsGlobalInit();
+    SCProfilingSghsGlobalInit();
+    SCProfilingInit();
+#endif /* PROFILING */
+    DefragInit();
+    FlowInitConfig(FLOW_QUIET);
+    IPPairInitConfig(FLOW_QUIET);
+    StreamTcpInitConfig(STREAM_VERBOSE);
+    AppLayerRegisterGlobalCounters();
+}
+
+/* tasks we need to run before packets start flowing,
+ * but after we dropped privs */
+void PreRunPostPrivsDropInit(const int runmode)
+{
+    if (runmode == RUNMODE_UNIX_SOCKET)
+        return;
+
+    RunModeInitializeOutputs();
+    StatsSetupPostConfig();
+}
+
+/* clean up / shutdown code for both the main modes and for
+ * unix socket mode.
+ *
+ * Will be run once per pcap in unix-socket mode */
+void PostRunDeinit(const int runmode, struct timeval *start_time)
+{
+    if (runmode == RUNMODE_UNIX_SOCKET)
+        return;
+
+    /* needed by FlowForceReassembly */
+    PacketPoolInit();
+
+    /* handle graceful shutdown of the flow engine, it's helper
+     * threads and the packet threads */
+    FlowDisableFlowManagerThread();
+    TmThreadDisableReceiveThreads();
+    FlowForceReassembly();
+    TmThreadDisablePacketThreads();
+    SCPrintElapsedTime(start_time);
+    FlowDisableFlowRecyclerThread();
+
+    /* kill the stats threads */
+    TmThreadKillThreadsFamily(TVT_MGMT);
+    TmThreadClearThreadsFamily(TVT_MGMT);
+
+    /* kill packet threads -- already in 'disabled' state */
+    TmThreadKillThreadsFamily(TVT_PPT);
+    TmThreadClearThreadsFamily(TVT_PPT);
+
+    PacketPoolDestroy();
+
+    /* mgt and ppt threads killed, we can run non thread-safe
+     * shutdown functions */
+    StatsReleaseResources();
+    RunModeShutDown();
+    FlowShutdown();
+    IPPairShutdown();
+    HostCleanup();
+    StreamTcpFreeConfig(STREAM_VERBOSE);
+    DefragDestroy();
+    TmqResetQueues();
+#ifdef PROFILING
+    if (profiling_rules_enabled)
+        SCProfilingDump();
+    SCProfilingDestroy();
+#endif
+}
+
+
 int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 {
     /* Treat internal running mode */
@@ -2194,6 +2363,8 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                             dev[len-1] = '\0';
                         }
                     }
+                    int mtu = GetIfaceMTU(dev);
+                    g_default_mtu = MAX(mtu, g_default_mtu);
 
                     unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
                     if (iface_max_packet_size > default_packet_size)
@@ -2203,6 +2374,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                     break;
                 /* fall through */
             default:
+                g_default_mtu = DEFAULT_MTU;
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }
     } else {
@@ -2218,6 +2390,72 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
     return TM_ECODE_OK;
 }
+
+static void PostRunStartedDetectSetup(SCInstance *suri)
+{
+    /* registering signal handlers we use.  We register usr2 here, so that one
+     * can't call it during the first sig load phase or while threads are still
+     * starting up. */
+    if (DetectEngineEnabled() && suri->sig_file == NULL &&
+            suri->delayed_detect == 0)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+
+    if (suri->delayed_detect) {
+        /* force 'reload', this will load the rules and swap engines */
+        DetectEngineReload(suri);
+        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
+    }
+}
+
+static void PostConfLoadedDetectSetup(SCInstance *suri)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    if (!suri->disabled_detect) {
+        SCClassConfInit();
+        SCReferenceConfInit();
+        SetupDelayedDetect(suri);
+        int mt_enabled = 0;
+        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
+        int default_tenant = 0;
+        if (mt_enabled)
+            (void)ConfGetBool("multi-detect.default", &default_tenant);
+        if (DetectEngineMultiTenantSetup() == -1) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing multi-detect "
+                    "detection engine contexts failed.");
+            exit(EXIT_FAILURE);
+        }
+        if ((suri->delayed_detect || (mt_enabled && !default_tenant)) &&
+            (suri->run_mode != RUNMODE_CONF_TEST)) {
+            de_ctx = DetectEngineCtxInitMinimal();
+        } else {
+            de_ctx = DetectEngineCtxInit();
+        }
+        if (de_ctx == NULL) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                    "context failed.");
+            exit(EXIT_FAILURE);
+        }
+
+#ifdef __SC_CUDA_SUPPORT__
+        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+            CudaVarsSetDeCtx(de_ctx);
+#endif /* __SC_CUDA_SUPPORT__ */
+
+        if (!de_ctx->minimal) {
+            if (LoadSignatures(de_ctx, suri) != TM_ECODE_OK)
+                exit(EXIT_FAILURE);
+            if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
+                exit(EXIT_SUCCESS);
+            }
+        }
+
+        DetectEngineAddToMaster(de_ctx);
+    } else {
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
+    }
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
@@ -2319,9 +2557,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
-        DefragInit();
-    }
 
     if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
         SCLogInfo("== Carrying out Engine Analysis ==");
@@ -2341,14 +2576,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     StorageInit();
     CIDRInit();
     SigParsePrepare();
-#ifdef PROFILING
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
-        SCProfilingRulesGlobalInit();
-        SCProfilingKeywordsGlobalInit();
-        SCProfilingSghsGlobalInit();
-        SCProfilingInit();
-    }
-#endif /* PROFILING */
     SCReputationInitCtx();
     SCProtoNameInit();
 
@@ -2408,34 +2635,73 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     CoredumpLoadConfig();
 
+    PreRunInit(suri->run_mode);
+
     SCReturnInt(TM_ECODE_OK);
+}
+
+static void SuricataMainLoop(SCInstance *suri)
+{
+    while(1) {
+        if (sigterm_count || sigint_count) {
+            suricata_ctl_flags |= SURICATA_STOP;
+        }
+
+        if (suricata_ctl_flags & SURICATA_STOP) {
+            SCLogNotice("Signal Received.  Stopping engine.");
+            break;
+        }
+
+        TmThreadCheckThreadState();
+
+        if (sighup_count > 0) {
+            OutputNotifyFileRotation();
+            sighup_count--;
+        }
+
+        if (sigusr2_count > 0) {
+            if (suri->sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                sigusr2_count--;
+            } else {
+                if (!(DetectEngineReloadIsStart())) {
+                    DetectEngineReloadStart();
+                    DetectEngineReload(suri);
+                    DetectEngineReloadSetDone();
+                    sigusr2_count--;
+                }
+            }
+
+        } else if (DetectEngineReloadIsStart()) {
+            if (suri->sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                DetectEngineReloadSetDone();
+            } else {
+                DetectEngineReload(suri);
+                DetectEngineReloadSetDone();
+            }
+        }
+
+        usleep(10* 1000);
+    }
 }
 
 int main(int argc, char **argv)
 {
     SCInstance suri;
-
-    SCInstanceInit(&suri);
-    suri.progname = argv[0];
-
-    sc_set_caps = FALSE;
+    SCInstanceInit(&suri, argv[0]);
 
     SC_ATOMIC_INIT(engine_stage);
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
-    if (SCSetThreadName("Suricata-Main") < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
+    (void)SCSetThreadName("Suricata-Main");
 
     ParseSizeInit();
-
     RunModeRegisterRunModes();
-
-    /* By default use IDS mode, but if nfq or ipfw
-     * are specified, IPS mode will overwrite this */
-    EngineModeSetIDS();
 
 #ifdef OS_WIN32
     /* service initialization */
@@ -2462,19 +2728,8 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    /* Init the CUDA environment */
-    SCCudaInitCudaEnvironment();
-    CudaBufferInit();
-#endif
-
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
-    GlobalInits();
-    TimeInit();
-    SupportFastPatternForSigMatchTypes();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        StatsInit();
-    }
+    GlobalsInitPreConfig();
 
     /* Load yaml configuration file if provided. */
     if (LoadYamlConfig(&suri) != TM_ECODE_OK) {
@@ -2491,7 +2746,6 @@ int main(int argc, char **argv)
     SCLogLoadConfig(suri.daemon, suri.verbose);
 
     SCPrintVersion();
-
     UtilCpuPrintSummary();
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
@@ -2501,68 +2755,10 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        FlowInitConfig(FLOW_VERBOSE);
-        StreamTcpInitConfig(STREAM_VERBOSE);
-        IPPairInitConfig(IPPAIR_VERBOSE);
-        AppLayerRegisterGlobalCounters();
-    }
-
-    DetectEngineCtx *de_ctx = NULL;
-    if (!suri.disabled_detect) {
-        SCClassConfInit();
-        SCReferenceConfInit();
-        SetupDelayedDetect(&suri);
-        int mt_enabled = 0;
-        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
-        int default_tenant = 0;
-        if (mt_enabled)
-            (void)ConfGetBool("multi-detect.default", &default_tenant);
-        if (DetectEngineMultiTenantSetup() == -1) {
-            SCLogError(SC_ERR_INITIALIZATION, "initializing multi-detect "
-                    "detection engine contexts failed.");
-            exit(EXIT_FAILURE);
-        }
-        if ((suri.delayed_detect || (mt_enabled && !default_tenant)) &&
-            (suri.run_mode != RUNMODE_CONF_TEST)) {
-            de_ctx = DetectEngineCtxInitMinimal();
-        } else {
-            de_ctx = DetectEngineCtxInit();
-        }
-        if (de_ctx == NULL) {
-            SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
-                    "context failed.");
-            exit(EXIT_FAILURE);
-        }
-
-#ifdef __SC_CUDA_SUPPORT__
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-            CudaVarsSetDeCtx(de_ctx);
-#endif /* __SC_CUDA_SUPPORT__ */
-
-        if (!de_ctx->minimal) {
-            if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-                exit(EXIT_FAILURE);
-            if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
-                exit(EXIT_SUCCESS);
-            }
-        }
-
-        DetectEngineAddToMaster(de_ctx);
-    } else {
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
-    }
-
-    SCSetStartTime(&suri);
+    PostConfLoadedDetectSetup(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
-
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        RunModeInitializeOutputs();
-        StatsSetupPostConfig();
-    }
+    PreRunPostPrivsDropInit(suri.run_mode);
 
     if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
@@ -2572,24 +2768,10 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    SCSetStartTime(&suri);
     RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
-
-    /* In Unix socket runmode, Flow manager is started on demand */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* Spawn the unix socket manager thread */
-        int unix_socket = ConfUnixSocketIsEnable();
-        if (unix_socket == 1) {
-            UnixManagerThreadSpawn(0);
-#ifdef BUILD_UNIX_SOCKET
-            UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
-                                       UNIX_CMD_TAKE_ARGS);
-            UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
-#endif
-        }
-        /* Spawn the flow manager thread */
-        FlowManagerThreadSpawn();
-        FlowRecyclerThreadSpawn();
-        StatsSpawnThreads();
+        UnixManagerThreadSpawnNonRunmode();
     }
 
     /* Wait till all the threads have been initialized */
@@ -2604,19 +2786,8 @@ int main(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
-    /* registering singal handlers we use.  We register usr2 here, so that one
-     * can't call it during the first sig load phase or while threads are still
-     * starting up. */
-    if (DetectEngineEnabled() && suri.sig_file == NULL &&
-            suri.delayed_detect == 0)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
-    if (suri.delayed_detect) {
-        /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload(&suri);
-        SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
-    }
-
+    PostRunStartedDetectSetup(&suri);
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
@@ -2625,183 +2796,17 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-    int engine_retval = EXIT_SUCCESS;
-    while(1) {
-        if (sigterm_count || sigint_count) {
-            suricata_ctl_flags |= SURICATA_STOP;
-        }
-
-        if (suricata_ctl_flags & SURICATA_STOP) {
-            SCLogNotice("Signal Received.  Stopping engine.");
-            break;
-        }
-
-        TmThreadCheckThreadState();
-
-        if (sighup_count > 0) {
-            OutputNotifyFileRotation();
-            sighup_count--;
-        }
-
-        if (sigusr2_count > 0) {
-            if (suri.sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
-                sigusr2_count--;
-            } else {
-                if (!(DetectEngineReloadIsStart())) {
-                    DetectEngineReloadStart();
-                    DetectEngineReload(&suri);
-                    DetectEngineReloadSetDone();
-                    sigusr2_count--;
-                }
-            }
-
-        } else if (DetectEngineReloadIsStart()) {
-            if (suri.sig_file != NULL) {
-                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
-                        "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
-            } else {
-                DetectEngineReload(&suri);
-                DetectEngineReloadSetDone();
-            }
-        }
-
-        usleep(10* 1000);
-    }
+    SuricataMainLoop(&suri);
 
     /* Update the engine stage/status flag */
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
     UnixSocketKillSocketThread();
-
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* First we need to disable the flow manager thread */
-        FlowDisableFlowManagerThread();
-    }
-
-
-    /* Disable packet acquisition first */
-    TmThreadDisableReceiveThreads();
-
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* we need a packet pool for FlowForceReassembly */
-        PacketPoolInit();
-
-        FlowForceReassembly();
-        /* kill receive threads when they have processed all
-         * flow timeout packets */
-        TmThreadDisablePacketThreads();
-    }
-
-    SCPrintElapsedTime(&suri);
-
-    /* before TmThreadKillThreads, as otherwise that kills it
-     * but more slowly */
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        FlowDisableFlowRecyclerThread();
-    }
-
+    PostRunDeinit(suri.run_mode, &suri.start_time);
     /* kill remaining threads */
     TmThreadKillThreads();
 
+    GlobalsDestroy(&suri);
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* destroy the packet pool for flow reassembly after all
-         * the other threads are gone. */
-        PacketPoolDestroy();
-
-        StatsReleaseResources();
-        IPPairShutdown();
-        FlowShutdown();
-        StreamTcpFreeConfig(STREAM_VERBOSE);
-    }
-    HostShutdown();
-
-    HTPFreeConfig();
-    HTPAtExitPrintStats();
-
-#ifdef DBG_MEM_ALLOC
-    SCLogInfo("Total memory used (without SCFree()): %"PRIdMAX, (intmax_t)global_mem);
-#ifdef DBG_MEM_ALLOC_SKIP_STARTUP
-    print_mem_flag = 0;
-#endif
-#endif
-
-    SCPidfileRemove(suri.pid_filename);
-
-    AppLayerHtpPrintStats();
-
-    /** TODO this can do into it's own func */
-    de_ctx = DetectEngineGetCurrent();
-    if (de_ctx) {
-        DetectEngineMoveToFreeList(de_ctx);
-        DetectEngineDeReference(&de_ctx);
-    }
-    DetectEnginePruneFreeList();
-
-    AppLayerDeSetup();
-
-    TagDestroyCtx();
-
-    LiveDeviceListClean();
-    RunModeShutDown();
-    OutputDeregisterAll();
-    TimeDeinit();
-    SCProtoNameDeInit();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        DefragDestroy();
-    }
-    if (!suri.disabled_detect) {
-        SCReferenceConfDeinit();
-        SCClassConfDeinit();
-    }
-#ifdef HAVE_MAGIC
-    MagicDeinit();
-#endif
-    TmqhCleanup();
-    TmModuleRunDeInit();
-    ParseSizeDeinit();
-#ifdef HAVE_NSS
-    NSS_Shutdown();
-    PR_Cleanup();
-#endif
-
-#ifdef HAVE_AF_PACKET
-    AFPPeersListClean();
-#endif
-
-#ifdef PROFILING
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        if (profiling_rules_enabled)
-            SCProfilingDump();
-        SCProfilingDestroy();
-    }
-#endif
-
-#ifdef OS_WIN32
-	if (daemon) {
-		return 0;
-	}
-#endif /* OS_WIN32 */
-
-    SC_ATOMIC_DESTROY(engine_stage);
-
-#ifdef BUILD_HYPERSCAN
-    MpmHSGlobalCleanup();
-#endif
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        MpmCudaBufferDeSetup();
-    CudaHandlerFreeProfiles();
-#endif
-    ConfDeInit();
-#ifdef HAVE_LUAJIT
-    LuajitFreeStatesPool();
-#endif
-    SCLogDeInitLogModule();
-    DetectParseFreeRegexes();
-    exit(engine_retval);
+    exit(EXIT_SUCCESS);
 }

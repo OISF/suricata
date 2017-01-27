@@ -594,7 +594,12 @@ typedef struct Packet_
 #endif
 Packet;
 
-#define DEFAULT_PACKET_SIZE (1500 + ETHERNET_HEADER_LEN)
+/** highest mtu of the interfaces we monitor */
+extern int g_default_mtu;
+#define DEFAULT_MTU 1500
+#define MINIMUM_MTU 68      /**< ipv4 minimum: rfc791 */
+
+#define DEFAULT_PACKET_SIZE (DEFAULT_MTU + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
 #define MAX_PAYLOAD_SIZE (IPV6_HEADER_LEN + 65536 + 28)
 uint32_t default_packet_size;

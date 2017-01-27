@@ -344,12 +344,21 @@ int StreamTcpReassemblyConfig(char quiet)
             SCLogDebug("segpre->val %s", segpre->val);
 
             uint16_t pktsize = 0;
-            if (ByteExtractStringUint16(&pktsize, 10, strlen(segsize->val),
-                                        segsize->val) == -1)
-            {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "segment packet size "
-                                                    "of %s is invalid", segsize->val);
-                return -1;
+            if (strcmp("from_mtu", segsize->val) == 0) {
+                int mtu = g_default_mtu ? g_default_mtu : DEFAULT_MTU;
+                if (mtu < MINIMUM_MTU) {
+                    FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT, "invalid mtu %d", mtu);
+                    continue;
+                }
+                pktsize = mtu - 40;
+            } else {
+                if (ByteExtractStringUint16(&pktsize, 10, strlen(segsize->val),
+                            segsize->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "segment packet size "
+                            "of %s is invalid", segsize->val);
+                    return -1;
+                }
             }
             uint32_t prealloc = 0;
             if (ByteExtractStringUint32(&prealloc, 10, strlen(segpre->val),
@@ -379,6 +388,10 @@ int StreamTcpReassemblyConfig(char quiet)
             SCLogConfig("appended a segment pool for pktsize 65536");
         }
     } else if (npools == 0) {
+        int mtu = g_default_mtu;
+        if (mtu < MINIMUM_MTU)
+            mtu = DEFAULT_MTU;
+
         /* defaults */
         sizes[0].pktsize = 4;
         sizes[0].prealloc = 256;
@@ -392,7 +405,7 @@ int StreamTcpReassemblyConfig(char quiet)
         sizes[4].prealloc = 512;
         sizes[5].pktsize = 768;
         sizes[5].prealloc = 1024;
-        sizes[6].pktsize = 1448;
+        sizes[6].pktsize = mtu - 40; // min size of ipv4+tcp hdrs
         sizes[6].prealloc = 1024;
         sizes[7].pktsize = 0xffff;
         sizes[7].prealloc = 128;

@@ -169,7 +169,7 @@ typedef struct SCInstance_ {
 
 
 /* memset to zeros, and mutex init! */
-void GlobalInits();
+void GlobalsInitPreConfig();
 
 extern volatile uint8_t suricata_ctl_flags;
 
@@ -194,6 +194,10 @@ int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
 extern int run_mode;
+
+void PreRunInit(const int runmode);
+void PreRunPostPrivsDropInit(const int runmode);
+void PostRunDeinit(const int runmode, struct timeval *start_time);
 
 #endif /* __SURICATA_H__ */
 
