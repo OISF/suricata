@@ -358,8 +358,6 @@ void GlobalsDestroy(SCInstance *suri)
 #endif
 #endif
 
-    SCPidfileRemove(suri->pid_filename);
-
     AppLayerHtpPrintStats();
 
     /* TODO this can do into it's own func */
@@ -414,6 +412,8 @@ void GlobalsDestroy(SCInstance *suri)
 #endif
     SCLogDeInitLogModule();
     DetectParseFreeRegexes();
+
+    SCPidfileRemove(suri->pid_filename);
 }
 
 /** \brief make sure threads can stop the engine by calling this
