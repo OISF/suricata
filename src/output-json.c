@@ -115,6 +115,101 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
         json_object_set_new(js, "cwr", json_true());
 }
 
+/**
+ * \brief Add five tuple from packet to JSON object
+ *
+ * \param p Packet
+ * \param direction_sensitive Indicate direction sensitivity
+ * \param js JSON object
+ */
+void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
+{
+    char srcip[46], dstip[46];
+    Port sp, dp;
+    char proto[16];
+
+    srcip[0] = '\0';
+    dstip[0] = '\0';
+
+    if (direction_sensitive) {
+        if ((PKT_IS_TOSERVER(p))) {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                          srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                          dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                          srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                          dstip, sizeof(dstip));
+            }
+            sp = p->sp;
+            dp = p->dp;
+        } else {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                          srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                          dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                          srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                          dstip, sizeof(dstip));
+            }
+            sp = p->dp;
+            dp = p->sp;
+        }
+    } else {
+        if (PKT_IS_IPV4(p)) {
+            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                      srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                      dstip, sizeof(dstip));
+        } else if (PKT_IS_IPV6(p)) {
+            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                      srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                      dstip, sizeof(dstip));
+        }
+        sp = p->sp;
+        dp = p->dp;
+    }
+
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
+    } else {
+        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
+    }
+
+    json_object_set_new(js, "src_ip", json_string(srcip));
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            json_object_set_new(js, "src_port", json_integer(sp));
+            break;
+    }
+
+    json_object_set_new(js, "dest_ip", json_string(dstip));
+
+    switch(p->proto) {
+        case IPPROTO_ICMP:
+            break;
+        case IPPROTO_UDP:
+        case IPPROTO_TCP:
+        case IPPROTO_SCTP:
+            json_object_set_new(js, "dest_port", json_integer(dp));
+            break;
+    }
+
+    json_object_set_new(js, "proto", json_string(proto));
+}
+
 void CreateJSONFlowId(json_t *js, const Flow *f)
 {
     if (f == NULL)
@@ -130,57 +225,12 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
                          const char *event_type)
 {
     char timebuf[64];
-    char srcip[46], dstip[46];
-    Port sp, dp;
 
     json_t *js = json_object();
     if (unlikely(js == NULL))
         return NULL;
 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    srcip[0] = '\0';
-    dstip[0] = '\0';
-    if (direction_sensitive) {
-        if ((PKT_IS_TOSERVER(p))) {
-            if (PKT_IS_IPV4(p)) {
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-            } else if (PKT_IS_IPV6(p)) {
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-            }
-            sp = p->sp;
-            dp = p->dp;
-        } else {
-            if (PKT_IS_IPV4(p)) {
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
-            } else if (PKT_IS_IPV6(p)) {
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
-            }
-            sp = p->dp;
-            dp = p->sp;
-        }
-    } else {
-        if (PKT_IS_IPV4(p)) {
-            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-        } else if (PKT_IS_IPV6(p)) {
-            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-        }
-        sp = p->sp;
-        dp = p->dp;
-    }
-
-    char proto[16];
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
-        strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
-        snprintf(proto, sizeof(proto), "%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     /* time & tx */
     json_object_set_new(js, "timestamp", json_string(timebuf));
@@ -229,28 +279,10 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
         }
     }
 
-    /* tuple */
-    json_object_set_new(js, "src_ip", json_string(srcip));
-    switch(p->proto) {
-        case IPPROTO_ICMP:
-            break;
-        case IPPROTO_UDP:
-        case IPPROTO_TCP:
-        case IPPROTO_SCTP:
-            json_object_set_new(js, "src_port", json_integer(sp));
-            break;
-    }
-    json_object_set_new(js, "dest_ip", json_string(dstip));
-    switch(p->proto) {
-        case IPPROTO_ICMP:
-            break;
-        case IPPROTO_UDP:
-        case IPPROTO_TCP:
-        case IPPROTO_SCTP:
-            json_object_set_new(js, "dest_port", json_integer(dp));
-            break;
-    }
-    json_object_set_new(js, "proto", json_string(proto));
+    /* 5-tuple */
+    JsonFiveTuple(p, direction_sensitive, js);
+
+    /* icmp */
     switch (p->proto) {
         case IPPROTO_ICMP:
             if (p->icmpv4h) {
