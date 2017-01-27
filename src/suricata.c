@@ -213,6 +213,9 @@ int g_detect_disabled = 0;
 /** set caps or not */
 int sc_set_caps = FALSE;
 
+/** highest mtu of the interfaces we monitor */
+int g_default_mtu = 0;
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -2360,6 +2363,8 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                             dev[len-1] = '\0';
                         }
                     }
+                    int mtu = GetIfaceMTU(dev);
+                    g_default_mtu = MAX(mtu, g_default_mtu);
 
                     unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
                     if (iface_max_packet_size > default_packet_size)
@@ -2369,6 +2374,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                     break;
                 /* fall through */
             default:
+                g_default_mtu = DEFAULT_MTU;
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }
     } else {
