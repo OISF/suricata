@@ -1533,6 +1533,8 @@ void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.cert0_subject);
     if (ssl_state->client_connp.cert0_issuerdn)
         SCFree(ssl_state->client_connp.cert0_issuerdn);
+    if (ssl_state->server_connp.cert0_serial)
+        SCFree(ssl_state->server_connp.cert0_serial);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
