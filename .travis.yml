@@ -74,7 +74,9 @@ script:
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
-        ./configure --enable-nfqueue --enable-unittests --enable-hiredis ${ARGS}
+        export LDFLAGS="-lrt"
+        ./configure --enable-nfqueue --enable-unittests \
+            --enable-hiredis ${ARGS}
     fi
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -122,6 +124,7 @@ before_install:
             sudo apt-get install -y libjansson-dev
         fi
 
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
     fi
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -129,5 +132,6 @@ before_install:
         brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
             pcre hiredis
     fi
+  - export PATH=$PATH:$HOME/.cargo/bin
   - ./qa/travis-libhtp.sh
 
