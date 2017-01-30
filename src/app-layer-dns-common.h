@@ -32,7 +32,6 @@
 
 #define DNS_MAX_SIZE 256
 
-
 #define DNS_RECORD_TYPE_A           1
 #define DNS_RECORD_TYPE_NS          2
 #define DNS_RECORD_TYPE_MD          3   // Obsolete
@@ -115,7 +114,7 @@
 #define DNS_RCODE_BADTRUNC      22
 
 enum {
-    DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE,
+    DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE = 1,
     DNS_DECODER_EVENT_MALFORMED_DATA,
     DNS_DECODER_EVENT_NOT_A_REQUEST,
     DNS_DECODER_EVENT_NOT_A_RESPONSE,
@@ -123,6 +122,11 @@ enum {
     DNS_DECODER_EVENT_FLOODED,
     DNS_DECODER_EVENT_STATE_MEMCAP_REACHED,
 };
+
+typedef struct RSDNSState_ RSDNSState;
+typedef struct RSDNSRequest_ RSDNSRequest;
+typedef struct RSDNSResponse_ RSDNSResponse;
+typedef struct RSDNSTransaction_ RSDNSTransaction;
 
 /** \brief DNS packet header */
 typedef struct DNSHeader_ {
@@ -134,77 +138,25 @@ typedef struct DNSHeader_ {
     uint16_t additional_rr;
 } __attribute__((__packed__)) DNSHeader;
 
-typedef struct DNSQueryTrailer_ {
-    uint16_t type;
-    uint16_t class;
-} __attribute__((__packed__)) DNSQueryTrailer;
-
-/** \brief DNS answer header
- *  packed as we don't want alignment to mess up sizeof() */
-struct DNSAnswerHeader_ {
-    uint16_t type;
-    uint16_t class;
-    uint32_t ttl;
-    uint16_t len;
-} __attribute__((__packed__));
-typedef struct DNSAnswerHeader_ DNSAnswerHeader;
-
-/** \brief List types in the TX.
- *  Used when storing answers from "Answer" or "Authority" */
-typedef enum {
-    DNS_LIST_ANSWER = 0,
-    DNS_LIST_AUTHORITY,
-} DnsListEnum;
-
-/** \brief DNS Query storage. Stored in TX list.
- *
- *  Layout is:
- *  [list ptr][2 byte type][2 byte class][2 byte len][...data...]
- */
-typedef struct DNSQueryEntry_ {
-    TAILQ_ENTRY(DNSQueryEntry_) next;
-    uint16_t type;
-    uint16_t class;
-    uint16_t len;
-} DNSQueryEntry;
-
-/** \brief DNS Answer storage. Stored in TX list.
- *
- *  Layout is:
- *  [list ptr][2 byte type][2 byte class][2 byte ttl] \
- *      [2 byte fqdn len][2 byte data len][...fqdn...][...data...]
- */
-typedef struct DNSAnswerEntry_ {
-    TAILQ_ENTRY(DNSAnswerEntry_) next;
-
-    uint16_t type;
-    uint16_t class;
-
-    uint32_t ttl;
-
-    uint16_t fqdn_len;
-    uint16_t data_len;
-} DNSAnswerEntry;
+typedef struct ParserBuffer_ {
+    uint8_t  *buffer;
+    uint32_t  size;
+    uint32_t  len;
+    uint32_t  offset;
+} ParserBuffer;
 
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
-    uint16_t tx_id;                                 /**< transaction id */
     uint32_t logged;                                /**< flags for loggers done logging */
-    uint8_t replied;                                /**< bool indicating request is
-                                                         replied to. */
-    uint8_t reply_lost;
-    uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
-    uint8_t recursion_desired;                      /**< server said "recursion desired" */
-
-    TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
-    TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */
-    TAILQ_HEAD(, DNSAnswerEntry_) authority_list;   /**< list for authority records */
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
     TAILQ_ENTRY(DNSTransaction_) next;
     DetectEngineState *de_state;
+
+    RSDNSTransaction *rs_tx;
+
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
@@ -213,25 +165,16 @@ typedef struct DNSState_ {
     DNSTransaction *curr;                   /**< ptr to current tx */
     DNSTransaction *iter;
     uint64_t transaction_max;
-    uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
     uint32_t memuse;                        /**< state memuse, for comparing with
                                                  state-memcap settings */
     uint64_t tx_with_detect_state_cnt;
 
-    struct timeval last_req;      /**< Timestamp of last request. */
-    struct timeval last_resp;     /**< Timestamp of last response. */
-
-    uint16_t window;              /**< Window of allowed unreplied
-                                   * requests. Set by the maximum
-                                   * number of subsequent requests
-                                   * without a response. */
     uint16_t events;
     uint16_t givenup;
 
-    /* used by TCP only */
-    uint16_t offset;
-    uint16_t record_len;
-    uint8_t *buffer;
+    ParserBuffer buffer;
+
+    RSDNSState *rs_state;
 } DNSState;
 
 #define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
@@ -278,24 +221,27 @@ void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
 int DNSHasEvents(void *state);
 
-int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
-int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);
-
-void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
-        const uint16_t type, const uint16_t class, const uint16_t tx_id);
-
-void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *fqdn,
-        const uint16_t fqdn_len, const uint16_t type, const uint16_t class, const uint16_t ttl,
-        const uint8_t *data, const uint16_t data_len, const uint16_t tx_id);
-
-const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_header,
-        const uint16_t num, const DnsListEnum list, const uint8_t * const input,
-        const uint32_t input_len, const uint8_t *data);
-
-uint16_t DNSUdpResponseGetNameByOffset(const uint8_t * const input, const uint32_t input_len,
-        const uint16_t offset, uint8_t *fqdn, const size_t fqdn_size);
-
 void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
 void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
+
+DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id);
+
+/*
+ * Rust implementation.
+ */
+
+extern RSDNSState *rs_dns_state_new(void);
+extern void rs_dns_state_free(RSDNSState *);
+extern uint64_t rs_dns_state_parse_request(RSDNSState *, const uint8_t *,
+    uint32_t);
+extern uint64_t rs_dns_state_parse_response(RSDNSState *, const uint8_t *,
+    uint32_t);
+extern void rs_dns_state_tx_free(RSDNSState *, uint64_t);
+extern RSDNSTransaction *rs_dns_state_tx_get(RSDNSState *, uint64_t);
+extern uint32_t rs_dns_state_get_next_event(RSDNSState *);
+extern uint64_t rs_dns_state_get_tx_count(RSDNSState *);
+extern int8_t rs_dns_tx_get_alstate_progress(RSDNSTransaction *, uint8_t);
+extern uint8_t rs_dns_probe(const uint8_t *, uint32_t);
+extern uint16_t rs_dns_request_get_id(RSDNSRequest *);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
