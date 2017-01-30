@@ -27,6 +27,18 @@ Examples::
 
 ``tls_cert_issuer`` is a 'Sticky buffer'.
 
+tls_sni
+-------
+
+Match TLS/SSL Server Name Indication field.
+
+Examples::
+
+  tls_sni; content:"oisf.net"; nocase; isdataat:!1,relative;
+  tls_sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
+
+``tls_sni`` is a 'Sticky buffer'.
+
 tls_cert_notbefore
 ------------------
 
