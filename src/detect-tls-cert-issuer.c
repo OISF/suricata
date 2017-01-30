@@ -63,6 +63,7 @@ void DetectTlsIssuerRegister(void)
 {
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].name = "tls_cert_issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc = "content modifier to match specifically and only on the TLS cert issuer buffer";
+    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
