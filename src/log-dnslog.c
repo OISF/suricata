@@ -49,6 +49,12 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+extern char *rs_dns_log_txt_query(RSDNSTransaction *, uint16_t i);
+extern char *rs_dns_log_txt_response_answer(RSDNSTransaction *, uint16_t i);
+extern char *rs_dns_log_txt_response_authority(RSDNSTransaction *, uint16_t i);
+extern char *rs_dns_log_txt_response_rcode(RSDNSTransaction *);
+extern char *rs_dns_log_txt_response_recursion(RSDNSTransaction *);
+
 #define DEFAULT_LOG_FILENAME "dns.log"
 
 #define MODULE_NAME "LogDnsLog"
@@ -71,99 +77,6 @@ typedef struct LogDnsLogThread_ {
 
     MemBuffer *buffer;
 } LogDnsLogThread;
-
-static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSQueryEntry *entry)
-{
-    LogDnsFileCtx *hlog = aft->dnslog_ctx;
-
-    SCLogDebug("got a DNS request and now logging !!");
-
-    /* reset */
-    MemBufferReset(aft->buffer);
-
-    /* time & tx */
-    MemBufferWriteString(aft->buffer,
-            "%s [**] Query TX %04x [**] ", timebuf, tx->tx_id);
-
-    /* query */
-    PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-            (uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)),
-            entry->len);
-
-    char record[16] = "";
-    DNSCreateTypeString(entry->type, record, sizeof(record));
-    MemBufferWriteString(aft->buffer,
-            " [**] %s [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-            record, srcip, sp, dstip, dp);
-
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
-    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
-}
-
-static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSAnswerEntry *entry)
-{
-    LogDnsFileCtx *hlog = aft->dnslog_ctx;
-
-    SCLogDebug("got a DNS response and now logging !!");
-
-    /* reset */
-    MemBufferReset(aft->buffer);
-    /* time & tx*/
-    MemBufferWriteString(aft->buffer,
-            "%s [**] Response TX %04x [**] ", timebuf, tx->tx_id);
-
-    if (entry == NULL) {
-        if (tx->rcode) {
-            char rcode[16] = "";
-            DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-            MemBufferWriteString(aft->buffer, "%s", rcode);
-        } else if (tx->recursion_desired) {
-            MemBufferWriteString(aft->buffer, "Recursion Desired");
-        }
-    } else {
-        /* query */
-        if (entry->fqdn_len > 0) {
-            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
-                    (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)),
-                    entry->fqdn_len);
-        } else {
-            MemBufferWriteString(aft->buffer, "<no data>");
-        }
-
-        char record[16] = "";
-        DNSCreateTypeString(entry->type, record, sizeof(record));
-        MemBufferWriteString(aft->buffer,
-                " [**] %s [**] TTL %u [**] ", record, entry->ttl);
-
-        uint8_t *ptr = (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry) + entry->fqdn_len);
-        if (entry->type == DNS_RECORD_TYPE_A) {
-            char a[16] = "";
-            PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
-            MemBufferWriteString(aft->buffer, "%s", a);
-        } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
-            char a[46];
-            PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
-            MemBufferWriteString(aft->buffer, "%s", a);
-        } else if (entry->data_len == 0) {
-            MemBufferWriteString(aft->buffer, "<no data>");
-        } else {
-            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                    aft->buffer->size, ptr, entry->data_len);
-        }
-    }
-
-    /* ip/tcp header info */
-    MemBufferWriteString(aft->buffer,
-            " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-            srcip, sp, dstip, dp);
-
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
-    hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
-}
 
 static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
     Flow *f, void *state, void *tx, uint64_t tx_id, uint8_t direction)
@@ -214,25 +127,90 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         dp = p->sp;
     }
 
+    char *buf;
+    LogDnsFileCtx *hlog = aft->dnslog_ctx;
+
     if (direction == STREAM_TOSERVER) {
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &dns_tx->query_list, next) {
-            LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
+        
+        for (uint16_t i = 0; i < 0xffff; i++) {
+            buf = rs_dns_log_txt_query(dns_tx->rs_tx, i);
+            if (strlen(buf) > 0) {
+                MemBufferReset(aft->buffer);
+                MemBufferWriteString(aft->buffer,
+                    "%s [**] %s [**] %s:%"PRIu16" -> %s:%"PRIu16"\n",
+                    timebuf, buf, dstip, dp, srcip, sp);
+                SCMutexLock(&hlog->file_ctx->fp_mutex);
+                hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                    MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+                SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+            }
+            SCFree(buf);
         }
+        
     } else if (direction == STREAM_TOCLIENT) {
-        if (dns_tx->rcode)
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
-        if (dns_tx->recursion_desired)
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
-
-        DNSAnswerEntry *entry = NULL;
-        TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+        
+        buf = rs_dns_log_txt_response_rcode(dns_tx->rs_tx);
+        if (strlen(buf) > 0) {
+            MemBufferReset(aft->buffer);
+            MemBufferWriteString(aft->buffer,
+                "%s [**] %s [**] %s:%"PRIu16" -> %s:%"PRIu16"\n",
+                timebuf, buf, srcip, sp, dstip, dp);
+            SCMutexLock(&hlog->file_ctx->fp_mutex);
+            hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+            SCMutexUnlock(&hlog->file_ctx->fp_mutex);
         }
-
-        entry = NULL;
-        TAILQ_FOREACH(entry, &dns_tx->authority_list, next) {
-            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+        SCFree(buf);
+        
+        buf = rs_dns_log_txt_response_recursion(dns_tx->rs_tx);
+        if (strlen(buf) > 0) {
+            MemBufferReset(aft->buffer);
+            MemBufferWriteString(aft->buffer,
+                "%s [**] %s [**] %s:%"PRIu16" -> %s:%"PRIu16"\n",
+                timebuf, buf, srcip, sp, dstip, dp);
+            SCMutexLock(&hlog->file_ctx->fp_mutex);
+            hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+            SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+        }
+        SCFree(buf);
+        
+        /* Answers. */
+        for (uint16_t i = 0; i < 0xffff; i++) {
+            buf = rs_dns_log_txt_response_answer(dns_tx->rs_tx, i);
+            if (strlen(buf) > 0) {
+                MemBufferReset(aft->buffer);
+                MemBufferWriteString(aft->buffer,
+                    "%s [**] %s [**] %s:%"PRIu16" -> %s:%"PRIu16"\n",
+                    timebuf, buf, srcip, sp, dstip, dp);
+                SCMutexLock(&hlog->file_ctx->fp_mutex);
+                hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                    MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+                SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+                SCFree(buf);
+                continue;
+            }
+            SCFree(buf);
+            break;
+        }
+        
+        /* Authorities. */
+        for (uint16_t i = 0; i < 0xffff; i++) {
+            buf = rs_dns_log_txt_response_authority(dns_tx->rs_tx, i);
+            if (strlen(buf) > 0) {
+                MemBufferReset(aft->buffer);
+                MemBufferWriteString(aft->buffer,
+                    "%s [**] %s [**] %s:%"PRIu16" -> %s:%"PRIu16"\n",
+                    timebuf, buf, srcip, sp, dstip, dp);
+                SCMutexLock(&hlog->file_ctx->fp_mutex);
+                hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+                    MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
+                SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+                SCFree(buf);
+                continue;
+            }
+            SCFree(buf);
+            break;
         }
     }
 

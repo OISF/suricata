@@ -47,234 +47,99 @@
 
 #include "app-layer-dns-tcp.h"
 
-struct DNSTcpHeader_ {
+typedef struct DNSTcpHeader_ {
     uint16_t len;
-    uint16_t tx_id;
-    uint16_t flags;
-    uint16_t questions;
-    uint16_t answer_rr;
-    uint16_t authority_rr;
-    uint16_t additional_rr;
-} __attribute__((__packed__));
-typedef struct DNSTcpHeader_ DNSTcpHeader;
+    DNSHeader header;
+} __attribute__((__packed__)) DNSTcpHeader;
 
-/** \internal
- *  \param input_len at least enough for the DNSTcpHeader
+static int ParserBufferAdd(ParserBuffer *buffer, const uint8_t *data,
+    uint32_t len)
+{
+    if (buffer->size == 0) {
+        buffer->buffer = SCCalloc(1, len);
+        if (unlikely(buffer->buffer == NULL)) {
+            return 0;
+        }
+        buffer->size = len;
+    }
+    else if (buffer->len + len > buffer->size) {
+        uint8_t *tmp = SCRealloc(buffer->buffer, buffer->len + len);
+        if (unlikely(tmp == NULL)) {
+            return 0;
+        }
+        buffer->buffer = tmp;
+        buffer->size = buffer->len + len;
+    }
+    memcpy(buffer->buffer + buffer->len, data, len);
+    buffer->len += len;
+
+    return 1;
+}
+
+static void ParserBufferReset(ParserBuffer *buffer)
+{
+    buffer->offset = 0;
+    buffer->len = 0;
+}
+
+static int ParserBufferAdvance(ParserBuffer *buffer, uint32_t len)
+{
+    if (buffer->offset + len > buffer->len) {
+        return 0;
+    }
+    buffer->offset += len;
+    return 1;
+}
+
+/**
+ * \brief Trim a ParserBuffer.
+ *
+ * Trimming a buffer moves the data in the buffer up to the front of
+ * the buffer freeing up room at the end for more incoming data.
+ *
+ * \param buffer The buffer to trim.
  */
-static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
+static void ParserBufferTrim(ParserBuffer *buffer)
 {
-#ifdef DEBUG
-    BUG_ON(input_len < sizeof(DNSTcpHeader));
-#endif
-    SCLogDebug("starting %u", input_len);
-
-    DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
-    if (ntohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
-        goto bad_data;
+    if (buffer->offset == buffer->len) {
+        ParserBufferReset(buffer);
     }
-    if (ntohs(dns_tcp_header->len) >= input_len) {
-        goto insufficient_data;
+    else if (buffer->offset > 0) {
+        memmove(buffer->buffer, buffer->buffer + buffer->offset,
+            buffer->len - buffer->offset);
+        buffer->len = buffer->len - buffer->offset;
+        buffer->offset = 0;
     }
-
-    input += 2;
-    input_len -= 2;
-    DNSHeader *dns_header = (DNSHeader *)input;
-
-    uint16_t q;
-    const uint8_t *data = input + sizeof(DNSHeader);
-
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
-        uint16_t fqdn_offset = 0;
-
-        if (input + input_len < data + 1) {
-            SCLogDebug("input buffer too small for len field");
-            goto insufficient_data;
-        }
-        SCLogDebug("query length %u", *data);
-
-        while (*data != 0) {
-            if (*data > 63) {
-                /** \todo set event?*/
-                goto bad_data;
-            }
-            uint8_t length = *data;
-
-            data++;
-
-            if (length > 0) {
-                if (input + input_len < data + length) {
-                    SCLogDebug("input buffer too small for domain of len %u", length);
-                    goto insufficient_data;
-                }
-                //PrintRawDataFp(stdout, data, qry->length);
-
-                if ((fqdn_offset + length + 1) < DNS_MAX_SIZE) {
-                    fqdn_offset += length;
-                } else {
-                    /** \todo set event? */
-                    goto bad_data;
-                }
-            }
-
-            data += length;
-
-            if (input + input_len < data + 1) {
-                SCLogDebug("input buffer too small for new len");
-                goto insufficient_data;
-            }
-
-            SCLogDebug("qry length %u", *data);
-        }
-        if (fqdn_offset) {
-            fqdn_offset--;
-        }
-
-        data++;
-        if (input + input_len < data + sizeof(DNSQueryTrailer)) {
-            SCLogDebug("input buffer too small for DNSQueryTrailer");
-            goto insufficient_data;
-        }
-#ifdef DEBUG
-        DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
-#endif
-        data += sizeof(DNSQueryTrailer);
-    }
-
-    SCReturnInt(1);
-insufficient_data:
-    SCReturnInt(0);
-bad_data:
-    SCReturnInt(-1);
 }
 
-static int BufferData(DNSState *dns_state, uint8_t *data, uint16_t len)
+static int DNSRequestParseData(Flow *f, DNSState *dns_state,
+    const uint8_t *input, const uint32_t input_len)
 {
-    if (dns_state->buffer == NULL) {
-        if (DNSCheckMemcap(0xffff, dns_state) < 0)
-            return -1;
+    uint64_t tx_id = rs_dns_state_parse_request(dns_state->rs_state, input,
+        input_len);
 
-        /** \todo be smarter about this, like use a pool or several pools for
-         *        chunks of various sizes */
-        dns_state->buffer = SCMalloc(0xffff);
-        if (dns_state->buffer == NULL) {
-            return -1;
-        }
-        DNSIncrMemcap(0xffff, dns_state);
-    }
-
-    if ((uint32_t)len + (uint32_t)dns_state->offset > (uint32_t)dns_state->record_len) {
-        SCLogDebug("oh my, we have more data than the max record size. What do we do. WHAT DO WE DOOOOO!");
-#ifdef DEBUG
-        BUG_ON(1);
-#endif
-        len = dns_state->record_len - dns_state->offset;
-    }
-
-    memcpy(dns_state->buffer + dns_state->offset, data, len);
-    dns_state->offset += len;
-    return 0;
-}
-
-static void BufferReset(DNSState *dns_state)
-{
-    dns_state->record_len = 0;
-    dns_state->offset = 0;
-}
-
-static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *input, const uint32_t input_len)
-{
-    DNSHeader *dns_header = (DNSHeader *)input;
-
-    if (DNSValidateRequestHeader(dns_state, dns_header) < 0)
-        goto bad_data;
-
-    //SCLogInfo("ID %04x", ntohs(dns_header->tx_id));
-
-    uint16_t q;
-    const uint8_t *data = input + sizeof(DNSHeader);
-
-    //PrintRawDataFp(stdout, (uint8_t*)data, input_len - (data - input));
-
-    if (dns_state != NULL) {
-        if (timercmp(&dns_state->last_req, &dns_state->last_resp, >=)) {
-            if (dns_state->window <= dns_state->unreplied_cnt) {
-                dns_state->window++;
-            }
+    /* Drain events. */
+    for (;;) {
+        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
+        if (ev == 0) {
+            break;
+        } else {
+            DNSSetEvent(dns_state, ev);
         }
     }
 
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
-        uint8_t fqdn[DNS_MAX_SIZE];
-        uint16_t fqdn_offset = 0;
-
-        if (input + input_len < data + 1) {
-            SCLogDebug("input buffer too small for DNSTcpQuery");
-            goto insufficient_data;
-        }
-        SCLogDebug("query length %u", *data);
-
-        while (*data != 0) {
-            if (*data > 63) {
-                /** \todo set event?*/
-                goto insufficient_data;
-            }
-            uint8_t length = *data;
-
-            data++;
-
-            if (length > 0) {
-                if (input + input_len < data + length) {
-                    SCLogDebug("input buffer too small for domain of len %u", length);
-                    goto insufficient_data;
-                }
-                //PrintRawDataFp(stdout, data, qry->length);
-
-                if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
-                    memcpy(fqdn + fqdn_offset, data, length);
-                    fqdn_offset += length;
-                    fqdn[fqdn_offset++] = '.';
-                } else {
-                    /** \todo set event? */
-                    goto insufficient_data;
-                }
-            }
-
-            data += length;
-
-            if (input + input_len < data + 1) {
-                SCLogDebug("input buffer too small for DNSTcpQuery(2)");
-                goto insufficient_data;
-            }
-
-            SCLogDebug("qry length %u", *data);
-        }
-        if (fqdn_offset) {
-            fqdn_offset--;
-        }
-
-        data++;
-        if (input + input_len < data + sizeof(DNSQueryTrailer)) {
-            SCLogDebug("input buffer too small for DNSQueryTrailer");
-            goto insufficient_data;
-        }
-        DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
-        data += sizeof(DNSQueryTrailer);
-
-        /* store our data */
-        if (dns_state != NULL) {
-            DNSStoreQueryInState(dns_state, fqdn, fqdn_offset,
-                    ntohs(trailer->type), ntohs(trailer->class),
-                    ntohs(dns_header->tx_id));
-        }
+    if (tx_id > 0) {
+        DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);
+        BUG_ON(tx == NULL);
+        dns_state->transaction_max = tx_id;
+        dns_state->curr = tx;
+        tx->tx_num = tx_id;
+        tx->rs_tx = rs_dns_state_tx_get(dns_state->rs_state, tx_id - 1);
+        BUG_ON(tx->rs_tx == NULL);
+        TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
     }
 
-    SCReturnInt(1);
-bad_data:
-insufficient_data:
-    SCReturnInt(-1);
-
+    SCReturnInt((tx_id > 0 ? 1 : -1));
 }
 
 /** \internal
@@ -286,210 +151,106 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
                               void *local_data)
 {
     DNSState *dns_state = (DNSState *)dstate;
+    ParserBuffer *buffer = &dns_state->buffer;
     SCLogDebug("starting %u", input_len);
 
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate,
+            APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     }
 
     /** \todo remove this when PP is fixed to enforce ipproto */
-    if (f != NULL && f->proto != IPPROTO_TCP)
+    if (f != NULL && f->proto != IPPROTO_TCP) {
         SCReturnInt(-1);
+    }
 
     /* probably a rst/fin sending an eof */
     if (input == NULL || input_len == 0) {
         goto insufficient_data;
     }
 
-next_record:
-    /* if this is the beginning of a record, we need at least the header */
-    if (dns_state->offset == 0 && input_len < sizeof(DNSTcpHeader)) {
-        SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
-        goto insufficient_data;
-    }
-    SCLogDebug("input_len %u offset %u record %u",
-            input_len, dns_state->offset, dns_state->record_len);
-
-    /* this is the first data of this record */
-    if (dns_state->offset == 0) {
-        DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
-        SCLogDebug("DNS %p", dns_tcp_header);
-
-        if (ntohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
-            /* bogus len, doesn't fit even basic dns header */
-            goto bad_data;
-        } else if (ntohs(dns_tcp_header->len) == (input_len-2)) {
-            /* we have all data, so process w/o buffering */
-            if (DNSRequestParseData(f, dns_state, input+2, input_len-2) < 0)
-                goto bad_data;
-
-        } else if ((input_len-2) > ntohs(dns_tcp_header->len)) {
-            /* we have all data, so process w/o buffering */
-            if (DNSRequestParseData(f, dns_state, input+2, ntohs(dns_tcp_header->len)) < 0)
-                goto bad_data;
-
-            /* treat the rest of the data as a (potential) new record */
-            input += (2 + ntohs(dns_tcp_header->len));
-            input_len -= (2 + ntohs(dns_tcp_header->len));
-            goto next_record;
-        } else {
-            /* not enough data, store record length and buffer */
-            dns_state->record_len = ntohs(dns_tcp_header->len);
-            BufferData(dns_state, input+2, input_len-2);
+    if (buffer->len) {
+        if (!ParserBufferAdd(buffer, input, input_len)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory to buffer "
+                "DNS request data");
+            return -1;
         }
-    } else if (input_len + dns_state->offset < dns_state->record_len) {
-        /* we don't have the full record yet, buffer */
-        BufferData(dns_state, input, input_len);
-    } else if (input_len > (uint32_t)(dns_state->record_len - dns_state->offset)) {
-        /* more data than expected, we may have another record coming up */
-        uint16_t need = (dns_state->record_len - dns_state->offset);
-        BufferData(dns_state, input, need);
-        int r = DNSRequestParseData(f, dns_state, dns_state->buffer, dns_state->record_len);
-        BufferReset(dns_state);
-        if (r < 0)
-            goto bad_data;
-
-        /* treat the rest of the data as a (potential) new record */
-        input += need;
-        input_len -= need;
-        goto next_record;
-    } else {
-        /* implied exactly the amount of data we want
-         * add current to buffer, then inspect buffer */
-        BufferData(dns_state, input, input_len);
-        int r = DNSRequestParseData(f, dns_state, dns_state->buffer, dns_state->record_len);
-        BufferReset(dns_state);
-        if (r < 0)
-            goto bad_data;
+        input = buffer->buffer;
+        input_len = buffer->len;
     }
 
-    if (f != NULL) {
-        dns_state->last_req = f->lastts;
+    while (input_len >= sizeof(DNSTcpHeader)) {
+
+        DNSTcpHeader *header = (DNSTcpHeader *)input;
+
+        uint16_t hlen = ntohs(header->len);
+
+        if (hlen < sizeof(DNSHeader)) {
+            /* Looks like a bogus header or not DNS traffic as the
+             * length value isn't even large enought for a DNS
+             * header. */
+            goto bad_data;
+        }
+
+        if (hlen > input_len - 2) {
+            /* Not enough data, thats why we have a buffer. */
+            break;
+        }
+
+        if (DNSRequestParseData(f, dns_state, input + 2, hlen) < 0) {
+            goto bad_data;
+        }
+
+        input_len -= (2 + hlen);
+        input += (2 + hlen);
+    }
+
+    if (buffer->len) {
+        /* Advance the buffer by the number of bytes that were taken. */
+        ParserBufferAdvance(buffer, buffer->len - input_len);
+        ParserBufferTrim(buffer);
+    } else if (input_len) {
+        /* We have remaining unbuffered data, start buffering. */
+        ParserBufferAdd(buffer, input, input_len);
     }
 
     SCReturnInt(1);
 insufficient_data:
-    SCReturnInt(-1);
 bad_data:
+    ParserBufferReset(buffer);
     SCReturnInt(-1);
+
 }
 
-static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *input, const uint32_t input_len)
+static int DNSResponseParseData(Flow *f, DNSState *dns_state,
+    const uint8_t *input, const uint32_t input_len)
 {
-    DNSHeader *dns_header = (DNSHeader *)input;
+    uint64_t tx_id = rs_dns_state_parse_response(dns_state->rs_state, input,
+        input_len);
+    BUG_ON(tx_id == 0);
 
-    if (DNSValidateResponseHeader(dns_state, dns_header) < 0)
-        goto bad_data;
-
-    DNSTransaction *tx = NULL;
-    int found = 0;
-    if ((tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id))) != NULL)
-        found = 1;
-
-    if (!found) {
-        SCLogDebug("DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE");
-        DNSSetEvent(dns_state, DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE);
-    } else if (dns_state->unreplied_cnt > 0) {
-        dns_state->unreplied_cnt--;
-    }
-
-    uint16_t q;
-    const uint8_t *data = input + sizeof(DNSHeader);
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
-        uint8_t fqdn[DNS_MAX_SIZE];
-        uint16_t fqdn_offset = 0;
-
-        if (input + input_len < data + 1) {
-            SCLogDebug("input buffer too small for len field");
-            goto insufficient_data;
-        }
-        SCLogDebug("qry length %u", *data);
-
-        while (*data != 0) {
-            uint8_t length = *data;
-            data++;
-
-            if (length > 0) {
-                if (input + input_len < data + length) {
-                    SCLogDebug("input buffer too small for domain of len %u", length);
-                    goto insufficient_data;
-                }
-                //PrintRawDataFp(stdout, data, length);
-
-                if ((size_t)(fqdn_offset + length + 1) < sizeof(fqdn)) {
-                    memcpy(fqdn + fqdn_offset, data, length);
-                    fqdn_offset += length;
-                    fqdn[fqdn_offset++] = '.';
-                }
-            }
-
-            data += length;
-
-            if (input + input_len < data + 1) {
-                SCLogDebug("input buffer too small for len field");
-                goto insufficient_data;
-            }
-
-            SCLogDebug("length %u", *data);
-        }
-        if (fqdn_offset) {
-            fqdn_offset--;
-        }
-
-        data++;
-        if (input + input_len < data + sizeof(DNSQueryTrailer)) {
-            SCLogDebug("input buffer too small for DNSQueryTrailer");
-            goto insufficient_data;
-        }
-#if DEBUG
-        DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
-#endif
-        data += sizeof(DNSQueryTrailer);
-    }
-
-    for (q = 0; q < ntohs(dns_header->answer_rr); q++) {
-        data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_ANSWER,
-                input, input_len, data);
-        if (data == NULL) {
-            goto insufficient_data;
+    /* Pull out any events. */
+    for (;;) {
+        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
+        if (ev == 0) {
+            break;
+        } else {
+            DNSSetEvent(dns_state, ev);
         }
     }
 
-    //PrintRawDataFp(stdout, (uint8_t *)data, input_len - (data - input));
-    for (q = 0; q < ntohs(dns_header->authority_rr); q++) {
-        data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_AUTHORITY,
-                input, input_len, data);
-        if (data == NULL) {
-            goto insufficient_data;
-        }
+    if (tx_id > dns_state->transaction_max) {
+        DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);
+        BUG_ON(tx == NULL);
+        dns_state->transaction_max = tx_id;
+        dns_state->curr = tx;
+        tx->tx_num = tx_id;
+        tx->rs_tx = rs_dns_state_tx_get(dns_state->rs_state, tx_id - 1);
+        BUG_ON(tx->rs_tx == NULL);
+        TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
     }
 
-    /* parse rcode, e.g. "noerror" or "nxdomain" */
-    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
-    if (rcode <= DNS_RCODE_NOTZONE) {
-        SCLogDebug("rcode %u", rcode);
-        if (tx != NULL)
-            tx->rcode = rcode;
-    } else {
-        /* this is not invalid, rcodes can be user defined */
-        SCLogDebug("unexpected DNS rcode %u", rcode);
-    }
-
-    if (ntohs(dns_header->flags) & 0x0080) {
-        SCLogDebug("recursion desired");
-        if (tx != NULL)
-            tx->recursion_desired = 1;
-    }
-
-    if (tx != NULL) {
-        tx->replied = 1;
-    }
-
-    SCReturnInt(1);
-bad_data:
-insufficient_data:
-    SCReturnInt(-1);
+    SCReturnInt((tx_id > 0 ? 1 : -1));
 }
 
 /** \internal
@@ -507,146 +268,90 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
                                void *local_data)
 {
     DNSState *dns_state = (DNSState *)dstate;
+    ParserBuffer *buffer = &dns_state->buffer;
 
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate,
+            APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     }
 
     /** \todo remove this when PP is fixed to enforce ipproto */
-    if (f != NULL && f->proto != IPPROTO_TCP)
+    if (f != NULL && f->proto != IPPROTO_TCP) {
         SCReturnInt(-1);
+    }
 
     /* probably a rst/fin sending an eof */
     if (input == NULL || input_len == 0) {
         goto insufficient_data;
     }
 
-next_record:
-    /* if this is the beginning of a record, we need at least the header */
-    if (dns_state->offset == 0 &&  input_len < sizeof(DNSTcpHeader)) {
-        SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
-        goto insufficient_data;
-    }
-    SCLogDebug("input_len %u offset %u record %u",
-            input_len, dns_state->offset, dns_state->record_len);
-
-    /* this is the first data of this record */
-    if (dns_state->offset == 0) {
-        DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
-        SCLogDebug("DNS %p", dns_tcp_header);
-
-        if (ntohs(dns_tcp_header->len) == 0) {
-            goto bad_data;
-        } else if (ntohs(dns_tcp_header->len) == (input_len-2)) {
-            /* we have all data, so process w/o buffering */
-            if (DNSReponseParseData(f, dns_state, input+2, input_len-2) < 0)
-                goto bad_data;
-
-        } else if ((input_len-2) > ntohs(dns_tcp_header->len)) {
-            /* we have all data, so process w/o buffering */
-            if (DNSReponseParseData(f, dns_state, input+2, ntohs(dns_tcp_header->len)) < 0)
-                goto bad_data;
-
-            /* treat the rest of the data as a (potential) new record */
-            input += (2 + ntohs(dns_tcp_header->len));
-            input_len -= (2 + ntohs(dns_tcp_header->len));
-            goto next_record;
-        } else {
-            /* not enough data, store record length and buffer */
-            dns_state->record_len = ntohs(dns_tcp_header->len);
-            BufferData(dns_state, input+2, input_len-2);
+    if (buffer->len) {
+        if (!ParserBufferAdd(buffer, input, input_len)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory to buffer "
+                "DNS request data");
+            return -1;
         }
-    } else if (input_len + dns_state->offset < dns_state->record_len) {
-        /* we don't have the full record yet, buffer */
-        BufferData(dns_state, input, input_len);
-    } else if (input_len > (uint32_t)(dns_state->record_len - dns_state->offset)) {
-        /* more data than expected, we may have another record coming up */
-        uint16_t need = (dns_state->record_len - dns_state->offset);
-        BufferData(dns_state, input, need);
-        int r = DNSReponseParseData(f, dns_state, dns_state->buffer, dns_state->record_len);
-        BufferReset(dns_state);
-        if (r < 0)
-            goto bad_data;
+        input = buffer->buffer;
+        input_len = buffer->len;
+    }
+        
+    while (input_len >= sizeof(DNSTcpHeader)) {
 
-        /* treat the rest of the data as a (potential) new record */
-        input += need;
-        input_len -= need;
-        goto next_record;
-    } else {
-        /* implied exactly the amount of data we want
-         * add current to buffer, then inspect buffer */
-        BufferData(dns_state, input, input_len);
-        int r = DNSReponseParseData(f, dns_state, dns_state->buffer, dns_state->record_len);
-        BufferReset(dns_state);
-        if (r < 0)
+        DNSTcpHeader *header = (DNSTcpHeader *)input;
+        uint16_t hlen = ntohs(header->len);
+
+        if (hlen < sizeof(DNSHeader)) {
+            /* Looks like a bogus header or not DNS traffic as the
+             * length value isn't even large enought for a DNS
+             * header. */
             goto bad_data;
+        }
+
+        if (hlen > input_len - 2) {
+            /* Not enough data, thats why we have a buffer. */
+            break;
+        }
+
+        if (DNSResponseParseData(f, dns_state, input + 2, hlen) < 0) {
+            goto bad_data;
+        }
+
+        input_len -= (2 + hlen);
+        input += (2 + hlen);
     }
 
-    if (f != NULL) {
-        dns_state->last_req = f->lastts;
+    if (buffer->len) {
+        /* Advance the buffer by the number of bytes that were taken. */
+        ParserBufferAdvance(buffer, buffer->len - input_len);
+        ParserBufferTrim(buffer);
+    } else if (input_len) {
+        ParserBufferAdd(buffer, input, input_len);
     }
 
     SCReturnInt(1);
 insufficient_data:
-    SCReturnInt(-1);
 bad_data:
+    ParserBufferReset(buffer);
     SCReturnInt(-1);
 }
 
-static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset)
-{
-    if (ilen == 0 || ilen < sizeof(DNSTcpHeader)) {
-        SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSTcpHeader));
-        return ALPROTO_UNKNOWN;
-    }
-
-    DNSTcpHeader *dns_header = (DNSTcpHeader *)input;
-    if (ntohs(dns_header->len) < sizeof(DNSHeader)) {
-        /* length field bogus, won't even fit a minimal DNS header. */
-        return ALPROTO_FAILED;
-    } else if (ntohs(dns_header->len) > ilen) {
-        int r = DNSTCPRequestParseProbe(input, ilen);
-        if (r == -1) {
-            /* probing parser told us "bad data", so it's not
-             * DNS */
-            return ALPROTO_FAILED;
-        } else if (ilen > 512) {
-            SCLogDebug("all the parser told us was not enough data, which is expected. Lets assume it's DNS");
-            return ALPROTO_DNS;
-        }
-
-        SCLogDebug("not yet enough info %u > %u", ntohs(dns_header->len), ilen);
-        return ALPROTO_UNKNOWN;
-    }
-
-    int r = DNSTCPRequestParseProbe(input, ilen);
-    if (r != 1)
-        return ALPROTO_FAILED;
-
-    SCLogDebug("ALPROTO_DNS");
-    return ALPROTO_DNS;
-}
-
-/**
- * \brief Probing parser for TCP DNS responses.
- *
- * This is a minimal parser that just checks that the input contains enough
- * data for a TCP DNS response.
- */
-static uint16_t DNSTcpProbeResponse(uint8_t *input, uint32_t len,
+static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen,
     uint32_t *offset)
 {
-    if (len == 0 || len < sizeof(DNSTcpHeader)) {
+    if (ilen == 0 || ilen < sizeof(DNSTcpHeader)) {
         return ALPROTO_UNKNOWN;
     }
 
     DNSTcpHeader *dns_header = (DNSTcpHeader *)input;
-
     if (ntohs(dns_header->len) < sizeof(DNSHeader)) {
         return ALPROTO_FAILED;
     }
 
-    return ALPROTO_DNS;
+    if (rs_dns_probe(input + 2, ntohs(dns_header->len))) {
+        return ALPROTO_DNS;
+    }
+
+    return ALPROTO_FAILED;
 }
 
 void RegisterDNSTCPParsers(void)
@@ -669,7 +374,7 @@ void RegisterDNSTCPParsers(void)
                                                 proto_name, ALPROTO_DNS,
                                                 0, sizeof(DNSTcpHeader),
                                                 DNSTcpProbingParser,
-                                                DNSTcpProbeResponse);
+                                                DNSTcpProbingParser);
             /* if we have no config, we enable the default port 53 */
             if (!have_cfg) {
                 SCLogWarning(SC_ERR_DNS_CONFIG, "no DNS TCP config found, "
@@ -678,7 +383,7 @@ void RegisterDNSTCPParsers(void)
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "53",
                                    ALPROTO_DNS, 0, sizeof(DNSTcpHeader),
                                    STREAM_TOSERVER, DNSTcpProbingParser,
-                                   DNSTcpProbeResponse);
+                                   DNSTcpProbingParser);
             }
         }
     } else {
@@ -839,9 +544,125 @@ static int DNSTCPParserTestMultiRecord(void)
     PASS;
 }
 
+static int DNSTCPParserTestMultiRecordPartials(void)
+{
+    /* This is a buffer containing 20 DNS requests each prefixed by
+     * the request length for transport over TCP.  It was generated with Scapy,
+     * where each request is:
+     *    DNS(id=i, rd=1, qd=DNSQR(qname="%d.google.com" % i, qtype="A"))
+     * where i is 0 to 19.
+     */
+    uint8_t req[] = {
+        0x00, 0x1e, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x30,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x31,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x02, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x32,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x03, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x33,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x04, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x34,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x05, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x35,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x06, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x36,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x07, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x37,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x08, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x38,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1e, 0x00, 0x09, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x39,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1f, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31,
+        0x30, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
+        0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x1f, 0x00, 0x0b, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+        0x31, 0x31, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
+        0x00, 0x01, 0x00, 0x1f, 0x00, 0x0c, 0x01, 0x00,
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x02, 0x31, 0x32, 0x06, 0x67, 0x6f, 0x6f, 0x67,
+        0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00,
+        0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0d, 0x01,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x02, 0x31, 0x33, 0x06, 0x67, 0x6f, 0x6f,
+        0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+        0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00, 0x0e,
+        0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x02, 0x31, 0x34, 0x06, 0x67, 0x6f,
+        0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d,
+        0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f, 0x00,
+        0x0f, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x02, 0x31, 0x35, 0x06, 0x67,
+        0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f,
+        0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x1f,
+        0x00, 0x10, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x36, 0x06,
+        0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63,
+        0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0x1f, 0x00, 0x11, 0x01, 0x00, 0x00, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31, 0x37,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+        0x00, 0x1f, 0x00, 0x12, 0x01, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x31,
+        0x38, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65,
+        0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
+        0x01, 0x00, 0x1f, 0x00, 0x13, 0x01, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02,
+        0x31, 0x39, 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01,
+        0x00, 0x01
+    };
+    size_t reqlen = sizeof(req);
+
+    DNSState *state = DNSStateAlloc();
+    FAIL_IF_NULL(state);
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
+    FAIL_IF_NULL(f);
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_DNS;
+    f->alstate = state;
+
+    /* Dribble the bytes in one by one. */
+    for (size_t i = 0; i < reqlen; i++) {
+        FAIL_IF_NOT(
+            DNSTCPRequestParse(f, f->alstate, NULL, req + i, 1, NULL));
+    }
+
+    FAIL_IF(state->transaction_max != 20);
+
+    UTHFreeFlow(f);
+    PASS;
+}
+
 void DNSTCPParserRegisterTests(void)
 {
     UtRegisterTest("DNSTCPParserTestMultiRecord", DNSTCPParserTestMultiRecord);
+    UtRegisterTest("DNSTCPParserTestMultiRecordPartials",
+        DNSTCPParserTestMultiRecordPartials);
 }
 
 #endif /* UNITTESTS */
