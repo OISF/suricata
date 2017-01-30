@@ -2527,6 +2527,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "tls issuer";
         case DETECT_SM_LIST_TLSSUBJECT_MATCH:
             return "tls subject";
+        case DETECT_SM_LIST_TLSSERIAL_MATCH:
+            return "tls serial";
         case DETECT_SM_LIST_TLSVALIDITY_MATCH:
             return "tls validity";
 
