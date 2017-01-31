@@ -165,8 +165,8 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 }
 
-static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
-    void *state, void *tx, uint64_t tx_id)
+static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
+    Flow *f, void *state, void *tx, uint64_t tx_id, uint8_t direction)
 {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
@@ -214,29 +214,43 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
         dp = p->sp;
     }
 
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &dns_tx->query_list, next) {
-        LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
-    }
+    if (direction == STREAM_TOSERVER) {
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &dns_tx->query_list, next) {
+            LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
+        }
+    } else if (direction == STREAM_TOCLIENT) {
+        if (dns_tx->rcode)
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
+        if (dns_tx->recursion_desired)
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
 
-    if (dns_tx->rcode)
-        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
-    if (dns_tx->recursion_desired)
-        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
+        DNSAnswerEntry *entry = NULL;
+        TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+        }
 
-    DNSAnswerEntry *entry = NULL;
-    TAILQ_FOREACH(entry, &dns_tx->answer_list, next) {
-        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
-    }
-
-    entry = NULL;
-    TAILQ_FOREACH(entry, &dns_tx->authority_list, next) {
-        LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+        entry = NULL;
+        TAILQ_FOREACH(entry, &dns_tx->authority_list, next) {
+            LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, entry);
+        }
     }
 
     aft->dns_cnt++;
 end:
     return 0;
+}
+
+static int LogDnsRequestLogger(ThreadVars *tv, void *data, const Packet *p,
+    Flow *f, void *state, void *tx, uint64_t tx_id)
+{
+    return LogDnsLogger(tv, data, p, f, state, tx, tx_id, STREAM_TOSERVER);
+}
+
+static int LogDnsResponseLogger(ThreadVars *tv, void *data, const Packet *p,
+    Flow *f, void *state, void *tx, uint64_t tx_id)
+{
+    return LogDnsLogger(tv, data, p, f, state, tx, tx_id, STREAM_TOCLIENT);
 }
 
 static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -346,9 +360,15 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 
 void LogDnsLogRegister (void)
 {
-    OutputRegisterTxModule(LOGGER_DNS, MODULE_NAME, "dns-log", LogDnsLogInitCtx,
-        ALPROTO_DNS, LogDnsLogger, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
-        LogDnsLogExitPrintStats);
+    /* Request logger. */
+    OutputRegisterTxModuleWithProgress(LOGGER_DNS, MODULE_NAME, "dns-log",
+        LogDnsLogInitCtx, ALPROTO_DNS, LogDnsRequestLogger, 0, 1,
+        LogDnsLogThreadInit, LogDnsLogThreadDeinit, LogDnsLogExitPrintStats);
+
+    /* Response logger. */
+    OutputRegisterTxModuleWithProgress(LOGGER_DNS, MODULE_NAME, "dns-log",
+        LogDnsLogInitCtx, ALPROTO_DNS, LogDnsResponseLogger, 1, 1,
+        LogDnsLogThreadInit, LogDnsLogThreadDeinit, LogDnsLogExitPrintStats);
 
     /* enable the logger for the app layer */
     SCLogDebug("registered %s", MODULE_NAME);
