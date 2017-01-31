@@ -16,6 +16,7 @@ use common::*;
 use std::collections::HashMap;
 
 use filetracker::*;
+use filecontainer::*;
 
 //use std::io::Write;
 //use std::fmt::Write;

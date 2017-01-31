@@ -3,6 +3,7 @@ extern crate libc;
 use std::ptr;
 use common::*;
 use std::collections::HashMap;
+use filecontainer::*;
 
 macro_rules! println_debug(
     ($($arg:tt)*) => { {
@@ -27,18 +28,6 @@ pub struct FileTransferTracker {
     pub files: SuricataFileContainer,
 }
 
-impl Drop for FileTransferTracker {
-    fn drop(&mut self) {
-        println_debug!("Dropping!");
-        match unsafe {suricata_config} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                (c.fn_filecontainerrecycle)(&self.files);
-            },
-        }
-    }
-}
-
 impl FileTransferTracker {
     pub fn new() -> FileTransferTracker {
         FileTransferTracker {
@@ -60,86 +49,24 @@ impl FileTransferTracker {
         self.flags = flags;
         println_debug!("FILE {:p} flags now {:04X}", &self, self.flags);
     }
-/*
-    pub fn set_fill_bytes(&mut self, fb: u8) {
-        self.fill_bytes = fb;
-    }
-*/
+
     fn open(&mut self, name: &[u8]) -> i32 {
-        match unsafe {suricata_config} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                println_debug!("FILE {:p} OPEN flags {:04X}", &self, self.flags);
-              
-                let res = (c.fn_fileopenfile)(&self.files, c.sbcfg,
-                        name.as_ptr(), name.len() as u16,
-                        ptr::null(), 0 as u32, self.flags);
-                //if res != 0 { panic!("c.fn_fileopenfile failed"); }
-                self.file_open = true;
-                0
-            }
-        }
+        let r = self.files.file_open(name, self.flags);
+        self.file_open = true;
+        r
     }
 
-    fn append(&mut self, data: &[u8]) -> i32 {
-        if data.len() == 0 {
-            return 0
-        }
-        match unsafe {suricata_config} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                let res = (c.fn_fileappenddata)(&self.files, data.as_ptr(), data.len() as u32);
-                if res != 0 {
-                    panic!("c.fn_fileappenddata failed");
-                }
-                res
-            }
-        }
-    }
-
-    // TODO make private as well
-    pub fn close(&mut self) -> i32 {
-        //println!("CLOSEing");
-
-        match unsafe {suricata_config} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                let ptr = ptr::null();
-                let flags = 0;
-                let res = (c.fn_fileclosefile)(&self.files, ptr, 0 as u32, flags);
-                if res != 0 {
-                    panic!("c.fn_fileclosefile failed");
-                }
-                self.file_open = false;
-                self.tracked = 0;
-                self.prune();
-                res
-            }
-        }
-
-    }
-
-    fn prune(&mut self) {
-        //println!("pruning1");
-        match unsafe {suricata_config} {
-            None => panic!("BUG no suricata_config"),
-            Some(c) => {
-                //println!("pruning2");
-                (c.fn_fileprune)(&self.files);
-            }
-        }
+    pub fn close(&mut self) {
+        self.files.file_close(self.flags);
+        self.file_open = false;
+        self.tracked = 0;
+        self.files.files_prune();
     }
 
     pub fn create(&mut self, name: &[u8], file_size: u64) {
         if self.file_open == true { panic!("close existing file first"); }
 
         println_debug!("CREATE: name {:?} file_size {}", name, file_size);
-/*
-        self.open(name); 
-
-        self.file_size = file_size;
-*/
-        //res
     }
 
     pub fn new_chunk(&mut self, data: &[u8], chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool) -> u32 {
@@ -195,7 +122,7 @@ impl FileTransferTracker {
                 let d = &data[0..self.chunk_left as usize];
 
                 if self.chunk_is_ooo == false {
-                    let res = self.append(d);
+                    let res = self.files.file_append(d);
                     if res != 0 { panic!("append failed"); }
 
                     self.tracked += self.chunk_left as u64;
@@ -241,7 +168,7 @@ impl FileTransferTracker {
                             let offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
                                 Some(a) => {
-                                    let res = self.append(&a);
+                                    let res = self.files.file_append(&a);
                                     if res != 0 { panic!("append failed"); }
 
                                     self.tracked += a.len() as u64;
@@ -272,7 +199,7 @@ impl FileTransferTracker {
 
             } else {
                 if self.chunk_is_ooo == false {
-                    let res = self.append(data);
+                    let res = self.files.file_append(data);
                     if res != 0 { panic!("append failed"); }
                     self.tracked += data.len() as u64;
                 } else {
@@ -296,7 +223,7 @@ impl FileTransferTracker {
                 consumed += data.len();
             }
         }
-        self.prune();
+        self.files.files_prune();
         consumed as u32
     }
 }

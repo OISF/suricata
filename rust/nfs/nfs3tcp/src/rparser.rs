@@ -1,5 +1,6 @@
 //! common functions for all parsers
 use common::*;
+use filecontainer::*;
 
 /// Interface of all Rusticata parsers.
 ///

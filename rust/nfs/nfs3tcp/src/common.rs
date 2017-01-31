@@ -1,25 +1,13 @@
 extern crate libc;
 use std;
-use std::ptr;
+//use std::ptr;
 //use std::ffi::CString;
-use libc::{c_void};
+//use libc::{c_void};
+use filecontainer::*;
 
 const SURICATA_RUST_MAGIC : u32 = 0x1234;
 
 //pub type LogCallback = extern "C" fn (lvl: u32, file: *const i8, line: u32, func: *const i8, err: u32, msg: *const i8);
-
-pub struct SuricataFile;
-#[repr(C)]
-pub struct SuricataFileContainer {
-    head: * mut c_void,
-    tail: * mut c_void,
-}
-
-impl SuricataFileContainer {
-    pub fn default() -> SuricataFileContainer {
-        SuricataFileContainer { head:ptr::null_mut(), tail:ptr::null_mut() }
-    }
-}
 
 pub struct SuricataStreamingBufferConfig;
 
