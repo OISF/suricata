@@ -55,6 +55,7 @@
         (f)->alproto = 0; \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
+        (f)->alproto_orig = 0; \
         (f)->de_ctx_version = 0; \
         (f)->thread_id = 0; \
         (f)->detect_alversion[0] = 0; \
@@ -97,6 +98,7 @@
         (f)->alproto = 0; \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
+        (f)->alproto_orig = 0; \
         (f)->de_ctx_version = 0; \
         (f)->thread_id = 0; \
         (f)->detect_alversion[0] = 0; \
