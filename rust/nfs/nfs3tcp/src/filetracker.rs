@@ -69,7 +69,7 @@ impl FileTransferTracker {
         println_debug!("CREATE: name {:?} file_size {}", name, file_size);
     }
 
-    pub fn new_chunk(&mut self, data: &[u8], chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool) -> u32 {
+    pub fn new_chunk(&mut self, name: &[u8], data: &[u8], chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool) -> u32 {
         if self.chunk_left != 0 { panic!("complete existing chunk first"); }
         if self.fill_bytes != 0 { panic!("complete existing fill bytes first"); }
 
@@ -87,7 +87,7 @@ impl FileTransferTracker {
 
         if self.file_open == false {
             println_debug!("NEW CHUNK: FILE OPEN");
-            self.open(&[]);
+            self.open(name);
         }
 
         let res = self.update(data);

@@ -82,6 +82,42 @@ named!(pub parse_nfs3_reply_object<Nfs3ReplyObject>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Nfs3Handle<'a> {
+    pub len: u32,
+    pub value: &'a[u8],
+}
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ReplyCreate<'a> {
+    pub handle: Option<Nfs3Handle<'a>>,
+}
+
+named!(pub parse_nfs3_response_handle<Nfs3Handle>,
+    do_parse!(
+        obj_len: be_u32
+        >> obj: take!(obj_len)
+        >> (
+            Nfs3Handle {
+                len:obj_len,
+                value:obj,
+            }
+        ))
+);
+
+named!(pub parse_nfs3_response_create<Nfs3ReplyCreate>,
+    do_parse!(
+        status: be_u32
+        >> handle_has_value: be_u32
+        >> handle: cond!(handle_has_value == 1, parse_nfs3_response_handle)
+        >> (
+            Nfs3ReplyCreate {
+               handle:handle, 
+            }
+        ))
+);     
+
+
+#[derive(Debug,PartialEq)]
 pub struct Nfs3RequestObject<'a> {
     pub len: u32,
     pub value: &'a[u8],
@@ -468,6 +504,7 @@ pub struct NfsRequestXidMap {
     //xid: u32,
     procedure: u32,
     chunk_offset: u64,
+    file_name:Vec<u8>,
 }
 
 impl NfsRequestXidMap {
@@ -475,6 +512,7 @@ impl NfsRequestXidMap {
         NfsRequestXidMap {
             //xid:xid,
             procedure:procedure, chunk_offset:chunk_offset,
+            file_name:Vec::new(),
         }
     }
 }
@@ -482,6 +520,8 @@ impl NfsRequestXidMap {
 pub struct NfsTcpParser {
     /// map xid to procedure so replies can lookup the procedure
     pub requestmap: HashMap<u32, NfsRequestXidMap>,
+
+    pub namemap: HashMap<Vec<u8>, Vec<u8>>,
 
     /// TCP segments defragmentation buffer
     pub tcp_buffer_ts: Vec<u8>,
@@ -498,6 +538,7 @@ impl NfsTcpParser {
     pub fn new() -> NfsTcpParser {
         NfsTcpParser {
             requestmap:HashMap::new(),
+            namemap:HashMap::new(),
             // capacity is the amount of space allocated, which means elements can be added
             // without reallocating the vector
             tcp_buffer_ts:Vec::with_capacity(8192),
@@ -532,13 +573,25 @@ impl NfsTcpParser {
                         fill_bytes = 4 - pad;
                     } 
 
+                    let mut name;
+                    match self.namemap.get(w.object.value) {
+                        Some(n) => {
+                            println_debug!("WRITE name {:?}", n);
+                            name = n.to_vec();
+                        },
+                        _ => {
+                            println_debug!("WRITE object {:?} not found", w.object.value);
+                            name = Vec::new();
+                        },
+                    }
+
                     // for now assume that stable FILE_SYNC flags means a single chunk
                     let mut is_last = false;
                     if w.stable == 2 {
                         is_last = true;
                     }
 
-                    self.file_ts.new_chunk(v, w.offset, w.file_len, fill_bytes as u8, is_last);
+                    self.file_ts.new_chunk(&name, v, w.offset, w.file_len, fill_bytes as u8, is_last);
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -552,11 +605,16 @@ impl NfsTcpParser {
                     //println_debug!("vstr {:?}", vstr);
                     self.file_name = nfs3_create_record.name_vec;
 
+                    //println!("CREATE object {:?} stored", nfs3_create_record.object.value);
+                    //self.namemap.insert(nfs3_create_record.object.value.to_vec(), self.file_name.to_vec());
+
                     let file_name = match str::from_utf8(&self.file_name) {
                         Ok(v) => v,
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     };
                     println!("NFSv3: created file {}", file_name);
+
+                    xidmap.file_name = self.file_name.to_vec();
 
                     self.file_ts.create(&self.file_name, 0);
                 },
@@ -590,13 +648,25 @@ impl NfsTcpParser {
             fill_bytes = 4 - pad;
         } 
 
+        let mut name;
+        match self.namemap.get(w.object.value) {
+            Some(n) => {
+                println_debug!("WRITE name {:?}", n);
+                name = n.to_vec();
+            },
+            _ => {
+                println_debug!("WRITE object {:?} not found", w.object.value);
+                name = Vec::new();
+            },
+        }
+
         // for now assume that stable FILE_SYNC flags means a single chunk
         let mut is_last = false;
         if w.stable == 2 {
             is_last = true;
         }
 
-        self.file_ts.new_chunk(v, w.offset, w.file_len, fill_bytes as u8, is_last);
+        self.file_ts.new_chunk(&name, v, w.offset, w.file_len, fill_bytes as u8, is_last);
 
         0
     }
@@ -606,6 +676,28 @@ impl NfsTcpParser {
         match self.requestmap.remove(&r.hdr.xid) {
             Some(p) => { xidmap = p; },
             _ => { panic!("REPLY: xid {} NOT FOUND", r.hdr.xid); return 1; },
+        }
+
+        if xidmap.procedure == 8 { // CREATE
+            match parse_nfs3_response_create(r.prog_data) {
+                IResult::Done(_, nfs3_create_record) => {
+                    println_debug!("nfs3_create_record: {:?}", nfs3_create_record);
+
+                    println_debug!("RESPONSE CREATE file_name {:?}", xidmap.file_name);
+
+                    match nfs3_create_record.handle {
+                        Some(h) => {
+                            println_debug!("handle {:?}", h);
+                            self.namemap.insert(h.value.to_vec(), xidmap.file_name);
+                        },
+                        _ => { },
+                    }
+
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+            
         }
 
         //println_debug!("REPLY {} to procedure {} blob size {}", r.hdr.xid, xidmap.procedure, r.prog_data.len());
@@ -637,7 +729,7 @@ impl NfsTcpParser {
         } 
 
         println_debug!("NEW CHUNK in process_partial_read_reply_record EOF {} OFFSET {}", reply.eof, xidmap.chunk_offset);
-        self.file_tc.new_chunk(reply.data, xidmap.chunk_offset,
+        self.file_tc.new_chunk(&[], reply.data, xidmap.chunk_offset,
                 reply.count, fill_bytes as u8, reply.eof);
 
         //println_debug!("file data left after this record: {}", (r.hdr.frag_len + 4) - sz);
