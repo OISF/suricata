@@ -17,21 +17,5 @@
 
 //! Definition from Suricata core.
 
-extern crate libc;
-
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
-
-// Callbacks into Suricata core.
-extern {
-    pub fn DetectEngineContentInspection(de_ctx: *mut libc::c_void,
-                                         det_ctx: *mut libc::c_void,
-                                         s: *mut libc::c_void,
-                                         sm: *mut libc::c_void,
-                                         f: *mut libc::c_void,
-                                         buffer: *const libc::uint8_t,
-                                         buffer_len: libc::uint32_t,
-                                         stream_start_offset: libc::uint32_t,
-                                         inspection_mode: libc::uint8_t,
-                                         data: *mut libc::c_void) -> u32;
-}

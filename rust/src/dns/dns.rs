@@ -412,46 +412,6 @@ pub extern fn rs_dns_tx_get_query_buffer(tx: &mut DNSTransaction,
     return 0;
 }
 
-#[no_mangle]
-pub extern fn rs_dns_tx_inspect_query_name(
-    txp: *mut DNSTransaction,
-    de_ctx: *mut libc::c_void,
-    det_ctx: *mut libc::c_void,
-    s: *mut libc::c_void,
-    sm: *mut libc::c_void,
-    f: *mut libc::c_void,
-    stream_start_offset: libc::uint32_t,
-    inspection_mode: libc::uint8_t,
-    data: *mut libc::c_void) -> u32
-{
-    let tx = unsafe{&mut *txp};
-
-    for request in &tx.request {
-        for query in &request.queries {
-            let len = query.name.len();
-            unsafe {
-                let buf = &query.name[..];
-                let r = core::DetectEngineContentInspection(
-                    de_ctx,
-                    det_ctx,
-                    s,
-                    sm,
-                    f,
-                    buf.as_ptr(),
-                    len as u32,
-                    stream_start_offset,
-                    inspection_mode,
-                    data);
-                if r == 1 {
-                    return 1;
-                }
-            }
-        }
-    }
-
-    return 0;
-}
-
 /// Probe a buffer to see if it looks like a DNS request or response.
 pub fn dns_probe(input: &[u8]) -> bool {
     match dns_parse_request(input) {
