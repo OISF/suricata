@@ -460,24 +460,6 @@ mod tests {
     use nom::IResult;
 
     #[test]
-    fn test_dns_parse_label() {
-        let buf: &[u8] = &[
-            // www
-            0x03, 0x77, 0x77, 0x77,
-
-            // suricata-ids
-            0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, 0x61, 0x74,
-            0x61, 0x2d, 0x69, 0x64, 0x73,
-
-            // org
-            0x03, 0x72, 0x67, 0x00];
-
-        let res = dns_parse_label(buf);
-        let expected = IResult::Done(&buf[4..], "www".as_bytes());
-        assert_eq!(res, expected);
-    }
-
-    #[test]
     fn test_dns_parse_name_simple() {
         let buf: &[u8] = &[
                                                 0x09, 0x63, /* .......c */

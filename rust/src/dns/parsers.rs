@@ -44,13 +44,6 @@ named!(pub dns_parse_header<DNSHeader>,
        )
 );
 
-/// Parse a DNS label returning the result as a u8 slice. The label
-/// must first be checked that its an actual label and not a pointer.
-named!(pub dns_parse_label<&[u8]>, do_parse!(
-    length: be_u8 >>
-    label: take!(length) >> (label)
-));
-
 pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                               message: &'b [u8])
                               -> nom::IResult<&'b [u8], Vec<u8>> {
@@ -70,7 +63,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
             pos = &pos[1..];
             break;
         } else if len & 0b1100_0000 == 0 {
-            match dns_parse_label(pos) {
+            match length_bytes!(pos, be_u8) {
                 nom::IResult::Done(rem, label) => {
                     if name.len() > 0 {
                         name.push('.' as u8);
@@ -84,7 +77,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                 }
             }
         } else if len & 0b1100_0000 == 0b1100_0000 {
-            match closure!(do_parse!(leader: be_u16 >> (leader)))(pos) {
+            match be_u16(pos) {
                 nom::IResult::Done(rem, leader) => {
                     let offset = leader & 0x3fff;
                     if offset as usize > message.len() {
