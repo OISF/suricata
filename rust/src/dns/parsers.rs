@@ -18,7 +18,6 @@
 //! Nom parsers for DNS.
 
 use nom::{be_u8, be_u16, be_u32};
-use nom::Offset;
 use nom;
 
 use dns::*;
@@ -63,10 +62,14 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
     loop {
         if pos.len() == 0 {
             break;
-        } else if pos[0] == 0x00 {
+        }
+
+        let len = pos[0];
+
+        if len == 0x00 {
             pos = &pos[1..];
             break;
-        } else if pos[0] >> 6 == 0 {
+        } else if len & 0b1100_0000 == 0 {
             match dns_parse_label(pos) {
                 nom::IResult::Done(rem, label) => {
                     if name.len() > 0 {
@@ -80,7 +83,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                         error_position!(nom::ErrorKind::OctDigit, input));
                 }
             }
-        } else if pos[0] >> 6 != 0 {
+        } else if len & 0b1100_0000 == 0b1100_0000 {
             match closure!(do_parse!(leader: be_u16 >> (leader)))(pos) {
                 nom::IResult::Done(rem, leader) => {
                     let offset = leader & 0x3fff;
@@ -113,8 +116,10 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
     }
 
     // If we followed a pointer we return the position after the first
-    // pointer followed.
-    if message.offset(pivot) != message.offset(start) {
+    // pointer followed. Is there a better way to see if these slices
+    // diverged from each other?  A straight up comparison would
+    // actually check the contents.
+    if pivot.len() != start.len() {
         return nom::IResult::Done(pivot, name);
     }
     return nom::IResult::Done(pos, name);
