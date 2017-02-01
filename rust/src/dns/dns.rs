@@ -185,57 +185,51 @@ impl DNSState {
     }
 
     fn remove_tx_at_index(&mut self, index: usize) {
-        if self.transactions.len() == 0 {
-            return;
-        }
-        if index > self.transactions.len() - 1 {
-            return;
-        }
-        let tx = &self.transactions[index];
 
-        match tx.events {
-            Some(mut events) => {
-                unsafe {
-                    AppLayerDecoderEventsFreeEvents(&mut events);
-                }
-                self.events -= 1;
-            },
-            None => {}
+        if index >= self.transactions.len() {
+            return;
         }
-        match tx.de_state {
-            Some(mut de_state) => {
-                unsafe {
-                    DetectEngineStateFree(de_state);
-                }
-            },
-            None => {}
+
+        {
+            let tx = &self.transactions[index];
+            
+            match tx.events {
+                Some(mut events) => {
+                    unsafe {
+                        AppLayerDecoderEventsFreeEvents(&mut events);
+                    }
+                    self.events -= 1;
+                },
+                None => {}
+            }
+            match tx.de_state {
+                Some(mut de_state) => {
+                    unsafe {
+                        DetectEngineStateFree(de_state);
+                    }
+                },
+                None => {}
+            }
         }
         
+        self.transactions.remove(index);
     }
 
     pub fn tx_free(&mut self, tx_id: u64) {
+
+        let mut index = 0;
+        let mut found = false;
+
         for i in 0..self.transactions.len() {
             if self.transactions[i].id == tx_id + 1 {
-                let tx = self.transactions.remove(i);
-                match tx.events {
-                    Some(mut events) => {
-                        unsafe {
-                            AppLayerDecoderEventsFreeEvents(&mut events);
-                        }
-                        self.events -= 1;
-                        },
-                    None => {}
-                }
-                match tx.de_state {
-                    Some(mut de_state) => {
-                        unsafe {
-                            DetectEngineStateFree(de_state);
-                        }
-                    },
-                    None => {}
-                }
-                return;
+                index = i;
+                found = true;
+                break;
             }
+        }
+
+        if found {
+            self.remove_tx_at_index(index);
         }
     }
 
