@@ -90,7 +90,9 @@ int DNSCheckMemcap(uint32_t want, DNSState *state)
     if (state != NULL) {
         if (state->memuse + want > dns_config.state_memcap) {
             SC_ATOMIC_ADD(dns_memcap_state, 1);
+#if 0
             DNSSetEvent(state, DNS_DECODER_EVENT_STATE_MEMCAP_REACHED);
+#endif
             return -1;
         }
     }
@@ -159,23 +161,13 @@ void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto)
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id)
 {
     DNSState *dns_state = (DNSState *)state;
-    DNSTransaction *tx;
-
-    if (dns_state->curr && dns_state->curr->tx_num == (id + 1)) {
-        return dns_state->curr->decoder_events;
-    }
-
-    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        if (tx->tx_num == (id+1))
-            return tx->decoder_events;
-    }
-    return NULL;
+    return rs_dns_state_get_events(dns_state->rs_state, id);
 }
 
 int DNSHasEvents(void *state)
 {
     DNSState *dns_state = (DNSState *)state;
-    return (dns_state->events > 0);
+    return rs_dns_state_has_events(dns_state->rs_state);
 }
 
 void *DNSGetTx(void *alstate, uint64_t tx_id)
@@ -250,18 +242,6 @@ int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
     return 1;
 }
 
-void DNSSetEvent(DNSState *s, uint8_t e)
-{
-    if (s && s->curr) {
-        SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
-        AppLayerDecoderEventsSetEventRaw(&s->curr->decoder_events, e);
-        SCLogDebug("s->curr->decoder_events %p", s->curr->decoder_events);
-        s->events++;
-    } else {
-        SCLogDebug("couldn't set event %u", e);
-    }
-}
-
 /** \internal
  *  \brief Allocate a DNS TX
  *  \retval tx or NULL */
@@ -284,8 +264,6 @@ DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id)
 static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 {
     SCEnter();
-
-    AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
     DetectEngineState *de_state = rs_dns_tx_get_detect_state(tx->rs_tx);
     if (de_state != NULL) {
@@ -325,13 +303,6 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id)
 
         if (tx == dns_state->curr)
             dns_state->curr = NULL;
-
-        if (tx->decoder_events != NULL) {
-            if (tx->decoder_events->cnt <= dns_state->events)
-                dns_state->events -= tx->decoder_events->cnt;
-            else
-                dns_state->events = 0;
-        }
 
         TAILQ_REMOVE(&dns_state->tx_list, tx, next);
         DNSTransactionFree(tx, state);

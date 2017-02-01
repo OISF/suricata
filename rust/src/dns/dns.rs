@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-// TODO: Log reply handling (windowed).
+// TODO: Lost reply handling (windowed).
 // TODO: Flood handling.
 
 extern crate std;
@@ -44,6 +44,13 @@ pub const DNS_RTYPE_PTR:   u16 = 12;
 pub const DNS_RTYPE_MX:    u16 = 15;
 pub const DNS_RTYPE_SSHFP: u16 = 44;
 pub const DNS_RTYPE_RRSIG: u16 = 46;
+
+extern {
+    pub fn AppLayerDecoderEventsSetEventRaw(
+        events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t);
+    pub fn AppLayerDecoderEventsFreeEvents(
+        events: *mut *mut AppLayerDecoderEvents);
+}
 
 #[repr(u32)]
 pub enum DNSEvents {
@@ -93,6 +100,9 @@ pub struct DNSHeader {
 /// The Rust place holder for DetectEngineState *.
 pub enum DetectEngineState {}
 
+/// The Rust place holder for AppLayerDecoderEvents *.
+pub enum AppLayerDecoderEvents {}
+
 #[derive(Debug)]
 pub struct DNSTransaction {
     pub id: u64,
@@ -101,6 +111,7 @@ pub struct DNSTransaction {
     pub replied: bool,
     pub logged: u32,
     pub de_state: Option<*mut DetectEngineState>,
+    pub events: Option<*mut AppLayerDecoderEvents>,
 }
 
 #[derive(Debug)]
@@ -136,7 +147,7 @@ pub struct DNSAnswerEntry {
 
 pub struct DNSState {
 
-    pub events: Vec<DNSEvents>,
+    pub events: u16,
 
     // Vector of transactions.
     pub transactions: Vec<Box<DNSTransaction>>,
@@ -151,7 +162,7 @@ impl DNSState {
 
     pub fn new() -> DNSState {
         return DNSState{
-            events: Vec::new(),
+            events: 0,
             transactions: Vec::new(),
             tx_id: 0,
             unreplied: 0,
@@ -168,10 +179,47 @@ impl DNSState {
     pub fn tx_free(&mut self, tx_id: u64) {
         for i in 0..self.transactions.len() {
             if self.transactions[i].id == tx_id + 1 {
-                self.transactions.remove(i);
+                let tx = self.transactions.remove(i);
+                match tx.events {
+                    Some(mut events) => {
+                        unsafe {
+                            AppLayerDecoderEventsFreeEvents(&mut events);
+                        }
+                        self.events -= 1;
+                        },
+                    None => {}
+                }
                 return;
             }
         }
+    }
+
+    pub fn set_event(&mut self, event: DNSEvents) {
+
+        let len = self.transactions.len();
+        if len == 0 {
+            return;
+        }
+
+        let mut tx = &mut self.transactions[len - 1];
+
+        match tx.events {
+            Some(mut events) => {
+                unsafe {
+                    AppLayerDecoderEventsSetEventRaw(&mut events, event as u8);
+                }
+            },
+            None => {
+                let mut events: *mut AppLayerDecoderEvents =
+                    std::ptr::null_mut();
+                unsafe {
+                    AppLayerDecoderEventsSetEventRaw(&mut events, event as u8);
+                }
+                tx.events = Some(events);
+                self.events += 1;
+            }
+        }
+        
     }
 
     pub fn tx_get(&self, tx_id: u64) -> Option<&DNSTransaction> {
@@ -200,12 +248,12 @@ impl DNSState {
         // validating then parsing the full request.
 
         if request.header.flags & 0x8000 != 0 {
-            self.events.push(DNSEvents::NotRequest);
+            self.set_event(DNSEvents::NotRequest);
             return false;
         }
 
         if request.header.flags & 0x0040 != 0 {
-            self.events.push(DNSEvents::ZFlagSet);
+            self.set_event(DNSEvents::ZFlagSet);
             return false;
         }
 
@@ -220,12 +268,12 @@ impl DNSState {
         // validating then parsing the full request.
 
         if response.header.flags & 0x8000 == 0 {
-            self.events.push(DNSEvents::NotResponse);
+            self.set_event(DNSEvents::NotResponse);
             return false;
         }
 
         if response.header.flags & 0x0040 != 0 {
-            self.events.push(DNSEvents::ZFlagSet);
+            self.set_event(DNSEvents::ZFlagSet);
             return false;
         }
 
@@ -268,7 +316,7 @@ impl DNSState {
             }
         }
 
-        self.events.push(DNSEvents::UnsolicitedResponse);
+        self.set_event(DNSEvents::UnsolicitedResponse);
 
         // Create a response only transaction.
         let mut tx = self.new_tx();
@@ -287,7 +335,7 @@ impl DNSState {
                 return self.handle_request(request);
             },
             _ => {
-                self.events.push(DNSEvents::MalformedData);
+                self.set_event(DNSEvents::MalformedData);
                 return 0;
             }
         }
@@ -300,7 +348,7 @@ impl DNSState {
                 return self.handle_response(response);
             },
             _ => {
-                self.events.push(DNSEvents::MalformedData);
+                self.set_event(DNSEvents::MalformedData);
                 return 0;
             }
         }
@@ -328,18 +376,6 @@ pub extern fn rs_dns_state_tx_get(this: &mut DNSState, tx_id: libc::uint64_t)
         },
         _ => {
             return ptr::null_mut();
-        }
-    }
-}
-
-#[no_mangle]
-pub extern fn rs_dns_state_get_next_event(this: &mut DNSState) -> u32 {
-    match this.events.pop() {
-        Some(ev) => {
-            return ev as u32;
-        },
-        _ => {
-            return 0;
         }
     }
 }
@@ -379,9 +415,38 @@ impl DNSTransaction {
             replied: false,
             logged: 0,
             de_state: None,
+            events: None,
         }
     }
 
+}
+
+#[no_mangle]
+pub extern fn rs_dns_state_has_events(state: &mut DNSState) -> libc::int8_t
+{
+    if state.events > 0 {
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern fn rs_dns_state_get_events(state: &mut DNSState,
+                                      tx_id: libc::uint64_t)
+                                      -> *mut AppLayerDecoderEvents
+{
+    match state.tx_get(tx_id) {
+        Some(tx) => {
+            match tx.events {
+                Some(events) => {
+                    return events;
+                },
+                None => {}
+            }
+        },
+        None => {}
+    }
+    return std::ptr::null_mut();
 }
 
 #[no_mangle]

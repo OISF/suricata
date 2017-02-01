@@ -148,13 +148,9 @@ typedef struct ParserBuffer_ {
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
-
-    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
-
     RSDNSTransaction *rs_tx;
 
     TAILQ_ENTRY(DNSTransaction_) next;
-
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
@@ -167,7 +163,6 @@ typedef struct DNSState_ {
                                                  state-memcap settings */
     uint64_t tx_with_detect_state_cnt;
 
-    uint16_t events;
     uint16_t givenup;
 
     ParserBuffer buffer;
@@ -236,7 +231,6 @@ extern uint64_t rs_dns_state_parse_response(RSDNSState *, const uint8_t *,
     uint32_t);
 extern void rs_dns_state_tx_free(RSDNSState *, uint64_t);
 extern RSDNSTransaction *rs_dns_state_tx_get(RSDNSState *, uint64_t);
-extern uint32_t rs_dns_state_get_next_event(RSDNSState *);
 extern uint64_t rs_dns_state_get_tx_count(RSDNSState *);
 extern int8_t rs_dns_tx_get_alstate_progress(RSDNSTransaction *, uint8_t);
 extern uint8_t rs_dns_probe(const uint8_t *, uint32_t);
@@ -244,6 +238,9 @@ extern uint16_t rs_dns_request_get_id(RSDNSRequest *);
 
 extern void rs_dns_tx_set_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
 extern int8_t rs_dns_tx_get_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
+
+extern int8_t rs_dns_state_has_events(RSDNSState *);
+extern AppLayerDecoderEvents *rs_dns_state_get_events(RSDNSState *, uint32_t);
 
 extern void rs_dns_tx_set_detect_state(RSDNSState *, RSDNSTransaction *,
     DetectEngineState *);

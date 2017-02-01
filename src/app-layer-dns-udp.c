@@ -73,16 +73,6 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
     tx_id = rs_dns_state_parse_request(dns_state->rs_state, input, input_len);
 
-    /* Drain events. */
-    for (;;) {
-        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
-        if (ev == 0) {
-            break;
-        } else {
-            DNSSetEvent(dns_state, ev);
-        }
-    }
-
     if (tx_id > 0) {
         DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);
         BUG_ON(tx == NULL);
@@ -122,16 +112,6 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         SCReturnInt(-1);
 
     tx_id = rs_dns_state_parse_response(dns_state->rs_state, input, input_len);
-
-    /* Pull out any events. */
-    for (;;) {
-        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
-        if (ev == 0) {
-            break;
-        } else {
-            DNSSetEvent(dns_state, ev);
-        }
-    }
 
     if (tx_id > dns_state->transaction_max) {
         DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);

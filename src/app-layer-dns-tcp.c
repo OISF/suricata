@@ -118,16 +118,6 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state,
     uint64_t tx_id = rs_dns_state_parse_request(dns_state->rs_state, input,
         input_len);
 
-    /* Drain events. */
-    for (;;) {
-        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
-        if (ev == 0) {
-            break;
-        } else {
-            DNSSetEvent(dns_state, ev);
-        }
-    }
-
     if (tx_id > 0) {
         DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);
         BUG_ON(tx == NULL);
@@ -228,16 +218,6 @@ static int DNSResponseParseData(Flow *f, DNSState *dns_state,
     uint64_t tx_id = rs_dns_state_parse_response(dns_state->rs_state, input,
         input_len);
     BUG_ON(tx_id == 0);
-
-    /* Pull out any events. */
-    for (;;) {
-        uint32_t ev = rs_dns_state_get_next_event(dns_state->rs_state);
-        if (ev == 0) {
-            break;
-        } else {
-            DNSSetEvent(dns_state, ev);
-        }
-    }
 
     if (tx_id > dns_state->transaction_max) {
         DNSTransaction *tx = DNSTransactionAlloc(dns_state, 0);
