@@ -17,6 +17,24 @@
 
 //! Definitions from Suricata core.
 
+extern crate libc;
+
 pub const TO_SERVER: u8 = 0;
 pub const TO_CLIENT: u8 = 1;
 
+/// The Rust place holder for DetectEngineState *.
+pub enum DetectEngineState {}
+
+extern {
+    pub fn DetectEngineStateFree(state: *mut DetectEngineState);
+}
+
+/// The Rust place holder for AppLayerDecoderEvents *.
+pub enum AppLayerDecoderEvents {}
+
+extern {
+    pub fn AppLayerDecoderEventsSetEventRaw(
+        events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t);
+    pub fn AppLayerDecoderEventsFreeEvents(
+        events: *mut *mut AppLayerDecoderEvents);
+}

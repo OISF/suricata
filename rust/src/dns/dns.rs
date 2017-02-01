@@ -45,14 +45,6 @@ pub const DNS_RTYPE_MX:    u16 = 15;
 pub const DNS_RTYPE_SSHFP: u16 = 44;
 pub const DNS_RTYPE_RRSIG: u16 = 46;
 
-extern {
-    pub fn AppLayerDecoderEventsSetEventRaw(
-        events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t);
-    pub fn AppLayerDecoderEventsFreeEvents(
-        events: *mut *mut AppLayerDecoderEvents);
-    pub fn DetectEngineStateFree(state: *mut DetectEngineState);
-}
-
 #[repr(u32)]
 pub enum DNSEvents {
     UnsolicitedResponse = 1,
@@ -99,12 +91,6 @@ pub struct DNSHeader {
     pub additional_rr: u16,
 }
 
-/// The Rust place holder for DetectEngineState *.
-pub enum DetectEngineState {}
-
-/// The Rust place holder for AppLayerDecoderEvents *.
-pub enum AppLayerDecoderEvents {}
-
 #[derive(Debug)]
 pub struct DNSTransaction {
     pub id: u64,
@@ -112,8 +98,8 @@ pub struct DNSTransaction {
     pub response: Option<DNSResponse>,
     pub replied: bool,
     pub logged: u32,
-    pub de_state: Option<*mut DetectEngineState>,
-    pub events: Option<*mut AppLayerDecoderEvents>,
+    pub de_state: Option<*mut core::DetectEngineState>,
+    pub events: *mut core::AppLayerDecoderEvents,
 }
 
 #[derive(Debug)]
@@ -190,21 +176,18 @@ impl DNSState {
             return;
         }
 
-        let tx = self.transactions.remove(index);
+        let mut tx = self.transactions.remove(index);
         
-        match tx.events {
-            Some(mut events) => {
-                unsafe {
-                    AppLayerDecoderEventsFreeEvents(&mut events);
-                }
-                self.events -= 1;
-            },
-            None => {}
+        if tx.events != std::ptr::null_mut() {
+            unsafe {
+                core::AppLayerDecoderEventsFreeEvents(&mut tx.events);
+            }
         }
+
         match tx.de_state {
             Some(de_state) => {
                 unsafe {
-                    DetectEngineStateFree(de_state);
+                    core::DetectEngineStateFree(de_state);
                 }
             },
             None => {}
@@ -238,23 +221,9 @@ impl DNSState {
 
         let mut tx = &mut self.transactions[len - 1];
 
-        match tx.events {
-            Some(mut events) => {
-                unsafe {
-                    AppLayerDecoderEventsSetEventRaw(&mut events, event as u8);
-                }
-            },
-            None => {
-                let mut events: *mut AppLayerDecoderEvents =
-                    std::ptr::null_mut();
-                unsafe {
-                    AppLayerDecoderEventsSetEventRaw(&mut events, event as u8);
-                }
-                tx.events = Some(events);
-                self.events += 1;
-            }
+        unsafe{
+            core::AppLayerDecoderEventsSetEventRaw(&mut tx.events, event as u8);
         }
-        
     }
 
     pub fn tx_get(&self, tx_id: u64) -> Option<&DNSTransaction> {
@@ -450,7 +419,7 @@ impl DNSTransaction {
             replied: false,
             logged: 0,
             de_state: None,
-            events: None,
+            events: std::ptr::null_mut(),
         }
     }
 
@@ -468,17 +437,13 @@ pub extern fn rs_dns_state_has_events(state: &mut DNSState) -> libc::int8_t
 #[no_mangle]
 pub extern fn rs_dns_state_get_events(state: &mut DNSState,
                                       tx_id: libc::uint64_t)
-                                      -> *mut AppLayerDecoderEvents
+                                      -> *mut core::AppLayerDecoderEvents
 {
+    
     match state.tx_get(tx_id) {
         Some(tx) => {
-            match tx.events {
-                Some(events) => {
-                    return events;
-                },
-                None => {}
-            }
-        },
+            return tx.events;
+        }
         None => {}
     }
     return std::ptr::null_mut();
@@ -507,14 +472,14 @@ pub extern fn rs_dns_tx_get_logged(_: &mut DNSState,
 #[no_mangle]
 pub extern fn rs_dns_tx_set_detect_state(_: &mut DNSState,
                                          tx: &mut DNSTransaction,
-                                         ds: *mut DetectEngineState)
+                                         ds: *mut core::DetectEngineState)
 {
     tx.de_state = Some(ds);
 }
 
 #[no_mangle]
 pub extern fn rs_dns_tx_get_detect_state(tx: &mut DNSTransaction)
-                                         -> *mut DetectEngineState
+                                         -> *mut core::DetectEngineState
 {
     match tx.de_state {
         Some(ds) => {
