@@ -244,6 +244,69 @@ named!(pub parse_nfs3_request_lookup<Nfs3RequestLookup>,
         ))
 );
 
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ResponseReaddirplusEntryC<'a> {
+    pub name_vec: Vec<u8>,
+    pub handle: Option<Nfs3Handle<'a>>,
+}
+
+named!(pub parse_nfs3_response_readdirplus_entry<Nfs3ResponseReaddirplusEntryC>,
+    do_parse!(
+        file_id: be_u64
+        >> name_len: be_u32
+        >> name_content: take!(name_len)
+        >> fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >> cookie: take!(8)
+        >> attr_value_follows: be_u32
+        >> attr: cond!(attr_value_follows==1, take!(84))
+        >> handle_value_follows: be_u32
+        >> handle: cond!(handle_value_follows==1, parse_nfs3_response_handle)
+        >> (
+            Nfs3ResponseReaddirplusEntryC {
+                name_vec:name_content.to_vec(),
+                handle:handle,
+            }
+           ))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ResponseReaddirplusEntry<'a> {
+    pub entry: Option<Nfs3ResponseReaddirplusEntryC<'a>>,
+}
+
+named!(pub parse_nfs3_response_readdirplus_entry_cond<Nfs3ResponseReaddirplusEntry>,
+    do_parse!(
+        value_follows: be_u32
+        >> entry: cond!(value_follows==1, parse_nfs3_response_readdirplus_entry)
+        >> (
+            Nfs3ResponseReaddirplusEntry {
+                entry:entry,
+            }
+           ))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ResponseReaddirplus<'a> {
+    pub data: &'a[u8],
+}
+
+named!(many0_nfs3_response_readdirplus_entries<Vec<Nfs3ResponseReaddirplusEntry<'a>>>,
+        many0!(parse_nfs3_response_readdirplus_entry_cond));
+
+named!(pub parse_nfs3_response_readdirplus<Nfs3ResponseReaddirplus>,
+    do_parse!(
+        status: be_u32
+        >> dir_attr_follows: be_u32
+        >> dir_attr: cond!(dir_attr_follows == 1, take!(84))
+        >> verifier: take!(8)
+        >> data: rest
+
+        >> ( Nfs3ResponseReaddirplus {
+                data:data,
+        } ))
+);
+
 #[derive(Debug,PartialEq)]
 pub struct Nfs3RequestReaddirplus<'a> {
     pub dir_object: Nfs3RequestObject<'a>,
@@ -766,8 +829,43 @@ impl NfsTcpParser {
                 IResult::Incomplete(_) => { panic!("Incomplete!"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
             }
-        }
+        } else if xidmap.procedure == 17 { // READDIRPLUS
+            match parse_nfs3_response_readdirplus(r.prog_data) {
+                IResult::Done(_, ref reply) => {
+                    //println!("READDIRPLUS reply {:?}", reply);
 
+                    // cut off final eof field
+                    let d = &reply.data[..reply.data.len()-4 as usize];
+
+                    match many0_nfs3_response_readdirplus_entries(d) {
+                        IResult::Done(_, ref entries) => {
+                            for ce in entries {
+                                println_debug!("ce {:?}", ce);
+                                match ce.entry {
+                                    Some(ref e) => {
+                                        println_debug!("e {:?}", e);
+                                        match e.handle {
+                                            Some(ref h) => {
+                                                println_debug!("h {:?}", h);
+                                                self.namemap.insert(h.value.to_vec(), e.name_vec.to_vec());
+                                            },
+                                            _ => { },
+                                        }
+                                    },
+                                    _ => { },
+                                }
+                            }
+
+                            println_debug!("READDIRPLUS ENTRIES reply {:?}", entries);
+                        },
+                        IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                        IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
+                    }
+                },
+                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
+            }
+        }
         //println_debug!("REPLY {} to procedure {} blob size {}", r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
         0
