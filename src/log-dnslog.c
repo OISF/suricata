@@ -132,7 +132,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
 
     if (direction == STREAM_TOSERVER) {
         
-        for (uint16_t i = 0; i < 0xffff; i++) {
+        for (uint16_t i = 0;; i++) {
             buf = rs_dns_log_txt_query(dns_tx->rs_tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
@@ -143,8 +143,11 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
                 hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
                     MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
                 SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+                SCFree(buf);
+            } else {
+                SCFree(buf);
+                break;
             }
-            SCFree(buf);
         }
         
     } else if (direction == STREAM_TOCLIENT) {
@@ -176,7 +179,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         SCFree(buf);
         
         /* Answers. */
-        for (uint16_t i = 0; i < 0xffff; i++) {
+        for (uint16_t i = 0;; i++) {
             buf = rs_dns_log_txt_response_answer(dns_tx->rs_tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
@@ -188,14 +191,14 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
                     MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
                 SCMutexUnlock(&hlog->file_ctx->fp_mutex);
                 SCFree(buf);
-                continue;
+            } else {
+                SCFree(buf);
+                break;
             }
-            SCFree(buf);
-            break;
         }
         
         /* Authorities. */
-        for (uint16_t i = 0; i < 0xffff; i++) {
+        for (uint16_t i = 0;; i++) {
             buf = rs_dns_log_txt_response_authority(dns_tx->rs_tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
@@ -207,10 +210,10 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
                     MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
                 SCMutexUnlock(&hlog->file_ctx->fp_mutex);
                 SCFree(buf);
-                continue;
+            } else {
+                SCFree(buf);
+                break;
             }
-            SCFree(buf);
-            break;
         }
     }
 
