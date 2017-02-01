@@ -50,6 +50,7 @@ extern {
         events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t);
     pub fn AppLayerDecoderEventsFreeEvents(
         events: *mut *mut AppLayerDecoderEvents);
+    pub fn DetectEngineStateFree(state: *mut DetectEngineState);
 }
 
 #[repr(u32)]
@@ -82,7 +83,8 @@ macro_rules!export_state_free {
     ($name: ident, $parser: ident) => {
         #[no_mangle]
         pub extern "C" fn $name(state: *mut $parser) {
-            let _drop: Box<$parser> = unsafe{transmute(state)};
+            let mut _drop: Box<$parser> = unsafe{transmute(state)};
+            &_drop.free();
         }
     }
 }
@@ -169,11 +171,46 @@ impl DNSState {
         }
     }
 
+    pub fn free(&mut self) {
+        for i in 0..self.transactions.len() {
+            self.remove_tx_at_index(i);
+        }
+    }
+
     pub fn new_tx(&mut self) -> DNSTransaction {
         self.tx_id = self.tx_id + 1;
         let mut tx = DNSTransaction::new();
         tx.id = self.tx_id;
         return tx;
+    }
+
+    fn remove_tx_at_index(&mut self, index: usize) {
+        if self.transactions.len() == 0 {
+            return;
+        }
+        if index > self.transactions.len() - 1 {
+            return;
+        }
+        let tx = &self.transactions[index];
+
+        match tx.events {
+            Some(mut events) => {
+                unsafe {
+                    AppLayerDecoderEventsFreeEvents(&mut events);
+                }
+                self.events -= 1;
+            },
+            None => {}
+        }
+        match tx.de_state {
+            Some(mut de_state) => {
+                unsafe {
+                    DetectEngineStateFree(de_state);
+                }
+            },
+            None => {}
+        }
+        
     }
 
     pub fn tx_free(&mut self, tx_id: u64) {
@@ -187,6 +224,14 @@ impl DNSState {
                         }
                         self.events -= 1;
                         },
+                    None => {}
+                }
+                match tx.de_state {
+                    Some(mut de_state) => {
+                        unsafe {
+                            DetectEngineStateFree(de_state);
+                        }
+                    },
                     None => {}
                 }
                 return;

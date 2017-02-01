@@ -71,7 +71,6 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id)
 {
-    DNSTransaction *tx = (DNSTransaction *)txv;
     uint8_t *buffer;
     uint32_t buffer_len;
     int r = 0;
@@ -83,7 +82,7 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        if (rs_dns_tx_get_query_buffer(tx->rs_tx, i, &buffer, &buffer_len)) {
+        if (rs_dns_tx_get_query_buffer(txv, i, &buffer, &buffer_len)) {
             r = DetectEngineContentInspection(de_ctx, det_ctx,
                 s, s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
                 f, buffer, buffer_len, 0,
@@ -112,12 +111,11 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    DNSTransaction *tx = (DNSTransaction *)txv;
     uint8_t *buffer;
     uint32_t buffer_len;
 
     for (uint16_t i = 0;; i++) {
-        if (rs_dns_tx_get_query_buffer(tx->rs_tx, i, &buffer, &buffer_len)) {
+        if (rs_dns_tx_get_query_buffer(txv, i, &buffer, &buffer_len)) {
             if (buffer_len >= mpm_ctx->minlen) {
                 (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtcu, &det_ctx->pmq,

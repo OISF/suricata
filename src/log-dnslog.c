@@ -82,7 +82,6 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
     Flow *f, void *state, void *tx, uint64_t tx_id, uint8_t direction)
 {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
-    DNSTransaction *dns_tx = (DNSTransaction *)tx;
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
     char timebuf[64];
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
@@ -133,7 +132,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
     if (direction == STREAM_TOSERVER) {
         
         for (uint16_t i = 0;; i++) {
-            buf = rs_dns_log_txt_query(dns_tx->rs_tx, i);
+            buf = rs_dns_log_txt_query(tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
                 MemBufferWriteString(aft->buffer,
@@ -152,7 +151,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         
     } else if (direction == STREAM_TOCLIENT) {
         
-        buf = rs_dns_log_txt_response_rcode(dns_tx->rs_tx);
+        buf = rs_dns_log_txt_response_rcode(tx);
         if (strlen(buf) > 0) {
             MemBufferReset(aft->buffer);
             MemBufferWriteString(aft->buffer,
@@ -165,7 +164,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         }
         SCFree(buf);
         
-        buf = rs_dns_log_txt_response_recursion(dns_tx->rs_tx);
+        buf = rs_dns_log_txt_response_recursion(tx);
         if (strlen(buf) > 0) {
             MemBufferReset(aft->buffer);
             MemBufferWriteString(aft->buffer,
@@ -180,7 +179,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         
         /* Answers. */
         for (uint16_t i = 0;; i++) {
-            buf = rs_dns_log_txt_response_answer(dns_tx->rs_tx, i);
+            buf = rs_dns_log_txt_response_answer(tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
                 MemBufferWriteString(aft->buffer,
@@ -199,7 +198,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
         
         /* Authorities. */
         for (uint16_t i = 0;; i++) {
-            buf = rs_dns_log_txt_response_authority(dns_tx->rs_tx, i);
+            buf = rs_dns_log_txt_response_authority(tx, i);
             if (strlen(buf) > 0) {
                 MemBufferReset(aft->buffer);
                 MemBufferWriteString(aft->buffer,

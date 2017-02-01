@@ -147,18 +147,10 @@ typedef struct ParserBuffer_ {
 
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
-    uint16_t tx_num;                                /**< internal: id */
-    RSDNSTransaction *rs_tx;
-
-    TAILQ_ENTRY(DNSTransaction_) next;
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
 typedef struct DNSState_ {
-    TAILQ_HEAD(, DNSTransaction_) tx_list;  /**< transaction list */
-    DNSTransaction *curr;                   /**< ptr to current tx */
-    DNSTransaction *iter;
-    uint64_t transaction_max;
     uint32_t memuse;                        /**< state memuse, for comparing with
                                                  state-memcap settings */
     uint64_t tx_with_detect_state_cnt;

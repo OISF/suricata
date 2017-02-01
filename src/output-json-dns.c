@@ -400,7 +400,6 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
     if (likely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
@@ -410,7 +409,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     js = CreateJSONHeader((Packet *)p, 1, "dns");
     
     for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *dnsjs = rs_dns_log_query(tx->rs_tx, i);
+        json_t *dnsjs = rs_dns_log_query(txptr, i);
         if (dnsjs == NULL) {
             break;
         }
@@ -433,7 +432,6 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
     if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
@@ -443,7 +441,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     js = CreateJSONHeader((Packet *)p, 0, "dns");
     
     for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_answers(tx->rs_tx, i);
+        json_t *answer = rs_dns_log_answers(txptr, i);
         if (answer == NULL) {
             break;
         }
@@ -454,7 +452,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
     
     for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_authorities(tx->rs_tx, i);
+        json_t *answer = rs_dns_log_authorities(txptr, i);
         if (answer == NULL) {
             break;
         }
