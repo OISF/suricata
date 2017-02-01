@@ -380,6 +380,16 @@ static int FTPGetAlstateProgress(void *tx, uint8_t direction)
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                              "220 (", 5, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "FEAT", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
                                                "USER ", 5, 0, STREAM_TOSERVER) < 0)
     {
         return -1;
