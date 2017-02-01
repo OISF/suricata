@@ -148,7 +148,6 @@ typedef struct ParserBuffer_ {
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
-    uint32_t logged;                                /**< flags for loggers done logging */
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
@@ -243,5 +242,8 @@ extern uint64_t rs_dns_state_get_tx_count(RSDNSState *);
 extern int8_t rs_dns_tx_get_alstate_progress(RSDNSTransaction *, uint8_t);
 extern uint8_t rs_dns_probe(const uint8_t *, uint32_t);
 extern uint16_t rs_dns_request_get_id(RSDNSRequest *);
+
+extern void rs_dns_tx_set_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
+extern int8_t rs_dns_tx_get_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */

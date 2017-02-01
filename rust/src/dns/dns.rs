@@ -96,6 +96,7 @@ pub struct DNSTransaction {
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
     pub replied: bool,
+    pub logged: u32,
 }
 
 #[derive(Debug)]
@@ -372,9 +373,30 @@ impl DNSTransaction {
             request: None,
             response: None,
             replied: false,
+            logged: 0,
         }
     }
 
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_set_logged(state: &mut DNSState,
+                                   tx: &mut DNSTransaction,
+                                   logger: libc::uint32_t)
+{
+    tx.logged |= logger;
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_get_logged(state: &mut DNSState,
+                                   tx: &mut DNSTransaction,
+                                   logger: libc::uint32_t)
+                                   -> i8
+{
+    if tx.logged & logger != 0 {
+        return 1;
+    }
+    return 0;
 }
 
 #[no_mangle]
