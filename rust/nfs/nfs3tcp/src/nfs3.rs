@@ -549,7 +549,6 @@ pub struct NfsTcpParser {
     pub file_name: Vec<u8>,
     pub file_ts: FileTransferTracker,
     pub file_tc: FileTransferTracker,
-    pub file_tc_open: bool,
 }
 
 impl NfsTcpParser {
@@ -565,7 +564,6 @@ impl NfsTcpParser {
             file_name:Vec::with_capacity(64),
             file_ts:FileTransferTracker::new(),
             file_tc:FileTransferTracker::new(),
-            file_tc_open:false,
         }
     }
 
@@ -787,11 +785,6 @@ impl NfsTcpParser {
             panic!("call me for procedure READ *only*");
         }
 
-        if self.file_tc_open == false {
-            println_debug!("NEW FILE in process_partial_read_reply_record");
-            self.file_tc.create(&self.file_name, 0); // TODO
-            self.file_tc_open = true;
-        }
         let mut fill_bytes = 0;
         let pad = reply.count % 4;
         if pad != 0 {
