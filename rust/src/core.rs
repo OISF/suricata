@@ -17,5 +17,6 @@
 
 //! Definition from Suricata core.
 
-pub const STREAM_TOSERVER: u8 = 0x04;
-pub const STREAM_TOCLIENT: u8 = 0x08;
+pub const TO_SERVER: u8 = 0;
+pub const TO_CLIENT: u8 = 1;
+

@@ -381,7 +381,7 @@ impl DNSTransaction {
 pub extern fn rs_dns_tx_get_alstate_progress(tx: &mut DNSTransaction,
                                              direction: libc::uint8_t)
                                              -> libc::uint8_t {
-    if direction & core::STREAM_TOCLIENT > 0 {
+    if direction == core::TO_CLIENT {
         if tx.replied {
             return 1;
         }

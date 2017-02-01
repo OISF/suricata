@@ -225,8 +225,8 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
     BUG_ON(dns_tx == NULL);
     BUG_ON(dns_tx->rs_tx == NULL);
-
-    return rs_dns_tx_get_alstate_progress(dns_tx->rs_tx, direction);
+    return rs_dns_tx_get_alstate_progress(dns_tx->rs_tx,
+        direction & STREAM_TOCLIENT ? 1 : 0);
 }
 
 void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
