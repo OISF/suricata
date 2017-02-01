@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-//! Definition from Suricata core.
+//! Definitions from Suricata core.
 
 pub const TO_SERVER: u8 = 0;
 pub const TO_CLIENT: u8 = 1;
