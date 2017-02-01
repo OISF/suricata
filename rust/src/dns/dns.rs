@@ -173,7 +173,7 @@ impl DNSState {
 
     pub fn free(&mut self) {
         for i in 0..self.transactions.len() {
-            self.remove_tx_at_index(i);
+            self.tx_free_at_index(i);
         }
     }
 
@@ -184,35 +184,31 @@ impl DNSState {
         return tx;
     }
 
-    fn remove_tx_at_index(&mut self, index: usize) {
+    fn tx_free_at_index(&mut self, index: usize) {
 
         if index >= self.transactions.len() {
             return;
         }
 
-        {
-            let tx = &self.transactions[index];
-            
-            match tx.events {
-                Some(mut events) => {
-                    unsafe {
-                        AppLayerDecoderEventsFreeEvents(&mut events);
-                    }
-                    self.events -= 1;
-                },
-                None => {}
-            }
-            match tx.de_state {
-                Some(mut de_state) => {
-                    unsafe {
-                        DetectEngineStateFree(de_state);
-                    }
-                },
-                None => {}
-            }
-        }
+        let tx = self.transactions.remove(index);
         
-        self.transactions.remove(index);
+        match tx.events {
+            Some(mut events) => {
+                unsafe {
+                    AppLayerDecoderEventsFreeEvents(&mut events);
+                }
+                self.events -= 1;
+            },
+            None => {}
+        }
+        match tx.de_state {
+            Some(de_state) => {
+                unsafe {
+                    DetectEngineStateFree(de_state);
+                }
+            },
+            None => {}
+        }
     }
 
     pub fn tx_free(&mut self, tx_id: u64) {
@@ -229,7 +225,7 @@ impl DNSState {
         }
 
         if found {
-            self.remove_tx_at_index(index);
+            self.tx_free_at_index(index);
         }
     }
 
@@ -489,7 +485,7 @@ pub extern fn rs_dns_state_get_events(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern fn rs_dns_tx_set_logged(state: &mut DNSState,
+pub extern fn rs_dns_tx_set_logged(_: &mut DNSState,
                                    tx: &mut DNSTransaction,
                                    logger: libc::uint32_t)
 {
@@ -497,7 +493,7 @@ pub extern fn rs_dns_tx_set_logged(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern fn rs_dns_tx_get_logged(state: &mut DNSState,
+pub extern fn rs_dns_tx_get_logged(_: &mut DNSState,
                                    tx: &mut DNSTransaction,
                                    logger: libc::uint32_t)
                                    -> i8
@@ -509,7 +505,7 @@ pub extern fn rs_dns_tx_get_logged(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern fn rs_dns_tx_set_detect_state(state: &mut DNSState,
+pub extern fn rs_dns_tx_set_detect_state(_: &mut DNSState,
                                          tx: &mut DNSTransaction,
                                          ds: *mut DetectEngineState)
 {
