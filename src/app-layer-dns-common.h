@@ -151,10 +151,9 @@ typedef struct DNSTransaction_ {
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
-    TAILQ_ENTRY(DNSTransaction_) next;
-    DetectEngineState *de_state;
-
     RSDNSTransaction *rs_tx;
+
+    TAILQ_ENTRY(DNSTransaction_) next;
 
 } DNSTransaction;
 
@@ -245,5 +244,9 @@ extern uint16_t rs_dns_request_get_id(RSDNSRequest *);
 
 extern void rs_dns_tx_set_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
 extern int8_t rs_dns_tx_get_logged(RSDNSState *, RSDNSTransaction *, uint32_t);
+
+extern void rs_dns_tx_set_detect_state(RSDNSState *, RSDNSTransaction *,
+    DetectEngineState *);
+extern DetectEngineState *rs_dns_tx_get_detect_state(RSDNSTransaction *);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */

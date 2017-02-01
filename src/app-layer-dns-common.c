@@ -287,14 +287,17 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 
     AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
-    if (tx->de_state != NULL) {
-        DetectEngineStateFree(tx->de_state);
+    DetectEngineState *de_state = rs_dns_tx_get_detect_state(tx->rs_tx);
+    if (de_state != NULL) {
+        DetectEngineStateFree(de_state);
         BUG_ON(state->tx_with_detect_state_cnt == 0);
         state->tx_with_detect_state_cnt--;
     }
 
     if (state->iter == tx)
         state->iter = NULL;
+
+    rs_dns_state_tx_free(state->rs_state, tx->tx_num - 1);
 
     DNSDecrMemcap(sizeof(DNSTransaction), state);
     SCFree(tx);
@@ -312,8 +315,6 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id)
     DNSTransaction *tx = NULL;
 
     SCLogDebug("state %p, id %"PRIu64, dns_state, tx_id);
-
-    rs_dns_state_tx_free(dns_state->rs_state, tx_id);
 
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
         SCLogDebug("tx %p tx->tx_num %u, tx_id %"PRIu64, tx, tx->tx_num, (tx_id+1));
@@ -349,7 +350,7 @@ int DNSStateHasTxDetectState(void *alstate)
 DetectEngineState *DNSGetTxDetectState(void *vtx)
 {
     DNSTransaction *tx = (DNSTransaction *)vtx;
-    return tx->de_state;
+    return rs_dns_tx_get_detect_state(tx->rs_tx);
 }
 
 int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
@@ -357,7 +358,7 @@ int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
     DNSState *state = (DNSState *)alstate;
     DNSTransaction *tx = (DNSTransaction *)vtx;
     state->tx_with_detect_state_cnt++;
-    tx->de_state = s;
+    rs_dns_tx_set_detect_state(alstate, tx->rs_tx, s);
     return 0;
 }
 
@@ -381,8 +382,6 @@ void DNSStateFree(void *s)
     if (s) {
         DNSState *dns_state = (DNSState *) s;
 
-        rs_dns_state_free(dns_state->rs_state);
-
         DNSTransaction *tx = NULL;
         while ((tx = TAILQ_FIRST(&dns_state->tx_list))) {
             TAILQ_REMOVE(&dns_state->tx_list, tx, next);
@@ -396,6 +395,7 @@ void DNSStateFree(void *s)
         BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
 
         DNSDecrMemcap(sizeof(DNSState), dns_state);
+        rs_dns_state_free(dns_state->rs_state);
         BUG_ON(dns_state->memuse > 0);
         SCFree(s);
     }

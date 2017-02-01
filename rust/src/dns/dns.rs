@@ -90,6 +90,9 @@ pub struct DNSHeader {
     pub additional_rr: u16,
 }
 
+/// The Rust place holder for DetectEngineState *.
+pub enum DetectEngineState {}
+
 #[derive(Debug)]
 pub struct DNSTransaction {
     pub id: u64,
@@ -97,6 +100,7 @@ pub struct DNSTransaction {
     pub response: Option<DNSResponse>,
     pub replied: bool,
     pub logged: u32,
+    pub de_state: Option<*mut DetectEngineState>,
 }
 
 #[derive(Debug)]
@@ -374,6 +378,7 @@ impl DNSTransaction {
             response: None,
             replied: false,
             logged: 0,
+            de_state: None,
         }
     }
 
@@ -397,6 +402,28 @@ pub extern fn rs_dns_tx_get_logged(state: &mut DNSState,
         return 1;
     }
     return 0;
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_set_detect_state(state: &mut DNSState,
+                                         tx: &mut DNSTransaction,
+                                         ds: *mut DetectEngineState)
+{
+    tx.de_state = Some(ds);
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_get_detect_state(tx: &mut DNSTransaction)
+                                         -> *mut DetectEngineState
+{
+    match tx.de_state {
+        Some(ds) => {
+            return ds;
+        },
+        None => {
+            return std::ptr::null_mut();
+        }
+    }
 }
 
 #[no_mangle]
