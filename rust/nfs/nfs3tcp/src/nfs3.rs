@@ -697,7 +697,22 @@ impl NfsTcpParser {
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
-            
+        } else if xidmap.procedure == 6 {
+            match parse_nfs3_reply_read(r.prog_data) {
+                IResult::Done(_, ref reply) => {
+                    let mut fill_bytes = 0;
+                    let pad = reply.count % 4;
+                    if pad != 0 {
+                        fill_bytes = 4 - pad;
+                    } 
+
+                    println_debug!("NEW CHUNK in process_partial_read_reply_record EOF {} OFFSET {}", reply.eof, xidmap.chunk_offset);
+                    self.file_tc.new_chunk(&[], reply.data, xidmap.chunk_offset,
+                        reply.count, fill_bytes as u8, reply.eof);
+                },
+                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
+            }
         }
 
         //println_debug!("REPLY {} to procedure {} blob size {}", r.hdr.xid, xidmap.procedure, r.prog_data.len());
