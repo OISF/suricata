@@ -87,11 +87,6 @@ pub struct Nfs3Handle<'a> {
     pub value: &'a[u8],
 }
 
-#[derive(Debug,PartialEq)]
-pub struct Nfs3ReplyCreate<'a> {
-    pub handle: Option<Nfs3Handle<'a>>,
-}
-
 named!(pub parse_nfs3_response_handle<Nfs3Handle>,
     do_parse!(
         obj_len: be_u32
@@ -104,6 +99,11 @@ named!(pub parse_nfs3_response_handle<Nfs3Handle>,
         ))
 );
 
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ReplyCreate<'a> {
+    pub handle: Option<Nfs3Handle<'a>>,
+}
+
 named!(pub parse_nfs3_response_create<Nfs3ReplyCreate>,
     do_parse!(
         status: be_u32
@@ -111,6 +111,22 @@ named!(pub parse_nfs3_response_create<Nfs3ReplyCreate>,
         >> handle: cond!(handle_has_value == 1, parse_nfs3_response_handle)
         >> (
             Nfs3ReplyCreate {
+               handle:handle, 
+            }
+        ))
+);     
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3ReplyLookup<'a> {
+    pub handle: Nfs3Handle<'a>,
+}
+
+named!(pub parse_nfs3_response_lookup<Nfs3ReplyLookup>,
+    do_parse!(
+        status: be_u32
+        >> handle: parse_nfs3_response_handle
+        >> (
+            Nfs3ReplyLookup {
                handle:handle, 
             }
         ))
@@ -205,9 +221,10 @@ named!(pub parse_nfs3_request_read<Nfs3RequestRead>,
 pub struct Nfs3RequestLookup<'a> {
     pub dir_object: Nfs3RequestObject<'a>,
 
-    pub name_len: u32,
-    pub name_contents: &'a[u8],
-    pub name_padding: &'a[u8],
+    //pub name_len: u32,
+    //pub name_contents: &'a[u8],
+    //pub name_padding: &'a[u8],
+    pub name_vec: Vec<u8>,
 }
 
 named!(pub parse_nfs3_request_lookup<Nfs3RequestLookup>,
@@ -219,9 +236,10 @@ named!(pub parse_nfs3_request_lookup<Nfs3RequestLookup>,
         >> (
             Nfs3RequestLookup {
                 dir_object:obj,
-                name_len:name_len,
-                name_contents:name_contents,
-                name_padding:name_padding
+                //name_len:name_len,
+                //name_contents:name_contents,
+                //name_padding:name_padding
+                name_vec:name_contents.to_vec(),
             }
         ))
 );
@@ -521,6 +539,7 @@ pub struct NfsTcpParser {
     /// map xid to procedure so replies can lookup the procedure
     pub requestmap: HashMap<u32, NfsRequestXidMap>,
 
+    /// map file handle (1) to name (2)
     pub namemap: HashMap<Vec<u8>, Vec<u8>>,
 
     /// TCP segments defragmentation buffer
@@ -550,15 +569,39 @@ impl NfsTcpParser {
         }
     }
 
+    fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NfsRequestXidMap) {
+        match parse_nfs3_request_lookup(r.prog_data) {
+            IResult::Done(_, lookup) => {
+                println_debug!("LOOKUP {:?}", lookup);
+
+                xidmap.file_name = lookup.name_vec;
+            },
+            IResult::Incomplete(_) => { panic!("WEIRD"); },
+            IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+        };
+    }
+
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         let mut xidmap = NfsRequestXidMap::new(r.hdr.xid, r.procedure, 0);
 
         //println_debug!("REQUEST {} procedure {} ({}) blob size {}", r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
-        if r.procedure == 6 { // READ
+        if r.procedure == 3 { // LOOKUP
+            self.process_request_record_lookup(r, &mut xidmap);
+        } else if r.procedure == 6 { // READ
             match parse_nfs3_request_read(r.prog_data) {
                 IResult::Done(_, nfs3_read_record) => {
                     xidmap.chunk_offset = nfs3_read_record.offset;
+
+                    match self.namemap.get(nfs3_read_record.object.value) {
+                        Some(n) => {
+                            println_debug!("READ name {:?}", n);
+                            xidmap.file_name = n.to_vec();
+                        },
+                        _ => {
+                            println_debug!("READ object {:?} not found", nfs3_read_record.object.value);
+                        },
+                    }
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -678,7 +721,19 @@ impl NfsTcpParser {
             _ => { panic!("REPLY: xid {} NOT FOUND", r.hdr.xid); return 1; },
         }
 
-        if xidmap.procedure == 8 { // CREATE
+        if xidmap.procedure == 3 { // LOOKUP
+            match parse_nfs3_response_lookup(r.prog_data) {
+                IResult::Done(_, lookup) => {
+                    println_debug!("LOOKUP: {:?}", lookup);
+                    println_debug!("RESPONSE LOOKUP file_name {:?}", xidmap.file_name);
+
+                    println_debug!("LOOKUP handle {:?}", lookup.handle);
+                    self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+        } else if xidmap.procedure == 8 { // CREATE
             match parse_nfs3_response_create(r.prog_data) {
                 IResult::Done(_, nfs3_create_record) => {
                     println_debug!("nfs3_create_record: {:?}", nfs3_create_record);
@@ -707,7 +762,7 @@ impl NfsTcpParser {
                     } 
 
                     println_debug!("NEW CHUNK in process_partial_read_reply_record EOF {} OFFSET {}", reply.eof, xidmap.chunk_offset);
-                    self.file_tc.new_chunk(&[], reply.data, xidmap.chunk_offset,
+                    self.file_tc.new_chunk(&xidmap.file_name, reply.data, xidmap.chunk_offset,
                         reply.count, fill_bytes as u8, reply.eof);
                 },
                 IResult::Incomplete(_) => { panic!("Incomplete!"); },
@@ -744,7 +799,7 @@ impl NfsTcpParser {
         } 
 
         println_debug!("NEW CHUNK in process_partial_read_reply_record EOF {} OFFSET {}", reply.eof, xidmap.chunk_offset);
-        self.file_tc.new_chunk(&[], reply.data, xidmap.chunk_offset,
+        self.file_tc.new_chunk(&xidmap.file_name, reply.data, xidmap.chunk_offset,
                 reply.count, fill_bytes as u8, reply.eof);
 
         //println_debug!("file data left after this record: {}", (r.hdr.frag_len + 4) - sz);
