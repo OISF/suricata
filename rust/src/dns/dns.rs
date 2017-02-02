@@ -75,8 +75,7 @@ macro_rules!export_state_free {
     ($name: ident, $parser: ident) => {
         #[no_mangle]
         pub extern "C" fn $name(state: *mut $parser) {
-            let mut _drop: Box<$parser> = unsafe{transmute(state)};
-            &_drop.free();
+            let _drop: Box<$parser> = unsafe{transmute(state)};
         }
     }
 }
@@ -358,6 +357,15 @@ impl DNSState {
         }
     }
 
+}
+
+/// Implement Drop for DNSState as transactions need to do some
+/// explicit cleanup.
+impl Drop for DNSState {
+
+    fn drop(&mut self) {
+        self.free();
+    }
 }
 
 /// Expose DNSState::new.

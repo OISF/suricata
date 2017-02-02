@@ -15,9 +15,9 @@
  * 02110-1301, USA.
  */
 
-// #![feature(alloc_jemalloc)]
-// #![crate_type = "staticlib"]
-// extern crate alloc_jemalloc;
+#![feature(alloc_jemalloc)]
+#![crate_type = "staticlib"]
+extern crate alloc_jemalloc;
 
 #[macro_use]
 extern crate nom;
