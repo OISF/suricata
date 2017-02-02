@@ -145,16 +145,8 @@ typedef struct ParserBuffer_ {
     uint32_t  offset;
 } ParserBuffer;
 
-#if 0
-/** \brief DNS Transaction, request/reply with same TX id. */
-typedef struct DNSTransaction_ {
-} DNSTransaction;
-#endif
-
 /** \brief Per flow DNS state container */
 typedef struct DNSState_ {
-    uint32_t memuse;                        /**< state memuse, for comparing with
-                                                 state-memcap settings */
     uint64_t tx_with_detect_state_cnt;
 
     uint16_t givenup;
@@ -236,5 +228,6 @@ extern AppLayerDecoderEvents *rs_dns_state_get_events(RSDNSState *, uint32_t);
 extern void rs_dns_tx_set_detect_state(RSDNSState *, RSDNSTransaction *,
     DetectEngineState *);
 extern DetectEngineState *rs_dns_tx_get_detect_state(RSDNSTransaction *);
+extern uint8_t rs_dns_state_has_detect_state(RSDNSState *);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */

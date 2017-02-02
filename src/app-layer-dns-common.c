@@ -53,74 +53,36 @@ void DNSConfigSetStateMemcap(uint32_t value)
     dns_config.state_memcap = value;
 }
 
-SC_ATOMIC_DECLARE(uint64_t, dns_memuse); /**< byte counter of current memuse */
-SC_ATOMIC_DECLARE(uint64_t, dns_memcap_state); /**< counts number of 'rejects' */
-SC_ATOMIC_DECLARE(uint64_t, dns_memcap_global); /**< counts number of 'rejects' */
-
 void DNSConfigSetGlobalMemcap(uint64_t value)
 {
     dns_config.global_memcap = value;
-
-    SC_ATOMIC_INIT(dns_memuse);
-    SC_ATOMIC_INIT(dns_memcap_state);
-    SC_ATOMIC_INIT(dns_memcap_global);
-}
-
-void DNSIncrMemcap(uint32_t size, DNSState *state)
-{
-    if (state != NULL) {
-        state->memuse += size;
-    }
-    SC_ATOMIC_ADD(dns_memuse, size);
-}
-
-void DNSDecrMemcap(uint32_t size, DNSState *state)
-{
-    if (state != NULL) {
-        BUG_ON(size > state->memuse); /**< TODO remove later */
-        state->memuse -= size;
-    }
-
-    BUG_ON(size > SC_ATOMIC_GET(dns_memuse)); /**< TODO remove later */
-    (void)SC_ATOMIC_SUB(dns_memuse, size);
-}
-
-int DNSCheckMemcap(uint32_t want, DNSState *state)
-{
-    if (state != NULL) {
-        if (state->memuse + want > dns_config.state_memcap) {
-            SC_ATOMIC_ADD(dns_memcap_state, 1);
-#if 0
-            DNSSetEvent(state, DNS_DECODER_EVENT_STATE_MEMCAP_REACHED);
-#endif
-            return -1;
-        }
-    }
-
-    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want > dns_config.global_memcap) {
-        SC_ATOMIC_ADD(dns_memcap_global, 1);
-        return -2;
-    }
-
-    return 0;
 }
 
 uint64_t DNSMemcapGetMemuseCounter(void)
 {
+#if 0
     uint64_t x = SC_ATOMIC_GET(dns_memuse);
     return x;
+#endif
+    return 0;
 }
 
 uint64_t DNSMemcapGetMemcapStateCounter(void)
 {
+#if 0
     uint64_t x = SC_ATOMIC_GET(dns_memcap_state);
     return x;
+#endif
+    return 0;
 }
 
 uint64_t DNSMemcapGetMemcapGlobalCounter(void)
 {
+#if 0
     uint64_t x = SC_ATOMIC_GET(dns_memcap_global);
     return x;
+#endif
+    return 0;
 }
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
@@ -190,12 +152,14 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
 
 void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
 {
-    rs_dns_tx_set_logged(alstate, tx, logger);
+    DNSState *dns_state = (DNSState *)alstate;
+    rs_dns_tx_set_logged(dns_state->rs_state, tx, logger);
 }
 
 int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
 {
-    return rs_dns_tx_get_logged(alstate, tx, logger);
+    DNSState *dns_state = (DNSState *)alstate;
+    return rs_dns_tx_get_logged(dns_state->rs_state, tx, logger);
 }
 
 /** \brief get value for 'complete' status in DNS
@@ -223,18 +187,18 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id)
 int DNSStateHasTxDetectState(void *alstate)
 {
     DNSState *state = (DNSState *)alstate;
-    return (state->tx_with_detect_state_cnt > 0);
+    return rs_dns_state_has_detect_state(state->rs_state);
 }
 
 DetectEngineState *DNSGetTxDetectState(void *vtx)
 {
     return rs_dns_tx_get_detect_state(vtx);
+    return NULL;
 }
 
 int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
 {
     DNSState *state = (DNSState *)alstate;
-    state->tx_with_detect_state_cnt++;
     rs_dns_tx_set_detect_state(state->rs_state, vtx, s);
     return 0;
 }
@@ -245,8 +209,6 @@ void *DNSStateAlloc(void)
     if (unlikely(state == NULL)) {
         return NULL;
     }
-
-    DNSIncrMemcap(sizeof(*state), state);
     state->rs_state = rs_dns_state_new(); /* TODO: memcap, null check? */
 
     return (void *)state;
@@ -260,10 +222,7 @@ void DNSStateFree(void *s)
         if (dns_state->buffer.size > 0) {
             SCFree(dns_state->buffer.buffer);
         }
-        //BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
-        DNSDecrMemcap(sizeof(DNSState), dns_state);
         rs_dns_state_free(dns_state->rs_state);
-        BUG_ON(dns_state->memuse > 0);
         SCFree(s);
     }
     SCReturn;
