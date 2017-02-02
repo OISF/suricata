@@ -145,9 +145,11 @@ typedef struct ParserBuffer_ {
     uint32_t  offset;
 } ParserBuffer;
 
+#if 0
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
 } DNSTransaction;
+#endif
 
 /** \brief Per flow DNS state container */
 typedef struct DNSState_ {
@@ -194,7 +196,6 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
-DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
 int DNSStateHasTxDetectState(void *alstate);
 DetectEngineState *DNSGetTxDetectState(void *vtx);
@@ -208,8 +209,6 @@ int DNSHasEvents(void *state);
 
 void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
 void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
-
-DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id);
 
 /*
  * Rust implementation.

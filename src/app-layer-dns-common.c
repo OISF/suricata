@@ -174,39 +174,6 @@ void *DNSGetTx(void *alstate, uint64_t tx_id)
 {
     DNSState *dns_state = (DNSState *)alstate;
     return rs_dns_state_tx_get(dns_state->rs_state, tx_id);
-#if 0
-    DNSTransaction *tx = NULL;
-
-    /* fast track: try the current tx */
-    if (dns_state->curr && dns_state->curr->tx_num == tx_id + 1)
-        return dns_state->curr;
-
-    /* fast track:
-     * if the prev tx_id is equal to the stored tx ptr, we can
-     * use this shortcut to get to the next. */
-    if (dns_state->iter) {
-        if (tx_id == dns_state->iter->tx_num) {
-            tx = TAILQ_NEXT(dns_state->iter, next);
-            if (tx && tx->tx_num == tx_id + 1) {
-                dns_state->iter = tx;
-                return tx;
-            }
-        }
-    }
-
-    /* no luck with the fast tracks, do the full list walk */
-    TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
-        if ((tx_id+1) != tx->tx_num)
-            continue;
-
-        SCLogDebug("returning tx %p", tx);
-        dns_state->iter = tx;
-        return tx;
-    }
-
-    return NULL;
-#endif
 }
 
 uint64_t DNSGetTxCnt(void *alstate)
@@ -217,11 +184,6 @@ uint64_t DNSGetTxCnt(void *alstate)
 
 int DNSGetAlstateProgress(void *tx, uint8_t direction)
 {
-#if 0
-    DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    BUG_ON(dns_tx == NULL);
-    BUG_ON(dns_tx->rs_tx == NULL);
-#endif
     return rs_dns_tx_get_alstate_progress(tx,
         direction & STREAM_TOCLIENT ? 1 : 0);
 }
@@ -244,43 +206,6 @@ int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return 1;
 }
-
-/** \internal
- *  \brief Allocate a DNS TX
- *  \retval tx or NULL */
-DNSTransaction *DNSTransactionAlloc(DNSState *state, const uint16_t tx_id)
-{
-    if (DNSCheckMemcap(sizeof(DNSTransaction), state) < 0)
-        return NULL;
-
-    DNSTransaction *tx = SCCalloc(1, sizeof(DNSTransaction));
-    if (unlikely(tx == NULL))
-        return NULL;
-    DNSIncrMemcap(sizeof(DNSTransaction), state);
-
-    return tx;
-}
-
-#if 0
-/** \internal
- *  \brief Free a DNS TX
- *  \param tx DNS TX to free */
-static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
-{
-    SCEnter();
-
-    DetectEngineState *de_state = rs_dns_tx_get_detect_state(tx->rs_tx);
-    if (de_state != NULL) {
-        DetectEngineStateFree(de_state);
-        BUG_ON(state->tx_with_detect_state_cnt == 0);
-        state->tx_with_detect_state_cnt--;
-    }
-
-    rs_dns_state_tx_free(state->rs_state, tx->tx_num - 1);
-
-    SCReturn;
-}
-#endif
 
 /**
  *  \brief dns transaction cleanup callback
