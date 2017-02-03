@@ -26,6 +26,7 @@ use std::slice;
 use std::mem::transmute;
 use std::panic;
 use std::ptr;
+use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 
 use core;
 
@@ -44,6 +45,8 @@ pub const DNS_RTYPE_PTR:   u16 = 12;
 pub const DNS_RTYPE_MX:    u16 = 15;
 pub const DNS_RTYPE_SSHFP: u16 = 44;
 pub const DNS_RTYPE_RRSIG: u16 = 46;
+
+static GLOBAL_MEMUSE: AtomicUsize = ATOMIC_USIZE_INIT;
 
 #[repr(u32)]
 pub enum DNSEvents {
@@ -101,10 +104,54 @@ pub struct DNSTransaction {
     pub events: *mut core::AppLayerDecoderEvents,
 }
 
+impl DNSTransaction {
+
+    pub fn new() -> DNSTransaction {
+        return DNSTransaction{
+            id: 0,
+            request: None,
+            response: None,
+            replied: false,
+            logged: 0,
+            de_state: None,
+            events: std::ptr::null_mut(),
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        let mut sum = 0;
+
+        for request in &self.request {
+            sum += request.size();
+        }
+
+        for response in &self.response {
+            sum += response.size();
+        }
+
+        return sum + std::mem::size_of::<DNSTransaction>();
+    }
+
+}
+
 #[derive(Debug)]
 pub struct DNSRequest {
     pub header: DNSHeader,
     pub queries: Vec<DNSQueryEntry>,
+}
+
+impl DNSRequest {
+
+    pub fn size(&self) -> usize {
+        let mut size = 0;
+
+        for query in &self.queries {
+            size += query.size();
+        }
+
+        return size;
+    }
+
 }
 
 #[derive(Debug)]
@@ -115,11 +162,45 @@ pub struct DNSResponse {
     pub authorities: Vec<DNSAnswerEntry>,
 }
 
+impl DNSResponse {
+
+    /// Return the size of the data in the response, does not include
+    /// the size of the struct itself.
+    pub fn size(&self) -> usize {
+        let mut size = 0;
+
+        for query in &self.queries {
+            size += query.size();
+        }
+
+        for answer in &self.answers {
+            size += answer.size();
+        }
+
+        for answer in &self.authorities {
+            size += answer.size();
+        }
+
+        return size;
+    }
+
+}
+
 #[derive(Debug)]
 pub struct DNSQueryEntry {
     pub name: Vec<u8>,
     pub rrtype: u16,
     pub rrclass: u16,
+}
+
+impl DNSQueryEntry {
+
+    /// Return the size of the data in the query, does not include
+    /// the size of the struct itself.
+    pub fn size(&self) -> usize {
+        return self.name.len();
+    }
+
 }
 
 #[derive(Debug)]
@@ -130,6 +211,19 @@ pub struct DNSAnswerEntry {
     pub ttl: u32,
     pub data_len: u16,
     pub data: Vec<u8>,
+}
+
+impl DNSAnswerEntry {
+
+    /// Return the size of the data in the answer, does not include
+    /// the size of the struct itself.
+    pub fn size(&self) -> usize {
+        let mut size = 0;
+        size += self.name.len();
+        size += self.data.len();
+        return size;
+    }
+
 }
 
 pub struct DNSState {
@@ -143,6 +237,10 @@ pub struct DNSState {
     pub tx_id: u64,
 
     pub unreplied: u64,
+
+    pub memuse: usize,
+
+    pub de_state_count: u64,
 }
 
 impl DNSState {
@@ -153,13 +251,31 @@ impl DNSState {
             transactions: Vec::new(),
             tx_id: 0,
             unreplied: 0,
+            memuse: 0,
+            de_state_count: 0,
         }
     }
 
     pub fn free(&mut self) {
-        for i in 0..self.transactions.len() {
-            self.tx_free_at_index(i);
+        loop {
+            let len = self.transactions.len();
+            if len == 0 {
+                break;
+            }
+            self.tx_free_at_index(len - 1);
         }
+        assert!(self.memuse == 0);
+    }
+
+    fn inc_memuse(&mut self, size: usize) {
+        self.memuse += size;
+        GLOBAL_MEMUSE.fetch_add(size, Ordering::Relaxed);
+    }
+
+    fn dec_memuse(&mut self, size: usize) {
+        assert!(self.memuse - size < self.memuse);
+        self.memuse -= size;
+        GLOBAL_MEMUSE.fetch_sub(size, Ordering::Relaxed);
     }
 
     pub fn new_tx(&mut self) -> DNSTransaction {
@@ -176,7 +292,9 @@ impl DNSState {
         }
 
         let mut tx = self.transactions.remove(index);
-        
+
+        self.dec_memuse(tx.size());
+
         if tx.events != std::ptr::null_mut() {
             unsafe {
                 core::AppLayerDecoderEventsFreeEvents(&mut tx.events);
@@ -188,6 +306,7 @@ impl DNSState {
                 unsafe {
                     core::DetectEngineStateFree(de_state);
                 }
+                self.de_state_count -= 1;
             },
             None => {}
         }
@@ -283,6 +402,13 @@ impl DNSState {
         return true;
     }
 
+    fn tx_add(&mut self, tx: DNSTransaction) {
+        self.inc_memuse(tx.size());
+        self.transactions.push(Box::new(tx));
+        println!("Number of transactions: {}; unreplied: {}",
+                 self.transactions.len(), self.unreplied);
+    }
+
     /// Returns the ID of the new transaction.
     pub fn handle_request(&mut self, request: DNSRequest) -> u64 {
 
@@ -293,10 +419,45 @@ impl DNSState {
         let mut tx = self.new_tx();
         let id = tx.id;
         tx.request = Some(request);
-        self.transactions.push(Box::new(tx));
+        self.tx_add(tx);
         self.unreplied += 1;
 
         return id;
+    }
+
+    pub fn get_tx_by_dns_id(&self, tx_id: u16) -> Option<&DNSTransaction>
+    {
+        for i in 0..self.transactions.len() {
+            for request in &self.transactions[i].request {
+                if request.header.tx_id == tx_id {
+                    return Some(&self.transactions[i]);
+                }
+            }
+        }
+        return None;
+    }
+
+    /// Match a response to a request, adding the request to that
+    /// transaction.
+    fn match_with_request(&mut self, response: DNSResponse)
+                          -> Result<u64, DNSResponse>
+    {
+        for tx in &mut self.transactions {
+            if tx.replied {
+                continue;
+            }
+            let tx = &mut **tx;
+            for request in &mut tx.request {
+                if request.header.tx_id == response.header.tx_id {
+                    tx.response = Some(response);
+                    tx.replied = true;
+                    self.unreplied -= 1;
+                    return Ok(tx.id);
+                }
+            }
+        }
+
+        return Err(response);
     }
 
     /// Returns the transaction ID this response belongs to, or was
@@ -307,32 +468,42 @@ impl DNSState {
             return 0;
         }
 
-        for tx in &mut self.transactions {
-            let tx = &mut **tx;
-            for request in &tx.request {
-                if request.header.tx_id == response.header.tx_id {
-                    tx.response = Some(response);
-                    tx.replied = true;
-                    self.unreplied -= 1;
-                    return tx.id;
-                }
+        // Record the response size here as it will be moved if
+        // matched to an existing transaction.
+        let response_size = response.size();
+
+        match self.match_with_request(response) {
+
+            // Ok, a transaction was found for the response, update
+            // the memory usage.
+            Ok(id) => {
+                self.inc_memuse(response_size);
+                return id;
             }
+
+            // No transaction was found for this response.
+            Err(response) => {
+
+                println!("Did not find transaction for response.");
+
+                self.set_event(DNSEvents::UnsolicitedResponse);
+                
+                // Create a response only transaction.
+                let mut tx = self.new_tx();
+                let id = tx.id;
+                tx.response = Some(response);
+                tx.replied = true;
+                self.tx_add(tx);
+                
+                return id;
+            },
         }
 
-        self.set_event(DNSEvents::UnsolicitedResponse);
-
-        // Create a response only transaction.
-        let mut tx = self.new_tx();
-        let id = tx.id;
-        tx.response = Some(response);
-        tx.replied = true;
-        self.transactions.push(Box::new(tx));
-
-        return id;
     }
 
     /// Parse and handle a DNS request.
     pub fn parse_request(&mut self, input: &[u8]) -> u64 {
+        println!("Parsing request.");
         match dns_parse_request(input) {
             nom::IResult::Done(_, request) => {
                 return self.handle_request(request);
@@ -346,6 +517,7 @@ impl DNSState {
 
     /// Parse and handle a DNS response.
     pub fn parse_response(&mut self, input: &[u8]) -> u64 {
+        println!("Parsing reponse.");
         match dns_parse_response(input) {
             nom::IResult::Done(_, response) => {
                 return self.handle_response(response);
@@ -417,22 +589,6 @@ pub extern fn rs_dns_state_parse_response(state: &mut DNSState,
     return tx_id as libc::uint64_t;
 }
 
-impl DNSTransaction {
-
-    pub fn new() -> DNSTransaction {
-        return DNSTransaction{
-            id: 0,
-            request: None,
-            response: None,
-            replied: false,
-            logged: 0,
-            de_state: None,
-            events: std::ptr::null_mut(),
-        }
-    }
-
-}
-
 #[no_mangle]
 pub extern fn rs_dns_state_has_events(state: &mut DNSState) -> libc::int8_t
 {
@@ -478,11 +634,21 @@ pub extern fn rs_dns_tx_get_logged(_: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern fn rs_dns_tx_set_detect_state(_: &mut DNSState,
+pub extern fn rs_dns_tx_set_detect_state(state: &mut DNSState,
                                          tx: &mut DNSTransaction,
                                          ds: *mut core::DetectEngineState)
 {
+    state.de_state_count += 1;
     tx.de_state = Some(ds);
+}
+
+#[no_mangle]
+pub extern fn rs_dns_state_has_detect_state(state: &mut DNSState) -> u8
+{
+    if state.de_state_count > 0 {
+        return 1;
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -551,6 +717,17 @@ pub fn dns_probe(input: &[u8]) -> bool {
 #[no_mangle]
 pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::uint8_t {
+    // let slice: &[u8] = unsafe {
+    //     slice::from_raw_parts(input as *mut u8, len as usize)};
+    // match dns_probe(slice) {
+    //     true => {
+    //         return 1;
+    //     },
+    //     false => {
+    //         return 0;
+    //     }
+    // }
+
     let res = panic::catch_unwind(|| {
         let slice: &[u8] = unsafe {
             slice::from_raw_parts(input as *mut u8, len as usize)};
