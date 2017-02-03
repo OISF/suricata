@@ -28,6 +28,135 @@ macro_rules! println_debug(
 );
 
 #[derive(Debug,PartialEq)]
+pub enum Storage {
+    U32(u32),
+    U64(u64),
+    DATA(Vec<u8>),
+}
+
+#[derive(Debug,PartialEq)]
+pub struct Store {
+    // TODO vector may be faster
+    store: HashMap<u32, Storage>,
+}
+
+impl Store {
+    pub fn new() -> Store {
+        Store {
+            store: HashMap::new(),
+        }
+    }
+
+    pub fn set_u32(&mut self, id: u32, value: u32) {
+        let v = Storage::U32(value);
+        self.store.insert(id, v);
+    }
+    pub fn get_u32(&self, id: u32) -> Option<u32> {
+        match self.store.get(&id) {
+            Some(r) => {
+                match r {
+                    &Storage::U32(x) => { return Some(x) },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+    }
+    pub fn set_u64(&mut self, id: u32, value: u64) {
+        let v = Storage::U64(value);
+        self.store.insert(id, v);
+    }
+    pub fn get_u64(&self, id: u32) -> Option<u64> {
+        match self.store.get(&id) {
+            Some(r) => {
+                match r {
+                    &Storage::U64(x) => { return Some(x) },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+    }
+    pub fn set_vector(&mut self, id: u32, value: Vec<u8>) {
+        let v = Storage::DATA(value);
+        self.store.insert(id, v);
+    }
+    pub fn get_vector(&self, id: u32) -> Option<Vec<u8>> {
+        match self.store.get(&id) {
+            Some(r) => {
+                match r {
+                    &Storage::DATA(ref x) => { return Some(x.to_vec()) },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+    }
+    pub fn get_vector_ref(&self, id: u32) -> Option<&Vec<u8>> {
+        match self.store.get(&id) {
+            Some(r) => {
+                match r {
+                    &Storage::DATA(ref x) => { return Some(x) },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn r_getu32(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u32) -> i32 {
+    if stateptr.is_null() { panic!("NULL ptr"); };
+    let parser = unsafe { &mut *stateptr };
+    match parser.store.get_u32(id) {
+        Some(v) => {
+            println_debug!("v {:?}", v);
+            unsafe {
+                *rval = v;
+            }
+            return 1
+        },
+        None => { return 0 }
+    }
+}
+#[no_mangle]
+pub extern "C" fn r_getu64(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u64) -> i32 {
+    if stateptr.is_null() { panic!("NULL ptr"); };
+    let parser = unsafe { &mut *stateptr };
+    match parser.store.get_u64(id) {
+        Some(v) => {
+            println_debug!("v {:?}", v);
+            unsafe {
+                *rval = v;
+            }
+            return 1
+        },
+        None => { return 0 }
+    }
+}
+#[no_mangle]
+pub extern "C" fn r_getdata(stateptr: *mut NfsTcpParser, id: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
+    if stateptr.is_null() { panic!("NULL ptr"); };
+    let parser = unsafe { &mut *stateptr };
+    match parser.store.get_vector_ref(id) {
+        Some(v) => {
+            println_debug!("v {:?}", v);
+            unsafe {
+                *rptr = v.as_ptr();
+                *rlen = v.len() as u32;
+            }
+            return 1
+        },
+        None => { return 0 }
+    }
+}
+
+#[derive(Debug,PartialEq)]
 pub struct RpcRequestCredsUnix<'a> {
     pub stamp: u32,
     pub machine_name_len: u32,
@@ -612,6 +741,8 @@ pub struct NfsTcpParser {
     pub file_name: Vec<u8>,
     pub file_ts: FileTransferTracker,
     pub file_tc: FileTransferTracker,
+
+    pub store: Store,
 }
 
 impl NfsTcpParser {
@@ -627,6 +758,7 @@ impl NfsTcpParser {
             file_name:Vec::with_capacity(64),
             file_ts:FileTransferTracker::new(),
             file_tc:FileTransferTracker::new(),
+            store:Store::new(),
         }
     }
 
@@ -645,6 +777,14 @@ impl NfsTcpParser {
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         let mut xidmap = NfsRequestXidMap::new(r.hdr.xid, r.procedure, 0);
 
+        self.store.set_u32(2u32, r.hdr.xid);
+        match &r.creds_unix {
+            &Some(ref u) => {
+                self.store.set_vector(3u32, u.machine_name_buf.to_vec());
+            },
+            _ => { },
+        }
+
         //println_debug!("REQUEST {} procedure {} ({}) blob size {}", r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
         if r.procedure == 3 { // LOOKUP
@@ -653,6 +793,7 @@ impl NfsTcpParser {
             match parse_nfs3_request_read(r.prog_data) {
                 IResult::Done(_, nfs3_read_record) => {
                     xidmap.chunk_offset = nfs3_read_record.offset;
+                    self.store.set_u64(1u32, xidmap.chunk_offset);
 
                     match self.namemap.get(nfs3_read_record.object.value) {
                         Some(n) => {
