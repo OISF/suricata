@@ -76,16 +76,7 @@ struct NfsRustConfig {
 static struct NfsRustConfig nfs_rust_config = { 0x1234, &sbcfg, 0x5678,
     FileOpenFile, 0x3333, FileCloseFile, FileAppendData, 0x4444, FileContainerRecycle, FilePrune, 0x1234};
 
-struct _NfsTcpParser;
-typedef struct _NfsTcpParser NfsTcpParser;
-
-extern NfsTcpParser *r_nfstcp_state_new(void);
-extern void r_nfstcp_state_free(NfsTcpParser *);
-extern uint32_t r_nfstcp_probe(uint8_t *input, uint32_t input_len, uint32_t *offset);
-extern uint32_t r_nfstcp_parse(uint8_t direction, const unsigned char* value, uint32_t len, NfsTcpParser *state) __attribute__((warn_unused_result));
 extern int32_t r_nfstcp_init(struct NfsRustConfig *) __attribute__((warn_unused_result));
-extern FileContainer *r_nfstcp_getfiles(uint8_t direction, NfsTcpParser *state) __attribute__((warn_unused_result));
-extern void r_nfstcp_setfileflags(uint8_t direction, NfsTcpParser *state, uint16_t flags);
 
 /* Enum of app-layer events for an echo protocol. Normally you might
  * have events for errors in parsing data, like unexpected data being

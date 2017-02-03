@@ -30,7 +30,7 @@
 
 void RegisterNfs3TcpParsers(void);
 void Nfs3TcpParserRegisterTests(void);
-
+#if 0
 typedef struct Nfs3TcpTransaction_ {
 
     uint64_t tx_id;             /*<< Internal transaction ID. */
@@ -74,5 +74,20 @@ typedef struct Nfs3TcpState_ {
                       * for this state. */
 
 } Nfs3TcpState;
+#endif
+
+struct _NfsTcpParser;
+typedef struct _NfsTcpParser NfsTcpParser;
+
+extern NfsTcpParser *r_nfstcp_state_new(void);
+extern void r_nfstcp_state_free(NfsTcpParser *);
+extern uint32_t r_nfstcp_probe(uint8_t *input, uint32_t input_len, uint32_t *offset);
+extern uint32_t r_nfstcp_parse(uint8_t direction, const unsigned char* value, uint32_t len, NfsTcpParser *state) __attribute__((warn_unused_result));
+extern FileContainer *r_nfstcp_getfiles(uint8_t direction, NfsTcpParser *state) __attribute__((warn_unused_result));
+extern void r_nfstcp_setfileflags(uint8_t direction, NfsTcpParser *state, uint16_t flags);
+
+extern int r_getdata(NfsTcpParser *state, uint32_t id, uint8_t **rptr, uint32_t *rlen);
+extern int r_getu32(NfsTcpParser *state, uint32_t id, uint32_t *rval);
+extern int r_getu64(NfsTcpParser *state, uint32_t id, uint64_t *rval);
 
 #endif /* __APP_LAYER_NFS3TCP_H__ */
