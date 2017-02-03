@@ -157,9 +157,21 @@ static void DNSUDPConfigure(void)
     DNSConfigSetGlobalMemcap(global_memcap);
 }
 
+static struct DNSContext {
+    void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **, uint8_t);
+    void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
+    void (*DetectEngineStateFree)(DetectEngineState *);
+} DNSContext = {
+    .AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw,
+    .AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents,
+    .DetectEngineStateFree = DetectEngineStateFree,
+};
+
 void RegisterDNSUDPParsers(void)
 {
     char *proto_name = "dns";
+
+    rs_dns_set_context(&DNSContext);
 
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {

@@ -32,6 +32,23 @@ use core;
 
 use dns::*;
 
+/// Rust DNS context. Holds configuration and other data passed from C.
+#[repr(C)]
+pub struct Context {
+    AppLayerDecoderEventsSetEventRaw: core::AppLayerDecoderEventsSetEventRawFunc,
+    AppLayerDecoderEventsFreeEvents: core::AppLayerDecoderEventsFreeEventsFunc,
+    DetectEngineStateFree: core::DetectEngineStateFreeFunc,
+}
+
+pub static mut context: Option<&'static Context> = None;
+
+#[no_mangle]
+pub extern "C" fn rs_dns_set_context(c: &'static mut Context) {
+    unsafe {
+        context = Some(c);
+    }
+}
+
 /// DNS error codes.
 pub const DNS_RCODE_NOERROR:  u16 = 0;
 pub const DNS_RCODE_FORMERR:  u16 = 1;
@@ -338,14 +355,22 @@ impl DNSState {
 
         if tx.events != std::ptr::null_mut() {
             unsafe {
-                core::AppLayerDecoderEventsFreeEvents(&mut tx.events);
+                if let Some(c) = context {
+                    if let Some(f) = c.AppLayerDecoderEventsFreeEvents {
+                        f(&mut tx.events);
+                    }
+                }
             }
         }
 
         match tx.de_state {
             Some(de_state) => {
                 unsafe {
-                    core::DetectEngineStateFree(de_state);
+                    if let Some(c) = context {
+                        if let Some(f) = c.DetectEngineStateFree {
+                            f(de_state);
+                        }
+                    }
                 }
                 self.de_state_count -= 1;
             },
@@ -380,8 +405,12 @@ impl DNSState {
 
         let mut tx = &mut self.transactions[len - 1];
 
-        unsafe{
-            core::AppLayerDecoderEventsSetEventRaw(&mut tx.events, event as u8);
+        unsafe {
+            if let Some(c) = context {
+                if let Some(f) = c.AppLayerDecoderEventsSetEventRaw {
+                    f(&mut tx.events, event as u8);
+                }
+            }
         }
     }
 
@@ -446,8 +475,6 @@ impl DNSState {
     fn tx_add(&mut self, tx: DNSTransaction) {
         self.inc_memuse(tx.size());
         self.transactions.push(Box::new(tx));
-        println!("Number of transactions: {}; unreplied: {}",
-                 self.transactions.len(), self.unreplied);
     }
 
     /// Returns the ID of the new transaction.
@@ -1261,7 +1288,7 @@ mod tests {
         let mut state = DNSState::new();
         let tx = state.new_tx();
         let tx_id = tx.id;
-        state.transactions.push(Box::new(tx));
+        state.tx_add(tx);
         state.tx_free(tx_id);
     }
 

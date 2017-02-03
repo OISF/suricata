@@ -217,6 +217,10 @@ typedef struct DNSAnswer_ {
     uint32_t data_len;
 } DNSAnswer;
 
+struct DNSContext;
+
+extern void rs_dns_set_context(struct DNSContext *);
+
 extern RSDNSState *rs_dns_state_new(void);
 extern void rs_dns_state_free(RSDNSState *);
 extern uint64_t rs_dns_state_parse_request(RSDNSState *, const uint8_t *,

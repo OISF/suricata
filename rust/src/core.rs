@@ -25,16 +25,15 @@ pub const TO_CLIENT: u8 = 1;
 /// The Rust place holder for DetectEngineState *.
 pub enum DetectEngineState {}
 
-extern {
-    pub fn DetectEngineStateFree(state: *mut DetectEngineState);
-}
-
 /// The Rust place holder for AppLayerDecoderEvents *.
 pub enum AppLayerDecoderEvents {}
 
-extern {
-    pub fn AppLayerDecoderEventsSetEventRaw(
-        events: *mut *mut AppLayerDecoderEvents, event: libc::uint8_t);
-    pub fn AppLayerDecoderEventsFreeEvents(
-        events: *mut *mut AppLayerDecoderEvents);
-}
+pub type AppLayerDecoderEventsSetEventRawFunc =
+    Option<extern "C" fn (events: *mut *mut AppLayerDecoderEvents,
+                          event: libc::uint8_t)>;
+
+pub type AppLayerDecoderEventsFreeEventsFunc =
+    Option<extern "C" fn (events: *mut *mut AppLayerDecoderEvents)>;
+
+pub type DetectEngineStateFreeFunc =
+    Option<extern "C" fn(state: *mut DetectEngineState)>;
