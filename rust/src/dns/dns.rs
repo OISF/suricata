@@ -118,6 +118,28 @@ impl DNSTransaction {
         }
     }
 
+    /// Get the DNS transactions ID (not the internal tracking ID).
+    pub fn tx_id(&self) -> u16 {
+        for request in &self.request {
+            return request.header.tx_id;
+        }
+        for response in &self.response {
+            return response.header.tx_id;
+        }
+
+        // Shouldn't happen.
+        return 0;
+    }
+
+    /// Get the reply code of the transaction. Note that this will
+    /// also return 0 if there is no reply.
+    pub fn rcode(&self) -> u16 {
+        for response in &self.response {
+            return response.header.flags & 0x000f;
+        }
+        return 0;
+    }
+
     pub fn size(&self) -> usize {
         let mut sum = 0;
 
@@ -132,6 +154,25 @@ impl DNSTransaction {
         return sum + std::mem::size_of::<DNSTransaction>();
     }
 
+}
+
+/// Get the DNS transaction ID of a transaction.
+//
+/// extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *);
+#[no_mangle]
+pub extern fn rs_dns_tx_get_tx_id(tx: &mut DNSTransaction) -> libc::uint16_t
+{
+    return tx.tx_id()
+}
+
+/// Get the DNS response flags for a transaction.
+///
+/// extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *);
+#[no_mangle]
+pub extern fn rs_dns_tx_get_response_flags(tx: &mut DNSTransaction)
+                                           -> libc::uint16_t
+{
+    return tx.rcode();
 }
 
 #[derive(Debug)]
@@ -679,11 +720,11 @@ pub extern fn rs_dns_tx_get_alstate_progress(tx: &mut DNSTransaction,
 }
 
 #[no_mangle]
-pub extern fn rs_dns_tx_get_query_buffer(tx: &mut DNSTransaction,
-                                         i: libc::uint16_t,
-                                         buf: *mut *const libc::uint8_t,
-                                         len: *mut libc::uint32_t)
-                                         -> libc::uint8_t
+pub extern fn rs_dns_tx_get_query_name(tx: &mut DNSTransaction,
+                                       i: libc::uint16_t,
+                                       buf: *mut *const libc::uint8_t,
+                                       len: *mut libc::uint32_t)
+                                       -> libc::uint8_t
 {
     for request in &tx.request {
         if (i as usize) < request.queries.len() {
@@ -695,6 +736,85 @@ pub extern fn rs_dns_tx_get_query_buffer(tx: &mut DNSTransaction,
                 }
                 return 1;
             }
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
+                                         i: libc::uint16_t,
+                                         rrtype: *mut libc::uint16_t)
+                                         -> libc::uint8_t
+{
+    for request in &tx.request {
+        if (i as usize) < request.queries.len() {
+            let query = &request.queries[i as usize];
+            if query.name.len() > 0 {
+                unsafe {
+                    *rrtype = query.rrtype;
+                }
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+#[repr(C)]
+pub struct CDNSAnswer {
+    pub name: *const libc::uint8_t,
+    pub name_len: libc::uint32_t,
+    pub rrtype: libc::uint16_t,
+    pub rrclass: libc::uint16_t,
+    pub ttl: libc::uint32_t,
+    pub data: *const libc::uint8_t,
+    pub data_len: libc::uint32_t,
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_get_response_answer(tx: &mut DNSTransaction,
+                                            i: libc::uint16_t,
+                                            canswer: *mut CDNSAnswer)
+                                            -> libc::uint8_t
+{
+    for response in &tx.response {
+        if (i as usize) < response.answers.len() {
+            let answer = &response.answers[i as usize];
+            unsafe {
+                (*canswer).name = answer.name.as_ptr();
+                (*canswer).name_len = answer.name.len() as u32;
+                (*canswer).rrtype = answer.rrtype;
+                (*canswer).rrclass = answer.rrclass;
+                (*canswer).ttl = answer.ttl;
+                (*canswer).data = answer.data.as_ptr();
+                (*canswer).data_len = answer.data.len() as u32;
+            }
+            return 1;
+        }
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern fn rs_dns_tx_get_response_authority(tx: &mut DNSTransaction,
+                                            i: libc::uint16_t,
+                                            canswer: *mut CDNSAnswer)
+                                            -> libc::uint8_t
+{
+    for response in &tx.response {
+        if (i as usize) < response.authorities.len() {
+            let answer = &response.authorities[i as usize];
+            unsafe {
+                (*canswer).name = answer.name.as_ptr();
+                (*canswer).name_len = answer.name.len() as u32;
+                (*canswer).rrtype = answer.rrtype;
+                (*canswer).rrclass = answer.rrclass;
+                (*canswer).ttl = answer.ttl;
+                (*canswer).data = answer.data.as_ptr();
+                (*canswer).data_len = answer.data.len() as u32;
+            }
+            return 1;
         }
     }
     return 0;

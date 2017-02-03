@@ -47,11 +47,6 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
-extern uint32_t rs_dns_tx_inspect_query_name(RSDNSTransaction *,
-    void *, void *, void *, void *, void *, uint8_t, uint8_t, void *);
-extern uint8_t rs_dns_tx_get_query_buffer(RSDNSTransaction *, uint16_t,
-    uint8_t **, uint32_t *);
-
 /** \brief Do the content inspection & validation for a signature
  *
  *  \param de_ctx Detection engine context
@@ -82,7 +77,7 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        if (rs_dns_tx_get_query_buffer(txv, i, &buffer, &buffer_len)) {
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
             r = DetectEngineContentInspection(de_ctx, det_ctx,
                 s, s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
                 f, buffer, buffer_len, 0,
@@ -115,7 +110,7 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
     uint32_t buffer_len;
 
     for (uint16_t i = 0;; i++) {
-        if (rs_dns_tx_get_query_buffer(txv, i, &buffer, &buffer_len)) {
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
             if (buffer_len >= mpm_ctx->minlen) {
                 (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtcu, &det_ctx->pmq,

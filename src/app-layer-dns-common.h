@@ -206,6 +206,17 @@ void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
  * Rust implementation.
  */
 
+/* Redefinition of struct CDNSAnswer. */
+typedef struct DNSAnswer_ {
+    uint8_t *name;
+    uint32_t name_len;
+    uint16_t rrtype;
+    uint16_t rrclass;
+    uint32_t ttl;
+    uint8_t *data;
+    uint32_t data_len;
+} DNSAnswer;
+
 extern RSDNSState *rs_dns_state_new(void);
 extern void rs_dns_state_free(RSDNSState *);
 extern uint64_t rs_dns_state_parse_request(RSDNSState *, const uint8_t *,
@@ -229,5 +240,18 @@ extern void rs_dns_tx_set_detect_state(RSDNSState *, RSDNSTransaction *,
     DetectEngineState *);
 extern DetectEngineState *rs_dns_tx_get_detect_state(RSDNSTransaction *);
 extern uint8_t rs_dns_state_has_detect_state(RSDNSState *);
+
+extern uint8_t rs_dns_tx_get_query_name(RSDNSTransaction *tx, uint16_t i,
+    uint8_t **buf, uint32_t *buf_len);
+extern uint8_t rs_dns_tx_get_query_rrtype(RSDNSTransaction *tx, uint16_t i,
+    uint16_t *rrtype);
+
+extern uint16_t rs_dns_tx_get_tx_id(RSDNSTransaction *tx);
+extern uint16_t rs_dns_tx_get_response_flags(RSDNSTransaction *tx);
+
+extern uint8_t rs_dns_tx_get_response_answer(RSDNSTransaction *tx, uint16_t i,
+    DNSAnswer *answer);
+extern uint8_t rs_dns_tx_get_response_authority(RSDNSTransaction *tx,
+    uint16_t i, DNSAnswer *answer);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
