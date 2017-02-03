@@ -46,6 +46,9 @@
 
 #include "util-file.h"
 
+#include "util-print.h"
+#include "util-byte.h"
+
 /* The default port to probe for echo traffic if not provided in the
  * configuration file. */
 #define NFS3TCP_DEFAULT_PORT "2049"
@@ -258,6 +261,25 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
 
     int r = r_nfstcp_parse(1, input, input_len, state);
     SCLogDebug("r %d", r);
+
+    uint8_t *data;
+    uint32_t len;
+    uint32_t xid;
+    uint64_t offset;
+    if (r_getu64(state, 1, &offset) == 1) {
+        if (r_getu32(state, 2, &xid) == 1) {
+            if (r_getdata(state, 3, &data, &len) == 1) {
+                char *c = BytesToString(data, len);
+                if (c != NULL) {
+
+                    if (offset == 432308224) {
+                        SCLogNotice("host %s XID %u chunk offset %"PRIu64, c, xid, offset);
+                    }
+                    SCFree(c);
+                }
+            }
+        }
+    }
     return r;
 }
 
