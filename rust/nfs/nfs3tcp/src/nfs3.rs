@@ -156,6 +156,13 @@ pub extern "C" fn r_getdata(stateptr: *mut NfsTcpParser, id: u32, rptr: *mut*con
     }
 }
 
+#[repr(u32)]
+pub enum NfsStorageId {
+    ChunkOffset = 1,
+    Xid,
+    CredsUnixHost,
+}
+
 #[derive(Debug,PartialEq)]
 pub struct RpcRequestCredsUnix<'a> {
     pub stamp: u32,
@@ -777,10 +784,10 @@ impl NfsTcpParser {
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         let mut xidmap = NfsRequestXidMap::new(r.hdr.xid, r.procedure, 0);
 
-        self.store.set_u32(2u32, r.hdr.xid);
+        self.store.set_u32(NfsStorageId::Xid as u32, r.hdr.xid);
         match &r.creds_unix {
             &Some(ref u) => {
-                self.store.set_vector(3u32, u.machine_name_buf.to_vec());
+                self.store.set_vector(NfsStorageId::CredsUnixHost as u32, u.machine_name_buf.to_vec());
             },
             _ => { },
         }
@@ -793,7 +800,7 @@ impl NfsTcpParser {
             match parse_nfs3_request_read(r.prog_data) {
                 IResult::Done(_, nfs3_read_record) => {
                     xidmap.chunk_offset = nfs3_read_record.offset;
-                    self.store.set_u64(1u32, xidmap.chunk_offset);
+                    self.store.set_u64(NfsStorageId::ChunkOffset as u32, xidmap.chunk_offset);
 
                     match self.namemap.get(nfs3_read_record.object.value) {
                         Some(n) => {
