@@ -29,12 +29,20 @@ use core;
 
 use dns::*;
 
+const DEFAULT_STATE_MEMCAP: usize = 512 * 1024;
+const DEFAULT_GLOBAL_MEMCAP: usize = 16 * 1024 * 1024;
+
+static mut STATE_MEMCAP: usize = DEFAULT_STATE_MEMCAP;
+static mut GLOBAL_MEMCAP: usize = DEFAULT_GLOBAL_MEMCAP;
+
 /// Rust DNS context. Holds configuration and other data passed from C.
 #[repr(C)]
 pub struct Context {
-    AppLayerDecoderEventsSetEventRaw: core::AppLayerDecoderEventsSetEventRawFunc,
+    state_memcap: u32,
+    global_memcap: u64,
+    AppLayerDecoderEventsSetEventRaw:core::AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: core::AppLayerDecoderEventsFreeEventsFunc,
-    DetectEngineStateFree: core::DetectEngineStateFreeFunc,
+    DetectEngineStateFree:           core::DetectEngineStateFreeFunc,
 }
 
 pub static mut context: Option<&'static Context> = None;
@@ -43,7 +51,10 @@ pub static mut context: Option<&'static Context> = None;
 pub extern "C" fn rs_dns_set_context(c: &'static mut Context) {
     unsafe {
         context = Some(c);
+        STATE_MEMCAP = c.state_memcap as usize;
+        GLOBAL_MEMCAP = c.global_memcap as usize;
     }
+    
 }
 
 // The window is how many requests that are allowed to remain in a
@@ -65,6 +76,24 @@ pub const DNS_RTYPE_SSHFP: u16 = 44;
 pub const DNS_RTYPE_RRSIG: u16 = 46;
 
 static GLOBAL_MEMUSE: AtomicUsize = ATOMIC_USIZE_INIT;
+
+static MEMCAP_STATE_HIT: AtomicUsize = ATOMIC_USIZE_INIT;
+static MEMCAP_GLOBAL_HIT: AtomicUsize = ATOMIC_USIZE_INIT;
+
+#[no_mangle]
+pub extern "C" fn rs_dns_get_memuse() -> libc::uint64_t {
+    return GLOBAL_MEMUSE.fetch_add(0, Ordering::Relaxed) as u64;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_get_memcap_state_hit_counter() -> libc::uint64_t {
+    return MEMCAP_STATE_HIT.fetch_add(0, Ordering::Relaxed) as u64;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_get_memcap_global_hit_counter() -> libc::uint64_t {
+    return MEMCAP_GLOBAL_HIT.fetch_add(0, Ordering::Relaxed) as u64;
+}
 
 #[repr(u32)]
 pub enum DNSEvents {
@@ -339,6 +368,22 @@ impl DNSState {
         GLOBAL_MEMUSE.fetch_sub(size, Ordering::Relaxed);
     }
 
+    fn check_memcap(&mut self, size: usize) -> bool {
+        unsafe {
+            if self.memuse + size > STATE_MEMCAP {
+                MEMCAP_STATE_HIT.fetch_add(1, Ordering::Relaxed);
+                self.set_event(DNSEvents::StateMemCapReached);
+                return false;
+            }
+            if GLOBAL_MEMUSE.fetch_add(0, Ordering::Relaxed) +
+                    size > GLOBAL_MEMCAP {
+                MEMCAP_GLOBAL_HIT.fetch_add(1, Ordering::Relaxed);
+                return false;
+            }
+        }
+        return true;
+    }
+
     pub fn new_tx(&mut self) -> DNSTransaction {
         self.tx_id = self.tx_id + 1;
         let mut tx = DNSTransaction::new();
@@ -490,9 +535,14 @@ impl DNSState {
         return true;
     }
 
-    fn tx_add(&mut self, tx: DNSTransaction) {
+    fn tx_add(&mut self, tx: DNSTransaction) -> bool {
+        let size = tx.size();
+        if !self.check_memcap(size) {
+            return false;
+        }
         self.inc_memuse(tx.size());
         self.transactions.push(Box::new(tx));
+        return true;
     }
 
     /// Returns the ID of the new transaction.
@@ -505,10 +555,12 @@ impl DNSState {
         let mut tx = self.new_tx();
         let id = tx.id;
         tx.request = Some(request);
-        self.tx_add(tx);
-        self.unreplied += 1;
+        if self.tx_add(tx) {
+            self.unreplied += 1;
+            return id;
+        }
 
-        return id;
+        return 0;
     }
 
     pub fn get_tx_by_dns_id(&self, tx_id: u16) -> Option<&DNSTransaction>

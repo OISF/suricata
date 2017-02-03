@@ -27,25 +27,16 @@
 #include "util-misc.h"
 
 #include "debug.h"
-#include "decode.h"
 
 #include "flow-util.h"
 
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-debug.h"
-
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "stream.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#include "util-spm.h"
 #include "util-unittest.h"
 
 #include "app-layer-dns-udp.h"
@@ -61,9 +52,8 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
     DNSState *dns_state = (DNSState *)dstate;
     uint64_t tx_id = 0;
 
-    SCLogDebug("starting %u", input_len);
-
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate,
+            APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     }
 
@@ -90,9 +80,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     DNSState *dns_state = (DNSState *)dstate;
     uint64_t tx_id = 0;
 
-    SCLogDebug("starting %u", input_len);
-
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate,
+            APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     }
 
@@ -114,11 +103,12 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen,
     return ALPROTO_FAILED;
 }
 
+static uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
+static uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
+
 static void DNSUDPConfigure(void)
 {
     uint32_t request_flood = DNS_CONFIG_DEFAULT_REQUEST_FLOOD;
-    uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
-    uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
 
     ConfNode *p = ConfGetNode("app-layer.protocols.dns.request-flood");
     if (p != NULL) {
@@ -130,7 +120,9 @@ static void DNSUDPConfigure(void)
         }
     }
     SCLogConfig("DNS request flood protection level: %u", request_flood);
+#if 0
     DNSConfigSetRequestFlood(request_flood);
+#endif
 
     p = ConfGetNode("app-layer.protocols.dns.state-memcap");
     if (p != NULL) {
@@ -142,7 +134,9 @@ static void DNSUDPConfigure(void)
         }
     }
     SCLogConfig("DNS per flow memcap (state-memcap): %u", state_memcap);
+#if 0
     DNSConfigSetStateMemcap(state_memcap);
+#endif
 
     p = ConfGetNode("app-layer.protocols.dns.global-memcap");
     if (p != NULL) {
@@ -154,14 +148,20 @@ static void DNSUDPConfigure(void)
         }
     }
     SCLogConfig("DNS global memcap: %"PRIu64, global_memcap);
+#if 0
     DNSConfigSetGlobalMemcap(global_memcap);
+#endif
 }
 
 static struct DNSContext {
+    uint32_t state_memcap;
+    uint64_t global_memcap;
     void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **, uint8_t);
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
     void (*DetectEngineStateFree)(DetectEngineState *);
 } DNSContext = {
+    .state_memcap = 0,
+    .global_memcap = 0,
     .AppLayerDecoderEventsSetEventRaw = AppLayerDecoderEventsSetEventRaw,
     .AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents,
     .DetectEngineStateFree = DetectEngineStateFree,
@@ -171,6 +171,9 @@ void RegisterDNSUDPParsers(void)
 {
     char *proto_name = "dns";
 
+    DNSUDPConfigure();
+    DNSContext.state_memcap = state_memcap;
+    DNSContext.global_memcap = global_memcap;
     rs_dns_set_context(&DNSContext);
 
     /** DNS */
@@ -235,23 +238,21 @@ void RegisterDNSUDPParsers(void)
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
-        DNSUDPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
     }
-#ifdef __UNITTESTS
+#ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_DNS, DNSUDPParserRegisterTests);
 #endif
 }
 
 /* UNITTESTS */
-#ifdef __UNITTESTS
+#ifdef UNITTESTS
 #include "util-unittest-helper.h"
 
 static int DNSUDPParserTest01 (void)
 {
-#if 0
     /* query: abcdefghijk.com
      * TTL: 86400
      * serial 20130422 refresh 28800 retry 7200 exp 604800 min ttl 86400
@@ -279,13 +280,11 @@ static int DNSUDPParserTest01 (void)
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
     UTHFreeFlow(f);
-#endif
     PASS;
 }
 
 static int DNSUDPParserTest02 (void)
 {
-#if 0
     uint8_t buf[] = {
         0x6D,0x08,0x84,0x80,0x00,0x01,0x00,0x08,0x00,0x00,0x00,0x01,0x03,0x57,0x57,0x57,
         0x04,0x54,0x54,0x54,0x54,0x03,0x56,0x56,0x56,0x03,0x63,0x6F,0x6D,0x02,0x79,0x79,
@@ -310,13 +309,12 @@ static int DNSUDPParserTest02 (void)
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
     UTHFreeFlow(f);
-#endif
+
     PASS;
 }
 
 static int DNSUDPParserTest03 (void)
 {
-#if 0
     uint8_t buf[] = {
         0x6F,0xB4,0x84,0x80,0x00,0x01,0x00,0x02,0x00,0x02,0x00,0x03,0x03,0x57,0x57,0x77,
         0x0B,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x56,0x03,0x55,0x55,0x55,
@@ -341,14 +339,13 @@ static int DNSUDPParserTest03 (void)
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
     UTHFreeFlow(f);
-#endif
+
     PASS;
 }
 
 /** \test TXT records in answer */
 static int DNSUDPParserTest04 (void)
 {
-#if 0
     uint8_t buf[] = {
         0xc2,0x2f,0x81,0x80,0x00,0x01,0x00,0x01,0x00,0x01,0x00,0x01,0x0a,0x41,0x41,0x41,
         0x41,0x41,0x4f,0x31,0x6b,0x51,0x41,0x05,0x3d,0x61,0x75,0x74,0x68,0x03,0x73,0x72,
@@ -375,7 +372,7 @@ static int DNSUDPParserTest04 (void)
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
 
     UTHFreeFlow(f);
-#endif
+
     PASS;
 }
 
@@ -406,6 +403,7 @@ static int DNSUDPParserTest05 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
+    /* Not sure why this is supposed to fail. */
     FAIL_IF(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL) != -1);
 
     UTHFreeFlow(f);
@@ -422,7 +420,6 @@ static int DNSUDPParserTest05 (void)
  */
 static int DNSUDPParserTestDelayedResponse(void)
 {
-#if 0
     /* DNS request:
      * - Flags: 0x0100 Standard query
      * - A www.google.com
@@ -485,14 +482,15 @@ static int DNSUDPParserTestDelayedResponse(void)
 
     /* Send response to the first request. */
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL));
-    DNSTransaction *tx = TAILQ_FIRST(&state->tx_list);
+    RSDNSTransaction *tx = rs_dns_state_tx_get(state->rs_state, 0);
     FAIL_IF_NULL(tx);
-    FAIL_IF_NOT(tx->replied);
+
+    /* Check if replied by checking the progress. */
+    FAIL_IF_NOT(rs_dns_tx_get_alstate_progress(tx, 1));
 
     /* Also free's state. */
     UTHFreeFlow(f);
 
-#endif
     PASS;
 }
 

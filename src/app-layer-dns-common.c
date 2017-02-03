@@ -22,68 +22,7 @@
  */
 
 #include "suricata-common.h"
-#include "stream.h"
-#include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
-#ifdef DEBUG
-#include "util-print.h"
-#endif
-#include "util-memcmp.h"
-#include "util-atomic.h"
-
-typedef struct DNSConfig_ {
-    uint32_t request_flood;
-    uint32_t state_memcap;  /**< memcap in bytes per state */
-    uint64_t global_memcap; /**< memcap in bytes globally for parser */
-} DNSConfig;
-static DNSConfig dns_config;
-
-void DNSConfigInit(void)
-{
-    memset(&dns_config, 0x00, sizeof(dns_config));
-}
-
-void DNSConfigSetRequestFlood(uint32_t value)
-{
-    dns_config.request_flood = value;
-}
-
-void DNSConfigSetStateMemcap(uint32_t value)
-{
-    dns_config.state_memcap = value;
-}
-
-void DNSConfigSetGlobalMemcap(uint64_t value)
-{
-    dns_config.global_memcap = value;
-}
-
-uint64_t DNSMemcapGetMemuseCounter(void)
-{
-#if 0
-    uint64_t x = SC_ATOMIC_GET(dns_memuse);
-    return x;
-#endif
-    return 0;
-}
-
-uint64_t DNSMemcapGetMemcapStateCounter(void)
-{
-#if 0
-    uint64_t x = SC_ATOMIC_GET(dns_memcap_state);
-    return x;
-#endif
-    return 0;
-}
-
-uint64_t DNSMemcapGetMemcapGlobalCounter(void)
-{
-#if 0
-    uint64_t x = SC_ATOMIC_GET(dns_memcap_global);
-    return x;
-#endif
-    return 0;
-}
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
     { "UNSOLLICITED_RESPONSE",      DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE, },
@@ -193,7 +132,6 @@ int DNSStateHasTxDetectState(void *alstate)
 DetectEngineState *DNSGetTxDetectState(void *vtx)
 {
     return rs_dns_tx_get_detect_state(vtx);
-    return NULL;
 }
 
 int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)

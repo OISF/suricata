@@ -30,10 +30,6 @@
 
 #include "threads.h"
 
-#include "util-print.h"
-#include "util-pool.h"
-#include "util-debug.h"
-
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -42,7 +38,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
-#include "util-spm.h"
 #include "util-unittest.h"
 
 #include "app-layer-dns-tcp.h"
@@ -377,7 +372,7 @@ void RegisterDNSTCPParsers(void)
                   "still on.", proto_name);
     }
 
-#ifdef __UNITTESTS
+#ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_DNS,
         DNSTCPParserRegisterTests);
 #endif
@@ -386,7 +381,7 @@ void RegisterDNSTCPParsers(void)
 }
 
 /* UNITTESTS */
-#ifdef __UNITTESTS
+#ifdef UNITTESTS
 
 #include "util-unittest-helper.h"
 
@@ -493,9 +488,10 @@ static int DNSTCPParserTestMultiRecord(void)
     f->alstate = state;
 
     FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
-    FAIL_IF(state->transaction_max != 20);
+    FAIL_IF(rs_dns_state_get_tx_count(state->rs_state) != 20);
 
     UTHFreeFlow(f);
+
     PASS;
 }
 
@@ -607,9 +603,9 @@ static int DNSTCPParserTestMultiRecordPartials(void)
             DNSTCPRequestParse(f, f->alstate, NULL, req + i, 1, NULL));
     }
 
-    FAIL_IF(state->transaction_max != 20);
-
+    FAIL_IF(rs_dns_state_get_tx_count(state->rs_state) != 20);
     UTHFreeFlow(f);
+
     PASS;
 }
 

@@ -258,4 +258,8 @@ extern uint8_t rs_dns_tx_get_response_answer(RSDNSTransaction *tx, uint16_t i,
 extern uint8_t rs_dns_tx_get_response_authority(RSDNSTransaction *tx,
     uint16_t i, DNSAnswer *answer);
 
+extern uint64_t rs_dns_get_memuse(void);
+extern uint64_t rs_dns_get_memcap_state_hit_counter(void);
+extern uint64_t rs_dns_get_memcap_global_hit_counter(void);
+
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
