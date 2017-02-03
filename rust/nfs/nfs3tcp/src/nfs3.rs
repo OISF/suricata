@@ -28,10 +28,25 @@ macro_rules! println_debug(
 );
 
 #[derive(Debug,PartialEq)]
+pub struct MapIdxVector {
+    map: HashMap<u32, Vec<u8>>,
+}
+
+impl MapIdxVector {
+    pub fn new() -> MapIdxVector {
+        MapIdxVector {
+            map: HashMap::new(),
+        }
+    }
+}
+        
+
+#[derive(Debug,PartialEq)]
 pub enum Storage {
     U32(u32),
     U64(u64),
     DATA(Vec<u8>),
+    MAPDATA(MapIdxVector),
 }
 
 #[derive(Debug,PartialEq)]
@@ -78,6 +93,98 @@ impl Store {
             },
             None => { return None },
         }
+    }
+    pub fn set_vector_map(&mut self, id: u32, mapidx: u32, value: Vec<u8>) {
+        let ref mut store = self.store;
+        let mut md = store.remove(&id);
+        println!("set_vector_map(): md {:?}", md);
+        match md {
+            Some(ref mut smd) => {
+                println!("SOME pre smd {:?}", smd);
+
+                match smd {
+                    &mut Storage::MAPDATA(ref mut mymd) => {
+                        println!("SOME preinsert mymd {:?}", mymd);
+                        mymd.map.insert(mapidx, value);
+                        println!("SOME postinsert mymd {:?}", mymd);
+                        let blah = mymd;
+                        println!("SOME blah {:?}", blah);
+                    },
+                    _ => { panic!("sorry, you're not my type"); },
+                }
+                println!("SOME post smd {:?}", smd);
+            },
+            None => {
+                println!("NONE: nothing");
+                let mut miv = MapIdxVector::new();
+                miv.map.insert(mapidx, value);
+                println!("NONE: miv {:?}", miv);
+                let emd = Storage::MAPDATA(miv);
+                println!("NONE: emd {:?}", emd);
+                store.insert(id, emd);
+            }
+        }
+
+        println!("SOME post md {:?}", md);
+        match md {
+            Some(rismd) => {
+                println!("SOME post rismd {:?}", rismd);
+                store.insert(id, rismd);
+            }
+            None => {  },
+        }
+
+/*
+            Some(ref x) => {
+                println!("SOME x {:?}", x);
+
+                match x {
+                    &Storage::MAP_DATA(ref mut y) => {
+                        println!("SOME y {:?}", y);
+                        let mut z = &y.map;
+                        println!("SOME z {:?}", z);
+                        //z.insert(mapidx, value);
+                    },
+                    _ => { panic!("SOME x is something else"); },
+                }
+
+            },
+            None => {
+                    println!("NONE: nothing");
+                    let mut miv = MapIdxVector::new();
+                    miv.map.insert(mapidx, value);
+                    println!("NONE: miv {:?}", miv);
+                    let mut emd = Storage::MAP_DATA(miv);
+                    println!("NONE: emd {:?}", emd);
+                    store.insert(id, emd);
+            },
+        }
+*/
+/*
+        let mut store = &mut self.store;
+        let mut cur_map = &store.get(&id);
+        match cur_map {
+            None => {
+                let mut miv = MapIdxVector::new();
+                //miv.map.insert(mapidx, value);
+                let mut md = Storage::MAP_DATA(miv);
+                println!("{}: None: md {:?}", id, md);
+                store.insert(id, md);
+            },
+
+            Some(md) => {
+                println!("{}: Some: md {:?}", id, md);
+/*
+                match md {
+                    Storage::MAP_DATA(ref mut miv) => {
+                        //miv.map.insert(mapidx, value);
+                    },
+                    _ => { panic!("how did we get here?"); },
+                }
+*/
+            },
+        }
+*/
     }
     pub fn set_vector(&mut self, id: u32, value: Vec<u8>) {
         let v = Storage::DATA(value);
@@ -788,6 +895,14 @@ impl NfsTcpParser {
         match &r.creds_unix {
             &Some(ref u) => {
                 self.store.set_vector(NfsStorageId::CredsUnixHost as u32, u.machine_name_buf.to_vec());
+
+                self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
+                self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
+                self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
+                self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
+
+                self.store.set_vector_map(4u32, 7u32, r.prog_data.to_vec());
+                panic!("done for now");
             },
             _ => { },
         }
