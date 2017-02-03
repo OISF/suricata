@@ -15,9 +15,6 @@
  * 02110-1301, USA.
  */
 
-// TODO: Lost reply handling (windowed).
-// TODO: Flood handling.
-
 extern crate std;
 extern crate libc;
 extern crate nom;
@@ -48,6 +45,10 @@ pub extern "C" fn rs_dns_set_context(c: &'static mut Context) {
         context = Some(c);
     }
 }
+
+// The window is how many requests that are allowed to remain in a
+// pending state before considered lost.
+pub const WINDOW: usize = 32;
 
 /// DNS error codes.
 pub const DNS_RCODE_NOERROR:  u16 = 0;
@@ -116,6 +117,7 @@ pub struct DNSTransaction {
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
     pub replied: bool,
+    pub reply_lost: bool,
     pub logged: u32,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
@@ -129,6 +131,7 @@ impl DNSTransaction {
             request: None,
             response: None,
             replied: false,
+            reply_lost: false,
             logged: 0,
             de_state: None,
             events: std::ptr::null_mut(),
@@ -414,7 +417,7 @@ impl DNSState {
         }
     }
 
-    pub fn tx_get(&self, tx_id: u64) -> Option<&DNSTransaction> {
+    pub fn tx_get_(&self, tx_id: u64) -> Option<&DNSTransaction> {
         // Loops through the transactions in reverse as we are most
         // likely getting the most recent. Its a bit of a
         // micro-optimization, but was visible in profiling.
@@ -429,6 +432,21 @@ impl DNSState {
             }
         }
 
+        return None;
+    }
+
+    pub fn tx_get(&mut self, tx_id: u64) -> Option<&DNSTransaction> {
+        let len = self.transactions.len();
+        let mut i = 0;
+        for tx in &mut self.transactions {
+            if tx.id == tx_id + 1 {
+                return Some(tx);
+            }
+            if len - i > WINDOW {
+                tx.reply_lost = true;
+            }
+            i += 1;
+        }
         return None;
     }
 
@@ -552,8 +570,6 @@ impl DNSState {
             // No transaction was found for this response.
             Err(response) => {
 
-                println!("Did not find transaction for response.");
-
                 self.set_event(DNSEvents::UnsolicitedResponse);
                 
                 // Create a response only transaction.
@@ -571,7 +587,6 @@ impl DNSState {
 
     /// Parse and handle a DNS request.
     pub fn parse_request(&mut self, input: &[u8]) -> u64 {
-        println!("Parsing request.");
         match dns_parse_request(input) {
             nom::IResult::Done(_, request) => {
                 return self.handle_request(request);
@@ -585,7 +600,6 @@ impl DNSState {
 
     /// Parse and handle a DNS response.
     pub fn parse_response(&mut self, input: &[u8]) -> u64 {
-        println!("Parsing reponse.");
         match dns_parse_response(input) {
             nom::IResult::Done(_, response) => {
                 return self.handle_response(response);
@@ -738,7 +752,7 @@ pub extern fn rs_dns_tx_get_alstate_progress(tx: &mut DNSTransaction,
                                              direction: libc::uint8_t)
                                              -> libc::uint8_t {
     if direction == core::TO_CLIENT {
-        if tx.replied {
+        if tx.replied || tx.reply_lost {
             return 1;
         }
         return 0;
