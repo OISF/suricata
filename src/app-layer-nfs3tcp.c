@@ -265,9 +265,10 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
     uint8_t *data;
     uint32_t len;
     uint32_t xid;
-    uint64_t offset;
-    if (r_getu64(state, 1, &offset) == 1) {
-        if (r_getu32(state, 2, &xid) == 1) {
+//    uint64_t offset;
+    if (r_getu32(state, 2, &xid) == 1) {
+/*
+        if (r_getu64(state, 1, &offset) == 1) {
             if (r_getdata(state, 3, &data, &len) == 1) {
                 char *c = BytesToString(data, len);
                 if (c != NULL) {
@@ -277,6 +278,14 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
                     }
                     SCFree(c);
                 }
+            }
+        }
+*/
+        if (r_getdata_map(state, 4, xid, &data, &len) == 1) {
+            char *c = BytesToString(data, len);
+            if (c != NULL) {
+//                SCLogNotice("host %s XID %u", c, xid);
+                SCFree(c);
             }
         }
     }

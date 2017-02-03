@@ -94,97 +94,80 @@ impl Store {
             None => { return None },
         }
     }
-    pub fn set_vector_map(&mut self, id: u32, mapidx: u32, value: Vec<u8>) {
+    fn set_vector_map_new(&mut self, id: u32, mapidx: u32, value: Vec<u8>) {
         let ref mut store = self.store;
-        let mut md = store.remove(&id);
-        println!("set_vector_map(): md {:?}", md);
+        println_debug!("NONE: nothing");
+        let mut miv = MapIdxVector::new();
+        miv.map.insert(mapidx, value);
+        println_debug!("NONE: miv {:?}", miv);
+        let emd = Storage::MAPDATA(miv);
+        println_debug!("NONE: emd {:?}", emd);
+        store.insert(id, emd);
+    }
+    fn set_vector_map_update(&mut self, id: u32, mapidx: u32, value: Vec<u8>) {
+        let ref mut store = self.store; // reference to store in self, must but mutable for remove/insert
+        let mut md = store.get_mut(&id); // take out existing data, mutable as we'll try to update it
+        println_debug!("set_vector_map(): md {:?}", md);
         match md {
-            Some(ref mut smd) => {
-                println!("SOME pre smd {:?}", smd);
+            Some(mut smd) => {  // mutable reference to md for updating
+                println_debug!("SOME pre smd {:?}", smd);
 
                 match smd {
                     &mut Storage::MAPDATA(ref mut mymd) => {
-                        println!("SOME preinsert mymd {:?}", mymd);
+                        println_debug!("SOME preinsert mymd {:?}", mymd);
                         mymd.map.insert(mapidx, value);
-                        println!("SOME postinsert mymd {:?}", mymd);
+                        println_debug!("SOME postinsert mymd {:?}", mymd);
                         let blah = mymd;
-                        println!("SOME blah {:?}", blah);
+                        println_debug!("SOME blah {:?}", blah);
                     },
                     _ => { panic!("sorry, you're not my type"); },
                 }
-                println!("SOME post smd {:?}", smd);
-            },
-            None => {
-                println!("NONE: nothing");
-                let mut miv = MapIdxVector::new();
-                miv.map.insert(mapidx, value);
-                println!("NONE: miv {:?}", miv);
-                let emd = Storage::MAPDATA(miv);
-                println!("NONE: emd {:?}", emd);
-                store.insert(id, emd);
-            }
-        }
 
-        println!("SOME post md {:?}", md);
+                println_debug!("SOME post smd {:?}", smd);
+            },
+            _ => {},
+        }
+    }
+    fn set_vector_map_get(&mut self, id: &u32) -> bool {
+        let ref store = self.store;
+        let md = store.get(id);
         match md {
-            Some(rismd) => {
-                println!("SOME post rismd {:?}", rismd);
-                store.insert(id, rismd);
-            }
-            None => {  },
+            Some(_) => { true },
+            None => { false },
         }
+    }
+    pub fn set_vector_map(&mut self, id: u32, mapidx: u32, value: Vec<u8>) {
+        if self.set_vector_map_get(&id) == true {
+            self.set_vector_map_update(id, mapidx, value);
+        } else {
+            self.set_vector_map_new(id, mapidx, value);
+        }
+    }
+    pub fn get_vector_map_ref(&self, id: u32, mapidx: u32) -> Option<&Vec<u8>> {
+        println_debug!("get_vector_map_ref: called with id {} mapid {}", id, mapidx);
+        let ref store = self.store;
+        let md = store.get(&id);
+        match md {
+            Some(smd) => {
+                println_debug!("get_vector_map: smd {:?}", smd);
 
-/*
-            Some(ref x) => {
-                println!("SOME x {:?}", x);
+                match smd {
+                    &Storage::MAPDATA(ref mymd) => {
+                        println_debug!("SOME mymd {:?}", mymd);
 
-                match x {
-                    &Storage::MAP_DATA(ref mut y) => {
-                        println!("SOME y {:?}", y);
-                        let mut z = &y.map;
-                        println!("SOME z {:?}", z);
-                        //z.insert(mapidx, value);
+                        let sv = mymd.map.get(&mapidx);
+                        return sv
                     },
-                    _ => { panic!("SOME x is something else"); },
+                    &_ => { panic!("get_vector_map_ref: unknown type at {}", id); },
                 }
 
             },
             None => {
-                    println!("NONE: nothing");
-                    let mut miv = MapIdxVector::new();
-                    miv.map.insert(mapidx, value);
-                    println!("NONE: miv {:?}", miv);
-                    let mut emd = Storage::MAP_DATA(miv);
-                    println!("NONE: emd {:?}", emd);
-                    store.insert(id, emd);
+                println!("get_vector_map: not found");
             },
         }
-*/
-/*
-        let mut store = &mut self.store;
-        let mut cur_map = &store.get(&id);
-        match cur_map {
-            None => {
-                let mut miv = MapIdxVector::new();
-                //miv.map.insert(mapidx, value);
-                let mut md = Storage::MAP_DATA(miv);
-                println!("{}: None: md {:?}", id, md);
-                store.insert(id, md);
-            },
 
-            Some(md) => {
-                println!("{}: Some: md {:?}", id, md);
-/*
-                match md {
-                    Storage::MAP_DATA(ref mut miv) => {
-                        //miv.map.insert(mapidx, value);
-                    },
-                    _ => { panic!("how did we get here?"); },
-                }
-*/
-            },
-        }
-*/
+        None
     }
     pub fn set_vector(&mut self, id: u32, value: Vec<u8>) {
         let v = Storage::DATA(value);
@@ -251,6 +234,22 @@ pub extern "C" fn r_getdata(stateptr: *mut NfsTcpParser, id: u32, rptr: *mut*con
     if stateptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *stateptr };
     match parser.store.get_vector_ref(id) {
+        Some(v) => {
+            println_debug!("v {:?}", v);
+            unsafe {
+                *rptr = v.as_ptr();
+                *rlen = v.len() as u32;
+            }
+            return 1
+        },
+        None => { return 0 }
+    }
+}
+#[no_mangle]
+pub extern "C" fn r_getdata_map(stateptr: *mut NfsTcpParser, id: u32, mapid: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
+    if stateptr.is_null() { panic!("NULL ptr"); };
+    let parser = unsafe { &mut *stateptr };
+    match parser.store.get_vector_map_ref(id, mapid) {
         Some(v) => {
             println_debug!("v {:?}", v);
             unsafe {
@@ -896,13 +895,14 @@ impl NfsTcpParser {
             &Some(ref u) => {
                 self.store.set_vector(NfsStorageId::CredsUnixHost as u32, u.machine_name_buf.to_vec());
 
-                self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
-                self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
-                self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
-                self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
+                //self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
+                //self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
+                //self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
+                //self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
 
-                self.store.set_vector_map(4u32, 7u32, r.prog_data.to_vec());
-                panic!("done for now");
+                //self.store.set_vector_map(4u32, 7u32, r.prog_data.to_vec());
+
+                self.store.set_vector_map(4u32, r.hdr.xid, u.machine_name_buf.to_vec());
             },
             _ => { },
         }

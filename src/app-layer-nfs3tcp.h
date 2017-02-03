@@ -90,4 +90,6 @@ extern int r_getdata(NfsTcpParser *state, uint32_t id, uint8_t **rptr, uint32_t 
 extern int r_getu32(NfsTcpParser *state, uint32_t id, uint32_t *rval);
 extern int r_getu64(NfsTcpParser *state, uint32_t id, uint64_t *rval);
 
+extern int r_getdata_map(NfsTcpParser *state, uint32_t id, uint32_t mapid, uint8_t **rptr, uint32_t *rlen);
+
 #endif /* __APP_LAYER_NFS3TCP_H__ */
