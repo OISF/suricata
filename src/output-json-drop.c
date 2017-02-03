@@ -86,7 +86,8 @@ static int g_droplog_flows_start = 1;
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     uint16_t proto = 0;
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "drop",
+                                  aft->drop_ctx->file_ctx);//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
