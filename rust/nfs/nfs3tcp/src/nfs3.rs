@@ -47,6 +47,7 @@ pub enum Storage {
     U64(u64),
     DATA(Vec<u8>),
     MAPDATA(MapIdxVector),
+    STORE(Store),
 }
 
 #[derive(Debug,PartialEq)]
@@ -197,13 +198,51 @@ impl Store {
             None => { return None },
         }
     }
+
+    pub fn set_store_insert_new(&mut self, id: u32) {
+        let nstore = Store::new();
+        let mp = Storage::STORE(nstore);
+        self.store.insert(id, mp);
+        println!("set_store_insert_new: new store added at {}", id);
+    }
+
+    pub fn get_store_ref(&mut self, id: u32) -> Option<&mut Store> {
+        match self.store.get_mut(&id) {
+            Some(r) => {
+                match r {
+                    &mut Storage::STORE(ref mut x) => { return Some(x) },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+    }
+    pub fn get_store_ref_create(&mut self, id: u32) -> Option<&mut Store> {
+        match self.get_store_ref(id) {
+            None => {
+                self.set_store_insert_new(id);
+            },
+            _ => {},
+        }
+        self.get_store_ref(id)
+    }
+
+    pub fn drop_store(&mut self, id: u32) -> i32 {
+        match self.get_store_ref(id) {
+            None => { return 0 },
+            _ => { },
+        }
+        self.store.remove(&id);
+        1
+    }
 }
 
 #[no_mangle]
-pub extern "C" fn r_getu32(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u32) -> i32 {
-    if stateptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *stateptr };
-    match parser.store.get_u32(id) {
+pub extern "C" fn r_getu32(storeptr: *mut Store, id: u32, rval: *mut u32) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.get_u32(id) {
         Some(v) => {
             println_debug!("v {:?}", v);
             unsafe {
@@ -215,10 +254,10 @@ pub extern "C" fn r_getu32(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u32)
     }
 }
 #[no_mangle]
-pub extern "C" fn r_getu64(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u64) -> i32 {
-    if stateptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *stateptr };
-    match parser.store.get_u64(id) {
+pub extern "C" fn r_getu64(storeptr: *mut Store, id: u32, rval: *mut u64) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.get_u64(id) {
         Some(v) => {
             println_debug!("v {:?}", v);
             unsafe {
@@ -230,10 +269,10 @@ pub extern "C" fn r_getu64(stateptr: *mut NfsTcpParser, id: u32, rval: *mut u64)
     }
 }
 #[no_mangle]
-pub extern "C" fn r_getdata(stateptr: *mut NfsTcpParser, id: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
-    if stateptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *stateptr };
-    match parser.store.get_vector_ref(id) {
+pub extern "C" fn r_getdata(storeptr: *mut Store, id: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.get_vector_ref(id) {
         Some(v) => {
             println_debug!("v {:?}", v);
             unsafe {
@@ -246,10 +285,10 @@ pub extern "C" fn r_getdata(stateptr: *mut NfsTcpParser, id: u32, rptr: *mut*con
     }
 }
 #[no_mangle]
-pub extern "C" fn r_getdata_map(stateptr: *mut NfsTcpParser, id: u32, mapid: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
-    if stateptr.is_null() { panic!("NULL ptr"); };
-    let parser = unsafe { &mut *stateptr };
-    match parser.store.get_vector_map_ref(id, mapid) {
+pub extern "C" fn r_getdata_map(storeptr: *mut Store, id: u32, mapid: u32, rptr: *mut*const u8, rlen: *mut u32) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.get_vector_map_ref(id, mapid) {
         Some(v) => {
             println_debug!("v {:?}", v);
             unsafe {
@@ -261,12 +300,37 @@ pub extern "C" fn r_getdata_map(stateptr: *mut NfsTcpParser, id: u32, mapid: u32
         None => { return 0 }
     }
 }
+#[no_mangle]
+pub extern "C" fn r_getstore(storeptr: *mut Store, id: u32, rstore: *mut*const Store) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.get_store_ref(id) {
+        Some(s) => {
+            println!("s {:?}", s);
+            unsafe {
+                *rstore = s;
+            }
+            1
+        },
+        None => { 0 }
+    }
+}
+#[no_mangle]
+pub extern "C" fn r_dropstore(storeptr: *mut Store, id: u32) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    store.drop_store(id)
+}
+
 
 #[repr(u32)]
 pub enum NfsStorageId {
     ChunkOffset = 1,
     Xid,
     CredsUnixHost,
+    MapTest,
+    XidStore,
+    Procedure,
 }
 
 #[derive(Debug,PartialEq)]
@@ -874,7 +938,6 @@ impl NfsTcpParser {
             store:Store::new(),
         }
     }
-
     fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NfsRequestXidMap) {
         match parse_nfs3_request_lookup(r.prog_data) {
             IResult::Done(_, lookup) => {
@@ -890,7 +953,16 @@ impl NfsTcpParser {
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         let mut xidmap = NfsRequestXidMap::new(r.hdr.xid, r.procedure, 0);
 
+        println!("store {:?}", self.store);
+
         self.store.set_u32(NfsStorageId::Xid as u32, r.hdr.xid);
+        match self.store.get_store_ref_create(r.hdr.xid) {
+            Some(store) => {
+                store.set_u32(NfsStorageId::Procedure as u32, r.procedure);
+            },
+            _ => {},
+        }
+
         match &r.creds_unix {
             &Some(ref u) => {
                 self.store.set_vector(NfsStorageId::CredsUnixHost as u32, u.machine_name_buf.to_vec());
@@ -1424,6 +1496,9 @@ impl RParser for NfsTcpParser {
             self.file_ts.set_flags(flags);
         }
     }
+    fn get_store(&mut self) -> * mut Store {
+        &mut self.store as * mut Store
+    }
 }
 
 fn nfstcp_probe(i: &[u8]) -> bool {
@@ -1435,6 +1510,12 @@ pub extern "C" fn r_nfstcp_getfiles(direction: u8, ptr: *mut NfsTcpParser) -> * 
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *ptr };
     parser.getfiles(direction)//.as_ptr()
+}
+#[no_mangle]
+pub extern "C" fn r_nfstcp_getstore(ptr: *mut NfsTcpParser) -> * mut Store {
+    if ptr.is_null() { panic!("NULL ptr"); };
+    let parser = unsafe { &mut *ptr };
+    parser.get_store()
 }
 
 r_implement_probe!(r_nfstcp_probe,nfstcp_probe);

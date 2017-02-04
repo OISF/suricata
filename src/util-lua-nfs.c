@@ -66,6 +66,47 @@ static int LuaGetNumberArgument(lua_State *luastate, int argc)
     return n;
 }
 
+static int NfsGetBufferMap(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_NFS3TCP)))
+        return LuaCallbackError(luastate, "error: protocol not nfs");
+
+    const Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    void *state = f->alstate;
+    if (state == NULL)
+        return LuaCallbackError(luastate, "internal error: no state");
+
+    Store *store = r_nfstcp_getstore(state);
+    if (store == NULL)
+        return LuaCallbackError(luastate, "internal error: no store");
+
+    int idx = LuaGetNumberArgument(luastate, 1);
+    if (idx < 0)
+        return LuaCallbackError(luastate, "internal error: invalid idx");
+
+    int mapidx = LuaGetNumberArgument(luastate, 2);
+    if (mapidx < 0)
+        return LuaCallbackError(luastate, "internal error: invalid mapidx");
+
+    uint8_t *data;
+    uint32_t len;
+
+    if (r_getdata_map(store, (uint32_t)idx, (uint32_t)mapidx, &data, &len) == 0)
+        return LuaCallbackError(luastate, "error: not found");
+
+    char *c = BytesToString(data, len);
+    if (c == NULL)
+        return LuaCallbackError(luastate, "internal error: bytes2string failure");
+
+    size_t input_len = strlen(c);
+    int ret = LuaPushStringBuffer(luastate, (uint8_t *)c, input_len);
+    SCFree(c);
+    return ret;
+}
+
 static int NfsGetBuffer(lua_State *luastate)
 {
     if (!(LuaStateNeedProto(luastate, ALPROTO_NFS3TCP)))
@@ -79,6 +120,10 @@ static int NfsGetBuffer(lua_State *luastate)
     if (state == NULL)
         return LuaCallbackError(luastate, "internal error: no state");
 
+    Store *store = r_nfstcp_getstore(state);
+    if (store == NULL)
+        return LuaCallbackError(luastate, "internal error: no store");
+
     int idx = LuaGetNumberArgument(luastate, 1);
     if (idx < 0)
         return LuaCallbackError(luastate, "internal error: invalid idx");
@@ -86,7 +131,7 @@ static int NfsGetBuffer(lua_State *luastate)
     uint8_t *data;
     uint32_t len;
 
-    if (r_getdata(state, (uint32_t)idx, &data, &len) == 0)
+    if (r_getdata(store, (uint32_t)idx, &data, &len) == 0)
         return LuaCallbackError(luastate, "error: not found");
 
     char *c = BytesToString(data, len);
@@ -112,13 +157,17 @@ static int NfsGetU32(lua_State *luastate)
     if (state == NULL)
         return LuaCallbackError(luastate, "internal error: no state");
 
+    Store *store = r_nfstcp_getstore(state);
+    if (store == NULL)
+        return LuaCallbackError(luastate, "internal error: no store");
+
     int idx = LuaGetNumberArgument(luastate, 1);
     if (idx < 0)
         return LuaCallbackError(luastate, "internal error: invalid idx");
 
     uint32_t value;
 
-    if (r_getu32(state, (uint32_t)idx, &value) == 0)
+    if (r_getu32(store, (uint32_t)idx, &value) == 0)
         return LuaCallbackError(luastate, "error: not found");
 
     lua_pushinteger(luastate, value);
@@ -138,13 +187,17 @@ static int NfsGetU64(lua_State *luastate)
     if (state == NULL)
         return LuaCallbackError(luastate, "internal error: no state");
 
+    Store *store = r_nfstcp_getstore(state);
+    if (store == NULL)
+        return LuaCallbackError(luastate, "internal error: no store");
+
     int idx = LuaGetNumberArgument(luastate, 1);
     if (idx < 0)
         return LuaCallbackError(luastate, "internal error: invalid idx");
 
     uint64_t value;
 
-    if (r_getu64(state, (uint32_t)idx, &value) == 0)
+    if (r_getu64(store, (uint32_t)idx, &value) == 0)
         return LuaCallbackError(luastate, "error: not found");
 
     lua_pushinteger(luastate, value);
@@ -155,6 +208,8 @@ static int NfsGetU64(lua_State *luastate)
 int LuaRegisterNfsFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
+    lua_pushcfunction(luastate, NfsGetBufferMap);
+    lua_setglobal(luastate, "NfsGetBufferMap");
     lua_pushcfunction(luastate, NfsGetBuffer);
     lua_setglobal(luastate, "NfsGetBuffer");
     lua_pushcfunction(luastate, NfsGetU32);

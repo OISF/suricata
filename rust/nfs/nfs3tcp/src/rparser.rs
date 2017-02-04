@@ -1,6 +1,7 @@
 //! common functions for all parsers
 use common::*;
 use filecontainer::*;
+use nfs3::*;
 
 /// Interface of all Rusticata parsers.
 ///
@@ -29,6 +30,8 @@ pub trait RParser {
     fn getfiles(&mut self, u8) -> * mut SuricataFileContainer;
 
     fn setfileflags(&mut self, u8, u16);
+
+    fn get_store(&mut self) -> * mut Store;
 }
 
 // status: return code, events

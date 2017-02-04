@@ -262,33 +262,37 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
     int r = r_nfstcp_parse(1, input, input_len, state);
     SCLogDebug("r %d", r);
 
-    uint8_t *data;
-    uint32_t len;
-    uint32_t xid;
-//    uint64_t offset;
-    if (r_getu32(state, 2, &xid) == 1) {
-/*
-        if (r_getu64(state, 1, &offset) == 1) {
-            if (r_getdata(state, 3, &data, &len) == 1) {
+    Store *data_store = r_nfstcp_getstore(state);
+    BUG_ON(!data_store);
+    if (data_store != NULL) {
+        //SCLogNotice("data_store %p", data_store);
+
+        uint8_t *data;
+        uint32_t len;
+        uint32_t xid;
+        if (r_getu32(data_store, 2, &xid) == 1) {
+            if (r_getdata_map(data_store, 4, xid, &data, &len) == 1) {
                 char *c = BytesToString(data, len);
                 if (c != NULL) {
-
-                    if (offset == 432308224) {
-                        SCLogNotice("host %s XID %u chunk offset %"PRIu64, c, xid, offset);
-                    }
+//                    SCLogNotice("host %s XID %u", c, xid);
                     SCFree(c);
                 }
             }
-        }
-*/
-        if (r_getdata_map(state, 4, xid, &data, &len) == 1) {
-            char *c = BytesToString(data, len);
-            if (c != NULL) {
-//                SCLogNotice("host %s XID %u", c, xid);
-                SCFree(c);
+
+            Store *nested_store;
+            if (r_getstore(data_store, xid, &nested_store) == 1) {
+                SCLogNotice("nested_store %p", nested_store);
+                uint32_t procedure;
+                if (r_getu32(nested_store, 6, &procedure) == 1) {
+                    SCLogNotice("nested_store %p XID %u PROCEDURE %u", nested_store, xid, procedure);
+                }
+
+                int res = r_dropstore(data_store, xid);
+                SCLogNotice("res %d", res);
             }
         }
     }
+
     return r;
 }
 
