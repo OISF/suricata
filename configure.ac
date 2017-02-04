@@ -695,68 +695,68 @@
         exit 1
     fi
 
-  # libjansson
-    enable_jansson="no"
-    AC_ARG_WITH(libjansson_includes,
-            [  --with-libjansson-includes=DIR  libjansson include directory],
-            [with_libjansson_includes="$withval"],[with_libjansson_includes=no])
-    AC_ARG_WITH(libjansson_libraries,
-            [  --with-libjansson-libraries=DIR    libjansson library directory],
-            [with_libjansson_libraries="$withval"],[with_libjansson_libraries="no"])
+  dnl # libjansson
+  dnl   enable_jansson="no"
+  dnl   AC_ARG_WITH(libjansson_includes,
+  dnl           [  --with-libjansson-includes=DIR  libjansson include directory],
+  dnl           [with_libjansson_includes="$withval"],[with_libjansson_includes=no])
+  dnl   AC_ARG_WITH(libjansson_libraries,
+  dnl           [  --with-libjansson-libraries=DIR    libjansson library directory],
+  dnl           [with_libjansson_libraries="$withval"],[with_libjansson_libraries="no"])
 
-    if test "$with_libjansson_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libjansson_includes}"
-    fi
+  dnl   if test "$with_libjansson_includes" != "no"; then
+  dnl       CPPFLAGS="${CPPFLAGS} -I${with_libjansson_includes}"
+  dnl   fi
 
-    enable_jansson="no"
-    enable_unixsocket="no"
+  dnl   enable_jansson="no"
+  dnl   enable_unixsocket="no"
 
-    AC_ARG_ENABLE(unix-socket,
-           AS_HELP_STRING([--enable-unix-socket], [Enable unix socket [default=test]]),[enable_unixsocket="$enableval"],[enable_unixsocket=test])
+  dnl   AC_ARG_ENABLE(unix-socket,
+  dnl          AS_HELP_STRING([--enable-unix-socket], [Enable unix socket [default=test]]),[enable_unixsocket="$enableval"],[enable_unixsocket=test])
 
-    AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
-    if test "$JANSSON" = "yes"; then
-        if test "$with_libjansson_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS}  -L${with_libjansson_libraries}"
-        fi
+  dnl   AC_CHECK_HEADER(jansson.h,JANSSON="yes",JANSSON="no")
+  dnl   if test "$JANSSON" = "yes"; then
+  dnl       if test "$with_libjansson_libraries" != "no"; then
+  dnl           LDFLAGS="${LDFLAGS}  -L${with_libjansson_libraries}"
+  dnl       fi
 
-	    AC_CHECK_LIB(jansson, json_dump_callback,, JANSSON="no")
-        enable_jansson="yes"
-        if test "$JANSSON" = "no"; then
-            echo
-            echo "   Jansson >= 2.2 is required for features like unix socket"
-            echo "   Go get it from your distribution or from:"
-            echo "     http://www.digip.org/jansson/"
-            echo
-            if test "x$enable_unixsocket" = "xyes"; then
-                exit 1
-            fi
-            enable_unixsocket="no"
-            enable_jansson="no"
-        else
-            case $host in
-                *-*-mingw32*)
-                    ;;
-                *-*-cygwin)
-                    ;;
-                *)
-                    if test "x$enable_unixsocket" = "xtest"; then
-                        enable_unixsocket="yes"
-                    fi
-                    ;;
-            esac
-        fi
-    else
-        if test "x$enable_unixsocket" = "xyes"; then
-            echo
-            echo "   Jansson >= 2.2 is required for features like unix socket"
-            echo "   Go get it from your distribution or from:"
-            echo "     http://www.digip.org/jansson/"
-            echo
-            exit 1
-        fi
-        enable_unixsocket="no"
-    fi
+  dnl 	    AC_CHECK_LIB(jansson, json_dump_callback,, JANSSON="no")
+  dnl       enable_jansson="yes"
+  dnl       if test "$JANSSON" = "no"; then
+  dnl           echo
+  dnl           echo "   Jansson >= 2.2 is required for features like unix socket"
+  dnl           echo "   Go get it from your distribution or from:"
+  dnl           echo "     http://www.digip.org/jansson/"
+  dnl           echo
+  dnl           if test "x$enable_unixsocket" = "xyes"; then
+  dnl               exit 1
+  dnl           fi
+  dnl           enable_unixsocket="no"
+  dnl           enable_jansson="no"
+  dnl       else
+  dnl           case $host in
+  dnl               *-*-mingw32*)
+  dnl                   ;;
+  dnl               *-*-cygwin)
+  dnl                   ;;
+  dnl               *)
+  dnl                   if test "x$enable_unixsocket" = "xtest"; then
+  dnl                       enable_unixsocket="yes"
+  dnl                   fi
+  dnl                   ;;
+  dnl           esac
+  dnl       fi
+  dnl   else
+  dnl       if test "x$enable_unixsocket" = "xyes"; then
+  dnl           echo
+  dnl           echo "   Jansson >= 2.2 is required for features like unix socket"
+  dnl           echo "   Go get it from your distribution or from:"
+  dnl           echo "     http://www.digip.org/jansson/"
+  dnl           echo
+  dnl           exit 1
+  dnl       fi
+  dnl       enable_unixsocket="no"
+  dnl   fi
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
     e_enable_evelog=$enable_jansson
