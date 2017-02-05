@@ -267,9 +267,10 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
     if (data_store != NULL) {
         //SCLogNotice("data_store %p", data_store);
 
-        uint8_t *data;
-        uint32_t len;
+//        uint8_t *data;
+//        uint32_t len;
         uint32_t xid;
+#if 0
         if (r_getu32(data_store, 2, &xid) == 1) {
             if (r_getdata_map(data_store, 4, xid, &data, &len) == 1) {
                 char *c = BytesToString(data, len);
@@ -289,6 +290,38 @@ static int Nfs3TcpParseResponse(Flow *f, void *state, AppLayerParserState *pstat
 
                 int res = r_dropstore(data_store, xid);
                 SCLogNotice("res %d", res);
+            }
+        }
+#endif
+        while (r_popfront_u32(data_store, 7, &xid) == 1) {
+            Store *nested_store;
+            if (r_getstore(data_store, xid, &nested_store) == 1) {
+                uint32_t procedure;
+                if (r_getu32(nested_store, 6, &procedure) == 1) {
+                    if (procedure == 3) {
+                        uint8_t *data;
+                        uint32_t len;
+                        if (r_getdata(nested_store, 8, &data, &len) == 1) {
+                            char *c = BytesToString(data, len);
+                            if (c != NULL) {
+                                SCLogNotice("NFSv3 LOOKUP %s", c);
+                                SCFree(c);
+                            }
+                        }
+                    } else if (procedure == 8) {
+                        uint8_t *data;
+                        uint32_t len;
+                        if (r_getdata(nested_store, 9, &data, &len) == 1) {
+                            char *c = BytesToString(data, len);
+                            if (c != NULL) {
+                                SCLogNotice("NFSv3 CREATE %s", c);
+                                SCFree(c);
+                            }
+                        }
+                    }
+                }
+
+                r_dropstore(data_store, xid);
             }
         }
     }

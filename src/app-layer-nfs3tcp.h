@@ -89,6 +89,7 @@ extern uint32_t r_nfstcp_parse(uint8_t direction, const unsigned char* value, ui
 extern FileContainer *r_nfstcp_getfiles(uint8_t direction, NfsTcpParser *state) __attribute__((warn_unused_result));
 extern void r_nfstcp_setfileflags(uint8_t direction, NfsTcpParser *state, uint16_t flags);
 
+extern int r_popfront_u32(Store *, uint32_t id, uint32_t *rval);
 extern int r_getdata(Store *, uint32_t id, uint8_t **rptr, uint32_t *rlen);
 extern int r_getu32(Store *, uint32_t id, uint32_t *rval);
 extern int r_getu64(Store *, uint32_t id, uint64_t *rval);

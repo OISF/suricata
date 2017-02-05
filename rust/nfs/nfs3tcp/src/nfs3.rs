@@ -13,7 +13,7 @@ use nom::IResult;
 use rparser::*;
 use common::*;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use filetracker::*;
 use filecontainer::*;
@@ -46,6 +46,7 @@ pub enum Storage {
     U32(u32),
     U64(u64),
     DATA(Vec<u8>),
+    VECQU32(VecDeque<u32>),
     MAPDATA(MapIdxVector),
     STORE(Store),
 }
@@ -164,7 +165,7 @@ impl Store {
 
             },
             None => {
-                println!("get_vector_map: not found");
+                println_debug!("get_vector_map: not found");
             },
         }
 
@@ -203,7 +204,7 @@ impl Store {
         let nstore = Store::new();
         let mp = Storage::STORE(nstore);
         self.store.insert(id, mp);
-        println!("set_store_insert_new: new store added at {}", id);
+        println_debug!("set_store_insert_new: new store added at {}", id);
     }
 
     pub fn get_store_ref(&mut self, id: u32) -> Option<&mut Store> {
@@ -235,6 +236,67 @@ impl Store {
         }
         self.store.remove(&id);
         1
+    }
+
+    pub fn popfront_u32(&mut self, id: u32) -> Option<u32> {
+        match self.store.get_mut(&id) {
+            Some(r) => {
+                match r {
+                    &mut Storage::VECQU32(ref mut x) => {
+                        println_debug!("popfront_u32: SOME x {:?}", x);
+                        let v = x.pop_front();
+                        return v
+                    },
+                    _ => { return None },
+
+                }
+            },
+            None => { return None },
+        }
+
+    }
+
+    fn pushback_u32_new(&mut self, id: u32, value: u32) {
+        let ref mut store = self.store;
+        let mut vd = VecDeque::new();
+        vd.push_back(value);
+        println_debug!("NONE: vd {:?}", vd);
+        let emd = Storage::VECQU32(vd);
+        println_debug!("NONE: emd {:?}", emd);
+        store.insert(id, emd);
+    }
+    fn pushback_u32_get(&mut self, id: &u32) -> bool {
+        let ref store = self.store;
+        let md = store.get(id);
+        match md {
+            Some(_) => { true },
+            None => { false },
+        }
+    }
+    fn pushback_u32_update(&mut self, id: u32, value: u32) {
+        let ref mut store = self.store;
+        let mut md = store.get_mut(&id);
+        match md {
+            Some(mut smd) => {  // mutable reference to md for updating
+                println_debug!("SOME pre smd {:?}", smd);
+
+                match smd {
+                    &mut Storage::VECQU32(ref mut mymd) => {
+                        mymd.push_back(value);
+                    },
+                    _ => {},
+                }
+            },
+            _ => {},
+        }
+        
+    }
+    pub fn pushback_u32(&mut self, id: u32, value: u32) {
+        if self.pushback_u32_get(&id) == true {
+            self.pushback_u32_update(id, value);
+        } else {
+            self.pushback_u32_new(id, value);
+        }
     }
 }
 
@@ -306,7 +368,7 @@ pub extern "C" fn r_getstore(storeptr: *mut Store, id: u32, rstore: *mut*const S
     let store = unsafe { &mut *storeptr };
     match store.get_store_ref(id) {
         Some(s) => {
-            println!("s {:?}", s);
+            println_debug!("s {:?}", s);
             unsafe {
                 *rstore = s;
             }
@@ -322,6 +384,21 @@ pub extern "C" fn r_dropstore(storeptr: *mut Store, id: u32) -> i32 {
     store.drop_store(id)
 }
 
+#[no_mangle]
+pub extern "C" fn r_popfront_u32(storeptr: *mut Store, id: u32, rval: *mut u32) -> i32 {
+    if storeptr.is_null() { panic!("NULL ptr"); };
+    let store = unsafe { &mut *storeptr };
+    match store.popfront_u32(id) {
+        Some(v) => {
+            println_debug!("v {:?}", v);
+            unsafe {
+                *rval = v;
+            }
+            return 1
+        },
+        None => { return 0 }
+    }
+}
 
 #[repr(u32)]
 pub enum NfsStorageId {
@@ -331,6 +408,9 @@ pub enum NfsStorageId {
     MapTest,
     XidStore,
     Procedure,
+    XidQueue,
+    LookupFilename,
+    CreateFilename,
 }
 
 #[derive(Debug,PartialEq)]
@@ -944,6 +1024,12 @@ impl NfsTcpParser {
                 println_debug!("LOOKUP {:?}", lookup);
 
                 xidmap.file_name = lookup.name_vec;
+                match self.store.get_store_ref_create(r.hdr.xid) {
+                    Some(store) => {
+                        store.set_vector(NfsStorageId::LookupFilename as u32, xidmap.file_name.to_vec());
+                    },
+                    _ => {},
+                }
             },
             IResult::Incomplete(_) => { panic!("WEIRD"); },
             IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -953,9 +1039,10 @@ impl NfsTcpParser {
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         let mut xidmap = NfsRequestXidMap::new(r.hdr.xid, r.procedure, 0);
 
-        println!("store {:?}", self.store);
+        println_debug!("store {:?}", self.store);
 
         self.store.set_u32(NfsStorageId::Xid as u32, r.hdr.xid);
+        self.store.pushback_u32(NfsStorageId::XidQueue as u32, r.hdr.xid);
         match self.store.get_store_ref_create(r.hdr.xid) {
             Some(store) => {
                 store.set_u32(NfsStorageId::Procedure as u32, r.procedure);
@@ -966,13 +1053,6 @@ impl NfsTcpParser {
         match &r.creds_unix {
             &Some(ref u) => {
                 self.store.set_vector(NfsStorageId::CredsUnixHost as u32, u.machine_name_buf.to_vec());
-
-                //self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
-                //self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
-                //self.store.set_vector_map(4u32, 3u32, u.machine_name_buf.to_vec());
-                //self.store.set_vector_map(4u32, 1u32, u.machine_name_buf.to_vec());
-
-                //self.store.set_vector_map(4u32, 7u32, r.prog_data.to_vec());
 
                 self.store.set_vector_map(4u32, r.hdr.xid, u.machine_name_buf.to_vec());
             },
@@ -1046,14 +1126,20 @@ impl NfsTcpParser {
 
                     //println!("CREATE object {:?} stored", nfs3_create_record.object.value);
                     //self.namemap.insert(nfs3_create_record.object.value.to_vec(), self.file_name.to_vec());
-
+/*
                     let file_name = match str::from_utf8(&self.file_name) {
                         Ok(v) => v,
                         Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
                     };
                     println!("NFSv3: created file {}", file_name);
-
+*/
                     xidmap.file_name = self.file_name.to_vec();
+                    match self.store.get_store_ref_create(r.hdr.xid) {
+                        Some(store) => {
+                            store.set_vector(NfsStorageId::CreateFilename as u32, xidmap.file_name.to_vec());
+                        },
+                            _ => {},
+                    }
 
                     self.file_ts.create(&self.file_name, 0);
                 },
