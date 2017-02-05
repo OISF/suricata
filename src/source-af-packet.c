@@ -984,6 +984,14 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     p->livedev = ptv->livedev;
     p->datalink = ptv->datalink;
 
+    /* get vlan id from header */
+    if ((!(ptv->flags & AFP_VLAN_DISABLED)) &&
+            (ppd->tp_status & TP_STATUS_VLAN_VALID || ppd->hv1.tp_vlan_tci)) {
+        p->vlan_id[0] = ppd->hv1.tp_vlan_tci & 0x0fff;
+        p->vlan_idx = 1;
+        p->vlanh[0] = NULL;
+    }
+
     if (ptv->flags & AFP_ZERO_COPY) {
         if (PacketSetData(p, (unsigned char*)ppd + ppd->tp_mac, ppd->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
