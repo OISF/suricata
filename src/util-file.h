@@ -65,7 +65,7 @@ typedef struct File_ {
     int16_t state;
     StreamingBuffer *sb;
     uint64_t txid;                  /**< tx this file is part of */
-    uint32_t file_id;
+    uint32_t file_store_id;         /**< id used in store file name file.<id> */
     uint8_t *name;
 #ifdef HAVE_MAGIC
     char *magic;

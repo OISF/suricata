@@ -262,7 +262,7 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
     /* file can be NULL when a rule with filestore scope > file
      * matches. */
     if (file != NULL) {
-        file_id = file->file_id;
+        file_id = file->file_store_id;
     }
 
     det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;

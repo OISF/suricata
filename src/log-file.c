@@ -206,8 +206,8 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
 
     fprintf(fp, "{ ");
 
-    if (ff->file_id > 0)
-        fprintf(fp, "\"id\": %u, ", ff->file_id);
+    if (ff->file_store_id > 0)
+        fprintf(fp, "\"id\": %u, ", ff->file_store_id);
 
     fprintf(fp, "\"timestamp\": \"");
     PrintRawJsonFp(fp, (uint8_t *)timebuf, strlen(timebuf));

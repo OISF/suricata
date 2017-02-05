@@ -243,7 +243,7 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
 {
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_id);
+            g_logfile_base_dir, ff->file_store_id);
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "a");
@@ -325,7 +325,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
     snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_id);
+            g_logfile_base_dir, ff->file_store_id);
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;

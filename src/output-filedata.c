@@ -193,9 +193,9 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
             /* store */
 
             /* if file_id == 0, this is the first store of this file */
-            if (ff->file_id == 0) {
+            if (ff->file_store_id == 0) {
                 /* new file */
-                ff->file_id = SC_ATOMIC_ADD(file_id, 1);
+                ff->file_store_id = SC_ATOMIC_ADD(file_id, 1);
                 flags |= OUTPUT_FILEDATA_FLAG_OPEN;
             } else {
                 /* existing file */

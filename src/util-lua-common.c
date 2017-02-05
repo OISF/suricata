@@ -719,7 +719,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     char *sha256ptr = NULL;
 #endif
 
-    lua_pushnumber(luastate, file->file_id);
+    lua_pushnumber(luastate, file->file_store_id);
     lua_pushnumber(luastate, file->txid);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
     lua_pushnumber(luastate, FileTrackedSize(file));
