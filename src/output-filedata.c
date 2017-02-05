@@ -95,7 +95,7 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     return 0;
 }
 
-SC_ATOMIC_DECLARE(unsigned int, file_id);
+SC_ATOMIC_DECLARE(unsigned int, g_file_store_id);
 
 static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
         Packet *p, const File *ff,
@@ -195,7 +195,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
             /* if file_id == 0, this is the first store of this file */
             if (ff->file_store_id == 0) {
                 /* new file */
-                ff->file_store_id = SC_ATOMIC_ADD(file_id, 1);
+                ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
                 flags |= OUTPUT_FILEDATA_FLAG_OPEN;
             } else {
                 /* existing file */
@@ -257,7 +257,7 @@ static void LogFiledataLogLoadWaldo(const char *path)
     if (fgets(line, (int)sizeof(line), fp) != NULL) {
         if (sscanf(line, "%10u", &id) == 1) {
             SCLogInfo("id %u", id);
-            (void) SC_ATOMIC_CAS(&file_id, 0, id);
+            (void) SC_ATOMIC_CAS(&g_file_store_id, 0, id);
         }
     }
     fclose(fp);
@@ -274,7 +274,7 @@ static void LogFiledataLogStoreWaldo(const char *path)
 {
     char line[16] = "";
 
-    if (SC_ATOMIC_GET(file_id) == 0) {
+    if (SC_ATOMIC_GET(g_file_store_id) == 0) {
         SCReturn;
     }
 
@@ -284,7 +284,7 @@ static void LogFiledataLogStoreWaldo(const char *path)
         SCReturn;
     }
 
-    snprintf(line, sizeof(line), "%u\n", SC_ATOMIC_GET(file_id));
+    snprintf(line, sizeof(line), "%u\n", SC_ATOMIC_GET(g_file_store_id));
     if (fwrite(line, strlen(line), 1, fp) != 1) {
         SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
     }
@@ -437,7 +437,7 @@ void OutputFiledataLoggerRegister(void)
     OutputRegisterRootLogger(OutputFiledataLogThreadInit,
         OutputFiledataLogThreadDeinit, OutputFiledataLogExitPrintStats,
         OutputFiledataLog);
-    SC_ATOMIC_INIT(file_id);
+    SC_ATOMIC_INIT(g_file_store_id);
 }
 
 void OutputFiledataShutdown(void)
