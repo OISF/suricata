@@ -996,8 +996,8 @@ void DefragDestroy(void)
  * with some payload of no particular protocol.
  */
 static Packet *
-BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
-    int content_len)
+BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
+    const char content, int content_len)
 {
     Packet *p = NULL;
     int hlen = 20;
@@ -1023,7 +1023,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     else
         ip4h.ip_off = htons(off);
     ip4h.ip_ttl = ttl;
-    ip4h.ip_proto = IPPROTO_ICMP;
+    ip4h.ip_proto = proto;
 
     ip4h.s_ip_src.s_addr = 0x01010101; /* 1.1.1.1 */
     ip4h.s_ip_dst.s_addr = 0x02020202; /* 2.2.2.2 */
@@ -1059,7 +1059,7 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
         goto error;
     if (IPV4_GET_IPTTL(p) != ttl)
         goto error;
-    if (IPV4_GET_IPPROTO(p) != IPPROTO_ICMP)
+    if (IPV4_GET_IPPROTO(p) != proto)
         goto error;
 
     return p;
@@ -1074,8 +1074,8 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
                           uint16_t prev_hdrextlen);
 
 static Packet *
-IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
-    int content_len)
+IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off, int mf,
+    const char content, int content_len)
 {
     Packet *p = NULL;
     uint8_t *pcontent;
@@ -1109,7 +1109,7 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     IPV6_SET_RAW_VER(p->ip6h, 6);
     /* Fragmentation header. */
     IPV6FragHdr *fh = (IPV6FragHdr *)(GET_PKT_DATA(p) + sizeof(IPV6Hdr));
-    fh->ip6fh_nxt = IPPROTO_ICMP;
+    fh->ip6fh_nxt = proto;
     fh->ip6fh_ident = htonl(id);
     fh->ip6fh_offlg = htons((off << 3) | mf);
 
@@ -1159,13 +1159,13 @@ DefragInOrderSimpleTest(void)
 
     DefragInit();
 
-    p1 = BuildTestPacket(id, 0, 1, 'A', 8);
+    p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = BuildTestPacket(id, 1, 1, 'B', 8);
+    p2 = BuildTestPacket(IPPROTO_ICMP, id, 1, 1, 'B', 8);
     if (p2 == NULL)
         goto end;
-    p3 = BuildTestPacket(id, 2, 0, 'C', 3);
+    p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
     if (p3 == NULL)
         goto end;
 
@@ -1236,13 +1236,13 @@ DefragReverseSimpleTest(void)
 
     DefragInit();
 
-    p1 = BuildTestPacket(id, 0, 1, 'A', 8);
+    p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = BuildTestPacket(id, 1, 1, 'B', 8);
+    p2 = BuildTestPacket(IPPROTO_ICMP, id, 1, 1, 'B', 8);
     if (p2 == NULL)
         goto end;
-    p3 = BuildTestPacket(id, 2, 0, 'C', 3);
+    p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
     if (p3 == NULL)
         goto end;
 
@@ -1308,13 +1308,13 @@ IPV6DefragInOrderSimpleTest(void)
 
     DefragInit();
 
-    p1 = IPV6BuildTestPacket(id, 0, 1, 'A', 8);
+    p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = IPV6BuildTestPacket(id, 1, 1, 'B', 8);
+    p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 1, 1, 'B', 8);
     if (p2 == NULL)
         goto end;
-    p3 = IPV6BuildTestPacket(id, 2, 0, 'C', 3);
+    p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
     if (p3 == NULL)
         goto end;
 
@@ -1378,13 +1378,13 @@ IPV6DefragReverseSimpleTest(void)
     if (dc == NULL)
         goto end;
 
-    p1 = IPV6BuildTestPacket(id, 0, 1, 'A', 8);
+    p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = IPV6BuildTestPacket(id, 1, 1, 'B', 8);
+    p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 1, 1, 'B', 8);
     if (p2 == NULL)
         goto end;
-    p3 = IPV6BuildTestPacket(id, 2, 0, 'C', 3);
+    p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
     if (p3 == NULL)
         goto end;
 
@@ -1452,59 +1452,59 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
      */
 
     /* A*24 at 0. */
-    packets[0] = BuildTestPacket(id, 0, 1, 'A', 24);
+    packets[0] = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 24);
 
     /* B*15 at 32. */
-    packets[1] = BuildTestPacket(id, 32 >> 3, 1, 'B', 16);
+    packets[1] = BuildTestPacket(IPPROTO_ICMP, id, 32 >> 3, 1, 'B', 16);
 
     /* C*24 at 48. */
-    packets[2] = BuildTestPacket(id, 48 >> 3, 1, 'C', 24);
+    packets[2] = BuildTestPacket(IPPROTO_ICMP, id, 48 >> 3, 1, 'C', 24);
 
     /* D*8 at 80. */
-    packets[3] = BuildTestPacket(id, 80 >> 3, 1, 'D', 8);
+    packets[3] = BuildTestPacket(IPPROTO_ICMP, id, 80 >> 3, 1, 'D', 8);
 
     /* E*16 at 104. */
-    packets[4] = BuildTestPacket(id, 104 >> 3, 1, 'E', 16);
+    packets[4] = BuildTestPacket(IPPROTO_ICMP, id, 104 >> 3, 1, 'E', 16);
 
     /* F*24 at 120. */
-    packets[5] = BuildTestPacket(id, 120 >> 3, 1, 'F', 24);
+    packets[5] = BuildTestPacket(IPPROTO_ICMP, id, 120 >> 3, 1, 'F', 24);
 
     /* G*16 at 144. */
-    packets[6] = BuildTestPacket(id, 144 >> 3, 1, 'G', 16);
+    packets[6] = BuildTestPacket(IPPROTO_ICMP, id, 144 >> 3, 1, 'G', 16);
 
     /* H*16 at 160. */
-    packets[7] = BuildTestPacket(id, 160 >> 3, 1, 'H', 16);
+    packets[7] = BuildTestPacket(IPPROTO_ICMP, id, 160 >> 3, 1, 'H', 16);
 
     /* I*8 at 176. */
-    packets[8] = BuildTestPacket(id, 176 >> 3, 1, 'I', 8);
+    packets[8] = BuildTestPacket(IPPROTO_ICMP, id, 176 >> 3, 1, 'I', 8);
 
     /*
      * Overlapping subsequent fragments.
      */
 
     /* J*32 at 8. */
-    packets[9] = BuildTestPacket(id, 8 >> 3, 1, 'J', 32);
+    packets[9] = BuildTestPacket(IPPROTO_ICMP, id, 8 >> 3, 1, 'J', 32);
 
     /* K*24 at 48. */
-    packets[10] = BuildTestPacket(id, 48 >> 3, 1, 'K', 24);
+    packets[10] = BuildTestPacket(IPPROTO_ICMP, id, 48 >> 3, 1, 'K', 24);
 
     /* L*24 at 72. */
-    packets[11] = BuildTestPacket(id, 72 >> 3, 1, 'L', 24);
+    packets[11] = BuildTestPacket(IPPROTO_ICMP, id, 72 >> 3, 1, 'L', 24);
 
     /* M*24 at 96. */
-    packets[12] = BuildTestPacket(id, 96 >> 3, 1, 'M', 24);
+    packets[12] = BuildTestPacket(IPPROTO_ICMP, id, 96 >> 3, 1, 'M', 24);
 
     /* N*8 at 128. */
-    packets[13] = BuildTestPacket(id, 128 >> 3, 1, 'N', 8);
+    packets[13] = BuildTestPacket(IPPROTO_ICMP, id, 128 >> 3, 1, 'N', 8);
 
     /* O*8 at 152. */
-    packets[14] = BuildTestPacket(id, 152 >> 3, 1, 'O', 8);
+    packets[14] = BuildTestPacket(IPPROTO_ICMP, id, 152 >> 3, 1, 'O', 8);
 
     /* P*8 at 160. */
-    packets[15] = BuildTestPacket(id, 160 >> 3, 1, 'P', 8);
+    packets[15] = BuildTestPacket(IPPROTO_ICMP, id, 160 >> 3, 1, 'P', 8);
 
     /* Q*16 at 176. */
-    packets[16] = BuildTestPacket(id, 176 >> 3, 0, 'Q', 16);
+    packets[16] = BuildTestPacket(IPPROTO_ICMP, id, 176 >> 3, 0, 'Q', 16);
 
     default_policy = policy;
 
@@ -1587,59 +1587,59 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
      */
 
     /* A*24 at 0. */
-    packets[0] = IPV6BuildTestPacket(id, 0, 1, 'A', 24);
+    packets[0] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 24);
 
     /* B*15 at 32. */
-    packets[1] = IPV6BuildTestPacket(id, 32 >> 3, 1, 'B', 16);
+    packets[1] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 32 >> 3, 1, 'B', 16);
 
     /* C*24 at 48. */
-    packets[2] = IPV6BuildTestPacket(id, 48 >> 3, 1, 'C', 24);
+    packets[2] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 48 >> 3, 1, 'C', 24);
 
     /* D*8 at 80. */
-    packets[3] = IPV6BuildTestPacket(id, 80 >> 3, 1, 'D', 8);
+    packets[3] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 80 >> 3, 1, 'D', 8);
 
     /* E*16 at 104. */
-    packets[4] = IPV6BuildTestPacket(id, 104 >> 3, 1, 'E', 16);
+    packets[4] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 104 >> 3, 1, 'E', 16);
 
     /* F*24 at 120. */
-    packets[5] = IPV6BuildTestPacket(id, 120 >> 3, 1, 'F', 24);
+    packets[5] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 120 >> 3, 1, 'F', 24);
 
     /* G*16 at 144. */
-    packets[6] = IPV6BuildTestPacket(id, 144 >> 3, 1, 'G', 16);
+    packets[6] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 144 >> 3, 1, 'G', 16);
 
     /* H*16 at 160. */
-    packets[7] = IPV6BuildTestPacket(id, 160 >> 3, 1, 'H', 16);
+    packets[7] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 160 >> 3, 1, 'H', 16);
 
     /* I*8 at 176. */
-    packets[8] = IPV6BuildTestPacket(id, 176 >> 3, 1, 'I', 8);
+    packets[8] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 176 >> 3, 1, 'I', 8);
 
     /*
      * Overlapping subsequent fragments.
      */
 
     /* J*32 at 8. */
-    packets[9] = IPV6BuildTestPacket(id, 8 >> 3, 1, 'J', 32);
+    packets[9] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 8 >> 3, 1, 'J', 32);
 
     /* K*24 at 48. */
-    packets[10] = IPV6BuildTestPacket(id, 48 >> 3, 1, 'K', 24);
+    packets[10] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 48 >> 3, 1, 'K', 24);
 
     /* L*24 at 72. */
-    packets[11] = IPV6BuildTestPacket(id, 72 >> 3, 1, 'L', 24);
+    packets[11] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 72 >> 3, 1, 'L', 24);
 
     /* M*24 at 96. */
-    packets[12] = IPV6BuildTestPacket(id, 96 >> 3, 1, 'M', 24);
+    packets[12] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 96 >> 3, 1, 'M', 24);
 
     /* N*8 at 128. */
-    packets[13] = IPV6BuildTestPacket(id, 128 >> 3, 1, 'N', 8);
+    packets[13] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 128 >> 3, 1, 'N', 8);
 
     /* O*8 at 152. */
-    packets[14] = IPV6BuildTestPacket(id, 152 >> 3, 1, 'O', 8);
+    packets[14] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 152 >> 3, 1, 'O', 8);
 
     /* P*8 at 160. */
-    packets[15] = IPV6BuildTestPacket(id, 160 >> 3, 1, 'P', 8);
+    packets[15] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 160 >> 3, 1, 'P', 8);
 
     /* Q*16 at 176. */
-    packets[16] = IPV6BuildTestPacket(id, 176 >> 3, 0, 'Q', 16);
+    packets[16] = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 176 >> 3, 0, 'Q', 16);
 
     default_policy = policy;
 
@@ -2125,7 +2125,7 @@ DefragTimeoutTest(void)
 
     /* Load in 16 packets. */
     for (i = 0; i < 16; i++) {
-        Packet *p = BuildTestPacket(i, 0, 1, 'A' + i, 16);
+        Packet *p = BuildTestPacket(IPPROTO_ICMP,i, 0, 1, 'A' + i, 16);
         if (p == NULL)
             goto end;
 
@@ -2141,7 +2141,7 @@ DefragTimeoutTest(void)
 
     /* Build a new packet but push the timestamp out by our timeout.
      * This should force our previous fragments to be timed out. */
-    Packet *p = BuildTestPacket(99, 0, 1, 'A' + i, 16);
+    Packet *p = BuildTestPacket(IPPROTO_ICMP, 99, 0, 1, 'A' + i, 16);
     if (p == NULL)
         goto end;
 
@@ -2189,7 +2189,7 @@ DefragIPv4NoDataTest(void)
         goto end;
 
     /* This packet has an offset > 0, more frags set to 0 and no data. */
-    p = BuildTestPacket(id, 1, 0, 'A', 0);
+    p = BuildTestPacket(IPPROTO_ICMP, id, 1, 0, 'A', 0);
     if (p == NULL)
         goto end;
 
@@ -2228,7 +2228,7 @@ DefragIPv4TooLargeTest(void)
 
     /* Create a fragment that would extend past the max allowable size
      * for an IPv4 packet. */
-    p = BuildTestPacket(1, 8183, 0, 'A', 71);
+    p = BuildTestPacket(IPPROTO_ICMP, 1, 8183, 0, 'A', 71);
     if (p == NULL)
         goto end;
 
@@ -2267,10 +2267,10 @@ DefragVlanTest(void)
 
     DefragInit();
 
-    p1 = BuildTestPacket(1, 0, 1, 'A', 8);
+    p1 = BuildTestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = BuildTestPacket(1, 1, 0, 'B', 8);
+    p2 = BuildTestPacket(IPPROTO_ICMP, 1, 1, 0, 'B', 8);
     if (p2 == NULL)
         goto end;
 
@@ -2313,10 +2313,10 @@ DefragVlanQinQTest(void)
 
     DefragInit();
 
-    p1 = BuildTestPacket(1, 0, 1, 'A', 8);
+    p1 = BuildTestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
     if (p1 == NULL)
         goto end;
-    p2 = BuildTestPacket(1, 1, 0, 'B', 8);
+    p2 = BuildTestPacket(IPPROTO_ICMP, 1, 1, 0, 'B', 8);
     if (p2 == NULL)
         goto end;
 
@@ -2361,7 +2361,7 @@ static int DefragTrackerReuseTest(void)
 
     /* Build a packet, its not a fragment but shouldn't matter for
      * this test. */
-    p1 = BuildTestPacket(id, 0, 0, 'A', 8);
+    p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 0, 'A', 8);
     if (p1 == NULL) {
         goto end;
     }
@@ -2431,9 +2431,9 @@ static int DefragMfIpv4Test(void)
 
     DefragInit();
 
-    Packet *p1 = BuildTestPacket(ip_id, 2, 1, 'C', 8);
-    Packet *p2 = BuildTestPacket(ip_id, 0, 1, 'A', 8);
-    Packet *p3 = BuildTestPacket(ip_id, 1, 0, 'B', 8);
+    Packet *p1 = BuildTestPacket(IPPROTO_ICMP, ip_id, 2, 1, 'C', 8);
+    Packet *p2 = BuildTestPacket(IPPROTO_ICMP, ip_id, 0, 1, 'A', 8);
+    Packet *p3 = BuildTestPacket(IPPROTO_ICMP, ip_id, 1, 0, 'B', 8);
     if (p1 == NULL || p2 == NULL || p3 == NULL) {
         goto end;
     }
@@ -2495,9 +2495,9 @@ static int DefragMfIpv6Test(void)
 
     DefragInit();
 
-    Packet *p1 = IPV6BuildTestPacket(ip_id, 2, 1, 'C', 8);
-    Packet *p2 = IPV6BuildTestPacket(ip_id, 0, 1, 'A', 8);
-    Packet *p3 = IPV6BuildTestPacket(ip_id, 1, 0, 'B', 8);
+    Packet *p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 2, 1, 'C', 8);
+    Packet *p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 0, 1, 'A', 8);
+    Packet *p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 1, 0, 'B', 8);
     if (p1 == NULL || p2 == NULL || p3 == NULL) {
         goto end;
     }
@@ -2542,6 +2542,39 @@ end:
     return retval;
 }
 
+/**
+ * \brief Test that fragments that match other than the proto don't
+ * actually get matched.
+ */
+static int DefragTestBadProto(void)
+{
+    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    int id = 12;
+
+    DefragInit();
+
+    p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
+    FAIL_IF_NULL(p1);
+    p2 = BuildTestPacket(IPPROTO_UDP, id, 1, 1, 'B', 8);
+    FAIL_IF_NULL(p2);
+    p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
+    FAIL_IF_NULL(p3);
+
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p1, NULL));
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p2, NULL));
+    FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p3, NULL));
+
+    if (p1 != NULL)
+        SCFree(p1);
+    if (p2 != NULL)
+        SCFree(p2);
+    if (p3 != NULL)
+        SCFree(p3);
+
+    DefragDestroy();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -2583,6 +2616,7 @@ DefragRegisterTests(void)
     UtRegisterTest("DefragTimeoutTest", DefragTimeoutTest);
     UtRegisterTest("DefragMfIpv4Test", DefragMfIpv4Test);
     UtRegisterTest("DefragMfIpv6Test", DefragMfIpv6Test);
+    UtRegisterTest("DefragTestBadProto", DefragTestBadProto);
 #endif /* UNITTESTS */
 }
 

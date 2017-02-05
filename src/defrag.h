@@ -84,6 +84,8 @@ typedef struct DefragTracker_ {
     uint32_t id; /**< IP ID for this tracker.  32 bits for IPv6, 16
                   * for IPv4. */
 
+    uint8_t proto; /**< IP protocol for this tracker. */
+
     uint8_t policy; /**< Reassembly policy this tracker will use. */
 
     uint8_t af; /**< Address family for this tracker, AF_INET or
