@@ -85,6 +85,8 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
             if (r == 1) {
                 break;
             }
+        } else {
+            break;
         }
     }
 
