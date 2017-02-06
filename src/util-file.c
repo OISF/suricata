@@ -345,8 +345,10 @@ void FilePrune(FileContainer *ffc)
     File *file = ffc->head;
 
     while (file) {
-        if (FilePruneFile(file) == 0)
-            break;
+        if (FilePruneFile(file) == 0) {
+            file = file->next;
+            continue;
+        }
 
         BUG_ON(file != ffc->head);
 

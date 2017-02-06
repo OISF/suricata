@@ -106,44 +106,44 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             if ((s->file_flags & FILE_SIG_NEED_FILENAME) && file->name == NULL) {
                 SCLogDebug("sig needs filename, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             uint64_t file_size = FileDataSize(file);
             if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file_size == 0) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file_size == 0) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_MD5) && (!(file->flags & FILE_MD5))) {
                 SCLogDebug("sig needs file md5, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_SHA1) && (!(file->flags & FILE_SHA1))) {
                 SCLogDebug("sig needs file sha1, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_SHA256) && (!(file->flags & FILE_SHA256))) {
                 SCLogDebug("sig needs file sha256, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
                 SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-                break;
+                continue;
             }
 
             /* run the file match functions. */
