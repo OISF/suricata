@@ -559,11 +559,76 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
     SCReturnInt(0);
 }
 
-/**
- *  \brief Store a chunk of file data in the flow. The open "flowfile"
- *         will be used.
+/** \internal
+ *  \brief Store/handle a chunk of file data in the File structure
  *
- *  \param ffc the container
+ *  \param ff the file
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ *  \retval -2 no store for this file
+ */
+static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
+{
+    SCEnter();
+#ifdef DEBUG_VALIDATION
+    BUG_ON(ff == NULL);
+#endif
+
+    ff->size += data_len;
+
+    if (ff->state != FILE_STATE_OPENED) {
+        if (ff->flags & FILE_NOSTORE) {
+            SCReturnInt(-2);
+        }
+        SCReturnInt(-1);
+    }
+
+    if (FileStoreNoStoreCheck(ff) == 1) {
+#ifdef HAVE_NSS
+        int hash_done = 0;
+        /* no storage but forced hashing */
+        if (ff->md5_ctx) {
+            HASH_Update(ff->md5_ctx, data, data_len);
+            hash_done = 1;
+        }
+        if (ff->sha1_ctx) {
+            HASH_Update(ff->sha1_ctx, data, data_len);
+            hash_done = 1;
+        }
+        if (ff->sha256_ctx) {
+            HASH_Update(ff->sha256_ctx, data, data_len);
+            hash_done = 1;
+        }
+
+        if (hash_done)
+            SCReturnInt(0);
+#endif
+        if (g_file_force_tracking || (!(ff->flags & FILE_NOTRACK)))
+            SCReturnInt(0);
+
+        ff->state = FILE_STATE_TRUNCATED;
+        SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
+        SCReturnInt(-2);
+    }
+
+    SCLogDebug("appending %"PRIu32" bytes", data_len);
+
+    if (AppendData(ff, data, data_len) != 0) {
+        ff->state = FILE_STATE_ERROR;
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Store/handle a chunk of file data in the File structure
+ *         The last file in the FileContainer will be used.
+ *
+ *  \param ffc FileContainer used to append to
  *  \param data data chunk
  *  \param data_len data chunk len
  *
@@ -578,53 +643,41 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
     if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
         SCReturnInt(-1);
     }
-
-    ffc->tail->size += data_len;
-
-    if (ffc->tail->state != FILE_STATE_OPENED) {
-        if (ffc->tail->flags & FILE_NOSTORE) {
-            SCReturnInt(-2);
-        }
-        SCReturnInt(-1);
-    }
-
-    if (FileStoreNoStoreCheck(ffc->tail) == 1) {
-#ifdef HAVE_NSS
-        int hash_done = 0;
-        /* no storage but forced hashing */
-        if (ffc->tail->md5_ctx) {
-            HASH_Update(ffc->tail->md5_ctx, data, data_len);
-            hash_done = 1;
-        }
-        if (ffc->tail->sha1_ctx) {
-            HASH_Update(ffc->tail->sha1_ctx, data, data_len);
-            hash_done = 1;
-        }
-        if (ffc->tail->sha256_ctx) {
-            HASH_Update(ffc->tail->sha256_ctx, data, data_len);
-            hash_done = 1;
-        }
-
-        if (hash_done)
-            SCReturnInt(0);
-#endif
-        if (g_file_force_tracking || (!(ffc->tail->flags & FILE_NOTRACK)))
-            SCReturnInt(0);
-
-        ffc->tail->state = FILE_STATE_TRUNCATED;
-        SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
-        SCReturnInt(-2);
-    }
-
-    SCLogDebug("appending %"PRIu32" bytes", data_len);
-
-    if (AppendData(ffc->tail, data, data_len) != 0) {
-        ffc->tail->state = FILE_STATE_ERROR;
-        SCReturnInt(-1);
-    }
-
-    SCReturnInt(0);
+    int r = FileAppendDataDo(ffc->tail, data, data_len);
+    SCReturnInt(r);
 }
+
+/**
+ *  \brief Store/handle a chunk of file data in the File structure
+ *         The file with 'track_id' in the FileContainer will be used.
+ *
+ *  \param ffc FileContainer used to append to
+ *  \param track_id id to lookup the file
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ *  \retval -2 no store for this file
+ */
+int FileAppendDataById(FileContainer *ffc, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
+        SCReturnInt(-1);
+    }
+    File *ff = ffc->head;
+    for ( ; ff != NULL; ff = ff->next) {
+        if (track_id == ff->file_track_id) {
+            int r = FileAppendDataDo(ff, data, data_len);
+            SCReturnInt(r);
+        }
+    }
+    SCReturnInt(-1);
+}
+
 
 /**
  *  \brief Open a new File
@@ -725,6 +778,18 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     SCReturnPtr(ff, "File");
 }
+File *FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
+        uint32_t track_id, const uint8_t *name, uint16_t name_len,
+        const uint8_t *data, uint32_t data_len, uint16_t flags)
+{
+    File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
+    if (ff == NULL)
+        return NULL;
+
+    ff->file_track_id = track_id;
+    ff->flags |= FILE_USE_TRACKID;
+    return ff;
+}
 
 static int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint16_t flags)
@@ -818,6 +883,26 @@ int FileCloseFile(FileContainer *ffc, const uint8_t *data,
     }
 
     SCReturnInt(0);
+}
+int FileCloseFileById(FileContainer *ffc, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len, uint16_t flags)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+
+    File *ff = ffc->head;
+    for ( ; ff != NULL; ff = ff->next) {
+        if (track_id == ff->file_track_id) {
+            if (FileCloseFilePtr(ff, data, data_len, flags) == -1) {
+                SCReturnInt(-1);
+            }
+            SCReturnInt(0);
+        }
+    }
+    SCReturnInt(-1);
 }
 
 /**
