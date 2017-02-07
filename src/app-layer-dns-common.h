@@ -226,13 +226,24 @@ typedef struct DNSState_ {
                                    * number of subsequent requests
                                    * without a response. */
     uint16_t events;
-    uint16_t givenup;
+    uint16_t flooded;             /**< Set after a flooded event has
+                                   * been raised then cleared when the
+                                   * number of unreplied requests
+                                   * reaches 0. */
 
     /* used by TCP only */
     uint16_t offset;
     uint16_t record_len;
     uint8_t *buffer;
 } DNSState;
+
+typedef struct DNSConfig_ {
+    uint32_t request_flood;
+    uint32_t state_memcap;  /**< memcap in bytes per state */
+    uint64_t global_memcap; /**< memcap in bytes globally for parser */
+} DNSConfig;
+
+extern DNSConfig dns_config;
 
 #define DNS_CONFIG_DEFAULT_REQUEST_FLOOD 500
 #define DNS_CONFIG_DEFAULT_STATE_MEMCAP 512*1024
@@ -266,7 +277,7 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
-DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
+DNSTransaction *DNSTransactionFindByTxId(DNSState *dns_state, const uint16_t tx_id);
 
 int DNSStateHasTxDetectState(void *alstate);
 DetectEngineState *DNSGetTxDetectState(void *vtx);

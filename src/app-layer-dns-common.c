@@ -31,12 +31,7 @@
 #include "util-memcmp.h"
 #include "util-atomic.h"
 
-typedef struct DNSConfig_ {
-    uint32_t request_flood;
-    uint32_t state_memcap;  /**< memcap in bytes per state */
-    uint64_t global_memcap; /**< memcap in bytes globally for parser */
-} DNSConfig;
-static DNSConfig dns_config;
+DNSConfig dns_config;
 
 void DNSConfigInit(void)
 {
@@ -377,7 +372,7 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id)
  *  \brief Find the DNS Tx in the state
  *  \param tx_id id of the tx
  *  \retval tx or NULL if not found */
-DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id)
+DNSTransaction *DNSTransactionFindByTxId(DNSState *dns_state, const uint16_t tx_id)
 {
     if (dns_state->curr == NULL)
         return NULL;
@@ -394,7 +389,10 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
                 return tx;
             } else if ((dns_state->transaction_max - tx->tx_num) >
                 (dns_state->window - 1U)) {
-                tx->reply_lost = 1;
+                if (!tx->reply_lost) {
+                    tx->reply_lost = 1;
+                    dns_state->unreplied_cnt--;
+                }
             }
         }
     }
@@ -546,22 +544,16 @@ static int QueryIsDuplicate(DNSTransaction *tx, const uint8_t *fqdn, const uint1
 void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16_t fqdn_len,
         const uint16_t type, const uint16_t class, const uint16_t tx_id)
 {
-    /* flood protection */
-    if (dns_state->givenup)
-        return;
+    /* Check for clearing of flood state. */
+    if (dns_state->flooded && dns_state->unreplied_cnt == 0) {
+        dns_state->flooded = 0;
+    }
 
     /* find the tx and see if this is an exact duplicate */
     DNSTransaction *tx = DNSTransactionFindByTxId(dns_state, tx_id);
     if ((tx != NULL) && (QueryIsDuplicate(tx, fqdn, fqdn_len, type, class) == TRUE)) {
         SCLogDebug("query is duplicate");
         return;
-    }
-
-    /* check flood limit */
-    if (dns_config.request_flood != 0 &&
-        dns_state->unreplied_cnt > dns_config.request_flood) {
-        DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
-        dns_state->givenup = 1;
     }
 
     if (tx == NULL) {
@@ -575,6 +567,14 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         tx->tx_num = dns_state->transaction_max;
         SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
         dns_state->unreplied_cnt++;
+    }
+
+    /* check flood limit */
+    if (dns_state->flooded == 0 &&
+        dns_config.request_flood != 0 &&
+        dns_state->unreplied_cnt >= dns_config.request_flood) {
+        DNSSetEvent(dns_state, DNS_DECODER_EVENT_FLOODED);
+        dns_state->flooded = 1;
     }
 
     if (DNSCheckMemcap((sizeof(DNSQueryEntry) + fqdn_len), dns_state) < 0)
