@@ -83,7 +83,8 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
     if (dns_state != NULL) {
         if (timercmp(&dns_state->last_req, &dns_state->last_resp, >=)) {
-            if (dns_state->window <= dns_state->unreplied_cnt) {
+            if ((dns_state->window < dns_config.request_flood) &&
+                (dns_state->window <= dns_state->unreplied_cnt)) {
                 dns_state->window++;
             }
         }
@@ -697,7 +698,7 @@ static int DNSUDPParserTestDelayedResponse(void)
 }
 
 /**
- * \test Test entering the flood/givenup state.
+ * \test Test entering the flood/flooded state.
  */
 static int DNSUDPParserTestFlood(void)
 {
@@ -713,6 +714,14 @@ static int DNSUDPParserTestFlood(void)
     };
     size_t reqlen = sizeof(req);
 
+    uint8_t res[] = {
+        0x00, 0x01, 0x81, 0x00, 0x00, 0x01, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x03, 0x77, 0x77, 0x77,
+        0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03,
+        0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
+    };
+    size_t reslen = sizeof(res);
+
     DNSState *state = DNSStateAlloc();
     FAIL_IF_NULL(state);
     Flow *f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 53);
@@ -722,11 +731,11 @@ static int DNSUDPParserTestFlood(void)
     f->alstate = state;
 
     uint16_t txid;
-    for (txid = 1; txid <= DNS_CONFIG_DEFAULT_REQUEST_FLOOD + 1; txid++) {
+    for (txid = 1; txid < DNS_CONFIG_DEFAULT_REQUEST_FLOOD; txid++) {
         req[0] = (txid >> 8) & 0xff;
         req[1] = txid & 0xff;
         FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
-        FAIL_IF(state->givenup);
+        FAIL_IF(state->flooded);
     }
 
     /* With one more request we should enter a flooded state. */
@@ -734,7 +743,20 @@ static int DNSUDPParserTestFlood(void)
     req[0] = (txid >> 8) & 0xff;
     req[1] = txid & 0xff;
     FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
-    FAIL_IF(!state->givenup);
+    FAIL_IF(!state->flooded);
+
+    /* Now test that we come out of the flooded state as replies get
+     * answered. */
+    for (uint16_t i = 0; i < DNS_CONFIG_DEFAULT_REQUEST_FLOOD + 2; i++) {
+        txid++;
+        req[0] = (txid >> 8) & 0xff;
+        req[1] = txid & 0xff;
+        FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+        FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen,
+                NULL));
+    }
+    FAIL_IF(state->flooded);
+    FAIL_IF(state->unreplied_cnt != 0);
 
     /* Also free's state. */
     UTHFreeFlow(f);
@@ -830,7 +852,7 @@ static int DNSUDPParserTestLostResponse(void)
     /* Response to the third request. */
     res[1] = 0x03;
     FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL));
-    FAIL_IF_NOT(state->unreplied_cnt == 2);
+    FAIL_IF_NOT(state->unreplied_cnt == 1);
     FAIL_IF_NOT(state->window == 3);
     tx = TAILQ_FIRST(&state->tx_list);
     FAIL_IF_NULL(tx);
