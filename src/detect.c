@@ -575,6 +575,11 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
      * the decoder events sgh we have. */
     if (p->proto == 0 && p->events.cnt > 0) {
         SCReturnPtr(de_ctx->decoder_event_sgh, "SigGroupHead");
+    } else if (p->proto == 0) {
+        if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
+            /* not IP, so nothing to do */
+            SCReturnPtr(NULL, "SigGroupHead");
+        }
     }
 
     /* select the flow_gh */
