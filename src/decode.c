@@ -622,13 +622,13 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
 
         while (1) {
             int done = 0;
-            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-            if (result < sizeof(buffer))
+            size_t size = fread(&buffer, 1, sizeof(buffer), fp);
+            if (size < sizeof(buffer))
                  done = 1;
 
             Packet *p = PacketGetFromAlloc();
             if (p != NULL) {
-                (void) Decoder (&tv, dtv, p, buffer, result, NULL);
+                (void) Decoder (&tv, dtv, p, buffer, size, NULL);
                 PacketFree(p);
             }
 

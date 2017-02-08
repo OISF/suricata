@@ -2645,11 +2645,11 @@ int MimeParserDataFromFile(char *filename)
 
         while (1) {
             int done = 0;
-            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-            if (result < sizeof(buffer))
+            size_t size = fread(&buffer, 1, sizeof(buffer), fp);
+            if (size < sizeof(buffer))
                 done = 1;
 
-            (void) MimeDecParseLine(buffer, result, 1, state);
+            (void) MimeDecParseLine(buffer, size, 1, state);
 
             if (done)
                 break;

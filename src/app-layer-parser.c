@@ -1344,8 +1344,8 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
         int start = 1;
         while (1) {
             int done = 0;
-            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-            if (result < sizeof(buffer))
+            size_t size = fread(&buffer, 1, sizeof(buffer), fp);
+            if (size < sizeof(buffer))
                 done = 1;
 
             //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
@@ -1361,7 +1361,7 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
             //PrintRawDataFp(stdout, buffer, result);
 
             (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags,
-                                      buffer, result);
+                                      buffer, size);
             if (done)
                 break;
         }
@@ -1421,8 +1421,8 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
         int flip = 0;
         while (1) {
             int done = 0;
-            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-            if (result < sizeof(buffer))
+            size_t size = fread(&buffer, 1, sizeof(buffer), fp);
+            if (size < sizeof(buffer))
                 done = 1;
 
             //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
@@ -1445,7 +1445,7 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
             //PrintRawDataFp(stdout, buffer, result);
 
             (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags,
-                                      buffer, result);
+                                      buffer, size);
             if (done)
                 break;
         }
