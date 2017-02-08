@@ -512,10 +512,10 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             AddIntData(alert, "tcp_win", TCP_GET_WINDOW(p));
             AddIntData(alert, "tcp_sum", TCP_GET_SUM(p));
             AddIntData(alert, "tcp_urp", TCP_GET_URG_POINTER(p));
-            if (p->tcpvars.ts_val != NULL) {
+            if (p->tcpvars.ts_val != 0) {
                 AddIntData(alert, "tcp_tsval", TCP_GET_TSVAL(p));
             }
-            if (p->tcpvars.ts_ecr != NULL) {
+            if (p->tcpvars.ts_ecr != 0) {
                 AddIntData(alert, "tcp_tsecr", TCP_GET_TSECR(p));
             }
             if (p->tcph != NULL) {
@@ -961,4 +961,3 @@ void AlertPreludeRegister (void)
         AlertPreludeThreadInit, AlertPreludeThreadDeinit, NULL);
 }
 #endif /* PRELUDE */
-
