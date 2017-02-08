@@ -1624,6 +1624,9 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
     ConfNode *node;
     int r;
 
+#ifdef AFLFUZZ_APPLAYER
+    goto enabled;
+#endif
     if (RunmodeIsUnittests())
         goto enabled;
 

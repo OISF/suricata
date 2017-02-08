@@ -482,7 +482,9 @@ void RegisterENIPTCPParsers(void)
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
                     ENIPProbingParser, ENIPProbingParser))
             {
+#ifndef AFLFUZZ_APPLAYER
                 return;
+#endif
             }
         }
 

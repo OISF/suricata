@@ -116,6 +116,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-dns-tcp.h"
+#include "app-layer-dns-udp.h"
 #include "app-layer-ssh.h"
 #include "app-layer-ftp.h"
 #include "app-layer-smtp.h"
@@ -1415,7 +1416,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterHTPParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_HTTP, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_HTTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-http") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1423,7 +1424,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterHTPParsers();
-                exit(AppLayerParserFromFile(ALPROTO_HTTP, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_HTTP, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-tls-request") == 0) {
                 //printf("arg: //%s\n", optarg);
@@ -1432,7 +1433,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSSLParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_TLS, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_TLS, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-tls") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1440,17 +1441,27 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSSLParsers();
-                exit(AppLayerParserFromFile(ALPROTO_TLS, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_TLS, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-dns-request") == 0) {
                 //printf("arg: //%s\n", optarg);
-                RegisterDNSTCPParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_DNS, optarg));
+                RegisterDNSUDPParsers();
+                exit(AppLayerParserRequestFromFile(IPPROTO_UDP, ALPROTO_DNS, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-dns") == 0) {
                 //printf("arg: //%s\n", optarg);
                 AppLayerParserSetup();
+                RegisterDNSUDPParsers();
+                exit(AppLayerParserFromFile(IPPROTO_UDP, ALPROTO_DNS, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-dnstcp-request") == 0) {
+                //printf("arg: //%s\n", optarg);
                 RegisterDNSTCPParsers();
-                exit(AppLayerParserFromFile(ALPROTO_DNS, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-dnstcp") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterDNSTCPParsers();
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNS, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-ssh-request") == 0) {
                 //printf("arg: //%s\n", optarg);
@@ -1458,7 +1469,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SpmTableSetup();
                 AppLayerProtoDetectSetup();
                 RegisterSSHParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_SSH, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SSH, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-ssh") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1466,7 +1477,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSSHParsers();
-                exit(AppLayerParserFromFile(ALPROTO_SSH, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SSH, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-ftp-request") == 0) {
                 //printf("arg: //%s\n", optarg);
@@ -1475,7 +1486,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterFTPParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_FTP, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_FTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-ftp") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1483,7 +1494,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterFTPParsers();
-                exit(AppLayerParserFromFile(ALPROTO_FTP, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_FTP, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
                 //printf("arg: //%s\n", optarg);
@@ -1492,7 +1503,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMTPParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_SMTP, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-smtp") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1500,7 +1511,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMTPParsers();
-                exit(AppLayerParserFromFile(ALPROTO_SMTP, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMTP, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-smb-request") == 0) {
                 //printf("arg: //%s\n", optarg);
@@ -1508,7 +1519,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SpmTableSetup();
                 AppLayerProtoDetectSetup();
                 RegisterSMBParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_SMB, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMB, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-smb") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
@@ -1516,36 +1527,36 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMBParsers();
-                exit(AppLayerParserFromFile(ALPROTO_SMB, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMB, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-modbus-request") == 0) {
                 //printf("arg: //%s\n", optarg);
                 AppLayerParserSetup();
                 RegisterModbusParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_MODBUS, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_MODBUS, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-modbus") == 0) {
                 //printf("arg: //%s\n", optarg);
                 AppLayerParserSetup();
                 RegisterModbusParsers();
-                exit(AppLayerParserFromFile(ALPROTO_MODBUS, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_MODBUS, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-enip-request") == 0) {
                 //printf("arg: //%s\n", optarg);
                 AppLayerParserSetup();
                 RegisterENIPTCPParsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_ENIP, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_ENIP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-enip") == 0) {
                 //printf("arg: //%s\n", optarg);
                 AppLayerParserSetup();
                 RegisterENIPTCPParsers();
-                exit(AppLayerParserFromFile(ALPROTO_ENIP, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_ENIP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-dnp3-request") == 0) {
                 AppLayerParserSetup();
                 RegisterDNP3Parsers();
-                exit(AppLayerParserRequestFromFile(ALPROTO_DNP3, optarg));
+                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNP3, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-dnp3") == 0) {
                 AppLayerParserSetup();
                 RegisterDNP3Parsers();
-                exit(AppLayerParserFromFile(ALPROTO_DNP3, optarg));
+                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNP3, optarg));
 #endif
 #ifdef AFLFUZZ_MIME
             } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {

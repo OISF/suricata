@@ -265,6 +265,10 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx)
     SCReturn;
 }
 
+/** \brief check if a parser is enabled in the config
+ *  Returns enabled always if: were running unittests and
+ *                             when compiled with --enable-afl
+ */
 int AppLayerParserConfParserEnabled(const char *ipproto,
                                     const char *alproto_name)
 {
@@ -275,6 +279,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
     ConfNode *node;
     int r;
 
+#ifdef AFLFUZZ_APPLAYER
+    goto enabled;
+#endif
     if (RunmodeIsUnittests())
         goto enabled;
 
@@ -1307,7 +1314,7 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
 #endif
 
 #ifdef AFLFUZZ_APPLAYER
-int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
+int AppLayerParserRequestFromFile(uint8_t ipproto, AppProto alproto, char *filename)
 {
     int result = 1;
     Flow *f = NULL;
@@ -1327,7 +1334,8 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
     f->sp = 10000;
     f->dp = 80;
     f->protoctx = &ssn;
-    f->proto = IPPROTO_TCP;
+    f->proto = ipproto;
+    f->protomap = FlowGetProtoMapping(f->proto);
     f->alproto = alproto;
 
     uint8_t buffer[64];
@@ -1383,7 +1391,7 @@ end:
     return result;
 }
 
-int AppLayerParserFromFile(AppProto alproto, char *filename)
+int AppLayerParserFromFile(uint8_t ipproto, AppProto alproto, char *filename)
 {
     int result = 1;
     Flow *f = NULL;
@@ -1403,7 +1411,8 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
     f->sp = 10000;
     f->dp = 80;
     f->protoctx = &ssn;
-    f->proto = IPPROTO_TCP;
+    f->proto = ipproto;
+    f->protomap = FlowGetProtoMapping(f->proto);
     f->alproto = alproto;
 
     uint8_t buffer[64];
