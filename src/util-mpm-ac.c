@@ -122,6 +122,28 @@ static void SCACGetConfig()
 
 /**
  * \internal
+ * \brief Check if size_t multiplication would overflow and perform operation
+ *        if safe. In case of an overflow we exit().
+ *
+ * \param a First size_t value to multiplicate.
+ * \param b Second size_t value to multiplicate.
+ *
+ * \retval The product of a and b, guaranteed to not overflow.
+ */
+static inline size_t SCACCheckSafeSizetMult(size_t a, size_t b)
+{
+    /* check for safety of multiplication operation */
+    if (b > 0 && a > SIZE_MAX / b) {
+        SCLogError(SC_ERR_MEM_ALLOC, "%"PRIuMAX" * %"PRIuMAX" > %"
+                   PRIuMAX" would overflow size_t calculating buffer size",
+                   (uintmax_t) a, (uintmax_t) b, (uintmax_t) SIZE_MAX);
+        exit(EXIT_FAILURE);
+    }
+    return a * b;
+}
+
+/**
+ * \internal
  * \brief Initialize a new state in the goto and output tables.
  *
  * \param mpm_ctx Pointer to the mpm context.
@@ -130,12 +152,13 @@ static void SCACGetConfig()
  */
 static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
 {
-    void *ptmp;
-    int size = 0;
+    void *ptmp = NULL;
+    size_t size = 0;
 
     /* reallocate space in the goto table to include a new state */
-    size = cnt * ctx->single_state_size;
-    ptmp = SCRealloc(ctx->goto_table, size);
+    size = SCACCheckSafeSizetMult((size_t) cnt, (size_t) ctx->single_state_size);
+    if (size > 0)
+        ptmp = SCRealloc(ctx->goto_table, size);
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
@@ -145,12 +168,15 @@ static inline int SCACReallocState(SCACCtx *ctx, uint32_t cnt)
     ctx->goto_table = ptmp;
 
     /* reallocate space in the output table for the new state */
-    int oldsize = ctx->state_count * sizeof(SCACOutputTable);
-    size = cnt * sizeof(SCACOutputTable);
-    SCLogDebug("oldsize %d size %d cnt %u ctx->state_count %u",
-            oldsize, size, cnt, ctx->state_count);
+    size_t oldsize = SCACCheckSafeSizetMult((size_t) ctx->state_count,
+        sizeof(SCACOutputTable));
+    size = SCACCheckSafeSizetMult((size_t) cnt, sizeof(SCACOutputTable));
+    SCLogDebug("oldsize %"PRIuMAX" size  %"PRIuMAX" cnt %d ctx->state_count %u",
+            (uintmax_t) oldsize, (uintmax_t) size, cnt, ctx->state_count);
 
-    ptmp = SCRealloc(ctx->output_table, size);
+    ptmp = NULL;
+    if (size > 0)
+        ptmp = SCRealloc(ctx->output_table, size);
     if (ptmp == NULL) {
         SCFree(ctx->output_table);
         ctx->output_table = NULL;
