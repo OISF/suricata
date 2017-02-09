@@ -857,7 +857,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, 4, ntohs(dns_header->tx_id));
+                        data, datalen, ntohs(dns_header->tx_id));
             } else {
                 SCLogDebug("invalid length for A response data: %u", ntohs(head->len));
                 goto bad_data;
@@ -875,7 +875,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        data, 16, ntohs(dns_header->tx_id));
+                        data, datalen, ntohs(dns_header->tx_id));
             } else {
                 SCLogDebug("invalid length for AAAA response data: %u", ntohs(head->len));
                 goto bad_data;
