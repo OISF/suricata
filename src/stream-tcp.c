@@ -4441,9 +4441,14 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     SCEnter();
 
     DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-
-    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
-
+#if 0
+    if (p->pcap_cnt != 0){//&& p->pcap_cnt % 1000 == 0){
+    SCLogNotice("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+//    abort();
+    }
+if (p->pcap_cnt >= 150) abort();
+#endif
+//if (p->pcap_cnt >= 150) abort();
     /* assign the thread id to the flow */
     if (unlikely(p->flow->thread_id == 0)) {
         p->flow->thread_id = (FlowThreadId)tv->id;
