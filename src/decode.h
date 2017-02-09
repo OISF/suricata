@@ -958,6 +958,7 @@ typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
          uint8_t *pkt, uint16_t len, PacketQueue *pq);
 
 int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
+int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
 #endif
 
 /** \brief Set the No payload inspection Flag for the packet.

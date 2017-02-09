@@ -1261,7 +1261,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-rules", required_argument, 0 , 0},
         {"afl-mime", required_argument, 0 , 0},
         {"afl-decoder-ppp", required_argument, 0 , 0},
+        {"afl-decoder-ppp-serie", required_argument, 0 , 0},
         {"afl-decoder-ipv4", required_argument, 0 , 0},
+        {"afl-decoder-ipv4-serie", required_argument, 0 , 0},
+        {"afl-decoder-ipv6", required_argument, 0 , 0},
+        {"afl-decoder-ipv6-serie", required_argument, 0 , 0},
         {"afl-der", required_argument, 0, 0},
 
 #ifdef BUILD_UNIX_SOCKET
@@ -1565,24 +1569,33 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 exit(MimeParserDataFromFile(optarg));
 #endif
 #ifdef AFLFUZZ_DECODER
-            } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0) {
+            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ppp") != NULL) {
                 StatsInit();
                 MpmTableSetup();
                 SpmTableSetup();
                 AppLayerProtoDetectSetup();
-                DefragInit();
-                FlowInitConfig(FLOW_QUIET);
-                //printf("arg: //%s\n", optarg);
-                exit(DecoderParseDataFromFile(optarg, DecodePPP));
-            } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ipv4") == 0) {
+                if (strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0)
+                    exit(DecoderParseDataFromFile(optarg, DecodePPP));
+                else
+                    exit(DecoderParseDataFromFileSerie(optarg, DecodePPP));
+            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ipv4") != NULL) {
                 StatsInit();
                 MpmTableSetup();
                 SpmTableSetup();
                 AppLayerProtoDetectSetup();
-                DefragInit();
-                FlowInitConfig(FLOW_QUIET);
-                //printf("arg: //%s\n", optarg);
-                exit(DecoderParseDataFromFile(optarg, DecodeIPV4));
+                if (strcmp((long_opts[option_index]).name, "afl-decoder-ipv4") == 0)
+                    exit(DecoderParseDataFromFile(optarg, DecodeIPV4));
+                else
+                    exit(DecoderParseDataFromFileSerie(optarg, DecodeIPV4));
+            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ipv6") != NULL) {
+                StatsInit();
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                if (strcmp((long_opts[option_index]).name, "afl-decoder-ipv6") == 0)
+                    exit(DecoderParseDataFromFile(optarg, DecodeIPV6));
+                else
+                    exit(DecoderParseDataFromFileSerie(optarg, DecodeIPV6));
 #endif
 #ifdef AFLFUZZ_DER
             } else if(strcmp((long_opts[option_index]).name, "afl-der") == 0) {
