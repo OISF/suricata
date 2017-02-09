@@ -1261,6 +1261,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-rules", required_argument, 0 , 0},
         {"afl-mime", required_argument, 0 , 0},
         {"afl-decoder-ppp", required_argument, 0 , 0},
+        {"afl-decoder-ipv4", required_argument, 0 , 0},
         {"afl-der", required_argument, 0, 0},
 
 #ifdef BUILD_UNIX_SOCKET
@@ -1573,6 +1574,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 FlowInitConfig(FLOW_QUIET);
                 //printf("arg: //%s\n", optarg);
                 exit(DecoderParseDataFromFile(optarg, DecodePPP));
+            } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ipv4") == 0) {
+                StatsInit();
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                DefragInit();
+                FlowInitConfig(FLOW_QUIET);
+                //printf("arg: //%s\n", optarg);
+                exit(DecoderParseDataFromFile(optarg, DecodeIPV4));
 #endif
 #ifdef AFLFUZZ_DER
             } else if(strcmp((long_opts[option_index]).name, "afl-der") == 0) {
