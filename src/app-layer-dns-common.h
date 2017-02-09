@@ -188,8 +188,8 @@ typedef struct DNSAnswerEntry_ {
 
 /** \brief DNS Transaction, request/reply with same TX id. */
 typedef struct DNSTransaction_ {
-    uint16_t tx_num;                                /**< internal: id */
-    uint16_t tx_id;                                 /**< transaction id */
+    uint64_t tx_num;                                /**< internal: id */
+    uint16_t tx_id;                                 /**< DNS transaction id */
     uint32_t logged;                                /**< flags for loggers done logging */
     uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */

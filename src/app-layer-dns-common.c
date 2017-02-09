@@ -197,7 +197,8 @@ void *DNSGetTx(void *alstate, uint64_t tx_id)
 
     /* no luck with the fast tracks, do the full list walk */
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
+        SCLogDebug("tx->tx_num %"PRIu64", tx_id %"PRIu64, tx->tx_num,
+            (tx_id+1));
         if ((tx_id+1) != tx->tx_num)
             continue;
 
@@ -345,7 +346,8 @@ void DNSStateTransactionFree(void *state, uint64_t tx_id)
     SCLogDebug("state %p, id %"PRIu64, dns_state, tx_id);
 
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
-        SCLogDebug("tx %p tx->tx_num %u, tx_id %"PRIu64, tx, tx->tx_num, (tx_id+1));
+        SCLogDebug("tx %p tx->tx_num %"PRIu64", tx_id %"PRIu64, tx, tx->tx_num,
+            (tx_id+1));
         if ((tx_id+1) < tx->tx_num)
             break;
         else if ((tx_id+1) > tx->tx_num)
@@ -565,7 +567,7 @@ void DNSStoreQueryInState(DNSState *dns_state, const uint8_t *fqdn, const uint16
         TAILQ_INSERT_TAIL(&dns_state->tx_list, tx, next);
         dns_state->curr = tx;
         tx->tx_num = dns_state->transaction_max;
-        SCLogDebug("new tx %u with internal id %u", tx->tx_id, tx->tx_num);
+        SCLogDebug("new tx %u with internal id %"PRIu64, tx->tx_id, tx->tx_num);
         dns_state->unreplied_cnt++;
     }
 
