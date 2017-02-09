@@ -82,6 +82,7 @@
 #include <linux/bpf.h>
 #include "util-ebpf.h"
 #include <bpf/libbpf.h>
+#include <bpf/bpf.h>
 #endif
 
 struct bpf_program {
@@ -2227,7 +2228,7 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
         /* FIXME error handling */
         struct pair value = {inittime, 0, 0};
         SCLogDebug("Inserting element in eBPF mapping");
-        if (bpf_map__update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
+        if (bpf_map_update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
             switch (errno) {
                 case E2BIG:
                 case EEXIST:

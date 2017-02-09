@@ -41,6 +41,7 @@
 
 #include <linux/bpf.h>
 #include <bpf/libbpf.h>
+#include <bpf/bpf.h>
 #include "config.h"
 
 #define BPF_MAP_MAX_COUNT 16
@@ -70,6 +71,9 @@ int EBPFGetMapFDByName(const char *name)
     return -1;
 }
 
+#define bpf__is_error(ee) ee
+#define bpf__get_error(ee) 1
+
 int EBPFLoadFile(const char *path, const char * section, int *val)
 {
     int err, found, pfd;
@@ -84,11 +88,13 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     bpfobj = bpf_object__open(path);
 
-    if (bpf__is_error(bpfobj)) {
+    if (libbpf_get_error(bpfobj)) {
+        char err_buf[128];
+        libbpf_strerror(bpf__get_error(bpfobj), err_buf,
+                        sizeof(err_buf));
         SCLogError(SC_ERR_INVALID_VALUE,
                    "Unable to load eBPF objects in '%s': %s",
-                   path,
-                   strerror(bpf__get_error(bpfobj)));
+                   path, err_buf);
         return -1;
     }
 
@@ -96,7 +102,7 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
     bpf_object__for_each_program(bpfprog, bpfobj) {
         const char *title = bpf_program__title(bpfprog, 0);
         if (!strcmp(title, section)) {
-            bpf_program__set_type(bpfprog, BPF_PROG_TYPE_SOCKET_FILTER);
+            bpf_program__set_socket_filter(bpfprog);
             found = 1;
             break;
         }
@@ -159,11 +165,11 @@ int EBPFForEachFlowV4Table(const char *name,
     struct flowv4_keys key = {}, next_key;
     struct pair value = {0, 0, 0};
     int ret, found = 0;
-    if (bpf_map__get_next_key(mapfd, &key, &next_key) != 0) {
+    if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
         return found;
     }
-    while (bpf_map__get_next_key(mapfd, &key, &next_key) == 0) {
-        bpf_map__lookup_elem(mapfd, &key, &value);
+    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+        bpf_map_lookup_elem(mapfd, &key, &value);
         ret = FlowCallback(mapfd, &key, &value, data);
         if (ret) {
             flowstats->count++;
@@ -174,7 +180,7 @@ int EBPFForEachFlowV4Table(const char *name,
         key = next_key;
     }
 
-    bpf_map__lookup_elem(mapfd, &key, &value);
+    bpf_map_lookup_elem(mapfd, &key, &value);
     ret = FlowCallback(mapfd, &key, &value, data);
     if (ret) {
         flowstats->count++;
@@ -195,11 +201,11 @@ int EBPFForEachFlowV6Table(const char *name,
     struct flowv6_keys key = {}, next_key;
     struct pair value = {0, 0, 0};
     int ret, found = 0;
-    if (bpf_map__get_next_key(mapfd, &key, &next_key) != 0) {
+    if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
         return found;
     }
-    while (bpf_map__get_next_key(mapfd, &key, &next_key) == 0) {
-        bpf_map__lookup_elem(mapfd, &key, &value);
+    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+        bpf_map_lookup_elem(mapfd, &key, &value);
         ret = FlowCallback(mapfd, &key, &value, data);
         if (ret) {
             flowstats->count++;
@@ -210,7 +216,7 @@ int EBPFForEachFlowV6Table(const char *name,
         key = next_key;
     }
 
-    bpf_map__lookup_elem(mapfd, &key, &value);
+    bpf_map_lookup_elem(mapfd, &key, &value);
     ret = FlowCallback(mapfd, &key, &value, data);
     if (ret) {
         flowstats->count++;
@@ -224,7 +230,7 @@ int EBPFForEachFlowV6Table(const char *name,
 
 void EBPFDeleteKey(int fd, void *key)
 {
-    bpf_map__delete_elem(fd, key);
+    bpf_map_delete_elem(fd, key);
 }
 
 #endif
