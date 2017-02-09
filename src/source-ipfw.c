@@ -466,7 +466,7 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     } else {
         /* We don't support anything besides IP packets for now, bridged packets? */
-        SCLogInfo("IPFW unknown protocol support %02x", *GET_PKT_DATA(p));
+        SCLogDebug("IPFW unknown protocol support %02x", *GET_PKT_DATA(p));
        SCReturnInt(TM_ECODE_FAILED);
     }
 

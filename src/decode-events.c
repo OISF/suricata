@@ -182,6 +182,9 @@ const struct DecodeEvents_ DEvents[] = {
     /* Cisco Fabric Path/DCE events. */
     { "decoder.dce.pkt_too_small", DCE_PKT_TOO_SMALL, },
 
+    /* CHDLC events */
+    { "decoder.chdlc.pkt_too_small", CHDLC_PKT_TOO_SMALL, },
+
     /* STREAM EVENTS */
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
