@@ -745,10 +745,16 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     void *tx;
     int state_progress;
 
+    int found = 0;
     for (; idx < total_txs; idx++) {
         tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
-        if (tx == NULL)
+        if (tx == NULL) {
+            if (!found) {
+                f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1] = idx;
+            }
             continue;
+        }
+        found = 1;
         state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
