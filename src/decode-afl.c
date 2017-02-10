@@ -83,6 +83,7 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
 
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
+            PacketSetData(p, buffer, size);
             (void) Decoder (&tv, dtv, p, buffer, size, NULL);
             PacketFree(p);
         }
@@ -133,6 +134,7 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder)
 
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
+            PacketSetData(p, buffer, size);
             (void) Decoder (&tv, dtv, p, buffer, size, NULL);
             PacketFree(p);
         }
