@@ -62,6 +62,8 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
     DecodeThreadVars *dtv = DecodeThreadVarsAlloc(&tv);
     DecodeRegisterPerfCounters(dtv, &tv);
     StatsSetupPrivate(&tv);
+    PacketQueue pq;
+    memset(&pq, 0, sizeof(pq));
 
 #ifdef AFLFUZZ_PERSISTANT_MODE
     while (__AFL_LOOP(1000)) {
@@ -84,7 +86,13 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
             PacketSetData(p, buffer, size);
-            (void) Decoder (&tv, dtv, p, buffer, size, NULL);
+            (void) Decoder (&tv, dtv, p, buffer, size, &pq);
+            while (1) {
+                Packet *extra_p = PacketDequeue(&pq);
+                if (unlikely(extra_p == NULL))
+                    break;
+                PacketFree(extra_p);
+            }
             PacketFree(p);
         }
         fclose(fp);
@@ -122,6 +130,8 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder)
     DecodeThreadVars *dtv = DecodeThreadVarsAlloc(&tv);
     DecodeRegisterPerfCounters(dtv, &tv);
     StatsSetupPrivate(&tv);
+    PacketQueue pq;
+    memset(&pq, 0, sizeof(pq));
 
     char filename[256];
     snprintf(filename, sizeof(filename), "dump/%s.%u", fileprefix, cnt);
@@ -135,7 +145,13 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder)
         Packet *p = PacketGetFromAlloc();
         if (p != NULL) {
             PacketSetData(p, buffer, size);
-            (void) Decoder (&tv, dtv, p, buffer, size, NULL);
+            (void) Decoder (&tv, dtv, p, buffer, size, &pq);
+            while (1) {
+                Packet *extra_p = PacketDequeue(&pq);
+                if (unlikely(extra_p == NULL))
+                    break;
+                PacketFree(extra_p);
+            }
             PacketFree(p);
         }
         fclose(fp);
