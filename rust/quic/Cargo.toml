@@ -1,0 +1,17 @@
+[package]
+description = "Parser for the QUIC protocol"
+license = "GPL-2.0"
+keywords = ["QUIC","protocol","parser","nom"]
+#homepage = "https://github.com/inliniac/quic-parser"
+#repository = "https://github.com/inliniac/quic-parser.git"
+name = "quic-parser"
+version = "0.0.1"
+authors = ["Victor Julien <victor@inliniac.net>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+libc = "0.2.0"
+nom = "^2.0"
+#byteorder = "1.0.0"

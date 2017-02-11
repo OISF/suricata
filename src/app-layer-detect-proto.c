@@ -696,6 +696,8 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                         printf("            alproto: ALPROTO_MODBUS\n");
                     else if (pp_pe->alproto == ALPROTO_ENIP)
                         printf("            alproto: ALPROTO_ENIP\n");
+                    else if (pp_pe->alproto == ALPROTO_QUIC)
+                        printf("            alproto: ALPROTO_QUIC\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -753,6 +755,8 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
                     printf("            alproto: ALPROTO_MODBUS\n");
                 else if (pp_pe->alproto == ALPROTO_ENIP)
                     printf("            alproto: ALPROTO_ENIP\n");
+                else if (pp_pe->alproto == ALPROTO_QUIC)
+                    printf("            alproto: ALPROTO_QUIC\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
