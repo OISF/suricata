@@ -598,16 +598,15 @@ void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-int AppLayerParserGetTxLogged(uint8_t ipproto, AppProto alproto,
+int AppLayerParserGetTxLogged(const Flow *f,
                               void *alstate, void *tx, uint32_t logger)
 {
     SCEnter();
 
     uint8_t r = 0;
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-            StateGetTxLogged != NULL) {
-        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetTxLogged(alstate, tx, logger);
+    if (alp_ctx.ctxs[f->protomap][f->alproto].StateGetTxLogged != NULL) {
+        r = alp_ctx.ctxs[f->protomap][f->alproto].
+            StateGetTxLogged(alstate, tx, logger);
     }
 
     SCReturnInt(r);

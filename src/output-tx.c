@@ -138,11 +138,11 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputTxLogger *logger = list;
     OutputLoggerThreadStore *store = op_thread_data->store;
-
+#ifdef DEBUG_VALIDATION
     BUG_ON(logger == NULL && store != NULL);
     BUG_ON(logger != NULL && store == NULL);
     BUG_ON(logger == NULL && store == NULL);
-
+#endif
     if (p->flow == NULL)
         return TM_ECODE_OK;
 
@@ -161,6 +161,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         goto end;
     }
 
+    const uint8_t ts_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOSERVER);
+    const uint8_t tc_disrupt_flags = FlowGetDisruptionFlags(f, STREAM_TOCLIENT);
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
     uint64_t max_id = tx_id;
@@ -182,10 +184,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         }
 
         int tx_progress_ts = AppLayerParserGetStateProgress(p->proto, alproto,
-                tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
+                tx, ts_disrupt_flags);
 
         int tx_progress_tc = AppLayerParserGetStateProgress(p->proto, alproto,
-                tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
+                tx, tc_disrupt_flags);
 
         SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
                 tx_progress_ts, tx_progress_tc);
@@ -204,8 +206,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
                 number_of_loggers++;
 
-                if (AppLayerParserGetTxLogged(p->proto, alproto, alstate, tx,
-                        logger->id)) {
+                if (AppLayerParserGetTxLogged(f, alstate, tx, logger->id)) {
                     SCLogDebug("logger has already logged this transaction");
                     loggers_that_logged++;
                     goto next;
@@ -246,9 +247,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 next:
             logger = logger->next;
             store = store->next;
-
+#ifdef DEBUG_VALIDATION
             BUG_ON(logger == NULL && store != NULL);
             BUG_ON(logger != NULL && store == NULL);
+#endif
         }
 
         /* If all loggers logged set a flag and update the last tx_id
