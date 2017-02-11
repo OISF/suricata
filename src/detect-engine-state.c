@@ -317,7 +317,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
             destate = DetectEngineStateAlloc();
             if (destate == NULL)
                 return;
-            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
+            if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
                 return;
             }
@@ -342,7 +342,7 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
             destate = DetectEngineStateAlloc();
             if (destate == NULL)
                 return;
-            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
+            if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
                 return;
             }

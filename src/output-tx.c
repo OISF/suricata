@@ -148,7 +148,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 
     Flow * const f = p->flow;
 
-    AppProto alproto = f->alproto;
+    const AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
         goto end;

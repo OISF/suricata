@@ -188,7 +188,7 @@ int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto, uint8_t dir
 int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *event_name,
                     int *event_id, AppLayerEventType *event_type);
 
-uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, AppLayerParserState *pstate, uint8_t direction);
+uint64_t AppLayerParserGetTransactionActive(const Flow *f, AppLayerParserState *pstate, uint8_t direction);
 
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 
@@ -196,7 +196,7 @@ int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto);
 int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
-int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
+int AppLayerParserSetTxDetectState(const Flow *f, void *alstate, void *tx, DetectEngineState *s);
 
 uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint64_t);
@@ -206,7 +206,7 @@ int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint6
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
-int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate,
+int AppLayerParserHasDecoderEvents(const Flow *f, void *alstate, AppLayerParserState *pstate,
                         uint8_t flags);
 int AppLayerParserIsTxAware(AppProto alproto);
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
@@ -215,11 +215,11 @@ int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction);
 void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
-uint32_t AppLayerParserGetStreamDepth(uint8_t ipproto, AppProto alproto);
+uint32_t AppLayerParserGetStreamDepth(const Flow *f);
 
 /***** Cleanup *****/
 
-void AppLayerParserStateCleanup(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate);
+void AppLayerParserStateCleanup(const Flow *f, void *alstate, AppLayerParserState *pstate);
 
 void AppLayerParserRegisterProtocolParsers(void);
 

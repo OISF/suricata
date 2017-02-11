@@ -322,13 +322,11 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
     {
         uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
 
-        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
-                                               f->alparser, STREAM_TOCLIENT) < total_txs)
+        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs)
         {
             *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-        if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
-                                               f->alparser, STREAM_TOSERVER) < total_txs)
+        if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOSERVER) < total_txs)
         {
             *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }

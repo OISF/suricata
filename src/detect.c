@@ -1013,8 +1013,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
 
-            app_decoder_events = AppLayerParserHasDecoderEvents(pflow->proto,
-                                                                pflow->alproto,
+            app_decoder_events = AppLayerParserHasDecoderEvents(pflow,
                                                                 pflow->alstate,
                                                                 pflow->alparser,
                                                                 flow_flags);

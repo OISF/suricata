@@ -342,7 +342,7 @@ static int TCPProtoDetect(ThreadVars *tv,
 
         StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
         TcpSessionSetReassemblyDepth(ssn,
-                AppLayerParserGetStreamDepth(f->proto, f->alproto));
+                AppLayerParserGetStreamDepth(f));
         FlagPacketFlow(p, f, flags);
 
         /* account flow if we have both sides */
@@ -496,7 +496,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                         APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                 StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                 TcpSessionSetReassemblyDepth(ssn,
-                        AppLayerParserGetStreamDepth(f->proto, f->alproto));
+                        AppLayerParserGetStreamDepth(f));
                 *alproto = ALPROTO_FAILED;
                 FlagPacketFlow(p, f, flags);
 
