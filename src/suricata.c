@@ -1198,6 +1198,213 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     return TM_ECODE_OK;
 }
 
+static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
+{
+#ifdef AFLFUZZ_RULES
+    if(strcmp(opt_name, "afl-rules") == 0) {
+        MpmTableSetup();
+        SpmTableSetup();
+        exit(RuleParseDataFromFile(opt_arg));
+    } else
+#endif
+#ifdef AFLFUZZ_APPLAYER
+    if(strcmp(opt_name, "afl-http-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterHTPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_HTTP, opt_arg));
+    } else if(strcmp(opt_name, "afl-http") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterHTPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_HTTP, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-tls-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSSLParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_TLS, opt_arg));
+    } else if(strcmp(opt_name, "afl-tls") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSSLParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_TLS, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-dns-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        RegisterDNSUDPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_UDP, ALPROTO_DNS, opt_arg));
+    } else if(strcmp(opt_name, "afl-dns") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterDNSUDPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_UDP, ALPROTO_DNS, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-dnstcp-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        RegisterDNSTCPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNS, opt_arg));
+    } else if(strcmp(opt_name, "afl-dnstcp") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterDNSTCPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNS, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-ssh-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        RegisterSSHParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SSH, opt_arg));
+    } else if(strcmp(opt_name, "afl-ssh") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSSHParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SSH, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-ftp-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterFTPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_FTP, opt_arg));
+    } else if(strcmp(opt_name, "afl-ftp") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterFTPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_FTP, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-smtp-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSMTPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMTP, opt_arg));
+    } else if(strcmp(opt_name, "afl-smtp") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSMTPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMTP, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-smb-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        RegisterSMBParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMB, opt_arg));
+    } else if(strcmp(opt_name, "afl-smb") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterSMBParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMB, opt_arg));
+
+    } else if(strcmp(opt_name, "afl-modbus-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterModbusParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_MODBUS, opt_arg));
+    } else if(strcmp(opt_name, "afl-modbus") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterModbusParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_MODBUS, opt_arg));
+    } else if(strcmp(opt_name, "afl-enip-request") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterENIPTCPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_ENIP, opt_arg));
+    } else if(strcmp(opt_name, "afl-enip") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        AppLayerParserSetup();
+        RegisterENIPTCPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_ENIP, opt_arg));
+    } else if(strcmp(opt_name, "afl-dnp3-request") == 0) {
+        AppLayerParserSetup();
+        RegisterDNP3Parsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNP3, opt_arg));
+    } else if(strcmp(opt_name, "afl-dnp3") == 0) {
+        AppLayerParserSetup();
+        RegisterDNP3Parsers();
+        exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNP3, opt_arg));
+    } else
+#endif
+#ifdef AFLFUZZ_MIME
+    if(strcmp(opt_name, "afl-mime") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        exit(MimeParserDataFromFile(opt_arg));
+    } else
+#endif
+#ifdef AFLFUZZ_DECODER
+    if(strstr(opt_name, "afl-decoder-ppp") != NULL) {
+        StatsInit();
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        if (strcmp(opt_name, "afl-decoder-ppp") == 0)
+            exit(DecoderParseDataFromFile(opt_arg, DecodePPP));
+        else
+            exit(DecoderParseDataFromFileSerie(opt_arg, DecodePPP));
+    } else if(strstr(opt_name, "afl-decoder-ipv4") != NULL) {
+        StatsInit();
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        if (strcmp(opt_name, "afl-decoder-ipv4") == 0)
+            exit(DecoderParseDataFromFile(opt_arg, DecodeIPV4));
+        else
+            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeIPV4));
+    } else if(strstr(opt_name, "afl-decoder-ipv6") != NULL) {
+        StatsInit();
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        if (strcmp(opt_name, "afl-decoder-ipv6") == 0)
+            exit(DecoderParseDataFromFile(opt_arg, DecodeIPV6));
+        else
+            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeIPV6));
+    } else
+#endif
+#ifdef AFLFUZZ_DER
+    if(strcmp(opt_name, "afl-der") == 0) {
+        //printf("arg: //%s\n", opt_arg);
+        exit(DerParseDataFromFile(opt_arg));
+    } else
+#endif
+    {
+        abort();
+    }
+}
+
 static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 {
     int opt;
@@ -1407,201 +1614,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
-#ifdef AFLFUZZ_RULES
-            } else if(strcmp((long_opts[option_index]).name, "afl-rules") == 0) {
-                MpmTableSetup();
-                SpmTableSetup();
-                exit(RuleParseDataFromFile(optarg));
-#endif
-#ifdef AFLFUZZ_APPLAYER
-            } else if(strcmp((long_opts[option_index]).name, "afl-http-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterHTPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_HTTP, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-http") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterHTPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_HTTP, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-tls-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSSLParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_TLS, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-tls") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSSLParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_TLS, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-dns-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                RegisterDNSUDPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_UDP, ALPROTO_DNS, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-dns") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterDNSUDPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_UDP, ALPROTO_DNS, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-dnstcp-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                RegisterDNSTCPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNS, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-dnstcp") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterDNSTCPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNS, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-ssh-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                RegisterSSHParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SSH, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-ssh") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSSHParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SSH, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-ftp-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterFTPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_FTP, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-ftp") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterFTPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_FTP, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSMTPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMTP, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-smtp") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSMTPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMTP, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-smb-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                RegisterSMBParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_SMB, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-smb") == 0) {
-                //printf("arg: //%s\n", optarg);
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                AppLayerParserSetup();
-                RegisterSMBParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMB, optarg));
-
-            } else if(strcmp((long_opts[option_index]).name, "afl-modbus-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterModbusParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_MODBUS, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-modbus") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterModbusParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_MODBUS, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-enip-request") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterENIPTCPParsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_ENIP, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-enip") == 0) {
-                //printf("arg: //%s\n", optarg);
-                AppLayerParserSetup();
-                RegisterENIPTCPParsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_ENIP, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-dnp3-request") == 0) {
-                AppLayerParserSetup();
-                RegisterDNP3Parsers();
-                exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DNP3, optarg));
-            } else if(strcmp((long_opts[option_index]).name, "afl-dnp3") == 0) {
-                AppLayerParserSetup();
-                RegisterDNP3Parsers();
-                exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNP3, optarg));
-#endif
-#ifdef AFLFUZZ_MIME
-            } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
-                //printf("arg: //%s\n", optarg);
-                exit(MimeParserDataFromFile(optarg));
-#endif
-#ifdef AFLFUZZ_DECODER
-            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ppp") != NULL) {
-                StatsInit();
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                if (strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0)
-                    exit(DecoderParseDataFromFile(optarg, DecodePPP));
-                else
-                    exit(DecoderParseDataFromFileSerie(optarg, DecodePPP));
-            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ipv4") != NULL) {
-                StatsInit();
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                if (strcmp((long_opts[option_index]).name, "afl-decoder-ipv4") == 0)
-                    exit(DecoderParseDataFromFile(optarg, DecodeIPV4));
-                else
-                    exit(DecoderParseDataFromFileSerie(optarg, DecodeIPV4));
-            } else if(strstr((long_opts[option_index]).name, "afl-decoder-ipv6") != NULL) {
-                StatsInit();
-                MpmTableSetup();
-                SpmTableSetup();
-                AppLayerProtoDetectSetup();
-                if (strcmp((long_opts[option_index]).name, "afl-decoder-ipv6") == 0)
-                    exit(DecoderParseDataFromFile(optarg, DecodeIPV6));
-                else
-                    exit(DecoderParseDataFromFileSerie(optarg, DecodeIPV6));
-#endif
-#ifdef AFLFUZZ_DER
-            } else if(strcmp((long_opts[option_index]).name, "afl-der") == 0) {
-                //printf("arg: //%s\n", optarg);
-                exit(DerParseDataFromFile(optarg));
-#endif
+            } else if(strncmp((long_opts[option_index]).name, "afl-", 4) == 0) {
+                ParseCommandLineAFL((long_opts[option_index]).name, optarg);
             } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
                 EngineModeSetIPS();
