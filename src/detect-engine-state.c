@@ -256,7 +256,7 @@ static int HasStoredSigs(const Flow *f, const uint8_t flags)
         /* if state == 1 we also fall through */
 
         uint64_t inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
 
         for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
             void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
@@ -394,7 +394,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         check_before_add = 1;
     }
 
-    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     SCLogDebug("total_txs %"PRIu64, total_txs);
 
     SCLogDebug("starting: start tx %u, packet %u", (uint)tx_id, (uint)p->pcap_cnt);
@@ -753,7 +753,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
 
         inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
+        total_txs = AppLayerParserGetTxCnt(f, alstate);
 
         for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
             int inspect_tx_inprogress = 0;
@@ -838,8 +838,8 @@ end:
 void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
 {
     if (f->alparser && f->alstate) {
-        AppLayerParserSetTransactionInspectId(f->alparser, f->proto,
-                                              f->alproto, f->alstate, flags);
+        AppLayerParserSetTransactionInspectId(f, f->alparser,
+                                              f->alstate, flags);
     }
     return;
 }
@@ -861,7 +861,7 @@ void DetectEngineStateResetTxs(Flow *f)
 
         uint64_t inspect_tx_id = MIN(inspect_ts, inspect_tc);
 
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
 
         for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
             void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);

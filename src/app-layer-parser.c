@@ -640,24 +640,23 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
-void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
-                                           const uint8_t ipproto, const AppProto alproto,
+void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
                                            void *alstate, const uint8_t flags)
 {
     SCEnter();
 
     int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
-    uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+    const int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
     void *tx;
     int state_progress;
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
+        tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
+        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -749,7 +748,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     }
 
     /* logger is disabled, return highest 'complete' tx id */
-    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, flags);
     int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
     void *tx;
@@ -836,11 +835,11 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
     SCReturnInt(r);
 }
 
-uint64_t AppLayerParserGetTxCnt(uint8_t ipproto, AppProto alproto, void *alstate)
+uint64_t AppLayerParserGetTxCnt(const Flow *f, void *alstate)
 {
     SCEnter();
     uint64_t r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+    r = alp_ctx.ctxs[f->protomap][f->alproto].
                StateGetTxCnt(alstate);
     SCReturnCT(r, "uint64_t");
 }
@@ -1014,7 +1013,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     }
 
     if (AppLayerParserProtocolIsTxAware(f->proto, alproto)) {
-        p_tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+        p_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
     }
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
@@ -1066,7 +1065,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
 
     if (AppLayerParserProtocolIsTxAware(f->proto, alproto)) {
         if (likely(tv)) {
-            uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+            uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f, f->alstate);
             if (cur_tx_cnt > p_tx_cnt) {
                 AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
             }
@@ -1128,7 +1127,7 @@ int AppLayerParserHasDecoderEvents(const Flow *f,
         } else {
             /* check each tx */
             tx_id = AppLayerParserGetTransactionInspectId(pstate, flags);
-            max_id = AppLayerParserGetTxCnt(f->proto, f->alproto, alstate);
+            max_id = AppLayerParserGetTxCnt(f, alstate);
             for ( ; tx_id < max_id; tx_id++) {
                 decoder_events = AppLayerParserGetEventsByTx(f->proto, f->alproto, alstate, tx_id);
                 if (decoder_events && decoder_events->cnt)

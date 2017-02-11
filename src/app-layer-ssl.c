@@ -1891,6 +1891,7 @@ static int SSLParserTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1930,6 +1931,7 @@ static int SSLParserTest02(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1977,6 +1979,7 @@ static int SSLParserTest03(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2032,6 +2035,7 @@ static int SSLParserTest04(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2090,6 +2094,7 @@ static int SSLParserTest05(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2201,6 +2206,7 @@ static int SSLParserTest06(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2351,6 +2357,7 @@ static int SSLParserMultimsgTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2415,6 +2422,7 @@ static int SSLParserMultimsgTest02(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2464,6 +2472,7 @@ static int SSLParserTest07(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2504,6 +2513,7 @@ static int SSLParserTest08(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2630,6 +2640,7 @@ static int SSLParserTest09(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2692,6 +2703,7 @@ static int SSLParserTest10(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2753,6 +2765,7 @@ static int SSLParserTest11(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2819,6 +2832,7 @@ static int SSLParserTest12(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2896,6 +2910,7 @@ static int SSLParserTest13(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2962,6 +2977,7 @@ static int SSLParserTest14(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3007,6 +3023,7 @@ static int SSLParserTest15(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3043,6 +3060,7 @@ static int SSLParserTest16(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3079,6 +3097,7 @@ static int SSLParserTest17(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3121,6 +3140,7 @@ static int SSLParserTest18(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3167,6 +3187,7 @@ static int SSLParserTest19(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3207,6 +3228,7 @@ static int SSLParserTest20(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3244,6 +3266,7 @@ static int SSLParserTest21(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3293,6 +3316,7 @@ static int SSLParserTest22(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3578,6 +3602,7 @@ static int SSLParserTest23(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3723,6 +3748,7 @@ static int SSLParserTest24(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4080,6 +4106,7 @@ static int SSLParserTest25(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4234,6 +4261,7 @@ static int SSLParserTest26(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
 

@@ -161,7 +161,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         goto end;
     }
 
-    uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
     uint64_t max_id = tx_id;
     int logged = 0;

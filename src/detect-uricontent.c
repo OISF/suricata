@@ -213,6 +213,7 @@ static int HTTPUriTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
@@ -283,6 +284,7 @@ static int HTTPUriTest02(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
@@ -328,8 +330,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -355,6 +355,7 @@ static int HTTPUriTest03(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
@@ -400,8 +401,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;
@@ -428,6 +427,7 @@ static int HTTPUriTest04(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_HTTP;
     f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
@@ -473,8 +473,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     FLOWLOCK_UNLOCK(&f);
     FLOW_DESTROY(&f);
     return result;

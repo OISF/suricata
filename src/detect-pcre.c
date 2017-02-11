@@ -2701,7 +2701,7 @@ static int DetectPcreTxBodyChunksTest01(void)
     FAIL_IF(htp_state == NULL);
 
     /* hardcoded check of the transactions and it's client body chunks */
-    FAIL_IF(AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state) != 2);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 1);
@@ -2870,7 +2870,7 @@ static int DetectPcreTxBodyChunksTest02(void)
     FAIL_IF(htp_state == NULL);
 
     /* hardcoded check of the transactions and it's client body chunks */
-    FAIL_IF(AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state) != 2);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
     htp_tx_t *t1 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 0);
     htp_tx_t *t2 = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, 1);
@@ -3044,7 +3044,7 @@ static int DetectPcreTxBodyChunksTest03(void)
     HtpState *htp_state = f.alstate;
     FAIL_IF(htp_state == NULL);
 
-    FAIL_IF(AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state) != 2);
+    FAIL_IF(AppLayerParserGetTxCnt(&f, htp_state) != 2);
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);

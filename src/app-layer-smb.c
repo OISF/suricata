@@ -1657,6 +1657,7 @@ static int SMBParserTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1737,6 +1738,7 @@ static int SMBParserTest02(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2036,6 +2038,7 @@ static int SMBParserTest03(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2158,6 +2161,7 @@ static int SMBParserTest04(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2421,6 +2425,7 @@ static int SMBParserTest07(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2498,6 +2503,7 @@ static int SMBParserTest08(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2616,6 +2622,7 @@ static int SMBParserTest09(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2742,6 +2749,7 @@ static int SMBParserTest10(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_SMB;
 
     StreamTcpInitConfig(TRUE);
 

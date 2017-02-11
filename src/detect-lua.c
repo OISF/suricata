@@ -373,7 +373,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             htp_tx_t *tx = NULL;
             uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser,
                                                                  STREAM_TOSERVER);
-            uint64_t total_txs= AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state);
+            uint64_t total_txs= AppLayerParserGetTxCnt(p->flow, htp_state);
             for ( ; idx < total_txs; idx++) {
                 tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
                 if (tx == NULL)

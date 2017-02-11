@@ -161,7 +161,7 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 
         // for each tx
         uint64_t tx_id = 0;
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+        const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
         SCLogDebug("s->conn %p", s->conn);
         for (tx_id = 0; tx_id < total_txs; tx_id++) { // TODO optimization store log tx
             htp_tx_t *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);

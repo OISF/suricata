@@ -101,7 +101,7 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
 
     void *alstate = p->flow->alstate;
     uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-    const uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(p->flow, alstate);
 
     /* HACK test HTTP state here instead of in each engine */
     if (alproto == ALPROTO_HTTP) {

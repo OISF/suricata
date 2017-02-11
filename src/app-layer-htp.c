@@ -2906,6 +2906,7 @@ static int HTPParserTest01(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2957,8 +2958,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -2984,6 +2983,7 @@ static int HTPParserTest01a(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3034,8 +3034,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3058,6 +3056,7 @@ static int HTPParserTest02(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3091,8 +3090,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3117,6 +3114,7 @@ static int HTPParserTest03(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3161,8 +3159,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3187,6 +3183,7 @@ static int HTPParserTest04(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3222,8 +3219,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3258,6 +3253,7 @@ static int HTPParserTest05(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3342,8 +3338,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3407,6 +3401,7 @@ static int HTPParserTest06(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3461,8 +3456,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3487,6 +3480,7 @@ static int HTPParserTest07(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3551,8 +3545,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3595,6 +3587,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3635,9 +3628,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
-
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
@@ -3683,6 +3673,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3721,9 +3712,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
-
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
@@ -3752,6 +3740,7 @@ static int HTPParserTest10(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3819,8 +3808,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3845,6 +3832,7 @@ static int HTPParserTest11(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3905,8 +3893,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -3931,6 +3917,7 @@ static int HTPParserTest12(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3994,8 +3981,6 @@ static int HTPParserTest12(void)
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -4020,6 +4005,7 @@ static int HTPParserTest13(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4089,8 +4075,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -4421,6 +4405,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     htp_cfg_t *htp = cfglist.cfg;
 
@@ -4497,8 +4482,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -4619,6 +4602,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4739,8 +4723,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -4789,6 +4771,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -4909,8 +4892,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -4957,6 +4938,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5051,8 +5033,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5095,6 +5075,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5162,8 +5143,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5206,6 +5185,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5273,8 +5253,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5317,6 +5295,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5384,8 +5363,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5429,6 +5406,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5496,8 +5474,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5538,6 +5514,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5605,8 +5582,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5648,6 +5623,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5715,8 +5691,6 @@ end:
     HtpConfigRestoreBackup();
 
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5811,6 +5785,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -5859,8 +5834,6 @@ end:
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -5924,6 +5897,7 @@ libhtp:\n\
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
+    f->alproto = ALPROTO_HTTP;
     f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
@@ -5994,8 +5968,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     if (httpbuf != NULL)
         SCFree(httpbuf);
@@ -6068,6 +6040,7 @@ libhtp:\n\
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6119,8 +6092,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     if (httpbuf != NULL)
         SCFree(httpbuf);
@@ -6158,6 +6129,7 @@ static int HTPParserTest16(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6212,8 +6184,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL)
-        HTPStateFree(htp_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -6244,6 +6214,7 @@ static int HTPParserTest17(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6335,8 +6306,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -6369,6 +6338,7 @@ static int HTPParserTest18(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6468,8 +6438,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }
@@ -6498,6 +6466,7 @@ static int HTPParserTest19(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -6566,8 +6535,6 @@ end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
-    if (http_state != NULL)
-        HTPStateFree(http_state);
     UTHFreeFlow(f);
     return result;
 }

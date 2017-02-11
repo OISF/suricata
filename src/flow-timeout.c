@@ -320,7 +320,7 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
     if (f->alproto != ALPROTO_UNKNOWN && f->alstate != NULL &&
         AppLayerParserProtocolSupportsTxs(f->proto, f->alproto))
     {
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
         if (AppLayerParserGetTransactionActive(f, f->alparser, STREAM_TOCLIENT) < total_txs)
         {

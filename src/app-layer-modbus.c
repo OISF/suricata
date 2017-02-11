@@ -1762,6 +1762,7 @@ static int ModbusParserTest01(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1829,6 +1830,7 @@ static int ModbusParserTest02(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1909,6 +1911,7 @@ static int ModbusParserTest03(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2022,6 +2025,7 @@ static int ModbusParserTest04(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2081,6 +2085,7 @@ static int ModbusParserTest05(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2168,6 +2173,7 @@ static int ModbusParserTest06(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2255,6 +2261,7 @@ static int ModbusParserTest07(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2343,6 +2350,7 @@ static int ModbusParserTest08(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2450,6 +2458,7 @@ static int ModbusParserTest09(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2546,6 +2555,7 @@ static int ModbusParserTest10(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2636,6 +2646,7 @@ static int ModbusParserTest11(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2724,6 +2735,7 @@ static int ModbusParserTest12(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -2804,6 +2816,7 @@ static int ModbusParserTest13(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2872,6 +2885,7 @@ static int ModbusParserTest14(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -2948,6 +2962,7 @@ static int ModbusParserTest15(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -3058,6 +3073,7 @@ static int ModbusParserTest16(void) {
     f.alproto   = ALPROTO_MODBUS;
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
     f.flags     |= FLOW_IPV4;
 
     p->flow         = &f;
@@ -3162,6 +3178,7 @@ static int ModbusParserTest17(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 
@@ -3206,6 +3223,7 @@ static int ModbusParserTest18(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
 
     StreamTcpInitConfig(TRUE);
 

@@ -571,6 +571,7 @@ static int ALDecodeENIPTest(void)
 
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_ENIP;
 
     StreamTcpInitConfig(TRUE);
 

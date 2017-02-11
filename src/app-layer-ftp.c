@@ -484,6 +484,7 @@ static int FTPParserTest01(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -539,6 +540,7 @@ static int FTPParserTest03(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -612,6 +614,7 @@ static int FTPParserTest06(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -667,6 +670,7 @@ static int FTPParserTest07(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
 
@@ -732,6 +736,7 @@ static int FTPParserTest10(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
+    f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
 

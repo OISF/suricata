@@ -126,7 +126,7 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
         return 0;
     }
 
-    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
+    total_txs = AppLayerParserGetTxCnt(p->flow, htp_state);
     if (tx_id >= total_txs)
         return 0;
 
@@ -186,7 +186,7 @@ int HttpXFFGetIP(const Packet *p, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbufl
         goto end;
     }
 
-    total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
+    total_txs = AppLayerParserGetTxCnt(p->flow, htp_state);
     for (; tx_id < total_txs; tx_id++) {
         if (HttpXFFGetIPFromTx(p, tx_id, xff_cfg, dstbuf, dstbuflen) == 1)
             return 1;
