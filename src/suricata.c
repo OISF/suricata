@@ -1392,6 +1392,24 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
             exit(DecoderParseDataFromFile(opt_arg, DecodeIPV6));
         else
             exit(DecoderParseDataFromFileSerie(opt_arg, DecodeIPV6));
+    } else if(strstr(opt_name, "afl-decoder-ethernet") != NULL) {
+        StatsInit();
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        if (strcmp(opt_name, "afl-decoder-ethernet") == 0)
+            exit(DecoderParseDataFromFile(opt_arg, DecodeEthernet));
+        else
+            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeEthernet));
+    } else if(strstr(opt_name, "afl-decoder-erspan") != NULL) {
+        StatsInit();
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        if (strcmp(opt_name, "afl-decoder-erspan") == 0)
+            exit(DecoderParseDataFromFile(opt_arg, DecodeERSPAN));
+        else
+            exit(DecoderParseDataFromFileSerie(opt_arg, DecodeERSPAN));
     } else
 #endif
 #ifdef AFLFUZZ_DER
@@ -1469,6 +1487,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-mime", required_argument, 0 , 0},
         {"afl-decoder-ppp", required_argument, 0 , 0},
         {"afl-decoder-ppp-serie", required_argument, 0 , 0},
+        {"afl-decoder-ethernet", required_argument, 0 , 0},
+        {"afl-decoder-ethernet-serie", required_argument, 0 , 0},
+        {"afl-decoder-erspan", required_argument, 0 , 0},
+        {"afl-decoder-erspan-serie", required_argument, 0 , 0},
         {"afl-decoder-ipv4", required_argument, 0 , 0},
         {"afl-decoder-ipv4-serie", required_argument, 0 , 0},
         {"afl-decoder-ipv6", required_argument, 0 , 0},
