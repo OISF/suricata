@@ -214,13 +214,17 @@ static int DnsGetAnswerTable(lua_State *luastate)
             ptr = (uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry) + answer->fqdn_len);
             if (answer->type == DNS_RECORD_TYPE_A) {
                 char a[16] = "";
-                PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
+                if (answer->data_len == 4) {
+                    PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
+                }
                 lua_pushstring(luastate, "addr");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
             } else if (answer->type == DNS_RECORD_TYPE_AAAA) {
-                char a[46];
-                PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
+                char a[46] = "";
+                if (answer->data_len == 16) {
+                    PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
+                }
                 lua_pushstring(luastate, "addr");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
