@@ -479,11 +479,11 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
     json_object_set_new(js, "ttl", json_integer(entry->ttl));
 
     uint8_t *ptr = (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)+ entry->fqdn_len);
-    if (entry->type == DNS_RECORD_TYPE_A) {
+    if (entry->type == DNS_RECORD_TYPE_A && entry->data_len == 4) {
         char a[16] = "";
         PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
         json_object_set_new(js, "rdata", json_string(a));
-    } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
+    } else if (entry->type == DNS_RECORD_TYPE_AAAA && entry->data_len == 16) {
         char a[46] = "";
         PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
         json_object_set_new(js, "rdata", json_string(a));
