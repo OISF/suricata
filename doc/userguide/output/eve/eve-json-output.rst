@@ -181,6 +181,21 @@ YAML::
 To reduce verbosity the output can be filtered by supplying the record types
 to be logged under ``custom``.
 
+Date modifiers in filename
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to use date modifiers in the eve-log filename.
+
+::
+
+   outputs:
+     - eve-log:
+         filename: eve-%s.json
+
+The example above adds epoch time to the filename. All the date modifiers from the
+C library should be supported. See the man page for ``strftime`` for all supported
+modifiers.
+
 Rotate log file
 ~~~~~~~~~~~~~~~
 
