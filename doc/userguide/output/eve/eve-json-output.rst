@@ -203,6 +203,35 @@ enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
 
+Rotate log file
+~~~~~~~~~~~~~~~
+
+Eve-log can be configured to rotate based on time.
+
+::
+
+  outputs:
+    - eve-log:
+        filename: eve-%Y-%m-%d-%H:%M.json
+        rotate-interval: minute
+
+The example above creates a new log file each minute, where the filename contains
+a timestamp. Other supported ``rotate-interval`` values are ``hour`` and ``day``.
+
+In addition to this, it is also possible to specify the ``rotate-interval`` as a
+relative value. One example is to rotate the log file each X seconds.
+
+::
+
+  outputs:
+    - eve-log:
+        filename: eve-%Y-%m-%d-%H:%M:%S.json
+        rotate-interval: 30s
+
+The example above rotates eve-log each 30 seconds. This could be replaced with
+``30m`` to rotate every 30 minutes, ``30h`` to rotate every 30 hours, ``30d``
+to rotate every 30 days, or ``30w`` to rotate every 30 weeks.
+
 Multiple Logger Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
