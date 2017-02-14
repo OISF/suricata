@@ -57,22 +57,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-device.h"
-
-
-#ifndef HAVE_LIBJANSSON
-
-/** Handle the case where no JSON support is compiled in.
- *
- */
-
-int OutputJsonOpenFileCtx(LogFileCtx *, char *);
-
-void OutputJsonRegister (void)
-{
-    SCLogDebug("Can't register JSON output - JSON support was disabled during build.");
-}
-
-#else /* implied we do have JSON support */
+#include "util-json.h"
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
@@ -95,27 +80,27 @@ static int64_t sensor_id = -1; /* -1 = not defined */
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
-void JsonTcpFlags(uint8_t flags, json_t *js)
+void JsonTcpFlags(uint8_t flags, SCJson *js)
 {
     if (flags & TH_SYN)
-        json_object_set_new(js, "syn", json_true());
+        SCJsonSetBool(js, "syn", true);
     if (flags & TH_FIN)
-        json_object_set_new(js, "fin", json_true());
+        SCJsonSetBool(js, "fin", true);
     if (flags & TH_RST)
-        json_object_set_new(js, "rst", json_true());
+        SCJsonSetBool(js, "rst", true);
     if (flags & TH_PUSH)
-        json_object_set_new(js, "psh", json_true());
+        SCJsonSetBool(js, "psh", true);
     if (flags & TH_ACK)
-        json_object_set_new(js, "ack", json_true());
+        SCJsonSetBool(js, "ack", true);
     if (flags & TH_URG)
-        json_object_set_new(js, "urg", json_true());
+        SCJsonSetBool(js, "urg", true);
     if (flags & TH_ECN)
-        json_object_set_new(js, "ecn", json_true());
+        SCJsonSetBool(js, "ecn", true);
     if (flags & TH_CWR)
-        json_object_set_new(js, "cwr", json_true());
+        SCJsonSetBool(js, "cwr", true);
 }
 
-void CreateJSONFlowId(json_t *js, const Flow *f)
+void CreateJSONFlowId(SCJson *js, const Flow *f)
 {
     if (f == NULL)
         return;
@@ -123,19 +108,18 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     /* reduce to 51 bits as Javascript and even JSON often seem to
      * max out there. */
     flow_id &= 0x7ffffffffffffLL;
-    json_object_set_new(js, "flow_id", json_integer(flow_id));
+    SCJsonSetInt(js, "flow_id", flow_id);
 }
 
-json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
+SCJson *CreateJSONHeader(SCJson *js, const Packet *p, int direction_sensitive,
                          const char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
     Port sp, dp;
 
-    json_t *js = json_object();
-    if (unlikely(js == NULL))
-        return NULL;
+    SCJsonReset(js);
+    SCJsonOpenObject(js);
 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -183,45 +167,38 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     }
 
     /* time & tx */
-    json_object_set_new(js, "timestamp", json_string(timebuf));
-
+    SCJsonSetString(js, "timestamp", timebuf);
+    
     CreateJSONFlowId(js, (const Flow *)p->flow);
 
     /* sensor id */
     if (sensor_id >= 0)
-        json_object_set_new(js, "sensor_id", json_integer(sensor_id));
+        SCJsonSetInt(js, "sensor_id", sensor_id);
 
     /* input interface */
-    if (p->livedev) {
-        json_object_set_new(js, "in_iface", json_string(p->livedev->dev));
-    }
+    if (p->livedev)
+        SCJsonSetString(js, "in_iface", p->livedev->dev);
 
     /* pcap_cnt */
     if (p->pcap_cnt != 0) {
-        json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
+        SCJsonSetInt(js, "pcap_cnt", p->pcap_cnt);
     }
 
     if (event_type) {
-        json_object_set_new(js, "event_type", json_string(event_type));
+        SCJsonSetString(js, "event_type", event_type);
     }
 
     /* vlan */
     if (p->vlan_idx > 0) {
-        json_t *js_vlan;
         switch (p->vlan_idx) {
             case 1:
-                json_object_set_new(js, "vlan",
-                                    json_integer(VLAN_GET_ID1(p)));
+                SCJsonSetInt(js, "vlan", VLAN_GET_ID1(p));
                 break;
             case 2:
-                js_vlan = json_array();
-                if (unlikely(js != NULL)) {
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID1(p)));
-                    json_array_append_new(js_vlan,
-                                    json_integer(VLAN_GET_ID2(p)));
-                    json_object_set_new(js, "vlan", js_vlan);
-                }
+                SCJsonStartList(js, "vlan");
+                SCJsonAppendInt(js, VLAN_GET_ID1(p));
+                SCJsonAppendInt(js, VLAN_GET_ID2(p));
+                SCJsonCloseList(js);
                 break;
             default:
                 /* shouldn't get here */
@@ -230,42 +207,38 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     }
 
     /* tuple */
-    json_object_set_new(js, "src_ip", json_string(srcip));
+    SCJsonSetString(js, "src_ip", srcip);
     switch(p->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "src_port", json_integer(sp));
+            SCJsonSetInt(js, "src_port", sp);
             break;
     }
-    json_object_set_new(js, "dest_ip", json_string(dstip));
+    SCJsonSetString(js, "dest_ip", dstip);
     switch(p->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "dest_port", json_integer(dp));
+            SCJsonSetInt(js, "dest_port", dp);
             break;
     }
-    json_object_set_new(js, "proto", json_string(proto));
+    SCJsonSetString(js, "proto", proto);
     switch (p->proto) {
         case IPPROTO_ICMP:
             if (p->icmpv4h) {
-                json_object_set_new(js, "icmp_type",
-                                    json_integer(p->icmpv4h->type));
-                json_object_set_new(js, "icmp_code",
-                                    json_integer(p->icmpv4h->code));
+                SCJsonSetInt(js, "icmp_type", p->icmpv4h->type);
+                SCJsonSetInt(js, "icmp_code", p->icmpv4h->code);
             }
             break;
         case IPPROTO_ICMPV6:
             if (p->icmpv6h) {
-                json_object_set_new(js, "icmp_type",
-                                    json_integer(p->icmpv6h->type));
-                json_object_set_new(js, "icmp_code",
-                                    json_integer(p->icmpv6h->code));
+                SCJsonSetInt(js, "icmp_type", p->icmpv6h->type);
+                SCJsonSetInt(js, "icmp_code", p->icmpv6h->code);
             }
             break;
     }
@@ -273,15 +246,14 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     return js;
 }
 
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive,
+SCJson *CreateJSONHeaderWithTxId(SCJson *js, const Packet *p,
+                                 int direction_sensitive,
                                  const char *event_type, uint64_t tx_id)
 {
-    json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
-    if (unlikely(js == NULL))
-        return NULL;
+    CreateJSONHeader(js, p, direction_sensitive, event_type);
 
     /* tx id for correlation with other events */
-    json_object_set_new(js, "tx_id", json_integer(tx_id));
+    SCJsonSetInt(js, "tx_id", tx_id);
 
     return js;
 }
@@ -299,29 +271,19 @@ int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
     return 0;
 }
 
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
+int OutputJSONBuffer(SCJson *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 {
     if (file_ctx->sensor_name) {
-        json_object_set_new(js, "host",
-                            json_string(file_ctx->sensor_name));
+        SCJsonSetString(js, "host", file_ctx->sensor_name);
     }
 
     if (file_ctx->prefix) {
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
 
-    OutputJSONMemBufferWrapper wrapper = {
-        .buffer = buffer,
-        .expand_by = OUTPUT_BUFFER_SIZE
-    };
-
-    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
-            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-            JSON_ESCAPE_SLASH);
-    if (r != 0)
-        return TM_ECODE_OK;
-
+    MemBufferWriteRaw((*buffer), SCJsonGetBuf(js), strlen(SCJsonGetBuf(js)));
     LogFileWrite(file_ctx, *buffer);
+
     return 0;
 }
 
@@ -529,4 +491,3 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-#endif

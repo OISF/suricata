@@ -96,6 +96,7 @@
 #include "util-misc.h"
 #include "util-ringbuffer.h"
 #include "util-signal.h"
+#include "util-json.h"
 
 #include "reputation.h"
 #include "util-atomic.h"
@@ -222,6 +223,7 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+    UtilJsonRegisterTests();
 }
 #endif
 
