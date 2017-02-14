@@ -809,9 +809,11 @@ void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p)
  */
 void AppLayerRegisterGlobalCounters(void)
 {
-    StatsRegisterGlobalCounter("dns.memuse", DNSMemcapGetMemuseCounter);
-    StatsRegisterGlobalCounter("dns.memcap_state", DNSMemcapGetMemcapStateCounter);
-    StatsRegisterGlobalCounter("dns.memcap_global", DNSMemcapGetMemcapGlobalCounter);
+    StatsRegisterGlobalCounter("dns.memuse", rs_dns_get_memuse);
+    StatsRegisterGlobalCounter("dns.memcap_state",
+        rs_dns_get_memcap_state_hit_counter);
+    StatsRegisterGlobalCounter("dns.memcap_global",
+        rs_dns_get_memcap_global_hit_counter);
     StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
 }

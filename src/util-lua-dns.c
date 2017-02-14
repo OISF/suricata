@@ -62,25 +62,29 @@ static int DnsGetDnsRrname(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        char *c;
-        size_t input_len;
-        c = BytesToString((uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry)), query->len);
-        if (c != NULL) {
-            int ret;
-            input_len = strlen(c);
+    for (uint16_t i = 0;; i++) {
+        uint32_t buf_len;
+        uint8_t *buf;
+
+        if (!rs_dns_tx_get_query_name(tx, i, &buf, &buf_len)) {
+            break;
+        }
+        
+        char *rrname = BytesToString(buf, buf_len);
+        if (rrname != NULL) {
+            size_t input_len = strlen(rrname);
             /* sanity check */
-            if (input_len > (size_t)(2 * query->len)) {
-                SCFree(c);
+            if (input_len > (size_t)(2 * buf_len)) {
+                SCFree(rrname);
                 return LuaCallbackError(luastate, "invalid length");
             }
-            ret = LuaPushStringBuffer(luastate, (uint8_t *)c, input_len);
-            SCFree(c);
+            int ret = LuaPushStringBuffer(luastate, (uint8_t *)rrname,
+                input_len);
+            SCFree(rrname);
             return ret;
         }
     }
@@ -93,11 +97,13 @@ static int DnsGetTxid(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    lua_pushinteger(luastate, tx->tx_id);
+    uint16_t tx_id = rs_dns_tx_get_tx_id(tx);
+    lua_pushinteger(luastate, tx_id);
+
     return 1;
 }
 
@@ -106,14 +112,16 @@ static int DnsGetRcode(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
-
-    if (tx->rcode) {
-        char rcode[16] = "";
-        DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-        return LuaPushStringBuffer(luastate, (const uint8_t *)rcode, strlen(rcode));
+    
+    uint16_t flags = rs_dns_tx_get_response_flags(tx);
+    uint16_t rcode = flags & 0x000f;
+    if (rcode) {
+        char rcode_str[16] = "";
+        DNSCreateRcodeString(rcode, rcode_str, sizeof(rcode_str));
+        return LuaPushStringBuffer(luastate, (const uint8_t *)rcode_str, strlen(rcode_str));
     } else {
         return 0;
     }
@@ -124,11 +132,15 @@ static int DnsGetRecursionDesired(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    lua_pushboolean(luastate, tx->recursion_desired);
+    uint16_t flags = rs_dns_tx_get_response_flags(tx);
+    int recursion_desired = flags & 0x0080 ? 1 : 0;
+
+    lua_pushboolean(luastate, recursion_desired);
+
     return 1;
 }
 
@@ -137,43 +149,48 @@ static int DnsGetQueryTable(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    uint32_t u = 0;
     lua_newtable(luastate);
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        lua_pushinteger(luastate, u++);
 
-        lua_newtable(luastate);
-        char record[16] = "";
-        DNSCreateTypeString(query->type, record, sizeof(record));
-        lua_pushstring(luastate, "type");
-        lua_pushstring(luastate, record);
-        lua_settable(luastate, -3);
+    uint8_t *name;
+    uint32_t name_len;
 
-        {
-            char *c;
-            size_t input_len;
-            c = BytesToString((uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry)), query->len);
-            if (c != NULL) {
-                input_len = strlen(c);
-                /* sanity check */
-                if (input_len > (size_t)(2 * query->len)) {
-                    SCFree(c);
-                    return LuaCallbackError(luastate, "invalid length");
-                }
-                lua_pushstring(luastate, "rrname");
-                LuaPushStringBuffer(luastate, (uint8_t *)c, input_len);
-                lua_settable(luastate, -3);
-                SCFree(c);
-            }
+    for (uint16_t i = 0;; i++) {
+
+        if (!rs_dns_tx_get_query_name(tx, i, &name, &name_len)) {
+            break;
         }
 
+        lua_pushinteger(luastate, i);
+        lua_newtable(luastate);
 
-        lua_settable(luastate, -3);
+        uint16_t rrtype;
+        if (rs_dns_tx_get_query_rrtype(tx, i, &rrtype)) {
+            char s_rrtype[16] = "";
+            DNSCreateTypeString(rrtype, s_rrtype, sizeof(s_rrtype));
+            lua_pushstring(luastate, "type");
+            lua_pushstring(luastate, s_rrtype);
+            lua_settable(luastate, -3);
+        }
+
+        char *s = BytesToString(name, name_len);
+        if (s != NULL) {
+            size_t slen = strlen(s);
+            if (slen > name_len * 2) {
+                SCFree(s);
+                return LuaCallbackError(luastate, "invalid length");
+            }
+            lua_pushstring(luastate, "rrname");
+            LuaPushStringBuffer(luastate, (uint8_t *)s, slen);
+            lua_settable(luastate, -3);
+            SCFree(s);
+        }
+
+        lua_pushinteger(luastate, i++);
+
     }
 
     return 1;
@@ -184,19 +201,24 @@ static int DnsGetAnswerTable(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    uint32_t u = 0;
     lua_newtable(luastate);
-    DNSAnswerEntry *answer = NULL;
-    TAILQ_FOREACH(answer, &tx->answer_list, next) {
-        lua_pushinteger(luastate, u++);
 
+    for (uint16_t i = 0;; i++) {
+
+        DNSAnswer *answer = NULL;
+        if (!rs_dns_tx_get_response_answer(tx, i, answer)) {
+            break;
+        }
+
+        lua_pushinteger(luastate, i);
         lua_newtable(luastate);
+
         char record[16] = "";
-        DNSCreateTypeString(answer->type, record, sizeof(record));
+        DNSCreateTypeString(answer->rrtype, record, sizeof(record));
         lua_pushstring(luastate, "type");
         lua_pushstring(luastate, record);
         lua_settable(luastate, -3);
@@ -206,21 +228,19 @@ static int DnsGetAnswerTable(lua_State *luastate)
         lua_settable(luastate, -3);
 
         {
-            uint8_t *ptr = (uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry));
             lua_pushstring(luastate, "rrname");
-            LuaPushStringBuffer(luastate, ptr, answer->fqdn_len);
+            LuaPushStringBuffer(luastate, answer->name, answer->name_len);
             lua_settable(luastate, -3);
 
-            ptr = (uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry) + answer->fqdn_len);
-            if (answer->type == DNS_RECORD_TYPE_A) {
+            if (answer->rrtype == DNS_RECORD_TYPE_A) {
                 char a[16] = "";
-                PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
+                PrintInet(AF_INET, answer->data, a, sizeof(a));
                 lua_pushstring(luastate, "addr");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
-            } else if (answer->type == DNS_RECORD_TYPE_AAAA) {
+            } else if (answer->rrtype == DNS_RECORD_TYPE_AAAA) {
                 char a[46];
-                PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
+                PrintInet(AF_INET6, answer->data, a, sizeof(a));
                 lua_pushstring(luastate, "addr");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
@@ -228,7 +248,7 @@ static int DnsGetAnswerTable(lua_State *luastate)
                 /* not setting 'addr' */
             } else {
                 lua_pushstring(luastate, "addr");
-                LuaPushStringBuffer(luastate, (uint8_t *)ptr, answer->data_len);
+                LuaPushStringBuffer(luastate, answer->data, answer->data_len);
                 lua_settable(luastate, -3);
             }
         }
@@ -244,19 +264,18 @@ static int DnsGetAuthorityTable(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
 
-    DNSTransaction *tx = LuaStateGetTX(luastate);
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
 
-    uint32_t u = 0;
     lua_newtable(luastate);
-    DNSAnswerEntry *answer = NULL;
-    TAILQ_FOREACH(answer, &tx->authority_list, next) {
-        lua_pushinteger(luastate, u++);
+    DNSAnswer *answer = NULL;
+    for (uint16_t i = 0;; i++) {
+        lua_pushinteger(luastate, i);
 
         lua_newtable(luastate);
         char record[16] = "";
-        DNSCreateTypeString(answer->type, record, sizeof(record));
+        DNSCreateTypeString(answer->rrtype, record, sizeof(record));
         lua_pushstring(luastate, "type");
         lua_pushstring(luastate, record);
         lua_settable(luastate, -3);
@@ -268,11 +287,11 @@ static int DnsGetAuthorityTable(lua_State *luastate)
         {
             char *c;
             size_t input_len;
-            c = BytesToString((uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry)), answer->fqdn_len);
+            c = BytesToString(answer->name, answer->name_len);
             if (c != NULL) {
                 input_len = strlen(c);
                 /* sanity check */
-                if (input_len > (size_t)(2 * answer->fqdn_len)) {
+                if (input_len > (size_t)(2 * answer->name_len)) {
                     SCFree(c);
                     return LuaCallbackError(luastate, "invalid length");
                 }
@@ -282,7 +301,6 @@ static int DnsGetAuthorityTable(lua_State *luastate)
                 SCFree(c);
             }
         }
-
 
         lua_settable(luastate, -3);
     }

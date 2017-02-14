@@ -1,0 +1,14 @@
+[package]
+name = "suricata"
+version = "0.1.0"
+authors = ["Jason Ish <ish@unx.ca>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+libc = "0.2.0"
+nom = "^2.0.1"
+
+[profile.release]
+debug = true

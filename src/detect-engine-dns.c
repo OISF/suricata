@@ -66,32 +66,30 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate, void *txv, uint64_t tx_id)
 {
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
     uint8_t *buffer;
-    uint16_t buffer_len;
+    uint32_t buffer_len;
     int r = 0;
 
     SCLogDebug("start");
 
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        SCLogDebug("tx %p query %p", tx, query);
+    for (uint16_t i = 0;; i++) {
         det_ctx->discontinue_matching = 0;
         det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
-
-        //PrintRawDataFp(stdout, buffer, buffer_len);
-
-        r = DetectEngineContentInspection(de_ctx, det_ctx,
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
+            r = DetectEngineContentInspection(de_ctx, det_ctx,
                 s, s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
                 f, buffer, buffer_len, 0,
                 DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-        if (r == 1)
+            if (r == 1) {
+                break;
+            }
+        } else {
             break;
+        }
     }
+
     return r;
 }
 
@@ -109,22 +107,19 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
         const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
-
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
+    uint8_t *buffer;
+    uint32_t buffer_len;
 
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        SCLogDebug("tx %p query %p", tx, query);
-
-        const uint8_t *buffer =
-            (const uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        const uint32_t buffer_len = query->len;
-
-        if (buffer_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+    for (uint16_t i = 0;; i++) {
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
+            if (buffer_len >= mpm_ctx->minlen) {
+                (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtcu, &det_ctx->pmq,
                     buffer, buffer_len);
+            }
+        } else {
+            break;
         }
     }
 }

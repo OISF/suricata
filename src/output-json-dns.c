@@ -41,6 +41,7 @@
 #include "app-layer-parser.h"
 #include "output.h"
 #include "app-layer-dns-udp.h"
+#include "app-layer-dns-common.h"
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"
@@ -258,6 +259,11 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
+extern json_t *rs_dns_log_query(RSDNSTransaction *, uint16_t);
+extern json_t *rs_dns_log_answers(RSDNSTransaction *, uint16_t);
+extern json_t *rs_dns_log_authorities(RSDNSTransaction *, uint16_t);
+
+#if 0
 static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
 {
     if (likely(flags == ~0UL)) {
@@ -385,235 +391,7 @@ static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
             return 0;
     }
 }
-
-static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
-        uint64_t tx_id, DNSQueryEntry *entry) __attribute__((nonnull));
-
-static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
-        uint64_t tx_id, DNSQueryEntry *entry)
-{
-    SCLogDebug("got a DNS request and now logging !!");
-
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
-    json_t *djs = json_object();
-    if (djs == NULL) {
-        return;
-    }
-
-    /* reset */
-    MemBufferReset(aft->buffer);
-
-    /* type */
-    json_object_set_new(djs, "type", json_string("query"));
-
-    /* id */
-    json_object_set_new(djs, "id", json_integer(tx->tx_id));
-
-    /* query */
-    char *c;
-    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
-    if (c != NULL) {
-        json_object_set_new(djs, "rrname", json_string(c));
-        SCFree(c);
-    }
-
-    /* name */
-    char record[16] = "";
-    DNSCreateTypeString(entry->type, record, sizeof(record));
-    json_object_set_new(djs, "rrtype", json_string(record));
-
-    /* tx id (tx counter) */
-    json_object_set_new(djs, "tx_id", json_integer(tx_id));
-
-    /* dns */
-    json_object_set_new(js, "dns", djs);
-    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    json_object_del(js, "dns");
-}
-
-static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSAnswerEntry *entry) __attribute__((nonnull));
-
-static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSAnswerEntry *entry)
-{
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
-    json_t *js = json_object();
-    if (js == NULL)
-        return;
-
-    /* type */
-    json_object_set_new(js, "type", json_string("answer"));
-
-    /* id */
-    json_object_set_new(js, "id", json_integer(tx->tx_id));
-
-    /* rcode */
-    char rcode[16] = "";
-    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-    json_object_set_new(js, "rcode", json_string(rcode));
-
-    /* query */
-    if (entry->fqdn_len > 0) {
-        char *c;
-        c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)),
-                entry->fqdn_len);
-        if (c != NULL) {
-            json_object_set_new(js, "rrname", json_string(c));
-            SCFree(c);
-        }
-    }
-
-    /* name */
-    char record[16] = "";
-    DNSCreateTypeString(entry->type, record, sizeof(record));
-    json_object_set_new(js, "rrtype", json_string(record));
-
-    /* ttl */
-    json_object_set_new(js, "ttl", json_integer(entry->ttl));
-
-    uint8_t *ptr = (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)+ entry->fqdn_len);
-    if (entry->type == DNS_RECORD_TYPE_A) {
-        char a[16] = "";
-        PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
-        json_object_set_new(js, "rdata", json_string(a));
-    } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
-        char a[46] = "";
-        PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
-        json_object_set_new(js, "rdata", json_string(a));
-    } else if (entry->data_len == 0) {
-        json_object_set_new(js, "rdata", json_string(""));
-    } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME ||
-            entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR ||
-            entry->type == DNS_RECORD_TYPE_NS) {
-        if (entry->data_len != 0) {
-            char buffer[256] = "";
-            uint16_t copy_len = entry->data_len < (sizeof(buffer) - 1) ?
-                entry->data_len : sizeof(buffer) - 1;
-            memcpy(buffer, ptr, copy_len);
-            buffer[copy_len] = '\0';
-            json_object_set_new(js, "rdata", json_string(buffer));
-        } else {
-            json_object_set_new(js, "rdata", json_string(""));
-        }
-    } else if (entry->type == DNS_RECORD_TYPE_SSHFP) {
-        if (entry->data_len > 2) {
-            /* get algo and type */
-            uint8_t algo = *ptr;
-            uint8_t fptype = *(ptr+1);
-
-            /* turn fp raw buffer into a nice :-separate hex string */
-            uint16_t fp_len = (entry->data_len - 2);
-            uint8_t *dptr = ptr+2;
-
-            /* c-string for ':' separated hex and trailing \0. */
-            uint32_t output_len = fp_len * 3 + 1;
-            char hexstring[output_len];
-            memset(hexstring, 0x00, output_len);
-
-            uint16_t x;
-            for (x = 0; x < fp_len; x++) {
-                char one[4];
-                snprintf(one, sizeof(one), x == fp_len - 1 ? "%02x" : "%02x:", dptr[x]);
-                strlcat(hexstring, one, output_len);
-            }
-
-            /* wrap the whole thing in it's own structure */
-            json_t *hjs = json_object();
-            if (hjs != NULL) {
-                json_object_set_new(hjs, "fingerprint", json_string(hexstring));
-                json_object_set_new(hjs, "algo", json_integer(algo));
-                json_object_set_new(hjs, "type", json_integer(fptype));
-
-                json_object_set_new(js, "sshfp", hjs);
-            }
-        }
-    }
-
-    /* reset */
-    MemBufferReset(aft->buffer);
-    json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    json_object_del(djs, "dns");
-
-    return;
-}
-
-static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSQueryEntry *entry) __attribute__((nonnull));
-
-static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSQueryEntry *entry)
-{
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
-    json_t *js = json_object();
-    if (js == NULL)
-        return;
-
-    /* type */
-    json_object_set_new(js, "type", json_string("answer"));
-
-    /* id */
-    json_object_set_new(js, "id", json_integer(tx->tx_id));
-
-    /* rcode */
-    char rcode[16] = "";
-    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
-    json_object_set_new(js, "rcode", json_string(rcode));
-
-    /* no answer RRs, use query for rname */
-    char *c;
-    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
-    if (c != NULL) {
-        json_object_set_new(js, "rrname", json_string(c));
-        SCFree(c);
-    }
-
-    /* reset */
-    MemBufferReset(aft->buffer);
-    json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    json_object_del(djs, "dns");
-
-    return;
-}
-
-static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id)
-{
-
-    SCLogDebug("got a DNS response and now logging !!");
-
-    /* rcode != noerror */
-    if (tx->rcode) {
-        /* Most DNS servers do not support multiple queries because
-         * the rcode in response is not per-query.  Multiple queries
-         * are likely to lead to FORMERR, so log this. */
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            OutputFailure(aft, js, tx, query);
-        }
-    }
-
-    DNSAnswerEntry *entry = NULL;
-    TAILQ_FOREACH(entry, &tx->answer_list, next) {
-        OutputAnswer(aft, js, tx, entry);
-    }
-
-    entry = NULL;
-    TAILQ_FOREACH(entry, &tx->authority_list, next) {
-        OutputAnswer(aft, js, tx, entry);
-    }
-
-}
+#endif
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
@@ -622,23 +400,29 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
-    if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            js = CreateJSONHeader((Packet *)p, 1, "dns");
-            if (unlikely(js == NULL))
-                return TM_ECODE_OK;
-
-            LogQuery(td, js, tx, tx_id, query);
-
-            json_decref(js);
-        }
+    if (likely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
+        return TM_ECODE_OK;
     }
 
-    SCReturnInt(TM_ECODE_OK);
+    js = CreateJSONHeader((Packet *)p, 1, "dns");
+    
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        json_t *dnsjs = rs_dns_log_query(txptr, i);
+        if (dnsjs == NULL) {
+            break;
+        }
+        
+        json_object_set_new(js, "dns", dnsjs);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_object_del(js, "dns");
+    }
+    
+    json_decref(js);
+    
+    return TM_ECODE_OK;
 }
 
 static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
@@ -648,19 +432,38 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
-    if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
-
-        LogAnswers(td, js, tx, tx_id);
-
-        json_decref(js);
+    if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
+        SCReturnInt(TM_ECODE_OK);
     }
 
+    js = CreateJSONHeader((Packet *)p, 0, "dns");
+    
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        json_t *answer = rs_dns_log_answers(txptr, i);
+        if (answer == NULL) {
+            break;
+        }
+        json_object_set_new(js, "dns", answer);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_object_del(js, "dns");
+    }
+    
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        json_t *answer = rs_dns_log_authorities(txptr, i);
+        if (answer == NULL) {
+            break;
+        }
+        json_object_set_new(js, "dns", answer);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_object_del(js, "dns");
+    }
+
+    json_decref(js);
+    
     SCReturnInt(TM_ECODE_OK);
 }
 
