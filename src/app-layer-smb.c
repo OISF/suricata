@@ -50,6 +50,14 @@
 
 #include "app-layer-smb.h"
 
+struct _SmbParser;
+typedef struct _SmbParser SmbParser;
+
+extern SmbParser *r_smb_state_new(void);
+extern void r_smb_state_free(SmbParser *);
+extern uint32_t r_smb_probe(uint8_t *input, uint32_t input_len, uint32_t *offset);
+extern uint32_t r_smb_parse(uint8_t direction, const unsigned char* value, uint32_t len, SmbParser *state) __attribute__((warn_unused_result));
+
 enum {
     SMB_FIELD_NONE = 0,
     SMB_PARSE_NBSS_HEADER,
@@ -61,7 +69,7 @@ enum {
     /* must be last */
     SMB_FIELD_MAX,
 };
-
+#if 0
 /**
  *  \brief SMB Write AndX Request Parsing
  */
@@ -1379,22 +1387,26 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     sstate->data_needed_for_dir = dir;
     SCReturnInt(1);
 }
-
+#endif
 static int SMBParseRequest(Flow *f, void *smb_state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
                            void *local_data)
 {
-    return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
+    int r = r_smb_parse(0, input, input_len, smb_state);
+    return r;
+    //return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
 }
 
 static int SMBParseResponse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {
-    return SMBParse(f, smb_state, pstate, input, input_len, local_data, 1);
+    int r = r_smb_parse(1, input, input_len, smb_state);
+    return r;
+    //return SMBParse(f, smb_state, pstate, input, input_len, local_data, 1);
 }
 
-
+#if 0
 /**
  * \brief determines if the SMB command is an ANDX command
  * \retval 1 if smb command is an AndX command
@@ -1421,6 +1433,7 @@ int isAndX(SMBState *smb_state)
             SCReturnInt(0);
     }
 }
+#endif
 
 /** \internal
  *  \brief Allocate a SMBState
@@ -1428,6 +1441,7 @@ int isAndX(SMBState *smb_state)
  */
 static void *SMBStateAlloc(void)
 {
+#if 0
     SCEnter();
 
     SMBState *s = (SMBState *)SCCalloc(1, sizeof(SMBState));
@@ -1436,7 +1450,8 @@ static void *SMBStateAlloc(void)
     }
 
     DCERPCInit(&s->dcerpc);
-
+#endif
+    void *s = r_smb_state_new();
     SCReturnPtr(s, "void");
 }
 
@@ -1445,6 +1460,8 @@ static void *SMBStateAlloc(void)
  */
 static void SMBStateFree(void *s)
 {
+    r_smb_state_free(s);
+#if 0
     SCEnter();
     SMBState *sstate = (SMBState *) s;
 
@@ -1452,6 +1469,7 @@ static void SMBStateFree(void *s)
 
     SCFree(s);
     SCReturn;
+#endif
 }
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
