@@ -469,3 +469,37 @@ int SCStringPatternToTime (char *string, char **patterns, int num_patterns,
 
     return 0;
 }
+
+/**
+ * \brief Convert epoch time to string pattern.
+ *
+ * This function converts epoch time to a string based on a pattern.
+ *
+ * \param epoch   Epoch time.
+ * \param pattern String pattern.
+ * \param str     Formated string.
+ * \param size    Size of allocated string.
+ *
+ * \retval 0 on success.
+ * \retval 1 on failure.
+ */
+int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str, size_t size)
+{
+    struct tm tm;
+    memset(&tm, 0, sizeof(tm));
+    struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
+    char buffer[PATH_MAX] = { 0 };
+
+    if (unlikely(tp == NULL)) {
+        return 1;
+    }
+
+    int r = strftime(buffer, sizeof(buffer), pattern, tp);
+    if (r == 0) {
+        return 1;
+    }
+
+    strlcpy(str, buffer, size);
+
+    return 0;
+}
