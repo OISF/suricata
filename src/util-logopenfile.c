@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <libgen.h>
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 #include "tm-modules.h"      /* LogFileCtx */
@@ -188,6 +189,41 @@ static char *SCLogFilenameFromPattern(const char *pattern)
     return filename;
 }
 
+/** \brief recursively create missing log directories
+ *  \param path path to log file
+ *  \retval 0 on success
+ *  \retval -1 on error
+ */
+static int SCLogCreateDirectoryTree(const char *filepath)
+{
+    char pathbuf[PATH_MAX];
+    char *p;
+    size_t len = strlen(filepath);
+
+    if (len > PATH_MAX - 1) {
+        return -1;
+    }
+
+    strlcpy(pathbuf, filepath, len);
+
+    for (p = pathbuf + 1; *p; p++) {
+        if (*p == '/') {
+            /* Truncate, while creating directory */
+            *p = '\0';
+
+            if (mkdir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+                if (errno != EEXIST) {
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    return 0;
+}
+
 static void SCLogFileClose(LogFileCtx *log_ctx)
 {
     if (log_ctx->fp)
@@ -208,6 +244,12 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
 
     char *filename = SCLogFilenameFromPattern(path);
     if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCLogCreateDirectoryTree(filename);
+    if (rc < 0) {
+        SCFree(filename);
         return NULL;
     }
 
