@@ -49,8 +49,6 @@
 #include "util-time.h"
 #include "output-json.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -63,6 +61,7 @@ typedef struct JsonHttpLogThread_ {
     uint32_t uri_cnt;
 
     MemBuffer *buffer;
+    SCJson *js;
 } JsonHttpLogThread;
 
 
@@ -181,7 +180,7 @@ struct {
     { "www_authenticate", "www-authenticate", 0 },
 };
 
-void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
+void JsonHttpLogJSONBasic(SCJson *js, htp_tx_t *tx)
 {
     char *c;
 
@@ -190,7 +189,7 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_hostname);
         if (c != NULL) {
-            json_object_set_new(js, "hostname", json_string(c));
+            SCJsonSetString(js, "hostname", c);
             SCFree(c);
         }
     }
@@ -200,7 +199,7 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_uri);
         if (c != NULL) {
-            json_object_set_new(js, "url", json_string(c));
+            SCJsonSetString(js, "url", c);
             SCFree(c);
         }
     }
@@ -213,7 +212,7 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     if (h_user_agent != NULL) {
         c = bstr_util_strdup_to_c(h_user_agent->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_user_agent", json_string(c));
+            SCJsonSetString(js, "http_user_agent", c);
             SCFree(c);
         }
     }
@@ -226,7 +225,7 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     if (h_x_forwarded_for != NULL) {
         c = bstr_util_strdup_to_c(h_x_forwarded_for->value);
         if (c != NULL) {
-            json_object_set_new(js, "xff", json_string(c));
+            SCJsonSetString(js, "xff", c);
             SCFree(c);
         }
     }
@@ -243,13 +242,13 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
             p = strchr(c, ';');
             if (p != NULL)
                 *p = '\0';
-            json_object_set_new(js, "http_content_type", json_string(c));
+            SCJsonSetString(js, "http_content_type", c);
             SCFree(c);
         }
     }
 }
 
-static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t *tx)
+static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, SCJson *js, htp_tx_t *tx)
 {
     char *c;
     HttpField f;
@@ -280,9 +279,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
                 if (h_field != NULL) {
                     c = bstr_util_strdup_to_c(h_field->value);
                     if (c != NULL) {
-                        json_object_set_new(js,
-                                http_fields[f].config_field,
-                                json_string(c));
+                        SCJsonSetString(js, http_fields[f].config_field, c);
                         SCFree(c);
                     }
                 }
@@ -291,7 +288,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
     }
 }
 
-void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
+void JsonHttpLogJSONExtended(SCJson *js, htp_tx_t *tx)
 {
     char *c;
 
@@ -303,7 +300,7 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (h_referer != NULL) {
         c = bstr_util_strdup_to_c(h_referer->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_refer", json_string(c));
+            SCJsonSetString(js, "http_refer", c);
             SCFree(c);
         }
     }
@@ -312,7 +309,7 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_method != NULL) {
         c = bstr_util_strdup_to_c(tx->request_method);
         if (c != NULL) {
-            json_object_set_new(js, "http_method", json_string(c));
+            SCJsonSetString(js, "http_method", c);
             SCFree(c);
         }
     }
@@ -321,7 +318,7 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_protocol != NULL) {
         c = bstr_util_strdup_to_c(tx->request_protocol);
         if (c != NULL) {
-            json_object_set_new(js, "protocol", json_string(c));
+            SCJsonSetString(js, "protocol", c);
             SCFree(c);
         }
     }
@@ -331,7 +328,7 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
         c = bstr_util_strdup_to_c(tx->response_status);
         if (c != NULL) {
             unsigned int val = strtoul(c, NULL, 10);
-            json_object_set_new(js, "status", json_integer(val));
+            SCJsonSetInt(js, "status", val);
             SCFree(c);
         }
 
@@ -339,33 +336,31 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
         if (h_location != NULL) {
             c = bstr_util_strdup_to_c(h_location->value);
             if (c != NULL) {
-                json_object_set_new(js, "redirect", json_string(c));
+                SCJsonSetString(js, "redirect", c);
                 SCFree(c);
             }
         }
     }
 
     /* length */
-    json_object_set_new(js, "length", json_integer(tx->response_message_len));
+    SCJsonSetInt(js, "length", tx->response_message_len);
 }
 
 /* JSON format logging */
-static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
+static void JsonHttpLogJSON(JsonHttpLogThread *aft, SCJson *js, htp_tx_t *tx, uint64_t tx_id)
 {
     LogHttpFileCtx *http_ctx = aft->httplog_ctx;
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
 
-    JsonHttpLogJSONBasic(hjs, tx);
+    SCJsonStartObject(js, "http");
+
+    JsonHttpLogJSONBasic(js, tx);
     /* log custom fields if configured */
     if (http_ctx->fields != 0)
-        JsonHttpLogJSONCustom(http_ctx, hjs, tx);
+        JsonHttpLogJSONCustom(http_ctx, js, tx);
     if (http_ctx->flags & LOG_HTTP_EXTENDED)
-        JsonHttpLogJSONExtended(hjs, tx);
+        JsonHttpLogJSONExtended(js, tx);
 
-    json_object_set_new(js, "http", hjs);
+    SCJsonCloseObject(js);
 }
 
 static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
@@ -374,10 +369,9 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     htp_tx_t *tx = txptr;
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
+    SCJson *js = jhl->js;
 
-    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http", tx_id); //TODO const
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    CreateJSONHeaderWithTxId(js, (Packet *)p, 1, "http", tx_id); //TODO const
 
     SCLogDebug("got a HTTP request and now logging !!");
 
@@ -385,35 +379,29 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     MemBufferReset(jhl->buffer);
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
-
+    SCJsonCloseObject(js);
     OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "http");
-
-    json_object_clear(js);
-    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
 
-json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
+/**
+ * \retval true of metadata was added, otherwise false
+ */
+bool JsonHttpAddMetadata(SCJson *js, const Flow *f, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
 
         if (tx) {
-            json_t *hjs = json_object();
-            if (unlikely(hjs == NULL))
-                return NULL;
-
-            JsonHttpLogJSONBasic(hjs, tx);
-            JsonHttpLogJSONExtended(hjs, tx);
-
-            return hjs;
+            JsonHttpLogJSONBasic(js, tx);
+            JsonHttpLogJSONExtended(js, tx);
+            return true;
         }
     }
 
-    return NULL;
+    return false;
 }
 
 static void OutputHttpLogDeinit(OutputCtx *output_ctx)
@@ -563,6 +551,13 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    aft->js = SCJsonNew();
+    if (aft->js == NULL) {
+        MemBufferFree(aft->buffer);
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -574,6 +569,7 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    SCJsonFree(aft->js);
     MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(JsonHttpLogThread));
@@ -594,11 +590,3 @@ void JsonHttpLogRegister (void)
         "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
         JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonHttpLogRegister (void)
-{
-}
-
-#endif

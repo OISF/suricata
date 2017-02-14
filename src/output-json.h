@@ -27,10 +27,10 @@
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-json.h"
 
 void OutputJsonRegister(void);
 
-#ifdef HAVE_LIBJANSSON
 /* helper struct for OutputJSONMemBufferCallback */
 typedef struct OutputJSONMemBufferWrapper_ {
     MemBuffer **buffer; /**< buffer to use & expand as needed */
@@ -39,11 +39,11 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
-void CreateJSONFlowId(json_t *js, const Flow *f);
-void JsonTcpFlags(uint8_t flags, json_t *js);
-json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
+void CreateJSONFlowId(SCJson *js, const Flow *f);
+void JsonTcpFlags(uint8_t flags, SCJson *js);
+SCJson *CreateJSONHeader(SCJson *js, const Packet *p, int direction_sensative, const char *event_type);
+SCJson *CreateJSONHeaderWithTxId(SCJson *js, const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
+int OutputJSONBuffer(SCJson *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
 enum JsonFormat { COMPACT, INDENT };
@@ -61,7 +61,5 @@ typedef struct AlertJsonThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx *file_ctx;
 } AlertJsonThread;
-
-#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_H__ */

@@ -24,13 +24,13 @@
 #ifndef __OUTPUT_JSON_HTTP_H__
 #define __OUTPUT_JSON_HTTP_H__
 
+#include "util-json.h"
+
 void JsonHttpLogRegister(void);
 
-#ifdef HAVE_LIBJANSSON
-void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx);
-void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx);
-json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id);
-#endif /* HAVE_LIBJANSSON */
+void JsonHttpLogJSONBasic(SCJson *js, htp_tx_t *tx);
+void JsonHttpLogJSONExtended(SCJson *js, htp_tx_t *tx);
+bool JsonHttpAddMetadata(SCJson *js, const Flow *f, uint64_t tx_id);
 
 #endif /* __OUTPUT_JSON_HTTP_H__ */
 

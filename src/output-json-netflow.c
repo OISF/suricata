@@ -48,8 +48,6 @@
 
 #include "stream-tcp-private.h"
 
-#ifdef HAVE_LIBJANSSON
-
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
 } LogJsonFileCtx;
@@ -59,18 +57,19 @@ typedef struct JsonNetFlowLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
 
     MemBuffer *buffer;
+    SCJson *js;
 } JsonNetFlowLogThread;
 
 
-static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
+static SCJson *CreateJSONHeaderFromFlow(SCJson *js, Flow *f, char *event_type,
+    int dir)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
     Port sp, dp;
 
-    json_t *js = json_object();
-    if (unlikely(js == NULL))
-        return NULL;
+    SCJsonReset(js);
+    SCJsonOpenObject(js);
 
     struct timeval tv;
     memset(&tv, 0x00, sizeof(tv));
@@ -114,7 +113,7 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
     }
 
     /* time */
-    json_object_set_new(js, "timestamp", json_string(timebuf));
+    SCJsonSetString(js, "timestamp", timebuf);
 
     CreateJSONFlowId(js, (const Flow *)f);
 
@@ -124,7 +123,7 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
         json_object_set_new(js, "sensor_id", json_integer(sensor_id));
 #endif
     if (event_type) {
-        json_object_set_new(js, "event_type", json_string(event_type));
+        SCJsonSetString(js, "event_type", event_type);
     }
 #if 0
     /* vlan */
@@ -152,135 +151,116 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
     }
 #endif
     /* tuple */
-    json_object_set_new(js, "src_ip", json_string(srcip));
+    SCJsonSetString(js, "src_ip", srcip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "src_port", json_integer(sp));
+            SCJsonSetInt(js, "src_port", sp);
             break;
     }
-    json_object_set_new(js, "dest_ip", json_string(dstip));
+    SCJsonSetString(js, "dest_ip", dstip);
     switch(f->proto) {
         case IPPROTO_ICMP:
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            json_object_set_new(js, "dest_port", json_integer(dp));
+            SCJsonSetInt(js, "dest_port", dp);
             break;
     }
-    json_object_set_new(js, "proto", json_string(proto));
+    SCJsonSetString(js, "proto", proto);
     switch (f->proto) {
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6:
-            json_object_set_new(js, "icmp_type",
-                    json_integer(f->type));
-            json_object_set_new(js, "icmp_code",
-                    json_integer(f->code));
+            SCJsonSetInt(js, "icmp_type", f->type);
+            SCJsonSetInt(js, "icmp_code", f->code);
             break;
     }
     return js;
 }
 
 /* JSON format logging */
-static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Flow *f)
+static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, SCJson *js, Flow *f)
 {
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
+    SCJsonSetString(js, "app_proto",
+        AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto));
+        
+    SCJsonStartObject(js, "netflow");
 
-    json_object_set_new(js, "app_proto",
-            json_string(AppProtoToString(f->alproto_ts ? f->alproto_ts : f->alproto)));
-
-    json_object_set_new(hjs, "pkts",
-            json_integer(f->todstpktcnt));
-    json_object_set_new(hjs, "bytes",
-            json_integer(f->todstbytecnt));
+    SCJsonSetInt(js, "pkts", f->todstpktcnt);
+    SCJsonSetInt(js, "bytes", f->todstbytecnt);
 
     char timebuf1[64], timebuf2[64];
 
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
     CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
 
-    json_object_set_new(hjs, "start", json_string(timebuf1));
-    json_object_set_new(hjs, "end", json_string(timebuf2));
+    SCJsonSetString(js, "start", timebuf1);
+    SCJsonSetString(js, "end", timebuf2);
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
-    json_object_set_new(hjs, "age",
-            json_integer(age));
+    SCJsonSetInt(js, "age", age);
 
-    json_object_set_new(js, "netflow", hjs);
+    SCJsonCloseObject(js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
-        json_t *tjs = json_object();
-        if (tjs == NULL) {
-            return;
-        }
+        SCJsonStartObject(js, "tcp");
 
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->client.tcp_flags : 0);
-        json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
+        SCJsonSetString(js, "tcp_flags", hexflags);
 
-        JsonTcpFlags(ssn ? ssn->client.tcp_flags : 0, tjs);
+        JsonTcpFlags(ssn ? ssn->client.tcp_flags : 0, js);
 
-        json_object_set_new(js, "tcp", tjs);
+        SCJsonCloseObject(js);
     }
 }
 
-static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Flow *f)
+static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, SCJson *js, Flow *f)
 {
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
 
-    json_object_set_new(js, "app_proto",
-            json_string(AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto)));
+    SCJsonSetString(js, "app_proto",
+        AppProtoToString(f->alproto_tc ? f->alproto_tc : f->alproto));
 
-    json_object_set_new(hjs, "pkts",
-            json_integer(f->tosrcpktcnt));
-    json_object_set_new(hjs, "bytes",
-            json_integer(f->tosrcbytecnt));
+    SCJsonStartObject(js, "netflow");
+
+    SCJsonSetInt(js, "pkts", f->tosrcpktcnt);
+    SCJsonSetInt(js, "bytes", f->tosrcbytecnt);
 
     char timebuf1[64], timebuf2[64];
 
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
     CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
 
-    json_object_set_new(hjs, "start", json_string(timebuf1));
-    json_object_set_new(hjs, "end", json_string(timebuf2));
+    SCJsonSetString(js, "start", timebuf1);
+    SCJsonSetString(js, "end", timebuf2);
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
-    json_object_set_new(hjs, "age",
-            json_integer(age));
+    SCJsonSetInt(js, "age", age);
 
-    json_object_set_new(js, "netflow", hjs);
+    SCJsonCloseObject(js);
 
     /* TCP */
     if (f->proto == IPPROTO_TCP) {
-        json_t *tjs = json_object();
-        if (tjs == NULL) {
-            return;
-        }
+        SCJsonStartObject(js, "tcp");
 
         TcpSession *ssn = f->protoctx;
 
         char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->server.tcp_flags : 0);
-        json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
+        SCJsonSetString(js, "tcp_flags", hexflags);
 
-        JsonTcpFlags(ssn ? ssn->server.tcp_flags : 0, tjs);
+        JsonTcpFlags(ssn ? ssn->server.tcp_flags : 0, js);
 
-        json_object_set_new(js, "tcp", tjs);
+        SCJsonCloseObject(js);
     }
 }
 
@@ -288,28 +268,23 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonNetFlowLogThread *jhl = (JsonNetFlowLogThread *)thread_data;
+    SCJson *js = jhl->js;
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0); //TODO const
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    CreateJSONHeaderFromFlow(js, f, "netflow", 0); //TODO const
     JsonNetFlowLogJSONToServer(jhl, js, f);
+    SCJsonCloseObject(js);
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "netflow");
-    json_object_clear(js);
-    json_decref(js);
+    SCJsonReset(js);
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    js = CreateJSONHeaderFromFlow(f, "netflow", 1); //TODO const
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    CreateJSONHeaderFromFlow(js, f, "netflow", 1); //TODO const
     JsonNetFlowLogJSONToClient(jhl, js, f);
+    SCJsonCloseObject(js);
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "netflow");
-    json_object_clear(js);
-    json_decref(js);
+    SCJsonReset(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -411,6 +386,13 @@ static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, void *initdata, void **da
         return TM_ECODE_FAILED;
     }
 
+    aft->js = SCJsonNew();
+    if (aft->js == NULL) {
+        MemBufferFree(aft->buffer);
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -425,6 +407,8 @@ static TmEcode JsonNetFlowLogThreadDeinit(ThreadVars *t, void *data)
     MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(JsonNetFlowLogThread));
+
+    SCJsonFree(aft->js);
 
     SCFree(aft);
     return TM_ECODE_OK;
@@ -442,11 +426,3 @@ void JsonNetFlowLogRegister(void)
         "eve-log.netflow", OutputNetFlowLogInitSub, JsonNetFlowLogger,
         JsonNetFlowLogThreadInit, JsonNetFlowLogThreadDeinit, NULL);
 }
-
-#else
-
-void JsonNetFlowLogRegister (void)
-{
-}
-
-#endif
