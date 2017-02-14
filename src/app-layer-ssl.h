@@ -122,6 +122,10 @@ typedef struct SSLCertsChain_ {
     TAILQ_ENTRY(SSLCertsChain_) next;
 } SSLCertsChain;
 
+typedef struct SSLCipherSuite_ {
+    uint16_t value;
+    const char *description;
+} SSLCipherSuite;
 
 typedef struct SSLStateConnp_ {
     /* record length */
@@ -135,6 +139,9 @@ typedef struct SSLStateConnp_ {
 
     uint16_t version;
     uint8_t content_type;
+
+    uint16_t num_cipher_suites;       /** < Number of cipher suites */
+    uint16_t *cipher_suites;          /** < The lit of cipher suites */
 
     uint8_t handshake_type;
     uint32_t handshake_length;
@@ -203,5 +210,8 @@ typedef struct SSLState_ {
 void RegisterSSLParsers(void);
 void SSLParserRegisterTests(void);
 void SSLSetEvent(SSLState *ssl_state, uint8_t event);
+
+const char * SSLCipherSuiteDescription(uint16_t value);
+SSLCipherSuite * SSLCipherSuites(size_t *len);
 
 #endif /* __APP_LAYER_SSL_H__ */

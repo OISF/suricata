@@ -21,6 +21,7 @@
  * \author Roliers Jean-Paul <popof.fpn@gmail.co>
  * \author Eric Leblond <eric@regit.org>
  * \author Victor Julien <victor@inliniac.net>
+ * \author Paulo Pacheco <fooinha@gmail.com>
  *
  * Implements TLS logging portion of the engine. The TLS logger is
  * implemented as a packet logger, as the TLS parser is not transaction
@@ -53,6 +54,7 @@
 #include "util-logopenfile.h"
 #include "util-crypt.h"
 #include "util-time.h"
+#include "log-cf-common.h"
 
 #define DEFAULT_LOG_FILENAME "tls.log"
 
@@ -63,10 +65,22 @@
 
 #define LOG_TLS_DEFAULT     0
 #define LOG_TLS_EXTENDED    1
+#define LOG_TLS_CUSTOM      2
+
+#define LOG_TLS_CF_VERSION 'v'
+#define LOG_TLS_CF_DATE_NOT_BEFORE 'd'
+#define LOG_TLS_CF_DATE_NOT_AFTER 'D'
+#define LOG_TLS_CF_SHA1 'f'
+#define LOG_TLS_CF_SNI 'n'
+#define LOG_TLS_CF_SUBJECT 's'
+#define LOG_TLS_CF_ISSUER 'i'
+#define LOG_TLS_CF_EXTENDED 'E'
+#define LOG_TLS_CF_SERVER_CIPHERSUITE 'C'
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
+    LogCustomFormat *cf;
 } LogTlsFileCtx;
 
 typedef struct LogTlsLogThread_ {
@@ -78,55 +92,70 @@ typedef struct LogTlsLogThread_ {
     MemBuffer *buffer;
 } LogTlsLogThread;
 
+static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
+{
+    switch (version) {
+        case TLS_VERSION_UNKNOWN:
+            MemBufferWriteString(buffer, "VERSION='UNDETERMINED'");
+            break;
+        case SSL_VERSION_2:
+            MemBufferWriteString(buffer, "VERSION='SSLv2'");
+            break;
+        case SSL_VERSION_3:
+            MemBufferWriteString(buffer, "VERSION='SSLv3'");
+            break;
+        case TLS_VERSION_10:
+            MemBufferWriteString(buffer, "VERSION='TLSv1'");
+            break;
+        case TLS_VERSION_11:
+            MemBufferWriteString(buffer, "VERSION='TLS 1.1'");
+            break;
+        case TLS_VERSION_12:
+            MemBufferWriteString(buffer, "VERSION='TLS 1.2'");
+            break;
+        default:
+            MemBufferWriteString(buffer, "VERSION='0x%04x'", version);
+            break;
+    }
+}
+
+static void LogTlsLogDate(MemBuffer *buffer, const char *title, time_t *date)
+{
+    char timebuf[64] = {0};
+    struct timeval tv;
+    tv.tv_sec = *date;
+    tv.tv_usec = 0;
+    CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+    MemBufferWriteString(buffer, "%s='%s'", title, timebuf);
+}
+
+static void LogTlsLogString(MemBuffer *buffer, const char *title, const char *value)
+{
+    MemBufferWriteString(buffer, "%s='%s'", title, value);
+}
+
 static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
 {
     if (state->server_connp.cert0_fingerprint != NULL) {
-        MemBufferWriteString(aft->buffer, " SHA1='%s'", state->server_connp.cert0_fingerprint);
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SHA1", state->server_connp.cert0_fingerprint);
     }
     if (state->client_connp.sni != NULL) {
-        MemBufferWriteString(aft->buffer, " SNI='%s'", state->client_connp.sni);
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SNI", state->client_connp.sni);
     }
-    switch (state->server_connp.version) {
-        case TLS_VERSION_UNKNOWN:
-            MemBufferWriteString(aft->buffer, " VERSION='UNDETERMINED'");
-            break;
-        case SSL_VERSION_2:
-            MemBufferWriteString(aft->buffer, " VERSION='SSLv2'");
-            break;
-        case SSL_VERSION_3:
-            MemBufferWriteString(aft->buffer, " VERSION='SSLv3'");
-            break;
-        case TLS_VERSION_10:
-            MemBufferWriteString(aft->buffer, " VERSION='TLSv1'");
-            break;
-        case TLS_VERSION_11:
-            MemBufferWriteString(aft->buffer, " VERSION='TLS 1.1'");
-            break;
-        case TLS_VERSION_12:
-            MemBufferWriteString(aft->buffer, " VERSION='TLS 1.2'");
-            break;
-        default:
-            MemBufferWriteString(aft->buffer, " VERSION='0x%04x'",
-                                 state->server_connp.version);
-            break;
-    }
+
+    LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+    LogTlsLogVersion(aft->buffer, state->server_connp.version);
+
     if (state->server_connp.cert0_not_before != 0) {
-        char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = state->server_connp.cert0_not_before;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-        MemBufferWriteString(aft->buffer, " NOTBEFORE='%s'", timebuf);
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogDate(aft->buffer, "NOTBEFORE", &state->server_connp.cert0_not_before);
     }
     if (state->server_connp.cert0_not_after != 0) {
-        char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = state->server_connp.cert0_not_after;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-        MemBufferWriteString(aft->buffer, " NOTAFTER='%s'", timebuf);
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogDate(aft->buffer, "NOTAFTER", &state->server_connp.cert0_not_after);
     }
-    MemBufferWriteString(aft->buffer, "\n");
 }
 
 int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
@@ -212,6 +241,7 @@ static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
     LogFileFreeCtx(tlslog_ctx->file_ctx);
+    LogCustomFormatFree(tlslog_ctx->cf);
     SCFree(tlslog_ctx);
     SCFree(output_ctx);
 }
@@ -250,11 +280,28 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     tlslog_ctx->file_ctx = file_ctx;
 
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
-    if (extended == NULL) {
-        tlslog_ctx->flags |= LOG_TLS_DEFAULT;
+    const char *custom = ConfNodeLookupChildValue(conf, "custom");
+    const char *customformat = ConfNodeLookupChildValue(conf, "customformat");
+
+    /* If custom logging format is selected, lets parse it */
+    if (custom != NULL && customformat != NULL && ConfValIsTrue(custom)) {
+        tlslog_ctx->cf = LogCustomFormatAlloc();
+        if (!tlslog_ctx->cf) {
+            goto tlslog_error;
+        }
+
+        tlslog_ctx->flags |= LOG_TLS_CUSTOM;
+        /* Parsing */
+        if ( ! LogCustomFormatParse(tlslog_ctx->cf, customformat)) {
+            goto parser_error;
+        }
     } else {
-        if (ConfValIsTrue(extended)) {
-            tlslog_ctx->flags |= LOG_TLS_EXTENDED;
+        if (extended == NULL) {
+            tlslog_ctx->flags |= LOG_TLS_DEFAULT;
+        } else {
+            if (ConfValIsTrue(extended)) {
+                tlslog_ctx->flags |= LOG_TLS_EXTENDED;
+            }
         }
     }
 
@@ -270,13 +317,128 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
     return output_ctx;
-
+parser_error:
+    SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom tls log format string.");
 tlslog_error:
+    LogCustomFormatFree(tlslog_ctx->cf);
     SCFree(tlslog_ctx);
 filectx_error:
     LogFileFreeCtx(file_ctx);
     return NULL;
 }
+
+/* Custom format logging */
+static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const struct timeval *ts,
+                            char *srcip, Port sp, char *dstip, Port dp)
+{
+    LogTlsFileCtx *tlslog_ctx = aft->tlslog_ctx;
+    uint32_t i;
+    char buf[6];
+
+    for (i = 0; i < tlslog_ctx->cf->cf_n; i++) {
+
+        LogCustomFormatNode * node = tlslog_ctx->cf->cf_nodes[i];
+        if (! node) /* Should never happen */
+            continue;
+
+        switch (node->type){
+            case LOG_CF_LITERAL:
+            /* LITERAL */
+                MemBufferWriteString(aft->buffer, "%s", node->data);
+                break;
+            case LOG_CF_TIMESTAMP:
+            /* TIMESTAMP */
+                LogCustomFormatWriteTimestamp(aft->buffer, node->data, ts);
+                break;
+            case LOG_CF_TIMESTAMP_U:
+            /* TIMESTAMP USECONDS */
+                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
+                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                break;
+            case LOG_CF_CLIENT_IP:
+            /* CLIENT IP ADDRESS */
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
+                            aft->buffer->size, (uint8_t *)srcip,strlen(srcip));
+                break;
+            case LOG_CF_SERVER_IP:
+            /* SERVER IP ADDRESS */
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
+                            aft->buffer->size, (uint8_t *)dstip,strlen(dstip));
+                break;
+            case LOG_CF_CLIENT_PORT:
+            /* CLIENT PORT */
+                MemBufferWriteString(aft->buffer, "%" PRIu16 "", sp);
+                break;
+            case LOG_CF_SERVER_PORT:
+            /* SERVER PORT */
+                MemBufferWriteString(aft->buffer, "%" PRIu16 "", dp);
+                break;
+            case LOG_TLS_CF_VERSION:
+                LogTlsLogVersion(aft->buffer, ssl_state->server_connp.version);
+                break;
+            case LOG_TLS_CF_DATE_NOT_BEFORE:
+                LogTlsLogDate(aft->buffer, "NOTBEFORE", &ssl_state->server_connp.cert0_not_before);
+                break;
+            case LOG_TLS_CF_DATE_NOT_AFTER:
+                LogTlsLogDate(aft->buffer, "NOTAFTER", &ssl_state->server_connp.cert0_not_after);
+                break;
+            case LOG_TLS_CF_SHA1:
+                if (ssl_state->server_connp.cert0_fingerprint != NULL) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                                         ssl_state->server_connp.cert0_fingerprint);
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            case LOG_TLS_CF_SNI:
+                if (ssl_state->client_connp.sni != NULL) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                                         ssl_state->client_connp.sni);
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            case LOG_TLS_CF_SUBJECT:
+                if (ssl_state->server_connp.cert0_subject != NULL) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                                         ssl_state->server_connp.cert0_subject);
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            case LOG_TLS_CF_ISSUER:
+                if (ssl_state->server_connp.cert0_issuerdn != NULL) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                                         ssl_state->server_connp.cert0_issuerdn);
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            case LOG_TLS_CF_EXTENDED:
+                /* Extended format  */
+                LogTlsLogExtended(aft, ssl_state);
+                break;
+            case LOG_TLS_CF_SERVER_CIPHERSUITE:
+                if (ssl_state->server_connp.num_cipher_suites &&
+                    ssl_state->server_connp.cipher_suites ) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                            SSLCipherSuiteDescription(*ssl_state->server_connp.cipher_suites)
+                            );
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            default:
+            /* NO MATCH */
+                MemBufferWriteString(aft->buffer, LOG_CF_NONE);
+                SCLogDebug("No matching parameter %%%c for custom http log.", node->type);
+                break;
+        }
+    }
+    MemBufferWriteString(aft->buffer, "\n");
+}
+
 
 static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                         Flow *f, void *state, void *tx, uint64_t tx_id)
@@ -296,7 +458,6 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 #define PRINT_BUF_LEN 46
     char srcip[PRINT_BUF_LEN], dstip[PRINT_BUF_LEN];
     Port sp, dp;
@@ -305,17 +466,25 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
-    MemBufferReset(aft->buffer);
-    MemBufferWriteString(aft->buffer,
-                         "%s %s:%d -> %s:%d  TLS: Subject='%s' Issuerdn='%s'",
-                         timebuf, srcip, sp, dstip, dp,
-                         ssl_state->server_connp.cert0_subject,
-                         ssl_state->server_connp.cert0_issuerdn);
-
-    if (hlog->flags & LOG_TLS_EXTENDED) {
-        LogTlsLogExtended(aft, ssl_state);
+    /* Custom format */
+    if (hlog->flags & LOG_TLS_CUSTOM) {
+        LogTlsLogCustom(aft, ssl_state, &p->ts, srcip, sp, dstip, dp);
     } else {
-        MemBufferWriteString(aft->buffer, "\n");
+
+        MemBufferReset(aft->buffer);
+        CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+        MemBufferWriteString(aft->buffer,
+                "%s %s:%d -> %s:%d  TLS: Subject='%s' Issuerdn='%s'",
+                timebuf, srcip, sp, dstip, dp,
+                ssl_state->server_connp.cert0_subject,
+                ssl_state->server_connp.cert0_issuerdn);
+
+        if (hlog->flags & LOG_TLS_EXTENDED) {
+            LogTlsLogExtended(aft, ssl_state);
+            MemBufferWriteString(aft->buffer, "\n");
+        } else {
+            MemBufferWriteString(aft->buffer, "\n");
+        }
     }
 
     aft->tls_cnt++;
