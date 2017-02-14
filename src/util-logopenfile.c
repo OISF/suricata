@@ -135,6 +135,14 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
         SCConfLogReopen(log_ctx);
     }
 
+    if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+        time_t now = time(NULL);
+        if (now >= log_ctx->rotate_time) {
+            SCConfLogReopen(log_ctx);
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
+    }
+
     int ret = 0;
 
     if (log_ctx->fp == NULL && log_ctx->is_sock)
@@ -277,6 +285,36 @@ SCConfLogOpenGeneric(ConfNode *conf,
         snprintf(log_path, PATH_MAX, "%s", filename);
     } else {
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    }
+
+    /* Rotate log file based on time */
+    const char *rotate_int = ConfNodeLookupChildValue(conf, "rotate-interval");
+    if (rotate_int != NULL) {
+        time_t now = time(NULL);
+        log_ctx->flags |= LOGFILE_ROTATE_INTERVAL;
+
+        /* Use a specific time */
+        if (strcmp(rotate_int, "minute") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 60;
+        } else if (strcmp(rotate_int, "hour") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 3600;
+        } else if (strcmp(rotate_int, "day") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 86400;
+        }
+
+        /* Use a timer */
+        else {
+            log_ctx->rotate_interval = SCParseTimeSizeString(rotate_int);
+            if (log_ctx->rotate_interval == 0) {
+                SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+                           "invalid rotate-interval value");
+                exit(EXIT_FAILURE);
+            }
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
     }
 
     filetype = ConfNodeLookupChildValue(conf, "filetype");
