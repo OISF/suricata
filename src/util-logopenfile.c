@@ -160,6 +160,26 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     return ret;
 }
 
+/** \brief generate filename based on pattern
+ *  \param pattern pattern to use
+ *  \retval char* on success
+ *  \retval NULL on error
+ */
+static char *SCLogFilenameFromPattern(const char *pattern)
+{
+    char *filename = SCMalloc(PATH_MAX);
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCTimeToStringPattern(time(NULL), pattern, filename, PATH_MAX);
+    if (rc != 0) {
+        return NULL;
+    }
+
+    return filename;
+}
+
 static void SCLogFileClose(LogFileCtx *log_ctx)
 {
     if (log_ctx->fp)
@@ -178,25 +198,31 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
 {
     FILE *ret = NULL;
 
+    char *filename = SCLogFilenameFromPattern(path);
+    if (filename == NULL) {
+        return NULL;
+    }
+
     if (ConfValIsTrue(append_setting)) {
-        ret = fopen(path, "a");
+        ret = fopen(filename, "a");
     } else {
-        ret = fopen(path, "w");
+        ret = fopen(filename, "w");
     }
 
     if (ret == NULL) {
         SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
-                   path, strerror(errno));
+                   filename, strerror(errno));
     } else {
         if (mode != 0) {
-            int r = chmod(path, mode);
+            int r = chmod(filename, mode);
             if (r < 0) {
                 SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %u: %s",
-                             path, mode, strerror(errno));
+                             filename, mode, strerror(errno));
             }
         }
     }
 
+    SCFree(filename);
     return ret;
 }
 
