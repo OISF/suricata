@@ -574,6 +574,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         SCLogDebug("protocol change, old %s, new %s",
                 AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
+        if (f->alproto != ALPROTO_TLS) {
+            AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                             APPLAYER_NO_TLS_AFTER_STARTTLS);
+        }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "
                    "%"PRIu16" (flow %p)", data_len, f->alproto, f);
