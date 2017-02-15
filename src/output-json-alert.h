@@ -28,8 +28,12 @@
 #define __OUTPUT_JSON_ALERT_H__
 
 void JsonAlertLogRegister(void);
+
 #ifdef HAVE_LIBJANSSON
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
+#ifdef UNITTESTS
+void AlertJsonDns(const Flow *f, json_t *js);
+#endif /*UNITTESTS */
 #endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_ALERT_H__ */
