@@ -134,7 +134,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
@@ -142,13 +142,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
-    //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
                                       f, p->payload, p->payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
-    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
-    //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -173,27 +170,23 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
  *        from the current packet here.
  */
 int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f,
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f,
         uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
     int r = 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
 
-    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
                                       f, payload, payload_len, 0,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
-
-    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], NULL, f, payload, payload_len);
-    //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
     if (r == 1) {
         SCReturnInt(1);
     }

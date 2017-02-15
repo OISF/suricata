@@ -47,8 +47,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
-int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
+static int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
 void DetectWindowRegisterTests(void);
 void DetectWindowFree(void *);
 
@@ -79,7 +80,8 @@ void DetectWindowRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     const DetectWindowData *wd = (const DetectWindowData *)ctx;
 
@@ -102,7 +104,7 @@ int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
  * \retval wd pointer to DetectWindowData on success
  * \retval NULL on failure
  */
-DetectWindowData *DetectWindowParse(char *windowstr)
+static DetectWindowData *DetectWindowParse(char *windowstr)
 {
     DetectWindowData *wd = NULL;
 #define MAX_SUBSTRINGS 30
@@ -169,7 +171,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
+static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
 {
     DetectWindowData *wd = NULL;
     SigMatch *sm = NULL;

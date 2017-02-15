@@ -60,6 +60,7 @@
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, char *);
 static void DetectDnsQueryRegisterTests(void);
+static int g_dns_query_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: dns_query
@@ -69,29 +70,36 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].name = "dns_query";
     sigmatch_table[DETECT_AL_DNS_QUERY].desc = "content modifier to match specifically and only on the DNS query-buffer";
     sigmatch_table[DETECT_AL_DNS_QUERY].Match = NULL;
-    sigmatch_table[DETECT_AL_DNS_QUERY].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_DNS_QUERY].Setup = DetectDnsQuerySetup;
     sigmatch_table[DETECT_AL_DNS_QUERY].Free  = NULL;
     sigmatch_table[DETECT_AL_DNS_QUERY].RegisterTests = DetectDnsQueryRegisterTests;
 
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("dns_query", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2,
+    DetectAppLayerMpmRegister("dns_query", SIG_FLAG_TOSERVER, 2,
             PrefilterTxDnsQueryRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+    DetectAppLayerInspectEngineRegister("dns_query",
+            ALPROTO_DNS, SIG_FLAG_TOSERVER,
             DetectEngineInspectDnsQueryName);
 
+    DetectBufferTypeSetDescriptionByName("dns_query",
+            "dns request query");
+
+    g_dns_query_buffer_id = DetectBufferTypeGetByName("dns_query");
+
     /* register these generic engines from here for now */
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_DNSREQUEST_MATCH,
+    DetectAppLayerInspectEngineRegister("dns_request",
+            ALPROTO_DNS, SIG_FLAG_TOSERVER,
             DetectEngineInspectDnsRequest);
-    DetectAppLayerInspectEngineRegister(ALPROTO_DNS, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_DNSRESPONSE_MATCH,
+    DetectAppLayerInspectEngineRegister("dns_response",
+            ALPROTO_DNS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectDnsResponse);
+
+    DetectBufferTypeSetDescriptionByName("dns_request",
+            "dns requests");
+    DetectBufferTypeSetDescriptionByName("dns_response",
+            "dns responses");
 }
 
 
@@ -108,12 +116,14 @@ void DetectDnsQueryRegister (void)
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_DNSQUERYNAME_MATCH;
+    s->init_data->list = g_dns_query_buffer_id;
     s->alproto = ALPROTO_DNS;
     return 0;
 }
 
 #ifdef UNITTESTS
+#include "detect-isdataat.h"
+
 /** \test simple google.com query matching */
 static int DetectDnsQueryTest01(void)
 {
@@ -1159,6 +1169,31 @@ end:
     return result;
 }
 
+static int DetectDnsQueryIsdataatParseTest(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert dns any any -> any any ("
+            "dns_query; content:\"one\"; "
+            "isdataat:!4,relative; sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigMatch *sm = s->init_data->smlists_tail[g_dns_query_buffer_id];
+    FAIL_IF_NULL(sm);
+    FAIL_IF_NOT(sm->type == DETECT_ISDATAAT);
+
+    DetectIsdataatData *data = (DetectIsdataatData *)sm->ctx;
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
 #endif
 
 static void DetectDnsQueryRegisterTests(void)
@@ -1174,5 +1209,8 @@ static void DetectDnsQueryRegisterTests(void)
     UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06);
     UtRegisterTest("DetectDnsQueryTest07 -- app layer event",
                    DetectDnsQueryTest07);
+
+    UtRegisterTest("DetectDnsQueryIsdataatParseTest",
+            DetectDnsQueryIsdataatParseTest);
 #endif
 }

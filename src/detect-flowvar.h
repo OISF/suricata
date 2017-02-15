@@ -26,7 +26,7 @@
 
 typedef struct DetectFlowvarData_ {
     char *name;
-    uint16_t idx;
+    uint32_t idx;
     uint8_t *content;
     uint8_t content_len;
     uint8_t flags;
@@ -35,19 +35,22 @@ typedef struct DetectFlowvarData_ {
 /* prototypes */
 void DetectFlowvarRegister (void);
 
-int DetectFlowvarPostMatchSetup(Signature *s, uint16_t idx);
-int DetectFlowvarStoreMatch(DetectEngineThreadCtx *, uint16_t, uint8_t *, uint16_t, int);
+int DetectFlowvarPostMatchSetup(Signature *s, uint32_t idx);
+int DetectVarStoreMatch(DetectEngineThreadCtx *,
+        uint32_t, uint8_t *, uint16_t, int);
+int DetectVarStoreMatchKeyValue(DetectEngineThreadCtx *,
+        uint8_t *, uint16_t, uint8_t *, uint16_t, int);
 
 /* For use only by DetectFlowvarProcessList() */
-void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f);
-static inline void DetectFlowvarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f)
+void DetectVarProcessListInternal(DetectVarList *fs, Flow *f, Packet *p);
+static inline void DetectVarProcessList(DetectEngineThreadCtx *det_ctx, Flow *f, Packet *p)
 {
-    DetectFlowvarList *fs = det_ctx->flowvarlist;
+    DetectVarList *fs = det_ctx->varlist;
 
-    SCLogDebug("flow %p det_ctx->flowvarlist %p", f, fs);
-    if (f && fs != NULL) {
-        det_ctx->flowvarlist = NULL;
-        DetectFlowvarProcessListInternal(fs, f);
+    SCLogDebug("flow %p det_ctx->varlist %p", f, fs);
+    if ((f || p) && fs != NULL) {
+        det_ctx->varlist = NULL;
+        DetectVarProcessListInternal(fs, f, p);
     }
 }
 

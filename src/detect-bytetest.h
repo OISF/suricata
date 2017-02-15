@@ -67,62 +67,7 @@ typedef struct DetectBytetestData_ {
  */
 void DetectBytetestRegister (void);
 
-/**
- * This function is used to add the parsed byte_test data
- * into the current signature.
- *
- * \param de_ctx pointer to the Detection Engine Context
- * \param s pointer to the Current Signature
- * \param optstr pointer to the user provided options
- *
- * \retval 0 on Success
- * \retval -1 on Failure
- */
-int DetectBytetestSetup(DetectEngineCtx *, Signature *, char *);
-
-/**
- * \brief this function will free memory associated with DetectBytetestData
- *
- * \param data pointer to DetectBytetestData
- */
-void DetectBytetestFree(void *ptr);
-
-/**
- * This function is used to parse byte_test options passed via
- *
- * byte_test: bytes, [!]op, value, offset [,flags [, ...]]
- *
- * flags: "big", "little", "relative", "string", "oct", "dec", "hex"
- *
- * \param optstr Pointer to the user provided byte_test options
- * \param value Used to pass the value back, if byte_test uses a byte_extract
- *              var.
- * \param offset Used to pass the offset back, if byte_test uses a byte_extract
- *               var.
- *
- * \retval data pointer to DetectBytetestData on success
- * \retval NULL on failure
- */
-DetectBytetestData *DetectBytetestParse(char *optstr, char **value,
-                                        char **offset);
-
-/**
- * This function is used to match byte_test
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectBytetestData
- *
- * \retval -1 error
- * \retval  0 no match
- * \retval  1 match
- *
- * \todo The return seems backwards.  We should return a non-zero error code.  One of the error codes is "no match".  As-is if someone accidentally does: if (DetectBytetestMatch(...)) { match }, then they catch an error as a match.
- */
-int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, const SigMatchCtx *ctx);
-int DetectBytetestDoMatch(DetectEngineThreadCtx *, Signature *,
+int DetectBytetestDoMatch(DetectEngineThreadCtx *, const Signature *,
                           const SigMatchCtx *ctx, uint8_t *, uint32_t,
                           uint8_t, int32_t, uint64_t);
 

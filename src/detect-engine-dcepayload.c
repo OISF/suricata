@@ -47,6 +47,11 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#include "detect-dce-iface.h"
+
+static int g_dce_stub_data_buffer_id = 0;
+
+#if 0
 /**
  * \brief Do the content inspection & validation for a signature against dce stub.
  *
@@ -62,16 +67,16 @@
  *  \retval 1 Match.
  */
 int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx, Signature *s,
+                                  DetectEngineThreadCtx *det_ctx, const Signature *s,
                                   Flow *f, uint8_t flags, void *alstate)
 {
     SCEnter();
-    DCERPCState *dcerpc_state = (DCERPCState *)alstate;
+    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, alstate);
     uint8_t *dce_stub_data = NULL;
     uint16_t dce_stub_data_len;
     int r = 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL || dcerpc_state == NULL) {
+    if (s->sm_arrays[g_dce_stub_data_buffer_id] == NULL || dcerpc_state == NULL) {
         SCReturnInt(0);
     }
 
@@ -85,13 +90,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[g_dce_stub_data_buffer_id],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
                                           0, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[g_dce_stub_data_buffer_id], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -108,13 +113,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[g_dce_stub_data_buffer_id],
                                           f,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
                                           0, dcerpc_state);
-        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->init_data->smlists[g_dce_stub_data_buffer_id], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -123,6 +128,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 
     SCReturnInt(0);
 }
+#endif
 
 /**************************************Unittests*******************************/
 
@@ -131,7 +137,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest01(void)
+static int DcePayloadTest01(void)
 {
 #if 0
     int result = 0;
@@ -1828,7 +1834,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest02(void)
+static int DcePayloadTest02(void)
 {
 #if 0
     int result = 0;
@@ -2280,7 +2286,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest03(void)
+static int DcePayloadTest03(void)
 {
 #if 0
     int result = 0;
@@ -2731,7 +2737,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest04(void)
+static int DcePayloadTest04(void)
 {
 #if 0
     int result = 0;
@@ -3182,7 +3188,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest05(void)
+static int DcePayloadTest05(void)
 {
 #if 0
     int result = 0;
@@ -3632,7 +3638,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest06(void)
+static int DcePayloadTest06(void)
 {
 #if 0
     int result = 0;
@@ -4083,7 +4089,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest07(void)
+static int DcePayloadTest07(void)
 {
 #if 0
     int result = 0;
@@ -4533,7 +4539,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest08(void)
+static int DcePayloadTest08(void)
 {
 #if 0
     int result = 0;
@@ -4760,7 +4766,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest09(void)
+static int DcePayloadTest09(void)
 {
 #if 0
     int result = 0;
@@ -4987,7 +4993,7 @@ end:
 /**
  * \test Positive test, to test the working of distance and within.
  */
-int DcePayloadTest10(void)
+static int DcePayloadTest10(void)
 {
 #if 0
     int result = 0;
@@ -5214,7 +5220,7 @@ end:
 /**
  * \test Postive test to check the working of disance and within across frags.
  */
-int DcePayloadTest11(void)
+static int DcePayloadTest11(void)
 {
 #if 0
     int result = 0;
@@ -5590,7 +5596,7 @@ end:
  * \test Negative test the working of contents on stub data with invalid
  *       distance.
  */
-int DcePayloadTest12(void)
+static int DcePayloadTest12(void)
 {
 #if 0 /* payload ticks off clamav */
     int result = 0;
@@ -5969,7 +5975,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest13(void)
+static int DcePayloadTest13(void)
 {
     int result = 0;
     uint8_t request1[] = {
@@ -6236,7 +6242,7 @@ end:
 /**
  * \test Test the working of detection engien with respect to dce keywords.
  */
-int DcePayloadTest14(void)
+static int DcePayloadTest14(void)
 {
     int result = 0;
 
@@ -6464,7 +6470,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest15(void)
+static int DcePayloadTest15(void)
 {
     int result = 0;
 
@@ -6581,7 +6587,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest16(void)
+static int DcePayloadTest16(void)
 {
     int result = 0;
 
@@ -6698,7 +6704,7 @@ end:
 /**
  * \test Test the working of byte_test endianness.
  */
-int DcePayloadTest17(void)
+static int DcePayloadTest17(void)
 {
     int result = 0;
 
@@ -6815,7 +6821,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest18(void)
+static int DcePayloadTest18(void)
 {
     int result = 0;
 
@@ -6932,7 +6938,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest19(void)
+static int DcePayloadTest19(void)
 {
     int result = 0;
 
@@ -7049,7 +7055,7 @@ end:
 /**
  * \test Test the working of byte_jump endianness.
  */
-int DcePayloadTest20(void)
+static int DcePayloadTest20(void)
 {
     int result = 0;
 
@@ -7166,7 +7172,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest21(void)
+static int DcePayloadTest21(void)
 {
     int result = 0;
 
@@ -7268,7 +7274,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest22(void)
+static int DcePayloadTest22(void)
 {
     int result = 0;
 
@@ -7370,7 +7376,7 @@ end:
 /**
  * \test Test the working of consecutive relative matches.
  */
-int DcePayloadTest23(void)
+static int DcePayloadTest23(void)
 {
     int result = 0;
 
@@ -7473,7 +7479,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest25(void)
+static int DcePayloadParseTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7498,16 +7504,16 @@ int DcePayloadParseTest25(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7594,7 +7600,7 @@ int DcePayloadParseTest25(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest26(void)
+static int DcePayloadParseTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7621,16 +7627,16 @@ int DcePayloadParseTest26(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7721,7 +7727,7 @@ int DcePayloadParseTest26(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest27(void)
+static int DcePayloadParseTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7747,16 +7753,16 @@ int DcePayloadParseTest27(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] != NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] != NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7847,7 +7853,7 @@ int DcePayloadParseTest27(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest28(void)
+static int DcePayloadParseTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -7874,16 +7880,16 @@ int DcePayloadParseTest28(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7923,7 +7929,7 @@ int DcePayloadParseTest28(void)
     if (result == 0)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -7974,7 +7980,7 @@ int DcePayloadParseTest28(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest29(void)
+static int DcePayloadParseTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8003,16 +8009,16 @@ int DcePayloadParseTest29(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8116,7 +8122,7 @@ int DcePayloadParseTest29(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest30(void)
+static int DcePayloadParseTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8145,16 +8151,16 @@ int DcePayloadParseTest30(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8263,7 +8269,7 @@ int DcePayloadParseTest30(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest31(void)
+static int DcePayloadParseTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8292,16 +8298,16 @@ int DcePayloadParseTest31(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8359,7 +8365,7 @@ int DcePayloadParseTest31(void)
     if (result == 0)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8410,7 +8416,7 @@ int DcePayloadParseTest31(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest32(void)
+static int DcePayloadParseTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8439,16 +8445,16 @@ int DcePayloadParseTest32(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8506,7 +8512,7 @@ int DcePayloadParseTest32(void)
     if (result == 0)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8557,7 +8563,7 @@ int DcePayloadParseTest32(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest33(void)
+static int DcePayloadParseTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8586,16 +8592,16 @@ int DcePayloadParseTest33(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8648,7 +8654,7 @@ int DcePayloadParseTest33(void)
     if (result == 0)
         goto end;
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8699,7 +8705,7 @@ int DcePayloadParseTest33(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest34(void)
+static int DcePayloadParseTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8729,16 +8735,16 @@ int DcePayloadParseTest34(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -8790,7 +8796,7 @@ int DcePayloadParseTest34(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8823,7 +8829,7 @@ int DcePayloadParseTest34(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest35(void)
+static int DcePayloadParseTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8850,16 +8856,16 @@ int DcePayloadParseTest35(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -8877,7 +8883,7 @@ int DcePayloadParseTest35(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8910,7 +8916,7 @@ int DcePayloadParseTest35(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest36(void)
+static int DcePayloadParseTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -8938,16 +8944,16 @@ int DcePayloadParseTest36(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -8981,7 +8987,7 @@ int DcePayloadParseTest36(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9014,7 +9020,7 @@ int DcePayloadParseTest36(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest37(void)
+static int DcePayloadParseTest37(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9043,16 +9049,16 @@ int DcePayloadParseTest37(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -9088,7 +9094,7 @@ int DcePayloadParseTest37(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9121,7 +9127,7 @@ int DcePayloadParseTest37(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest38(void)
+static int DcePayloadParseTest38(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9152,16 +9158,16 @@ int DcePayloadParseTest38(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9210,7 +9216,7 @@ int DcePayloadParseTest38(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9243,7 +9249,7 @@ int DcePayloadParseTest38(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest39(void)
+static int DcePayloadParseTest39(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9268,16 +9274,16 @@ int DcePayloadParseTest39(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9299,7 +9305,7 @@ int DcePayloadParseTest39(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     data = (DetectContentData *)sm->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -9328,7 +9334,7 @@ int DcePayloadParseTest39(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest40(void)
+static int DcePayloadParseTest40(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9357,16 +9363,16 @@ int DcePayloadParseTest40(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9425,7 +9431,7 @@ int DcePayloadParseTest40(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9458,7 +9464,7 @@ int DcePayloadParseTest40(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest41(void)
+static int DcePayloadParseTest41(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9487,16 +9493,16 @@ int DcePayloadParseTest41(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9518,7 +9524,7 @@ int DcePayloadParseTest41(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9587,7 +9593,7 @@ int DcePayloadParseTest41(void)
 /**
  * \test Test the working of consecutive relative matches with a negated content.
  */
-int DcePayloadTest42(void)
+static int DcePayloadTest42(void)
 {
     int result = 0;
 
@@ -9690,7 +9696,7 @@ end:
 /**
  * \test Test the working of consecutive relative pcres.
  */
-int DcePayloadTest43(void)
+static int DcePayloadTest43(void)
 {
     int result = 0;
 
@@ -9793,134 +9799,97 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest44(void)
+static int DcePayloadParseTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    int result = 1;
     Signature *s = NULL;
     SigMatch *sm = NULL;
     DetectContentData *data = NULL;
     DetectIsdataatData *isd = NULL;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "content:\"one\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "isdataat:10,relative; "
-                                   "content:\"one\"; within:4; distance:8; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
-        result = 0;
-        goto end;
-    }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        result = 0;
-        goto end;
-    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any ("
+            "content:\"one\"; "
+            "dce_iface:12345678-1234-1234-1234-123456789012; "
+            "dce_opnum:10; dce_stub_data; "
+            "isdataat:10,relative; "
+            "content:\"one\"; within:4; distance:8; "
+            "pkt_data; "
+            "content:\"two\"; "
+            "sid:1;)");
+    FAIL_IF_NULL(s);
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
-    if (sm->type != DETECT_ISDATAAT) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF_NULL(s->init_data->smlists_tail[g_dce_stub_data_buffer_id]);
+    FAIL_IF_NULL(s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH]);
+
+    /* isdataat:10,relative; */
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
+    FAIL_IF(sm->type != DETECT_ISDATAAT);
     isd = (DetectIsdataatData *)sm->ctx;
-    if ( isd->flags & ISDATAAT_RAWBYTES ||
-         !(isd->flags & ISDATAAT_RELATIVE)) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(isd->flags & ISDATAAT_RAWBYTES);
+    FAIL_IF_NOT(isd->flags & ISDATAAT_RELATIVE);
+    FAIL_IF_NULL(sm->next);
 
     sm = sm->next;
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+
+    /* content:\"one\"; within:4; distance:8; */
+    FAIL_IF(sm->type != DETECT_CONTENT);
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        !(data->flags & DETECT_CONTENT_WITHIN) ||
-        !(data->flags & DETECT_CONTENT_DISTANCE) ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        result = 0;
-        printf("two failed\n");
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "one", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF (data->flags & DETECT_CONTENT_RAWBYTES ||
+            data->flags & DETECT_CONTENT_NOCASE ||
+            !(data->flags & DETECT_CONTENT_WITHIN) ||
+            !(data->flags & DETECT_CONTENT_DISTANCE) ||
+            data->flags & DETECT_CONTENT_FAST_PATTERN ||
+            data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
+            data->flags & DETECT_CONTENT_NEGATED );
 
-    result &= (sm->next == NULL);
+    FAIL_IF_NOT(strncmp((char *)data->content, "one", 3) == 0);
+    FAIL_IF_NOT(sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+    /* first content:\"one\"; */
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
+    FAIL_IF(sm->type != DETECT_CONTENT);
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_RELATIVE_NEXT ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        printf("three failed\n");
-        result = 0;
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "one", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF(data->flags & DETECT_CONTENT_RAWBYTES);
+    FAIL_IF(data->flags & DETECT_CONTENT_NOCASE);
+    FAIL_IF(data->flags & DETECT_CONTENT_WITHIN);
+    FAIL_IF(data->flags & DETECT_CONTENT_DISTANCE);
+    FAIL_IF(data->flags & DETECT_CONTENT_FAST_PATTERN);
+    FAIL_IF(data->flags & DETECT_CONTENT_RELATIVE_NEXT);
+    FAIL_IF(data->flags & DETECT_CONTENT_NEGATED );
+    FAIL_IF_NOT(strncmp((char *)data->content, "one", 3) == 0);
 
+    FAIL_IF_NULL(sm->next);
     sm = sm->next;
-    if (sm->type != DETECT_CONTENT) {
-        result = 0;
-        goto end;
-    }
+
+    FAIL_IF(sm->type != DETECT_CONTENT);
+
     data = (DetectContentData *)sm->ctx;
-    if (data->flags & DETECT_CONTENT_RAWBYTES ||
-        data->flags & DETECT_CONTENT_NOCASE ||
-        data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
-        data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
-        printf("two failed\n");
-        result = 0;
-        goto end;
-    }
-    result &= (strncmp((char *)data->content, "two", 3) == 0);
-    if (result == 0)
-        goto end;
+    FAIL_IF(data->flags & DETECT_CONTENT_RAWBYTES ||
+            data->flags & DETECT_CONTENT_NOCASE ||
+            data->flags & DETECT_CONTENT_WITHIN ||
+            data->flags & DETECT_CONTENT_DISTANCE ||
+            data->flags & DETECT_CONTENT_FAST_PATTERN ||
+            data->flags & DETECT_CONTENT_NEGATED );
 
-    result &= (sm->next == NULL);
+    FAIL_IF_NOT(strncmp((char *)data->content, "two", 3) == 0);
 
- end:
+    FAIL_IF_NOT(sm->next == NULL);
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest45(void)
+static int DcePayloadParseTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -9948,16 +9917,16 @@ int DcePayloadParseTest45(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -9977,7 +9946,7 @@ int DcePayloadParseTest45(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -10032,7 +10001,7 @@ int DcePayloadParseTest45(void)
 /**
  * \test Test content for dce sig.
  */
-int DcePayloadParseTest46(void)
+static int DcePayloadParseTest46(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -10060,16 +10029,16 @@ int DcePayloadParseTest46(void)
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->init_data->smlists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+    if (s->init_data->smlists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         result = 0;
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
+    sm = s->init_data->smlists[g_dce_stub_data_buffer_id];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -10087,7 +10056,7 @@ int DcePayloadParseTest46(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -10143,6 +10112,7 @@ int DcePayloadParseTest46(void)
 
 void DcePayloadRegisterTests(void)
 {
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
 
 #ifdef UNITTESTS
     UtRegisterTest("DcePayloadTest01", DcePayloadTest01);

@@ -32,6 +32,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-engine-state.h"
 
 #include "detect-urilen.h"
@@ -53,6 +54,9 @@ static int DetectUrilenSetup (DetectEngineCtx *, Signature *, char *);
 void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
 
+static int g_http_uri_buffer_id = 0;
+static int g_http_raw_uri_buffer_id = 0;
+
 /**
  * \brief Registration function for urilen: keyword
  */
@@ -63,13 +67,14 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].desc = "match on the length of the HTTP uri";
     sigmatch_table[DETECT_AL_URILEN].url = DOC_URL DOC_VERSION "/rules/http-keywords.html#urilen";
     sigmatch_table[DETECT_AL_URILEN].Match = NULL;
-    sigmatch_table[DETECT_AL_URILEN].AppLayerMatch = NULL /**< We handle this at detect-engine-uri.c now */;
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
-    sigmatch_table[DETECT_AL_URILEN].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
+    g_http_raw_uri_buffer_id = DetectBufferTypeRegister("http_raw_uri");
 }
 
 /**
@@ -242,11 +247,8 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     DetectUrilenData *urilend = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
-        goto error;
-    }
+    if (DetectSignatureSetAppProto(s, ALPROTO_HTTP) != 0)
+        return -1;
 
     urilend = DetectUrilenParse(urilenstr);
     if (urilend == NULL)
@@ -258,13 +260,9 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     sm->ctx = (void *)urilend;
 
     if (urilend->raw_buffer)
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+        SigMatchAppendSMToList(s, sm, g_http_raw_uri_buffer_id);
     else
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-    s->alproto = ALPROTO_HTTP;
+        SigMatchAppendSMToList(s, sm, g_http_uri_buffer_id);
 
     SCReturnInt(0);
 

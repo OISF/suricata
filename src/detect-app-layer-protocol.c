@@ -37,7 +37,7 @@ static void DetectAppLayerProtocolRegisterTests(void);
 
 static int DetectAppLayerProtocolPacketMatch(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
+        Packet *p, const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -165,7 +165,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
     if (data == NULL)
         goto error;
 
-    SigMatch *tsm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *tsm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ; tsm != NULL; tsm = tsm->next) {
         if (tsm->type == DETECT_AL_APP_LAYER_PROTOCOL) {
             const DetectAppLayerProtocolData *them = (const DetectAppLayerProtocolData *)tsm->ctx;
@@ -355,7 +355,6 @@ static int DetectAppLayerProtocolTest04(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 
@@ -382,7 +381,6 @@ static int DetectAppLayerProtocolTest05(void)
     FAIL_IF(s->alproto != ALPROTO_UNKNOWN);
     FAIL_IF(s->flags & SIG_FLAG_APPLAYER);
 
-    FAIL_IF_NOT(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]);
     FAIL_IF_NULL(s->sm_lists[DETECT_SM_LIST_MATCH]->ctx);
 

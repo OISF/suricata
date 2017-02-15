@@ -31,19 +31,6 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-/* On DeState and locking.
- *
- * The DeState is part of a flow, but it can't be protected by the flow lock.
- * Reason is we need to lock the DeState data for an entire detection run,
- * as we're looping through on "continued" detection and rely on only a single
- * detection instance setting it up on first run. We can't keep the entire flow
- * locked during detection for performance reasons, it would slow us down too
- * much.
- *
- * So a new lock was introduced. The only part of the process where we need
- * the flow lock is obviously when we're getting/setting the de_state ptr from
- * to the flow.
- */
 
 #ifndef __DETECT_ENGINE_STATE_H__
 #define __DETECT_ENGINE_STATE_H__
@@ -66,17 +53,19 @@
 #define DE_STATE_FLAG_FULL_INSPECT              BIT_U32(0)
 #define DE_STATE_FLAG_SIG_CANT_MATCH            BIT_U32(1)
 
-#define DE_STATE_FLAG_DCE_PAYLOAD_INSPECT       BIT_U32(2)
-#define DE_STATE_FLAG_FILE_TC_INSPECT           BIT_U32(3)
-#define DE_STATE_FLAG_FILE_TS_INSPECT           BIT_U32(4)
+#define DE_STATE_FLAG_FILE_TC_INSPECT           BIT_U32(2)
+#define DE_STATE_FLAG_FILE_TS_INSPECT           BIT_U32(3)
 
 /* first bit position after the built-ins */
-#define DE_STATE_FLAG_BASE                      5UL
+#define DE_STATE_FLAG_BASE                      4UL
 
-/* state flags */
-#define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
-#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW         0x0002
-#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW         0x0004
+/* state flags
+ *
+ * Used by app-layer-parsers to notify us that new files
+ * are available in the tx.
+ */
+#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW    BIT_U8(0)
+#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW    BIT_U8(1)
 
 /* We have 2 possible state values to be used by ContinueDetection() while
  * trying to figure if we have fresh state to install or not.
@@ -95,8 +84,6 @@
  * inspected tx. */
 #define DE_STATE_MATCH_HAS_NEW_STATE 0x00
 #define DE_STATE_MATCH_NO_NEW_STATE  0x80
-
-/* TX BASED (inspect engines) */
 
 typedef struct DeStateStoreItem_ {
     uint32_t flags;
@@ -120,30 +107,6 @@ typedef struct DetectEngineState_ {
     DetectEngineStateDirection dir_state[2];
 } DetectEngineState;
 
-/* FLOW BASED (AMATCH) */
-
-typedef struct DeStateStoreFlowRule_ {
-    SigMatch *nm;
-    uint32_t flags;
-    SigIntId sid;
-} DeStateStoreFlowRule;
-
-typedef struct DeStateStoreFlowRules_ {
-    DeStateStoreFlowRule store[DE_STATE_CHUNK_SIZE];
-    struct DeStateStoreFlowRules_ *next;
-} DeStateStoreFlowRules;
-
-typedef struct DetectEngineStateDirectionFlow_ {
-    DeStateStoreFlowRules *head;
-    DeStateStoreFlowRules *tail;
-    SigIntId cnt;
-    uint8_t flags;
-} DetectEngineStateDirectionFlow;
-
-typedef struct DetectEngineStateFlow_ {
-    DetectEngineStateDirectionFlow dir_state[2];
-} DetectEngineStateFlow;
-
 /**
  * \brief Alloc a DetectEngineState object.
  *
@@ -157,7 +120,6 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void DetectEngineStateFree(DetectEngineState *state);
-void DetectEngineStateFlowFree(DetectEngineStateFlow *state);
 
 /**
  * \brief Check if a flow already contains(newly updated as well) de state.
@@ -188,7 +150,8 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint8_t alversion,
  */
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
-                                Signature *s, Packet *p, Flow *f, uint8_t flags,
+                                const Signature *s, Packet *p, Flow *f,
+                                uint8_t flags,
                                 AppProto alproto, uint8_t alversion);
 
 /**
@@ -214,14 +177,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
  *  \param flags direction and disruption flags
  */
 void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags);
-
-/**
- * \brief Reset a DetectEngineState state.
- *
- * \param state     Pointer to the state(LOCKED).
- * \param direction Direction flags - STREAM_TOSERVER or STREAM_TOCLIENT.
- */
-void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction);
 
 void DetectEngineStateResetTxs(Flow *f);
 

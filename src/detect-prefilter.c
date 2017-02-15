@@ -72,13 +72,13 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *nu
         goto end;
     }
 
-    sm = SigMatchGetLastSM(s);
+    sm = DetectGetLastSM(s);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter needs preceding match");
         goto end;
     }
 
-    s->prefilter_sm = sm;
+    s->init_data->prefilter_sm = sm;
     s->flags |= SIG_FLAG_PREFILTER;
 
     /* if the sig match is content, prefilter should act like
