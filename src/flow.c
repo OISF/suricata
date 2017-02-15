@@ -181,6 +181,38 @@ int FlowHasAlerts(const Flow *f)
     return 0;
 }
 
+/** \brief Set flag to indicate to change proto for the flow
+ *
+ * \param f flow
+ */
+void FlowSetChangeProtoFlag(Flow *f)
+{
+    f->flags |= FLOW_CHANGE_PROTO;
+}
+
+/** \brief Unset flag to indicate to change proto for the flow
+ *
+ * \param f flow
+ */
+void FlowUnsetChangeProtoFlag(Flow *f)
+{
+    f->flags &= ~FLOW_CHANGE_PROTO;
+}
+
+/** \brief Check if change proto flag is set for flow
+ * \param f flow
+ * \retval 1 change proto flag is set
+ * \retval 0 change proto flag is not set
+ */
+int FlowChangeProto(Flow *f)
+{
+    if (f->flags & FLOW_CHANGE_PROTO) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /**
  *  \brief determine the direction of the packet compared to the flow
  *  \retval 0 to_server
