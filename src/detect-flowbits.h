@@ -34,7 +34,7 @@
 #define DETECT_FLOWBITS_CMD_MAX      6
 
 typedef struct DetectFlowbitsData_ {
-    uint16_t idx;
+    uint32_t idx;
     uint8_t cmd;
 } DetectFlowbitsData;
 

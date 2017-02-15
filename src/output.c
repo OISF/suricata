@@ -70,6 +70,7 @@
 #include "output-json-template.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
+#include "output-json-vars.h"
 
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
@@ -849,22 +850,6 @@ void OutputDropLoggerDisable(void)
         drop_loggers--;
 }
 
-static int ssh_loggers = 0;
-
-int OutputSshLoggerEnable(void)
-{
-    if (ssh_loggers)
-        return -1;
-    ssh_loggers++;
-    return 0;
-}
-
-void OutputSshLoggerDisable(void)
-{
-    if (ssh_loggers)
-        ssh_loggers--;
-}
-
 /**
  * \brief Register a flag for file rotation notification.
  *
@@ -1090,6 +1075,7 @@ void OutputRegisterLoggers(void)
 
     /* DNP3. */
     JsonDNP3LogRegister();
+    JsonVarsLogRegister();
 
     /* Template JSON logger. */
     JsonTemplateLogRegister();

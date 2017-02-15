@@ -174,11 +174,9 @@ end:
 }
 
 int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
-                                    DetectEngineCtx *de_ctx,
-                                    DetectEngineThreadCtx *det_ctx,
-                                    Signature *s, Flow *f, uint8_t flags,
-                                    void *alstate,
-                                    void *tx, uint64_t tx_id)
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     SMTPState *smtp_state = (SMTPState *)alstate;
     FileContainer *ffc = smtp_state->files_ts;
@@ -203,7 +201,7 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
         det_ctx->buffer_offset = 0;
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
-        match = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_FILEDATA],
+        match = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                               f,
                                               (uint8_t *)buffer,
                                               buffer_len,

@@ -43,7 +43,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
@@ -129,7 +130,8 @@ static inline _Bool GetIcmpId(Packet *p, uint16_t *id)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t pid;
 
@@ -308,7 +310,7 @@ static int PrefilterSetupIcmpId(SigGroupHead *sgh)
 static _Bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_ICMP_ID:
                 return TRUE;

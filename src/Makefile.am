@@ -115,7 +115,6 @@ detect-engine-file.c detect-engine-file.h \
 detect-engine-filedata-smtp.c detect-engine-filedata-smtp.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
-detect-engine-hhd.c detect-engine-hhd.h \
 detect-engine-hhhd.c detect-engine-hhhd.h \
 detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
@@ -143,6 +142,7 @@ detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-uri.c detect-engine-uri.h \
 detect-fast-pattern.c detect-fast-pattern.h \
 detect-file-data.c detect-file-data.h \
+detect-file-hash-common.c detect-file-hash-common.h \
 detect-fileext.c detect-fileext.h \
 detect-filemagic.c detect-filemagic.h \
 detect-filemd5.c detect-filemd5.h \
@@ -165,14 +165,18 @@ detect-hostbits.c detect-hostbits.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
+detect-http-header-common.c detect-http-header-common.h \
+detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
 detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
+detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
 detect-http-server-body.c detect-http-server-body.h \
+detect-http-start.c detect-http-start.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-http-ua.c detect-http-ua.h \
@@ -209,7 +213,9 @@ detect-rpc.c detect-rpc.h \
 detect-sameip.c detect-sameip.h \
 detect-seq.c detect-seq.h \
 detect-sid.c detect-sid.h \
+detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
+detect-ssh-software.c detect-ssh-software.h \
 detect-ssh-software-version.c detect-ssh-software-version.h \
 detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
@@ -279,6 +285,7 @@ output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-json-template.c output-json-template.h \
+output-json-vars.c output-json-vars.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
 output-stats.c output-stats.h \
@@ -361,7 +368,6 @@ util-decode-asn1.c util-decode-asn1.h \
 util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
-util-detect-file-hash.c util-detect-file-hash.h \
 util-device.c util-device.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
