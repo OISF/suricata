@@ -1,3 +1,16 @@
+3.1.4 -- 2017-02-15
+
+Bug #2024: No error on missing semicolon between depth and classtype (3.1.x)
+Bug #2025: hostbits/xbits memory leak (3.1.x)
+Bug #2026: log-pcap: pcap files created with invalid snaplen (3.1.x)
+Bug #2027: BUG_ON body sometimes contains side-effectual code (3.1.x)
+Bug #2028: Mpm Ac: int overflow during init (3.1.x)
+Bug #2029: EVE Log Missing Fields (3.1.x)
+Bug #2030: Incoherent sizes between request, capture and http length (master 3.1.x)
+Bug #2031: tls-store: bug that cause Suricata to crash (3.1.x)
+Bug #2032: VLAN tags not forwarded in afpacket inline mode (3.1.x)
+Bug #2033: IPv4 defrag evasion issue (3.1.x)
+
 3.1.3 -- 2016-11-01
 
 Bug #1861: Suricata with multitenancy does not start in 3.1/3.1.1
