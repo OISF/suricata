@@ -107,6 +107,11 @@ int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
 int AppLayerProtoDetectSetup(void);
 
 /**
+ * \brief Reset proto detect for flow
+ */
+void AppLayerProtoDetectReset(Flow *);
+
+/**
  * \brief Cleans up the app layer protocol detection phase.
  */
 int AppLayerProtoDetectDeSetup(void);

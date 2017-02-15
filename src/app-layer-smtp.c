@@ -954,9 +954,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
-            AppLayerParserStateSetFlag(pstate,
-                                             APP_LAYER_PARSER_NO_INSPECTION |
-                                             APP_LAYER_PARSER_NO_REASSEMBLY);
+            FlowSetChangeProtoFlag(f);
+            state->curr_tx->done = 1;
         } else {
             /* decoder event */
             SMTPSetEvent(state, SMTP_DECODER_EVENT_TLS_REJECTED);
@@ -1890,10 +1889,7 @@ static int SMTPParserTest01(void)
         goto end;
     }
 
-    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION) ||
-        !(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
-        !(((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        !(((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+    if (!FlowChangeProto(&f)) {
         goto end;
     }
 
