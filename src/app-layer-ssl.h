@@ -101,6 +101,7 @@ enum {
 
 /* extensions */
 #define SSL_EXTENSION_SNI                       0x0000
+#define SSL_EXTENSION_ALPN                      0x0010
 
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
@@ -115,6 +116,11 @@ enum {
     TLS_VERSION_11 = 0x0302,
     TLS_VERSION_12 = 0x0303,
 };
+
+typedef struct ALPN_ {
+    char *proto_name;
+    TAILQ_ENTRY(ALPN_) next;
+} ALPN;
 
 typedef struct SSLCertsChain_ {
     uint8_t *cert_data;
@@ -160,6 +166,7 @@ typedef struct SSLStateConnp_ {
     uint32_t cert_input_len;
 
     TAILQ_HEAD(, SSLCertsChain_) certs;
+    TAILQ_HEAD(, ALPN_) alpn;
 
     uint32_t cert_log_flag;
 

@@ -141,7 +141,40 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
         tv.tv_sec = state->server_connp.cert0_not_after;
         tv.tv_usec = 0;
         CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-       json_object_set_new(tjs, "notafter", json_string(timebuf));
+        json_object_set_new(tjs, "notafter", json_string(timebuf));
+    }
+
+    /* tls alpn */
+    /* alpn server */
+    json_t * arr_server_alpn = json_array();
+    if (!TAILQ_EMPTY(&state->server_connp.alpn)) {
+        ALPN *proto = NULL;
+        TAILQ_FOREACH(proto, &state->server_connp.alpn, next) {
+            json_array_append(arr_server_alpn,
+                    json_string(proto->proto_name));
+        }
+    }
+    /* alpn client */
+    json_t * arr_client_alpn = json_array();
+    if (!TAILQ_EMPTY(&state->client_connp.alpn)) {
+        ALPN *proto = NULL;
+        TAILQ_FOREACH(proto, &state->client_connp.alpn, next) {
+            json_array_append(arr_client_alpn,
+                    json_string(proto->proto_name));
+        }
+    }
+    /* alpn json arrays */
+    if (json_array_size(arr_client_alpn) || json_array_size(arr_server_alpn)) {
+        json_t * alpn = json_object();
+        if (alpn) {
+            if (json_array_size(arr_client_alpn)) {
+                json_object_set_new(alpn, "client", arr_client_alpn);
+            }
+            if (json_array_size(arr_server_alpn)) {
+                json_object_set_new(alpn, "server", arr_server_alpn);
+            }
+            json_object_set_new(tjs, "alpn", alpn);
+        }
     }
 }
 

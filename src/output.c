@@ -48,6 +48,7 @@
 #include "output-json-alert.h"
 #include "output-json-flow.h"
 #include "output-json-netflow.h"
+#include "log-cf-common.h"
 #include "log-droplog.h"
 #include "output-json-drop.h"
 #include "log-httplog.h"
@@ -1040,6 +1041,9 @@ void OutputRegisterRootLoggers(void)
  */
 void OutputRegisterLoggers(void)
 {
+    /* custom format log*/
+    LogCustomFormatRegister();
+
     LuaLogRegister();
     /* fast log */
     AlertFastLogRegister();
