@@ -1,3 +1,36 @@
+3.2.1 -- 2017-02-15
+
+Feature #1951: Allow building without libmagic/file
+Feature #1972: SURICATA ICMPv6 unknown type 143 for MLDv2 report
+Feature #2010: Suricata should confirm SSSE3 presence at runtime when built with Hyperscan support
+Bug #467: compilation with unittests & debug validation
+Bug #1780: VLAN tags not forwarded in afpacket inline mode
+Bug #1827: Mpm AC fails to alloc memory
+Bug #1843: Mpm Ac: int overflow during init
+Bug #1887: pcap-log sets snaplen to -1
+Bug #1946: can't get response info in some situation
+Bug #1973: suricata fails to start because of unix socket
+Bug #1975: hostbits/xbits memory leak
+Bug #1982: tls: invalid record event triggers on valid traffic
+Bug #1984: http: protocol detection issue if both sides are malformed
+Bug #1985: pcap-log: minor memory leaks
+Bug #1987: log-pcap: pcap files created with invalid snaplen
+Bug #1988: tls_cert_subject bug
+Bug #1989: SMTP protocol detection is case sensitive
+Bug #1991: Suricata cannot parse ports: "![1234, 1235]"
+Bug #1997: tls-store: bug that cause Suricata to crash
+Bug #2001: Handling of unsolicited DNS responses.
+Bug #2003: BUG_ON body sometimes contains side-effectual code
+Bug #2004: Invalid file hash computation when force-hash is used
+Bug #2005: Incoherent sizes between request, capture and http length
+Bug #2007: smb: protocol detection just checks toserver
+Bug #2008: Suricata 3.2, pcap-log no longer works due to timestamp_pattern PCRE
+Bug #2009: Suricata is unable to get offloading settings when run under non-root
+Bug #2012: dns.log does not log unanswered queries
+Bug #2017: EVE Log Missing Fields
+Bug #2019: IPv4 defrag evasion issue
+Bug #2022: dns: out of bound memory read
+
 3.2 -- 2016-12-01
 
 Bug #1117: PCAP file count does not persist
