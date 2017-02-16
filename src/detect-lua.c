@@ -990,69 +990,64 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_LUA;
     sm->ctx = (SigMatchCtx *)lua;
 
+    int list = -1;
     if (lua->alproto == ALPROTO_UNKNOWN) {
         if (lua->flags & DATATYPE_STREAM)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+            list = DETECT_SM_LIST_PMATCH;
         else
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            list = DETECT_SM_LIST_MATCH;
+
     } else if (lua->alproto == ALPROTO_HTTP) {
         if (lua->flags & DATATYPE_HTTP_RESPONSE_BODY) {
-            int list = DetectBufferTypeGetByName("file_data");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("file_data");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_BODY) {
-            int list = DetectBufferTypeGetByName("http_client_body");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_client_body");
         } else if (lua->flags & DATATYPE_HTTP_URI) {
-            int list = DetectBufferTypeGetByName("http_uri");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_uri");
         } else if (lua->flags & DATATYPE_HTTP_URI_RAW) {
-            int list = DetectBufferTypeGetByName("http_raw_uri");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_raw_uri");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_COOKIE ||
                  lua->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
         {
-            int list = DetectBufferTypeGetByName("http_cookie");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_cookie");
         } else if (lua->flags & DATATYPE_HTTP_REQUEST_UA) {
-            int list = DetectBufferTypeGetByName("http_user_agent");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_user_agent");
         } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS|DATATYPE_HTTP_RESPONSE_HEADERS)) {
-            int list = DetectBufferTypeGetByName("http_header");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_header");
         } else if (lua->flags & (DATATYPE_HTTP_REQUEST_HEADERS_RAW|DATATYPE_HTTP_RESPONSE_HEADERS_RAW)) {
-            int list = DetectBufferTypeGetByName("http_raw_header");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_raw_header");
         } else {
-            int list = DetectBufferTypeGetByName("http_request_line");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("http_request_line");
         }
     } else if (lua->alproto == ALPROTO_DNS) {
         if (lua->flags & DATATYPE_DNS_RRNAME) {
-            int list = DetectBufferTypeGetByName("dns_query");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("dns_query");
         } else if (lua->flags & DATATYPE_DNS_REQUEST) {
-            int list = DetectBufferTypeGetByName("dns_request");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("dns_request");
         } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
-            int list = DetectBufferTypeGetByName("dns_response");
-            SigMatchAppendSMToList(s, sm, list);
+            list = DetectBufferTypeGetByName("dns_response");
         }
     } else if (lua->alproto == ALPROTO_TLS) {
-        int list = DetectBufferTypeGetByName("tls_generic");
-        SigMatchAppendSMToList(s, sm, list);
+        list = DetectBufferTypeGetByName("tls_generic");
     } else if (lua->alproto == ALPROTO_SSH) {
-        int list = DetectBufferTypeGetByName("ssh_banner");
-        SigMatchAppendSMToList(s, sm, list);
+        list = DetectBufferTypeGetByName("ssh_banner");
     } else if (lua->alproto == ALPROTO_SMTP) {
-        SigMatchAppendSMToList(s, sm, g_smtp_generic_list_id);
+        list = g_smtp_generic_list_id;
     } else if (lua->alproto == ALPROTO_DNP3) {
-        int list = DetectBufferTypeGetByName("dnp3");
-        SigMatchAppendSMToList(s, sm, list);
+        list = DetectBufferTypeGetByName("dnp3");
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
                    AppLayerGetProtoName(lua->alproto));
         goto error;
     }
+
+    if (list == -1) {
+        SCLogError(SC_ERR_LUA_ERROR, "lua can't be used with protocol %s",
+                   AppLayerGetProtoName(lua->alproto));
+        goto error;
+    }
+
+    SigMatchAppendSMToList(s, sm, list);
 
     return 0;
 
