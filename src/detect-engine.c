@@ -2004,9 +2004,10 @@ int DetectRegisterThreadCtxGlobalFuncs(const char *name,
     }
 
     item = SCCalloc(1, sizeof(*item));
-    if (unlikely(item == NULL))
+    if (unlikely(item == NULL)) {
+        SCMutexUnlock(&master->lock);
         return -1;
-
+    }
     item->InitFunc = InitFunc;
     item->FreeFunc = FreeFunc;
     item->name = name;
