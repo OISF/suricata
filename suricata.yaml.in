@@ -139,6 +139,18 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+
+      # JSON flags
+      json:
+        # Sort object keys in the same order as they were inserted
+        preserve-order: yes
+        # Make the output more compact
+        compact: yes
+        # Escape all unicode characters outside the ASCII range
+        ensure-ascii: yes
+        # Escape the '/' characters in string with '\/'
+        escape-slash: yes
+
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
