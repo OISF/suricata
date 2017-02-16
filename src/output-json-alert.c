@@ -218,6 +218,25 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     json_object_set_new(js, "alert", ajs);
 }
 
+static void AlertJsonParent(const Packet *p, json_t *js)
+{
+    json_t *parent = json_object();
+    if (parent == NULL)
+        return;
+
+    if (p->root == NULL)
+        return;
+
+    /* get a lock to access root packet fields */
+    SCMutex *m = &p->root->tunnel_mutex;
+
+    SCMutexLock(m);
+    JsonFiveTuple((const Packet *)p->root, 0, parent);
+    SCMutexUnlock(m);
+
+    json_object_set_new(js, "parent", parent);
+}
+
 static void AlertJsonPacket(const Packet *p, json_t *js)
 {
     unsigned long len = GET_PKT_LEN(p) * 2;
@@ -261,6 +280,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* alert */
         AlertJsonHeader(p, pa, js);
 
+        if (IS_TUNNEL_PKT(p)) {
+            AlertJsonParent(p, js);
+        }
+
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
@@ -278,7 +301,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* tls alert */
                 if (proto == ALPROTO_TLS)
                     AlertJsonTls(p->flow, js);
             }
@@ -288,7 +311,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* ssh alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
             }
@@ -298,7 +321,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* smtp alert */
                 if (proto == ALPROTO_SMTP) {
                     hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
@@ -314,6 +337,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (json_output_ctx->flags & LOG_JSON_DNP3) {
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* dnp3 alert */
                 if (proto == ALPROTO_DNP3) {
                     AlertJsonDnp3(p->flow, js);
                 }
