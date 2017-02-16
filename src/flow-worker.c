@@ -80,35 +80,45 @@ static inline TmEcode FlowUpdate(Packet *p)
     }
 }
 
+static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data);
+
 static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     FlowWorkerThreadData *fw = SCCalloc(1, sizeof(*fw));
-    BUG_ON(fw == NULL);
+    if (fw == NULL)
+        return TM_ECODE_FAILED;
+
     SC_ATOMIC_INIT(fw->detect_thread);
     SC_ATOMIC_SET(fw->detect_thread, NULL);
 
     fw->dtv = DecodeThreadVarsAlloc(tv);
     if (fw->dtv == NULL) {
-        SC_ATOMIC_DESTROY(fw->detect_thread);
-        SCFree(fw);
+        FlowWorkerThreadDeinit(tv, fw);
         return TM_ECODE_FAILED;
     }
 
     /* setup TCP */
-    BUG_ON(StreamTcpThreadInit(tv, NULL, &fw->stream_thread_ptr) != TM_ECODE_OK);
+    if (StreamTcpThreadInit(tv, NULL, &fw->stream_thread_ptr) != TM_ECODE_OK) {
+        FlowWorkerThreadDeinit(tv, fw);
+        return TM_ECODE_FAILED;
+    }
 
     if (DetectEngineEnabled()) {
         /* setup DETECT */
         void *detect_thread = NULL;
-        BUG_ON(DetectEngineThreadCtxInit(tv, NULL, &detect_thread) != TM_ECODE_OK);
+        if (DetectEngineThreadCtxInit(tv, NULL, &detect_thread) != TM_ECODE_OK) {
+            FlowWorkerThreadDeinit(tv, fw);
+            return TM_ECODE_FAILED;
+        }
         SC_ATOMIC_SET(fw->detect_thread, detect_thread);
     }
 
     /* Setup outputs for this thread. */
     if (OutputLoggerThreadInit(tv, initdata, &fw->output_thread) != TM_ECODE_OK) {
+        FlowWorkerThreadDeinit(tv, fw);
         return TM_ECODE_FAILED;
     }
- 
+
     AppLayerRegisterThreadCounters(tv);
 
     /* setup pq for stream end pkts */
@@ -142,6 +152,7 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
     BUG_ON(fw->pq.len);
     SCMutexDestroy(&fw->pq.mutex_q);
 
+    SC_ATOMIC_DESTROY(fw->detect_thread);
     SCFree(fw);
     return TM_ECODE_OK;
 }
