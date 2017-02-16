@@ -14,8 +14,13 @@ install-data-am:
 
 install-full: install install-conf install-rules
 
-install-conf:
+"$(DESTDIR)$(e_sysconfdir)":
 	install -d "$(DESTDIR)$(e_sysconfdir)"
+
+"$(DESTDIR)$(e_sysconfrulesdir)": "$(DESTDIR)$(e_sysconfdir)"
+	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
+
+install-conf: "$(DESTDIR)$(e_sysconfdir)"
 	@test -e "$(DESTDIR)$(e_sysconfdir)/suricata.yaml" || install -m 600 "$(top_srcdir)/suricata.yaml" "$(DESTDIR)$(e_sysconfdir)"
 	@test -e "$(DESTDIR)$(e_sysconfdir)/classification.config" || install -m 600 "$(top_srcdir)/classification.config" "$(DESTDIR)$(e_sysconfdir)"
 	@test -e "$(DESTDIR)$(e_sysconfdir)/reference.config" || install -m 600 "$(top_srcdir)/reference.config" "$(DESTDIR)$(e_sysconfdir)"
@@ -25,8 +30,7 @@ install-conf:
 	install -d "$(DESTDIR)$(e_rundir)"
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 
-install-rules:
-	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
+install-rules: "$(DESTDIR)$(e_sysconfrulesdir)"
 if HAVE_FETCH_COMMAND
 if HAVE_WGET_COMMAND
 	$(HAVE_WGET) -qO - https://rules.emergingthreats.net/open/suricata-3.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
