@@ -164,13 +164,8 @@ static int InspectEngineSshProtocol(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_SSH, tx, flags) >= SSH_STATE_BANNER_DONE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_SSH, tx, flags) >= SSH_STATE_BANNER_DONE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
+    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_SSH, tx, flags) >= SSH_STATE_BANNER_DONE)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
