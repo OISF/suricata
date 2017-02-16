@@ -18,27 +18,25 @@
 /**
  * \file
  *
- * \author Mike Pomraning <mpomraning@qualys.com>
  * \author Paulo Pacheco <fooinha@gmail.com>
  */
 
-#ifndef __UTIL_LOGOPENFILE_H__
-#define __UTIL_LOGOPENFILE_H__
+#ifndef __UTIL_LOGOPENFILE_KAFKA_H__
+#define __UTIL_LOGOPENFILE_KAFKA_H__
+
+#ifdef HAVE_LIBRDKAFKA
+#include "librdkafka/rdkafka.h"
 
 #include "conf.h"            /* ConfNode   */
-#include "tm-modules.h"      /* LogFileCtx */
-#include "util-buffer.h"
 #include "util-logopenfile-common.h"
+#include "util-logopenfile.h"
 
+void SCConfLogOpenKafka(ConfNode *, KafkaSetup *, char *);
+rd_kafka_t *SCLogOpenKafka(KafkaSetup *);
 
-LogFileCtx *LogFileNewCtx(void);
-int LogFileFreeCtx(LogFileCtx *);
-int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
+int LogFileWriteKafka(LogFileCtx *, const char *, size_t);
+void SCLogFileCloseKafka(LogFileCtx *);
 
-int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
-#ifdef HAVE_LIBHIREDIS
-int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
-#endif
-int SCConfLogReopen(LogFileCtx *);
+#endif /* HAVE_LIBRDKAFKA */
 
-#endif /* __UTIL_LOGOPENFILE_H__ */
+#endif /* __UTIL_LOGOPENFILE_KAFKA_H__ */

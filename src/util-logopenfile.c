@@ -33,9 +33,14 @@
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
+#include "util-print.h"
 
 const char * redis_push_cmd = "LPUSH";
 const char * redis_publish_cmd = "PUBLISH";
+
+#ifdef HAVE_LIBRDKAFKA
+#include "util-logopenfile-kafka.h"
+#endif
 
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -135,22 +140,34 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
 
     int ret = 0;
 
-    if (log_ctx->fp == NULL && log_ctx->is_sock)
+    if ( (log_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+          log_ctx->type == LOGFILE_TYPE_UNIX_STREAM) &&
+          log_ctx->fp == NULL && log_ctx->is_sock) {
+
         SCLogUnixSocketReconnect(log_ctx);
-
-    if (log_ctx->fp) {
-        clearerr(log_ctx->fp);
-        ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-        fflush(log_ctx->fp);
-
-        if (ferror(log_ctx->fp) && log_ctx->is_sock) {
-            /* Error on Unix socket, maybe needs reconnect */
-            if (SCLogUnixSocketReconnect(log_ctx)) {
-                ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-                fflush(log_ctx->fp);
+        if (log_ctx->fp) {
+            clearerr(log_ctx->fp);
+            ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+            fflush(log_ctx->fp);
+            if (ferror(log_ctx->fp) && log_ctx->is_sock) {
+                /* Error on Unix socket, maybe needs reconnect */
+                if (SCLogUnixSocketReconnect(log_ctx)) {
+                    ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+                    fflush(log_ctx->fp);
+                }
             }
         }
     }
+
+#ifdef HAVE_LIBRDKAFKA
+    if (log_ctx->type == LOGFILE_TYPE_KAFKA) {
+        if (log_ctx->kafka) {
+            if ( LogFileWriteKafka(log_ctx, buffer, buffer_len) > -1 )
+                ret = buffer_len;
+        }
+        return ret;
+    }
+#endif
 
     return ret;
 }
@@ -259,11 +276,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
         /* Don't bail. May be able to connect later. */
+        log_ctx->type = LOGFILE_TYPE_UNIX_STREAM;
         log_ctx->is_sock = 1;
         log_ctx->sock_type = SOCK_STREAM;
         log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_STREAM, 1);
     } else if (strcasecmp(filetype, "unix_dgram") == 0) {
         /* Don't bail. May be able to connect later. */
+        log_ctx->type = LOGFILE_TYPE_UNIX_DGRAM;
         log_ctx->is_sock = 1;
         log_ctx->sock_type = SOCK_DGRAM;
         log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
@@ -289,6 +308,24 @@ SCConfLogOpenGeneric(ConfNode *conf,
         }
         log_ctx->type = LOGFILE_TYPE_REDIS;
 #endif
+    } else if (strcasecmp(filetype, "kafka") == 0) {
+#ifdef HAVE_LIBRDKAFKA
+        SCMutexLock(&log_ctx->fp_mutex);
+
+        log_ctx->fp = NULL;
+        log_ctx->is_sock = 0;
+        ConfNode *kafka_node = ConfNodeLookupChild(conf, "kafka");
+        SCConfLogOpenKafka(kafka_node, &log_ctx->kafka_setup, log_ctx->sensor_name);
+        log_ctx->type = LOGFILE_TYPE_KAFKA;
+        log_ctx->kafka = SCLogOpenKafka(&log_ctx->kafka_setup);
+        log_ctx->Close = SCLogFileCloseKafka;
+
+        SCMutexUnlock(&log_ctx->fp_mutex);
+#else
+        SCLogError(SC_ERR_INVALID_ARGUMENT,
+                "kafka output option is not compiled");
+#endif// HAVE_LIBRDKAFKA
+
     } else {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                    "%s.filetype.  Expected \"regular\" (default), \"unix_stream\", "
@@ -525,6 +562,14 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             SCFree(lf_ctx->redis_setup.key);
     }
 #endif
+#ifdef HAVE_LIBRDKAFKA
+
+    if (lf_ctx->type == LOGFILE_TYPE_KAFKA) {
+        SCMutexLock(&lf_ctx->fp_mutex);
+        SCLogFileCloseKafka(lf_ctx);
+        SCMutexUnlock(&lf_ctx->fp_mutex);
+    }
+#endif
 
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
@@ -651,6 +696,15 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
         LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer));
+        SCMutexUnlock(&file_ctx->fp_mutex);
+    }
+#endif
+
+#ifdef HAVE_LIBRDKAFKA
+    else if (file_ctx->type == LOGFILE_TYPE_KAFKA) {
+        SCMutexLock(&file_ctx->fp_mutex);
+        LogFileWriteKafka(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
                 MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }

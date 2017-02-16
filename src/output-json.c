@@ -56,6 +56,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-logopenfile-kafka.h"
 #include "util-device.h"
 
 #include "flow-var.h"
@@ -570,6 +571,14 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                            "redis JSON output option is not compiled");
                 exit(EXIT_FAILURE);
 #endif
+            } else if (strcmp(output_s, "kafka") == 0) {
+#ifdef HAVE_LIBRDKAFKA
+                json_ctx->json_out = LOGFILE_TYPE_KAFKA;
+#else
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "kafka JSON output option is not compiled");
+                exit(EXIT_FAILURE);
+#endif
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -665,6 +674,25 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 SCFree(output_ctx);
                 return NULL;
             }
+        }
+#endif
+#ifdef HAVE_LIBRDKAFKA
+        else if (json_ctx->json_out == LOGFILE_TYPE_KAFKA) {
+
+            ConfNode *kafka_node = ConfNodeLookupChild(conf, "kafka");
+
+            SCConfLogOpenKafka(kafka_node,
+                    &json_ctx->file_ctx->kafka_setup, json_ctx->file_ctx->sensor_name);
+            rd_kafka_t * kafka = SCLogOpenKafka(&json_ctx->file_ctx->kafka_setup);
+
+            if (kafka == NULL) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return NULL;
+            }
+            json_ctx->file_ctx->kafka = kafka;
+            json_ctx->file_ctx->Close = (void(*)(LogFileCtx *)) SCLogFileCloseKafka;
         }
 #endif
 
