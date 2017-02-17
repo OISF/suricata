@@ -236,8 +236,9 @@ static int TCPCalculateValidChecksumtest01(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
-                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+    FAIL_IF(TCPCalculateChecksum((uint16_t *)raw_ipshdr,
+            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) != 0);
+    PASS;
 }
 
 static int TCPCalculateInvalidChecksumtest02(void)
@@ -256,8 +257,9 @@ static int TCPCalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum != TCPCalculateChecksum((uint16_t *) raw_ipshdr,
-                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+    FAIL_IF(TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) == 0);
+    PASS;
 }
 
 static int TCPV6CalculateValidChecksumtest03(void)
@@ -279,8 +281,9 @@ static int TCPV6CalculateValidChecksumtest03(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    return (csum == TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
-                                           (uint16_t *)(raw_ipv6 + 54), 32));
+    FAIL_IF(TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+            (uint16_t *)(raw_ipv6 + 54), 32, csum) != 0);
+    PASS;
 }
 
 static int TCPV6CalculateInvalidChecksumtest04(void)
@@ -302,8 +305,9 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    return (csum != TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
-                                           (uint16_t *)(raw_ipv6 + 54), 32));
+    FAIL_IF(TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+            (uint16_t *)(raw_ipv6 + 54), 32, csum) == 0);
+    PASS;
 }
 
 /** \test Get the wscale of 2 */

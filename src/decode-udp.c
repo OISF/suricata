@@ -117,9 +117,9 @@ static int UDPV4CalculateValidChecksumtest01(void)
 
     csum = *( ((uint16_t *)raw_udp) + 3);
 
-    return (csum == UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
-                                           (uint16_t *)raw_udp,
-                                           sizeof(raw_udp)));
+    FAIL_IF(UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
+            (uint16_t *)raw_udp, sizeof(raw_udp), csum) != 0);
+    PASS;
 }
 
 static int UDPV4CalculateInvalidChecksumtest02(void)
@@ -144,9 +144,9 @@ static int UDPV4CalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_udp) + 3);
 
-    return (csum != UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
-                                           (uint16_t *)raw_udp,
-                                           sizeof(raw_udp)));
+    FAIL_IF(UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
+            (uint16_t *)raw_udp, sizeof(raw_udp), csum) == 0);
+    PASS;
 }
 
 static int UDPV6CalculateValidChecksumtest03(void)
@@ -167,8 +167,9 @@ static int UDPV6CalculateValidChecksumtest03(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 60)));
 
-    return (csum == UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
-                                           (uint16_t *)(raw_ipv6 + 54), 20));
+    FAIL_IF(UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+            (uint16_t *)(raw_ipv6 + 54), 20, csum) != 0);
+    PASS;
 }
 
 static int UDPV6CalculateInvalidChecksumtest04(void)
@@ -189,8 +190,9 @@ static int UDPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 60)));
 
-    return (csum != UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
-                                           (uint16_t *)(raw_ipv6 + 54), 20));
+    FAIL_IF(UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+            (uint16_t *)(raw_ipv6 + 54), 20, csum) == 0);
+    PASS;
 }
 #endif /* UNITTESTS */
 
