@@ -162,24 +162,24 @@ static int SCConfLogReopenRedis(LogFileCtx *log_ctx)
         SCMutexLock(&async_connect_mutex);
         ctx->async = redisAsyncConnect(redis_server, redis_port);
         SCMutexUnlock(&async_connect_mutex);
-        if (ctx->sync == NULL) {
+        if (ctx->async == NULL) {
             SCLogError(SC_ERR_SOCKET, "Error connecting to redis server.");
             log_ctx->redis_setup.tried = time(NULL);
             return -1;
         }
-        if (ctx->async != NULL && ctx->async->err) {
+        if (ctx->async->err) {
             SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: [%s]", ctx->async->errstr);
             redisAsyncFree(ctx->async);
             ctx->async = NULL;
             log_ctx->redis_setup.tried = time(NULL);
             return -1;
         }
-        if (ctx->async != NULL)  {
-            redisLibeventAttach(ctx->async,ctx->ev_base);
-            redisAsyncSetConnectCallback(ctx->async,RedisConnectCallback);
-            redisAsyncSetDisconnectCallback(ctx->async,RedisDisconnectCallback);
-            redisAsyncHandleWrite(ctx->async);
-        }
+
+        redisLibeventAttach(ctx->async,ctx->ev_base);
+        redisAsyncSetConnectCallback(ctx->async,RedisConnectCallback);
+        redisAsyncSetDisconnectCallback(ctx->async,RedisDisconnectCallback);
+        redisAsyncHandleWrite(ctx->async);
+
     } else
 #endif
     {
