@@ -572,6 +572,9 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src)
         case PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO:
             pkt_src_str = "stream";
             break;
+        case PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH:
+            pkt_src_str = "stream (detect/log)";
+            break;
         case PKT_SRC_FFR:
             pkt_src_str = "stream (flow timeout)";
             break;
