@@ -164,7 +164,8 @@ typedef struct TCPVars_
 void DecodeTCPRegisterTests(void);
 
 /** -------- Inline functions ------- */
-static inline uint16_t TCPCalculateChecksum(uint16_t *, uint16_t *, uint16_t);
+static inline uint16_t TCPCalculateChecksum(uint16_t *, uint16_t *, uint16_t,
+    uint16_t);
 static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
 
 /**
@@ -174,16 +175,17 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
  *             part of the pseudoheader for computing the checksum
  * \param pkt  Pointer to the start of the TCP packet
  * \param tlen Total length of the TCP packet(header + payload)
+ * \param init The current checksum if validating, 0 if generating.
  *
  * \retval csum Checksum for the TCP packet
  */
 static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                            uint16_t tlen)
+                                            uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
-    uint32_t csum = shdr[0];
+    uint32_t csum = init;
 
-    csum += shdr[1] + shdr[2] + shdr[3] + htons(6) + htons(tlen);
+    csum += shdr[0] + shdr[1] + shdr[2] + shdr[3] + htons(6) + htons(tlen);
 
     csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
         pkt[7] + pkt[9];
@@ -193,7 +195,9 @@ static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
 
     while (tlen >= 32) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
-            pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
+            pkt[7] +
+            pkt[8] +
+            pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
             pkt[14] + pkt[15];
         tlen -= 32;
         pkt += 16;
