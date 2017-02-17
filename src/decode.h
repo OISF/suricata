@@ -54,6 +54,7 @@ enum PktSrcEnum {
     PKT_SRC_DEFRAG,
     PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO,
     PKT_SRC_FFR,
+    PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH,
 };
 
 #include "source-nflog.h"
