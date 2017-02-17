@@ -564,12 +564,16 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         f->alproto_orig = f->alproto;
+        SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
         AppLayerProtoDetectReset(f);
         /* rerun protocol detection */
         if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
                            data, data_len, flags) != 0) {
+            SCLogDebug("proto detect failure");
             goto failure;
         }
+        SCLogDebug("protocol change, old %s, new %s",
+                AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "
                    "%"PRIu16" (flow %p)", data_len, f->alproto, f);
