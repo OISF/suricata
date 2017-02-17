@@ -57,10 +57,36 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define LOG_TLS_DEFAULT     0
 #define LOG_TLS_EXTENDED    (1 << 0)
+#define LOG_TLS_CUSTOM      (1 << 1)
+
+#define LOG_TLS_FIELD_VERSION     (1 << 0)
+#define LOG_TLS_FIELD_SUBJECT     (1 << 1)
+#define LOG_TLS_FIELD_ISSUER      (1 << 2)
+#define LOG_TLS_FIELD_FINGERPRINT (1 << 3)
+#define LOG_TLS_FIELD_NOTBEFORE   (1 << 4)
+#define LOG_TLS_FIELD_NOTAFTER    (1 << 5)
+#define LOG_TLS_FIELD_SNI         (1 << 6)
+
+typedef struct {
+    char *name;
+    uint64_t flag;
+} TlsFields;
+
+TlsFields tls_fields[] = {
+    { "version",     LOG_TLS_FIELD_VERSION },
+    { "subject",     LOG_TLS_FIELD_SUBJECT },
+    { "issuer",      LOG_TLS_FIELD_ISSUER },
+    { "fingerprint", LOG_TLS_FIELD_FINGERPRINT },
+    { "not_before",  LOG_TLS_FIELD_NOTBEFORE },
+    { "not_after",   LOG_TLS_FIELD_NOTAFTER },
+    { "sni",         LOG_TLS_FIELD_SNI },
+    { NULL,          -1 }
+};
 
 typedef struct OutputTlsCtx_ {
     LogFileCtx *file_ctx;
-    uint32_t flags; /** Store mode */
+    uint32_t flags;  /** Store mode */
+    uint64_t fields; /** Store fields */
 } OutputTlsCtx;
 
 
@@ -71,34 +97,37 @@ typedef struct JsonTlsLogThread_ {
 
 #define SSL_VERSION_LENGTH 13
 
-void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
+static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
 {
-    /* tls.subject */
     json_object_set_new(js, "subject",
                         json_string(ssl_state->server_connp.cert0_subject));
-
-    /* tls.issuerdn */
-    json_object_set_new(js, "issuerdn",
-                        json_string(ssl_state->server_connp.cert0_issuerdn));
-
 }
 
-void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
+static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
+{
+    json_object_set_new(js, "issuerdn",
+                        json_string(ssl_state->server_connp.cert0_issuerdn));
+}
+
+static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
+{
+    json_object_set_new(js, "fingerprint",
+                        json_string(ssl_state->server_connp.cert0_fingerprint));
+}
+
+static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->client_connp.sni) {
+        json_object_set_new(js, "sni",
+                            json_string(ssl_state->client_connp.sni));
+    }
+}
+
+static void JsonTlsLogVersion(json_t *js, SSLState *ssl_state)
 {
     char ssl_version[SSL_VERSION_LENGTH + 1];
 
-    /* tls.fingerprint */
-    json_object_set_new(tjs, "fingerprint",
-                        json_string(state->server_connp.cert0_fingerprint));
-
-    /* tls.sni */
-    if (state->client_connp.sni) {
-        json_object_set_new(tjs, "sni",
-                            json_string(state->client_connp.sni));
-    }
-
-    /* tls.version */
-    switch (state->server_connp.version) {
+    switch (ssl_state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
             snprintf(ssl_version, SSL_VERSION_LENGTH, "UNDETERMINED");
             break;
@@ -119,30 +148,95 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
             break;
         default:
             snprintf(ssl_version, SSL_VERSION_LENGTH, "0x%04x",
-                     state->server_connp.version);
+                     ssl_state->server_connp.version);
             break;
     }
-    json_object_set_new(tjs, "version", json_string(ssl_version));
+    json_object_set_new(js, "version", json_string(ssl_version));
+}
+
+static void JsonTlsLogNotBefore(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_not_before != 0) {
+        char timebuf[64];
+        struct timeval tv;
+        tv.tv_sec = ssl_state->server_connp.cert0_not_before;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        json_object_set_new(js, "notbefore", json_string(timebuf));
+    }
+}
+
+static void JsonTlsLogNotAfter(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_not_after != 0) {
+        char timebuf[64];
+        struct timeval tv;
+        tv.tv_sec = ssl_state->server_connp.cert0_not_after;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+       json_object_set_new(js, "notafter", json_string(timebuf));
+    }
+}
+
+void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
+{
+    /* tls.subject */
+    JsonTlsLogSubject(js, ssl_state);
+
+    /* tls.issuerdn */
+    JsonTlsLogIssuer(js, ssl_state);
+}
+
+static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
+                                 SSLState *ssl_state)
+{
+    /* tls.subject */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT)
+        JsonTlsLogSubject(js, ssl_state);
+
+    /* tls.issuerdn */
+    if (tls_ctx->fields & LOG_TLS_FIELD_ISSUER)
+        JsonTlsLogIssuer(js, ssl_state);
+
+    /* tls.fingerprint */
+    if (tls_ctx->fields & LOG_TLS_FIELD_FINGERPRINT)
+        JsonTlsLogFingerprint(js, ssl_state);
+
+    /* tls.sni */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SNI)
+        JsonTlsLogSni(js, ssl_state);
+
+    /* tls.version */
+    if (tls_ctx->fields & LOG_TLS_FIELD_VERSION)
+        JsonTlsLogVersion(js, ssl_state);
 
     /* tls.notbefore */
-    if (state->server_connp.cert0_not_before != 0) {
-        char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = state->server_connp.cert0_not_before;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-        json_object_set_new(tjs, "notbefore", json_string(timebuf));
-    }
+    if (tls_ctx->fields & LOG_TLS_FIELD_NOTBEFORE)
+        JsonTlsLogNotBefore(js, ssl_state);
 
     /* tls.notafter */
-    if (state->server_connp.cert0_not_after != 0) {
-        char timebuf[64];
-        struct timeval tv;
-        tv.tv_sec = state->server_connp.cert0_not_after;
-        tv.tv_usec = 0;
-        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
-       json_object_set_new(tjs, "notafter", json_string(timebuf));
-    }
+    if (tls_ctx->fields & LOG_TLS_FIELD_NOTAFTER)
+        JsonTlsLogNotAfter(js, ssl_state);
+}
+
+void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
+{
+    JsonTlsLogJSONBasic(tjs, state);
+
+    /* tls.fingerprint */
+    JsonTlsLogFingerprint(tjs, state);
+
+    /* tls.sni */
+    JsonTlsLogSni(tjs, state);
+
+    /* tls.version */
+    JsonTlsLogVersion(tjs, state);
+
+    /* tls.notbefore */
+    JsonTlsLogNotBefore(tjs, state);
+
+    /* tls.notafter */
+    JsonTlsLogNotAfter(tjs, state);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
@@ -173,10 +267,17 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     /* reset */
     MemBufferReset(aft->buffer);
 
-    JsonTlsLogJSONBasic(tjs, ssl_state);
-
-    if (tls_ctx->flags & LOG_TLS_EXTENDED) {
+    /* log custom fields */
+    if (tls_ctx->flags & LOG_TLS_CUSTOM) {
+        JsonTlsLogJSONCustom(tls_ctx, tjs, ssl_state);
+    }
+    /* log extended */
+    else if (tls_ctx->flags & LOG_TLS_EXTENDED) {
         JsonTlsLogJSONExtended(tjs, ssl_state);
+    }
+    /* log basic */
+    else {
+        JsonTlsLogJSONBasic(tjs, ssl_state);
     }
 
     json_object_set_new(js, "tls", tjs);
@@ -310,6 +411,7 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     tls_ctx->file_ctx = ojc->file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
+    tls_ctx->fields = 0;
 
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");
@@ -319,7 +421,24 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
                 tls_ctx->flags = LOG_TLS_EXTENDED;
             }
         }
+
+        ConfNode *custom;
+        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
+            tls_ctx->flags = LOG_TLS_CUSTOM;
+            ConfNode *field;
+            TAILQ_FOREACH(field, &custom->head, next)
+            {
+                TlsFields *valid_fields = tls_fields;
+                for ( ; valid_fields->name != NULL; valid_fields++) {
+                    if (strcasecmp(field->val, valid_fields->name) == 0) {
+                        tls_ctx->fields |= valid_fields->flag;
+                        break;
+                    }
+                }
+            }
+        }
     }
+
     output_ctx->data = tls_ctx;
     output_ctx->DeInit = OutputTlsLogDeinitSub;
 
