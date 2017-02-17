@@ -584,18 +584,6 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
 static inline int SegmentInUse(TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
 {
-    if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
-        /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + TCP_SEG_LEN(seg), ssn->toserver_smsg_head->seq))) {
-            SCReturnInt(1);
-        }
-    } else if (stream == &ssn->server && ssn->toclient_smsg_head != NULL) {
-        /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + TCP_SEG_LEN(seg), ssn->toclient_smsg_head->seq))) {
-            SCReturnInt(1);
-        }
-    }
-
     /* if proto detect isn't done, we're not returning */
     if (!(stream->flags & STREAMTCP_STREAM_FLAG_GAP)) {
         if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
@@ -609,9 +597,6 @@ static inline int SegmentInUse(TcpSession *ssn, TcpStream *stream, TcpSegment *s
 
 /** \internal
  *  \brief check if we can remove a segment from our segment list
- *
- *  If a segment is entirely before the oldest smsg, we can discard it. Otherwise
- *  we keep it around to be able to log it.
  *
  *  \retval 1 yes
  *  \retval 0 no

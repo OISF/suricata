@@ -1108,6 +1108,8 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
 
 #define PKT_REBUILT_FRAGMENT            (1<<25)     /**< Packet is rebuilt from
                                                      * fragments. */
+#define PKT_DETECT_HAS_STREAMDATA       (1<<26)     /**< Set by Detect() if raw stream data is available. */
+
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

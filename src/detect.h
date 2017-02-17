@@ -791,6 +791,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* detection engine variables */
 
+    uint64_t raw_stream_progress;
+
     /** offset into the payload of the last match by:
      *  content, pcre, etc */
     uint32_t buffer_offset;
@@ -863,8 +865,6 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PrefilterRuleStore pmq;
-
-    StreamMsg *smsg;
 
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */

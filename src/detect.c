@@ -236,7 +236,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
-static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, int, StreamMsg *, int);
+static void PacketCreateMask(Packet *, SignatureMask *, AppProto, bool, int);
 
 /**
  *  \brief Create the path if default-rule-path was specified
@@ -638,103 +638,6 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
-/** \brief Get the smsgs relevant to this packet
- *
- *  \param f LOCKED flow
- *  \param p packet
- *  \param flags stream flags
- */
-static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
-{
-    SCEnter();
-
-    DEBUG_ASSERT_FLOW_LOCKED(f);
-
-    StreamMsg *smsg = NULL;
-
-    if (p->proto == IPPROTO_TCP && f->protoctx != NULL && (p->flags & PKT_STREAM_EST)) {
-        TcpSession *ssn = (TcpSession *)f->protoctx;
-
-        /* at stream eof, or in inline mode, inspect all smsg's */
-        if ((flags & STREAM_EOF) || StreamTcpInlineMode()) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                smsg = ssn->toserver_smsg_head;
-                /* deref from the ssn */
-                ssn->toserver_smsg_head = NULL;
-                ssn->toserver_smsg_tail = NULL;
-
-                SCLogDebug("to_server smsg %p at stream eof", smsg);
-                if (smsg)
-                    SCLogDebug("to_server smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
-            } else {
-                smsg = ssn->toclient_smsg_head;
-                /* deref from the ssn */
-                ssn->toclient_smsg_head = NULL;
-                ssn->toclient_smsg_tail = NULL;
-
-                SCLogDebug("to_client smsg %p at stream eof", smsg);
-                if (smsg)
-                    SCLogDebug("to_client smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
-            }
-        } else {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                StreamMsg *head = ssn->toserver_smsg_head;
-                if (unlikely(head == NULL)) {
-                    SCLogDebug("no smsgs in to_server direction");
-                    goto end;
-                }
-
-                /* if the smsg is bigger than the current packet, we will
-                 * process the smsg in a later run */
-                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
-                    SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                            (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
-                    goto end;
-                }
-
-                smsg = head;
-                /* deref from the ssn */
-                ssn->toserver_smsg_head = NULL;
-                ssn->toserver_smsg_tail = NULL;
-
-                SCLogDebug("to_server smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
-            } else {
-                StreamMsg *head = ssn->toclient_smsg_head;
-                if (unlikely(head == NULL))
-                    goto end;
-
-                /* if the smsg is bigger than the current packet, we will
-                 * process the smsg in a later run */
-                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
-                    SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                            (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
-                    goto end;
-                }
-
-                smsg = head;
-                /* deref from the ssn */
-                ssn->toclient_smsg_head = NULL;
-                ssn->toclient_smsg_tail = NULL;
-
-                SCLogDebug("to_client smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
-            }
-        }
-    }
-
-end:
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        StreamMsg *m = smsg;
-        while(m) {
-            SCLogDebug("m %p size %u, SEQ %u", m, m->data_len, m->seq);
-            PrintRawDataFp(stdout, m->data, m->data_len);
-            m = m->next;
-        }
-    }
-#endif
-    SCReturnPtr(smsg, "StreamMsg");
-}
-
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                                             DetectEngineThreadCtx *det_ctx)
 {
@@ -862,17 +765,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 
-#ifdef DEBUG
-static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
-{
-    SCLogDebug("pcap_cnt %02"PRIu64", %s, %12s, smsg %s",
-               p->pcap_cnt, p->flowflags & FLOW_PKT_TOSERVER ? "toserver" : "toclient",
-               p->flags & PKT_STREAM_EST ? "established" : "stateless",
-               smsg ? "yes" : "no");
-    AppLayerParserStatePrintDetails(f->alparser);
-}
-#endif
-
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
@@ -999,7 +891,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
-    int has_state = 0;          /* do we have an alstate to work with? */
+    bool has_state = false;     /* do we have an alstate to work with? */
 
     SCEnter();
 
@@ -1008,8 +900,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->ticker++;
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
-    det_ctx->smsg = NULL;
     det_ctx->base64_decoded_len = 0;
+    det_ctx->raw_stream_progress = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
@@ -1082,17 +974,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     sms_runflags |= SMS_USE_FLOW_SGH;
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
-
-                det_ctx->smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
-#if 0
-                StreamMsg *tmpsmsg = smsg;
-                while (tmpsmsg) {
-                    printf("detect ---start---:\n");
-                    PrintRawDataFp(stdout,tmpsmsg->data.data,tmpsmsg->data.data_len);
-                    printf("detect ---end---:\n");
-                    tmpsmsg = tmpsmsg->next;
-                }
-#endif
             }
 
             /* Retrieve the app layer state and protocol and the tcp reassembled
@@ -1105,6 +986,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
+                if (p->proto == IPPROTO_TCP && pflow->protoctx &&
+                    StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
+                    p->flags |= PKT_DETECT_HAS_STREAMDATA;
+                }
                 SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
@@ -1150,11 +1035,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
         }
 
-#ifdef DEBUG
-        if (pflow) {
-            DebugInspectIds(p, pflow, det_ctx->smsg);
-        }
-#endif
     } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
 
@@ -1193,8 +1073,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, has_state, det_ctx->smsg,
-            app_decoder_events);
+    PacketCreateMask(p, &mask, alproto, has_state, app_decoder_events);
 
     /* build and prefilter non_pf list against the mask of the packet */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
@@ -1381,33 +1260,25 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
             if (sflags & SIG_FLAG_REQUIRE_STREAM) {
-                char pmatch = 0;
-                if (det_ctx->smsg != NULL) {
-                    StreamMsg *smsg_inspect = det_ctx->smsg;
-                    for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next) {
-                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
-                            SCLogDebug("match in smsg %p", smsg_inspect);
-                            pmatch = 1;
-                            det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
-                            /* Tell the engine that this reassembled stream can drop the
-                             * rest of the pkts with no further inspection */
-                            if (s->action & ACTION_DROP)
-                              alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+                int pmatch = 0;
+                if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+                    pmatch = DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, p);
+                    if (pmatch) {
+                        det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
+                        /* Tell the engine that this reassembled stream can drop the
+                         * rest of the pkts with no further inspection */
+                        if (s->action & ACTION_DROP)
+                            alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
-                            alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
-                            break;
-                        }
+                        alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
                     }
-
-                } /* if (smsg != NULL) */
-
+                }
                 /* no match? then inspect packet payload */
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
 
-                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET)) {
-                        if (p->flags & PKT_STREAM_ADD)
-                            goto next;
+                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
+                        goto next;
                     }
 
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
@@ -1447,7 +1318,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* consider stateful sig matches */
         if (sflags & SIG_FLAG_STATE_MATCH) {
-            if (has_state == 0) {
+            if (has_state == false) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
             }
@@ -1541,10 +1412,13 @@ end:
             DetectPostInspectFirstSGH(p, pflow, det_ctx->sgh);
         }
 
-        /* if we had no alerts that involved the smsgs,
-         * we can get rid of them now. */
-        StreamMsgReturnListToPool(det_ctx->smsg);
-        det_ctx->smsg = NULL;
+        /* update inspected tracker for raw reassembly */
+        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
+            det_ctx->raw_stream_progress > 0)
+        {
+            StreamReassembleRawUpdateProgress(pflow->protoctx, p,
+                    det_ctx->raw_stream_progress);
+        }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
@@ -2061,12 +1935,14 @@ deonly:
  * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 static void
-PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state, StreamMsg *smsg,
-        int app_decoder_events)
+PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
+        bool has_state, int app_decoder_events)
 {
-    /* no payload inspect flag doesn't apply to smsg */
-    if (smsg != NULL || (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0)) {
+    if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0) {
         SCLogDebug("packet has payload");
+        (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
+    } else if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+        SCLogDebug("stream data available");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
     } else {
         SCLogDebug("packet has no payload");
