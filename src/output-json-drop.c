@@ -168,7 +168,8 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
+    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer,
+                     0 /* no custom flags */);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);

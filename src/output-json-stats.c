@@ -195,7 +195,8 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
 
     json_object_set_new(js, "stats", js_stats);
 
-    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, &aft->buffer);
+    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, &aft->buffer,
+                     0 /* no custom flags */);
     MemBufferReset(aft->buffer);
 
     json_object_clear(js_stats);

@@ -121,7 +121,8 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     json_object_set_new(js, "ssh", tjs);
 
-    OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
+    OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer,
+                     0 /* no custom flags */);
     json_object_clear(js);
     json_decref(js);
 
