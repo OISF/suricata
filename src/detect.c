@@ -6094,7 +6094,6 @@ int SigTest26TCPV4Keyword(void)
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
@@ -6125,9 +6124,7 @@ int SigTest26TCPV4Keyword(void)
     p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -6135,43 +6132,31 @@ int SigTest26TCPV4Keyword(void)
                                "alert ip any any -> any any "
                                "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
                                "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert ip any any -> any any "
                                      "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
                                      "msg:\"tcpv4-csum keyword check(1)\"; "
                                      "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sig 1 didn't match: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!(PacketAlertCheck(p2, 2))) {
-        printf("sig 2 didn't match: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p2, 2)));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     SCFree(p1);
     SCFree(p2);
-    return result;
+    PASS;
 }
 
 /* Test SigTest26TCPV4Keyword but also check for invalid IPV4 checksum */
@@ -6816,16 +6801,12 @@ int SigTest30UDPV4Keyword(void)
         0x67, 0x6c, 0x65, 0xc0, 0x27};
 
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p1 == NULL))
-        return 0;
+    FAIL_IF_NULL(p1);
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p2 == NULL)) {
-        SCFree(p1);
-        return 0;
-    }
+    FAIL_IF_NULL(p2);
+
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
@@ -6853,9 +6834,7 @@ int SigTest30UDPV4Keyword(void)
     p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -6864,45 +6843,32 @@ int SigTest30UDPV4Keyword(void)
                                "(content:\"/one/\"; udpv4-csum:valid; "
                                "msg:\"udpv4-csum keyword check(1)\"; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert udp any any -> any any "
                                      "(content:\"/one/\"; udpv4-csum:invalid; "
                                      "msg:\"udpv4-csum keyword check(1)\"; "
                                      "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1))
-        result &= 1;
-    else
-        result &= 0;
+    FAIL_IF_NOT(PacketAlertCheck(p1, 1));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 2))
-        result &= 1;
-    else
-        result &= 0;
+    FAIL_IF_NOT(PacketAlertCheck(p2, 2));
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     SCFree(p1);
     SCFree(p2);
-    return result;
+    PASS;
 }
 
 int SigTest31NegativeUDPV4Keyword(void)
@@ -7056,16 +7022,12 @@ int SigTest32UDPV6Keyword(void)
         0x09, 0x01};
 
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p1 == NULL))
-        return 0;
+    FAIL_IF_NULL(p1);
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p2 == NULL)) {
-        SCFree(p1);
-        return 0;
-    }
+    FAIL_IF_NULL(p2);
+
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
                     "\r\n\r\n";
@@ -7093,9 +7055,7 @@ int SigTest32UDPV6Keyword(void)
     p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -7103,45 +7063,33 @@ int SigTest32UDPV6Keyword(void)
                                "alert udp any any -> any any "
                                "(content:\"/one/\"; udpv6-csum:valid; "
                                "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert udp any any -> any any "
                                      "(content:\"/one/\"; udpv6-csum:invalid; "
                                      "msg:\"udpv6-csum keyword check(1)\"; "
                                      "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1))
-        result &= 1;
-    else
-        result &= 0;
+    FAIL_IF_NOT(PacketAlertCheck(p1, 1));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 2))
-        result &= 1;
-    else
-        result &= 0;
+    FAIL_IF_NOT(PacketAlertCheck(p2, 2));
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
+
     SCFree(p1);
     SCFree(p2);
-    return result;
+    PASS;
 }
 
 int SigTest33NegativeUDPV6Keyword(void)

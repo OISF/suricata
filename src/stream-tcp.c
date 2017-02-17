@@ -4710,18 +4710,19 @@ static inline int StreamTcpValidateChecksum(Packet *p)
             p->level4_comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                                                        (uint16_t *)p->tcph,
                                                        (p->payload_len +
-                                                        TCP_GET_HLEN(p)));
+                                                           TCP_GET_HLEN(p)),
+                                                       p->tcph->th_sum);
         } else if (PKT_IS_IPV6(p)) {
             p->level4_comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                          (uint16_t *)p->tcph,
                                                          (p->payload_len +
-                                                          TCP_GET_HLEN(p)));
+                                                             TCP_GET_HLEN(p)),
+                                                         p->tcph->th_sum);
         }
     }
 
-    if (p->level4_comp_csum != p->tcph->th_sum) {
+    if (p->level4_comp_csum != 0) {
         ret = 0;
-        SCLogDebug("Checksum of received packet %p is invalid",p);
         if (p->livedev) {
             (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
         } else if (p->pcap_cnt) {

@@ -338,11 +338,13 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->level4_comp_csum == -1)
         p->level4_comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                                                    (uint16_t *)p->tcph,
-                                                   (p->payload_len + TCP_GET_HLEN(p)));
+                                                   (p->payload_len +
+                                                       TCP_GET_HLEN(p)),
+                                                   p->tcph->th_sum);
 
-    if (p->level4_comp_csum == p->tcph->th_sum && cd->valid == 1)
+    if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level4_comp_csum != p->tcph->th_sum && cd->valid == 0)
+    else if (p->level4_comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -433,11 +435,13 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->level4_comp_csum == -1)
         p->level4_comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                      (uint16_t *)p->tcph,
-                                                     (p->payload_len + TCP_GET_HLEN(p)));
+                                                     (p->payload_len +
+                                                         TCP_GET_HLEN(p)),
+                                                     p->tcph->th_sum);
 
-    if (p->level4_comp_csum == p->tcph->th_sum && cd->valid == 1)
+    if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level4_comp_csum != p->tcph->th_sum && cd->valid == 0)
+    else if (p->level4_comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -529,11 +533,12 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         p->level4_comp_csum = UDPV4CalculateChecksum(p->ip4h->s_ip_addrs,
                                                      (uint16_t *)p->udph,
                                                      (p->payload_len +
-                                                      UDP_HEADER_LEN) );
+                                                         UDP_HEADER_LEN),
+                                                     p->udph->uh_sum);
 
-    if (p->level4_comp_csum == p->udph->uh_sum && cd->valid == 1)
+    if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level4_comp_csum != p->udph->uh_sum && cd->valid == 0)
+    else if (p->level4_comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -625,11 +630,12 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         p->level4_comp_csum = UDPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                      (uint16_t *)p->udph,
                                                      (p->payload_len +
-                                                      UDP_HEADER_LEN) );
+                                                         UDP_HEADER_LEN),
+                                                     p->udph->uh_sum);
 
-    if (p->level4_comp_csum == p->udph->uh_sum && cd->valid == 1)
+    if (p->level4_comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level4_comp_csum != p->udph->uh_sum && cd->valid == 0)
+    else if (p->level4_comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
