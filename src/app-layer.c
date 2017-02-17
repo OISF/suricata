@@ -607,8 +607,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        } else {
-            SCLogDebug(" smsg not start, but no l7 data? Weird");
         }
     }
 

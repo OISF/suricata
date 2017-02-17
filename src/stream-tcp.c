@@ -186,8 +186,6 @@ void StreamTcpStreamCleanup(TcpStream *stream)
 void StreamTcpSessionCleanup(TcpSession *ssn)
 {
     SCEnter();
-
-    StreamMsg *smsg = NULL;
     TcpStateQueue *q, *q_next;
 
     if (ssn == NULL)
@@ -195,29 +193,6 @@ void StreamTcpSessionCleanup(TcpSession *ssn)
 
     StreamTcpStreamCleanup(&ssn->client);
     StreamTcpStreamCleanup(&ssn->server);
-
-    /* if we have (a) smsg(s), return to the pool */
-    smsg = ssn->toserver_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
-    }
-    ssn->toserver_smsg_head = NULL;
-
-    smsg = ssn->toclient_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
-    }
-    ssn->toclient_smsg_head = NULL;
 
     q = ssn->queue;
     while (q != NULL) {
@@ -553,9 +528,6 @@ void StreamTcpInitConfig(char quiet)
             (int) (stream_config.reassembly_toserver_chunk_size *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER,
-            stream_config.reassembly_toserver_chunk_size);
-
     char *temp_stream_reassembly_toclient_chunk_size_str;
     if (ConfGet("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
@@ -577,10 +549,6 @@ void StreamTcpInitConfig(char quiet)
             (int) (stream_config.reassembly_toclient_chunk_size *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
-
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT,
-            stream_config.reassembly_toclient_chunk_size);
-
     if (!quiet) {
         SCLogConfig("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
             stream_config.reassembly_toserver_chunk_size);
@@ -592,8 +560,6 @@ void StreamTcpInitConfig(char quiet)
     if (ConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
         if (!enable_raw) {
             stream_config.ssn_init_flags = STREAMTCP_FLAG_DISABLE_RAW;
-// TODO how to handle this now?
-//            stream_config.segment_init_flags = SEGMENTTCP_FLAG_RAW_PROCESSED;
         }
     } else {
         enable_raw = 1;
@@ -6169,11 +6135,6 @@ static int StreamTcpTest05 (void)
     int ret = 0;
 
     StreamTcpUTInit(&stt.ra_ctx);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
     tcph.th_ack = htonl(20);
@@ -7003,11 +6964,6 @@ static int StreamTcpTest14 (void)
     strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     addr.s_addr = inet_addr("192.168.0.1");
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7410,11 +7366,6 @@ static int StreamTcpTest15 (void)
     strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     addr.s_addr = inet_addr("192.168.0.20");
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7582,11 +7533,6 @@ static int StreamTcpTest16 (void)
     strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     addr.s_addr = inet_addr("192.168.0.1");
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7757,11 +7703,6 @@ static int StreamTcpTest17 (void)
     strlcpy(os_policy_name, "linux\0", sizeof(os_policy_name));
     ip_addr = StreamTcpParseOSPolicy(os_policy_name);
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     addr.s_addr = inet_addr("192.168.0.1");
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -8163,11 +8104,6 @@ static int StreamTcpTest23(void)
 
     StreamTcpUTInit(&stt.ra_ctx);
     StreamTcpUTSetupSession(&ssn);
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     FLOW_INITIALIZE(&f);
     ssn.client.os_policy = OS_POLICY_BSD;
     f.protoctx = &ssn;
@@ -8307,11 +8243,6 @@ static int StreamTcpTest25(void)
     tcph.th_flags = TH_SYN | TH_CWR;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
     StreamTcpUTInit(&stt.ra_ctx);
 
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
@@ -9131,10 +9062,8 @@ static int StreamTcpTest33 (void)
     StreamTcpThread stt;
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
@@ -9149,7 +9078,6 @@ static int StreamTcpTest33 (void)
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
@@ -9235,10 +9163,8 @@ static int StreamTcpTest34 (void)
     StreamTcpThread stt;
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
@@ -9253,7 +9179,6 @@ static int StreamTcpTest34 (void)
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
@@ -9303,10 +9228,8 @@ static int StreamTcpTest35 (void)
     StreamTcpThread stt;
     TCPHdr tcph;
     TcpReassemblyThreadCtx ra_ctx;
-    StreamMsgQueue stream_q;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&stream_q, 0, sizeof(StreamMsgQueue));
     memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset (&p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
@@ -9321,7 +9244,6 @@ static int StreamTcpTest35 (void)
     p.tcph = &tcph;
     p.flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    ra_ctx.stream_q = &stream_q;
     stt.ra_ctx = &ra_ctx;
 
     StreamTcpInitConfig(TRUE);
@@ -9553,7 +9475,7 @@ static int StreamTcpTest37(void)
     }
 
     TcpStream *stream = &(((TcpSession *)p->flow->protoctx)->client);
-    FAIL_IF(STREAM_RAW_PROGRESS(stream) != 3);
+    FAIL_IF(STREAM_RAW_PROGRESS(stream) != 0); // no detect no progress update
 
     StreamTcpSessionClear(p->flow->protoctx);
 

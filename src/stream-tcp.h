@@ -45,7 +45,6 @@ typedef struct TcpStreamCnf_ {
     uint64_t reassembly_memcap; /**< max memory usage for stream reassembly */
 
     uint32_t ssn_init_flags; /**< new ssn flags will be initialized to this */
-    uint8_t segment_init_flags; /**< new seg flags will be initialized to this */
 
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
     uint32_t prealloc_segments; /**< segments to prealloc per stream thread */
@@ -117,6 +116,12 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
                         void *data);
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
+
+typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const uint32_t input_len);
+
+int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
+        StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
+void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
 /** ------- Inline functions: ------ */
 

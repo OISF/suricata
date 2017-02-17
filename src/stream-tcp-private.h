@@ -232,11 +232,6 @@ typedef struct TcpSession_ {
     uint32_t reassembly_depth;      /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
-    struct StreamMsg_ *toserver_smsg_head;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
-
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
 

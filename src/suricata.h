@@ -47,7 +47,6 @@
  *  - ::Packet: Data relative to an individual packet with information about
  *  linked structure such as the ::Flow the ::Packet belongs to.
  *  - ::Flow: Information about a flow for example a TCP session
- *  - ::StreamMsg: structure containing the reassembled data
  *
  *  \subsection runmode Running mode
  *
