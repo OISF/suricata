@@ -31,7 +31,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *,
         DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
 int DetectEngineInspectStreamPayload(DetectEngineCtx *,
         DetectEngineThreadCtx *, const Signature *, Flow *,
-        uint8_t *, uint32_t);
+        Packet *);
 
 void PayloadRegisterTests(void);
 

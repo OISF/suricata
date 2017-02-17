@@ -118,5 +118,7 @@ int StreamTcpAppLayerIsDisabled(Flow *f);
 int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 #endif
 
+bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

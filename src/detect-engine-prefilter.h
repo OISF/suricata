@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_PREFILTER_H__
 
 void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
-        const uint8_t flags, int has_state);
+        const uint8_t flags, const bool has_state);
 
 int PrefilterAppendEngine(SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
