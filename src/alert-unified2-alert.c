@@ -952,12 +952,12 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             aun->unified2alert_ctx->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
+            SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
         fflush(aun->unified2alert_ctx->file_ctx->fp);
         aun->unified2alert_ctx->file_ctx->alerts++;
-        SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
+        SCMutexUnlock(&file_ctx->fp_mutex);
     }
 
     return 0;
@@ -1133,13 +1133,13 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         ret = Unified2PacketTypeAlert(aun, p, event_id, stream);
         if (ret != 1) {
             aun->unified2alert_ctx->file_ctx->alerts += i;
-            SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
+            SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
 
         fflush(aun->unified2alert_ctx->file_ctx->fp);
         aun->unified2alert_ctx->file_ctx->alerts++;
-        SCMutexUnlock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
+        SCMutexUnlock(&file_ctx->fp_mutex);
     }
 
     return 0;
