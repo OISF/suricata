@@ -1365,9 +1365,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (sflags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
                 if (det_ctx->smsg != NULL) {
-                    uint8_t pmq_idx = 0;
                     StreamMsg *smsg_inspect = det_ctx->smsg;
-                    for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
+                    for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next) {
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg_inspect);
                             pmatch = 1;
