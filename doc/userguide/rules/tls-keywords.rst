@@ -14,6 +14,7 @@ Examples::
   tls_cert_subject; content:"google.com"; nocase; pcre:"/google.com$/";
 
 ``tls_cert_subject`` is a 'Sticky buffer'.
+``tls_cert_subject`` can be used as ``fast_pattern``.
 
 tls_cert_issuer
 ---------------
@@ -26,6 +27,7 @@ Examples::
   tls_cert_issuer; content:"StartCom"; nocase; pcre:"/StartCom$/";
 
 ``tls_cert_issuer`` is a 'Sticky buffer'.
+``tls_cert_issuer`` can be used as ``fast_pattern``.
 
 tls_sni
 -------
@@ -38,6 +40,7 @@ Examples::
   tls_sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
 
 ``tls_sni`` is a 'Sticky buffer'.
+``tls_sni`` can be used as ``fast_pattern``.
 
 tls_cert_notbefore
 ------------------
@@ -87,8 +90,6 @@ Match on negotiated TLS/SSL version.
 
 Example values: "1.0", "1.1", "1.2"
 
-Support added in Suricata version 1.3.
-
 tls.subject
 -----------
 
@@ -100,8 +101,6 @@ example:
 ::
 
   tls.subject:"CN=*.googleusercontent.com"
-
-Support added in Suricata version 1.3.
 
 Case sensitve, can't use 'nocase'.
 
@@ -119,8 +118,6 @@ example:
 
   tls.issuerdn:!"CN=Google-Internet-Authority"
 
-Support added in Suricata version 1.3.
-
 Case sensitve, can't use 'nocase'.
 
 Legacy keyword. ``tls_cert_issuer`` is the replacement.
@@ -137,8 +134,6 @@ example:
 
   tls.fingerprint:!"f3:40:21:48:70:2c:31:bc:b5:aa:22:ad:63:d6:bc:2e:b3:46:e2:5a"
 
-Support added in Suricata version 1.4.
-
 Case sensitive, can't use 'nocase'.
 
 The tls.fingerprint buffer is lower case so you must use lower case letters for this to match.
@@ -147,8 +142,6 @@ tls.store
 ---------
 
 store TLS/SSL certificate on disk
-
-Support added in Suricata version 1.4.
 
 ssl_state
 ---------
