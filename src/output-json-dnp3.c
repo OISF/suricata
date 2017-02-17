@@ -318,7 +318,8 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
         json_t *dnp3js = JsonDNP3LogRequest(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
-            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
+            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer,
+                             0 /* no custom flags */);
         }
         json_decref(js);
     }
@@ -344,7 +345,8 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
         json_t *dnp3js = JsonDNP3LogResponse(tx);
         if (dnp3js != NULL) {
             json_object_set_new(js, "dnp3", dnp3js);
-            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer);
+            OutputJSONBuffer(js, thread->dnp3log_ctx->file_ctx, &buffer,
+                             0 /* no custom flags */);
         }
         json_decref(js);
     }
