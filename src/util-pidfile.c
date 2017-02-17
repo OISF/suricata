@@ -89,8 +89,13 @@ void SCPidfileRemove(const char *pid_filename)
 }
 
 /**
- * \brief Check a pid file (used at the startup)
- *        This commonly needed by the init scripts
+ * \brief Check the Suricata pid file (used at the startup)
+ *
+ * This commonly needed by the init scripts.
+ *
+ * This function will fail if the PID file exists, but tries to log a
+ * meaningful message if appears Suricata is running, or if the PID
+ * file appears to be stale.
  *
  * \param pointer to the name of the pid file to write (optarg)
  *
@@ -113,15 +118,19 @@ int SCPidfileTestRunning(const char *pid_filename)
         }
 
         if (fscanf(pf, "%d", &pidv) == 1 && kill(pidv, 0) == 0) {
-            fclose(pf);
             SCLogError(SC_ERR_INITIALIZATION,
-                    "pid file '%s' exists. Is Suricata already running? Aborting!",
-                    pid_filename);
-            return -1;
+                    "pid file '%s' exists and Suricata appears to be running. "
+                    "Aborting!", pid_filename);
+        } else {
+            SCLogError(SC_ERR_INITIALIZATION,
+                    "pid file '%s' exists but appears stale. "
+                    "Make sure Suricata is not running and then remove %s. "
+                    "Aborting!",
+                    pid_filename, pid_filename);
         }
 
-        if (pf != NULL)
-            fclose(pf);
+        fclose(pf);
+        return -1;
     }
     return 0;
 }
