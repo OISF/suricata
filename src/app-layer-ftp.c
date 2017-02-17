@@ -270,7 +270,7 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
 
     if (state->command == FTP_COMMAND_AUTH_TLS) {
         if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
-            FlowSetChangeProtoFlag(f);
+            AppLayerRequestProtocolTLSUpgrade(f);
         }
     }
 

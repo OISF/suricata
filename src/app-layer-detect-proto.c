@@ -334,52 +334,51 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
     uint32_t *alproto_masks;
     uint32_t mask = 0;
 
+    const uint16_t dp = f->protodetect_dp ? f->protodetect_dp : f->dp;
+    const uint16_t sp = f->sp;
+
     if (direction & STREAM_TOSERVER) {
         /* first try the destination port */
-        pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->dp);
+        pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, dp);
         alproto_masks = &f->probing_parser_toserver_alproto_masks;
         if (pp_port_dp != NULL) {
-            SCLogDebug("toserver - Probing parser found for destination port %"PRIu16, f->dp);
+            SCLogDebug("toserver - Probing parser found for destination port %"PRIu16, dp);
 
             /* found based on destination port, so use dp registration */
             pe1 = pp_port_dp->dp;
         } else {
-            SCLogDebug("toserver - No probing parser registered for dest port %"PRIu16,
-                       f->dp);
+            SCLogDebug("toserver - No probing parser registered for dest port %"PRIu16, dp);
         }
 
-        pp_port_sp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->sp);
+        pp_port_sp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, sp);
         if (pp_port_sp != NULL) {
-            SCLogDebug("toserver - Probing parser found for source port %"PRIu16, f->sp);
+            SCLogDebug("toserver - Probing parser found for source port %"PRIu16, sp);
 
             /* found based on source port, so use sp registration */
             pe2 = pp_port_sp->sp;
         } else {
-            SCLogDebug("toserver - No probing parser registered for source port %"PRIu16,
-                    f->sp);
+            SCLogDebug("toserver - No probing parser registered for source port %"PRIu16, sp);
         }
     } else {
         /* first try the destination port */
-        pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->dp);
+        pp_port_dp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, dp);
         alproto_masks = &f->probing_parser_toclient_alproto_masks;
         if (pp_port_dp != NULL) {
-            SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, f->dp);
+            SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, dp);
 
             /* found based on destination port, so use dp registration */
             pe1 = pp_port_dp->dp;
         } else {
-            SCLogDebug("toclient - No probing parser registered for dest port %"PRIu16,
-                       f->dp);
+            SCLogDebug("toclient - No probing parser registered for dest port %"PRIu16, dp);
         }
 
-        pp_port_sp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, f->sp);
+        pp_port_sp = AppLayerProtoDetectGetProbingParsers(alpd_ctx.ctx_pp, ipproto, sp);
         if (pp_port_sp != NULL) {
-            SCLogDebug("toclient - Probing parser found for source port %"PRIu16, f->sp);
+            SCLogDebug("toclient - Probing parser found for source port %"PRIu16, sp);
 
             pe2 = pp_port_sp->sp;
         } else {
-            SCLogDebug("toclient - No probing parser registered for source port %"PRIu16,
-                        f->sp);
+            SCLogDebug("toclient - No probing parser registered for source port %"PRIu16, sp);
         }
     }
 
@@ -1612,6 +1611,39 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
     goto end;
  end:
     SCReturn;
+}
+
+/** \brief request applayer to wrap up this protocol and rerun protocol
+ *         detection.
+ *
+ *  When this is called, the old session is reset unconditionally. A
+ *  'detect/log' flush packet is generated for both direction before
+ *  the reset, so allow for final detection and logging.
+ *
+ *  \param f flow to act on
+ *  \param dp destination port to use in protocol detection. Set to 443
+ *            for start tls, set to the HTTP uri port for CONNECT and
+ *            set to 0 to not use it.
+ *  \param expect_proto TODO unused
+ */
+void AppLayerRequestProtocolChange(Flow *f, uint16_t dp, AppProto expect_proto)
+{
+    FlowSetChangeProtoFlag(f);
+    f->protodetect_dp = dp;
+    f->alproto_expect = expect_proto;
+}
+
+/** \brief request applayer to wrap up this protocol and rerun protocol
+ *         detection with expectation of TLS. Used by STARTTLS.
+ *
+ *  Sets detection port to 443 to make port based TLS detection work for
+ *  SMTP, FTP etc as well.
+ *
+ *  \param f flow to act on
+ */
+void AppLayerRequestProtocolTLSUpgrade(Flow *f)
+{
+    AppLayerRequestProtocolChange(f, 443, ALPROTO_TLS);
 }
 
 void AppLayerProtoDetectReset(Flow *f)

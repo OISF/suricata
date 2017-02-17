@@ -42,6 +42,8 @@ SCEnumCharMap app_layer_event_pkt_table[ ] = {
       APPLAYER_PROTO_DETECTION_SKIPPED },
     { "APPLAYER_NO_TLS_AFTER_STARTTLS",
       APPLAYER_NO_TLS_AFTER_STARTTLS },
+    { "APPLAYER_UNEXPECTED_PROTOCOL",
+      APPLAYER_UNEXPECTED_PROTOCOL },
     { NULL,
       -1 },
 };

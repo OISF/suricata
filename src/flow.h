@@ -364,6 +364,10 @@ typedef struct Flow_
     uint16_t file_flags;    /**< file tracking/extraction flags */
     /* coccinelle: Flow:file_flags:FLOWFILE_ */
 
+    /** destination port to be used in protocol detection. This is meant
+     *  for use with STARTTLS and HTTP CONNECT detection */
+    uint16_t protodetect_dp; /**< 0 if not used */
+
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;
 #elif defined FLOWLOCK_MUTEX
@@ -389,6 +393,9 @@ typedef struct Flow_
     /** original application level protocol. Used to indicate the previous
        protocol when changing to another protocol , e.g. with STARTTLS. */
     AppProto alproto_orig;
+    /** expected app protocol: used in protocol change/upgrade like in
+     *  STARTTLS. */
+    AppProto alproto_expect;
 
     /** detection engine ctx version used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
