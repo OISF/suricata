@@ -99,6 +99,13 @@ typedef struct LogFileCtx_ {
     int sock_type;
     uint64_t reconn_timer;
 
+    /** The next time to rotate log file, if rotate interval is
+        specified. */
+    time_t rotate_time;
+
+    /** The interval to rotate the log file */
+    uint64_t rotate_interval;
+
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
@@ -132,8 +139,9 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_RECONN_MIN_TIME     500
 
 /* flags for LogFileCtx */
-#define LOGFILE_HEADER_WRITTEN 0x01
-#define LOGFILE_ALERTS_PRINTED 0x02
+#define LOGFILE_HEADER_WRITTEN  0x01
+#define LOGFILE_ALERTS_PRINTED  0x02
+#define LOGFILE_ROTATE_INTERVAL 0x04
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
