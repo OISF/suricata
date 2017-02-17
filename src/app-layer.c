@@ -574,9 +574,18 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         SCLogDebug("protocol change, old %s, new %s",
                 AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
-        if (f->alproto != ALPROTO_TLS) {
+
+        if (f->alproto_expect != ALPROTO_UNKNOWN &&
+                f->alproto != f->alproto_expect)
+        {
             AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                                             APPLAYER_NO_TLS_AFTER_STARTTLS);
+                                             APPLAYER_UNEXPECTED_PROTOCOL);
+
+            if (f->alproto_expect == ALPROTO_TLS && f->alproto != ALPROTO_TLS) {
+                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                        APPLAYER_NO_TLS_AFTER_STARTTLS);
+
+            }
         }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "
