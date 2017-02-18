@@ -150,7 +150,7 @@ enum
 #define STREAMTCP_FLAG_SACKOK                       0x0400
 /** Flag for triggering RAW reassembly before the size limit is reached or
     the stream reaches EOF. */
-#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x0800
+//#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x0800
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
@@ -171,7 +171,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x0004
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x0008
-// vacancy
+/** Trigger reassembly next time we need 'raw' */
+#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW       0x0010
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x0020

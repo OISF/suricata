@@ -101,7 +101,7 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *);
 void StreamTcpReturnStreamSegments(TcpStream *);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
 
-void StreamTcpReassembleTriggerRawReassembly(TcpSession *);
+void StreamTcpReassembleTriggerRawReassembly(TcpSession *, int direction);
 
 void StreamTcpPruneSession(Flow *, uint8_t);
 int StreamTcpReassembleDepthReached(Packet *p);

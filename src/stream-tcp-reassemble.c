@@ -702,7 +702,7 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
  *  \retval 0 don't reassemble yet
  *  \retval 1 do reassemble
  */
-static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn,
+static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
         const TcpStream *stream, const Packet *p)
 {
     SCEnter();
@@ -712,9 +712,8 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn,
         SCReturnInt(1);
     }
 
-    if (ssn->flags & STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY) {
-        SCLogDebug("reassembling now as STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY is set");
-        ssn->flags &= ~STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
+    if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) {
+        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_TRIGGER_RAW is set");
         SCReturnInt(1);
     }
 
@@ -1206,6 +1205,7 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
     if (progress > STREAM_RAW_PROGRESS(stream)) {
         uint32_t slide = progress - STREAM_RAW_PROGRESS(stream);
         stream->raw_progress_rel += slide;
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
     }
 
     SCLogDebug("stream raw progress now %"PRIu64, STREAM_RAW_PROGRESS(stream));
@@ -1248,6 +1248,13 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         stream = &ssn->client;
     } else {
         stream = &ssn->server;
+    }
+
+    if (StreamTcpInlineMode() == FALSE &&
+            StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0)
+    {
+        *progress_out = STREAM_RAW_PROGRESS(stream);
+        return 0;
     }
 
     StreamingBufferBlock *iter = NULL;
@@ -1483,21 +1490,25 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx)
  *  reassembly from the applayer, for example upon completion of a
  *  HTTP request.
  *
- *  Works by setting a flag in the TcpSession that is unset as soon
- *  as it's checked. Since everything happens when operating under
- *  a single lock period, no side effects are expected.
+ *  It sets a flag in the stream so that the next Raw call will return
+ *  the data.
  *
  *  \param ssn TcpSession
  */
-void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn)
+void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn, int direction)
 {
 #ifdef DEBUG
     BUG_ON(ssn == NULL);
 #endif
 
     if (ssn != NULL) {
+        if (direction == STREAM_TOSERVER) {
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+        } else {
+            ssn->server.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+        }
+
         SCLogDebug("flagged ssn %p for immediate raw reassembly", ssn);
-        ssn->flags |= STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
     }
 }
 
