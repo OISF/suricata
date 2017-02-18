@@ -1275,7 +1275,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 }
 
                 SCLogDebug("trigger RAW! (post HS)");
-                AppLayerParserTriggerRawStreamReassembly(ssl_state->f);
+                AppLayerParserTriggerRawStreamReassembly(ssl_state->f,
+                        direction == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
                 return parsed;
             }
 
@@ -1306,7 +1307,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         }
 
         SCLogDebug("record complete, trigger RAW");
-        AppLayerParserTriggerRawStreamReassembly(ssl_state->f);
+        AppLayerParserTriggerRawStreamReassembly(ssl_state->f,
+                direction == 0 ? STREAM_TOSERVER : STREAM_TOCLIENT);
 
         /* looks like we have another record */
         uint32_t diff = ssl_state->curr_connp->record_length +
