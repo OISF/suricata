@@ -198,7 +198,7 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
 
     /* handle TCP and app layer */
     if (PKT_IS_TCP(p)) {
-        SCLogDebug("packet %"PRIu64" is TCP", p->pcap_cnt);
+        SCLogDebug("packet %"PRIu64" is TCP. Direction %s", p->pcap_cnt, PKT_IS_TOSERVER(p) ? "TOSERVER" : "TOCLIENT");
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
         /* if detect is disabled, we need to apply file flags to the flow

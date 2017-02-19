@@ -660,7 +660,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 }
 
 static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
-                                      Packet *p)
+                                      Packet *p, enum StreamUpdateDir dir)
 {
     uint8_t flag = 0;
 
@@ -675,7 +675,7 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
         flag |= STREAM_EOF;
     }
 
-    if (StreamTcpInlineMode() == 0) {
+    if (dir == UPDATE_DIR_OPPOSING) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flag |= STREAM_TOCLIENT;
         } else {
@@ -723,7 +723,7 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
     }
 
     /* some states mean we reassemble no matter how much data we have */
-    if (ssn->state >= TCP_TIME_WAIT)
+    if (ssn->state > TCP_TIME_WAIT)
         SCReturnInt(1);
 
     if (p->flags & PKT_PSEUDO_STREAM_END)
@@ -822,14 +822,14 @@ int StreamNeedsReassembly(TcpSession *ssn, int direction)
 
         if (use_raw) {
             if (right_edge > STREAM_RAW_PROGRESS(stream)) {
-                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY", dirstr);
-                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
+                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
+                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
             }
         }
         if (use_app) {
             if (right_edge > STREAM_APP_PROGRESS(stream)) {
-                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY", dirstr);
-                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
+                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
+                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
             }
         }
     } else {
@@ -920,7 +920,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
 static int ReassembleUpdateAppLayer (ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream,
-        Packet *p)
+        Packet *p, enum StreamUpdateDir dir)
 {
     const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
     uint64_t last_ack_abs = 0; /* absolute right edge of ack'd data */
@@ -958,7 +958,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     /* update the app-layer */
     int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
             (uint8_t *)mydata, mydata_len,
-            StreamGetAppLayerFlags(ssn, stream, p));
+            StreamGetAppLayerFlags(ssn, stream, p, dir));
 
     /* see if we can update the progress */
     if (r == 0 && StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
@@ -977,22 +977,20 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 }
 
 /**
- *  \brief Update the stream reassembly upon receiving an ACK packet.
+ *  \brief Update the stream reassembly upon receiving a packet.
  *
- *  Stream is in the opposite direction of the packet, as the ACK-packet
- *  is ACK'ing the stream.
+ *  For IDS mode, the stream is in the opposite direction of the packet,
+ *  as the ACK-packet is ACK'ing the stream.
  *
  *  One of the utilities call by this function AppLayerHandleTCPData(),
  *  has a feature where it will call this very same function for the
  *  stream opposing the stream it is called with.  This shouldn't cause
  *  any issues, since processing of each stream is independent of the
  *  other stream.
- *
- *  \todo this function is too long, we need to break it up. It needs it BAD
  */
 int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                  TcpSession *ssn, TcpStream *stream,
-                                 Packet *p)
+                                 Packet *p, enum StreamUpdateDir dir)
 {
     SCEnter();
 
@@ -1038,7 +1036,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("sending GAP to app-layer");
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     NULL, 0,
-                    StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
+                    StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             /* set a GAP flag and make sure not bothering this stream anymore */
@@ -1065,7 +1063,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             /* send EOF to app layer */
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                                   NULL, 0,
-                                  StreamGetAppLayerFlags(ssn, stream, p));
+                                  StreamGetAppLayerFlags(ssn, stream, p, dir));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
@@ -1083,9 +1081,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* with all that out of the way, lets update the app-layer */
-    ReassembleUpdateAppLayer(tv, ra_ctx, ssn, stream, p);
-
-    SCReturnInt(0);
+    return ReassembleUpdateAppLayer(tv, ra_ctx, ssn, stream, p, dir);
 }
 
 /** \internal
@@ -1172,15 +1168,9 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         stream = &ssn->server;
     }
 
-    uint64_t progress = STREAM_RAW_PROGRESS(stream);
     if (StreamTcpInlineMode() == FALSE) {
         if (StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 1) {
-            uint32_t delta = stream->last_ack - stream->base_seq;
-            /* get max absolute offset */
-            uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream) + delta;
-            if (last_ack_abs > progress) {
-                return true;
-            }
+            return true;
         }
     } else {
         if (p->payload_len > 0 && (p->flags & PKT_STREAM_ADD)) {
@@ -1390,18 +1380,15 @@ end:
  *
  *  \retval r 0 on success, -1 on error
  */
-int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
+static int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
-
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 
     int r = 0;
-    if (!(StreamTcpInlineMode())) {
-        if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
-            r = -1;
-    }
+    if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p, UPDATE_DIR_OPPOSING) < 0)
+        r = -1;
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
     SCReturnInt(r);
@@ -1424,15 +1411,28 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         opposing_stream = &ssn->client;
     }
 
+    /* default IDS: update opposing side (triggered by ACK) */
+    enum StreamUpdateDir dir = UPDATE_DIR_OPPOSING;
+    /* inline and stream end and flow timeout packets trigger same dir handling */
+    if (StreamTcpInlineMode()) {
+        dir = UPDATE_DIR_PACKET;
+    } else if (p->flags & PKT_PSEUDO_STREAM_END) {
+        dir = UPDATE_DIR_PACKET;
+    } else if (p->tcph && (p->tcph->th_flags & TH_RST)) { // accepted rst
+        dir = UPDATE_DIR_PACKET;
+    } else if (p->tcph && (p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
+        dir = UPDATE_DIR_PACKET;
+    }
+
     /* handle ack received */
-    if (StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
+    if (dir == UPDATE_DIR_OPPOSING &&
+        StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
     {
         SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
         SCReturnInt(-1);
     }
 
-    /* If no stream reassembly/application layer protocol inspection, then
-       simple return */
+    /* if this segment contains data, insert it */
     if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
 
@@ -1446,12 +1446,11 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* in stream inline mode even if we have no data we call the reassembly
      * functions to handle EOF */
-    if (StreamTcpInlineMode()) {
-        int r = 0;
-        if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
-            r = -1;
-
-        if (r < 0) {
+    if (dir == UPDATE_DIR_PACKET) {
+        SCLogDebug("inline (%s) or PKT_PSEUDO_STREAM_END (%s)",
+                StreamTcpInlineMode()?"true":"false",
+                (p->flags & PKT_PSEUDO_STREAM_END) ?"true":"false");
+        if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p, dir) < 0) {
             SCReturnInt(-1);
         }
     }
@@ -3185,7 +3184,7 @@ static int StreamTcpReassembleInlineTest10(void)
     }
     ssn.server.next_seq = 4;
 
-    int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
+    int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET);
     if (r < 0) {
         printf("StreamTcpReassembleAppLayer failed: ");
         goto end;
@@ -3207,17 +3206,13 @@ static int StreamTcpReassembleInlineTest10(void)
     }
     ssn.server.next_seq = 19;
 
-    r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
+    r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p, UPDATE_DIR_PACKET);
     if (r < 0) {
         printf("StreamTcpReassembleAppLayer failed: ");
         goto end;
     }
 
-    if (STREAM_APP_PROGRESS(&ssn.server) != 17) {
-        printf("expected ssn.server.app_progress == 17got %"PRIu64": ",
-                STREAM_APP_PROGRESS(&ssn.server));
-        goto end;
-    }
+    FAIL_IF_NOT(STREAM_APP_PROGRESS(&ssn.server) == 17);
 
     ret = 1;
 end:
