@@ -181,11 +181,9 @@ static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
 enum {
     /* stream has no segments for forced reassembly, nor for detection */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NONE = 0,
-    /* stream seems to have segments that need to be forced reassembled */
-    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY = 1,
     /* stream has no segments for forced reassembly, but only segments that
      * have been sent for detection, but are stuck in the detection queues */
-    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 2,
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
 };
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
