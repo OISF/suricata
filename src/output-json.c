@@ -56,6 +56,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-log-redis.h"
 #include "util-device.h"
 
 #include "flow-var.h"

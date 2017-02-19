@@ -267,6 +267,7 @@ integration with 3rd party tools like logstash.
       #redis:
       #  server: 127.0.0.1
       #  port: 6379
+      #  async: true ## if redis replies are read asynchronously
       #  mode: list ## possible values: list (default), channel
       #  key: suricata ## key or channel to use (default to suricata)
       # Redis pipelining set up. This will enable to only do a query every
