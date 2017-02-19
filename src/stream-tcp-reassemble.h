@@ -51,6 +51,11 @@ enum
     OS_POLICY_LAST
 };
 
+enum StreamUpdateDir {
+    UPDATE_DIR_PACKET,
+    UPDATE_DIR_OPPOSING,
+};
+
 typedef struct TcpReassemblyThreadCtx_ {
     void *app_tctx;
 
@@ -84,7 +89,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
 int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                  TcpSession *ssn, TcpStream *stream,
-                                 Packet *p);
+                                 Packet *p, enum StreamUpdateDir dir);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 

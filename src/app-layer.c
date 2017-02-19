@@ -294,7 +294,7 @@ static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
         ret = -1;
     else
         ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
-                opposing_stream, p);
+                opposing_stream, p, UPDATE_DIR_OPPOSING); // TODO see if we can simplify this
     if (stream == &ssn->client) {
         if (StreamTcpInlineMode()) {
             p->flowflags &= ~FLOW_PKT_TOCLIENT;

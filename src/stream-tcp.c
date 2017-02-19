@@ -2285,9 +2285,6 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
-
         if (PKT_IS_TOSERVER(p)) {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
             SCLogDebug("ssn %p: Reset received and state changed to "
@@ -2617,9 +2614,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
-
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
@@ -3074,9 +3068,6 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
-
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
@@ -3382,9 +3373,6 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
-
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
@@ -3563,9 +3551,6 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
     if (p->tcph->th_flags & TH_RST) {
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
-
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
@@ -3857,9 +3842,6 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
-
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
@@ -3984,9 +3966,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
         if (!StreamTcpValidateRst(ssn, p))
             return -1;
 
-        /* force both streams to reassemble, if necessary */
-        StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
-
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
@@ -4081,8 +4060,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->client.next_seq,
                     ssn->server.last_ack);
-
-            StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
         } else {
             SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                     "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
@@ -4133,8 +4110,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                     "%" PRIu32 "", ssn, ssn->server.next_seq,
                     ssn->client.last_ack);
-
-            StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
         }
 
     } else {
