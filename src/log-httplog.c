@@ -58,7 +58,6 @@
 
 TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
-void LogHttpLogExitPrintStats(ThreadVars *, void *);
 static void LogHttpLogDeInitCtx(OutputCtx *);
 
 int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
@@ -67,7 +66,7 @@ void LogHttpLogRegister (void)
 {
     OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log",
         LogHttpLogInitCtx, ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,
-        LogHttpLogThreadDeinit, LogHttpLogExitPrintStats);
+        LogHttpLogThreadDeinit, NULL);
 }
 
 #define LOG_HTTP_MAXN_NODES 64
@@ -564,16 +563,6 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(aft);
     return TM_ECODE_OK;
-}
-
-void LogHttpLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-
-    //SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
 }
 
 /** \brief Create a new http log LogFileCtx.
