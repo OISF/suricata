@@ -412,14 +412,6 @@ static TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-}
-
 static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
@@ -490,6 +482,5 @@ void AlertDebugLogRegister(void)
 {
     OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug",
         AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,
-        AlertDebugLogThreadInit, AlertDebugLogThreadDeinit,
-        AlertDebugLogExitPrintStats);
+        AlertDebugLogThreadInit, AlertDebugLogThreadDeinit, NULL);
 }

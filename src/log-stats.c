@@ -55,7 +55,6 @@
 
 TmEcode LogStatsLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
-void LogStatsLogExitPrintStats(ThreadVars *, void *);
 static void LogStatsLogDeInitCtx(OutputCtx *);
 
 typedef struct LogStatsFileCtx_ {
@@ -206,14 +205,6 @@ TmEcode LogStatsLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogStatsLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    LogStatsLogThread *aft = (LogStatsLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-}
-
 /** \brief Create a new http log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
@@ -296,5 +287,5 @@ void LogStatsLogRegister (void)
 {
     OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
         LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
-        LogStatsLogThreadDeinit, LogStatsLogExitPrintStats);
+        LogStatsLogThreadDeinit, NULL);
 }
