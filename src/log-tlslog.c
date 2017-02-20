@@ -323,10 +323,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
     aft->tls_cnt++;
 
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
     hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
         MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
     return 0;
 }

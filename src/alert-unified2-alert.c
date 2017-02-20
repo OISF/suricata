@@ -928,7 +928,6 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
             ? true : false;
         if (truncate || file_ctx->rotation_flag) {
             if (Unified2AlertRotateFile(aun, truncate) < 0) {
-                aun->unified2alert_ctx->file_ctx->alerts += i;
                 SCMutexUnlock(&file_ctx->fp_mutex);
                 return -1;
             }
@@ -936,7 +935,6 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
-            file_ctx->alerts += i;
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
@@ -951,12 +949,10 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         ret = Unified2PacketTypeAlert(aun, p, phdr->event_id, stream);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
-            aun->unified2alert_ctx->file_ctx->alerts += i;
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
         fflush(aun->unified2alert_ctx->file_ctx->fp);
-        aun->unified2alert_ctx->file_ctx->alerts++;
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 
@@ -1108,7 +1104,6 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
             ? true : false;
         if (truncate || file_ctx->rotation_flag) {
             if (Unified2AlertRotateFile(aun, truncate) < 0) {
-                file_ctx->alerts += i;
                 SCMutexUnlock(&file_ctx->fp_mutex);
                 return -1;
             }
@@ -1116,7 +1111,6 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
-            file_ctx->alerts += i;
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
@@ -1132,13 +1126,11 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
             (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0) : 0;
         ret = Unified2PacketTypeAlert(aun, p, event_id, stream);
         if (ret != 1) {
-            aun->unified2alert_ctx->file_ctx->alerts += i;
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
 
         fflush(aun->unified2alert_ctx->file_ctx->fp);
-        aun->unified2alert_ctx->file_ctx->alerts++;
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 

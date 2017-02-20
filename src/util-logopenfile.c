@@ -127,6 +127,8 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
  */
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
+    SCMutexLock(&log_ctx->fp_mutex);
+
     /* Check for rotation. */
     if (log_ctx->rotation_flag) {
         log_ctx->rotation_flag = 0;
@@ -151,6 +153,8 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
             }
         }
     }
+
+    SCMutexUnlock(&log_ctx->fp_mutex);
 
     return ret;
 }
@@ -671,10 +675,8 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     {
         /* append \n for files only */
         MemBufferWriteString(buffer, "\n");
-        SCMutexLock(&file_ctx->fp_mutex);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
                         MEMBUFFER_OFFSET(buffer), file_ctx);
-        SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {

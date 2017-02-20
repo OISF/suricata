@@ -109,8 +109,6 @@ typedef struct LogFileCtx_ {
     uint64_t size_limit;    /**< file size limit */
     uint64_t size_current;  /**< file current size */
 
-    /* Alerts on the module (not on the file) */
-    uint64_t alerts;
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
 
