@@ -15,6 +15,8 @@ Examples::
 
 ``tls_cert_subject`` is a 'Sticky buffer'.
 
+``tls_cert_subject`` can be used as ``fast_pattern``.
+
 tls_cert_issuer
 ---------------
 
@@ -27,6 +29,8 @@ Examples::
 
 ``tls_cert_issuer`` is a 'Sticky buffer'.
 
+``tls_cert_issuer`` can be used as ``fast_pattern``.
+
 tls_sni
 -------
 
@@ -38,6 +42,8 @@ Examples::
   tls_sni; content:"oisf.net"; nocase; pcre:"/oisf.net$/";
 
 ``tls_sni`` is a 'Sticky buffer'.
+
+``tls_sni`` can be used as ``fast_pattern``.
 
 tls_cert_notbefore
 ------------------
