@@ -122,11 +122,20 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
 
 /**
  * \brief Write buffer to log file.
+ *
+ * \param buffer data to write to file
+ * \param buffer_len length of data to write to file
+ * \param log_ctx pointer to log context
+ * \param count number of alerts being written (for stats counting)
+ *
  * \retval 0 on failure; otherwise, the return value of fwrite (number of
- * characters successfully written).
+ *     characters successfully written).
  */
-static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
+static int SCLogFileWrite(const char *buffer, int buffer_len,
+        LogFileCtx *log_ctx, uint64_t count)
 {
+    SCMutexLock(&log_ctx->fp_mutex);
+
     /* Check for rotation. */
     if (log_ctx->rotation_flag) {
         log_ctx->rotation_flag = 0;
@@ -151,6 +160,10 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
             }
         }
     }
+
+    log_ctx->alerts += count;
+
+    SCMutexUnlock(&log_ctx->fp_mutex);
 
     return ret;
 }
@@ -671,10 +684,8 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     {
         /* append \n for files only */
         MemBufferWriteString(buffer, "\n");
-        SCMutexLock(&file_ctx->fp_mutex);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
-                        MEMBUFFER_OFFSET(buffer), file_ctx);
-        SCMutexUnlock(&file_ctx->fp_mutex);
+                    MEMBUFFER_OFFSET(buffer), file_ctx, 0);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {

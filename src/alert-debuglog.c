@@ -304,11 +304,8 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
         }
     }
 
-    SCMutexLock(&aft->file_ctx->fp_mutex);
     aft->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx);
-    aft->file_ctx->alerts += p->alerts.cnt;
-    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx, p->alerts.cnt);
 
     return TM_ECODE_OK;
 }
@@ -367,11 +364,8 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
     PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                          GET_PKT_DATA(p), GET_PKT_LEN(p));
 
-    SCMutexLock(&aft->file_ctx->fp_mutex);
     aft->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx);
-    aft->file_ctx->alerts += p->alerts.cnt;
-    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx, p->alerts.cnt);
 
     return TM_ECODE_OK;
 }

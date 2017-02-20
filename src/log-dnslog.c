@@ -96,10 +96,8 @@ static void LogQuery(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dst
             " [**] %s [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             record, srcip, sp, dstip, dp);
 
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
     hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx, 0);
 }
 
 static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *dstip, Port sp, Port dp, DNSTransaction *tx, DNSAnswerEntry *entry)
@@ -159,10 +157,8 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
             " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
             srcip, sp, dstip, dp);
 
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
     hlog->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
+        MEMBUFFER_OFFSET(aft->buffer), hlog->file_ctx, 0);
 }
 
 static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,

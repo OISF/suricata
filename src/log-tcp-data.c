@@ -161,10 +161,8 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
         PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset,
                 aft->buffer->size, (uint8_t *)data,data_len);
 
-        SCMutexLock(&td->file_ctx->fp_mutex);
         td->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-                MEMBUFFER_OFFSET(aft->buffer), td->file_ctx);
-        SCMutexUnlock(&td->file_ctx->fp_mutex);
+                MEMBUFFER_OFFSET(aft->buffer), td->file_ctx, 0);
     }
     SCReturnInt(TM_ECODE_OK);
 }

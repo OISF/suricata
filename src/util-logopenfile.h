@@ -78,7 +78,8 @@ typedef struct LogFileCtx_ {
 #endif
     };
 
-    int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
+    int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp,
+            uint64_t count);
     void (*Close)(struct LogFileCtx_ *fp);
 
     /** It will be locked if the log/alert
