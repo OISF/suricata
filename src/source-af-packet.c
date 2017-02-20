@@ -679,6 +679,8 @@ static TmEcode AFPWritePacket(Packet *p, int version)
     int socket;
     uint8_t *pstart;
     size_t plen;
+    union thdr h;
+    uint16_t vlan_tci = 0;
 
     if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
         if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
@@ -705,24 +707,34 @@ static TmEcode AFPWritePacket(Packet *p, int version)
         SCMutexLock(&p->afp_v.peer->sock_protect);
     socket = SC_ATOMIC_GET(p->afp_v.peer->socket);
 
+    h.raw = p->afp_v.relptr;
+
     if (version == TPACKET_V2) {
-        union thdr h;
-        h.raw = p->afp_v.relptr;
         /* Copy VLAN header from ring memory. For post june 2011 kernel we test
          * the flag. It is not defined for older kernel so we go best effort
          * and test for non zero value of the TCI header. */
         if (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci) {
-            pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
-            plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
-            /* move ethernet addresses */
-            memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
-            /* write vlan info */
-            *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
-            *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(h.h2->tp_vlan_tci);
-        } else {
-            pstart = GET_PKT_DATA(p);
-            plen = GET_PKT_LEN(p);
+            vlan_tci = h.h2->tp_vlan_tci;
         }
+    } else {
+#ifdef HAVE_TPACKET_V3
+        if (h.h3->tp_status & TP_STATUS_VLAN_VALID || h.h3->hv1.tp_vlan_tci) {
+            vlan_tci = h.h3->hv1.tp_vlan_tci;
+        }
+#else
+        /* Should not get here */
+        BUG_ON(1);
+#endif
+    }
+
+    if (vlan_tci != 0) {
+        pstart = GET_PKT_DATA(p) - VLAN_HEADER_LEN;
+        plen = GET_PKT_LEN(p) + VLAN_HEADER_LEN;
+        /* move ethernet addresses */
+        memmove(pstart, GET_PKT_DATA(p), 2 * ETH_ALEN);
+        /* write vlan info */
+        *(uint16_t *)(pstart + 2 * ETH_ALEN) = htons(0x8100);
+        *(uint16_t *)(pstart + 2 * ETH_ALEN + 2) = htons(vlan_tci);
     } else {
         pstart = GET_PKT_DATA(p);
         plen = GET_PKT_LEN(p);
