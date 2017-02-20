@@ -98,12 +98,8 @@ int AlertFastLogCondition(ThreadVars *tv, const Packet *p)
 static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
                                            int alert_size)
 {
-    SCMutex *file_lock = &aft->file_ctx->fp_mutex;
     /* Output the alert string and count alerts. Only need to lock here. */
-    SCMutexLock(file_lock);
-    aft->file_ctx->alerts++;
     aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
-    SCMutexUnlock(file_lock);
 }
 
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)

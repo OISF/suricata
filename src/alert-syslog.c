@@ -205,9 +205,8 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    /* Not sure if this mutex is needed around calls to syslog. */
     SCMutexLock(&ast->file_ctx->fp_mutex);
-
-    ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -264,8 +263,6 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
         return TM_ECODE_OK;
 
     SCMutexLock(&ast->file_ctx->fp_mutex);
-
-    ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -328,7 +325,6 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 
     SCMutexLock(&ast->file_ctx->fp_mutex);
 
-    ast->file_ctx->alerts += p->alerts.cnt;
     char temp_buf_hdr[512];
     char temp_buf_pkt[65] = "";
     char temp_buf_tail[32];
@@ -383,8 +379,6 @@ static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data)
     if (ast == NULL) {
         return;
     }
-
-    SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
 
 static int AlertSyslogCondition(ThreadVars *tv, const Packet *p)
