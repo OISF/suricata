@@ -29,6 +29,7 @@
 #include "stream-tcp-list.h"
 #include "util-streaming-buffer.h"
 #include "util-print.h"
+#include "util-validate.h"
 
 //static void PrintList2(TcpSegment *seg);
 
@@ -661,6 +662,19 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     } else {
         left_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
         SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
+    }
+
+    /* in inline mode keep at least unack'd segments so we can check for overlaps */
+    if (StreamTcpInlineMode() == TRUE) {
+        uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
+        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+            /* get window of data that is acked */
+            uint32_t delta = stream->last_ack - stream->base_seq;
+            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
+            /* get max absolute offset */
+            last_ack_abs += delta;
+        }
+        left_edge = MIN(left_edge, last_ack_abs);
     }
 
     if (left_edge > 0) {
