@@ -72,6 +72,10 @@
 #include "output-json-dnp3.h"
 #include "output-json-vars.h"
 
+#ifdef HAVE_LIBEVENT_PTHREADS
+#include <event2/thread.h>
+#endif /* HAVE_LIBEVENT_PTHREADS */
+
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
@@ -1002,8 +1006,16 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     TAILQ_INSERT_TAIL(&RootLoggers, logger, entries);
 }
 
+//XXX FIXME  - What the best place and names for this
+void OutputLibEventUsePthreads() {
+#ifdef HAVE_LIBEVENT_PTHREADS
+    evthread_use_pthreads();
+#endif
+}
+
 void TmModuleLoggerRegister(void)
 {
+    OutputLibEventUsePthreads();
     OutputRegisterRootLoggers();
     OutputRegisterLoggers();
 }
