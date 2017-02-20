@@ -992,7 +992,7 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(AFP_FAILURE);
         }
-        p->afp_v.relptr = pbd;
+        p->afp_v.relptr = ppd;
         p->ReleasePacket = AFPReleasePacketV3;
         p->afp_v.mpeer = ptv->mpeer;
         AFPRefSocket(ptv->mpeer);
