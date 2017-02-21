@@ -164,10 +164,8 @@ typedef struct TCPVars_
 void DecodeTCPRegisterTests(void);
 
 /** -------- Inline functions ------- */
-static inline uint16_t TCPCalculateChecksum(uint16_t *, uint16_t *, uint16_t,
-    uint16_t);
-static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t,
-    uint16_t);
+static inline uint16_t TCPChecksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
+static inline uint16_t TCPV6Checksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
 
 /**
  * \brief Calculate or validate the checksum for the TCP packet
@@ -181,8 +179,8 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t,
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                            uint16_t tlen, uint16_t init)
+static inline uint16_t TCPChecksum(uint16_t *shdr, uint16_t *pkt,
+                                   uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
@@ -246,8 +244,8 @@ static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t TCPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                              uint16_t tlen, uint16_t init)
+static inline uint16_t TCPV6Checksum(uint16_t *shdr, uint16_t *pkt,
+                                     uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
