@@ -1199,7 +1199,8 @@ static int IPV4CalculateValidChecksumtest01(void)
 
     csum = *( ((uint16_t *)raw_ipv4) + 5);
 
-    return (csum == IPV4CalculateChecksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4)));
+    FAIL_IF(IPV4Checksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4), csum) != 0);
+    PASS;
 }
 
 static int IPV4CalculateInvalidChecksumtest02(void)
@@ -1213,7 +1214,8 @@ static int IPV4CalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_ipv4) + 5);
 
-    return (csum != IPV4CalculateChecksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4)));
+    FAIL_IF(IPV4Checksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4), csum) == 0);
+    PASS;
 }
 
 /**

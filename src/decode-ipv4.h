@@ -181,21 +181,24 @@ typedef struct IPV4Vars_
 void DecodeIPV4RegisterTests(void);
 
 /** ----- Inline functions ----- */
-static inline uint16_t IPV4CalculateChecksum(uint16_t *, uint16_t);
+static inline uint16_t IPV4Checksum(uint16_t *, uint16_t, uint16_t);
+
 /**
- * \brief Calculates the checksum for the IP packet
+ * \brief Calculateor validate the checksum for the IP packet
  *
  * \param pkt  Pointer to the start of the IP packet
  * \param hlen Length of the IP header
+ * \param init The current checksum if validating, 0 if generating.
  *
- * \retval csum Checksum for the IP packet
+ * \retval csum For validation 0 will be returned for success, for calculation
+ *    this will be the checksum.
  */
-static inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
+static inline uint16_t IPV4Checksum(uint16_t *pkt, uint16_t hlen, uint16_t init)
 {
-    uint32_t csum = pkt[0];
+    uint32_t csum = init;
 
-    csum += pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[6] + pkt[7] + pkt[8] +
-        pkt[9];
+    csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[6] + pkt[7] +
+        pkt[8] + pkt[9];
 
     hlen -= 20;
     pkt += 10;
