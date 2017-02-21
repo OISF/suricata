@@ -236,7 +236,7 @@ static int TCPCalculateValidChecksumtest01(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    FAIL_IF(TCPCalculateChecksum((uint16_t *)raw_ipshdr,
+    FAIL_IF(TCPChecksum((uint16_t *)raw_ipshdr,
             (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) != 0);
     PASS;
 }
@@ -257,7 +257,7 @@ static int TCPCalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    FAIL_IF(TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+    FAIL_IF(TCPChecksum((uint16_t *) raw_ipshdr,
             (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) == 0);
     PASS;
 }
@@ -281,7 +281,7 @@ static int TCPV6CalculateValidChecksumtest03(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    FAIL_IF(TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
             (uint16_t *)(raw_ipv6 + 54), 32, csum) != 0);
     PASS;
 }
@@ -305,7 +305,7 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    FAIL_IF(TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    FAIL_IF(TCPV6Checksum((uint16_t *)(raw_ipv6 + 14 + 8),
             (uint16_t *)(raw_ipv6 + 54), 32, csum) == 0);
     PASS;
 }
