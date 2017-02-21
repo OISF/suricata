@@ -640,8 +640,8 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, const
 
         fakehdr->tcph.th_sum = TCPChecksum(fakehdr->ip4h.s_ip_addrs,
                 (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr), 0);
-        fakehdr->ip4h.ip_csum = IPV4CalculateChecksum((uint16_t *)&fakehdr->ip4h,
-                IPV4_GET_RAW_HLEN(&fakehdr->ip4h));
+        fakehdr->ip4h.ip_csum = IPV4Checksum((uint16_t *)&fakehdr->ip4h,
+            IPV4_GET_RAW_HLEN(&fakehdr->ip4h), 0);
     }
 
     /* write out */
