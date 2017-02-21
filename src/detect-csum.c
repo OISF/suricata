@@ -242,12 +242,13 @@ static int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     if (p->level3_comp_csum == -1)
-        p->level3_comp_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
-                                                    IPV4_GET_HLEN(p));
+        p->level3_comp_csum = IPV4Checksum((uint16_t *)p->ip4h,
+                                           IPV4_GET_HLEN(p),
+                                           p->ip4h->ip_csum);
 
-    if (p->level3_comp_csum == p->ip4h->ip_csum && cd->valid == 1)
+    if (p->level3_comp_csum == 0 && cd->valid == 1)
         return 1;
-    else if (p->level3_comp_csum != p->ip4h->ip_csum && cd->valid == 0)
+    else if (p->level3_comp_csum != 0 && cd->valid == 0)
         return 1;
     else
         return 0;
