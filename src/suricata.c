@@ -154,6 +154,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-daemon.h"
+#include "util-byte.h"
 #include "reputation.h"
 
 #include "output.h"
@@ -2624,6 +2625,17 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     AppLayerSetup();
+
+    /* Suricata will use this umask if provided. By default it will use the
+       umask passed on from the shell. */
+    const char *custom_umask;
+    if (ConfGet("umask", &custom_umask) == 1) {
+        uint16_t mask;
+        if (ByteExtractStringUint16(&mask, 8, strlen(custom_umask),
+                                    custom_umask) > 0) {
+            umask((mode_t)mask);
+        }
+    }
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
