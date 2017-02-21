@@ -91,6 +91,9 @@ typedef struct LogFileCtx_ {
     /** The name of the file */
     char *filename;
 
+    /** File permissions */
+    uint32_t filemode;
+
     /** Suricata sensor name */
     char *sensor_name;
 

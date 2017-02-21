@@ -139,6 +139,7 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      #filemode: 660
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
