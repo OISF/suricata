@@ -156,10 +156,8 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
         }
     }
 
-    SCMutexLock(&aft->statslog_ctx->file_ctx->fp_mutex);
     aft->statslog_ctx->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
-        MEMBUFFER_OFFSET(aft->buffer), aft->statslog_ctx->file_ctx);
-    SCMutexUnlock(&aft->statslog_ctx->file_ctx->fp_mutex);
+        MEMBUFFER_OFFSET(aft->buffer), aft->statslog_ctx->file_ctx, 0);
 
     MemBufferReset(aft->buffer);
 
