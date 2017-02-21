@@ -637,12 +637,12 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
     if (PKT_IS_IPV6(p)) {
         FakeIPv6Hdr *fakehdr = (FakeIPv6Hdr *)aun->iphdr;
 
-        fakehdr->tcph.th_sum = TCPV6CalculateChecksum(fakehdr->ip6h.s_ip6_addrs,
+        fakehdr->tcph.th_sum = TCPV6Checksum(fakehdr->ip6h.s_ip6_addrs,
                 (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr), 0);
     } else {
         FakeIPv4Hdr *fakehdr = (FakeIPv4Hdr *)aun->iphdr;
 
-        fakehdr->tcph.th_sum = TCPCalculateChecksum(fakehdr->ip4h.s_ip_addrs,
+        fakehdr->tcph.th_sum = TCPChecksum(fakehdr->ip4h.s_ip_addrs,
                 (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr), 0);
         fakehdr->ip4h.ip_csum = IPV4CalculateChecksum((uint16_t *)&fakehdr->ip4h,
                 IPV4_GET_RAW_HLEN(&fakehdr->ip4h));

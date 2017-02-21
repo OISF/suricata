@@ -54,10 +54,8 @@ typedef struct UDPHdr_
 void DecodeUDPV4RegisterTests(void);
 
 /** ------ Inline function ------ */
-static inline uint16_t UDPV4CalculateChecksum(uint16_t *, uint16_t *, uint16_t,
-    uint16_t);
-static inline uint16_t UDPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t,
-    uint16_t);
+static inline uint16_t UDPV4Checksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
+static inline uint16_t UDPV6Checksum(uint16_t *, uint16_t *, uint16_t, uint16_t);
 
 /**
  * \brief Calculate or valid the checksum for the UDP packet
@@ -72,8 +70,8 @@ static inline uint16_t UDPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t,
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                              uint16_t tlen, uint16_t init)
+static inline uint16_t UDPV4Checksum(uint16_t *shdr, uint16_t *pkt,
+                                     uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
@@ -139,8 +137,8 @@ static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
  * \retval csum For validation 0 will be returned for success, for calculation
  *    this will be the checksum.
  */
-static inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                              uint16_t tlen, uint16_t init)
+static inline uint16_t UDPV6Checksum(uint16_t *shdr, uint16_t *pkt,
+                                     uint16_t tlen, uint16_t init)
 {
     uint16_t pad = 0;
     uint32_t csum = init;
