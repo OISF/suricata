@@ -1042,7 +1042,7 @@ BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
     SET_PKT_LEN(p, hlen + content_len);
     SCFree(pcontent);
 
-    p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)GET_PKT_DATA(p), hlen);
+    p->ip4h->ip_csum = IPV4Checksum((uint16_t *)GET_PKT_DATA(p), hlen, 0);
 
     /* Self test. */
     if (IPV4_GET_VER(p) != 4)
