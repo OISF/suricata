@@ -268,6 +268,23 @@ For most output types, you can add multiple:
 
 Except for ``drop`` for which only a single logger instance is supported.
 
+File permissions
+~~~~~~~~~~~~~~~~
+
+Log file permissions can be set individually for each logger. ``filemode`` can be used to
+control the permissions of a log file, e.g.:
+
+::
+
+  outputs:
+    - eve-log:
+        enabled: yes
+        filename: eve.json
+        filemode: 600
+
+The example above sets the file permissions on ``eve.json`` to 600, which means that it is
+only readable and writable by the owner of the file.
+
 JSON flags
 ~~~~~~~~~~
 
