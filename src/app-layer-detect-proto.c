@@ -1324,7 +1324,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, direction);
 
  end:
-    SCReturnCT(alproto, "AppProto");
+    SCReturnUInt(alproto);
 }
 
 static void AppLayerProtoDetectFreeProbingParsers(AppLayerProtoDetectProbingParser *pp)
