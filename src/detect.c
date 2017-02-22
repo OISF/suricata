@@ -855,12 +855,28 @@ DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, const SigGroupHead *sgh)
         pflow->sgh_toserver = sgh;
         pflow->flags |= FLOW_SGH_TOSERVER;
 
+        if (p->proto == IPPROTO_TCP && (sgh == NULL || !(sgh->flags & SIG_GROUP_HEAD_HAVERAWSTREAM))) {
+            if (pflow->protoctx != NULL) {
+                TcpSession *ssn = pflow->protoctx;
+                SCLogDebug("STREAMTCP_STREAM_FLAG_DISABLE_RAW ssn.client");
+                ssn->client.flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
+            }
+        }
+
         DetectPostInspectFileFlagsUpdate(pflow,
                 pflow->sgh_toserver, STREAM_TOSERVER);
 
     } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && !(pflow->flags & FLOW_SGH_TOCLIENT)) {
         pflow->sgh_toclient = sgh;
         pflow->flags |= FLOW_SGH_TOCLIENT;
+
+        if (p->proto == IPPROTO_TCP && (sgh == NULL || !(sgh->flags & SIG_GROUP_HEAD_HAVERAWSTREAM))) {
+            if (pflow->protoctx != NULL) {
+                TcpSession *ssn = pflow->protoctx;
+                SCLogDebug("STREAMTCP_STREAM_FLAG_DISABLE_RAW ssn.server");
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
+            }
+        }
 
         DetectPostInspectFileFlagsUpdate(pflow,
                 pflow->sgh_toclient, STREAM_TOCLIENT);
@@ -1271,8 +1287,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 /* no match? then inspect packet payload */
                 if (pmatch == 0) {
-                    SCLogDebug("no match in smsg, fall back to packet payload");
+                    SCLogDebug("no match in stream, fall back to packet payload");
 
+                    /* skip if we don't have to inspect the packet and segment was
+                     * added to stream */
                     if (!(sflags & SIG_FLAG_REQUIRE_PACKET) && (p->flags & PKT_STREAM_ADD)) {
                         goto next;
                     }

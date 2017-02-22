@@ -134,8 +134,7 @@ enum
 #define STREAMTCP_FLAG_TIMESTAMP                    0x0008
 /** Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
-/** 'Raw' reassembly is disabled for this ssn. */
-#define STREAMTCP_FLAG_DISABLE_RAW                  0x0020
+// vacancy
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC                        0x0040
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
@@ -148,9 +147,7 @@ enum
 #define STREAMTCP_FLAG_CLIENT_SACKOK                0x0200
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
 #define STREAMTCP_FLAG_SACKOK                       0x0400
-/** Flag for triggering RAW reassembly before the size limit is reached or
-    the stream reaches EOF. */
-//#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x0800
+// vacancy
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
@@ -184,7 +181,10 @@ enum
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
 /** Raw reassembly disabled for new segments */
 #define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
-// vacancy 2x
+/** Raw reassembly disabled completely */
+#define STREAMTCP_STREAM_FLAG_DISABLE_RAW 0x400
+// vacancy 1x
+
 /** NOTE: flags field is 12 bits */
 
 

@@ -630,7 +630,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         use_app = 0;
     }
 
-    if (ssn->flags & STREAMTCP_FLAG_DISABLE_RAW) {
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW) {
         // raw is dead
         use_raw = 0;
     }
