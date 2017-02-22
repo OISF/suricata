@@ -946,6 +946,7 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
+#define SIG_GROUP_HEAD_HAVERAWSTREAM    (1 << 0)
 #ifdef HAVE_MAGIC
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #endif

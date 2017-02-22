@@ -560,7 +560,7 @@ void StreamTcpInitConfig(char quiet)
     int enable_raw = 1;
     if (ConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
         if (!enable_raw) {
-            stream_config.ssn_init_flags = STREAMTCP_FLAG_DISABLE_RAW;
+            stream_config.stream_init_flags = STREAMTCP_STREAM_FLAG_DISABLE_RAW;
         }
     } else {
         enable_raw = 1;
@@ -639,8 +639,9 @@ TcpSession *StreamTcpNewSession (Packet *p, int id)
 
         ssn->state = TCP_NONE;
         ssn->reassembly_depth = stream_config.reassembly_depth;
-        ssn->flags = stream_config.ssn_init_flags;
         ssn->tcp_packet_flags = p->tcph ? p->tcph->th_flags : 0;
+        ssn->server.flags = stream_config.stream_init_flags;
+        ssn->client.flags = stream_config.stream_init_flags;
 
         StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
         ssn->client.sb = x;
