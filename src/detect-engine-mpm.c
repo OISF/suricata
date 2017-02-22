@@ -1194,6 +1194,25 @@ static MpmStore *MpmStorePrepareBufferAppLayer(DetectEngineCtx *de_ctx,
     return NULL;
 }
 
+static void SetRawReassemblyFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    const Signature *s = NULL;
+    uint32_t sig;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (SignatureHasStreamContent(s) == 1) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVERAWSTREAM;
+            SCLogDebug("rule group %p has SIG_GROUP_HEAD_HAVERAWSTREAM set", sgh);
+            return;
+        }
+    }
+    SCLogDebug("rule group %p does NOT have SIG_GROUP_HEAD_HAVERAWSTREAM set", sgh);
+}
+
 /** \brief Prepare the pattern matcher ctx in a sig group head.
  *
  */
@@ -1211,6 +1230,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
+
+            SetRawReassemblyFlag(de_ctx, sh);
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
@@ -1222,6 +1243,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
+
+            SetRawReassemblyFlag(de_ctx, sh);
        }
     } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
         if (SGH_DIRECTION_TS(sh)) {
