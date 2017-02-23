@@ -29,6 +29,8 @@ addons:
       - libnfnetlink0
       - libhiredis-dev
       - libjansson-dev
+      - libevent-dev
+      - libevent-pthreads-2.0-5
     # Now define the default set of packages which is those above, and
     # libjansson.
     packages: &packages
