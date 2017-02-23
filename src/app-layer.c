@@ -145,6 +145,7 @@ static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
 {
     SCLogDebug("disable app layer for flow %p alproto %u ts %u tc %u",
             f, f->alproto, f->alproto_ts, f->alproto_tc);
+    FlowCleanupAppLayer(f);
     StreamTcpDisableAppLayer(f);
     TcpSession *ssn = f->protoctx;
     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
