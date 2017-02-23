@@ -134,6 +134,10 @@ typedef struct LogFileCtx_ {
 
     /* Set to true if the filename should not be timestamped. */
     bool nostamp;
+
+    /* Socket types may need to drop events to keep from blocking
+     * Suricata. */
+    uint64_t dropped;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
