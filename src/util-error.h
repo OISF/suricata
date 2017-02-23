@@ -328,6 +328,7 @@ typedef enum {
     SC_ERR_VAR_LIMIT,
     SC_WARN_DUPLICATE_OUTPUT,
     SC_WARN_CHMOD,
+    SC_ERR_NO_REDIS_ASYNC
 } SCError;
 
 const char *SCErrorToString(SCError);
