@@ -697,21 +697,27 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 {
     SCEnter();
 
-    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NOREASSEMBLY is set, so not expecting any new packets");
-        SCReturnInt(1);
-    }
+    /* if any of these flags is set we always inspect immediately */
+#define STREAMTCP_STREAM_FLAG_FLUSH_FLAGS       \
+        (   STREAMTCP_STREAM_FLAG_NOREASSEMBLY  \
+        |   STREAMTCP_STREAM_FLAG_TRIGGER_RAW   \
+        |   STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)
 
-    if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) {
-        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_TRIGGER_RAW is set");
+    if (stream->flags & STREAMTCP_STREAM_FLAG_FLUSH_FLAGS) {
+        if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+            SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NOREASSEMBLY "
+                    "is set, so not expecting any new packets");
+        }
+        if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) {
+            SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_TRIGGER_RAW is set");
+        }
+        if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
+            SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED is set, "
+                    "so no new segments will be considered");
+        }
         SCReturnInt(1);
     }
-
-    if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
-        SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED is set, "
-                "so no new segments will be considered");
-        SCReturnInt(1);
-    }
+#undef STREAMTCP_STREAM_FLAG_FLUSH_FLAGS
 
     /* some states mean we reassemble no matter how much data we have */
     if (ssn->state > TCP_TIME_WAIT)
