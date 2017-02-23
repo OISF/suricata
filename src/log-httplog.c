@@ -709,6 +709,12 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *httplog_ctx = (LogHttpFileCtx *)output_ctx->data;
     uint32_t i;
+
+    if (httplog_ctx->file_ctx->dropped) {
+        SCLogNotice("%s: %"PRIu64" events dropped instead of logged.",
+                MODULE_NAME, httplog_ctx->file_ctx->dropped);
+    }
+
     for (i = 0; i < httplog_ctx->cf_n; i++) {
         SCFree(httplog_ctx->cf_nodes[i]);
     }
