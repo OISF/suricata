@@ -64,6 +64,7 @@
 #include "detect-engine-state.h"
 
 #include "util-profiling.h"
+#include "util-validate.h"
 
 #ifdef DEBUG
 static SCMutex segment_pool_memuse_mutex;
@@ -553,12 +554,9 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
             stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
             /* partial fit, return only what fits */
             uint32_t part = (stream->isn + 1 + ssn->reassembly_depth) - seq;
-#if DEBUG
-            BUG_ON(part > size);
-#else
+            DEBUG_VALIDATE_BUG_ON(part > size);
             if (part > size)
                 part = size;
-#endif
             SCReturnUInt(part);
         }
     }
@@ -618,12 +616,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(0);
     }
 
-#if DEBUG
-    BUG_ON(size > p->payload_len);
-#else
+    DEBUG_VALIDATE_BUG_ON(size > p->payload_len);
     if (size > p->payload_len)
         size = p->payload_len;
-#endif
 
     TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx);
     if (seg == NULL) {
@@ -928,6 +923,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         /* get window of data that is acked */
         uint32_t delta = stream->last_ack - stream->base_seq;
+        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
     }
@@ -935,6 +931,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     const uint8_t *mydata;
     uint32_t mydata_len;
     GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
+    if (mydata == NULL || mydata_len == 0)
+        return 0;
+
     //PrintRawDataFp(stdout, mydata, mydata_len);
 
     SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
@@ -946,7 +945,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     } else if (StreamTcpInlineMode() == 0) {
         /* see if the buffer contains unack'd data as well */
         if (app_progress + mydata_len > last_ack_abs) {
+            uint32_t check = mydata_len;
             mydata_len = last_ack_abs - app_progress;
+            BUG_ON(mydata_len > check);
             SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                     "data is considered", mydata_len);
         }
@@ -1265,7 +1266,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         StreamingBufferBlock *iter = stream->sb.block_list;
         for ( ; iter != NULL; iter = iter->next) {
             uint64_t iter_re_abs = iter->offset + iter->len;
-            BUG_ON(packet_leftedge_abs < iter->offset &&
+            DEBUG_VALIDATE_BUG_ON(packet_leftedge_abs < iter->offset &&
                     packet_rightedge_abs > iter->offset &&
                     packet_rightedge_abs < iter_re_abs);
 
@@ -1334,10 +1335,10 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
 
             /* adjust the buffer */
             uint32_t skip = (uint32_t)(packet_leftedge_abs - mydata_offset) - before;
-            BUG_ON(skip > mydata_len);
             uint32_t cut = (uint32_t)(mydata_rightedge_abs - packet_rightedge_abs) - after;
-            BUG_ON(cut > mydata_len);
-            BUG_ON(skip + cut > mydata_len);
+            DEBUG_VALIDATE_BUG_ON(skip > mydata_len);
+            DEBUG_VALIDATE_BUG_ON(cut > mydata_len);
+            DEBUG_VALIDATE_BUG_ON(skip + cut > mydata_len);
             mydata += skip;
             mydata_len -= (skip + cut);
             mydata_offset += skip;
@@ -1359,6 +1360,7 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             uint32_t delta = stream->last_ack - stream->base_seq;
+            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
         }
@@ -1435,6 +1437,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
         SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
         uint32_t delta = stream->last_ack - stream->base_seq;
+        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
         /* get max absolute offset */
         last_ack_abs += delta;
         SCLogDebug("last_ack_abs %"PRIu64, last_ack_abs);
@@ -1469,7 +1472,9 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
 
             /* see if the buffer contains unack'd data as well */
             if (progress + mydata_len > last_ack_abs) {
+                uint32_t check = mydata_len;
                 mydata_len = last_ack_abs - progress;
+                BUG_ON(check < mydata_len);
                 SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                         "data is considered", mydata_len);
             }
