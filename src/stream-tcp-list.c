@@ -635,20 +635,35 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         use_raw = 0;
     }
 
-    if (use_app && use_raw) {
-        left_edge = MIN(STREAM_APP_PROGRESS(stream), STREAM_RAW_PROGRESS(stream));
-        SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
-                left_edge, STREAM_APP_PROGRESS(stream), STREAM_RAW_PROGRESS(stream));
+    if (use_raw) {
+        uint64_t raw_progress = STREAM_RAW_PROGRESS(stream);
+
+        if (StreamTcpInlineMode() == TRUE) {
+            uint32_t chunk_size = (stream == &ssn->client) ?
+                stream_config.reassembly_toserver_chunk_size :
+                stream_config.reassembly_toclient_chunk_size;
+            if (raw_progress < (uint64_t)chunk_size) {
+                raw_progress = 0;
+            } else {
+                raw_progress -= (uint64_t)chunk_size;
+            }
+        }
+        if (use_app) {
+            left_edge = MIN(STREAM_APP_PROGRESS(stream), raw_progress);
+            SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
+                    left_edge, STREAM_APP_PROGRESS(stream), raw_progress);
+        } else {
+            left_edge = raw_progress;
+            SCLogDebug("left_edge %"PRIu64", using only raw:%"PRIu64,
+                    left_edge, raw_progress);
+        }
     } else if (use_app) {
         left_edge = STREAM_APP_PROGRESS(stream);
-        SCLogDebug("left_edge %"PRIu64", using app:%"PRIu64,
+        SCLogDebug("left_edge %"PRIu64", using only app:%"PRIu64,
                 left_edge, STREAM_APP_PROGRESS(stream));
-    } else if (use_raw) {
-        left_edge = STREAM_RAW_PROGRESS(stream);
-        SCLogDebug("left_edge %"PRIu64", using raw:%"PRIu64,
-                left_edge, STREAM_RAW_PROGRESS(stream));
     } else {
-        SCLogDebug("left_edge 0, none");
+        left_edge = STREAM_BASE_OFFSET(stream) + stream->sb->buf_offset;
+        SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
     }
 
     if (left_edge > 0) {
@@ -692,6 +707,10 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 
 /** \brief Remove idle TcpSegments from TcpSession
  *
+ *  Checks app progress and raw progress and progresses them
+ *  if needed, slides the streaming buffer, then gets rid of
+ *  excess segments.
+ *
  *  \param f flow
  *  \param flags direction flags
  */
@@ -715,45 +734,30 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     }
 
     uint64_t left_edge = GetLeftEdge(ssn, stream);
-    if (left_edge) {
-        /* in IPS mode we consider the chunk_size when sliding */
-        if (StreamTcpInlineMode() == TRUE) {
-            uint32_t chunk_size = (flags & STREAM_TOSERVER) ?
-                stream_config.reassembly_toserver_chunk_size :
-                stream_config.reassembly_toclient_chunk_size;
-            if ((uint64_t)chunk_size >= left_edge) {
-                left_edge = 0;
-            } else {
-                left_edge -= chunk_size;
-            }
+    if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
+        uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
+        SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
+        StreamingBufferSlideToOffset(stream->sb, left_edge);
+        stream->base_seq += slide;
+
+        if (slide <= stream->app_progress_rel) {
+            stream->app_progress_rel -= slide;
+        } else {
+            stream->app_progress_rel = 0;
         }
 
-        if (left_edge > STREAM_BASE_OFFSET(stream)) {
-            uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
-            SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
-            StreamingBufferSlideToOffset(stream->sb, left_edge);
-            stream->base_seq += slide;
-
-            if (slide <= stream->app_progress_rel) {
-                stream->app_progress_rel -= slide;
-            } else {
-                stream->app_progress_rel = 0;
-            }
-
-            if (slide <= stream->raw_progress_rel) {
-                stream->raw_progress_rel -= slide;
-            } else {
-                stream->raw_progress_rel = 0;
-            }
-
-            SCLogDebug("stream base_seq %u at stream offset %"PRIu64,
-                    stream->base_seq, STREAM_BASE_OFFSET(stream));
+        if (slide <= stream->raw_progress_rel) {
+            stream->raw_progress_rel -= slide;
+        } else {
+            stream->raw_progress_rel = 0;
         }
+
+        SCLogDebug("stream base_seq %u at stream offset %"PRIu64,
+                stream->base_seq, STREAM_BASE_OFFSET(stream));
     }
 
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
-
     while (seg != NULL)
     {
         SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32", FLAGS %02x",
