@@ -905,6 +905,40 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
     }
 }
 
+static inline bool CheckGap(TcpStream *stream, Packet *p)
+{
+    const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
+    uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
+
+    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+        /* get window of data that is acked */
+        uint32_t delta = stream->last_ack - stream->base_seq;
+        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
+        /* get max absolute offset */
+        last_ack_abs += delta;
+
+        // last_ack > app_progress, but not data. We won't get it either because of last_ack.
+        if (last_ack_abs > app_progress+1) {
+
+            // account for our too liberal ack acceptance & pseudo packet last_ack hackery
+            if (SEQ_LT(stream->next_seq, stream->last_ack)) {
+                if (SEQ_GT(stream->next_seq, stream->base_seq)) {
+                    uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
+                    if (next_seq_abs > app_progress+1) {
+                        /* fall through */
+                    } else {
+                        return false;
+                    }
+                }
+            }
+
+            SCLogDebug("packet %u GAP! last_ack_abs %u > app_progress %u, at no data.", (uint)p->pcap_cnt, (uint)last_ack_abs, (uint)app_progress);
+            return true;
+        }
+    }
+    return false;
+}
+
 /** \internal
  *  \brief get stream buffer and update the app-layer
  *  \retval 0 success
@@ -915,24 +949,31 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         Packet *p, enum StreamUpdateDir dir)
 {
     const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
-    uint64_t last_ack_abs = 0; /* absolute right edge of ack'd data */
 
     SCLogDebug("app progress %"PRIu64, app_progress);
     SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
 
-    if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-        /* get window of data that is acked */
-        uint32_t delta = stream->last_ack - stream->base_seq;
-        DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
-        /* get max absolute offset */
-        last_ack_abs += delta;
-    }
-
     const uint8_t *mydata;
     uint32_t mydata_len;
     GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
-    if (mydata == NULL || mydata_len == 0)
+    if (mydata == NULL || mydata_len == 0) {
+        if (CheckGap(stream, p)) {
+            /* send gap signal */
+            SCLogDebug("sending GAP to app-layer");
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    NULL, 0,
+                    StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+
+            /* set a GAP flag and make sure not bothering this stream anymore */
+            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
+            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
+        }
         return 0;
+    }
 
     //PrintRawDataFp(stdout, mydata, mydata_len);
 
@@ -943,6 +984,15 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     if (StreamTcpInlineMode() == 0 && (p->flags & PKT_PSEUDO_STREAM_END)) {
         //
     } else if (StreamTcpInlineMode() == 0) {
+        uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
+        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+            /* get window of data that is acked */
+            uint32_t delta = stream->last_ack - stream->base_seq;
+            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
+            /* get max absolute offset */
+            last_ack_abs += delta;
+        }
+
         /* see if the buffer contains unack'd data as well */
         if (app_progress + mydata_len > last_ack_abs) {
             uint32_t check = mydata_len;
@@ -1012,6 +1062,8 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      *    bigger than the list start and the list start is bigger than
      *    next_seq, we know we are missing data that has been ack'd. That
      *    won't get retransmitted, so it's a data gap.
+     * 3. check if next_seq is smaller than last_ack, indicating next_seq
+     *    has fallen behind the data that is already acked.
      */
     if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         int ackadd = (ssn->state >= TCP_FIN_WAIT2) ? 2 : 1;
@@ -1019,9 +1071,16 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     stream->base_seq == stream->isn+1 &&
                     SEQ_GT(stream->last_ack, stream->isn + ackadd))
                 ||
-            (stream->seg_list != NULL && /*2*/
-                    SEQ_GT(stream->seg_list->seq, stream->base_seq) &&
-                    SEQ_LT(stream->seg_list->seq, stream->last_ack)))
+            (stream->seg_list != NULL &&
+                ( /*2*/
+                    (SEQ_GT(stream->seg_list->seq, stream->base_seq) &&
+                    SEQ_LT(stream->seg_list->seq, stream->last_ack))
+                ||
+                    (SEQ_GT(stream->seg_list->seq, stream->base_seq) &&
+                     SEQ_LT(stream->next_seq, stream->last_ack))
+                )
+            )
+        )
         {
             if (stream->seg_list == NULL) {
                 SCLogDebug("no segs, last_ack moved fwd so GAP "
