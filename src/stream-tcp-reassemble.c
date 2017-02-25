@@ -1238,7 +1238,14 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
     return false;
 }
 
-/** \brief Update stream after inspection has run
+/** \brief update stream engine after detection
+ *
+ *  Tasked with progressing the 'progress' for Raw reassembly.
+ *  2 main scenario's:
+ *   1. progress is != 0, so we use this
+ *   2. progress is 0, meaning the detect engine didn't touch
+ *      raw at all. In this case we need to look into progressing
+ *      raw anyway.
  */
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress)
 {
@@ -1253,6 +1260,48 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         uint32_t slide = progress - STREAM_RAW_PROGRESS(stream);
         stream->raw_progress_rel += slide;
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+
+    /* if app is active and beyond raw, sync raw to app */
+    } else if (progress == 0 &&
+            STREAM_APP_PROGRESS(stream) > STREAM_RAW_PROGRESS(stream) &&
+            !(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
+            !(stream->flags & STREAMTCP_STREAM_FLAG_GAP))
+    {
+        /* if trigger raw is set we sync the 2 trackers */
+        if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW)
+        {
+            uint32_t slide = STREAM_APP_PROGRESS(stream) - STREAM_RAW_PROGRESS(stream);
+            stream->raw_progress_rel += slide;
+            stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+
+        /* otherwise mix in the tcp window */
+        } else {
+            uint64_t tcp_window = stream->window;
+            if (tcp_window > 0 && STREAM_APP_PROGRESS(stream) > tcp_window) {
+                uint64_t new_raw = STREAM_APP_PROGRESS(stream) - tcp_window;
+                if (new_raw > STREAM_RAW_PROGRESS(stream)) {
+                    uint32_t slide = new_raw - STREAM_RAW_PROGRESS(stream);
+                    stream->raw_progress_rel += slide;
+                }
+            }
+        }
+    /* app is dead */
+    } else if (progress == 0) {
+        uint64_t tcp_window = stream->window;
+        uint64_t stream_right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
+        if (tcp_window < stream_right_edge) {
+            uint64_t new_raw = stream_right_edge - tcp_window;
+            if (new_raw > STREAM_RAW_PROGRESS(stream)) {
+                uint32_t slide = new_raw - STREAM_RAW_PROGRESS(stream);
+                stream->raw_progress_rel += slide;
+            }
+        }
+        stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+
+    } else {
+        SCLogDebug("p->pcap_cnt %u: progress %u app %u raw %u tcp win %u",
+                (uint)p->pcap_cnt, (uint)progress, (uint)STREAM_APP_PROGRESS(stream),
+                (uint)STREAM_RAW_PROGRESS(stream), (uint)stream->window);
     }
 
     SCLogDebug("stream raw progress now %"PRIu64, STREAM_RAW_PROGRESS(stream));
