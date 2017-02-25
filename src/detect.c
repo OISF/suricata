@@ -1432,8 +1432,7 @@ end:
         }
 
         /* update inspected tracker for raw reassembly */
-        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL &&
-            det_ctx->raw_stream_progress > 0)
+        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL)
         {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
