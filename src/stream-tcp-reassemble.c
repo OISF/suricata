@@ -2903,7 +2903,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* this function can be directly called by app layer protocol
      * detection. */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+    if (stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY|STREAMTCP_STREAM_FLAG_GAP)) {
         SCLogDebug("stream no reassembly flag set.  Mostly called via "
                    "app proto detection.");
         SCReturnInt(0);
