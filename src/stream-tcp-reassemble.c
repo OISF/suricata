@@ -605,10 +605,6 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         /* increment stream depth counter */
         StatsIncr(tv, ra_ctx->counter_tcp_stream_depth);
-
-        stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
-        SCLogDebug("ssn %p: reassembly depth reached, "
-                "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
     }
     if (size == 0) {
         SCLogDebug("ssn %p: depth reached, not reassembling", ssn);
@@ -693,14 +689,14 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 
     /* if any of these flags is set we always inspect immediately */
 #define STREAMTCP_STREAM_FLAG_FLUSH_FLAGS       \
-        (   STREAMTCP_STREAM_FLAG_NOREASSEMBLY  \
+        (   STREAMTCP_STREAM_FLAG_DEPTH_REACHED \
         |   STREAMTCP_STREAM_FLAG_TRIGGER_RAW   \
         |   STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_FLUSH_FLAGS) {
-        if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-            SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_NOREASSEMBLY "
-                    "is set, so not expecting any new packets");
+        if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+            SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_DEPTH_REACHED "
+                    "is set, so not expecting any new data segments");
         }
         if (stream->flags & STREAMTCP_STREAM_FLAG_TRIGGER_RAW) {
             SCLogDebug("reassembling now as STREAMTCP_STREAM_FLAG_TRIGGER_RAW is set");
@@ -1225,6 +1221,9 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         stream = &ssn->server;
     }
 
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+        return false;
+
     if (StreamTcpInlineMode() == FALSE) {
         if (StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 1) {
             return true;
@@ -1303,6 +1302,12 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
                 (uint)STREAM_RAW_PROGRESS(stream), (uint)stream->window);
     }
 
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
+        stream->flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
+        SCLogDebug("ssn %p: STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED set, "
+            "now that detect ran also set STREAMTCP_STREAM_FLAG_DISABLE_RAW", ssn);
+    }
+
     SCLogDebug("stream raw progress now %"PRIu64, STREAM_RAW_PROGRESS(stream));
 }
 
@@ -1334,7 +1339,9 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
         stream = &ssn->server;
     }
 
-    if (p->payload_len == 0 || (p->flags & PKT_STREAM_ADD) == 0) {
+    if (p->payload_len == 0 || (p->flags & PKT_STREAM_ADD) == 0 ||
+            (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+    {
         *progress_out = STREAM_RAW_PROGRESS(stream);
         return 0;
     }
@@ -1531,7 +1538,9 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         stream = &ssn->server;
     }
 
-    if (StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0) {
+    if ((stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+        StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0)
+    {
         *progress_out = STREAM_RAW_PROGRESS(stream);
         return 0;
     }
@@ -2893,11 +2902,11 @@ static int StreamTcpReassembleTest45 (void)
 
     int r = StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, &ssn.client, 101, payload, payload_size);
     FAIL_IF(r != 0);
-    FAIL_IF(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
+    FAIL_IF(ssn.client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED);
 
     r = StreamTcpUTAddPayload(&tv, ra_ctx, &ssn, &ssn.client, 201, payload, payload_size);
     FAIL_IF(r != 0);
-    FAIL_IF(!(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY));
+    FAIL_IF(!(ssn.client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED));
 
     StreamTcpUTClearStream(&ssn.server);
     StreamTcpUTClearStream(&ssn.client);
