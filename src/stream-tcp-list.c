@@ -746,6 +746,12 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         SCReturn;
     }
 
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
+        SCLogDebug("ssn %p: reassembly depth reached, "
+                 "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
+    }
+
     uint64_t left_edge = GetLeftEdge(ssn, stream);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
