@@ -1245,6 +1245,9 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
  *   2. progress is 0, meaning the detect engine didn't touch
  *      raw at all. In this case we need to look into progressing
  *      raw anyway.
+ *
+ *  Additionally, this function is tasked with disabling raw
+ *  reassembly if the app-layer requested to disable it.
  */
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress)
 {
@@ -1303,6 +1306,8 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
                 (uint)STREAM_RAW_PROGRESS(stream), (uint)stream->window);
     }
 
+    /* if we were told to accept no more raw data, we can mark raw as
+     * disabled now. */
     if (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) {
         stream->flags |= STREAMTCP_STREAM_FLAG_DISABLE_RAW;
         SCLogDebug("ssn %p: STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED set, "
