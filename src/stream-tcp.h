@@ -65,11 +65,6 @@ typedef struct TcpStreamCnf_ {
     int check_overlap_different_data;
     int bypass;
 
-    /** reassembly -- inline mode
-     *
-     *  sliding window size for raw stream reassembly
-     */
-    uint32_t reassembly_inline_window;
     uint8_t flags;
     uint8_t max_synack_queued;
 } TcpStreamCnf;
