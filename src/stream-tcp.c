@@ -5510,16 +5510,22 @@ invalid:
     SCReturnInt(-1);
 }
 
-/** \brief  Set the No reassembly flag for the given direction in given TCP
- *          session.
+/** \brief disable reassembly
+
+ *  Disable app layer and set raw inspect to no longer accept new data.
+ *  Stream engine will then fully disable raw after last inspection.
  *
  * \param ssn TCP Session to set the flag in
  * \param direction direction to set the flag in: 0 toserver, 1 toclient
  */
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
 {
-    direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY) :
-                (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
+    ssn->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED;
+    if (direction) {
+        ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED;
+    } else {
+        ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED;
+    }
 }
 
 /** \brief  Set the No reassembly flag for the given direction in given TCP
