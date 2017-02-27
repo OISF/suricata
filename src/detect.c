@@ -759,7 +759,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 }
 
 #define SMS_USE_FLOW_SGH        0x01
-#define SMS_USED_PM             0x02
 
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
