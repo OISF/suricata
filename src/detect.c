@@ -882,11 +882,8 @@ DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, const SigGroupHead *sgh)
 
 /**
  *  \brief Signature match function
- *
- *  \retval 1 one or more signatures matched
- *  \retval 0 no matches were found
  */
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     bool use_flow_sgh = false;
     uint8_t alert_flags = 0;
@@ -898,23 +895,23 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     const Signature *s = NULL;
     const Signature *next_s = NULL;
     int state_alert = 0;
-    int alerts = 0;
     int app_decoder_events = 0;
     bool has_state = false;     /* do we have an alstate to work with? */
 
     SCEnter();
 
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
-
-    det_ctx->ticker++;
+#ifdef UNITTESTS
     p->alerts.cnt = 0;
+#endif
+    det_ctx->ticker++;
     det_ctx->filestore_cnt = 0;
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
-        SCReturnInt(0);
+        SCReturn;
     }
 
     /* Load the Packet's flow early, even though it might not be needed.
@@ -1112,7 +1109,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 #endif
 
-
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
     /* Prefetch the next signature. */
@@ -1126,7 +1122,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature **match_array = det_ctx->match_array;
 
     SGH_PROFILING_RECORD(det_ctx, det_ctx->sgh);
-
 #ifdef PROFILING
 #ifdef HAVE_LIBJANSSON
     if (match_cnt >= de_ctx->profile_match_logging_threshold)
@@ -1139,21 +1134,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         next_s = *match_array++;
         next_sflags = next_s->flags;
     }
-
     while (match_cnt--) {
         RULE_PROFILING_START(p);
         state_alert = 0;
 #ifdef PROFILING
         smatch = 0;
 #endif
-
         s = next_s;
         sflags = next_sflags;
         if (match_cnt) {
             next_s = *match_array++;
             next_sflags = next_s->flags;
         }
-        uint8_t s_proto_flags = s->proto.flags;
+        const uint8_t s_proto_flags = s->proto.flags;
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
@@ -1368,7 +1361,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* apply actions even if not alerting */
             DetectSignatureApplyActions(p, s);
         }
-        alerts++;
 next:
         DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
@@ -1431,8 +1423,7 @@ end:
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
-
-    SCReturnInt((int)(alerts > 0));
+    SCReturn;
 }
 
 /** \brief Apply action(s) and Set 'drop' sig info,
