@@ -1166,7 +1166,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flow_flags);
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, flow_flags);
         if (has_inspectable_state == 1) {
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,

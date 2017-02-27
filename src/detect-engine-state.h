@@ -125,13 +125,12 @@ void DetectEngineStateFree(DetectEngineState *state);
  * \brief Check if a flow already contains(newly updated as well) de state.
  *
  * \param f Pointer to the flow.
- * \param alversino The alversion to check against de_state's.
- * \param direction Direction to check.  0 - ts, 1 - tc.
+ * \param flags direction
  *
  * \retval 1 Has state.
  * \retval 0 Has no state.
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint8_t alversion, uint8_t flags);
+int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags);
 
 /**
  * \brief Match app layer sig list against app state and store relevant match

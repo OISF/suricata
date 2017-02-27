@@ -244,7 +244,7 @@ void DetectEngineStateFree(DetectEngineState *state)
     return;
 }
 
-static int HasStoredSigs(Flow *f, uint8_t flags)
+static int HasStoredSigs(const Flow *f, const uint8_t flags)
 {
     if (AppLayerParserProtocolSupportsTxs(f->proto, f->alproto)) {
         AppProto alproto = f->alproto;
@@ -290,8 +290,7 @@ static int HasStoredSigs(Flow *f, uint8_t flags)
  *  \retval 0 no inspectable state
  *  \retval 1 inspectable state
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
-                                   const uint8_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags)
 {
     int r = 0;
 
