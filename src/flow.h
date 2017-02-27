@@ -392,9 +392,6 @@ typedef struct Flow_
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;
 
-    /** detect state 'alversion' inspected for both directions */
-    uint8_t detect_alversion[2];
-
     /** application level storage ptrs.
      *
      */

@@ -57,8 +57,6 @@
         (f)->alproto_tc = 0; \
         (f)->de_ctx_version = 0; \
         (f)->thread_id = 0; \
-        (f)->detect_alversion[0] = 0; \
-        (f)->detect_alversion[1] = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->sgh_toserver = NULL; \
@@ -99,8 +97,6 @@
         (f)->alproto_tc = 0; \
         (f)->de_ctx_version = 0; \
         (f)->thread_id = 0; \
-        (f)->detect_alversion[0] = 0; \
-        (f)->detect_alversion[1] = 0; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
