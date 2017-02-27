@@ -338,6 +338,31 @@ void IPPairCleanup(void)
     return;
 }
 
+/** \brief compare two raw ipv6 addrs
+ *
+ *  \note we don't care about the real ipv6 ip's, this is just
+ *        to consistently fill the FlowHashKey6 struct, without all
+ *        the ntohl calls.
+ *
+ *  \warning do not use elsewhere unless you know what you're doing.
+ *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely
+ *           what you are looking for.
+ * Copied from FlowHashRawAddressIPv6GtU32
+ */
+static inline int IPPairHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t *b)
+{
+    int i;
+
+    for (i = 0; i < 4; i++) {
+        if (a[i] > b[i])
+            return 1;
+        if (a[i] < b[i])
+            break;
+    }
+
+    return 0;
+}
+
 /* calculate the hash key for this packet
  *
  * we're using:
@@ -349,10 +374,32 @@ static uint32_t IPPairGetKey(Address *a, Address *b)
     uint32_t key;
 
     if (a->family == AF_INET) {
-        uint32_t hash = hashword(&a->addr_data32[0], 1, ippair_config.hash_rand);
+        uint32_t addrs[2] = { MIN(a->addr_data32[0], b->addr_data32[0]),
+                              MAX(a->addr_data32[0], b->addr_data32[0]) };
+        uint32_t hash = hashword(addrs, 2, ippair_config.hash_rand);
         key = hash % ippair_config.hash_size;
     } else if (a->family == AF_INET6) {
-        uint32_t hash = hashword(a->addr_data32, 4, ippair_config.hash_rand);
+        uint32_t addrs[8];
+        if (IPPairHashRawAddressIPv6GtU32(&a->addr_data32[0],&b->addr_data32[0])) {
+            addrs[0] = b->addr_data32[0];
+            addrs[1] = b->addr_data32[1];
+            addrs[2] = b->addr_data32[2];
+            addrs[3] = b->addr_data32[3];
+            addrs[4] = a->addr_data32[0];
+            addrs[5] = a->addr_data32[1];
+            addrs[6] = a->addr_data32[2];
+            addrs[7] = a->addr_data32[3];
+        } else {
+            addrs[0] = a->addr_data32[0];
+            addrs[1] = a->addr_data32[1];
+            addrs[2] = a->addr_data32[2];
+            addrs[3] = a->addr_data32[3];
+            addrs[4] = b->addr_data32[0];
+            addrs[5] = b->addr_data32[1];
+            addrs[6] = b->addr_data32[2];
+            addrs[7] = b->addr_data32[3];
+        }
+        uint32_t hash = hashword(addrs, 8, ippair_config.hash_rand);
         key = hash % ippair_config.hash_size;
     } else
         key = 0;
