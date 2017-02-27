@@ -8798,55 +8798,43 @@ static int SigTestDetectAlertCounter(void)
     Packet *p = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
     memset(&tv, 0, sizeof(tv));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test counter\"; "
                                "content:\"boo\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF(de_ctx->sig_list == NULL);
 
     SigGroupBuild(de_ctx);
     strlcpy(tv.name, "detect_test", sizeof(tv.name));
     DetectEngineThreadCtxInit(&tv, de_ctx, (void *)&det_ctx);
-
     /* init counters */
     StatsSetupPrivate(&tv);
 
     p = UTHBuildPacket((uint8_t *)"boo", strlen("boo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result = (StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 1);
+    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 1);
 
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
+    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"roo", strlen("roo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
+    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"laboosa", strlen("laboosa"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 3);
+    FAIL_IF_NOT(StatsGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 3);
     UTHFreePackets(&p, 1);
-
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    return result;
+    PASS;
 }
 
 /** \test test if the engine set flag to drop pkts of a flow that
