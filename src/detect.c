@@ -1402,10 +1402,6 @@ end:
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
 
-    DetectEngineCleanHCBDBuffers(det_ctx);
-    DetectEngineCleanHSBDBuffers(det_ctx);
-    DetectEngineCleanSMTPBuffers(det_ctx);
-
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
@@ -1420,10 +1416,13 @@ end:
         }
 
         /* update inspected tracker for raw reassembly */
-        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL)
-        {
+        if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
+
+            DetectEngineCleanHCBDBuffers(det_ctx);
+            DetectEngineCleanHSBDBuffers(det_ctx);
+            DetectEngineCleanSMTPBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
