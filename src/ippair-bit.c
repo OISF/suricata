@@ -123,6 +123,7 @@ static void IPPairBitRemove(IPPair *h, uint16_t idx)
     GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
     if (gv) {
         GenericVarRemove(&gv, (GenericVar *)fb);
+        XBitFree(fb);
         IPPairSetStorageById(h, ippair_bit_id, gv);
     }
 }
