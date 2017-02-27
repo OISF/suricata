@@ -194,12 +194,6 @@ static void DeStateSignatureAppend(DetectEngineState *state,
     return;
 }
 
-static void DeStateStoreStateVersion(Flow *f,
-                                     const uint8_t alversion, uint8_t direction)
-{
-    f->detect_alversion[direction & STREAM_TOSERVER ? 0 : 1] = alversion;
-}
-
 static void DeStateStoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
 {
     de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt += file_no_match;
@@ -337,7 +331,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
  *  \param check_before_add check for duplicates before adding the sig
  */
 static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags, const uint8_t alversion,
+        Flow *f, const uint8_t flags,
         const uint64_t tx_id, void *tx,
         const Signature *s, const SigMatchData *smd,
         const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
@@ -359,7 +353,6 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
 
         if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
             DeStateSignatureAppend(destate, s, inspect_flags, flags);
-        DeStateStoreStateVersion(f, alversion, flags);
 
         StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
     }
@@ -369,7 +362,7 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 const Signature *s, Packet *p, Flow *f, uint8_t flags,
-                                AppProto alproto, const uint8_t alversion)
+                                AppProto alproto)
 {
     SigMatchData *smd = NULL;
     uint16_t file_no_match = 0;
@@ -496,7 +489,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     }
 
                     /* store */
-                    StoreStateTx(det_ctx, f, flags, alversion, tx_id, tx,
+                    StoreStateTx(det_ctx, f, flags, tx_id, tx,
                             s, smd, inspect_flags, file_no_match, check_before_add);
                 } else {
                     StoreStateTxFileOnly(det_ctx, f, flags, tx_id, tx, file_no_match);
@@ -721,7 +714,7 @@ static int DoInspectItem(ThreadVars *tv,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto, const uint8_t alversion)
+                                    AppProto alproto)
 {
     uint16_t file_no_match = 0;
     SigIntId store_cnt = 0;

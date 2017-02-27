@@ -978,7 +978,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint8_t flow_flags = 0; /* flow/state flags */
     const Signature *s = NULL;
     const Signature *next_s = NULL;
-    uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
@@ -1088,7 +1087,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
-                alversion = AppLayerParserGetStateVersion(pflow->alparser);
                 SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
@@ -1170,7 +1168,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (has_inspectable_state == 1) {
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
-                                           flow_flags, alproto, alversion);
+                                           flow_flags, alproto);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
@@ -1444,7 +1442,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                      p, pflow, flow_flags, alproto, alversion);
+                                                      p, pflow, flow_flags, alproto);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
