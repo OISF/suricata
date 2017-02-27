@@ -758,8 +758,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
-#define SMS_USE_FLOW_SGH        0x01
-
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
@@ -890,7 +888,7 @@ DetectPostInspectFirstSGH(const Packet *p, Flow *pflow, const SigGroupHead *sgh)
  */
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
-    uint8_t sms_runflags = 0;   /* function flags */
+    bool use_flow_sgh = false;
     uint8_t alert_flags = 0;
     AppProto alproto = ALPROTO_UNKNOWN;
 #ifdef PROFILING
@@ -978,11 +976,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
                     det_ctx->sgh = pflow->sgh_toserver;
                     SCLogDebug("det_ctx->sgh = pflow->sgh_toserver; => %p", det_ctx->sgh);
-                    sms_runflags |= SMS_USE_FLOW_SGH;
+                    use_flow_sgh = true;
                 } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (pflow->flags & FLOW_SGH_TOCLIENT)) {
                     det_ctx->sgh = pflow->sgh_toclient;
                     SCLogDebug("det_ctx->sgh = pflow->sgh_toclient; => %p", det_ctx->sgh);
-                    sms_runflags |= SMS_USE_FLOW_SGH;
+                    use_flow_sgh = true;
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
             }
@@ -1040,7 +1038,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
+        if (!(use_flow_sgh)) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
             det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
@@ -1421,7 +1419,7 @@ end:
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
             ; /* no-op */
 
-        } else if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
+        } else if (!(use_flow_sgh)) {
             DetectPostInspectFirstSGH(p, pflow, det_ctx->sgh);
         }
 
