@@ -304,8 +304,8 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
         SCReturnInt(0);
     }
 
-    *client = StreamNeedsReassembly(ssn, 0);
-    *server = StreamNeedsReassembly(ssn, 1);
+    *client = StreamNeedsReassembly(ssn, STREAM_TOSERVER);
+    *server = StreamNeedsReassembly(ssn, STREAM_TOCLIENT);
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
