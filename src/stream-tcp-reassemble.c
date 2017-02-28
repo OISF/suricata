@@ -1222,10 +1222,17 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         stream = &ssn->server;
     }
 
+    if (stream->seg_list == NULL) {
+        return false;
+    }
+
     if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
         return false;
 
     if (StreamTcpInlineMode() == FALSE) {
+        if ((STREAM_RAW_PROGRESS(stream) == STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset)) {
+            return false;
+        }
         if (StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 1) {
             return true;
         }
