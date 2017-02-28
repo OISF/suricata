@@ -175,7 +175,6 @@ AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstat
 void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
 AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alproto, void *alstate,
                                         uint64_t tx_id);
-uint16_t AppLayerParserGetStateVersion(AppLayerParserState *pstate);
 FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
                            void *alstate, uint8_t direction);
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
