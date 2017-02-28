@@ -763,14 +763,13 @@ static int StreamTcpReassembleRawCheckLimit(const TcpSession *ssn,
 /**
  *  \brief see what if any work the TCP session still needs
  */
-int StreamNeedsReassembly(TcpSession *ssn, int direction)
+int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
 {
-    TcpStream *stream = NULL;
+    const TcpStream *stream = NULL;
 #ifdef DEBUG
     char *dirstr = NULL;
 #endif
-    /* TODO use STREAM_TOCLIENT/STREAM_TOSERVER */
-    if (direction == 0) {
+    if (direction == STREAM_TOSERVER) {
         stream = &ssn->client;
 #ifdef DEBUG
         dirstr = "client";
@@ -797,31 +796,25 @@ int StreamNeedsReassembly(TcpSession *ssn, int direction)
         use_raw = 0;
     }
 
-    if (stream->seg_list_tail != NULL) {
-        uint64_t right_edge = TCP_SEG_OFFSET(stream->seg_list_tail) +
-                              TCP_SEG_LEN(stream->seg_list_tail);
+    uint64_t right_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
 
-        SCLogDebug("%s: list %p app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
-                dirstr,
-                stream->seg_list,
-                STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
-                STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no",
-                right_edge);
-
-        if (use_raw) {
-            if (right_edge > STREAM_RAW_PROGRESS(stream)) {
-                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
-                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-            }
+    SCLogDebug("%s: list %p app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
+            dirstr,
+            stream->seg_list,
+            STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
+            STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no",
+            right_edge);
+    if (use_raw) {
+        if (right_edge > STREAM_RAW_PROGRESS(stream)) {
+            SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-        if (use_app) {
-            if (right_edge > STREAM_APP_PROGRESS(stream)) {
-                SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
-                return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-            }
+    }
+    if (use_app) {
+        if (right_edge > STREAM_APP_PROGRESS(stream)) {
+            SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION", dirstr);
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
-    } else {
-        SCLogDebug("%s: no list", dirstr);
     }
 
     SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NONE", dirstr);
