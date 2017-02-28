@@ -913,6 +913,24 @@ void PrintList(TcpSegment *seg)
     }
 }
 
+void ValidateList(const TcpStream *stream)
+{
+    TcpSegment *seg = stream->seg_list;
+    TcpSegment *prev_seg = NULL;
+
+    BUG_ON(seg && seg->next == NULL && stream->seg_list != stream->seg_list_tail);
+    BUG_ON(stream->seg_list != stream->seg_list_tail && stream->seg_list_tail->prev == NULL);
+
+    while (seg != NULL) {
+        prev_seg = seg;
+        seg = seg->next;
+        BUG_ON(seg && seg->prev != prev_seg);
+
+        // equal is possible
+        BUG_ON(seg && SEQ_LT(seg->seq, prev_seg->seq));
+    }
+}
+
 /*
  *  unittests
  */
