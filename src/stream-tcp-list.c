@@ -588,7 +588,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 static inline int SegmentInUse(TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
 {
     /* if proto detect isn't done, we're not returning */
-    if (!(stream->flags & STREAMTCP_STREAM_FLAG_GAP)) {
+    if (!(stream->flags & (STREAMTCP_STREAM_FLAG_GAP|STREAMTCP_STREAM_FLAG_NOREASSEMBLY))) {
         if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
             SCReturnInt(1);
         }
@@ -758,8 +758,9 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         StreamingBufferClear(&stream->sb);
         return;
 
-    } else if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
-        (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW))
+    } else if (((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
+                (stream->flags & STREAMTCP_STREAM_FLAG_GAP))     &&
+               (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW))
     {
         SCLogDebug("ssn %p: both app and raw are done, "
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
