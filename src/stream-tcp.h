@@ -203,7 +203,5 @@ void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
 
-uint32_t StreamTcpGetStreamSize(TcpStream *stream);
-
 #endif /* __STREAM_TCP_H__ */
 
