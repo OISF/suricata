@@ -1177,11 +1177,9 @@ flow-timeouts:
 #     toserver-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
-#                               # The max acceptable size is 4024 bytes.
 #     toclient-chunk-size: 2560 # inspect raw stream in chunks of at least
 #                               # this size.  Can be specified in kb, mb,
 #                               # gb.  Just a number indicates it's in bytes.
-#                               # The max acceptable size is 4024 bytes.
 #     randomize-chunk-size: yes # Take a random value for chunk size around the specified value.
 #                               # This lower the risk of some evasion technics but could lead
 #                               # detection change between runs. It is set to 'yes' by default.
@@ -1194,9 +1192,6 @@ flow-timeouts:
 #     raw: yes                  # 'Raw' reassembly enabled or disabled.
 #                               # raw is for content inspection by detection
 #                               # engine.
-#
-#     chunk-prealloc: 250       # Number of preallocated stream chunks. These
-#                               # are used during stream inspection (raw).
 #
 #     segment-prealloc: 2048    # number of segments preallocated per thread
 #
@@ -1220,7 +1215,6 @@ stream:
     randomize-chunk-size: yes
     #randomize-chunk-range: 10
     #raw: yes
-    #chunk-prealloc: 250
     #segment-prealloc: 2048
     #check-overlap-different-data: true
 
