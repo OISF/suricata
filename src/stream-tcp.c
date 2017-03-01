@@ -725,20 +725,6 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 }
 
 /**
- *  \brief get the size of a stream
- *
- *  \note this just calculates the diff between isn and last_ack
- *        and will not consider sequence wrap arounds (streams
- *        bigger than 4gb).
- *
- *  \retval size stream size
- */
-uint32_t StreamTcpGetStreamSize(TcpStream *stream)
-{
-    return (stream->last_ack - stream->isn - 1);
-}
-
-/**
  *  \brief macro to update last_ack only if the new value is higher
  *
  *  \param ssn session
