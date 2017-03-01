@@ -746,16 +746,27 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         SCReturn;
     }
 
+    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        return;
+    }
+
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         SCLogDebug("ssn %p: reassembly depth reached, "
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
+        StreamTcpReturnStreamSegments(stream);
+        StreamingBufferClear(&stream->sb);
+        return;
+
     } else if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
         (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW))
     {
         SCLogDebug("ssn %p: both app and raw are done, "
                  "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
+        StreamTcpReturnStreamSegments(stream);
+        StreamingBufferClear(&stream->sb);
+        return;
     }
 
     uint64_t left_edge = GetLeftEdge(ssn, stream);
