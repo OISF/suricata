@@ -2284,6 +2284,15 @@ static int SignatureCreateMask(Signature *s)
     SCReturnInt(0);
 }
 
+/** \brief disable file features we don't need
+ *  Called if we have no detection engine.
+ */
+void DisableDetectFlowFileFlags(Flow *f)
+{
+    DetectPostInspectFileFlagsUpdate(f, NULL /* no sgh */, STREAM_TOSERVER);
+    DetectPostInspectFileFlagsUpdate(f, NULL /* no sgh */, STREAM_TOCLIENT);
+}
+
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
     DetectMpmInitializeBuiltinMpms(de_ctx);

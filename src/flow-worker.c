@@ -201,6 +201,15 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         SCLogDebug("packet %"PRIu64" is TCP", p->pcap_cnt);
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
+        /* if detect is disabled, we need to apply file flags to the flow
+         * here on the first packet. */
+        if (detect_thread == NULL &&
+                ((PKT_IS_TOSERVER(p) && (p->flowflags & FLOW_PKT_TOSERVER_FIRST)) ||
+                 (PKT_IS_TOCLIENT(p) && (p->flowflags & FLOW_PKT_TOCLIENT_FIRST))))
+        {
+            DisableDetectFlowFileFlags(p->flow);
+        }
+
         FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
         StreamTcp(tv, p, fw->stream_thread, &fw->pq, NULL);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
