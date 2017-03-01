@@ -895,7 +895,9 @@ static inline void
 DetectPostInspectFileFlagsUpdate(Flow *pflow, const SigGroupHead *sgh, uint8_t direction)
 {
     /* see if this sgh requires us to consider file storing */
-    if (sgh == NULL || sgh->filestore_cnt == 0) {
+    if (!FileForceFilestore() && (sgh == NULL ||
+                sgh->filestore_cnt == 0))
+    {
         FileDisableStoring(pflow, direction);
     }
 #ifdef HAVE_MAGIC
