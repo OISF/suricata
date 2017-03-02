@@ -83,8 +83,7 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
 
     /* packets that have not been added to the stream will be inspected
      * as if they are stream chunks */
-    if ((!(p->flags & PKT_NOPAYLOAD_INSPECTION)) &&
-         !(p->flags & PKT_STREAM_ADD))
+    if ((p->flags & (PKT_NOPAYLOAD_INSPECTION|PKT_STREAM_ADD)) == 0)
     {
         if (p->payload_len >= mpm_ctx->minlen) {
             (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
