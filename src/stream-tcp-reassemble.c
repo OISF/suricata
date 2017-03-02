@@ -1218,7 +1218,8 @@ bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p)
         return false;
     }
 
-    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+    if (stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY|
+                         STREAMTCP_STREAM_FLAG_DISABLE_RAW))
         return false;
 
     if (StreamTcpInlineMode() == FALSE) {
@@ -1543,7 +1544,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         stream = &ssn->server;
     }
 
-    if ((stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+    if ((stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY|STREAMTCP_STREAM_FLAG_DISABLE_RAW)) ||
         StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0)
     {
         *progress_out = STREAM_RAW_PROGRESS(stream);
