@@ -969,25 +969,27 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             stream, &stream->sb, mydata_len, app_progress);
 
     /* get window of data that is acked */
-    if (StreamTcpInlineMode() == 0 && (p->flags & PKT_PSEUDO_STREAM_END)) {
-        //
-    } else if (StreamTcpInlineMode() == 0) {
-        uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
-        if (STREAM_LASTACK_GT_BASESEQ(stream)) {
-            /* get window of data that is acked */
-            uint32_t delta = stream->last_ack - stream->base_seq;
-            DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
-            /* get max absolute offset */
-            last_ack_abs += delta;
-        }
+    if (StreamTcpInlineMode() == FALSE) {
+        if (p->flags & PKT_PSEUDO_STREAM_END) {
+            // fall through, we use all available data
+        } else {
+            uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
+            if (STREAM_LASTACK_GT_BASESEQ(stream)) {
+                /* get window of data that is acked */
+                uint32_t delta = stream->last_ack - stream->base_seq;
+                DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
+                /* get max absolute offset */
+                last_ack_abs += delta;
+            }
 
-        /* see if the buffer contains unack'd data as well */
-        if (app_progress + mydata_len > last_ack_abs) {
-            uint32_t check = mydata_len;
-            mydata_len = last_ack_abs - app_progress;
-            BUG_ON(mydata_len > check);
-            SCLogDebug("data len adjusted to %u to make sure only ACK'd "
-                    "data is considered", mydata_len);
+            /* see if the buffer contains unack'd data as well */
+            if (app_progress + mydata_len > last_ack_abs) {
+                uint32_t check = mydata_len;
+                mydata_len = last_ack_abs - app_progress;
+                BUG_ON(mydata_len > check);
+                SCLogDebug("data len adjusted to %u to make sure only ACK'd "
+                        "data is considered", mydata_len);
+            }
         }
     }
 
@@ -997,14 +999,14 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
             StreamGetAppLayerFlags(ssn, stream, p, dir));
 
     /* see if we can update the progress */
-    if (r == 0 && StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-        if (mydata_len > 0) {
-            SCLogDebug("app progress %"PRIu64" increasing with data len %u to %"PRIu64,
-                    app_progress, mydata_len, app_progress + mydata_len);
+    if (r == 0 && mydata_len > 0 &&
+            StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))
+    {
+        SCLogDebug("app progress %"PRIu64" increasing with data len %u to %"PRIu64,
+                app_progress, mydata_len, app_progress + mydata_len);
 
-            stream->app_progress_rel += mydata_len;
-            SCLogDebug("app progress now %"PRIu64, STREAM_APP_PROGRESS(stream));
-        }
+        stream->app_progress_rel += mydata_len;
+        SCLogDebug("app progress now %"PRIu64, STREAM_APP_PROGRESS(stream));
     } else {
         SCLogDebug("NOT UPDATED app progress still %"PRIu64, app_progress);
     }
