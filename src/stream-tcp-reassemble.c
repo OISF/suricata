@@ -1040,6 +1040,10 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         SCLogDebug("stream no reassembly flag set or app-layer disabled.");
         SCReturnInt(0);
     }
+    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
+        SCReturnInt(0);
+    }
+
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
@@ -1121,10 +1125,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* no segments, nothing to do */
     if (stream->seg_list == NULL) {
         SCLogDebug("no segments in the list to reassemble");
-        SCReturnInt(0);
-    }
-
-    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
         SCReturnInt(0);
     }
 
