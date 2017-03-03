@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -286,6 +286,11 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             SCLogDebug("found %p cd negated %s", found, cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
             if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
+                if ((cd->flags & (DETECT_CONTENT_DISTANCE|DETECT_CONTENT_WITHIN)) == 0) {
+                    /* independent match from previous matches, so failure is fatal */
+                    det_ctx->discontinue_matching = 1;
+                }
+
                 goto no_match;
             } else if (found == NULL && (cd->flags & DETECT_CONTENT_NEGATED)) {
                 goto match;
@@ -310,16 +315,10 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                         SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
                     }
                 }
-                if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                    SCLogDebug("no relative match coming up, so this is a match");
-                    goto match;
-                }
 
-                /* bail out if we have no next match. Technically this is an
-                 * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
-                 * flag set. */
+                /* if this is the last match we're done */
                 if (sm->next == NULL) {
-                    goto no_match;
+                    goto match;
                 }
 
                 SCLogDebug("content %"PRIu32, cd->id);
@@ -332,9 +331,21 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 if (r == 1) {
                     SCReturnInt(1);
                 }
+                SCLogDebug("no match for 'next sm'");
 
-                if (det_ctx->discontinue_matching)
+                if (det_ctx->discontinue_matching) {
+                    SCLogDebug("'next sm' said to discontinue this right now");
                     goto no_match;
+                }
+
+                /* no match and no reason to look for another instance */
+                if ((cd->flags & DETECT_CONTENT_RELATIVE_NEXT) == 0) {
+                    SCLogDebug("'next sm' does not depend on me, so we can give up");
+                    det_ctx->discontinue_matching = 1;
+                    goto no_match;
+                }
+
+                SCLogDebug("'next sm' depends on me %p, lets see what we can do (flags %u)", cd, cd->flags);
 
                 /* set the previous match offset to the start of this match + 1 */
                 prev_offset = (match_offset - (cd->content_len - 1));
