@@ -22,4 +22,4 @@ Suricata Rules
    app-layer
    rule-lua-scripting
    normalized-buffers
-   snort-compatibility
+   differences-from-snort
