@@ -258,8 +258,10 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
 
     /*  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL && p->proto == IPPROTO_TCP) {
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_TCPPRUNE);
         StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
                 STREAM_TOSERVER : STREAM_TOCLIENT);
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_TCPPRUNE);
     }
 
     if (p->flow) {
@@ -295,6 +297,8 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
             return "app-layer";
         case PROFILE_FLOWWORKER_DETECT:
             return "detect";
+        case PROFILE_FLOWWORKER_TCPPRUNE:
+            return "tcp-prune";
         case PROFILE_FLOWWORKER_SIZE:
             return "size";
     }
