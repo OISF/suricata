@@ -1034,9 +1034,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* this function can be directly called by app layer protocol
      * detection. */
-    if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-        SCLogDebug("stream no reassembly flag set.  Mostly called via "
-                   "app proto detection.");
+    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
+        (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        SCLogDebug("stream no reassembly flag set or app-layer disabled.");
         SCReturnInt(0);
     }
 
@@ -1055,7 +1055,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * 3. check if next_seq is smaller than last_ack, indicating next_seq
      *    has fallen behind the data that is already acked.
      */
-    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+    {
         int ackadd = (ssn->state >= TCP_FIN_WAIT2) ? 2 : 1;
         if ((stream->seg_list == NULL && /*1*/
                     stream->base_seq == stream->isn+1 &&
