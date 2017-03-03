@@ -23,6 +23,7 @@ enum ProfileFlowWorkerId {
     PROFILE_FLOWWORKER_STREAM,
     PROFILE_FLOWWORKER_APPLAYERUDP,
     PROFILE_FLOWWORKER_DETECT,
+    PROFILE_FLOWWORKER_TCPPRUNE,
     PROFILE_FLOWWORKER_SIZE
 };
 const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi);
