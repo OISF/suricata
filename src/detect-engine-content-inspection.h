@@ -40,4 +40,6 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                   uint32_t stream_start_offset,
                                   uint8_t inspection_mode, void *data);
 
+void DetectEngineContentInspectionRegisterTests(void);
+
 #endif /* __DETECT_ENGINE_CONTENT_INSPECTION_H__ */
