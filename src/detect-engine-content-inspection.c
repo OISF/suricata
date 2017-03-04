@@ -339,7 +339,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 }
 
                 /* no match and no reason to look for another instance */
-                if ((cd->flags & DETECT_CONTENT_RELATIVE_NEXT) == 0) {
+                if ((cd->flags & DETECT_CONTENT_WITHIN_NEXT) == 0) {
                     SCLogDebug("'next sm' does not depend on me, so we can give up");
                     det_ctx->discontinue_matching = 1;
                     goto no_match;

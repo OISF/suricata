@@ -163,7 +163,11 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                        "only content");
             goto end;
         }
-        prev_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        if ((cd->flags & DETECT_CONTENT_NEGATED) == 0) {
+            prev_cd->flags |= DETECT_CONTENT_DISTANCE_NEXT;
+        } else {
+            prev_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        }
     } else if (prev_pm->type == DETECT_PCRE) {
         DetectPcreData *pd = (DetectPcreData *)prev_pm->ctx;
         pd->flags |= DETECT_PCRE_RELATIVE_NEXT;

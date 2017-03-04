@@ -39,8 +39,7 @@
 /** content is negated */
 #define DETECT_CONTENT_NEGATED           (1 << 9)
 
-/** a relative match to this content is next, used in matching phase */
-#define DETECT_CONTENT_RELATIVE_NEXT     (1 << 10)
+// bit 10 unused
 
 /* BE - byte extract */
 #define DETECT_CONTENT_OFFSET_BE         (1 << 11)
@@ -53,7 +52,12 @@
 /* this flag is set during the staging phase.  It indicates that a content
  * has been added to the mpm phase and requires no further inspection inside
  * the inspection phase */
-#define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED (1 << 16)
+#define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED BIT_U32(16)
+
+#define DETECT_CONTENT_WITHIN_NEXT      BIT_U32(17)
+#define DETECT_CONTENT_DISTANCE_NEXT    BIT_U32(18)
+/** a relative match to this content is next, used in matching phase */
+#define DETECT_CONTENT_RELATIVE_NEXT    (DETECT_CONTENT_WITHIN_NEXT|DETECT_CONTENT_DISTANCE_NEXT)
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
                                         ((c)->flags & DETECT_CONTENT_WITHIN) || \
