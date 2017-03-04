@@ -26,34 +26,35 @@
 
 /* Flags affecting this content */
 
-#define DETECT_CONTENT_NOCASE            (1)
-#define DETECT_CONTENT_DISTANCE          (1 << 1)
-#define DETECT_CONTENT_WITHIN            (1 << 2)
-#define DETECT_CONTENT_OFFSET            (1 << 3)
-#define DETECT_CONTENT_DEPTH             (1 << 4)
-#define DETECT_CONTENT_FAST_PATTERN      (1 << 5)
-#define DETECT_CONTENT_FAST_PATTERN_ONLY (1 << 6)
-#define DETECT_CONTENT_FAST_PATTERN_CHOP (1 << 7)
+#define DETECT_CONTENT_NOCASE            BIT_U32(0)
+#define DETECT_CONTENT_DISTANCE          BIT_U32(1)
+#define DETECT_CONTENT_WITHIN            BIT_U32(2)
+#define DETECT_CONTENT_OFFSET            BIT_U32(3)
+#define DETECT_CONTENT_DEPTH             BIT_U32(4)
+#define DETECT_CONTENT_FAST_PATTERN      BIT_U32(5)
+#define DETECT_CONTENT_FAST_PATTERN_ONLY BIT_U32(6)
+#define DETECT_CONTENT_FAST_PATTERN_CHOP BIT_U32(7)
 /** content applies to a "raw"/undecoded field if applicable */
-#define DETECT_CONTENT_RAWBYTES          (1 << 8)
+#define DETECT_CONTENT_RAWBYTES          BIT_U32(8)
 /** content is negated */
-#define DETECT_CONTENT_NEGATED           (1 << 9)
+#define DETECT_CONTENT_NEGATED           BIT_U32(9)
 
 /** a relative match to this content is next, used in matching phase */
-#define DETECT_CONTENT_RELATIVE_NEXT     (1 << 10)
+#define DETECT_CONTENT_RELATIVE_NEXT     BIT_U32(10)
 
 /* BE - byte extract */
-#define DETECT_CONTENT_OFFSET_BE         (1 << 11)
-#define DETECT_CONTENT_DEPTH_BE          (1 << 12)
-#define DETECT_CONTENT_DISTANCE_BE       (1 << 13)
-#define DETECT_CONTENT_WITHIN_BE         (1 << 14)
+#define DETECT_CONTENT_OFFSET_BE         BIT_U32(11)
+#define DETECT_CONTENT_DEPTH_BE          BIT_U32(12)
+#define DETECT_CONTENT_DISTANCE_BE       BIT_U32(13)
+#define DETECT_CONTENT_WITHIN_BE         BIT_U32(14)
 
 /* replace data */
-#define DETECT_CONTENT_REPLACE           (1 << 15)
+#define DETECT_CONTENT_REPLACE           BIT_U32(15)
 /* this flag is set during the staging phase.  It indicates that a content
  * has been added to the mpm phase and requires no further inspection inside
  * the inspection phase */
-#define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED (1 << 16)
+#define DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED BIT_U32(16)
+
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
                                         ((c)->flags & DETECT_CONTENT_WITHIN) || \
