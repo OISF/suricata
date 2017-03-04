@@ -173,6 +173,7 @@
 #include "detect-template.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
+#include "detect-engine-content-inspection.h"
 
 #include "util-rule-vars.h"
 
@@ -9684,6 +9685,7 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTestPorts01", SigTestPorts01);
     UtRegisterTest("SigTestBug01", SigTestBug01);
 
+    DetectEngineContentInspectionRegisterTests();
 #if 0
     DetectSimdRegisterTests();
 #endif

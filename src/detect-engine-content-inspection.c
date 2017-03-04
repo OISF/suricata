@@ -592,3 +592,7 @@ final_match:
     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
     SCReturnInt(1);
 }
+
+#ifdef UNITTESTS
+#include "tests/detect-engine-content-inspection.c"
+#endif
