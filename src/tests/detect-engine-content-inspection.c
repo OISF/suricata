@@ -83,7 +83,7 @@ static int DetectEngineContentInspectionTest03(void) {
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:\"d\";", false, 3);
 
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0;", true, 3);
-    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; content:\"d\"; distance:0;", false, 6); // TODO should be 3?
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; content:\"d\"; distance:0;", false, 3);
 
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"d\"; distance:0; within:1;", false, 5);
 
@@ -155,15 +155,15 @@ static int DetectEngineContentInspectionTest07(void) {
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcd", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; content:\"d\"; within:1; distance:0; ", true, 31);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; content:\"d\"; within:1; distance:0; ", false, 31);
 
-    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; ", false, 286); // TODO should be 4?
-    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; pcre:\"/^d/R\"; ", false, 286); // TODO should be 4?
-    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; isdataat:!1,relative; ", false, 286); // TODO should be 4?
+    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; ", false, 4);
+    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; pcre:\"/^d/R\"; ", false, 13);
+    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; isdataat:!1,relative; ", false, 13); // TODO should be 4?
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
-            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; content:\"e\"; distance:0; ", false, 1001); // TODO should be 5?
+            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; content:\"e\"; distance:0; ", false, 5);
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
-            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; pcre:\"/^e/R\"; ", false, 1001); // TODO should be 5?
+            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; pcre:\"/^e/R\"; ", false, 14); // TODO should be 5?
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
-            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; isdataat:!1,relative; ", false, 1001); // TODO should be 5?
+            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; isdataat:!1,relative; ", false, 14); // TODO should be 5?
 
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcd", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/\";", true, 4);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcd", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/R\";", true, 4);
@@ -172,6 +172,18 @@ static int DetectEngineContentInspectionTest07(void) {
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/\";", false, 4);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/R\";", false, 31);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/^d/R\";", false, 31);
+    TEST_FOOTER;
+}
+
+/** \test mix in negation */
+static int DetectEngineContentInspectionTest08(void) {
+    TEST_HEADER;
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:!\"d\";", true, 3);
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:!\"c\";", false, 3);
+
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:!\"a\"; distance:0; within:1;", true, 5);
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:!\"a\"; distance:0; ", true, 5);
+
     TEST_FOOTER;
 }
 
@@ -191,6 +203,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest06);
     UtRegisterTest("DetectEngineContentInspectionTest07",
                    DetectEngineContentInspectionTest07);
+    UtRegisterTest("DetectEngineContentInspectionTest08",
+                   DetectEngineContentInspectionTest08);
 }
 
 #undef TEST_HEADER
