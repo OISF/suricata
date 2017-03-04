@@ -2918,7 +2918,7 @@ static int DetectByteExtractTest48(void)
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
         cd->flags != (DETECT_CONTENT_DISTANCE_BE |
                       DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_RELATIVE_NEXT) ||
+                      DETECT_CONTENT_DISTANCE_NEXT) ||
         cd->distance != bed1->local_id ||
         cd->depth != 0 ||
         cd->offset != 0) {
@@ -3147,7 +3147,7 @@ static int DetectByteExtractTest50(void)
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
         cd->flags != (DETECT_CONTENT_WITHIN_BE |
                       DETECT_CONTENT_WITHIN|
-                      DETECT_CONTENT_RELATIVE_NEXT) ||
+                      DETECT_CONTENT_WITHIN_NEXT) ||
         cd->within != bed1->local_id ||
         cd->depth != 0 ||
         cd->offset != 0 ||
