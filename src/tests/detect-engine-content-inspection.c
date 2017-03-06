@@ -187,6 +187,23 @@ static int DetectEngineContentInspectionTest08(void) {
     TEST_FOOTER;
 }
 
+/** \test mix in byte_jump */
+static int DetectEngineContentInspectionTest09(void) {
+    TEST_HEADER;
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:!\"d\";", true, 3);
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:!\"c\";", false, 3);
+
+    TEST_RUN("abc03abcxyz", 11, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3;", true, 3);
+    TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3;", true, 5);
+    TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; isdataat:!1,relative;", true, 6);
+    TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/klm$/R\";", false, 7);
+    TEST_RUN("abc03abc03abcxyzklm", 19, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/klm$/R\";", true, 6);
+    TEST_RUN("abc03abc03abcxyzklx", 19, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/^klm$/R\";", false, 7);
+    TEST_RUN("abc03abc03abc03abcxyzklm", 24, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/^klm$/R\";", true, 8);
+
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -205,6 +222,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest07);
     UtRegisterTest("DetectEngineContentInspectionTest08",
                    DetectEngineContentInspectionTest08);
+    UtRegisterTest("DetectEngineContentInspectionTest09",
+                   DetectEngineContentInspectionTest09);
 }
 
 #undef TEST_HEADER
