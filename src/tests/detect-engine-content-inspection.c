@@ -139,12 +139,17 @@ static int DetectEngineContentInspectionTest06(void) {
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; content:\"d\";", false, 3);
 
     // 6 steps: (1) a, (2) 1st b, (3) c not found, (4) 2nd b, (5) c found, isdataat
-    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 6);
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 5);
     TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:1,relative;", false, 6);
 
-    TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 9);
+    TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:!1,relative;", true, 7);
     TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; isdataat:1,relative;", true, 6);
 
+    TEST_RUN("abcXYZ", 6, "content:\"abc\"; content:\"XYZ\"; distance:0; within:3; isdataat:!1,relative;", true, 2);
+    TEST_RUN("abcXYZ", 6, "content:\"XYZ\"; distance:3; within:3; isdataat:!1,relative;", true, 1);
+    TEST_RUN("abcXYZ", 6, "content:\"cXY\"; distance:2; within:3; isdataat:!1,relative;", false, 1);
+
+    TEST_RUN("xxxxxxxxxxxxxxxxxyYYYYYYYYYYYYYYYY", 34, "content:\"yYYYYYYYYYYYYYYYY\"; distance:9; within:29; isdataat:!1,relative;", true, 1);
     TEST_FOOTER;
 }
 
@@ -157,13 +162,13 @@ static int DetectEngineContentInspectionTest07(void) {
 
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; ", false, 4);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; pcre:\"/^d/R\"; ", false, 13);
-    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; isdataat:!1,relative; ", false, 13); // TODO should be 4?
+    TEST_RUN("abcabcabcabcabcabcabcabcabcabcx", 31, "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; isdataat:!1,relative; ", false, 3);
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
             "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; content:\"e\"; distance:0; ", false, 5);
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
             "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; pcre:\"/^e/R\"; ", false, 14); // TODO should be 5?
     TEST_RUN("abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdx", 41,
-            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; isdataat:!1,relative; ", false, 14); // TODO should be 5?
+            "content:\"a\"; content:\"b\"; distance:0; content:\"c\"; distance:0; content:\"d\"; distance:0; isdataat:!1,relative; ", false, 4);
 
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcd", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/\";", true, 4);
     TEST_RUN("abcabcabcabcabcabcabcabcabcabcd", 31, "content:\"a\"; content:\"b\"; within:1; distance:0; content:\"c\"; distance:0; within:1; pcre:\"/d/R\";", true, 4);
@@ -195,7 +200,7 @@ static int DetectEngineContentInspectionTest09(void) {
 
     TEST_RUN("abc03abcxyz", 11, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3;", true, 3);
     TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3;", true, 5);
-    TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; isdataat:!1,relative;", true, 6);
+    TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; isdataat:!1,relative;", true, 5);
     TEST_RUN("abc03abc03abcxyz", 16, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/klm$/R\";", false, 7);
     TEST_RUN("abc03abc03abcxyzklm", 19, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/klm$/R\";", true, 6);
     TEST_RUN("abc03abc03abcxyzklx", 19, "content:\"abc\"; byte_jump:2,0,relative,string,dec; content:\"xyz\"; within:3; pcre:\"/^klm$/R\";", false, 7);

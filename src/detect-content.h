@@ -39,7 +39,7 @@
 /** content is negated */
 #define DETECT_CONTENT_NEGATED           BIT_U32(9)
 
-// bit 10 unused
+#define DETECT_CONTENT_ENDS_WITH         BIT_U32(10)
 
 /* BE - byte extract */
 #define DETECT_CONTENT_OFFSET_BE         BIT_U32(11)

@@ -242,6 +242,17 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         SCFree(offset);
     }
 
+    /* 'ends with' scenario */
+    if (prev_pm != NULL && prev_pm->type == DETECT_CONTENT &&
+        idad->dataat == 1 &&
+        (idad->flags & (ISDATAAT_RELATIVE|ISDATAAT_NEGATED)) == (ISDATAAT_RELATIVE|ISDATAAT_NEGATED))
+    {
+        DetectContentData *cd = (DetectContentData *)prev_pm->ctx;
+        cd->flags |= DETECT_CONTENT_ENDS_WITH;
+        ret = 0;
+        goto end;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto end;

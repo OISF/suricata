@@ -273,13 +273,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 #ifdef DEBUG
             BUG_ON(sbuffer_len > buffer_len);
 #endif
-
-            /* \todo Add another optimization here.  If cd->content_len is
-             * greater than sbuffer_len found is anyways NULL */
-
-            /* do the actual search */
-            found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer,
-                            sbuffer_len);
+            if (cd->flags & DETECT_CONTENT_ENDS_WITH && depth < buffer_len) {
+                SCLogDebug("depth < buffer_len while DETECT_CONTENT_ENDS_WITH is set. Can't possibly match.");
+                found = NULL;
+            } else if (cd->content_len > sbuffer_len) {
+                found = NULL;
+            } else {
+                /* do the actual search */
+                found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer,
+                        sbuffer_len);
+            }
 
             /* next we evaluate the result in combination with the
              * negation flag. */
@@ -306,48 +309,49 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
                 det_ctx->buffer_offset = match_offset;
 
-                /* Match branch, add replace to the list if needed */
-                if (cd->flags & DETECT_CONTENT_REPLACE) {
-                    if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD) {
-                        /* we will need to replace content if match is confirmed */
-                        det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, found, cd);
-                    } else {
-                        SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
+                if ((cd->flags & DETECT_CONTENT_ENDS_WITH) == 0 || match_offset == buffer_len) {
+                    /* Match branch, add replace to the list if needed */
+                    if (cd->flags & DETECT_CONTENT_REPLACE) {
+                        if (inspection_mode == DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD) {
+                            /* we will need to replace content if match is confirmed */
+                            det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, found, cd);
+                        } else {
+                            SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
+                        }
                     }
+
+                    /* if this is the last match we're done */
+                    if (smd->is_last) {
+                        goto match;
+                    }
+
+                    SCLogDebug("content %"PRIu32, cd->id);
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+
+                    /* see if the next buffer keywords match. If not, we will
+                     * search for another occurence of this content and see
+                     * if the others match then until we run out of matches */
+                    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
+                            f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
+                    if (r == 1) {
+                        SCReturnInt(1);
+                    }
+                    SCLogDebug("no match for 'next sm'");
+
+                    if (det_ctx->discontinue_matching) {
+                        SCLogDebug("'next sm' said to discontinue this right now");
+                        goto no_match;
+                    }
+
+                    /* no match and no reason to look for another instance */
+                    if ((cd->flags & DETECT_CONTENT_WITHIN_NEXT) == 0) {
+                        SCLogDebug("'next sm' does not depend on me, so we can give up");
+                        det_ctx->discontinue_matching = 1;
+                        goto no_match;
+                    }
+
+                    SCLogDebug("'next sm' depends on me %p, lets see what we can do (flags %u)", cd, cd->flags);
                 }
-
-                /* if this is the last match we're done */
-                if (smd->is_last) {
-                    goto match;
-                }
-
-                SCLogDebug("content %"PRIu32, cd->id);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-
-                /* see if the next buffer keywords match. If not, we will
-                 * search for another occurence of this content and see
-                 * if the others match then until we run out of matches */
-                int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                        f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
-                if (r == 1) {
-                    SCReturnInt(1);
-                }
-                SCLogDebug("no match for 'next sm'");
-
-                if (det_ctx->discontinue_matching) {
-                    SCLogDebug("'next sm' said to discontinue this right now");
-                    goto no_match;
-                }
-
-                /* no match and no reason to look for another instance */
-                if ((cd->flags & DETECT_CONTENT_WITHIN_NEXT) == 0) {
-                    SCLogDebug("'next sm' does not depend on me, so we can give up");
-                    det_ctx->discontinue_matching = 1;
-                    goto no_match;
-                }
-
-                SCLogDebug("'next sm' depends on me %p, lets see what we can do (flags %u)", cd, cd->flags);
-
                 /* set the previous match offset to the start of this match + 1 */
                 prev_offset = (match_offset - (cd->content_len - 1));
                 SCLogDebug("trying to see if there is another match after prev_offset %"PRIu32, prev_offset);
