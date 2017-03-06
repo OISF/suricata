@@ -672,16 +672,43 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 }
                 break;
             case DEFRAG_POLICY_WINDOWS:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset >= prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
-                    }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end > prev->offset + prev->data_len)) {
-                        prev->skip = 1;
-                        overlap++;
-                    }
+                /* If new fragment fits inside a previous fragment, drop it. */
+                if (frag_offset + ltrim >= prev->offset + ltrim &&
+                        frag_end <= prev->offset + prev->data_len) {
+                    overlap++;
+                    goto done;
+                }
+
+                /* If new fragment starts before and ends after
+                 * previous fragment, drop the previous fragment. */
+                if (frag_offset + ltrim < prev->offset + ltrim &&
+                        frag_end > prev->offset + prev->data_len) {
+                    prev->skip = 1;
+                    overlap++;
+                    goto insert;
+                }
+
+                /* Check if new fragment overlaps the end of previous
+                 * fragment, if it does, trim the new fragment.
+                 *
+                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                 */
+                if (frag_offset + ltrim > prev->offset + prev->ltrim &&
+                        frag_offset + ltrim < prev->offset + prev->data_len) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
+                    goto insert;
+                }
+
+                /* If new fragment starts at same offset as an
+                 * existing fragment, but ends after it, trim the new
+                 * fragment. */
+                if (frag_offset + ltrim == prev->offset + ltrim &&
+                        frag_end > prev->offset + prev->data_len) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
                     goto insert;
                 }
                 break;
@@ -1735,7 +1762,7 @@ static int IPV6DefragSturgesNovakLinuxTest(void)
     PASS;
 }
 
-static int DefragSturgesNovakWindowsTest(void)
+static int DefragSturgesNovakWindowsIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -2411,8 +2438,8 @@ void DefragRegisterTests(void)
     UtRegisterTest("DefragSturgesNovakBsdTest", DefragSturgesNovakBsdTest);
     UtRegisterTest("DefragSturgesNovakLinuxIpv4Test",
             DefragSturgesNovakLinuxIpv4Test);
-    UtRegisterTest("DefragSturgesNovakWindowsTest",
-                   DefragSturgesNovakWindowsTest);
+    UtRegisterTest("DefragSturgesNovakWindowsIpv4Test",
+                   DefragSturgesNovakWindowsIpv4Test);
     UtRegisterTest("DefragSturgesNovakSolarisTest",
                    DefragSturgesNovakSolarisTest);
     UtRegisterTest("DefragSturgesNovakFirstTest", DefragSturgesNovakFirstTest);
