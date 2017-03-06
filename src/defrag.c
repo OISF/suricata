@@ -256,8 +256,9 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     Packet *rp = NULL;
 
     /* Should not be here unless we have seen the last fragment. */
-    if (!tracker->seen_last)
+    if (!tracker->seen_last) {
         return NULL;
+    }
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
@@ -330,9 +331,10 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                         "fragmented packet, exceeds size of packet buffer.");
                 goto error_remove_tracker;
             }
-            if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset + frag->ltrim,
-                frag->data_len - frag->ltrim) == -1) {
+            if (PacketCopyDataOffset(rp,
+                    fragmentable_offset + frag->offset + frag->ltrim,
+                    frag->pkt + frag->data_offset + frag->ltrim,
+                    frag->data_len - frag->ltrim) == -1) {
                 goto error_remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
@@ -604,9 +606,12 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
     Frag *prev = NULL, *next;
     int overlap = 0;
+    ltrim = 0;
     if (!TAILQ_EMPTY(&tracker->frags)) {
         TAILQ_FOREACH(prev, &tracker->frags, next) {
-            ltrim = 0;
+            if (prev->skip) {
+                continue;
+            }
             next = TAILQ_NEXT(prev, next);
 
             switch (tracker->policy) {
@@ -629,21 +634,41 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 }
                 break;
             case DEFRAG_POLICY_LINUX:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset > prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
-                    }
-                    if ((next != NULL) && (frag_end > next->offset)) {
-                        next->ltrim = frag_end - next->offset;
-                        overlap++;
-                    }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end >= prev->offset + prev->data_len)) {
-                        prev->skip = 1;
-                        overlap++;
-                    }
-                    goto insert;
+                /* Check if new fragment overlaps the end of previous
+                 * fragment, if it does, trim the new fragment.
+                 *
+                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                 */
+                if (prev->offset + prev->ltrim < frag_offset + ltrim &&
+                        prev->offset + prev->data_len > frag_offset + ltrim) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
+                }
+
+                /* Check if new fragment overlaps the beginning of
+                 * previous fragment, if it does, tim the previous
+                 * fragment.
+                 *
+                 * Old:          AAAAAAAA AAAAAAAA
+                 * New: BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: BBBBBBBB BBBBBBBB BBBBBBBB
+                 */
+                if (frag_offset + ltrim < prev->offset + prev->ltrim &&
+                        frag_end > prev->offset + prev->ltrim) {
+                    prev->ltrim += frag_end - (prev->offset + prev->ltrim);
+                    overlap++;
+                }
+
+                /* If the new fragment completely overlaps the
+                 * previous fragment, mark the previous to be
+                 * skipped. Re-assembly would succeed without doing
+                 * this, but this will prevent the bytes from being
+                 * copied just to be overwritten. */
+                if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
+                        frag_end >= prev->offset + prev->data_len) {
+                    prev->skip = 1;
                 }
                 break;
             case DEFRAG_POLICY_WINDOWS:
@@ -705,7 +730,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
 insert:
-    if (data_len - ltrim <= 0) {
+    if (ltrim > data_len) {
         /* Full packet has been trimmed due to the overlap policy. Overlap
          * already set. */
         goto done;
@@ -1640,7 +1665,7 @@ static int IPV6DefragSturgesNovakBsdTest(void)
     PASS;
 }
 
-static int DefragSturgesNovakLinuxTest(void)
+static int DefragSturgesNovakLinuxIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -2321,6 +2346,61 @@ static int DefragTestBadProto(void)
     PASS;
 }
 
+/**
+ * \test Test a report Linux overlap issue that doesn't appear to be
+ *     covered by the Sturges/Novak tests above.
+ */
+static int DefragTestJeremyLinux(void)
+{
+    char expected[] = "AAAAAAAA"
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "BBBBBBBB"
+        "BBBBBBBB"
+        "DDDDDDDD"
+        "DDDDDD";
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_LINUX;
+
+    int id = 1;
+    Packet *packets[4];
+    int i = 0;
+
+    packets[0] = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 24);
+    packets[1] = BuildTestPacket(IPPROTO_ICMP, id, 40 >> 3, 1, 'B', 48);
+    packets[2] = BuildTestPacket(IPPROTO_ICMP, id, 24 >> 3, 1, 'C', 48);
+    packets[3] = BuildTestPacket(IPPROTO_ICMP, id, 88 >> 3, 0, 'D', 14);
+
+    Packet *r = Defrag(NULL, NULL, packets[0], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3], NULL);
+    FAIL_IF_NULL(r);
+
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0);
+
+    for (i = 0; i < 4; i++) {
+        SCFree(packets[i]);
+    }
+    SCFree(r);
+
+    DefragDestroy();
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DefragRegisterTests(void)
@@ -2329,7 +2409,8 @@ void DefragRegisterTests(void)
     UtRegisterTest("DefragInOrderSimpleTest", DefragInOrderSimpleTest);
     UtRegisterTest("DefragReverseSimpleTest", DefragReverseSimpleTest);
     UtRegisterTest("DefragSturgesNovakBsdTest", DefragSturgesNovakBsdTest);
-    UtRegisterTest("DefragSturgesNovakLinuxTest", DefragSturgesNovakLinuxTest);
+    UtRegisterTest("DefragSturgesNovakLinuxIpv4Test",
+            DefragSturgesNovakLinuxIpv4Test);
     UtRegisterTest("DefragSturgesNovakWindowsTest",
                    DefragSturgesNovakWindowsTest);
     UtRegisterTest("DefragSturgesNovakSolarisTest",
@@ -2362,5 +2443,7 @@ void DefragRegisterTests(void)
     UtRegisterTest("DefragMfIpv4Test", DefragMfIpv4Test);
     UtRegisterTest("DefragMfIpv6Test", DefragMfIpv6Test);
     UtRegisterTest("DefragTestBadProto", DefragTestBadProto);
+
+    UtRegisterTest("DefragTestJeremyLinux", DefragTestJeremyLinux);
 #endif /* UNITTESTS */
 }
