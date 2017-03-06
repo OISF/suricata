@@ -134,18 +134,18 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         extbytes = ByteExtractStringUint64(&val, data->base,
                                            data->nbytes, (const char *)ptr);
         if(extbytes <= 0) {
-            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
-                   "of string data: %d", data->nbytes, extbytes);
-            SCReturnInt(-1);
+            SCLogDebug("error extracting %d bytes of string data: %d",
+                    data->nbytes, extbytes);
+            SCReturnInt(0);
         }
     }
     else {
         int endianness = (flags & DETECT_BYTEJUMP_LITTLE) ? BYTE_LITTLE_ENDIAN : BYTE_BIG_ENDIAN;
         extbytes = ByteExtractUint64(&val, endianness, data->nbytes, ptr);
         if (extbytes != data->nbytes) {
-            SCLogError(SC_ERR_BYTE_EXTRACT_FAILED,"Error extracting %d bytes "
-                   "of numeric data: %d", data->nbytes, extbytes);
-            SCReturnInt(-1);
+            SCLogDebug("error extracting %d bytes of numeric data: %d",
+                    data->nbytes, extbytes);
+            SCReturnInt(0);
         }
     }
 
