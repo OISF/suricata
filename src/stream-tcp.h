@@ -46,6 +46,9 @@ typedef struct TcpStreamCnf_ {
 
     uint16_t stream_init_flags; /**< new stream flags will be initialized to this */
 
+    uint8_t flags;
+    uint8_t max_synack_queued;
+
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
     uint32_t prealloc_segments; /**< segments to prealloc per stream thread */
     int midstream;
@@ -56,9 +59,6 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toclient_chunk_size;
 
     int bypass;
-
-    uint8_t flags;
-    uint8_t max_synack_queued;
 
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
