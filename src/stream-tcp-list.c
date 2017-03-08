@@ -538,13 +538,18 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpStream *stream, TcpSegment *seg, Packet *p, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen)
 {
-    /* insert segment into list. Note: doesn't handle the data */
 #ifdef DEBUG
     SCLogDebug("pre insert");
     PrintList(stream->seg_list);
 #endif
 
+    /* insert segment into list. Note: doesn't handle the data */
     int r = DoInsertSegment (stream, seg, p);
+    if (r < 0) {
+        StatsIncr(tv, ra_ctx->counter_tcp_reass_list_fail);
+        StreamTcpSegmentReturntoPool(seg);
+        SCReturnInt(-1);
+    }
 
 #ifdef DEBUG
     SCLogDebug("post insert");
@@ -555,6 +560,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         /* no overlap, straight data insert */
         int res = InsertSegmentDataCustom(stream, seg, pkt_data, pkt_datalen);
         if (res < 0) {
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_data_normal_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
             SCReturnInt(-1);
@@ -567,14 +573,11 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         /* now let's consider the data in the overlap case */
         int res = DoHandleData(tv, ra_ctx, stream, seg, p);
         if (res < 0) {
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_data_overlap_fail);
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
             SCReturnInt(-1);
         }
-
-    } else if (r < 0) {
-        StreamTcpSegmentReturntoPool(seg);
-        SCReturnInt(-1);
     }
 
     SCReturnInt(0);
