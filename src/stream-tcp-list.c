@@ -750,8 +750,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
-        SCLogDebug("ssn %p: reassembly depth reached, "
-                 "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
+        SCLogDebug("ssn %p / stream %p: reassembly depth reached, "
+                 "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn, stream);
         StreamTcpReturnStreamSegments(stream);
         StreamingBufferClear(&stream->sb);
         return;
@@ -760,8 +760,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
                 (stream->flags & STREAMTCP_STREAM_FLAG_GAP))     &&
                (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW))
     {
-        SCLogDebug("ssn %p: both app and raw are done, "
-                 "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
+        SCLogDebug("ssn %p / stream %p: both app and raw are done, "
+                 "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn, stream);
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         StreamTcpReturnStreamSegments(stream);
         StreamingBufferClear(&stream->sb);
