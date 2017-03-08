@@ -69,6 +69,8 @@ int StreamTcpInlineSegmentCompare(TcpStream *stream, Packet *p, TcpSegment *seg)
     const uint8_t *seg_data;
     uint32_t seg_datalen;
     StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+    if (seg_data == NULL || seg_datalen == 0)
+        SCReturnInt(0);
 
     const uint32_t pkt_seq = TCP_GET_SEQ(p);
 
