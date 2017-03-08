@@ -585,36 +585,36 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
  */
 
 
-static inline int SegmentInUse(TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
+static inline bool SegmentInUse(const TcpStream *stream, const TcpSegment *seg)
 {
     /* if proto detect isn't done, we're not returning */
     if (!(stream->flags & (STREAMTCP_STREAM_FLAG_GAP|STREAMTCP_STREAM_FLAG_NOREASSEMBLY))) {
         if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
-            SCReturnInt(1);
+            SCReturnInt(true);
         }
     }
 
-    SCReturnInt(0);
+    SCReturnInt(false);
 }
 
 
 /** \internal
  *  \brief check if we can remove a segment from our segment list
  *
- *  \retval 1 yes
- *  \retval 0 no
+ *  \retval true
+ *  \retval false
  */
-static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
+static inline bool StreamTcpReturnSegmentCheck(const TcpStream *stream, const TcpSegment *seg)
 {
-    if (SegmentInUse(ssn, stream, seg)) {
-        SCReturnInt(0);
+    if (SegmentInUse(stream, seg)) {
+        SCReturnInt(false);
     }
 
     if (!(StreamingBufferSegmentIsBeforeWindow(&stream->sb, &seg->sbseg))) {
-        SCReturnInt(0);
+        SCReturnInt(false);
     }
 
-    SCReturnInt(1);
+    SCReturnInt(true);
 }
 
 static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
@@ -691,7 +691,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
                 break;
             }
 
-            if (SegmentInUse(ssn, stream, seg)) {
+            if (SegmentInUse(stream, seg)) {
                 left_edge = TCP_SEG_OFFSET(seg);
                 SCLogDebug("in-use seg before left_edge, adjust to %"PRIu64" and bail", left_edge);
                 break;
@@ -800,7 +800,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
                 seg, seg->seq, TCP_SEG_LEN(seg),
                 (uint32_t)(seg->seq + TCP_SEG_LEN(seg)), seg->flags);
 
-        if (StreamTcpReturnSegmentCheck(f, ssn, stream, seg) == 0) {
+        if (StreamTcpReturnSegmentCheck(stream, seg) == 0) {
             SCLogDebug("not removing segment");
             break;
         }
