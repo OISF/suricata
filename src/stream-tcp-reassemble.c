@@ -760,8 +760,8 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
  *  \retval 0 don't reassemble yet
  *  \retval 1 do reassemble
  */
-static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
-                                         Packet *p)
+static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn,
+        const TcpStream *stream, const Packet *p)
 {
     SCEnter();
 
