@@ -55,6 +55,10 @@ static int StreamMpmFunc(void *cb_data, const uint8_t *data, const uint32_t data
 {
     struct StreamMpmData *smd = cb_data;
     if (data_len >= smd->mpm_ctx->minlen) {
+#ifdef DEBUG
+        smd->det_ctx->stream_mpm_cnt++;
+        smd->det_ctx->stream_mpm_size += data_len;
+#endif
         (void)mpm_table[smd->mpm_ctx->mpm_type].Search(smd->mpm_ctx,
                 &smd->det_ctx->mtcs, &smd->det_ctx->pmq,
                 data, data_len);
@@ -86,6 +90,10 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
     if ((p->flags & (PKT_NOPAYLOAD_INSPECTION|PKT_STREAM_ADD)) == 0)
     {
         if (p->payload_len >= mpm_ctx->minlen) {
+#ifdef DEBUG
+            det_ctx->payload_mpm_cnt++;
+            det_ctx->payload_mpm_size += p->payload_len;
+#endif
             (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                     &det_ctx->mtc, &det_ctx->pmq,
                     p->payload, p->payload_len);
@@ -149,7 +157,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     if (s->sm_arrays[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
-
+#ifdef DEBUG
+    det_ctx->payload_persig_cnt++;
+    det_ctx->payload_persig_size += p->payload_len;
+#endif
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
@@ -176,7 +187,10 @@ static int StreamContentInspectFunc(void *cb_data, const uint8_t *data, const ui
     SCEnter();
     int r = 0;
     struct StreamContentInspectData *smd = cb_data;
-
+#ifdef DEBUG
+    smd->det_ctx->stream_persig_cnt++;
+    smd->det_ctx->stream_persig_size += data_len;
+#endif
     smd->det_ctx->buffer_offset = 0;
     smd->det_ctx->discontinue_matching = 0;
     smd->det_ctx->inspection_recursion_counter = 0;
