@@ -1707,7 +1707,13 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             SCReturnInt(-1);
         }
 
+        SCLogDebug("packet %"PRIu64" set PKT_STREAM_ADD", p->pcap_cnt);
         p->flags |= PKT_STREAM_ADD;
+    } else {
+        SCLogDebug("ssn %p / stream %p: not calling StreamTcpReassembleHandleSegmentHandleData:"
+                " p->payload_len %u, STREAMTCP_STREAM_FLAG_NOREASSEMBLY %s",
+                ssn, stream, p->payload_len,
+                (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ? "true" : "false");
     }
 
     /* in stream inline mode even if we have no data we call the reassembly
