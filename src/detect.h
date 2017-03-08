@@ -900,7 +900,17 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *base64_decoded;
     int base64_decoded_len;
     int base64_decoded_len_max;
-
+#ifdef DEBUG
+    uint64_t pkt_stream_add_cnt;
+    uint64_t payload_mpm_cnt;
+    uint64_t payload_mpm_size;
+    uint64_t stream_mpm_cnt;
+    uint64_t stream_mpm_size;
+    uint64_t payload_persig_cnt;
+    uint64_t payload_persig_size;
+    uint64_t stream_persig_cnt;
+    uint64_t stream_persig_size;
+#endif
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;

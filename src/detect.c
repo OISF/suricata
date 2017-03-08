@@ -914,6 +914,12 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     det_ctx->base64_decoded_len = 0;
     det_ctx->raw_stream_progress = 0;
 
+#ifdef DEBUG
+    if (p->flags & PKT_STREAM_ADD) {
+        det_ctx->pkt_stream_add_cnt++;
+    }
+#endif
+
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         SCReturn;
