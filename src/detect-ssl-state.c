@@ -745,8 +745,6 @@ static int DetectSslStateTest07(void)
     FAIL_IF(PacketAlertCheck(p, 4));
     FAIL_IF(!PacketAlertCheck(p, 5));
 
-    PASS;
-
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                             client_change_cipher_spec_buf,
