@@ -216,6 +216,42 @@ static int LuaCallbackPacketTimeString(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with flow timestamps
+ *  \param luastate the lua state
+ *  \param startts timestamp of first packet in the flow
+ *  \param lastts timestamp of last packet in the flow
+ *  \retval cnt number of data items placed on the stack
+ *
+ * Places: seconds (number), seconds (number), microseconds (number),
+ *         microseconds (number)
+ */
+static int LuaCallbackFlowTimestampsPushToStack(lua_State *luastate,
+                                                const struct timeval *startts,
+                                                const struct timeval *lastts)
+{
+    lua_pushnumber(luastate, (double)startts->tv_sec);
+    lua_pushnumber(luastate, (double)lastts->tv_sec);
+    lua_pushnumber(luastate, (double)startts->tv_usec);
+    lua_pushnumber(luastate, (double)lastts->tv_usec);
+    return 4;
+}
+
+/** \internal
+ *  \brief Wrapper for getting flow timestamp (as numbers) into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFlowTimestamps(lua_State *luastate)
+{
+    Flow *flow = LuaStateGetFlow(luastate);
+    if (flow == NULL) {
+        return LuaCallbackError(luastate, "internal error: no flow");
+    }
+
+    return LuaCallbackFlowTimestampsPushToStack(luastate, &flow->startts,
+                                                &flow->lastts);
+}
+
+/** \internal
  *  \brief fill lua stack with time string
  *  \param luastate the lua state
  *  \param flow flow
@@ -791,6 +827,8 @@ int LuaRegisterFunctions(lua_State *luastate)
     lua_pushcfunction(luastate, LuaCallbackTuple);
     lua_setglobal(luastate, "SCPacketTuple");
 
+    lua_pushcfunction(luastate, LuaCallbackFlowTimestamps);
+    lua_setglobal(luastate, "SCFlowTimestamps");
     lua_pushcfunction(luastate, LuaCallbackFlowTimeString);
     lua_setglobal(luastate, "SCFlowTimeString");
     lua_pushcfunction(luastate, LuaCallbackTupleFlow);
