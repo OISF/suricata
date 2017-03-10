@@ -147,6 +147,17 @@ flow
       return needs
   end
 
+SCFlowTimestamps
+~~~~~~~~~~~~~~~~
+
+Get timestamps (seconds and microseconds) of the first and the last packet from
+the flow.
+
+::
+
+  startts, lastts = SCFlowTimestamps()
+  startts_s, lastts_s, startts_us, lastts_us = SCFlowTimestamps()
+
 SCFlowTimeString
 ~~~~~~~~~~~~~~~~
 
