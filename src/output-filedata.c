@@ -226,7 +226,6 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
                 /* all done */
                 if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
                     ff->flags |= FILE_STORED;
-                    break;
                 }
             }
         }
