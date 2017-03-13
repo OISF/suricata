@@ -28,7 +28,7 @@ Example:
 
   alert ip $HOME_NET any -> any any (msg:"IPREP internal host talking to CnC server"; flow:to_server; iprep:dst,CnC,>,30; sid:1; rev:1;)
 
-This rule will alert when a system in $HOME_NET performs a client request while communicating with any IP in the CnC category that has a reputation score set to greater than 30.
+This rule will alert when a system in $HOME_NET acts as a client while communicating with any IP in the CnC category that has a reputation score set to greater than 30.
 
 IP-only
 ~~~~~~~
