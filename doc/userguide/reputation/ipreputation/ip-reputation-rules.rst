@@ -10,16 +10,16 @@ The iprep directive matches on the IP reputation information for a host.
 
 ::
 
-  iprep:<side to check>,<cat>,<operator>,<value>
+  iprep:<side to check>,<category>,<operator>,<reputation score>
 
 
 side to check: <any|src|dst|both>
 
-cat: the category short name
+category: the category short name
 
 operator: <, >, =
 
-value: 1-127
+reputation score: 1-127
 
 Example:
 
@@ -27,6 +27,8 @@ Example:
 
 
   alert ip $HOME_NET any -> any any (msg:"IPREP internal host talking to CnC server"; flow:to_server; iprep:dst,CnC,>,30; sid:1; rev:1;)
+
+This rule will alert when a system in $HOME_NET performs a client request while communicating with any IP in the CnC category that has a reputation score set to greater than 30.
 
 IP-only
 ~~~~~~~

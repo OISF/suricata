@@ -6,12 +6,12 @@ Description of IP Reputation file formats. For the configuration see :doc:`ip-re
 Categories file
 ~~~~~~~~~~~~~~~
 
-The categories file provides a mapping between a category number, short name and long description. It's a simple CSV file:
+The categories file provides a mapping between a category number, short name, and long description. It's a simple CSV file:
 
 ::
 
 
-  <id>,<short name>,<discription>
+  <id>,<short name>,<description>
 
 Example:
 
@@ -27,9 +27,13 @@ Reputation file
 ~~~~~~~~~~~~~~~
 
 The reputation file lists a reputation score for hosts in the categories. It's a simple CSV file:
-> <ip>,<cat>,<score>
 
-The IP is an IPv4 address in the quad-dotted notation. The category is the number as defined in the categories file and the value is a number between 1 and 127. 0 means no data.
+::
+
+
+  <ip>,<category>,<reputation score>
+
+The IP is an IPv4 address in the quad-dotted notation. The category is the number as defined in the categories file. The reputation score is the confidence that this IP is in the specified category, represented by a number between 1 and 127 (0 means no data).
 
 Example:
 
