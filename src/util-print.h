@@ -50,7 +50,7 @@ void PrintRawDataFp(FILE *, const uint8_t *, uint32_t);
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
                           const uint8_t *src_buf, uint32_t src_buf_len);
 void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
-                          uint8_t *src_buf, uint32_t src_buf_len);
+                          const uint8_t *src_buf, const uint32_t src_buf_len);
 void PrintRawLineHexBuf(char *, uint32_t, uint8_t *, uint32_t );
 const char *PrintInet(int , const void *, char *, socklen_t);
 

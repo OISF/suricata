@@ -217,7 +217,7 @@ void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
 }
 
 void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
-                          uint8_t *src_buf, uint32_t src_buf_len)
+                          const uint8_t *src_buf, const uint32_t src_buf_len)
 {
     uint32_t ch = 0;
     for (ch = 0; ch < src_buf_len; ch++) {
