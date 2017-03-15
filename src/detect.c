@@ -53,6 +53,7 @@
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
 #include "detect-tls-cert-serial.h"
+#include "detect-tls-cert-fingerprint.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-filedata-smtp.h"
@@ -3969,6 +3970,7 @@ void SigTableSetup(void)
     DetectTlsIssuerRegister();
     DetectTlsSubjectRegister();
     DetectTlsSerialRegister();
+    DetectTlsFingerprintRegister();
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
