@@ -475,10 +475,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                     ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
 
-                    if (ret != 0 || good_sigs == 0) {
-                        if (de_ctx->failure_fatal == 1) {
-                            exit(EXIT_FAILURE);
-                        }
+                    if (de_ctx->failure_fatal && ret != 0) {
+                        /* Some rules failed to load, just exit as
+                         * errors would have already been logged. */
+                        exit(EXIT_FAILURE);
+                    }
+
+                    if (good_sigs == 0) {
+                        SCLogConfig("No rules loaded from %s.", file->val);
                     }
                 }
             }
