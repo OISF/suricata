@@ -469,7 +469,11 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD)
+suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
+
+if HAVE_RUST
+suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+endif
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
