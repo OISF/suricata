@@ -1,0 +1,13 @@
+[package]
+name = "suricata"
+version = "4.0.0-dev"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.release]
+debug = true
+
+[dependencies]
+nom = "^2.1.0"
+libc = "0.2.0"
