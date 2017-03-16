@@ -106,7 +106,7 @@ Suricata Installation
 After downloading and extracting the Suricata tarball, you need to run configure to enable Napatech support and
 prepare for compilation::
 
-	$ ./configure --enable_napatech --with-napatech-includes=/opt/napatech3/include --with-napatech-libraries=/opt/napatech3/lib
+	$ ./configure --enable-napatech --with-napatech-includes=/opt/napatech3/include --with-napatech-libraries=/opt/napatech3/lib
 	$ make
 	$ make install-full
 
@@ -192,11 +192,7 @@ setup to support both tunneled and non-tunneled traffic. Create a file that cont
 	Setup[numaNode=0] = streamid==5
 	Setup[numaNode=0] = streamid==6
 	Setup[numaNode=0] = streamid==7
-	HashMode[priority=0; InnerLayer4Type=UDP, TCP, SCTP] = HashInner5TupleSorted
-	HashMode[priority=1; InnerLayer3Type=IPV4] = HashInner2TupleSorted
-	HashMode[priority=2; Layer4Type=UDP, TCP, SCTP] = Hash5TupleSorted
-	HashMode[priority=3; Layer3Type=IPV4] = Hash2TupleSorted
-	HashMode[priority=4]=HashRoundRobin
+	HashMode[priority=4]=Hash5TupleSorted
 	Assign[priority=0; streamid=(0..7)]= all
 
 Next execute those command using the ntpl tool::
