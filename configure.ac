@@ -1981,6 +1981,7 @@
 
 # Cargo/Rust.
     enable_rust="no"
+    rust_vendor_comment="# "
     AC_PATH_PROG(HAVE_CARGO, cargo, "no")
     AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
     if test "x$HAVE_CARGO" != "xno"; then
@@ -1993,10 +1994,23 @@
 	   RUST_LDADD="../rust/target/release/libsuricata.a -lrt -ldl"
 	fi
 	AC_SUBST(RUST_LDADD)
+	AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+	if test "x$have_rust_vendor" = "xyes"; then
+	   rust_vendor_comment=""
+	fi
       fi
     fi
     AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes"])
-    AC_CONFIG_LINKS([rust/Cargo.toml:rust/Cargo.toml])
+    AC_SUBST(rust_vendor_comment)
+    AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
+
+    AC_PATH_PROG(HAVE_CARGO_VENDOR, cargo-vendor, "no")
+    if test "x$HAVE_CARGO_VENDOR" = "xno"; then
+        echo "   Warning: cargo-vendor not found, but it is only required"
+        echo "       for building the distribution"
+        echo "   To install: cargo install cargo-vendor"
+    fi
+    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
 
 # get revision
     if test -f ./revision; then
@@ -2076,7 +2090,7 @@ AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
