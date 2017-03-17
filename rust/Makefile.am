@@ -1,28 +1,35 @@
 EXTRA_DIST = 	Cargo.toml \
-		src/lib.rs
+		Cargo.lock \
+		src/lib.rs \
+		.cargo/config.in \
+		vendor
+
+if HAVE_RUST_VENDOR
+FROZEN = --frozen
+endif
+
+if !DEBUG
+RELEASE = --release
+endif
 
 if HAVE_RUST
 all-local:
-# If building in an alternate directory, Cargo.toml gets linked in by
-# AC_CONFIG_LINKS, but that doesn't support directories. So instead of
-# linking everything file under src, just link in the src directory
-# here.
-	if ! test -e src; then \
-		ln -s $(top_srcdir)/rust/src .; \
-	fi
-if DEBUG
-	cargo build
-else
-	cargo build --release
-endif
+	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
+		cargo build $(RELEASE) $(FROZEN)
 
 clean-local:
-	cargo clean
-	rm -f Cargo.lock
+	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
+		cargo clean
+
+distclean-local:
+	rm -rf vendor
 
 check:
-	cargo test
+	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
+		cargo test
 else
 all-local clean-local check:
 endif
 
+vendor:
+	cargo vendor > /dev/null

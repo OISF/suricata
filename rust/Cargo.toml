@@ -6,5 +6,5 @@ version = "4.0.0-dev"
 crate-type = ["staticlib"]
 
 [dependencies]
-nom = "^2.1.0"
+nom = "2.1.0"
 libc = "0.2.0"
