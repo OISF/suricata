@@ -1,0 +1,8 @@
+@rust_vendor_comment@[source]
+@rust_vendor_comment@
+@rust_vendor_comment@[source.crates-io]
+@rust_vendor_comment@registry = 'https://github.com/rust-lang/crates.io-index'
+@rust_vendor_comment@replace-with = 'vendored-sources'
+@rust_vendor_comment@
+@rust_vendor_comment@[source.vendored-sources]
+@rust_vendor_comment@directory = './vendor'
