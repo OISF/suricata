@@ -126,6 +126,10 @@ before_install:
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
+
+        # Unlink pcre in case its already installed.
+        brew unlink pcre || true
+
         brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
             pcre hiredis
     fi
