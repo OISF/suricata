@@ -460,9 +460,11 @@ json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id, uint16_t flags, void 
             JsonHttpLogJSONBasic(hjs, tx);
             JsonHttpLogJSONExtended(hjs, tx);
             if (flags & LOG_JSON_HTTP_BODY) {
+                MemBufferReset((MemBuffer *)data);
                 JsonHttpLogJSONBodyPrintable(hjs, tx, data);
             }
             if (flags & LOG_JSON_HTTP_BODY_BASE64) {
+                MemBufferReset((MemBuffer *)data);
                 JsonHttpLogJSONBodyBase64(hjs, tx, data);
             }
             return hjs;
