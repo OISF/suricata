@@ -351,7 +351,7 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     json_object_set_new(js, "length", json_integer(tx->response_message_len));
 }
 
-static void HttpBodyToPrintable(HtpBody *body, MemBuffer *buffer)
+static void HttpBodyToBuffer(HtpBody *body, MemBuffer *buffer)
 {
     HtpBodyChunk *cur = body->first;
     for ( ; cur != NULL; cur = cur->next) {
@@ -372,7 +372,7 @@ static void JsonHttpLogJSONBodyPrintable(json_t *js, htp_tx_t *tx, void *data)
             uint64_t buf_len = body->content_len_so_far + 1;
             uint8_t printable_buf[buf_len];
             uint32_t offset = 0;
-            HttpBodyToPrintable(body, buffer);
+            HttpBodyToBuffer(body, buffer);
             PrintStringsToBuffer(printable_buf, &offset,
                                  sizeof(printable_buf),
                                  buffer->buffer, buffer->offset);
@@ -391,7 +391,7 @@ static void JsonHttpLogJSONBodyBase64(json_t *js, htp_tx_t *tx, void *data)
     if (htud != NULL) {
         HtpBody *body = &htud->response_body;
         if (body != NULL) {
-            HttpBodyToPrintable(body, data);
+            HttpBodyToBuffer(body, data);
             unsigned long len = buffer->offset * 2 + 1;
             uint8_t encoded[len];
             Base64Encode(buffer->buffer, buffer->offset, encoded, &len);
