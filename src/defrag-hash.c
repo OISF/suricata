@@ -407,7 +407,7 @@ static inline uint32_t DefragHashGetKey(Packet *p)
        CMP_ADDR(&(d1)->dst_addr, &(d2)->dst)) || \
       (CMP_ADDR(&(d1)->src_addr, &(d2)->dst) && \
        CMP_ADDR(&(d1)->dst_addr, &(d2)->src))) && \
-     (d1)->proto == IP_GET_IPPROTO(p) &&        \
+     (d1)->proto == IP_GET_IPPROTO(d2) &&   \
      (d1)->id == (id) && \
      (d1)->vlan_id[0] == (d2)->vlan_id[0] && \
      (d1)->vlan_id[1] == (d2)->vlan_id[1])
