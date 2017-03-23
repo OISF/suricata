@@ -242,10 +242,13 @@ static int DNP3CheckUserDataCRCs(const uint8_t *data, uint32_t len)
  *
  * \retval 1 if valid, 0 if not.
  */
-static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
+static int DNP3CheckStartBytes(const uint8_t *input, uint32_t input_len)
 {
-    return header->start_byte0 == DNP3_START_BYTE0 &&
-        header->start_byte1 == DNP3_START_BYTE1;
+    if (input_len > 1 && input[0] == DNP3_START_BYTE0 &&
+            input[1] == DNP3_START_BYTE1) {
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -282,7 +285,7 @@ static uint16_t DNP3ProbingParser(uint8_t *input, uint32_t len,
     }
 
     /* Verify start value (from AN2013-004b). */
-    if (!DNP3CheckStartBytes(hdr)) {
+    if (!DNP3CheckStartBytes(input, len)) {
         SCLogDebug("Invalid start bytes.");
         return ALPROTO_FAILED;
     }
@@ -1047,11 +1050,11 @@ static int DNP3HandleRequestLinkLayer(DNP3State *dnp3, const uint8_t *input,
             break;
         }
 
-        DNP3LinkHeader *header = (DNP3LinkHeader *)input;
-
-        if (!DNP3CheckStartBytes(header)) {
+        if (!DNP3CheckStartBytes(input, input_len)) {
             goto error;
         }
+
+        DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
@@ -1122,6 +1125,18 @@ static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
         SCReturnInt(1);
     }
 
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_GAP)) {
+        /* Check the start bytes to see if we can sync up. */
+        if (!DNP3CheckStartBytes(input, input_len)) {
+            /* Segment is not the start of a frame. Return and try again. */
+            /* TODO - Could scan payload for start of frame. */
+            SCReturnInt(0);
+        }
+
+        /* Looks like we can sync up, but we should clear the buffer. */
+        DNP3BufferReset(buffer);
+    }
+
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory to buffer "
@@ -1184,11 +1199,11 @@ static int DNP3HandleResponseLinkLayer(DNP3State *dnp3, const uint8_t *input,
             break;
         }
 
-        DNP3LinkHeader *header = (DNP3LinkHeader *)input;
-
-        if (!DNP3CheckStartBytes(header)) {
+        if (!DNP3CheckStartBytes(input, input_len)) {
             goto error;
         }
+
+        DNP3LinkHeader *header = (DNP3LinkHeader *)input;
 
         if (!DNP3CheckLinkHeaderCRC(header)) {
             DNP3SetEvent(dnp3, DNP3_DECODER_EVENT_BAD_LINK_CRC);
@@ -1256,6 +1271,19 @@ static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
     DNP3State *dnp3 = (DNP3State *)state;
     DNP3Buffer *buffer = &dnp3->response_buffer;
     int processed;
+
+    SCLogNotice("DNP3ParseResponse: input=%p; input_len=%"PRIu32, input,
+            input_len);
+
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_GAP)) {
+        /* Check the start bytes to see if we can sync up. */
+        if (DNP3CheckStartBytes(input, input_len)) {
+            DNP3BufferReset(buffer);
+        } else {
+            /* Segment not the start of a frame, return and try again. */
+            SCReturnInt(0);
+        }
+    }
 
     if (buffer->len) {
         if (!DNP3BufferAdd(buffer, input, input_len)) {
@@ -1644,6 +1672,10 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxLogged, DNP3SetTxLogged);
+
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DNP3,
+                APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
         SCLogConfig("Parser disabled for protocol %s. "
