@@ -30,10 +30,17 @@
 #include "util-file.h"
 #include "stream-tcp-private.h"
 
+/* Flags for AppLayerParserState. */
 #define APP_LAYER_PARSER_EOF                    0x01
 #define APP_LAYER_PARSER_NO_INSPECTION          0x02
 #define APP_LAYER_PARSER_NO_REASSEMBLY          0x04
 #define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  0x08
+#ifndef OLD_GAP
+#define APP_LAYER_PARSER_GAP                    0x10
+#endif
+
+/* Flags for AppLayerParserProtoCtx. */
+#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS 0x01
 
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
@@ -115,6 +122,8 @@ int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
                                               AppProto alproto,
                                               uint8_t direction);
+void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
+        uint8_t flags);
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
                            void *(*StateAlloc)(void),
                            void (*StateFree)(void *));
@@ -219,6 +228,9 @@ void AppLayerParserRegisterProtocolParsers(void);
 
 
 void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag);
+#ifndef OLD_GAP
+void AppLayerParserStateClearFlag(AppLayerParserState *pstate, uint8_t flag);
+#endif
 int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag);
 
 void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alstate,
