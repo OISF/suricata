@@ -127,12 +127,29 @@ before_install:
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
 
-        # Unlink pcre in case its already installed.
-        brew unlink pcre || true
-        brew unlink pkg-config || true
+        # Unlink and install each dependency to avoid errors where a
+        # formula might already be installed but is not the current
+        # version.
+        packages="pkg-config libmagic libyaml nss nspr jansson libnet lua pcre hiredis"
+        for package in $packages; do
+            if brew ls $package --versions > /dev/null; then
+                brew unlink $package
+            fi
+        done
 
-        brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
-            pcre hiredis
+        # Now install.
+        brew install $packages
+
+        # Now relink, becuase if a newer version of a package wasn't
+        # installed above, it will remain unlinked.
+        brew link $packages
+
+        # Unlink pcre in case its already installed.
+        # brew unlink pcre || true
+        # brew unlink pkg-config || true
+
+        # brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
+        #     pcre hiredis
     fi
   - ./qa/travis-libhtp.sh
 
