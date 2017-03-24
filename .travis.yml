@@ -129,6 +129,7 @@ before_install:
 
         # Unlink pcre in case its already installed.
         brew unlink pcre || true
+        brew unlink pkg-config || true
 
         brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
             pcre hiredis
