@@ -236,8 +236,9 @@ static int TCPCalculateValidChecksumtest01(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
-                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+    FAIL_IF(TCPCalculateChecksum((uint16_t *)raw_ipshdr,
+            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) != 0);
+    PASS;
 }
 
 static int TCPCalculateInvalidChecksumtest02(void)
@@ -256,8 +257,9 @@ static int TCPCalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum != TCPCalculateChecksum((uint16_t *) raw_ipshdr,
-                                         (uint16_t *)raw_tcp, sizeof(raw_tcp)));
+    FAIL_IF(TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+            (uint16_t *)raw_tcp, sizeof(raw_tcp), csum) == 0);
+    PASS;
 }
 
 static int TCPV6CalculateValidChecksumtest03(void)

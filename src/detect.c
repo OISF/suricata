@@ -5813,7 +5813,6 @@ int SigTest26TCPV4Keyword(void)
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(p1, 0, SIZE_OF_PACKET);
@@ -5844,9 +5843,7 @@ int SigTest26TCPV4Keyword(void)
     p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -5854,43 +5851,31 @@ int SigTest26TCPV4Keyword(void)
                                "alert ip any any -> any any "
                                "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
                                "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list);
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert ip any any -> any any "
                                      "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
                                      "msg:\"tcpv4-csum keyword check(1)\"; "
                                      "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx->sig_list->next);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sig 1 didn't match: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p1, 1)));
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!(PacketAlertCheck(p2, 2))) {
-        printf("sig 2 didn't match: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p2, 2)));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     SCFree(p1);
     SCFree(p2);
-    return result;
+    PASS;
 }
 
 /* Test SigTest26TCPV4Keyword but also check for invalid IPV4 checksum */

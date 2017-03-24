@@ -639,7 +639,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
         FakeIPv4Hdr *fakehdr = (FakeIPv4Hdr *)aun->iphdr;
 
         fakehdr->tcph.th_sum = TCPCalculateChecksum(fakehdr->ip4h.s_ip_addrs,
-                (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr));
+                (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr), 0);
         fakehdr->ip4h.ip_csum = IPV4CalculateChecksum((uint16_t *)&fakehdr->ip4h,
                 IPV4_GET_RAW_HLEN(&fakehdr->ip4h));
     }
