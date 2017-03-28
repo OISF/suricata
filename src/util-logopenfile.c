@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <libgen.h>
 
 #include "suricata-common.h" /* errno.h, string.h, etc. */
 #include "tm-modules.h"      /* LogFileCtx */
@@ -135,6 +136,14 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
         SCConfLogReopen(log_ctx);
     }
 
+    if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+        time_t now = time(NULL);
+        if (now >= log_ctx->rotate_time) {
+            SCConfLogReopen(log_ctx);
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
+    }
+
     int ret = 0;
 
     if (log_ctx->fp == NULL && log_ctx->is_sock)
@@ -159,6 +168,61 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     return ret;
 }
 
+/** \brief generate filename based on pattern
+ *  \param pattern pattern to use
+ *  \retval char* on success
+ *  \retval NULL on error
+ */
+static char *SCLogFilenameFromPattern(const char *pattern)
+{
+    char *filename = SCMalloc(PATH_MAX);
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCTimeToStringPattern(time(NULL), pattern, filename, PATH_MAX);
+    if (rc != 0) {
+        return NULL;
+    }
+
+    return filename;
+}
+
+/** \brief recursively create missing log directories
+ *  \param path path to log file
+ *  \retval 0 on success
+ *  \retval -1 on error
+ */
+static int SCLogCreateDirectoryTree(const char *filepath)
+{
+    char pathbuf[PATH_MAX];
+    char *p;
+    size_t len = strlen(filepath);
+
+    if (len > PATH_MAX - 1) {
+        return -1;
+    }
+
+    strlcpy(pathbuf, filepath, len);
+
+    for (p = pathbuf + 1; *p; p++) {
+        if (*p == '/') {
+            /* Truncate, while creating directory */
+            *p = '\0';
+
+            if (mkdir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+                if (errno != EEXIST) {
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    return 0;
+}
+
 static void SCLogFileClose(LogFileCtx *log_ctx)
 {
     if (log_ctx->fp)
@@ -176,15 +240,28 @@ SCLogOpenFileFp(const char *path, const char *append_setting)
 {
     FILE *ret = NULL;
 
+    char *filename = SCLogFilenameFromPattern(path);
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCLogCreateDirectoryTree(filename);
+    if (rc < 0) {
+        SCFree(filename);
+        return NULL;
+    }
+
     if (ConfValIsTrue(append_setting)) {
-        ret = fopen(path, "a");
+        ret = fopen(filename, "a");
     } else {
-        ret = fopen(path, "w");
+        ret = fopen(filename, "w");
     }
 
     if (ret == NULL)
         SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
-                   path, strerror(errno));
+                   filename, strerror(errno));
+
+    SCFree(filename);
     return ret;
 }
 
@@ -250,6 +327,36 @@ SCConfLogOpenGeneric(ConfNode *conf,
         snprintf(log_path, PATH_MAX, "%s", filename);
     } else {
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    }
+
+    /* Rotate log file based on time */
+    const char *rotate_int = ConfNodeLookupChildValue(conf, "rotate-interval");
+    if (rotate_int != NULL) {
+        time_t now = time(NULL);
+        log_ctx->flags |= LOGFILE_ROTATE_INTERVAL;
+
+        /* Use a specific time */
+        if (strcmp(rotate_int, "minute") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 60;
+        } else if (strcmp(rotate_int, "hour") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 3600;
+        } else if (strcmp(rotate_int, "day") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 86400;
+        }
+
+        /* Use a timer */
+        else {
+            log_ctx->rotate_interval = SCParseTimeSizeString(rotate_int);
+            if (log_ctx->rotate_interval == 0) {
+                SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+                           "invalid rotate-interval value");
+                exit(EXIT_FAILURE);
+            }
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
     }
 
     filetype = ConfNodeLookupChildValue(conf, "filetype");
