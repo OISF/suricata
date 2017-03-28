@@ -56,6 +56,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "util-log-redis.h"
 #include "util-device.h"
 
 #include "flow-var.h"
@@ -595,6 +596,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 json_ctx->json_out = LOGFILE_TYPE_UNIX_STREAM;
             } else if (strcmp(output_s, "redis") == 0) {
 #ifdef HAVE_LIBHIREDIS
+                SCLogRedisInit();
                 json_ctx->json_out = LOGFILE_TYPE_REDIS;
 #else
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
