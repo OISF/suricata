@@ -31,6 +31,7 @@
 #include "tm-modules.h"      /* LogFileCtx */
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
+#include "util-byte.h"
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
 
@@ -168,11 +169,12 @@ static void SCLogFileClose(LogFileCtx *log_ctx)
 /** \brief open the indicated file, logging any errors
  *  \param path filesystem path to open
  *  \param append_setting open file with O_APPEND: "yes" or "no"
+ *  \param mode permissions to set on file
  *  \retval FILE* on success
  *  \retval NULL on error
  */
 static FILE *
-SCLogOpenFileFp(const char *path, const char *append_setting)
+SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
 {
     FILE *ret = NULL;
 
@@ -185,6 +187,15 @@ SCLogOpenFileFp(const char *path, const char *append_setting)
     if (ret == NULL)
         SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
                    path, strerror(errno));
+
+    if (mode != 0) {
+        int r = chmod(path, mode);
+        if (r < 0) {
+            SCLogError(SC_ERR_CHMOD, "Error: could not chmod '%s' to %d: %s",
+                       path, mode, strerror(errno));
+            }
+    }
+
     return ret;
 }
 
@@ -256,6 +267,14 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (filetype == NULL)
         filetype = DEFAULT_LOG_FILETYPE;
 
+    const char *filemode = ConfNodeLookupChildValue(conf, "filemode");
+    uint32_t mode = 0;
+    if (filemode != NULL &&
+            ByteExtractStringUint32(&mode, 8, strlen(filemode),
+                                    filemode) > 0) {
+        log_ctx->filemode = mode;
+    }
+
     const char *append = ConfNodeLookupChildValue(conf, "append");
     if (append == NULL)
         append = DEFAULT_LOG_MODE_APPEND;
@@ -302,7 +321,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
         log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
     } else if (strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0 ||
                strcasecmp(filetype, "file") == 0) {
-        log_ctx->fp = SCLogOpenFileFp(log_path, append);
+        log_ctx->fp = SCLogOpenFileFp(log_path, append, log_ctx->filemode);
         if (log_ctx->fp == NULL)
             return -1; // Error already logged by Open...Fp routine
         log_ctx->is_regular = 1;
@@ -367,7 +386,7 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     /* Reopen the file. Append is forced in case the file was not
      * moved as part of a rotation process. */
     SCLogDebug("Reopening log file %s.", log_ctx->filename);
-    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "yes");
+    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "yes", log_ctx->filemode);
     if (log_ctx->fp == NULL) {
         return -1; // Already logged by Open..Fp routine.
     }
