@@ -1,29 +1,59 @@
-# Default parameters, even this default build is excluded in the build
-# matrix below. We define so Travis doesn't think this is a Ruby
-# project.
-os: linux
+sudo: false
 language: c
-compiler: gcc
+
+addons:
+  apt:
+    # Define the required packages without libjansson so we can do a
+    # build without libjansson.
+    packages-without-jansson: &packages-without-jansson
+      - libpcre3
+      - libpcre3-dbg
+      - libpcre3-dev
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libpcap-dev
+      - libnet1-dev
+      - libyaml-0-2
+      - libyaml-dev
+      - zlib1g
+      - zlib1g-dev
+      - libcap-ng-dev
+      - libcap-ng0
+      - make
+      - libmagic-dev
+      - libnetfilter-queue-dev
+      - libnetfilter-queue1
+      - libnfnetlink-dev
+      - libnfnetlink0
+      - libhiredis-dev
+      - libjansson-dev
+    # Now define the default set of packages which is those above, and
+    # libjansson.
+    packages: &packages
+      - *packages-without-jansson
+      - libjansson-dev
 
 # Define the default CFLAGS used by all builds as a YAML anchor.
 default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
-# The default build is Linux with gcc. Add additional builds to the
-# matrix here.
 matrix:
-  # Exclude the default build so any the builds in the matrix will be done.
-  exclude:
-    - os: linux
-      compiler: gcc
   include:
-    # Linux, gcc, cocci tests enabled.
+    # Linux, gcc, coccinelle.
     - os: linux
       compiler: gcc
       env:
         - NAME="linux,gcc,cocci"
         - *default-cflags
-        - ENABLE_COCCI="yes"
+      addons:
+        apt:
+          sources:
+            - sourceline: ppa:npalix/coccinelle
+          packages:
+            - *packages
+            - coccinelle
     # Linux, gcc, -DNDEBUG.
     - os: linux
       compiler: gcc
@@ -53,24 +83,27 @@ matrix:
         - *default-cflags
         - ARGS="--enable-debug"
         - ENABLE_DEBUG="yes"
-    # Linux, gcc, no json support.
+    # Linux, gcc, no jansson.
     - os: linux
       compiler: gcc
       env:
         - NAME="linux,gcc,no-json"
         - *default-cflags
-        - DISABLE_JSON="yes"
-    # OSX 10.12, XCode 8.1.
+      addons:
+        apt:
+          packages:
+            - *packages-without-jansson
+    # OSX 10.12, XCode 8.1
     - os: osx
       compiler: gcc
       osx_image: xcode8.1
+      sudo: true
       env:
         - NAME="osx,gcc"
         - *default-cflags
 
-# Change this to your needs
 script:
-  - sh autogen.sh
+  - sh ./autogen.sh
   - |
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         export CFLAGS="${CFLAGS} ${EXTRA_CFLAGS}"
@@ -88,41 +121,20 @@ script:
             --with-libnspr-includes=/usr/local/opt/nspr/include/nspr \
             --with-libnspr-libraries=/usr/local/opt/nspr/lib
     fi
-  - make
   # With debug enabled too much output is generated for Travis, so
   # redirect stderr to a file.
   - |
-    if [[ "$ENABLE_DEBUG" == "yes" ]]; then
-        make check 2> stderr.log
-    else
-        make check
-    fi
-before_install:
-  - |
+    # Linux container builds have 2 cores, make use of them.
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-
-        if [[ "$ENABLE_COCCI" == "yes" ]]; then
-            sudo add-apt-repository -y ppa:npalix/coccinelle
-        fi
-
-        sudo apt-get update -qq
-        sudo apt-get install -y libpcre3 libpcre3-dbg libpcre3-dev \
-            build-essential autoconf automake libtool libpcap-dev libnet1-dev \
-            libyaml-0-2 libyaml-dev zlib1g zlib1g-dev libcap-ng-dev \
-            libcap-ng0 make libmagic-dev libnetfilter-queue-dev \
-            libnetfilter-queue1 libnfnetlink-dev libnfnetlink0 \
-            libhiredis-dev
-
-
-        if [[ "$ENABLE_COCCI" == "yes" ]]; then
-            sudo apt-get install -y coccinelle
-        fi
-
-        if [[ "$DISABLE_JSON" != "yes" ]]; then
-            sudo apt-get install -y libjansson-dev
-        fi
-
+        j="-j 2"
     fi
+    if [[ "$ENABLE_DEBUG" == "yes" ]]; then
+        make ${j} check 2> stderr.log
+    else
+        make ${j} check
+    fi
+
+before_install:
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
@@ -130,7 +142,17 @@ before_install:
         # Unlink and install each dependency to avoid errors where a
         # formula might already be installed but is not the current
         # version.
-        packages="pkg-config libmagic libyaml nss nspr jansson libnet lua pcre hiredis"
+        packages=""
+        packages="$packages pkg-config"
+        packages="$packages libmagic"
+        packages="$packages libyaml"
+        packages="$packages nss"
+        packages="$packages nspr"
+        packages="$packages jansson"
+        packages="$packages libnet"
+        packages="$packages lua"
+        packages="$packages pcre"
+        packages="$packages hiredis"
         for package in $packages; do
             if brew ls $package --versions > /dev/null; then
                 brew unlink $package
@@ -143,13 +165,5 @@ before_install:
         # Now relink, becuase if a newer version of a package wasn't
         # installed above, it will remain unlinked.
         brew link $packages
-
-        # Unlink pcre in case its already installed.
-        # brew unlink pcre || true
-        # brew unlink pkg-config || true
-
-        # brew install pkg-config libmagic libyaml nss nspr jansson libnet lua \
-        #     pcre hiredis
     fi
   - ./qa/travis-libhtp.sh
-
