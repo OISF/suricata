@@ -33,6 +33,7 @@
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-byte.h"
 #include "util-logopenfile.h"
+#include "util-logopenudp.h"
 #include "util-logopenfile-tile.h"
 
 const char * redis_push_cmd = "LPUSH";
@@ -329,6 +330,10 @@ SCConfLogOpenGeneric(ConfNode *conf,
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
+    } else if (strcasecmp(filetype,"udpsocket") == 0){
+        log_ctx->is_sock = 1;
+        ConfNode *udp_node=ConfNodeLookupChild(conf,"udpsocket");
+        SCLogOpenUDPSocket(udp_node,log_ctx);
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
         if (log_ctx->pcie_fp == NULL)

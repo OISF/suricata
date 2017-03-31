@@ -21,6 +21,7 @@
  * \author Tom DeCanio <td@npulsetech.com>
  *
  * Logs detection and monitoring events in JSON format.
+ * Output support udp mode by Bao Lei <3862821@qq.com>
  *
  */
 
@@ -589,6 +590,8 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 json_ctx->json_out = LOGFILE_TYPE_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
                 json_ctx->json_out = LOGFILE_TYPE_SYSLOG;
+            } else if (strcmp(output_s, "udpsocket") == 0) {
+                json_ctx->json_out = LOGFILE_TYPE_UNIX_DGRAM;
             } else if (strcmp(output_s, "unix_dgram") == 0) {
                 json_ctx->json_out = LOGFILE_TYPE_UNIX_DGRAM;
             } else if (strcmp(output_s, "unix_stream") == 0) {

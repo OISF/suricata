@@ -118,6 +118,11 @@ typedef struct LogFileCtx_ {
     /* Flag if file is a regular file or not.  Only regular files
      * allow for rotataion. */
     uint8_t is_regular;
+    /* udp socket options. add by Bao Lei*/
+    char *udp_server;
+    char *udp_port;
+    struct sockaddr_in udp_serveraddr;
+    int udp_fd;
 
     /* JSON flags */
     size_t json_flags;  /* passed to json_dump_callback() */

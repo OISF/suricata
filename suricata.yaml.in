@@ -137,8 +137,11 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: @e_enable_evelog@
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|udpsocket
       filename: eve.json
+      #udpsocket:
+          server: 127.0.0.1
+          port: 3333
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
