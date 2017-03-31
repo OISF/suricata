@@ -37,40 +37,40 @@
 
 int SCLogOpenUDPSocket(ConfNode *udp_node, LogFileCtx *log_ctx)
 {
-	const char *udp_server = NULL;
+    const char *udp_server = NULL;
     const char *udp_port = NULL;
-	int sockfd=0;
-	int i = 512;
-	if (udp_node) {
+    int sockfd=0;
+    int i = 512;
+    if (udp_node) {
         udp_server = ConfNodeLookupChildValue(udp_node, "server");
         udp_port =  ConfNodeLookupChildValue(udp_node, "port");
     }
-	if(!udp_server)
-		udp_server=DEFAULT_DSTSERVER;
-	if(!udp_port)
-		udp_port=DEFAULT_DSTPORT;
+    if(!udp_server)
+        udp_server=DEFAULT_DSTSERVER;
+    if(!udp_port)
+        udp_port=DEFAULT_DSTPORT;
     SCLogNotice("Write log to socket \"%s:%s\"", udp_server,udp_port);
-	log_ctx->udp_server=SCStrdup(udp_server);
-	log_ctx->udp_port=SCStrdup(udp_port);
-	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if(sockfd<0)
-		return -1;
-	bzero(&log_ctx->udp_serveraddr, sizeof(struct sockaddr_in));
-	log_ctx->udp_serveraddr.sin_family = AF_INET;
-	log_ctx->udp_serveraddr.sin_port = htons(atoi(udp_port));
-	log_ctx->udp_serveraddr.sin_addr.s_addr = inet_addr(udp_server);
-	setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(void *)&i,sizeof(i));
-	if(sockfd<0)
-		return -1;
-	log_ctx->udp_fd=sockfd;
-	log_ctx->is_sock=1;
-	log_ctx->Write=SCLogUDPSocketWrite;
-	log_ctx->Close=SCLogUDPSocketClose;
-	return sockfd;
+    log_ctx->udp_server=SCStrdup(udp_server);
+    log_ctx->udp_port=SCStrdup(udp_port);
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sockfd<0)
+        return -1;
+    bzero(&log_ctx->udp_serveraddr, sizeof(struct sockaddr_in));
+    log_ctx->udp_serveraddr.sin_family = AF_INET;
+    log_ctx->udp_serveraddr.sin_port = htons(atoi(udp_port));
+    log_ctx->udp_serveraddr.sin_addr.s_addr = inet_addr(udp_server);
+    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(void *)&i,sizeof(i));
+    if(sockfd<0)
+        return -1;
+    log_ctx->udp_fd=sockfd;
+    log_ctx->is_sock=1;
+    log_ctx->Write=SCLogUDPSocketWrite;
+    log_ctx->Close=SCLogUDPSocketClose;
+    return sockfd;
 }
 int SCLogUDPSocketReconnect(LogFileCtx *log_ctx)
 {
-	struct timeval tv;
+    struct timeval tv;
     uint64_t now;
     gettimeofday(&tv, NULL);
     now = (uint64_t)tv.tv_sec * 1000;
@@ -81,19 +81,35 @@ int SCLogUDPSocketReconnect(LogFileCtx *log_ctx)
         return 0;
     }
     log_ctx->reconn_timer = now;
-	//may be no use reconnect.
-	return 1;
+    //may be no use reconnect.
+    return 1;
 }
 int SCLogUDPSocketWrite(const char *buffer,int buffer_len,LogFileCtx *log_ctx)
 {
-	int ret=-1;
-	if(log_ctx->udp_fd>0)
-	ret=sendto(log_ctx->udp_fd,buffer,buffer_len,0,(struct sockaddr *)&log_ctx->udp_serveraddr,sizeof(log_ctx->udp_serveraddr));
-	return ret;
+    int ret=-1;
+    int sendlen=1400;
+    char *ptr=NULL;
+    int now=0;;
+    if(log_ctx->udp_fd<=0)
+        return ret;
+    while(1){
+        if(buffer_len <= sendlen)
+            sendlen=buffer_len; 
+        ptr=(char *)buffer+now;
+        ret=sendto(log_ctx->udp_fd,ptr,sendlen,0,(struct sockaddr *)&log_ctx->udp_serveraddr,sizeof(log_ctx->udp_serveraddr));
+        if(ret < 0)
+            return ret;
+        now += sendlen;
+        buffer_len -= sendlen;
+        if(buffer_len <= 0)
+            break;
+    }       
+
+    return ret;  
 }
 void SCLogUDPSocketClose(LogFileCtx *log_ctx)
 {
-	if(log_ctx->udp_fd>0)
-		close(log_ctx->udp_fd);
-	log_ctx->udp_fd=0;
+    if(log_ctx->udp_fd>0)
+        close(log_ctx->udp_fd);
+    log_ctx->udp_fd=0;
 }
