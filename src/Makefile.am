@@ -165,6 +165,7 @@ detect-gid.c detect-gid.h \
 detect-hostbits.c detect-hostbits.h \
 detect-http-accept.c detect-http-accept.h \
 detect-http-client-body.c detect-http-client-body.h \
+detect-http-connection.c detect-http-connection.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
 detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
