@@ -164,6 +164,7 @@ detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
 detect-hostbits.c detect-hostbits.h \
 detect-http-accept.c detect-http-accept.h \
+detect-http-accept-enc.c detect-http-accept-enc.h \
 detect-http-accept-lang.c detect-http-accept-lang.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-connection.c detect-http-connection.h \
