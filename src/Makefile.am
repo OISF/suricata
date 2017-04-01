@@ -163,9 +163,11 @@ detect-ftpbounce.c detect-ftpbounce.h \
 detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
 detect-hostbits.c detect-hostbits.h \
+detect-http-accept.c detect-http-accept.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
+detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
