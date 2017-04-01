@@ -15,18 +15,9 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-enc.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-referer.h"
+#ifndef __DETECT_HTTP_ACCEPT_LEN_H__
+#define __DETECT_HTTP_ACCEPT_LEN_H__
 
-void DetectHttpHeadersRegister(void)
-{
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersAcceptEnc();
-    RegisterHttpHeadersAcceptLang();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
-}
+void RegisterHttpHeadersAcceptEnc(void);
 
+#endif /* __DETECT_HTTP_ACCEPT_LEN_H__ */

@@ -15,18 +15,33 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-enc.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements http_accept_enc sticky buffer
+ */
+
+#define KEYWORD_NAME "http_accept_enc"
+#define KEYWORD_DOC "http-keywords#http-accept-enc"
+#define BUFFER_NAME "http_accept_enc"
+#define BUFFER_DESC "http accept encoding header"
+#define HEADER_NAME "Accept-Encoding"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_ACCEPT_ENC
+#define KEYWORD_TOSERVER 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersAcceptEnc(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersAcceptEnc();
-    RegisterHttpHeadersAcceptLang();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
+    DetectHttpHeadersRegisterStub();
 }
 
