@@ -15,13 +15,32 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-connection.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements the http_connection sticky buffer
+ */
+
+#define KEYWORD_NAME "http_connection"
+#define KEYWORD_DOC "http-keywords#http-connection"
+#define BUFFER_NAME "http_connection"
+#define BUFFER_DESC "http connection header"
+#define HEADER_NAME "Connection"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONNECTION
+#define KEYWORD_TOSERVER 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersConnection(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
+    DetectHttpHeadersRegisterStub();
 }

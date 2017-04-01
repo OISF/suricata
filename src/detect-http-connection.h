@@ -15,13 +15,9 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-connection.h"
-#include "detect-http-referer.h"
+#ifndef __DETECT_HTTP_CONNECTION_H__
+#define __DETECT_HTTP_CONNECTION_H__
 
-void DetectHttpHeadersRegister(void)
-{
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
-}
+void RegisterHttpHeadersConnection(void);
+
+#endif /* __DETECT_HTTP_CONNECTION_H__ */
