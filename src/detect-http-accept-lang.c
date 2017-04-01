@@ -15,16 +15,32 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements http_accept_lang sticky buffer
+ */
+
+#define KEYWORD_NAME "http_accept_lang"
+#define KEYWORD_DOC "http-keywords#http-accept-lang"
+#define BUFFER_NAME "http_accept_lang"
+#define BUFFER_DESC "http accept language header"
+#define HEADER_NAME "Accept-Language"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_ACCEPT_LANG
+#define KEYWORD_TOSERVER 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersAcceptLang(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersAcceptLang();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
+    DetectHttpHeadersRegisterStub();
 }
-
