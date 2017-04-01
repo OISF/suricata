@@ -15,11 +15,32 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements support http_referer sticky buffer
+ */
+
+#define KEYWORD_NAME "http_referer"
+#define KEYWORD_DOC "http-keywords#http-referer"
+#define BUFFER_NAME "http_referer"
+#define BUFFER_DESC "http referer header"
+#define HEADER_NAME "Referer"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_REFERER
+#define KEYWORD_TOSERVER 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersReferer(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersReferer();
+    DetectHttpHeadersRegisterStub();
 }
