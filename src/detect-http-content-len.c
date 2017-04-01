@@ -15,22 +15,33 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-enc.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-content-len.h"
-#include "detect-http-content-type.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implements http_content_len sticky buffer
+ */
+
+#define KEYWORD_NAME "http_content_len"
+#define KEYWORD_DOC "http-keywords#http-content-len"
+#define BUFFER_NAME "http_content_len"
+#define BUFFER_DESC "http content length header"
+#define HEADER_NAME "Content-Length"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONTENT_LEN
+#define KEYWORD_TOSERVER 1
+#define KEYWORD_TOCLIENT 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersContentLen(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersAcceptEnc();
-    RegisterHttpHeadersAcceptLang();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
-    RegisterHttpHeadersContentLen();
-    RegisterHttpHeadersContentType();
+    DetectHttpHeadersRegisterStub();
 }
-
