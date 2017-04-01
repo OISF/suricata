@@ -15,19 +15,33 @@
  * 02110-1301, USA.
  */
 
-#include "detect-http-accept.h"
-#include "detect-http-accept-enc.h"
-#include "detect-http-accept-lang.h"
-#include "detect-http-connection.h"
-#include "detect-http-content-type.h"
-#include "detect-http-referer.h"
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
 
-void DetectHttpHeadersRegister(void)
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ *
+ * Implement http_content_type sticky buffer
+ */
+
+#define KEYWORD_NAME "http_content_type"
+#define KEYWORD_DOC "http-keywords#http-content-type"
+#define BUFFER_NAME "http_content_type"
+#define BUFFER_DESC "http content type header"
+#define HEADER_NAME "Content-Type"
+#define KEYWORD_ID DETECT_AL_HTTP_HEADER_CONTENT_TYPE
+#define KEYWORD_TOSERVER 1
+#define KEYWORD_TOCLIENT 1
+
+#include "detect-http-headers-stub.h"
+
+void RegisterHttpHeadersContentType(void)
 {
-    RegisterHttpHeadersAccept();
-    RegisterHttpHeadersAcceptEnc();
-    RegisterHttpHeadersAcceptLang();
-    RegisterHttpHeadersReferer();
-    RegisterHttpHeadersConnection();
-    RegisterHttpHeadersContentType();
+    DetectHttpHeadersRegisterStub();
 }

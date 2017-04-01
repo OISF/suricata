@@ -168,6 +168,7 @@ detect-http-accept-enc.c detect-http-accept-enc.h \
 detect-http-accept-lang.c detect-http-accept-lang.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-connection.c detect-http-connection.h \
+detect-http-content-type.c detect-http-content-type.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
 detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
