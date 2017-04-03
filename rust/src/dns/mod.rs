@@ -15,6 +15,22 @@
  * 02110-1301, USA.
  */
 
-void rs_log_init(int32_t level);
+use log::*;
+use conf;
 
-void rs_dns_init(void);
+#[no_mangle]
+pub extern "C" fn rs_dns_init() {
+    SCLogNotice!("Initializing DNS analyzer");
+    
+    match conf::conf_get("app-layer.protocols.dns.tcp.enabled") {
+        Some(val) => SCLogNotice!("- TCP is enabled: {}", val),
+        None => SCLogNotice!("- TCP is not enabled."),
+    }
+
+    match conf::conf_get("app-layer.protocols.dns.udp.enabled") {
+        Some(val) => SCLogNotice!("- UDP is enabled: {}", val),
+        None => SCLogNotice!("- UDP is not enabled."),
+    }
+}
+
+
