@@ -1,3 +1,2 @@
-#[test]
-fn it_works() {
-}
+#[macro_use]
+pub mod log;
