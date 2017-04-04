@@ -455,7 +455,7 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
+EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py tests
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
