@@ -121,6 +121,47 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
     return log_ctx->fp ? 1 : 0;
 }
 
+static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
+        LogFileCtx *ctx)
+{
+    int tries = 0;
+    int ret = 0;
+    int reopen = false;
+
+    if (ctx->fp == NULL && ctx->is_sock) {
+        SCLogUnixSocketReconnect(ctx);
+    }
+
+tryagain:
+    ret = 0;
+    reopen = 0;
+    if (ctx->fp != NULL && tries++ < 2) {
+        int fd = fileno(ctx->fp);
+        ssize_t size = send(fd, buffer, buffer_len, MSG_DONTWAIT);
+        if (size < 1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                ctx->dropped++;
+            } else if (tries == 0 && errno == EINTR) {
+                goto tryagain;
+            } else {
+                /* Some other error. Assume badness and reopen. */
+                reopen = true;
+            }
+            ret = -1;
+        }
+    } else {
+        ctx->dropped++;
+    }
+
+    if (reopen) {
+        if (SCLogUnixSocketReconnect(ctx)) {
+            goto tryagain;
+        }
+    }
+
+    return ret;
+}
+
 /**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite (number of
@@ -128,30 +169,24 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
  */
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
-    SCMutexLock(&log_ctx->fp_mutex);
-
-    /* Check for rotation. */
-    if (log_ctx->rotation_flag) {
-        log_ctx->rotation_flag = 0;
-        SCConfLogReopen(log_ctx);
-    }
-
     int ret = 0;
 
-    if (log_ctx->fp == NULL && log_ctx->is_sock)
-        SCLogUnixSocketReconnect(log_ctx);
+    SCMutexLock(&log_ctx->fp_mutex);
 
-    if (log_ctx->fp) {
-        clearerr(log_ctx->fp);
-        ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-        fflush(log_ctx->fp);
+    if (log_ctx->is_sock) {
+        ret = SCLogFileWriteSocket(buffer, buffer_len, log_ctx);
+    } else {
 
-        if (ferror(log_ctx->fp) && log_ctx->is_sock) {
-            /* Error on Unix socket, maybe needs reconnect */
-            if (SCLogUnixSocketReconnect(log_ctx)) {
-                ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-                fflush(log_ctx->fp);
-            }
+        /* Check for rotation. */
+        if (log_ctx->rotation_flag) {
+            log_ctx->rotation_flag = 0;
+            SCConfLogReopen(log_ctx);
+        }
+
+        if (log_ctx->fp) {
+            clearerr(log_ctx->fp);
+            ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+            fflush(log_ctx->fp);
         }
     }
 
