@@ -338,6 +338,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_REDIS);
         CASE_CODE (SC_ERR_VAR_LIMIT);
         CASE_CODE (SC_WARN_CHMOD);
+        CASE_CODE (SC_ERR_NO_REDIS_ASYNC);
     }
 
     return "UNKNOWN_ERROR";
