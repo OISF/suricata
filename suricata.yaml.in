@@ -206,9 +206,12 @@ outputs:
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
+            # output TLS transaction where the session is resumed using a
+            # session id
+            #session-resumption: no
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, session_resumed, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
@@ -303,6 +306,9 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       #extended: yes # Log extended information like fingerprint
+      # output TLS transaction where the session is resumed using a
+      # session id
+      #session-resumption: no
 
   # output module to store certificates chain to disk
   - tls-store:
