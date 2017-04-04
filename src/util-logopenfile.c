@@ -34,9 +34,14 @@
 #include "util-byte.h"
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
+#include "util-print.h"
 
 const char * redis_push_cmd = "LPUSH";
 const char * redis_publish_cmd = "PUBLISH";
+
+#ifdef HAVE_RDKAFKA
+#include "util-logopenfile-kafka.h"
+#endif
 
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
@@ -578,6 +583,14 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             SCFree(lf_ctx->redis_setup.key);
     }
 #endif
+#ifdef HAVE_LIBRDKAFKA
+
+    if (lf_ctx->type == LOGFILE_TYPE_KAFKA) {
+        SCMutexLock(&lf_ctx->fp_mutex);
+        SCLogFileCloseKafka(lf_ctx);
+        SCMutexUnlock(&lf_ctx->fp_mutex);
+    }
+#endif
 
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
@@ -686,6 +699,7 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t s
 
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 {
+
     if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
         syslog(file_ctx->syslog_setup.alert_syslog_level, "%s",
                 (const char *)MEMBUFFER_BUFFER(buffer));
@@ -702,6 +716,15 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
         LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer));
+        SCMutexUnlock(&file_ctx->fp_mutex);
+    }
+#endif
+
+#ifdef HAVE_LIBRDKAFKA
+    else if (file_ctx->type == LOGFILE_TYPE_KAFKA) {
+        SCMutexLock(&file_ctx->fp_mutex);
+        LogFileWriteKafka(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
                 MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
