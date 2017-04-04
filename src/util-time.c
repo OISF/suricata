@@ -469,3 +469,114 @@ int SCStringPatternToTime (char *string, char **patterns, int num_patterns,
 
     return 0;
 }
+
+/**
+ * \brief Convert epoch time to string pattern.
+ *
+ * This function converts epoch time to a string based on a pattern.
+ *
+ * \param epoch   Epoch time.
+ * \param pattern String pattern.
+ * \param str     Formated string.
+ * \param size    Size of allocated string.
+ *
+ * \retval 0 on success.
+ * \retval 1 on failure.
+ */
+int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str, size_t size)
+{
+    struct tm tm;
+    memset(&tm, 0, sizeof(tm));
+    struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
+    char buffer[PATH_MAX] = { 0 };
+
+    if (unlikely(tp == NULL)) {
+        return 1;
+    }
+
+    int r = strftime(buffer, sizeof(buffer), pattern, tp);
+    if (r == 0) {
+        return 1;
+    }
+
+    strlcpy(str, buffer, size);
+
+    return 0;
+}
+
+/**
+ * \brief Parse string containing time size (1m, 1h, etc).
+ *
+ * \param str String to parse.
+ *
+ * \retval size on success.
+ * \retval 0 on failure.
+ */
+uint64_t SCParseTimeSizeString (const char *str)
+{
+    uint64_t size = 0;
+    uint64_t modifier = 1;
+    char last = str[strlen(str)-1];
+
+    switch (last)
+    {
+        case '0' ... '9':
+            break;
+        /* seconds */
+        case 's':
+            break;
+        /* minutes */
+        case 'm':
+            modifier = 60;
+            break;
+        /* hours */
+        case 'h':
+            modifier = 60 * 60;
+            break;
+        /* days */
+        case 'd':
+            modifier = 60 * 60 * 24;
+            break;
+        /* weeks */
+        case 'w':
+            modifier = 60 * 60 * 24 * 7;
+            break;
+        /* invalid */
+        default:
+            return 0;
+    }
+
+    errno = 0;
+    size = strtoumax(str, NULL, 10);
+    if (errno) {
+        return 0;
+    }
+
+    return (size * modifier);
+}
+
+/**
+ * \brief Get seconds until a time unit changes.
+ *
+ * \param str   String containing time type (minute, hour, etc).
+ * \param epoch Epoch time.
+ *
+ * \retval seconds.
+ */
+uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
+{
+    uint64_t seconds = 0;
+    struct tm tm;
+    memset(&tm, 0, sizeof(tm));
+    struct tm *tp = (struct tm *)SCLocalTime(epoch, &tm);
+
+    if (strcmp(str, "minute") == 0)
+        seconds = 60 - tp->tm_sec;
+    else if (strcmp(str, "hour") == 0)
+        seconds = (60 * (60 - tp->tm_min)) + (60 - tp->tm_sec);
+    else if (strcmp(str, "day") == 0)
+        seconds = (3600 * (24 - tp->tm_hour)) + (60 * (60 - tp->tm_min)) +
+                  (60 - tp->tm_sec);
+
+    return seconds;
+}
