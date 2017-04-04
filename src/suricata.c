@@ -1835,10 +1835,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         case 'T':
             SCLogInfo("Running suricata under test mode");
             conf_test = 1;
-            if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
-                fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
-                return TM_ECODE_FAILED;
-            }
             break;
 #ifndef OS_WIN32
         case 'D':

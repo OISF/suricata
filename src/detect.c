@@ -475,10 +475,12 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                     ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
 
-                    if (ret != 0 || good_sigs == 0) {
-                        if (de_ctx->failure_fatal == 1) {
-                            exit(EXIT_FAILURE);
+                    if (de_ctx->failure_fatal && (ret != 0 || good_sigs == 0)) {
+                        if (ret == 0 && good_sigs == 0) {
+                            SCLogError(SC_ERR_NO_RULES_LOADED,
+                                    "No rules loaded from %s.", file->val);
                         }
+                        exit(EXIT_FAILURE);
                     }
                 }
             }
