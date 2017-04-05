@@ -197,6 +197,9 @@ volatile uint8_t suricata_ctl_flags = 0;
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
 
+/** Is this an offline run mode. */
+int run_mode_offline = 0;
+
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
@@ -2342,8 +2345,9 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
         default:
             break;
     }
-    /* Set the global run mode */
+    /* Set the global run mode and offline flag. */
     run_mode = suri->run_mode;
+    run_mode_offline = suri->offline;
 
     if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
         return TM_ECODE_FAILED;
