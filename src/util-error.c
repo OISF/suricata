@@ -339,6 +339,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_VAR_LIMIT);
         CASE_CODE (SC_WARN_CHMOD);
         CASE_CODE (SC_WARN_LOG_CF_TOO_MANY_NODES);
+        CASE_CODE (SC_WARN_EVENT_DROPPED);
     }
 
     return "UNKNOWN_ERROR";
