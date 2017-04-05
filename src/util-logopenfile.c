@@ -127,9 +127,15 @@ static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
     int tries = 0;
     int ret = 0;
     bool reopen = false;
+    int flags = 0;
 
     if (ctx->fp == NULL && ctx->is_sock) {
         SCLogUnixSocketReconnect(ctx);
+    }
+
+    /* Set flags for a non-blocking write if live. */
+    if (TimeModeIsLive()) {
+        flags |= MSG_DONTWAIT;
     }
 
 tryagain:
@@ -138,7 +144,7 @@ tryagain:
     errno = 0;
     if (ctx->fp != NULL) {
         int fd = fileno(ctx->fp);
-        ssize_t size = send(fd, buffer, buffer_len, MSG_DONTWAIT);
+        ssize_t size = send(fd, buffer, buffer_len, flags);
         if (size > -1) {
             ret = 0;
         } else {
