@@ -138,7 +138,7 @@ tryagain:
     errno = 0;
     if (ctx->fp != NULL) {
         int fd = fileno(ctx->fp);
-        ssize_t size = send(fd, buffer, buffer_len, MSG_DONTWAIT);
+        ssize_t size = send(fd, buffer, buffer_len, ctx->send_flags);
         if (size > -1) {
             ret = 0;
         } else {
@@ -399,6 +399,12 @@ SCConfLogOpenGeneric(ConfNode *conf,
         SCLogError(SC_ERR_MEM_ALLOC,
             "Failed to allocate memory for filename");
         return -1;
+    }
+
+    /* If a socket and running live, do non-blocking writes. */
+    if (log_ctx->is_sock && run_mode_offline == 0) {
+        SCLogInfo("Setting logging socket of non-blocking in live mode.");
+        log_ctx->send_flags |= MSG_DONTWAIT;
     }
 
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
