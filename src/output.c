@@ -41,6 +41,7 @@
 #include "output.h"
 
 #include "alert-fastlog.h"
+#include "alert-hpfeeds.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
@@ -1028,6 +1029,8 @@ void OutputRegisterLoggers(void)
     LuaLogRegister();
     /* fast log */
     AlertFastLogRegister();
+   /* hpfeeds log */
+    AlertHPFeeds();
     /* debug log */
     AlertDebugLogRegister();
     /* prelue log */
