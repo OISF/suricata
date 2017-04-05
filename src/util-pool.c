@@ -239,7 +239,7 @@ void PoolFree(Pool *p)
                 SCFree(pb->data);
         }
         pb->data = NULL;
-        if (! pb->flags & POOL_BUCKET_PREALLOCATED) {
+        if (!(pb->flags & POOL_BUCKET_PREALLOCATED)) {
             SCFree(pb);
         }
     }
@@ -258,7 +258,7 @@ void PoolFree(Pool *p)
             }
             pb->data = NULL;
         }
-        if (! pb->flags & POOL_BUCKET_PREALLOCATED) {
+        if (!(pb->flags & POOL_BUCKET_PREALLOCATED)) {
             SCFree(pb);
         }
     }
