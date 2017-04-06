@@ -69,6 +69,12 @@ static void DetectTlsCipherSuiteFree(void *data)
         return;
 
     DetectTlsCipherSuiteData *cipher = data;
+
+    if (cipher->ciphersuite != NULL) {
+        SCFree(cipher->ciphersuite);
+        cipher->ciphersuite = NULL;
+    }
+
     SCFree(cipher);
     data = NULL;
 }
@@ -729,6 +735,7 @@ static int DetectTlsCipherSuiteMatchTest04(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
+    StatsThreadCleanup(&tv);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
@@ -847,6 +854,7 @@ static int DetectTlsCipherSuiteBadClientLen05(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
+    StatsThreadCleanup(&tv);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
