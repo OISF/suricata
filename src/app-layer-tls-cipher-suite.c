@@ -541,7 +541,7 @@ next_line:
 /**
  * \brief Function open and parse cipher suites file, overring default values.
  */
-void SSLLoadCipherSuitesFile(char * cipher_suites_filename)
+void SSLLoadCipherSuitesFile(const char * cipher_suites_filename)
 {
     FILE *stream = NULL;
 

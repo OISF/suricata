@@ -1838,7 +1838,7 @@ static int SSLRegisterPatternsForProtocolDetection(void)
 void RegisterSSLParsers(void)
 {
     const char *proto_name = "tls";
-    char *cipher_suites_filename = NULL;
+    const char *cipher_suites_filename = NULL;
 
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {

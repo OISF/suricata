@@ -36,6 +36,7 @@ const char * SSLCipherSuiteDescription(uint16_t value);
 uint16_t SSLCipherSuiteByteOrderValue(uint16_t value);
 SSLCipherSuite * SSLCipherSuites(size_t *len);
 
-void SSLLoadCipherSuitesFile(char * cipher_suites_filename);
+void SSLLoadCipherSuitesFile(const char * cipher_suites_filename);
+void DetectTlsCipherSuiteRegister(void);
 
 #endif /* __APP_LAYER_TLS_CIPHER_SUITE_H__ */

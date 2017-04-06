@@ -42,7 +42,7 @@
 #include "stream-tcp.h"
 #include "flow-util.h"
 
-static int DetectTlsCipherSuiteSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTlsCipherSuiteSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsCipherSuiteRegisterTests(void);
 static int g_tls_generic_list_id = 0;
 
@@ -294,7 +294,7 @@ error:
  *
  * \retval 0       On success
  */
-static int DetectTlsCipherSuiteSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsCipherSuiteSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsCipherSuiteData *data = NULL;
     SigMatch *sm = NULL;
@@ -639,8 +639,6 @@ static int DetectTlsCipherSuiteMatchTest04(void)
     Packet *p2 = NULL;
     Signature *s_c = NULL;
     Signature *s_s = NULL;
-    int s_c_ret = 0;
-    int s_s_ret = 0;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -707,7 +705,7 @@ static int DetectTlsCipherSuiteMatchTest04(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    s_c_ret = SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
@@ -716,10 +714,7 @@ static int DetectTlsCipherSuiteMatchTest04(void)
 
     FAIL_IF(r != 0);
 
-    s_s_ret = SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
-
-    FAIL_IF(s_c_ret != 1);
-    FAIL_IF(s_s_ret != 1);
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -728,6 +723,7 @@ static int DetectTlsCipherSuiteMatchTest04(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
+    StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
     UTHFreePacket(p2);
@@ -787,7 +783,6 @@ static int DetectTlsCipherSuiteBadClientLen05(void)
     TcpSession ssn;
     Packet *p1 = NULL;
     Signature *s_c = NULL;
-    int s_c_ret = 0;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -839,8 +834,7 @@ static int DetectTlsCipherSuiteBadClientLen05(void)
     ssl_state = f.alstate;
     FAIL_IF_NULL(ssl_state);
 
-    s_c_ret = SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
-    FAIL_IF(s_c_ret != 0);
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
 
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -849,12 +843,11 @@ static int DetectTlsCipherSuiteBadClientLen05(void)
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
 
+    StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p1);
 
     PASS;
-
-
 }
 
 #endif
