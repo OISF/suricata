@@ -589,9 +589,6 @@ static DetectTlsCipherSuiteData *DetectTlsCipherSuiteParse (char *str)
         goto side_error;
     }
 
-    size_t g_suites_len = 0;
-    SSLCipherSuite * g_suites = SSLCipherSuites(&g_suites_len);
-
     /* Parse cipher suite list */
     char *saved = NULL;
     char *pch = strtok_r((char *)list_str, g_list_delimiter, &saved);
@@ -611,7 +608,7 @@ static DetectTlsCipherSuiteData *DetectTlsCipherSuiteParse (char *str)
         }
 
         /* Find by description */
-        for (size_t i=0; i < g_suites_len; ++i) {
+        for (size_t i=0; i < sizeof(g_suites); ++i) {
             if ( SCMemcmp(pch, g_suites[i].description, strlen(g_suites[i].description)) == 0 ) {
                 data->ciphersuite[rule_suite_index] = g_suites[i].value;
                 ++rule_suite_index;
