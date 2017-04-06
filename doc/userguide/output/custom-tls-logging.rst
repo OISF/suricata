@@ -32,6 +32,8 @@ The list of supported format strings is the following:
 * %f - certificate fingerprint SHA1
 * %s - certificate subject
 * %i - certificate issuer dn
+* %c - client cipher suite description
+* %C - server cipher suite description
 * %E - extended format
 * %{strftime_format}t - timestamp of the TLS transaction in the selected strftime format. ie: 08/28/12-22:14:30
 * %z - precision time in useconds. ie: 693856
