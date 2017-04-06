@@ -552,10 +552,19 @@
         [ pcre_jit_available=yes ], [ pcre_jit_available=no ]
         )
 
-    # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
-    if test "$libpcre_buggy_found" = "yes"; then
-        pcre_jit_available="no, libpcre 8.35 blacklisted"
-    fi
+    case $host in
+        *powerpc64*)
+            # on powerpc64, both gcc and clang lead to SIGILL in
+            # unittests when jit is enabled.
+            pcre_jit_available="no, pcre jit disabled for powerpc64"
+        ;;
+        *)
+            # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
+            if test "$libpcre_buggy_found" = "yes"; then
+                pcre_jit_available="no, libpcre 8.35 blacklisted"
+            fi
+        ;;
+    esac
 
     if test "x$pcre_jit_available" = "xyes"; then
        AC_MSG_RESULT(yes)
