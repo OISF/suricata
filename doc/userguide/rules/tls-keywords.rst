@@ -146,6 +146,29 @@ match TLS/SSL certificate SHA1 fingerprint
 
 example:
 
+tls_cipher_suite
+---------------
+
+match TLS/SSL cipher suites by name description or hexadecimal value.
+
+Accepts a list of cipher suites separated by a ':' delimiter.
+
+The list of accepted cipher suites is loaded from configuration file specified in suricata.yaml in tls protocol settings at the app-layer section.
+
+The default file is tls.cipher-suites.config.
+If this file is not configured, detection will fallback to a built-in default cipher list.
+
+example:
+
+
+::
+
+  tls_cipher_suite:client:TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384:0xcca8
+
+::
+
+  tls_cipher_suite:server:0xcca8
+
 
 ::
 
