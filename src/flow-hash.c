@@ -81,8 +81,8 @@ static inline int FlowHashRawAddressIPv6GtU32(const uint32_t *a, const uint32_t 
 typedef struct FlowHashKey4_ {
     union {
         struct {
-            uint32_t src, dst;
-            uint16_t sp, dp;
+            uint32_t addrs[2];
+            uint16_t ports[2];
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
             uint16_t vlan_id[2];
@@ -95,7 +95,7 @@ typedef struct FlowHashKey6_ {
     union {
         struct {
             uint32_t src[4], dst[4];
-            uint16_t sp, dp;
+            uint16_t ports[2];
             uint16_t proto; /**< u16 so proto and recur add up to u32 */
             uint16_t recur; /**< u16 so proto and recur add up to u32 */
             uint16_t vlan_id[2];
@@ -124,20 +124,15 @@ static inline uint32_t FlowGetHash(const Packet *p)
     if (p->ip4h != NULL) {
         if (p->tcph != NULL || p->udph != NULL) {
             FlowHashKey4 fhk;
-            if (p->src.addr_data32[0] > p->dst.addr_data32[0]) {
-                fhk.src = p->src.addr_data32[0];
-                fhk.dst = p->dst.addr_data32[0];
-            } else {
-                fhk.src = p->dst.addr_data32[0];
-                fhk.dst = p->src.addr_data32[0];
-            }
-            if (p->sp > p->dp) {
-                fhk.sp = p->sp;
-                fhk.dp = p->dp;
-            } else {
-                fhk.sp = p->dp;
-                fhk.dp = p->sp;
-            }
+
+            int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
+            fhk.addrs[1-ai] = p->src.addr_data32[0];
+            fhk.addrs[ai] = p->dst.addr_data32[0];
+
+            const int pi = (p->sp > p->dp);
+            fhk.ports[1-pi] = p->sp;
+            fhk.ports[pi] = p->dp;
+
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
             fhk.vlan_id[0] = p->vlan_id[0];
@@ -149,20 +144,15 @@ static inline uint32_t FlowGetHash(const Packet *p)
             uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
             uint32_t pdst = IPV4_GET_RAW_IPDST_U32(ICMPV4_GET_EMB_IPV4(p));
             FlowHashKey4 fhk;
-            if (psrc > pdst) {
-                fhk.src = psrc;
-                fhk.dst = pdst;
-            } else {
-                fhk.src = pdst;
-                fhk.dst = psrc;
-            }
-            if (p->icmpv4vars.emb_sport > p->icmpv4vars.emb_dport) {
-                fhk.sp = p->icmpv4vars.emb_sport;
-                fhk.dp = p->icmpv4vars.emb_dport;
-            } else {
-                fhk.sp = p->icmpv4vars.emb_dport;
-                fhk.dp = p->icmpv4vars.emb_sport;
-            }
+
+            const int ai = (psrc > pdst);
+            fhk.addrs[1-ai] = psrc;
+            fhk.addrs[ai] = pdst;
+
+            const int pi = (p->icmpv4vars.emb_sport > p->icmpv4vars.emb_dport);
+            fhk.ports[1-pi] = p->icmpv4vars.emb_sport;
+            fhk.ports[pi] = p->icmpv4vars.emb_dport;
+
             fhk.proto = (uint16_t)ICMPV4_GET_EMB_PROTO(p);
             fhk.recur = (uint16_t)p->recursion_level;
             fhk.vlan_id[0] = p->vlan_id[0];
@@ -172,15 +162,11 @@ static inline uint32_t FlowGetHash(const Packet *p)
 
         } else {
             FlowHashKey4 fhk;
-            if (p->src.addr_data32[0] > p->dst.addr_data32[0]) {
-                fhk.src = p->src.addr_data32[0];
-                fhk.dst = p->dst.addr_data32[0];
-            } else {
-                fhk.src = p->dst.addr_data32[0];
-                fhk.dst = p->src.addr_data32[0];
-            }
-            fhk.sp = 0xfeed;
-            fhk.dp = 0xbeef;
+            const int ai = (p->src.addr_data32[0] > p->dst.addr_data32[0]);
+            fhk.addrs[1-ai] = p->src.addr_data32[0];
+            fhk.addrs[ai] = p->dst.addr_data32[0];
+            fhk.ports[0] = 0xfeed;
+            fhk.ports[1] = 0xbeef;
             fhk.proto = (uint16_t)p->proto;
             fhk.recur = (uint16_t)p->recursion_level;
             fhk.vlan_id[0] = p->vlan_id[0];
@@ -209,13 +195,10 @@ static inline uint32_t FlowGetHash(const Packet *p)
             fhk.dst[2] = p->src.addr_data32[2];
             fhk.dst[3] = p->src.addr_data32[3];
         }
-        if (p->sp > p->dp) {
-            fhk.sp = p->sp;
-            fhk.dp = p->dp;
-        } else {
-            fhk.sp = p->dp;
-            fhk.dp = p->sp;
-        }
+
+        const int pi = (p->sp > p->dp);
+        fhk.ports[1-pi] = p->sp;
+        fhk.ports[pi] = p->dp;
         fhk.proto = (uint16_t)p->proto;
         fhk.recur = (uint16_t)p->recursion_level;
         fhk.vlan_id[0] = p->vlan_id[0];
