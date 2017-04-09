@@ -205,7 +205,7 @@ void DefragInitConfig(char quiet)
     (void) SC_ATOMIC_ADD(defrag_memuse, (defrag_config.hash_size * sizeof(DefragTrackerHashRow)));
 
     if (quiet == FALSE) {
-        SCLogConfig("allocated %llu bytes of memory for the defrag hash... "
+        SCLogConfig("allocated %"PRIu64" bytes of memory for the defrag hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(defrag_memuse), defrag_config.hash_size,
                   (uintmax_t)sizeof(DefragTrackerHashRow));
@@ -239,7 +239,7 @@ void DefragInitConfig(char quiet)
     }
 
     if (quiet == FALSE) {
-        SCLogConfig("defrag memory usage: %llu bytes, maximum: %"PRIu64,
+        SCLogConfig("defrag memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(defrag_memuse), defrag_config.memcap);
     }
 

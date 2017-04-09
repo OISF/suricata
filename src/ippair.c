@@ -206,7 +206,7 @@ void IPPairInitConfig(char quiet)
     (void) SC_ATOMIC_ADD(ippair_memuse, (ippair_config.hash_size * sizeof(IPPairHashRow)));
 
     if (quiet == FALSE) {
-        SCLogConfig("allocated %llu bytes of memory for the ippair hash... "
+        SCLogConfig("allocated %"PRIu64" bytes of memory for the ippair hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(ippair_memuse), ippair_config.hash_size,
                   (uintmax_t)sizeof(IPPairHashRow));
@@ -233,7 +233,7 @@ void IPPairInitConfig(char quiet)
     if (quiet == FALSE) {
         SCLogConfig("preallocated %" PRIu32 " ippairs of size %" PRIu16 "",
                 ippair_spare_q.len, g_ippair_size);
-        SCLogConfig("ippair memory usage: %llu bytes, maximum: %"PRIu64,
+        SCLogConfig("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(ippair_memuse), ippair_config.memcap);
     }
 
@@ -248,7 +248,7 @@ void IPPairPrintStats (void)
     SCLogPerf("ippairbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
         ippairbits_added, ippairbits_removed, ippairbits_memuse_max);
 #endif /* IPPAIRBITS_STATS */
-    SCLogPerf("ippair memory usage: %llu bytes, maximum: %"PRIu64,
+    SCLogPerf("ippair memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
             SC_ATOMIC_GET(ippair_memuse), ippair_config.memcap);
     return;
 }

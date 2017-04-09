@@ -126,9 +126,9 @@ typedef struct IPPairConfig_ {
     } while (0)
 
 IPPairConfig ippair_config;
-SC_ATOMIC_DECLARE(unsigned long long int,ippair_memuse);
-SC_ATOMIC_DECLARE(unsigned int,ippair_counter);
-SC_ATOMIC_DECLARE(unsigned int,ippair_prune_idx);
+SC_ATOMIC_DECLARE(uint64_t,ippair_memuse);
+SC_ATOMIC_DECLARE(uint32_t,ippair_counter);
+SC_ATOMIC_DECLARE(uint32_t,ippair_prune_idx);
 
 void IPPairInitConfig(char quiet);
 void IPPairShutdown(void);

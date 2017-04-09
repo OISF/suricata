@@ -129,9 +129,9 @@ typedef struct HostConfig_ {
     } while (0)
 
 HostConfig host_config;
-SC_ATOMIC_DECLARE(unsigned long long int,host_memuse);
-SC_ATOMIC_DECLARE(unsigned int,host_counter);
-SC_ATOMIC_DECLARE(unsigned int,host_prune_idx);
+SC_ATOMIC_DECLARE(uint64_t,host_memuse);
+SC_ATOMIC_DECLARE(uint32_t,host_counter);
+SC_ATOMIC_DECLARE(uint32_t,host_prune_idx);
 
 void HostInitConfig(char quiet);
 void HostShutdown(void);
