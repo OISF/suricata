@@ -26,7 +26,9 @@
 #define _FILE_OFFSET_BITS 64
 #include "util-coredump-config.h"
 #include "conf.h"
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 /**
  * \brief Configures the core dump size.
@@ -36,6 +38,7 @@
  */
 int32_t CoredumpLoadConfig (void)
 {
+#ifdef HAVE_SYS_RESOURCE_H
     /* get core dump configuration settings for suricata */
     char* dump_size_config = NULL;
     rlim_t max_dump = 0;
@@ -202,5 +205,6 @@ int32_t CoredumpLoadConfig (void)
     }
     /* failed to set the coredump limit */
     SCLogInfo ("Could't set coredump size to %s.", dump_size_config);
+#endif /* HAVE_SYS_RESOURCE_H */
     return 0;
 }
