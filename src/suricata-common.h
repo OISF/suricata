@@ -278,37 +278,61 @@
 
 /** Windows does not define __WORDSIZE, but it uses __X86__ */
 #ifndef __WORDSIZE
-	#if defined(__X86__) || defined(_X86_)
-		#define __WORDSIZE 32
-	#else
-		#if defined(__X86_64__) || defined(_X86_64_)
-			#define __WORDSIZE 64
-		#endif
-	#endif
+    #if defined(__X86__) || defined(_X86_) || defined(_M_IX86)
+        #define __WORDSIZE 32
+    #else
+        #if defined(__X86_64__) || defined(_X86_64_) || \
+            defined(__x86_64)   || defined(__x86_64__) || \
+            defined(__amd64)    || defined(__amd64__)
+            #define __WORDSIZE 64
+        #endif
+    #endif
+#endif
 
-    #ifndef __WORDSIZE
-        #warning Defaulting to __WORDSIZE 32
+/** if not succesful yet try the data models */
+#ifndef __WORDSIZE
+    #if defined(_ILP32) || defined(__ILP32__)
         #define __WORDSIZE 32
     #endif
+    #if defined(_LP64) || defined(__LP64__)
+        #define __WORDSIZE 64
+    #endif
+#endif
+
+#ifndef __WORDSIZE
+    #warning Defaulting to __WORDSIZE 32
+    #define __WORDSIZE 32
 #endif
 
 /** darwin doesn't defined __BYTE_ORDER and friends, but BYTE_ORDER */
 #ifndef __BYTE_ORDER
-#ifdef BYTE_ORDER
-#define __BYTE_ORDER BYTE_ORDER
-#endif
+    #if defined(BYTE_ORDER)
+        #define __BYTE_ORDER BYTE_ORDER
+    #elif defined(__BYTE_ORDER__)
+        #define __BYTE_ORDER __BYTE_ORDER__
+    #else
+        #error "byte order not detected"
+    #endif
 #endif
 
 #ifndef __LITTLE_ENDIAN
-#ifdef LITTLE_ENDIAN
-#define __LITTLE_ENDIAN LITTLE_ENDIAN
-#endif
+    #if defined(LITTLE_ENDIAN)
+        #define __LITTLE_ENDIAN LITTLE_ENDIAN
+    #elif defined(__ORDER_LITTLE_ENDIAN__)
+        #define __LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+    #endif
 #endif
 
 #ifndef __BIG_ENDIAN
-#ifdef BIG_ENDIAN
-#define __BIG_ENDIAN BIG_ENDIAN
+    #if defined(BIG_ENDIAN)
+        #define __BIG_ENDIAN BIG_ENDIAN
+    #elif defined(__ORDER_BIG_ENDIAN__)
+        #define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
+    #endif
 #endif
+
+#if !defined(__LITTLE_ENDIAN) && !defined(__BIG_ENDIAN)
+    #error "byte order: can't figure out big or little"
 #endif
 
 #ifndef HAVE_PCRE_FREE_STUDY
