@@ -245,6 +245,19 @@ int SSLGetAlstateProgress(void *tx, uint8_t direction)
     return TLS_STATE_IN_PROGRESS;
 }
 
+static uint64_t SSLGetTxMpmIDs(void *vtx)
+{
+    SSLState *ssl_state = (SSLState *)vtx;
+    return ssl_state->mpm_ids;
+}
+
+static int SSLSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
+{
+    SSLState *ssl_state = (SSLState *)vtx;
+    ssl_state->mpm_ids = mpm_ids;
+    return 0;
+}
+
 static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
                                    uint32_t input_len)
 {
@@ -1832,6 +1845,8 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
 
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxLogged, SSLSetTxLogged);
+        AppLayerParserRegisterMpmIDsFuncs(IPPROTO_TCP, ALPROTO_TLS,
+                SSLGetTxMpmIDs, SSLSetTxMpmIDs);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
                                                                SSLGetAlstateProgressCompletionStatus);

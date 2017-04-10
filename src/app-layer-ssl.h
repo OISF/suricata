@@ -191,6 +191,9 @@ typedef struct SSLState_ {
     /* specifies which loggers are done logging */
     uint32_t logged;
 
+    /* MPM/prefilter Id's */
+    uint64_t mpm_ids;
+
     /* there might be a better place to store this*/
     uint16_t hb_record_len;
 

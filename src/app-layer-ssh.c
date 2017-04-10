@@ -557,6 +557,19 @@ static int SSHGetTxLogged(void *state, void *tx, uint32_t logger)
     return 0;
 }
 
+static uint64_t SSHGetTxMpmIDs(void *vtx)
+{
+    SshState *ssh_state = (SshState *)vtx;
+    return ssh_state->mpm_ids;
+}
+
+static int SSHSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
+{
+    SshState *ssh_state = (SshState *)vtx;
+    ssh_state->mpm_ids = mpm_ids;
+    return 0;
+}
+
 static int SSHGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return SSH_STATE_FINISHED;
@@ -632,6 +645,8 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SSH, SSHGetAlstateProgress);
 
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxLogged, SSHSetTxLogged);
+        AppLayerParserRegisterMpmIDsFuncs(IPPROTO_TCP, ALPROTO_SSH,
+                SSHGetTxMpmIDs, SSHSetTxMpmIDs);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SSH,
                                                                SSHGetAlstateProgressCompletionStatus);

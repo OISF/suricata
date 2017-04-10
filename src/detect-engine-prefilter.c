@@ -118,6 +118,7 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (tx == NULL)
             continue;
 
+        uint64_t mpm_ids = AppLayerParserGetTxMpmIDs(ipproto, alproto, tx);
         const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
         SCLogDebug("tx %p progress %d", tx, tx_progress);
 
@@ -127,16 +128,30 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
                 goto next;
             if (engine->tx_min_progress > tx_progress)
                 goto next;
+            if (tx_progress > engine->tx_min_progress) {
+                if (mpm_ids & (1<<(engine->gid))) {
+                    goto next;
+                }
+            }
 
             PROFILING_PREFILTER_START(p);
             engine->cb.PrefilterTx(det_ctx, engine->pectx,
                     p, p->flow, tx, idx, flags);
             PROFILING_PREFILTER_END(p, engine->gid);
+
+            if (tx_progress > engine->tx_min_progress) {
+                mpm_ids |= (1<<(engine->gid));
+            }
         next:
             if (engine->is_last)
                 break;
             engine++;
         } while (1);
+
+        if (mpm_ids != 0) {
+            //SCLogNotice("tx %p Mpm IDs: %"PRIx64, tx, mpm_ids);
+            AppLayerParserSetTxMpmIDs(ipproto, alproto, tx, mpm_ids);
+        }
     }
 }
 

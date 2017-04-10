@@ -153,6 +153,9 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
 void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
                                           AppProto alproto,
                                           uint32_t (*GetStreamDepth)(void));
+void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
+        uint64_t (*GetTxMpmIDs)(void *tx),
+        int (*SetTxMpmIDs)(void *tx, uint64_t));
 
 /***** Get and transaction functions *****/
 
@@ -194,6 +197,9 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
+
+uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx);
+int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint64_t);
 
 /***** General *****/
 

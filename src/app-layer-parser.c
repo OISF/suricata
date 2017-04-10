@@ -116,6 +116,9 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    uint64_t (*GetTxMpmIDs)(void *tx);
+    int (*SetTxMpmIDs)(void *tx, uint64_t);
+
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -537,6 +540,18 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
+        uint64_t(*GetTxMpmIDs)(void *tx),
+        int (*SetTxMpmIDs)(void *tx, uint64_t))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs = GetTxMpmIDs;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs = SetTxMpmIDs;
+
+    SCReturn;
+}
+
 /***** Get and transaction functions *****/
 
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
@@ -926,6 +941,24 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
     if ((alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx) != NULL))
         SCReturnInt(-EBUSY);
     r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(alstate, tx, s);
+    SCReturnInt(r);
+}
+
+uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs != NULL) {
+        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs(tx);
+    }
+
+    return 0ULL;
+}
+
+int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint64_t mpm_ids)
+{
+    int r = 0;
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs != NULL) {
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs(tx, mpm_ids);
+    }
     SCReturnInt(r);
 }
 
