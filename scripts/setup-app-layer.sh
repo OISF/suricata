@@ -6,7 +6,7 @@ set -e
 #set -x
 
 # Fail if "ed" is not available.
-if ! which edx > /dev/null 2>&1; then
+if ! which ed > /dev/null 2>&1; then
     echo "error: the program \"ed\" is required for this script"
     exit 1
 fi
