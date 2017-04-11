@@ -364,7 +364,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 const Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 AppProto alproto)
 {
-    SCLogDebug("rule %u", s->id);
+    SCLogDebug("rule %u/%u", s->id, s->num);
 
     /* TX based matches (inspect engines) */
     if (unlikely(!AppLayerParserProtocolSupportsTxs(f->proto, alproto))) {
@@ -381,13 +381,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int alert_cnt = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     int check_before_add = 0;
-    uint64_t tx_id = 0;
-    uint64_t total_txs = 0;
 
     /* if continue detection already inspected this rule for this tx,
      * continue with the first not-inspected tx */
     uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0xef;
-    tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+    uint64_t tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
     if (offset > 0) {
         SCLogDebug("using stored_tx_id %u instead of %u", (uint)tx_id+offset, (uint)tx_id);
         tx_id += offset;
@@ -396,11 +394,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         check_before_add = 1;
     }
 
-    total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
     SCLogDebug("total_txs %"PRIu64, total_txs);
 
     SCLogDebug("starting: start tx %u, packet %u", (uint)tx_id, (uint)p->pcap_cnt);
 
+    det_ctx->stream_already_inspected = false;
     for (; tx_id < total_txs; tx_id++) {
         int total_matches = 0;
         void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
@@ -409,6 +408,20 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             continue;
         det_ctx->tx_id = tx_id;
         det_ctx->tx_id_set = 1;
+        det_ctx->p = p;
+
+        /* see if we need to consider the next tx in our decision to add
+         * a sig to the 'no inspect array'. */
+        int next_tx_no_progress = 0;
+        if (!TxIsLast(tx_id, total_txs)) {
+            void *next_tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id+1);
+            if (next_tx != NULL) {
+                int c = AppLayerParserGetStateProgress(f->proto, alproto, next_tx, flags);
+                if (c == 0) {
+                    next_tx_no_progress = 1;
+                }
+            }
+        }
 
         DetectEngineAppInspectionEngine *engine = s->app_inspect;
         SCLogDebug("engine %p", engine);
@@ -421,6 +434,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 int match = engine->Callback(tv, de_ctx, det_ctx,
                         s, engine->smd, f, flags, alstate, tx, tx_id);
                 SCLogDebug("engine %p match %d", engine, match);
+                if ((match == DETECT_ENGINE_INSPECT_SIG_NO_MATCH || match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH)
+                        && (engine->mpm)) {
+                    SCLogDebug("MPM and not matching, so skip the whole TX");
+                    // TODO
+                    goto try_next;
+                } else
                 if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                     inspect_flags |= BIT_U32(engine->id);
                     engine = engine->next;
@@ -464,46 +483,31 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
          * we store the state so that ContinueDetection knows about it */
         int tx_is_done = (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) >=
                 AppLayerParserGetStateProgressCompletionStatus(alproto, flags));
-        /* see if we need to consider the next tx in our decision to add
-         * a sig to the 'no inspect array'. */
-        int next_tx_no_progress = 0;
-        if (!TxIsLast(tx_id, total_txs)) {
-            void *next_tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id+1);
-            if (next_tx != NULL) {
-                int c = AppLayerParserGetStateProgress(f->proto, alproto, next_tx, flags);
-                if (c == 0) {
-                    next_tx_no_progress = 1;
-                }
-            }
-        }
 
         SCLogDebug("tx %u, packet %u, rule %u, alert_cnt %u, last tx %d, tx_is_done %d, next_tx_no_progress %d",
                 (uint)tx_id, (uint)p->pcap_cnt, s->num, alert_cnt,
                 TxIsLast(tx_id, total_txs), tx_is_done, next_tx_no_progress);
 
-        /* if we have something to store (partial match or file store info),
-         * then we do it now. */
-        if (inspect_flags != 0) {
-            if (!(TxIsLast(tx_id, total_txs)) || !tx_is_done) {
-                if (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-                    inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
-                }
-
-                /* store */
-                StoreStateTx(det_ctx, f, flags, tx_id, tx,
-                        s, smd, inspect_flags, file_no_match, check_before_add);
-            } else {
-                StoreStateTxFileOnly(det_ctx, f, flags, tx_id, tx, file_no_match);
+        /* store our state */
+        if (!(TxIsLast(tx_id, total_txs)) || !tx_is_done) {
+            if (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+                inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
             }
+
+            /* store */
+            StoreStateTx(det_ctx, f, flags, tx_id, tx,
+                    s, smd, inspect_flags, file_no_match, check_before_add);
         } else {
-            SCLogDebug("no state to store");
+            StoreStateTxFileOnly(det_ctx, f, flags, tx_id, tx, file_no_match);
         }
+    try_next:
         if (next_tx_no_progress)
             break;
     } /* for */
 
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
+    det_ctx->p = NULL;
     return alert_cnt ? 1:0;
 }
 
@@ -517,6 +521,7 @@ static int DoInspectItem(ThreadVars *tv,
     const int next_tx_no_progress)                // tx after current is still dormant
 {
     Signature *s = de_ctx->sig_array[item->sid];
+    det_ctx->stream_already_inspected = false;
 
     SCLogDebug("file_no_match %u, sid %u", *file_no_match, s->id);
 
@@ -624,6 +629,7 @@ static int DoInspectItem(ThreadVars *tv,
 
     det_ctx->tx_id = inspect_tx_id;
     det_ctx->tx_id_set = 1;
+    det_ctx->p = p;
     SCLogDebug("inspecting: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
 
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
@@ -803,6 +809,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
 end:
+    det_ctx->p = NULL;
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
     return;

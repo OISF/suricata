@@ -1272,7 +1272,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (!(sflags & SIG_FLAG_STATE_MATCH) && s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */

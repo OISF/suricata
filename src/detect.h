@@ -334,7 +334,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
     uint8_t id;     /**< per sig id used in state keeping */
-    int16_t sm_list;
+    uint16_t mpm:1;
+    uint16_t sm_list:15;
     int16_t progress;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
@@ -835,6 +836,9 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t tx_id_set;
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
+    Packet *p;
+    bool stream_already_inspected;
+    int stream_last_result;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 

@@ -33,6 +33,7 @@
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
+#include "detect-engine-state.h"
 
 #include "stream.h"
 #include "stream-tcp.h"
@@ -232,6 +233,93 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     return r;
 }
 
+struct StreamContentInspectEngineData {
+    DetectEngineCtx *de_ctx;
+    DetectEngineThreadCtx *det_ctx;
+    const Signature *s;
+    const SigMatchData *smd;
+    Flow *f;
+};
+
+static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, const uint32_t data_len)
+{
+    SCEnter();
+    int r = 0;
+    struct StreamContentInspectEngineData *smd = cb_data;
+#ifdef DEBUG
+    smd->det_ctx->stream_persig_cnt++;
+    smd->det_ctx->stream_persig_size += data_len;
+#endif
+    smd->det_ctx->buffer_offset = 0;
+    smd->det_ctx->discontinue_matching = 0;
+    smd->det_ctx->inspection_recursion_counter = 0;
+
+    r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
+            smd->s, smd->smd,
+            smd->f, (uint8_t *)data, data_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+    if (r == 1) {
+        SCReturnInt(1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief inspect engine for stateful rules
+ *
+ *  Caches results as it may be called multiple times if we inspect
+ *  multiple transactions in one packet.
+ *
+ *  Returns "can't match" if depth is reached.
+ */
+int DetectEngineInspectStream(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    Packet *p = det_ctx->p; /* TODO: get rid of this HACK */
+
+    if (det_ctx->stream_already_inspected)
+        return det_ctx->stream_last_result;
+
+    uint64_t unused;
+    struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
+    int match = StreamReassembleRaw(f->protoctx, p,
+            StreamContentInspectEngineFunc, &inspect_data,
+            &unused);
+
+    bool is_last = false;
+    TcpSession *ssn = f->protoctx;
+    if (flags & STREAM_TOSERVER) {
+        TcpStream *stream = &ssn->client;
+        if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
+            is_last = true;
+    } else {
+        TcpStream *stream = &ssn->server;
+        if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
+            is_last = true;
+    }
+
+    SCLogDebug("%s ran stream for sid %u on packet %"PRIu64" and we %s",
+            is_last? "LAST:" : "normal:", s->id, p->pcap_cnt,
+            match ? "matched" : "didn't match");
+    det_ctx->stream_already_inspected = true;
+
+    if (match) {
+        det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_MATCH;
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        if (is_last) {
+            det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+            //SCLogNotice("last, so DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        }
+        /* TODO maybe we can set 'CANT_MATCH' for EOF too? */
+        det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+        return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+}
 
 #ifdef UNITTESTS
 

@@ -32,6 +32,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *,
 int DetectEngineInspectStreamPayload(DetectEngineCtx *,
         DetectEngineThreadCtx *, const Signature *, Flow *,
         Packet *);
+int DetectEngineInspectStream(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 void PayloadRegisterTests(void);
 

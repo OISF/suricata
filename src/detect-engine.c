@@ -50,7 +50,7 @@
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
-
+#include "detect-engine-payload.h"
 #include "detect-byte-extract.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -110,7 +110,8 @@ void DetectAppLayerInspectEngineRegister(const char *name,
 
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
-        (sm_list < DETECT_SM_LIST_MATCH) ||
+        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
+        (progress < 0 || progress >= SHRT_MAX) ||
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
@@ -147,11 +148,61 @@ void DetectAppLayerInspectEngineRegister(const char *name,
     }
 }
 
+/** \internal
+ *  \brief append the stream inspection
+ *
+ *  If stream inspection is MPM, then prepend it.
+ */
+static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int direction, uint32_t id)
+{
+    bool prepend = false;
+
+    DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    if (SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH) {
+        SCLogDebug("stream is mpm");
+        prepend = true;
+        new_engine->mpm = true;
+    }
+    new_engine->alproto = ALPROTO_UNKNOWN; /* all */
+    new_engine->dir = direction;
+    new_engine->sm_list = DETECT_SM_LIST_PMATCH;
+    new_engine->smd = stream;
+    new_engine->Callback = DetectEngineInspectStream;
+    new_engine->progress = 0;
+
+    /* append */
+    if (s->app_inspect == NULL) {
+        s->app_inspect = new_engine;
+        new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+    } else if (prepend) {
+        new_engine->next = s->app_inspect;
+        s->app_inspect = new_engine;
+        new_engine->id = id;
+
+    } else {
+        DetectEngineAppInspectionEngine *a = s->app_inspect;
+        while (a->next != NULL) {
+            a = a->next;
+        }
+
+        a->next = new_engine;
+        new_engine->id = id;
+    }
+    SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
+}
+
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
     const int nlists = DetectBufferTypeMaxId();
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
+
+    const int mpm_list = s->init_data->mpm_sm ?
+        SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) :
+        -1;
 
     /* convert lists to SigMatchData arrays */
     int i = 0;
@@ -162,8 +213,12 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
     }
 
+    bool head_is_mpm = false;
+    uint32_t last_id = DE_STATE_FLAG_BASE;
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
+        bool prepend = false;
+
         if (ptrs[t->sm_list] == NULL)
             goto next;
         if (t->alproto == ALPROTO_UNKNOWN) {
@@ -178,28 +233,47 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             if (t->dir == 0)
                 goto next;
         }
-
         DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
         if (unlikely(new_engine == NULL)) {
             exit(EXIT_FAILURE);
         }
+        if (mpm_list == t->sm_list) {
+            SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(t->sm_list));
+            prepend = true;
+            head_is_mpm = true;
+            new_engine->mpm = true;
+        }
+
         new_engine->alproto = t->alproto;
         new_engine->dir = t->dir;
         new_engine->sm_list = t->sm_list;
         new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
+        new_engine->progress = t->progress;
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
-            new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            last_id = new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+
+        /* prepend engine if forced or if our engine has a lower progress. */
+        } else if (prepend || (!head_is_mpm && s->app_inspect->progress > new_engine->progress)) {
+            new_engine->next = s->app_inspect;
+            s->app_inspect = new_engine;
+            new_engine->id = ++last_id;
+
         } else {
             DetectEngineAppInspectionEngine *a = s->app_inspect;
             while (a->next != NULL) {
+                if (a->next && a->next->progress > new_engine->progress) {
+                    break;
+                }
+
                 a = a->next;
             }
 
+            new_engine->next = a->next;
             a->next = new_engine;
-            new_engine->id = a->id + 1;
+            new_engine->id = ++last_id;
         }
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
@@ -208,6 +282,30 @@ next:
         t = t->next;
     }
 
+    if ((s->flags & SIG_FLAG_STATE_MATCH) && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+        /* if engine is added multiple times, we pass it the same list */
+        SigMatchData *stream = SigMatchList2DataArray(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
+        BUG_ON(stream == NULL);
+        if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+            AppendStreamInspectEngine(s, stream, 0, last_id + 1);
+        } else if (s->flags & SIG_FLAG_TOCLIENT && !(s->flags & SIG_FLAG_TOSERVER)) {
+            AppendStreamInspectEngine(s, stream, 1, last_id + 1);
+        } else {
+            AppendStreamInspectEngine(s, stream, 0, last_id + 1);
+            AppendStreamInspectEngine(s, stream, 1, last_id + 1);
+        }
+    }
+
+#ifdef DEBUG
+    DetectEngineAppInspectionEngine *iter = s->app_inspect;
+    while (iter) {
+        SCLogNotice("%u: engine %s id %u progress %d %s", s->id,
+                DetectBufferTypeGetNameById(iter->sm_list), iter->id,
+                iter->progress,
+                iter->sm_list == mpm_list ? "MPM":"");
+        iter = iter->next;
+    }
+#endif
     return 0;
 }
 
