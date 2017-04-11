@@ -1161,8 +1161,25 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if ((s->mask & mask) != s->mask)
-            goto next;
+        if (sflags & SIG_FLAG_STATE_MATCH) {
+            if (det_ctx->de_state_sig_array[s->num] & DE_STATE_MATCH_NO_NEW_STATE)
+                goto next;
+        } else {
+            /* don't run mask check for stateful rules.
+             * There we depend on prefilter */
+            if ((s->mask & mask) != s->mask) {
+                SCLogDebug("mask mismatch %x & %x != %x", s->mask, mask, s->mask);
+                goto next;
+            }
+
+            if (unlikely(sflags & SIG_FLAG_DSIZE)) {
+                if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
+                    SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
+                            p->payload_len, s->dsize_low, s->dsize_high);
+                    goto next;
+                }
+            }
+        }
 
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
@@ -1177,19 +1194,6 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
                     goto next;
                 }
             }
-        }
-
-        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
-            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                           p->payload_len, s->dsize_low, s->dsize_high);
-                goto next;
-            }
-        }
-
-        if (sflags & SIG_FLAG_STATE_MATCH) {
-            if (det_ctx->de_state_sig_array[s->num] & DE_STATE_MATCH_NO_NEW_STATE)
-                goto next;
         }
 
         /* check if this signature has a requirement for flowvars of some type
