@@ -58,6 +58,9 @@ struct DNSTcpHeader_ {
 } __attribute__((__packed__));
 typedef struct DNSTcpHeader_ DNSTcpHeader;
 
+static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen,
+        uint32_t *offset);
+
 /** \internal
  *  \param input_len at least enough for the DNSTcpHeader
  */
@@ -287,6 +290,15 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
 {
     DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
+
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_GAP)) {
+        if (DNSTcpProbingParser(input, input_len, NULL) == ALPROTO_DNS) {
+            BufferReset(dns_state);
+        } else {
+            SCLogNotice("Probe failed, will abort.");
+            SCReturnInt(-1);
+        }
+    }
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
@@ -521,6 +533,15 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
         goto insufficient_data;
     }
 
+    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_GAP)) {
+        if (DNSTcpProbingParser(input, input_len, NULL) == ALPROTO_DNS) {
+            BufferReset(dns_state);
+        } else {
+            SCLogNotice("Probe failed, will abort.");
+            SCReturnInt(-1);
+        }
+    }
+
 next_record:
     /* if this is the beginning of a record, we need at least the header */
     if (dns_state->offset == 0 &&  input_len < sizeof(DNSTcpHeader)) {
@@ -712,6 +733,10 @@ void RegisterDNSTCPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
+
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DNS,
+                APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
@@ -824,18 +849,30 @@ static int DNSTCPParserTestMultiRecord(void)
     };
     size_t reqlen = sizeof(req);
 
-    DNSState *state = DNSStateAlloc();
-    FAIL_IF_NULL(state);
-    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 53);
-    FAIL_IF_NULL(f);
-    f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_DNS;
-    f->alstate = state;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow flow;
+    TcpSession ssn;
+    int r;
+    memset(&flow, 0, sizeof(flow));
+    memset(&ssn, 0, sizeof(ssn));
+    flow.protoctx = (void *)&ssn;
+    flow.proto = IPPROTO_TCP;
+    StreamTcpInitConfig(TRUE);
 
-    FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    SCMutexLock(&flow.m);
+    r = AppLayerParserParse(NULL, alp_tctx, &flow, ALPROTO_DNS,
+            STREAM_TOSERVER, req, reqlen);
+    SCMutexUnlock(&flow.m);
+    FAIL_IF(r != 0);
+
+    DNSState *state = flow.alstate;
     FAIL_IF(state->transaction_max != 20);
 
-    UTHFreeFlow(f);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&flow);
+    DNSStateFree(state);
+
     PASS;
 }
 
