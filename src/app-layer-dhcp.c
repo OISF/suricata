@@ -91,12 +91,11 @@ static void DHCPTxFree(DHCPState *dhcp, void *tx, uint32_t locked)
     }
 }
 
-static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp)
+static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
 {
     DHCPTransaction *tx;
 
     /* limit outstanding transactions */
-    SCMutexLock(&dhcp->lock);
     if (unlikely(dhcp->transaction_count > dhcp_config_max_transactions)) {
         /* toss out the oldest */
         tx = TAILQ_FIRST(&dhcp->tx_list);
@@ -105,14 +104,13 @@ static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp)
             DHCPTxFree(dhcp, tx, 1);
         }
     }
-    SCMutexUnlock(&dhcp->lock);
 
     tx = SCCalloc(1, sizeof(DHCPTransaction));
     if (unlikely(tx == NULL)) {
         return NULL;
     }
 
-    SCMutexLock(&dhcp->lock);
+    tx->xid = xid;
 
     /* Increment the transaction ID on the state each time one is
      * allocated. */
@@ -120,8 +118,6 @@ static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp)
     dhcp->transaction_count++;
 
     TAILQ_INSERT_TAIL(&dhcp->tx_list, tx, next);
-
-    SCMutexUnlock(&dhcp->lock);
 
     return tx;
 }
@@ -253,11 +249,17 @@ static DHCPTransaction *DHCPGetTxByXid(void *state, uint32_t xid)
             return tx;
         }
     }
+    tx = DHCPTxAlloc(dhcp, xid);
+    if (unlikely(tx == NULL)) {
+        SCMutexUnlock(&dhcp->lock);
+        SCLogDebug("Failed to allocate new DHCP tx.");
+        return NULL;
+    }
     SCMutexUnlock(&dhcp->lock);
 
     SCLogDebug("Transaction ID %"PRIu32" not found.", xid);
 
-    return NULL;
+    return tx;
 }
 
 /**
@@ -378,67 +380,54 @@ static int DHCPParse(Flow *f, void *state,
                     case DHCP_REQUEST:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
-                            tx = DHCPTxAlloc(dhcp_state);
-                            if (unlikely(tx == NULL)) {
-                                SCLogDebug("Failed to allocate new DHCP tx.");
-                                goto end;
-                            }
-                            tx->xid = bootp->xid;
-                            SCLogDebug("Allocated DHCP tx %"PRIu64".", ntohl(tx->xid));
-                            tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                            tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                            if (unlikely(tx->request_buffer == NULL)) {
-                                /* TBD: need to remove from global tx list */
-                                DHCPTxFree(dhcp_state, tx, 0);
-                                goto end;
-                            }
-                            memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                            SCLogDebug("Failed to allocate new DHCP tx.");
+                            goto end;
                         }
+                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                        if (unlikely(tx->request_buffer == NULL)) {
+                            /* TBD: need to remove from global tx list */
+                            DHCPTxFree(dhcp_state, tx, 0);
+                            goto end;
+                        }
+                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                        tx->request_seen = 1;
                         break;
                     case DHCP_INFORM:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
-                            tx = DHCPTxAlloc(dhcp_state);
-                            if (unlikely(tx == NULL)) {
-                                SCLogDebug("Failed to allocate new DHCP tx.");
-                                goto end;
-                            }
-                            SCLogDebug("Allocated DHCP tx %"PRIu64".", ntohl(tx->tx_id));
-                            tx->xid = bootp->xid;
-                            tx->request_client_ip = bootp->ciaddr;
-                            tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                            tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                            if (unlikely(tx->request_buffer == NULL)) {
-                                /* TBD: need to remove from global tx list */
-                                DHCPTxFree(dhcp_state, tx, 0);
-                                goto end;
-                            }
-                            memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                            SCLogDebug("Failed to allocate new DHCP tx.");
+                            goto end;
                         }
+                        tx->request_client_ip = bootp->ciaddr;
+                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                        if (unlikely(tx->request_buffer == NULL)) {
+                            /* TBD: need to remove from global tx list */
+                            DHCPTxFree(dhcp_state, tx, 0);
+                            goto end;
+                        }
+                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                        tx->request_seen = 1;
                         break;
                     case DHCP_RELEASE:
                     case DHCP_DECLINE:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
-                            tx = DHCPTxAlloc(dhcp_state);
-                            if (unlikely(tx == NULL)) {
-                                SCLogDebug("Failed to allocate new DHCP tx.");
-                                goto end;
-                            }
-                            tx->xid = bootp->xid;
-                            SCLogDebug("Allocated DHCP tx %"PRIu64".", ntohl(tx->xid));
-                            tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                            tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                            if (unlikely(tx->request_buffer == NULL)) {
-                                /* TBD: need to remove from global tx list */
-                                DHCPTxFree(dhcp_state, tx, 0);
-                                goto end;
-                            }
-                            memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
-                            /* response to release not required */
-                            tx->response_unneeded = 1;
-                            tx->response_done = 1;
+                            SCLogDebug("Failed to allocate new DHCP tx.");
+                            goto end;
                         }
+                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                        if (unlikely(tx->request_buffer == NULL)) {
+                            /* TBD: need to remove from global tx list */
+                            DHCPTxFree(dhcp_state, tx, 0);
+                            goto end;
+                        }
+                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                        /* response to release not required */
+                        tx->response_unneeded = 1;
+                        tx->request_seen = 1;
                         break;
                     default:
                         SCLogDebug("DHCP unknown %d", dhcp->args[0]);
@@ -467,6 +456,7 @@ static int DHCPParse(Flow *f, void *state,
                     case DHCP_ACK:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
+                            SCLogDebug("Failed to allocate new DHCP tx.");
                             goto end;
                         }
                         tx->response_client_ip = bootp->yiaddr;
@@ -479,14 +469,15 @@ static int DHCPParse(Flow *f, void *state,
                                 goto end;
                             }
                             memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
-                            tx->response_done = 1;
+                            tx->response_seen = 1;
                         }
                         break;
                     case DHCP_NACK:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
+                            SCLogDebug("Failed to allocate new DHCP tx.");
                             goto end;
-                        }
+                        } 
                         if (tx->response_buffer == NULL) {
                             tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
                             tx->response_buffer = SCMalloc(tx->response_buffer_len);
@@ -496,7 +487,7 @@ static int DHCPParse(Flow *f, void *state,
                                 goto end;
                             }
                             memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
-                            tx->response_done = 1;
+                            tx->response_seen = 1;
                         }
                         break;
                     default:
@@ -505,7 +496,6 @@ static int DHCPParse(Flow *f, void *state,
                 }
             }
         }
-
     }
 
 end:    
@@ -570,7 +560,8 @@ static int DHCPGetStateProgress(void *tx, uint8_t direction)
     SCLogDebug("Transaction progress requested for tx ID %"PRIu64
         ", direction=0x%02x", dhcptx->tx_id, direction);
 
-    if (dhcptx->response_done) {
+    if ((dhcptx->request_seen && dhcptx->response_seen) ||
+        (dhcptx->request_seen && dhcptx->response_unneeded)) {
         return 1;
     }
 

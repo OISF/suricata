@@ -124,8 +124,10 @@ typedef struct DHCPTransaction_ {
         uint8_t response_client_ip_bytes[sizeof(uint32_t)];
     };
 
-    uint32_t response_done : 1; /*<< Flag to be set when the response is
-                            * seen. */
+    uint32_t request_seen : 1; /*<< Flag to be set when the request is
+                                * seen. */
+    uint32_t response_seen : 1; /*<< Flag to be set when the response is
+                                * seen. */
     uint32_t response_unneeded : 1;
 
     DetectEngineState *de_state;
