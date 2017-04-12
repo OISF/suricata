@@ -187,15 +187,20 @@ int AppLayerParserSetup(void)
 {
     SCEnter();
 
-    AppProto alproto = 0;
-    int flow_proto = 0;
-
     memset(&alp_ctx, 0, sizeof(alp_ctx));
 
     /* set the default tx handler if none was set explicitly */
     if (AppLayerGetActiveTxIdFuncPtr == NULL) {
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
     }
+
+    SCReturnInt(0);
+}
+
+void AppLayerParserPostStreamSetup(void)
+{
+    AppProto alproto = 0;
+    int flow_proto = 0;
 
     /* lets set a default value for stream_depth */
     for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
@@ -204,8 +209,6 @@ int AppLayerParserSetup(void)
                 stream_config.reassembly_depth;
         }
     }
-
-    SCReturnInt(0);
 }
 
 int AppLayerParserDeSetup(void)

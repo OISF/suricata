@@ -2219,6 +2219,7 @@ void PreRunInit(const int runmode)
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);
     StreamTcpInitConfig(STREAM_VERBOSE);
+    AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
 }
 

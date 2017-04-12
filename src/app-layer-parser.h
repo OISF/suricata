@@ -65,7 +65,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags);
 
 
 int AppLayerParserSetup(void);
-
+void AppLayerParserPostStreamSetup(void);
 int AppLayerParserDeSetup(void);
 
 typedef struct AppLayerParserThreadCtx_ AppLayerParserThreadCtx;
