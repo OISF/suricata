@@ -158,7 +158,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
                 break;
             case DHCP_OPT_HOSTNAME: {
                 char *s = BytesToString(dhcp_opt->args, dhcp_opt->len);
-                json_object_set_new(reqjs, "host_name", json_string(s));
+                json_object_set_new(reqjs, "hostname", json_string(s));
                 SCFree(s);
                 }
                 break;
