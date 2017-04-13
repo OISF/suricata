@@ -179,7 +179,7 @@ static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t dest
         snprintf(newdevname, half+1, "%s", devname);
 
         /* Add the amount of spaces wanted */
-        for (uint i = half; i < half+spaces; i++) {
+        for (size_t i = half; i < half+spaces; i++) {
             length = strlcat(newdevname, ".", destlen);
         }
 

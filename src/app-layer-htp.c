@@ -2720,9 +2720,9 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     char *spacings[] = { "|20|", "|09|", NULL };
     char *versions[] = { "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", NULL };
 
-    uint methods_pos;
-    uint spacings_pos;
-    uint versions_pos;
+    int methods_pos;
+    int spacings_pos;
+    int versions_pos;
     int register_result;
     char method_buffer[32] = "";
 
@@ -2754,7 +2754,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
             return -1;
         }
     }
-    
+
     return 0;
 }
 
