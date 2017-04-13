@@ -132,6 +132,10 @@ typedef struct DHCPTransaction_ {
 
     DetectEngineState *de_state;
 
+    Packet *p;
+    Packet response_p;          /* copy of response Packet when request/response
+                                 * processed out of order. */
+
     TAILQ_ENTRY(DHCPTransaction_) next;
 
 } DHCPTransaction;
