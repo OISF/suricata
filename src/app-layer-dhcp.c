@@ -454,6 +454,7 @@ static int DHCPParse(Flow *f, void *state,
                 switch (dhcp->args[0]) {
                     case DHCP_OFFER:
                     case DHCP_ACK:
+                    case DHCP_NACK:
                         tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
                         if (unlikely(tx == NULL)) {
                             SCLogDebug("Failed to allocate new DHCP tx.");
@@ -469,24 +470,29 @@ static int DHCPParse(Flow *f, void *state,
                                 goto end;
                             }
                             memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
-                            tx->response_seen = 1;
-                        }
-                        break;
-                    case DHCP_NACK:
-                        tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
-                        if (unlikely(tx == NULL)) {
-                            SCLogDebug("Failed to allocate new DHCP tx.");
-                            goto end;
-                        } 
-                        if (tx->response_buffer == NULL) {
-                            tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
-                            tx->response_buffer = SCMalloc(tx->response_buffer_len);
-                            if (unlikely(tx->response_buffer == NULL)) {
-                                /* TBD: need to remove from global tx list */
-                                DHCPTxFree(dhcp_state, tx, 0);
-                                goto end;
+                            Packet *p = tx->p = &tx->response_p;
+                            p->ts = f->lastts;
+                            if (FLOW_IS_IPV4(f)) {
+                                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src,
+                                                              &p->src);
+                                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst,
+                                                              &p->dst);
+                                p->ip4h++; /* force PKT_IS_IPV4 in logger */
+                            } else if (FLOW_IS_IPV4(f)) {
+                                FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src,
+                                                              &p->src);
+                                FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->dst,
+                                                              &p->dst);
+                                p->ip6h++; /* force PKT_IS_IPV6 in logger */
                             }
-                            memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
+                            p->sp = f->sp;
+                            p->dp = f->dp;
+                            p->proto = f->proto;
+                            p->recursion_level = f->recursion_level;
+                            p->vlan_id[0] = f->vlan_id[0];
+                            p->vlan_id[1] = f->vlan_id[1];
+                            p->flow = f;
+
                             tx->response_seen = 1;
                         }
                         break;

@@ -85,7 +85,8 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         }
     }
     
-    js = CreateJSONHeader((Packet *)p, 0, "dhcp");
+    dhcptx->p->pcap_cnt = p->pcap_cnt;
+    js = CreateJSONHeader(dhcptx->p, 0, "dhcp");
     if (unlikely(js == NULL)) {
         goto error;
     }
