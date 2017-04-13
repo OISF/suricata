@@ -526,7 +526,6 @@ void DetectBufferTypeFinalizeRegistration(void)
 enum DetectEngineSyncState {
     IDLE,   /**< ready to start a reload */
     RELOAD, /**< command main thread to do the reload */
-    DONE,   /**< main thread telling us reload is done */
 };
 
 
@@ -564,21 +563,20 @@ int DetectEngineReloadIsStart(void)
 }
 
 /* main thread sets done when it's done */
-void DetectEngineReloadSetDone(void)
+void DetectEngineReloadSetIdle(void)
 {
     SCMutexLock(&detect_sync.m);
-    detect_sync.state = DONE;
+    detect_sync.state = IDLE;
     SCMutexUnlock(&detect_sync.m);
 }
 
 /* caller loops this until it returns 1 */
-int DetectEngineReloadIsDone(void)
+int DetectEngineReloadIsIdle(void)
 {
     int r = 0;
     SCMutexLock(&detect_sync.m);
-    if (detect_sync.state == DONE) {
+    if (detect_sync.state == IDLE) {
         r = 1;
-        detect_sync.state = IDLE;
     }
     SCMutexUnlock(&detect_sync.m);
     return r;
@@ -901,6 +899,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+    memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (minimal) {
         de_ctx->minimal = 1;

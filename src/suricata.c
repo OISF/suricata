@@ -220,6 +220,14 @@ int sc_set_caps = FALSE;
 /** highest mtu of the interfaces we monitor */
 int g_default_mtu = 0;
 
+/** Suricata instance */
+SCInstance suri;
+
+int SuriHasSigFile(void)
+{
+    return (suri.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -2742,7 +2750,7 @@ static void SuricataMainLoop(SCInstance *suri)
                 if (!(DetectEngineReloadIsStart())) {
                     DetectEngineReloadStart();
                     DetectEngineReload(suri);
-                    DetectEngineReloadSetDone();
+                    DetectEngineReloadSetIdle();
                     sigusr2_count--;
                 }
             }
@@ -2751,10 +2759,10 @@ static void SuricataMainLoop(SCInstance *suri)
             if (suri->sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             } else {
                 DetectEngineReload(suri);
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             }
         }
 

@@ -562,6 +562,14 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
+/** \brief Signature loader statistics */
+typedef struct SigFileLoaderStat_ {
+    int bad_files;
+    int total_files;
+    int good_sigs_total;
+    int bad_sigs_total;
+} SigFileLoaderStat;
+
 typedef struct DetectEngineThreadKeywordCtxItem_ {
     void *(*InitFunc)(void *);
     void (*FreeFunc)(void *);
@@ -723,6 +731,13 @@ typedef struct DetectEngineCtx_ {
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */
     DetectMpmAppLayerKeyword *app_mpms;
+
+    /** time of last ruleset reload */
+    struct timeval last_reload;
+
+    /** signatures stats */
+    SigFileLoaderStat sig_stat;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1138,14 +1153,6 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 } DetectEngineMasterCtx;
-
-/** \brief Signature loader statistics */
-typedef struct SigFileLoaderStat_ {
-    int bad_files;
-    int total_files;
-    int good_sigs_total;
-    int bad_sigs_total;
-} SigFileLoaderStat;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
