@@ -554,9 +554,14 @@
 
     case $host in
         *powerpc64*)
-            # on powerpc64, both gcc and clang lead to SIGILL in
-            # unittests when jit is enabled.
-            pcre_jit_available="no, pcre jit disabled for powerpc64"
+            PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.39],[libpcre_ppc64_buggy_found1="yes"],[libprce_ppc64_buggy_found1="no"])
+            PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.40],[libpcre_ppc64_buggy_found2="yes"],[libprce_ppc64_buggy_found2="no"])
+
+            if test "$libprce_ppc64_buggy_found1" = "yes" || test "$libprce_ppc64_buggy_found2"; then
+                # on powerpc64, both gcc and clang lead to SIGILL in
+                # unittests when jit is enabled.
+                pcre_jit_available="no, pcre 8.39/8.40 jit disabled for powerpc64"
+            fi
         ;;
         *)
             # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
