@@ -914,7 +914,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
         } else {
             SCLogWarning(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
-            return TM_ECODE_OK;
+            return TM_ECODE_FAILED;
         }
     }
 

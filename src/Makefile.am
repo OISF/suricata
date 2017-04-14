@@ -262,6 +262,7 @@ log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
+log-cf-common.c log-cf-common.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \

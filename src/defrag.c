@@ -256,8 +256,9 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     Packet *rp = NULL;
 
     /* Should not be here unless we have seen the last fragment. */
-    if (!tracker->seen_last)
+    if (!tracker->seen_last) {
         return NULL;
+    }
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
@@ -330,9 +331,10 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                         "fragmented packet, exceeds size of packet buffer.");
                 goto error_remove_tracker;
             }
-            if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
-                frag->pkt + frag->data_offset + frag->ltrim,
-                frag->data_len - frag->ltrim) == -1) {
+            if (PacketCopyDataOffset(rp,
+                    fragmentable_offset + frag->offset + frag->ltrim,
+                    frag->pkt + frag->data_offset + frag->ltrim,
+                    frag->data_len - frag->ltrim) == -1) {
                 goto error_remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
@@ -604,9 +606,12 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
     Frag *prev = NULL, *next;
     int overlap = 0;
+    ltrim = 0;
     if (!TAILQ_EMPTY(&tracker->frags)) {
         TAILQ_FOREACH(prev, &tracker->frags, next) {
-            ltrim = 0;
+            if (prev->skip) {
+                continue;
+            }
             next = TAILQ_NEXT(prev, next);
 
             switch (tracker->policy) {
@@ -629,34 +634,81 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
                 }
                 break;
             case DEFRAG_POLICY_LINUX:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset > prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
-                    }
-                    if ((next != NULL) && (frag_end > next->offset)) {
-                        next->ltrim = frag_end - next->offset;
-                        overlap++;
-                    }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end >= prev->offset + prev->data_len)) {
-                        prev->skip = 1;
-                        overlap++;
-                    }
-                    goto insert;
+                /* Check if new fragment overlaps the end of previous
+                 * fragment, if it does, trim the new fragment.
+                 *
+                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                 */
+                if (prev->offset + prev->ltrim < frag_offset + ltrim &&
+                        prev->offset + prev->data_len > frag_offset + ltrim) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
+                }
+
+                /* Check if new fragment overlaps the beginning of
+                 * previous fragment, if it does, tim the previous
+                 * fragment.
+                 *
+                 * Old:          AAAAAAAA AAAAAAAA
+                 * New: BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: BBBBBBBB BBBBBBBB BBBBBBBB
+                 */
+                if (frag_offset + ltrim < prev->offset + prev->ltrim &&
+                        frag_end > prev->offset + prev->ltrim) {
+                    prev->ltrim += frag_end - (prev->offset + prev->ltrim);
+                    overlap++;
+                }
+
+                /* If the new fragment completely overlaps the
+                 * previous fragment, mark the previous to be
+                 * skipped. Re-assembly would succeed without doing
+                 * this, but this will prevent the bytes from being
+                 * copied just to be overwritten. */
+                if (frag_offset + ltrim <= prev->offset + prev->ltrim &&
+                        frag_end >= prev->offset + prev->data_len) {
+                    prev->skip = 1;
                 }
                 break;
             case DEFRAG_POLICY_WINDOWS:
-                if (frag_offset < prev->offset + prev->data_len) {
-                    if (frag_offset >= prev->offset) {
-                        ltrim = prev->offset + prev->data_len - frag_offset;
-                        overlap++;
-                    }
-                    if ((frag_offset < prev->offset) &&
-                        (frag_end > prev->offset + prev->data_len)) {
-                        prev->skip = 1;
-                        overlap++;
-                    }
+                /* If new fragment fits inside a previous fragment, drop it. */
+                if (frag_offset + ltrim >= prev->offset + ltrim &&
+                        frag_end <= prev->offset + prev->data_len) {
+                    overlap++;
+                    goto done;
+                }
+
+                /* If new fragment starts before and ends after
+                 * previous fragment, drop the previous fragment. */
+                if (frag_offset + ltrim < prev->offset + ltrim &&
+                        frag_end > prev->offset + prev->data_len) {
+                    prev->skip = 1;
+                    overlap++;
+                    goto insert;
+                }
+
+                /* Check if new fragment overlaps the end of previous
+                 * fragment, if it does, trim the new fragment.
+                 *
+                 * Old: AAAAAAAA AAAAAAAA AAAAAAAA
+                 * New:          BBBBBBBB BBBBBBBB BBBBBBBB
+                 * Res: AAAAAAAA AAAAAAAA AAAAAAAA BBBBBBBB
+                 */
+                if (frag_offset + ltrim > prev->offset + prev->ltrim &&
+                        frag_offset + ltrim < prev->offset + prev->data_len) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
+                    goto insert;
+                }
+
+                /* If new fragment starts at same offset as an
+                 * existing fragment, but ends after it, trim the new
+                 * fragment. */
+                if (frag_offset + ltrim == prev->offset + ltrim &&
+                        frag_end > prev->offset + prev->data_len) {
+                    ltrim += prev->offset + prev->data_len - frag_offset;
+                    overlap++;
                     goto insert;
                 }
                 break;
@@ -705,7 +757,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     }
 
 insert:
-    if (data_len - ltrim <= 0) {
+    if (ltrim > data_len) {
         /* Full packet has been trimmed due to the overlap policy. Overlap
          * already set. */
         goto done;
@@ -995,9 +1047,8 @@ void DefragDestroy(void)
  * Allocate a test packet.  Nothing to fancy, just a simple IP packet
  * with some payload of no particular protocol.
  */
-static Packet *
-BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
-    const char content, int content_len)
+static Packet *BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
+        const char content, int content_len)
 {
     Packet *p = NULL;
     int hlen = 20;
@@ -1017,7 +1068,6 @@ BuildTestPacket(uint8_t proto, uint16_t id, uint16_t off, int mf,
     ip4h.ip_verhl |= hlen >> 2;
     ip4h.ip_len = htons(hlen + content_len);
     ip4h.ip_id = htons(id);
-    ip4h.ip_off = htons(off);
     if (mf)
         ip4h.ip_off = htons(IP_MF | off);
     else
@@ -1073,9 +1123,8 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
                           uint16_t hdrextlen, uint16_t plen,
                           uint16_t prev_hdrextlen);
 
-static Packet *
-IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off, int mf,
-    const char content, int content_len)
+static Packet *IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off,
+        int mf, const char content, int content_len)
 {
     Packet *p = NULL;
     uint8_t *pcontent;
@@ -1138,7 +1187,6 @@ IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off, int mf,
 
     return p;
 error:
-    fprintf(stderr, "Error building test packet.\n");
     if (p != NULL)
         SCFree(p);
     return NULL;
@@ -1148,294 +1196,212 @@ error:
  * Test the simplest possible re-assembly scenario.  All packet in
  * order and no overlaps.
  */
-static int
-DefragInOrderSimpleTest(void)
+static int DefragInOrderSimpleTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Packet *reassembled = NULL;
     int id = 12;
     int i;
-    int ret = 0;
 
     DefragInit();
 
     p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = BuildTestPacket(IPPROTO_ICMP, id, 1, 1, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
     p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
-    if (p3 == NULL)
-        goto end;
+    FAIL_IF_NULL(p3);
 
-    if (Defrag(NULL, NULL, p1, NULL) != NULL)
-        goto end;
-    if (Defrag(NULL, NULL, p2, NULL) != NULL)
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p1, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
 
     reassembled = Defrag(NULL, NULL, p3, NULL);
-    if (reassembled == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(reassembled);
 
-    if (IPV4_GET_HLEN(reassembled) != 20) {
-        goto end;
-    }
-    if (IPV4_GET_IPLEN(reassembled) != 39) {
-        goto end;
-    }
+    FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
+    FAIL_IF(IPV4_GET_IPLEN(reassembled) != 39);
 
     /* 20 bytes in we should find 8 bytes of A. */
     for (i = 20; i < 20 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'A') {
-            goto end;
-        }
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
     }
 
     /* 28 bytes in we should find 8 bytes of B. */
     for (i = 28; i < 28 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'B') {
-            goto end;
-        }
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
     }
 
     /* And 36 bytes in we should find 3 bytes of C. */
     for (i = 36; i < 36 + 3; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'C')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    ret = 1;
-
-end:
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
-    if (p3 != NULL)
-        SCFree(p3);
-    if (reassembled != NULL)
-        SCFree(reassembled);
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(reassembled);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 /**
  * Simple fragmented packet in reverse order.
  */
-static int
-DefragReverseSimpleTest(void)
+static int DefragReverseSimpleTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Packet *reassembled = NULL;
     int id = 12;
     int i;
-    int ret = 0;
 
     DefragInit();
 
     p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = BuildTestPacket(IPPROTO_ICMP, id, 1, 1, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
     p3 = BuildTestPacket(IPPROTO_ICMP, id, 2, 0, 'C', 3);
-    if (p3 == NULL)
-        goto end;
+    FAIL_IF_NULL(p3);
 
-    if (Defrag(NULL, NULL, p3, NULL) != NULL)
-        goto end;
-    if (Defrag(NULL, NULL, p2, NULL) != NULL)
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p3, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
 
     reassembled = Defrag(NULL, NULL, p1, NULL);
-    if (reassembled == NULL)
-        goto end;
+    FAIL_IF_NULL(reassembled);
 
-    if (IPV4_GET_HLEN(reassembled) != 20)
-        goto end;
-    if (IPV4_GET_IPLEN(reassembled) != 39)
-        goto end;
+    FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
+    FAIL_IF(IPV4_GET_IPLEN(reassembled) != 39);
 
     /* 20 bytes in we should find 8 bytes of A. */
     for (i = 20; i < 20 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'A')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
     }
 
     /* 28 bytes in we should find 8 bytes of B. */
     for (i = 28; i < 28 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'B')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
     }
 
     /* And 36 bytes in we should find 3 bytes of C. */
     for (i = 36; i < 36 + 3; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'C')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    ret = 1;
-end:
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
-    if (p3 != NULL)
-        SCFree(p3);
-    if (reassembled != NULL)
-        SCFree(reassembled);
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(reassembled);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 /**
  * Test the simplest possible re-assembly scenario.  All packet in
  * order and no overlaps.
  */
-static int
-IPV6DefragInOrderSimpleTest(void)
+static int IPV6DefragInOrderSimpleTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Packet *reassembled = NULL;
     int id = 12;
     int i;
-    int ret = 0;
 
     DefragInit();
 
     p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 1, 1, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
     p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
-    if (p3 == NULL)
-        goto end;
+    FAIL_IF_NULL(p3);
 
-    if (Defrag(NULL, NULL, p1, NULL) != NULL)
-        goto end;
-    if (Defrag(NULL, NULL, p2, NULL) != NULL)
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p1, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
     reassembled = Defrag(NULL, NULL, p3, NULL);
-    if (reassembled == NULL)
-        goto end;
+    FAIL_IF_NULL(reassembled);
 
-    if (IPV6_GET_PLEN(reassembled) != 19)
-        goto end;
+    FAIL_IF(IPV6_GET_PLEN(reassembled) != 19);
 
     /* 40 bytes in we should find 8 bytes of A. */
     for (i = 40; i < 40 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'A')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
     }
 
     /* 28 bytes in we should find 8 bytes of B. */
     for (i = 48; i < 48 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'B')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
     }
 
     /* And 36 bytes in we should find 3 bytes of C. */
     for (i = 56; i < 56 + 3; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'C')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    ret = 1;
-end:
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
-    if (p3 != NULL)
-        SCFree(p3);
-    if (reassembled != NULL)
-        SCFree(reassembled);
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(reassembled);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
-static int
-IPV6DefragReverseSimpleTest(void)
+static int IPV6DefragReverseSimpleTest(void)
 {
     DefragContext *dc = NULL;
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     Packet *reassembled = NULL;
     int id = 12;
     int i;
-    int ret = 0;
 
     DefragInit();
 
     dc = DefragContextNew();
-    if (dc == NULL)
-        goto end;
+    FAIL_IF_NULL(dc);
 
     p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 1, 1, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
     p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, id, 2, 0, 'C', 3);
-    if (p3 == NULL)
-        goto end;
+    FAIL_IF_NULL(p3);
 
-    if (Defrag(NULL, NULL, p3, NULL) != NULL)
-        goto end;
-    if (Defrag(NULL, NULL, p2, NULL) != NULL)
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p3, NULL) != NULL);
+    FAIL_IF(Defrag(NULL, NULL, p2, NULL) != NULL);
     reassembled = Defrag(NULL, NULL, p1, NULL);
-    if (reassembled == NULL)
-        goto end;
+    FAIL_IF_NULL(reassembled);
 
     /* 40 bytes in we should find 8 bytes of A. */
     for (i = 40; i < 40 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'A')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'A');
     }
 
     /* 28 bytes in we should find 8 bytes of B. */
     for (i = 48; i < 48 + 8; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'B')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'B');
     }
 
     /* And 36 bytes in we should find 3 bytes of C. */
     for (i = 56; i < 56 + 3; i++) {
-        if (GET_PKT_DATA(reassembled)[i] != 'C')
-            goto end;
+        FAIL_IF(GET_PKT_DATA(reassembled)[i] != 'C');
     }
 
-    ret = 1;
-end:
-    if (dc != NULL)
-        DefragContextDestroy(dc);
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
-    if (p3 != NULL)
-        SCFree(p3);
-    if (reassembled != NULL)
-        SCFree(reassembled);
+    DefragContextDestroy(dc);
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(reassembled);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
-static int
-DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
+static int DefragDoSturgesNovakTest(int policy, u_char *expected,
+        size_t expected_len)
 {
     int i;
-    int ret = 0;
 
     DefragInit();
 
@@ -1511,66 +1477,43 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     /* Send all but the last. */
     for (i = 0; i < 9; i++) {
         Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
-        if (tp != NULL) {
-            SCFree(tp);
-            goto end;
-        }
-        if (ENGINE_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP)) {
-            goto end;
-        }
+        FAIL_IF_NOT_NULL(tp);
+        FAIL_IF(ENGINE_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP));
     }
     int overlap = 0;
     for (; i < 16; i++) {
         Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
-        if (tp != NULL) {
-            SCFree(tp);
-            goto end;
-        }
+        FAIL_IF_NOT_NULL(tp);
         if (ENGINE_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP)) {
             overlap++;
         }
     }
-    if (!overlap) {
-        goto end;
-    }
+    FAIL_IF_NOT(overlap);
 
     /* And now the last one. */
     Packet *reassembled = Defrag(NULL, NULL, packets[16], NULL);
-    if (reassembled == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(reassembled);
 
-    if (IPV4_GET_HLEN(reassembled) != 20) {
-        goto end;
-    }
-    if (IPV4_GET_IPLEN(reassembled) != 20 + 192) {
-        goto end;
-    }
+    FAIL_IF(IPV4_GET_HLEN(reassembled) != 20);
+    FAIL_IF(IPV4_GET_IPLEN(reassembled) != 20 + 192);
 
-    if (memcmp(GET_PKT_DATA(reassembled) + 20, expected, expected_len) != 0) {
-        goto end;
-    }
+    FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 20, expected, expected_len) != 0);
     SCFree(reassembled);
 
     /* Make sure all frags were returned back to the pool. */
-    if (defrag_context->frag_pool->outstanding != 0) {
-        goto end;
-    }
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
 
-    ret = 1;
-end:
     for (i = 0; i < 17; i++) {
         SCFree(packets[i]);
     }
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
-static int
-IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
+static int IPV6DefragDoSturgesNovakTest(int policy, u_char *expected,
+        size_t expected_len)
 {
     int i;
-    int ret = 0;
 
     DefragInit();
 
@@ -1646,54 +1589,36 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     /* Send all but the last. */
     for (i = 0; i < 9; i++) {
         Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
-        if (tp != NULL) {
-            SCFree(tp);
-            goto end;
-        }
-        if (ENGINE_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP)) {
-            goto end;
-        }
+        FAIL_IF_NOT_NULL(tp);
+        FAIL_IF(ENGINE_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP));
     }
     int overlap = 0;
     for (; i < 16; i++) {
         Packet *tp = Defrag(NULL, NULL, packets[i], NULL);
-        if (tp != NULL) {
-            SCFree(tp);
-            goto end;
-        }
+        FAIL_IF_NOT_NULL(tp);
         if (ENGINE_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP)) {
             overlap++;
         }
     }
-    if (!overlap)
-        goto end;
+    FAIL_IF_NOT(overlap);
 
     /* And now the last one. */
     Packet *reassembled = Defrag(NULL, NULL, packets[16], NULL);
-    if (reassembled == NULL)
-        goto end;
-    if (memcmp(GET_PKT_DATA(reassembled) + 40, expected, expected_len) != 0)
-        goto end;
+    FAIL_IF_NULL(reassembled);
+    FAIL_IF(memcmp(GET_PKT_DATA(reassembled) + 40, expected, expected_len) != 0);
 
-    if (IPV6_GET_PLEN(reassembled) != 192)
-        goto end;
+    FAIL_IF(IPV6_GET_PLEN(reassembled) != 192);
 
     SCFree(reassembled);
 
     /* Make sure all frags were returned to the pool. */
-    if (defrag_context->frag_pool->outstanding != 0) {
-        printf("defrag_context->frag_pool->outstanding %u: ", defrag_context->frag_pool->outstanding);
-        goto end;
-    }
+    FAIL_IF(defrag_context->frag_pool->outstanding != 0);
 
-    ret = 1;
-
-end:
     for (i = 0; i < 17; i++) {
         SCFree(packets[i]);
     }
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 static int
@@ -1727,11 +1652,12 @@ DefragSturgesNovakBsdTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakBsdTest(void)
+static int IPV6DefragSturgesNovakBsdTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1761,11 +1687,12 @@ IPV6DefragSturgesNovakBsdTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected, sizeof(expected));
+    FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_BSD, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-DefragSturgesNovakLinuxTest(void)
+static int DefragSturgesNovakLinuxIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1795,11 +1722,12 @@ DefragSturgesNovakLinuxTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakLinuxTest(void)
+static int IPV6DefragSturgesNovakLinuxTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1829,12 +1757,12 @@ IPV6DefragSturgesNovakLinuxTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
-        sizeof(expected));
+    FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LINUX, expected,
+            sizeof(expected)));
+    PASS;
 }
 
-static int
-DefragSturgesNovakWindowsTest(void)
+static int DefragSturgesNovakWindowsIpv4Test(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1864,11 +1792,12 @@ DefragSturgesNovakWindowsTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakWindowsTest(void)
+static int IPV6DefragSturgesNovakWindowsTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1898,12 +1827,12 @@ IPV6DefragSturgesNovakWindowsTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
-        sizeof(expected));
+    FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_WINDOWS, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-DefragSturgesNovakSolarisTest(void)
+static int DefragSturgesNovakSolarisTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1933,11 +1862,12 @@ DefragSturgesNovakSolarisTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakSolarisTest(void)
+static int IPV6DefragSturgesNovakSolarisTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -1967,12 +1897,12 @@ IPV6DefragSturgesNovakSolarisTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
-        sizeof(expected));
+    FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_SOLARIS, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-DefragSturgesNovakFirstTest(void)
+static int DefragSturgesNovakFirstTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -2002,11 +1932,12 @@ DefragSturgesNovakFirstTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_FIRST, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakFirstTest(void)
+static int IPV6DefragSturgesNovakFirstTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -2071,11 +2002,12 @@ DefragSturgesNovakLastTest(void)
         "QQQQQQQQ"
     };
 
-    return DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected, sizeof(expected));
+    FAIL_IF_NOT(DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-IPV6DefragSturgesNovakLastTest(void)
+static int IPV6DefragSturgesNovakLastTest(void)
 {
     /* Expected data. */
     u_char expected[] = {
@@ -2105,67 +2037,48 @@ IPV6DefragSturgesNovakLastTest(void)
         "QQQQQQQQ"
     };
 
-    return IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
-        sizeof(expected));
+    FAIL_IF_NOT(IPV6DefragDoSturgesNovakTest(DEFRAG_POLICY_LAST, expected,
+                    sizeof(expected)));
+    PASS;
 }
 
-static int
-DefragTimeoutTest(void)
+static int DefragTimeoutTest(void)
 {
     int i;
-    int ret = 0;
 
     /* Setup a small numberr of trackers. */
-    if (ConfSet("defrag.trackers", "16") != 1) {
-        printf("ConfSet failed: ");
-        goto end;
-    }
+    FAIL_IF_NOT(ConfSet("defrag.trackers", "16"));
 
     DefragInit();
 
     /* Load in 16 packets. */
     for (i = 0; i < 16; i++) {
         Packet *p = BuildTestPacket(IPPROTO_ICMP,i, 0, 1, 'A' + i, 16);
-        if (p == NULL)
-            goto end;
+        FAIL_IF_NULL(p);
 
         Packet *tp = Defrag(NULL, NULL, p, NULL);
-
         SCFree(p);
-
-        if (tp != NULL) {
-            SCFree(tp);
-            goto end;
-        }
+        FAIL_IF_NOT_NULL(tp);
     }
 
     /* Build a new packet but push the timestamp out by our timeout.
      * This should force our previous fragments to be timed out. */
     Packet *p = BuildTestPacket(IPPROTO_ICMP, 99, 0, 1, 'A' + i, 16);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     p->ts.tv_sec += (defrag_context->timeout + 1);
     Packet *tp = Defrag(NULL, NULL, p, NULL);
-
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(tp);
 
     DefragTracker *tracker = DefragLookupTrackerFromHash(p);
-    if (tracker == NULL)
-        goto end;
+    FAIL_IF_NULL(tracker);
 
-    if (tracker->id != 99)
-        goto end;
+    FAIL_IF(tracker->id != 99);
 
     SCFree(p);
 
-    ret = 1;
-end:
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 /**
@@ -2174,84 +2087,65 @@ end:
  * fail.  The fix was simple, but this unit test is just to make sure
  * its not introduced.
  */
-static int
-DefragIPv4NoDataTest(void)
+static int DefragIPv4NoDataTest(void)
 {
     DefragContext *dc = NULL;
     Packet *p = NULL;
     int id = 12;
-    int ret = 0;
 
     DefragInit();
 
     dc = DefragContextNew();
-    if (dc == NULL)
-        goto end;
+    FAIL_IF_NULL(dc);
 
     /* This packet has an offset > 0, more frags set to 0 and no data. */
     p = BuildTestPacket(IPPROTO_ICMP, id, 1, 0, 'A', 0);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     /* We do not expect a packet returned. */
-    if (Defrag(NULL, NULL, p, NULL) != NULL)
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p, NULL) != NULL);
 
     /* The fragment should have been ignored so no fragments should
      * have been allocated from the pool. */
-    if (dc->frag_pool->outstanding != 0)
-        return 0;
+    FAIL_IF(dc->frag_pool->outstanding != 0);
 
-    ret = 1;
-end:
-    if (dc != NULL)
-        DefragContextDestroy(dc);
-    if (p != NULL)
-        SCFree(p);
+    DefragContextDestroy(dc);
+    SCFree(p);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
-static int
-DefragIPv4TooLargeTest(void)
+static int DefragIPv4TooLargeTest(void)
 {
     DefragContext *dc = NULL;
     Packet *p = NULL;
-    int ret = 0;
 
     DefragInit();
 
     dc = DefragContextNew();
-    if (dc == NULL)
-        goto end;
+    FAIL_IF_NULL(dc);
 
     /* Create a fragment that would extend past the max allowable size
      * for an IPv4 packet. */
     p = BuildTestPacket(IPPROTO_ICMP, 1, 8183, 0, 'A', 71);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     /* We do not expect a packet returned. */
-    if (Defrag(NULL, NULL, p, NULL) != NULL)
-        goto end;
-    if (!ENGINE_ISSET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE))
-        goto end;
+    FAIL_IF(Defrag(NULL, NULL, p, NULL) != NULL);
+
+    /* We do expect an event. */
+    FAIL_IF_NOT(ENGINE_ISSET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE));
 
     /* The fragment should have been ignored so no fragments should have
      * been allocated from the pool. */
-    if (dc->frag_pool->outstanding != 0)
-        return 0;
+    FAIL_IF(dc->frag_pool->outstanding != 0);
 
-    ret = 1;
-end:
-    if (dc != NULL)
-        DefragContextDestroy(dc);
-    if (p != NULL)
-        SCFree(p);
+    DefragContextDestroy(dc);
+    SCFree(p);
 
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 /**
@@ -2259,72 +2153,52 @@ end:
  * re-assembled, are not re-assembled.  Just use simple in-order
  * fragments.
  */
-static int
-DefragVlanTest(void)
+static int DefragVlanTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
-    int ret = 0;
 
     DefragInit();
 
     p1 = BuildTestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = BuildTestPacket(IPPROTO_ICMP, 1, 1, 0, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
 
     /* With no VLAN IDs set, packets should re-assemble. */
-    if ((r = Defrag(NULL, NULL, p1, NULL)) != NULL)
-        goto end;
-    if ((r = Defrag(NULL, NULL, p2, NULL)) == NULL)
-        goto end;
+    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) == NULL);
     SCFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
     p1->vlan_id[0] = 1;
     p2->vlan_id[0] = 2;
-    if ((r = Defrag(NULL, NULL, p1, NULL)) != NULL)
-        goto end;
-    if ((r = Defrag(NULL, NULL, p2, NULL)) != NULL)
-        goto end;
+    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) != NULL);
 
-    /* Pass. */
-    ret = 1;
-
-end:
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
+    SCFree(p1);
+    SCFree(p2);
     DefragDestroy();
 
-    return ret;
+    PASS;
 }
 
 /**
  * Like DefragVlanTest, but for QinQ, testing the second level VLAN ID.
  */
-static int
-DefragVlanQinQTest(void)
+static int DefragVlanQinQTest(void)
 {
     Packet *p1 = NULL, *p2 = NULL, *r = NULL;
-    int ret = 0;
 
     DefragInit();
 
     p1 = BuildTestPacket(IPPROTO_ICMP, 1, 0, 1, 'A', 8);
-    if (p1 == NULL)
-        goto end;
+    FAIL_IF_NULL(p1);
     p2 = BuildTestPacket(IPPROTO_ICMP, 1, 1, 0, 'B', 8);
-    if (p2 == NULL)
-        goto end;
+    FAIL_IF_NULL(p2);
 
     /* With no VLAN IDs set, packets should re-assemble. */
-    if ((r = Defrag(NULL, NULL, p1, NULL)) != NULL)
-        goto end;
-    if ((r = Defrag(NULL, NULL, p2, NULL)) == NULL)
-        goto end;
+    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) == NULL);
     SCFree(r);
 
     /* With mismatched VLANs, packets should not re-assemble. */
@@ -2332,27 +2206,18 @@ DefragVlanQinQTest(void)
     p2->vlan_id[0] = 1;
     p1->vlan_id[1] = 1;
     p2->vlan_id[1] = 2;
-    if ((r = Defrag(NULL, NULL, p1, NULL)) != NULL)
-        goto end;
-    if ((r = Defrag(NULL, NULL, p2, NULL)) != NULL)
-        goto end;
+    FAIL_IF((r = Defrag(NULL, NULL, p1, NULL)) != NULL);
+    FAIL_IF((r = Defrag(NULL, NULL, p2, NULL)) != NULL);
 
-    /* Pass. */
-    ret = 1;
-
-end:
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
+    SCFree(p1);
+    SCFree(p2);
     DefragDestroy();
 
-    return ret;
+    PASS;
 }
 
 static int DefragTrackerReuseTest(void)
 {
-    int ret = 0;
     int id = 1;
     Packet *p1 = NULL;
     DefragTracker *tracker1 = NULL, *tracker2 = NULL;
@@ -2362,31 +2227,19 @@ static int DefragTrackerReuseTest(void)
     /* Build a packet, its not a fragment but shouldn't matter for
      * this test. */
     p1 = BuildTestPacket(IPPROTO_ICMP, id, 0, 0, 'A', 8);
-    if (p1 == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(p1);
 
     /* Get a tracker. It shouldn't look like its already in use. */
     tracker1 = DefragGetTracker(NULL, NULL, p1);
-    if (tracker1 == NULL) {
-        goto end;
-    }
-    if (tracker1->seen_last) {
-        goto end;
-    }
-    if (tracker1->remove) {
-        goto end;
-    }
+    FAIL_IF_NULL(tracker1);
+    FAIL_IF(tracker1->seen_last);
+    FAIL_IF(tracker1->remove);
     DefragTrackerRelease(tracker1);
 
     /* Get a tracker again, it should be the same one. */
     tracker2 = DefragGetTracker(NULL, NULL, p1);
-    if (tracker2 == NULL) {
-        goto end;
-    }
-    if (tracker2 != tracker1) {
-        goto end;
-    }
+    FAIL_IF_NULL(tracker2);
+    FAIL_IF(tracker2 != tracker1);
     DefragTrackerRelease(tracker1);
 
     /* Now mark the tracker for removal. It should not be returned
@@ -2395,23 +2248,13 @@ static int DefragTrackerReuseTest(void)
     tracker1->remove = 1;
 
     tracker2 = DefragGetTracker(NULL, NULL, p1);
-    if (tracker2 == NULL) {
-        goto end;
-    }
-    if (tracker2 == tracker1) {
-        goto end;
-    }
-    if (tracker2->remove) {
-        goto end;
-    }
+    FAIL_IF_NULL(tracker2);
+    FAIL_IF(tracker2 == tracker1);
+    FAIL_IF(tracker2->remove);
 
-    ret = 1;
-end:
-    if (p1 != NULL) {
-        SCFree(p1);
-    }
+    SCFree(p1);
     DefragDestroy();
-    return ret;
+    PASS;
 }
 
 /**
@@ -2425,7 +2268,6 @@ end:
  */
 static int DefragMfIpv4Test(void)
 {
-    int retval = 0;
     int ip_id = 9;
     Packet *p = NULL;
 
@@ -2434,48 +2276,28 @@ static int DefragMfIpv4Test(void)
     Packet *p1 = BuildTestPacket(IPPROTO_ICMP, ip_id, 2, 1, 'C', 8);
     Packet *p2 = BuildTestPacket(IPPROTO_ICMP, ip_id, 0, 1, 'A', 8);
     Packet *p3 = BuildTestPacket(IPPROTO_ICMP, ip_id, 1, 0, 'B', 8);
-    if (p1 == NULL || p2 == NULL || p3 == NULL) {
-        goto end;
-    }
+    FAIL_IF(p1 == NULL || p2 == NULL || p3 == NULL);
 
     p = Defrag(NULL, NULL, p1, NULL);
-    if (p != NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(p);
 
     p = Defrag(NULL, NULL, p2, NULL);
-    if (p != NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(p);
 
     /* This should return a packet as MF=0. */
     p = Defrag(NULL, NULL, p3, NULL);
-    if (p == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(p);
 
     /* Expected IP length is 20 + 8 + 8 = 36 as only 2 of the
      * fragments should be in the re-assembled packet. */
-    if (IPV4_GET_IPLEN(p) != 36) {
-        goto end;
-    }
+    FAIL_IF(IPV4_GET_IPLEN(p) != 36);
 
-    retval = 1;
-end:
-    if (p1 != NULL) {
-        SCFree(p1);
-    }
-    if (p2 != NULL) {
-        SCFree(p2);
-    }
-    if (p3 != NULL) {
-        SCFree(p3);
-    }
-    if (p != NULL) {
-        SCFree(p);
-    }
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(p);
     DefragDestroy();
-    return retval;
+    PASS;
 }
 
 /**
@@ -2489,7 +2311,6 @@ end:
  */
 static int DefragMfIpv6Test(void)
 {
-    int retval = 0;
     int ip_id = 9;
     Packet *p = NULL;
 
@@ -2498,48 +2319,28 @@ static int DefragMfIpv6Test(void)
     Packet *p1 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 2, 1, 'C', 8);
     Packet *p2 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 0, 1, 'A', 8);
     Packet *p3 = IPV6BuildTestPacket(IPPROTO_ICMPV6, ip_id, 1, 0, 'B', 8);
-    if (p1 == NULL || p2 == NULL || p3 == NULL) {
-        goto end;
-    }
+    FAIL_IF(p1 == NULL || p2 == NULL || p3 == NULL);
 
     p = Defrag(NULL, NULL, p1, NULL);
-    if (p != NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(p);
 
     p = Defrag(NULL, NULL, p2, NULL);
-    if (p != NULL) {
-        goto end;
-    }
+    FAIL_IF_NOT_NULL(p);
 
     /* This should return a packet as MF=0. */
     p = Defrag(NULL, NULL, p3, NULL);
-    if (p == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(p);
 
     /* For IPv6 the expected length is just the length of the payload
      * of 2 fragments, so 16. */
-    if (IPV6_GET_PLEN(p) != 16) {
-        goto end;
-    }
+    FAIL_IF(IPV6_GET_PLEN(p) != 16);
 
-    retval = 1;
-end:
-    if (p1 != NULL) {
-        SCFree(p1);
-    }
-    if (p2 != NULL) {
-        SCFree(p2);
-    }
-    if (p3 != NULL) {
-        SCFree(p3);
-    }
-    if (p != NULL) {
-        SCFree(p);
-    }
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(p);
     DefragDestroy();
-    return retval;
+    PASS;
 }
 
 /**
@@ -2564,12 +2365,64 @@ static int DefragTestBadProto(void)
     FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p2, NULL));
     FAIL_IF_NOT_NULL(Defrag(NULL, NULL, p3, NULL));
 
-    if (p1 != NULL)
-        SCFree(p1);
-    if (p2 != NULL)
-        SCFree(p2);
-    if (p3 != NULL)
-        SCFree(p3);
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+
+    DefragDestroy();
+    PASS;
+}
+
+/**
+ * \test Test a report Linux overlap issue that doesn't appear to be
+ *     covered by the Sturges/Novak tests above.
+ */
+static int DefragTestJeremyLinux(void)
+{
+    char expected[] = "AAAAAAAA"
+        "AAAAAAAA"
+        "AAAAAAAA"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "CCCCCCCC"
+        "BBBBBBBB"
+        "BBBBBBBB"
+        "DDDDDDDD"
+        "DDDDDD";
+
+    DefragInit();
+    default_policy = DEFRAG_POLICY_LINUX;
+
+    int id = 1;
+    Packet *packets[4];
+    int i = 0;
+
+    packets[0] = BuildTestPacket(IPPROTO_ICMP, id, 0, 1, 'A', 24);
+    packets[1] = BuildTestPacket(IPPROTO_ICMP, id, 40 >> 3, 1, 'B', 48);
+    packets[2] = BuildTestPacket(IPPROTO_ICMP, id, 24 >> 3, 1, 'C', 48);
+    packets[3] = BuildTestPacket(IPPROTO_ICMP, id, 88 >> 3, 0, 'D', 14);
+
+    Packet *r = Defrag(NULL, NULL, packets[0], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[1], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[2], NULL);
+    FAIL_IF_NOT_NULL(r);
+
+    r = Defrag(NULL, NULL, packets[3], NULL);
+    FAIL_IF_NULL(r);
+
+    FAIL_IF(memcmp(expected, GET_PKT_DATA(r) + 20, sizeof(expected)) != 0);
+
+    for (i = 0; i < 4; i++) {
+        SCFree(packets[i]);
+    }
+    SCFree(r);
 
     DefragDestroy();
     PASS;
@@ -2577,16 +2430,16 @@ static int DefragTestBadProto(void)
 
 #endif /* UNITTESTS */
 
-void
-DefragRegisterTests(void)
+void DefragRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DefragInOrderSimpleTest", DefragInOrderSimpleTest);
     UtRegisterTest("DefragReverseSimpleTest", DefragReverseSimpleTest);
     UtRegisterTest("DefragSturgesNovakBsdTest", DefragSturgesNovakBsdTest);
-    UtRegisterTest("DefragSturgesNovakLinuxTest", DefragSturgesNovakLinuxTest);
-    UtRegisterTest("DefragSturgesNovakWindowsTest",
-                   DefragSturgesNovakWindowsTest);
+    UtRegisterTest("DefragSturgesNovakLinuxIpv4Test",
+            DefragSturgesNovakLinuxIpv4Test);
+    UtRegisterTest("DefragSturgesNovakWindowsIpv4Test",
+                   DefragSturgesNovakWindowsIpv4Test);
     UtRegisterTest("DefragSturgesNovakSolarisTest",
                    DefragSturgesNovakSolarisTest);
     UtRegisterTest("DefragSturgesNovakFirstTest", DefragSturgesNovakFirstTest);
@@ -2617,6 +2470,7 @@ DefragRegisterTests(void)
     UtRegisterTest("DefragMfIpv4Test", DefragMfIpv4Test);
     UtRegisterTest("DefragMfIpv6Test", DefragMfIpv6Test);
     UtRegisterTest("DefragTestBadProto", DefragTestBadProto);
+
+    UtRegisterTest("DefragTestJeremyLinux", DefragTestJeremyLinux);
 #endif /* UNITTESTS */
 }
-

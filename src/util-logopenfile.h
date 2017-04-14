@@ -102,6 +102,13 @@ typedef struct LogFileCtx_ {
     int sock_type;
     uint64_t reconn_timer;
 
+    /** The next time to rotate log file, if rotate interval is
+        specified. */
+    time_t rotate_time;
+
+    /** The interval to rotate the log file */
+    uint64_t rotate_interval;
+
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
@@ -115,6 +122,9 @@ typedef struct LogFileCtx_ {
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
 
+    /* flags to set when sending over a socket */
+    uint8_t send_flags;
+
     /* Flag if file is a regular file or not.  Only regular files
      * allow for rotataion. */
     uint8_t is_regular;
@@ -127,14 +137,19 @@ typedef struct LogFileCtx_ {
 
     /* Set to true if the filename should not be timestamped. */
     bool nostamp;
+
+    /* Socket types may need to drop events to keep from blocking
+     * Suricata. */
+    uint64_t dropped;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
 #define LOGFILE_RECONN_MIN_TIME     500
 
 /* flags for LogFileCtx */
-#define LOGFILE_HEADER_WRITTEN 0x01
-#define LOGFILE_ALERTS_PRINTED 0x02
+#define LOGFILE_HEADER_WRITTEN  0x01
+#define LOGFILE_ALERTS_PRINTED  0x02
+#define LOGFILE_ROTATE_INTERVAL 0x04
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);

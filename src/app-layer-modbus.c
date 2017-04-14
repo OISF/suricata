@@ -1222,15 +1222,30 @@ static int ModbusParseHeader(ModbusState   *modbus,
     SCEnter();
     uint16_t offset = 0;
 
+    int r = 0;
+
+    /* can't pass the header fields directly due to alignment (Bug 2088) */
+    uint16_t transaction_id = 0;
+    uint16_t protocol_id = 0;
+    uint16_t length = 0;
+    uint8_t unit_id = 0;
+
     /* Transaction Identifier (2 bytes) */
-    if (ModbusExtractUint16(modbus, &(header->transactionId), input, input_len, &offset)    ||
+    r = ModbusExtractUint16(modbus, &transaction_id, input, input_len, &offset);
     /* Protocol Identifier (2 bytes) */
-        ModbusExtractUint16(modbus, &(header->protocolId), input, input_len, &offset)       ||
+    r |= ModbusExtractUint16(modbus, &protocol_id, input, input_len, &offset);
     /* Length (2 bytes) */
-        ModbusExtractUint16(modbus, &(header->length), input, input_len, &offset)           ||
+    r |= ModbusExtractUint16(modbus, &length, input, input_len, &offset);
     /* Unit Identifier (1 byte) */
-        ModbusExtractUint8(modbus, &(header->unitId), input, input_len, &offset))
+    r |= ModbusExtractUint8(modbus, &unit_id, input, input_len, &offset);
+
+    if (r != 0) {
         SCReturnInt(-1);
+    }
+    header->transactionId = transaction_id;
+    header->protocolId = protocol_id;
+    header->length = length;
+    header->unitId = unit_id;
 
     SCReturnInt(0);
 }

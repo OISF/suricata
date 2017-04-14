@@ -121,6 +121,57 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
     return log_ctx->fp ? 1 : 0;
 }
 
+static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
+        LogFileCtx *ctx)
+{
+    int tries = 0;
+    int ret = 0;
+    bool reopen = false;
+
+    if (ctx->fp == NULL && ctx->is_sock) {
+        SCLogUnixSocketReconnect(ctx);
+    }
+
+tryagain:
+    ret = -1;
+    reopen = 0;
+    errno = 0;
+    if (ctx->fp != NULL) {
+        int fd = fileno(ctx->fp);
+        ssize_t size = send(fd, buffer, buffer_len, ctx->send_flags);
+        if (size > -1) {
+            ret = 0;
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                SCLogDebug("Socket would block, dropping event.");
+            } else if (errno == EINTR) {
+                if (tries++ == 0) {
+                    SCLogDebug("Interrupted system call, trying again.");
+                    goto tryagain;
+                }
+                SCLogDebug("Too many interrupted system calls, "
+                        "dropping event.");
+            } else {
+                /* Some other error. Assume badness and reopen. */
+                SCLogDebug("Send failed: %s", strerror(errno));
+                reopen = true;
+            }
+        }
+    }
+
+    if (reopen && tries++ == 0) {
+        if (SCLogUnixSocketReconnect(ctx)) {
+            goto tryagain;
+        }
+    }
+
+    if (ret == -1) {
+        ctx->dropped++;
+    }
+
+    return ret;
+}
+
 /**
  * \brief Write buffer to log file.
  * \retval 0 on failure; otherwise, the return value of fwrite (number of
@@ -129,35 +180,91 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
     SCMutexLock(&log_ctx->fp_mutex);
-
-    /* Check for rotation. */
-    if (log_ctx->rotation_flag) {
-        log_ctx->rotation_flag = 0;
-        SCConfLogReopen(log_ctx);
-    }
-
     int ret = 0;
 
-    if (log_ctx->fp == NULL && log_ctx->is_sock)
-        SCLogUnixSocketReconnect(log_ctx);
+    if (log_ctx->is_sock) {
+        ret = SCLogFileWriteSocket(buffer, buffer_len, log_ctx);
+    } else {
 
-    if (log_ctx->fp) {
-        clearerr(log_ctx->fp);
-        ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-        fflush(log_ctx->fp);
+        /* Check for rotation. */
+        if (log_ctx->rotation_flag) {
+            log_ctx->rotation_flag = 0;
+            SCConfLogReopen(log_ctx);
+        }
 
-        if (ferror(log_ctx->fp) && log_ctx->is_sock) {
-            /* Error on Unix socket, maybe needs reconnect */
-            if (SCLogUnixSocketReconnect(log_ctx)) {
-                ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
-                fflush(log_ctx->fp);
+        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+            time_t now = time(NULL);
+            if (now >= log_ctx->rotate_time) {
+                SCConfLogReopen(log_ctx);
+                log_ctx->rotate_time = now + log_ctx->rotate_interval;
             }
+        }
+
+        if (log_ctx->fp) {
+            clearerr(log_ctx->fp);
+            ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+            fflush(log_ctx->fp);
         }
     }
 
     SCMutexUnlock(&log_ctx->fp_mutex);
 
     return ret;
+}
+
+/** \brief generate filename based on pattern
+ *  \param pattern pattern to use
+ *  \retval char* on success
+ *  \retval NULL on error
+ */
+static char *SCLogFilenameFromPattern(const char *pattern)
+{
+    char *filename = SCMalloc(PATH_MAX);
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCTimeToStringPattern(time(NULL), pattern, filename, PATH_MAX);
+    if (rc != 0) {
+        return NULL;
+    }
+
+    return filename;
+}
+
+/** \brief recursively create missing log directories
+ *  \param path path to log file
+ *  \retval 0 on success
+ *  \retval -1 on error
+ */
+static int SCLogCreateDirectoryTree(const char *filepath)
+{
+    char pathbuf[PATH_MAX];
+    char *p;
+    size_t len = strlen(filepath);
+
+    if (len > PATH_MAX - 1) {
+        return -1;
+    }
+
+    strlcpy(pathbuf, filepath, len);
+
+    for (p = pathbuf + 1; *p; p++) {
+        if (*p == '/') {
+            /* Truncate, while creating directory */
+            *p = '\0';
+
+            if (mkdir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+                if (errno != EEXIST) {
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    return 0;
 }
 
 static void SCLogFileClose(LogFileCtx *log_ctx)
@@ -178,25 +285,37 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
 {
     FILE *ret = NULL;
 
+    char *filename = SCLogFilenameFromPattern(path);
+    if (filename == NULL) {
+        return NULL;
+    }
+
+    int rc = SCLogCreateDirectoryTree(filename);
+    if (rc < 0) {
+        SCFree(filename);
+        return NULL;
+    }
+
     if (ConfValIsTrue(append_setting)) {
-        ret = fopen(path, "a");
+        ret = fopen(filename, "a");
     } else {
-        ret = fopen(path, "w");
+        ret = fopen(filename, "w");
     }
 
     if (ret == NULL) {
         SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
-                   path, strerror(errno));
+                   filename, strerror(errno));
     } else {
         if (mode != 0) {
-            int r = chmod(path, mode);
+            int r = chmod(filename, mode);
             if (r < 0) {
                 SCLogWarning(SC_WARN_CHMOD, "Could not chmod %s to %u: %s",
-                             path, mode, strerror(errno));
+                             filename, mode, strerror(errno));
             }
         }
     }
 
+    SCFree(filename);
     return ret;
 }
 
@@ -262,6 +381,36 @@ SCConfLogOpenGeneric(ConfNode *conf,
         snprintf(log_path, PATH_MAX, "%s", filename);
     } else {
         snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    }
+
+    /* Rotate log file based on time */
+    const char *rotate_int = ConfNodeLookupChildValue(conf, "rotate-interval");
+    if (rotate_int != NULL) {
+        time_t now = time(NULL);
+        log_ctx->flags |= LOGFILE_ROTATE_INTERVAL;
+
+        /* Use a specific time */
+        if (strcmp(rotate_int, "minute") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 60;
+        } else if (strcmp(rotate_int, "hour") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 3600;
+        } else if (strcmp(rotate_int, "day") == 0) {
+            log_ctx->rotate_time = now + SCGetSecondsUntil(rotate_int, now);
+            log_ctx->rotate_interval = 86400;
+        }
+
+        /* Use a timer */
+        else {
+            log_ctx->rotate_interval = SCParseTimeSizeString(rotate_int);
+            if (log_ctx->rotate_interval == 0) {
+                SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+                           "invalid rotate-interval value");
+                exit(EXIT_FAILURE);
+            }
+            log_ctx->rotate_time = now + log_ctx->rotate_interval;
+        }
     }
 
     filetype = ConfNodeLookupChildValue(conf, "filetype");
@@ -354,6 +503,12 @@ SCConfLogOpenGeneric(ConfNode *conf,
         SCLogError(SC_ERR_MEM_ALLOC,
             "Failed to allocate memory for filename");
         return -1;
+    }
+
+    /* If a socket and running live, do non-blocking writes. */
+    if (log_ctx->is_sock && run_mode_offline == 0) {
+        SCLogInfo("Setting logging socket of non-blocking in live mode.");
+        log_ctx->send_flags |= MSG_DONTWAIT;
     }
 
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,

@@ -97,7 +97,7 @@ FlowBucket *flow_hash;
 FlowConfig flow_config;
 
 /** flow memuse counter (atomic), for enforcing memcap limit */
-SC_ATOMIC_DECLARE(long long unsigned int, flow_memuse);
+SC_ATOMIC_DECLARE(uint64_t, flow_memuse);
 
 #endif /* __FLOW_PRIVATE_H__ */
 

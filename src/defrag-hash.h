@@ -85,7 +85,7 @@ typedef struct DefragConfig_ {
     ((((uint64_t)SC_ATOMIC_GET(defrag_memuse) + (uint64_t)(size)) <= defrag_config.memcap))
 
 DefragConfig defrag_config;
-SC_ATOMIC_DECLARE(unsigned long long int,defrag_memuse);
+SC_ATOMIC_DECLARE(uint64_t,defrag_memuse);
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_counter);
 SC_ATOMIC_DECLARE(unsigned int,defragtracker_prune_idx);
 

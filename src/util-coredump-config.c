@@ -26,7 +26,9 @@
 #define _FILE_OFFSET_BITS 64
 #include "util-coredump-config.h"
 #include "conf.h"
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 /**
  * \brief Configures the core dump size.
@@ -36,6 +38,7 @@
  */
 int32_t CoredumpLoadConfig (void)
 {
+#ifdef HAVE_SYS_RESOURCE_H
     /* get core dump configuration settings for suricata */
     char* dump_size_config = NULL;
     rlim_t max_dump = 0;
@@ -71,7 +74,7 @@ int32_t CoredumpLoadConfig (void)
             SCLogInfo ("Illegal core dump size: %s.", dump_size_config);
             return 0;
         }
-        SCLogInfo ("Max dump is %llu", (unsigned long long) max_dump);
+        SCLogInfo ("Max dump is %"PRIu64, (uint64_t) max_dump);
     }
 
 #if defined OS_WIN32
@@ -165,7 +168,7 @@ int32_t CoredumpLoadConfig (void)
             new_lim.rlim_max = lim.rlim_max;
         }
         if (setrlimit (RLIMIT_CORE, &new_lim) == 0) {
-            SCLogInfo ("Core dump setting attempted is %llu", (unsigned long long) new_lim.rlim_cur);
+            SCLogInfo ("Core dump setting attempted is %"PRIu64, (uint64_t) new_lim.rlim_cur);
             struct rlimit actual_lim;
             if (getrlimit (RLIMIT_CORE, &actual_lim) == 0) {
                 if (actual_lim.rlim_cur == RLIM_INFINITY) {
@@ -177,7 +180,7 @@ int32_t CoredumpLoadConfig (void)
                 }
 #endif
                 else {
-                    SCLogInfo ("Core dump size set to %llu", (unsigned long long) actual_lim.rlim_cur);
+                    SCLogInfo ("Core dump size set to %"PRIu64, (uint64_t) actual_lim.rlim_cur);
                 }
             }
             return 1;
@@ -202,5 +205,6 @@ int32_t CoredumpLoadConfig (void)
     }
     /* failed to set the coredump limit */
     SCLogInfo ("Could't set coredump size to %s.", dump_size_config);
+#endif /* HAVE_SYS_RESOURCE_H */
     return 0;
 }
