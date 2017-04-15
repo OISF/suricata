@@ -73,6 +73,7 @@
 #include "util-misc.h"
 #include "util-validate.h"
 #include "util-runmodes.h"
+#include "util-random.h"
 
 #include "source-pcap-file.h"
 
@@ -505,8 +506,6 @@ void StreamTcpInitConfig(char quiet)
                 exit(EXIT_FAILURE);
             }
         }
-        /* set a "random" seed */
-        srandom(time(0));
     }
 
     char *temp_stream_reassembly_toserver_chunk_size_str;
@@ -526,9 +525,10 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (randomize) {
+        long int r = RandomGet();
         stream_config.reassembly_toserver_chunk_size +=
             (int) (stream_config.reassembly_toserver_chunk_size *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER,
             stream_config.reassembly_toserver_chunk_size);
@@ -550,9 +550,10 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (randomize) {
+        long int r = RandomGet();
         stream_config.reassembly_toclient_chunk_size +=
             (int) (stream_config.reassembly_toclient_chunk_size *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
 
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT,

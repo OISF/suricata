@@ -77,6 +77,7 @@
 #include "decode-events.h"
 
 #include "util-memcmp.h"
+#include "util-random.h"
 
 //#define PRINT
 
@@ -2199,12 +2200,15 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
     if (cfg_prec->randomize) {
         int rdrange = cfg_prec->randomize_range;
 
+        long int r = RandomGet();
         cfg_prec->request.inspect_min_size +=
             (int) (cfg_prec->request.inspect_min_size *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+
+        r = RandomGet();
         cfg_prec->request.inspect_window +=
             (int) (cfg_prec->request.inspect_window *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
         SCLogConfig("'%s' server has 'request-body-minimal-inspect-size' set to"
                   " %d and 'request-body-inspect-window' set to %d after"
                   " randomization.",
@@ -2213,12 +2217,15 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
                   cfg_prec->request.inspect_window);
 
 
+        r = RandomGet();
         cfg_prec->response.inspect_min_size +=
             (int) (cfg_prec->response.inspect_min_size *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+
+        r = RandomGet();
         cfg_prec->response.inspect_window +=
             (int) (cfg_prec->response.inspect_window *
-                   (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
+                   (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
 
         SCLogConfig("'%s' server has 'response-body-minimal-inspect-size' set to"
                   " %d and 'response-body-inspect-window' set to %d after"
