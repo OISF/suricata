@@ -142,7 +142,7 @@
         #endif
     ]])
 
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h], [], [],
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h wincrypt.h], [], [],
                     [[
                         #ifndef _X86_
                         #define _X86_
@@ -170,7 +170,7 @@
     # Checks for library functions.
     AC_FUNC_MALLOC
     AC_FUNC_REALLOC
-    AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strerror strncasecmp strtol strtoul memchr memrchr])
+    AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
 
     OCFLAGS=$CFLAGS
     CFLAGS=""

@@ -138,9 +138,8 @@ void IPPairInitConfig(char quiet)
     IPPairQueueInit(&ippair_spare_q);
 
 #ifndef AFLFUZZ_NO_RANDOM
-    unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    ippair_config.hash_rand   = (int)( IPPAIR_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
+    ippair_config.hash_rand   = (uint32_t)RandomGet();
 #endif
     ippair_config.hash_size   = IPPAIR_DEFAULT_HASHSIZE;
     ippair_config.memcap      = IPPAIR_DEFAULT_MEMCAP;

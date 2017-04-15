@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,31 +18,54 @@
 /**
  * \file
  *
- * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
- * Utility function for seeding rand
+ * Functions for getting a random value based on
+ * SEI CERT C Coding Standard MSC30-C
  */
 
 #include "suricata-common.h"
-#include "detect.h"
-#include "threads.h"
-#include "util-debug.h"
 
-/**
- * \brief create a seed number to pass to rand() , rand_r(), and similars
- * \retval seed for rand()
- */
-unsigned int RandomTimePreseed(void)
+#if defined(HAVE_WINCRYPT_H) && defined(OS_WIN32)
+#include <wincrypt.h>
+
+long int RandomGet(void)
 {
-    /* preseed rand() */
-    time_t now = time ( 0 );
-    unsigned char *p = (unsigned char *)&now;
-    unsigned seed = 0;
-    size_t ind;
+    HCRYPTPROV p;
+    if (!(CryptAcquireContext(&p, NULL, NULL,
+                PROV_RSA_FULL, 0))) {
+        return -1;
+    }
 
-    for ( ind = 0; ind < sizeof now; ind++ )
-      seed = seed * ( UCHAR_MAX + 2U ) + p[ind];
+    long int value = 0;
+    if (!CryptGenRandom(p, sizeof(value), (BYTE *)&value)) {
+        (void)CryptReleaseContext(p, 0);
+        return -1;
+    }
 
-    return seed;
+    (void)CryptReleaseContext(prov, 0);
+
+    return value;
 }
+#elif defined(HAVE_CLOCK_GETTIME)
+long int RandomGet(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
 
+    srandom(ts.tv_nsec ^ ts.tv_sec);
+    long int value = random();
+    return value;
+}
+#else
+long int RandomGet(void)
+{
+    struct timeval tv;
+    memset(&tv, 0, sizeof(tv));
+    gettimeofday(&tv, NULL);
+
+    srandom(tv.tv_usec ^ tv.tv_sec);
+    long int value = random();
+    return value;
+}
+#endif

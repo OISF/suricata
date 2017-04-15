@@ -142,9 +142,8 @@ void HostInitConfig(char quiet)
     HostQueueInit(&host_spare_q);
 
 #ifndef AFLFUZZ_NO_RANDOM
-    unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    host_config.hash_rand   = (int)( HOST_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
+    host_config.hash_rand   = (uint32_t)RandomGet();
 #endif
     host_config.hash_size   = HOST_DEFAULT_HASHSIZE;
     host_config.memcap      = HOST_DEFAULT_MEMCAP;

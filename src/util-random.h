@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,13 +18,13 @@
 /**
  * \file
  *
- * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #ifndef __UTIL_RANDOM_H__
 #define __UTIL_RANDOM_H__
 
-unsigned int RandomTimePreseed(void);
+long int RandomGet(void);
 
 #endif /* __UTIL_RANDOM_H__ */
 
