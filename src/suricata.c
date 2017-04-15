@@ -220,6 +220,13 @@ int sc_set_caps = FALSE;
 /** highest mtu of the interfaces we monitor */
 int g_default_mtu = 0;
 
+/** disable randomness to get reproducible results accross runs */
+#ifndef AFLFUZZ_NO_RANDOM
+int g_disable_randomness = 0;
+#else
+int g_disable_randomness = 1;
+#endif
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -1461,6 +1468,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
+        {"no-random", 0, &g_disable_randomness, 1},
 
         /* AFL app-layer options. */
         {"afl-http-request", required_argument, 0 , 0},

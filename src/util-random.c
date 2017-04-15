@@ -31,6 +31,9 @@
 
 long int RandomGet(void)
 {
+    if (g_disable_randomness)
+        return 0;
+
     HCRYPTPROV p;
     if (!(CryptAcquireContext(&p, NULL, NULL,
                 PROV_RSA_FULL, 0))) {
@@ -50,6 +53,9 @@ long int RandomGet(void)
 #elif defined(HAVE_CLOCK_GETTIME)
 long int RandomGet(void)
 {
+    if (g_disable_randomness)
+        return 0;
+
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
 
@@ -60,6 +66,9 @@ long int RandomGet(void)
 #else
 long int RandomGet(void)
 {
+    if (g_disable_randomness)
+        return 0;
+
     struct timeval tv;
     memset(&tv, 0, sizeof(tv));
     gettimeofday(&tv, NULL);

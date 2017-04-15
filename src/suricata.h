@@ -172,6 +172,7 @@ typedef struct SCInstance_ {
 void GlobalsInitPreConfig();
 
 extern volatile uint8_t suricata_ctl_flags;
+extern int g_disable_randomness;
 
 /* uppercase to lowercase conversion lookup table */
 uint8_t g_u8_lowercasetable[256];
