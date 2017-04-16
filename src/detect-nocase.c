@@ -41,6 +41,7 @@
 #include "detect-http-uri.h"
 
 #include "util-debug.h"
+#include "util-memcpy.h"
 
 static int DetectNocaseSetup (DetectEngineCtx *, Signature *, char *);
 
@@ -101,6 +102,9 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
 
     cd->flags |= DETECT_CONTENT_NOCASE;
+    /* Store the content as lower case to make searching faster */
+    memcpy_tolower(cd->content, cd->content, cd->content_len);
+
     /* Recreate the context with nocase chars */
     SpmDestroyCtx(cd->spm_ctx);
     cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
