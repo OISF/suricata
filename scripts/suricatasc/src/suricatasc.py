@@ -88,7 +88,7 @@ class SuricataSC:
         cmdret = None
         i = 0
         data = ""
-        while i < 5:
+        while i < 20:
             i += 1
             if sys.version < '3':
                 data += self.socket.recv(SIZE)
