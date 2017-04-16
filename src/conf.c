@@ -313,20 +313,18 @@ int ConfSetFinal(const char *name, char *val)
 }
 
 /**
- * \brief Retrieve the value of a configuration node.
+ * \brief Get the value of a configuration node.
  *
- * This function will return the value for a configuration node based
- * on the full name of the node.  It is possible that the value
- * returned could be NULL, this could happen if the requested node
- * does exist but is not a node that contains a value, but contains
- * children ConfNodes instead.
+ * Note on failure: This function will return for failure if the named
+ * configuration node does not exist, or if it does exist and its
+ * value is 0.
  *
  * \param name Name of configuration parameter to get.
  * \param vptr Pointer that will be set to the configuration value parameter.
  *   Note that this is just a reference to the actual value, not a copy.
  *
- * \retval 1 will be returned if the name is found, otherwise 0 will
- *   be returned.
+ * \retval 1 will be returned if the name is found and the value is not NULL,
+ *   otherwise 0 will be returned.
  */
 int ConfGet(const char *name, char **vptr)
 {
@@ -335,10 +333,9 @@ int ConfGet(const char *name, char **vptr)
         SCLogDebug("failed to lookup configuration parameter '%s'", name);
         return 0;
     }
-    else {
-        *vptr = node->val;
-        return 1;
-    }
+
+    *vptr = node->val;
+    return *vptr == NULL ? 0 : 1;
 }
 
 int ConfGetChildValue(const ConfNode *base, const char *name, char **vptr)
