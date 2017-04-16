@@ -167,7 +167,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     int logged = 0;
     int gap = 0;
 
-    for (; tx_id < total_txs; tx_id++)
+    int i;
+    for (i = 0; i < total_txs; i++, tx_id++)
     {
         /* Track the number of loggers, of the eligible loggers that
          * actually logged this transaction. They all must have logged
