@@ -309,6 +309,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
             if (ConfYamlParse(parser, node, 1) != 0)
                 goto fail;
+            if (node->final && !node->is_seq) {
+                SCLogError(SC_ERR_CONF_YAML_ERROR, "Error: Found node already "
+                    "set from command line. Setting of sequence nodes with "
+                    "--set is not supported.");
+                goto fail;
+            }
             node->is_seq = 1;
             state = CONF_KEY;
         }
