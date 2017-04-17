@@ -730,6 +730,7 @@ static int StatsOutput(ThreadVars *tv)
             r->value = 0;
             r->name = table[c].name;
             r->tm_name = sts->name;
+            r->pvalue = r->value;
 
             switch (e->type) {
                 case STATS_TYPE_AVERAGE:
