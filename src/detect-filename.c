@@ -73,14 +73,14 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
             DetectFileInspectHttp);
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
             DetectFileInspectHttp);
 
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectFileInspectSmtp);
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");

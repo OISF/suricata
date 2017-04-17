@@ -207,17 +207,17 @@ void DetectDceStubDataRegister(void)
             PrefilterTxDceStubDataResponseRegister);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_DCERPC, SIG_FLAG_TOSERVER,
+            ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0,
             InspectEngineDceStubData);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT,
+            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0,
             InspectEngineDceStubData);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOSERVER,
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
             InspectEngineDceStubData);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT,
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
             InspectEngineDceStubData);
 
     g_dce_stub_data_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);

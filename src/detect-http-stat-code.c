@@ -87,7 +87,7 @@ void DetectHttpStatCodeRegister (void)
             PrefilterTxHttpStatCodeRegister);
 
     DetectAppLayerInspectEngineRegister("http_stat_code",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
             DetectEngineInspectHttpStatCode);
 
     DetectBufferTypeSetDescriptionByName("http_stat_code",

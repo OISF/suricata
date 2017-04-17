@@ -76,7 +76,7 @@ void DetectTlsSniRegister(void)
             PrefilterTxTlsSniRegister);
 
     DetectAppLayerInspectEngineRegister("tls_sni",
-            ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectTlsSni);
 
     g_tls_sni_buffer_id = DetectBufferTypeGetByName("tls_sni");

@@ -83,7 +83,7 @@ void DetectHttpClientBodyRegister(void)
             PrefilterTxHttpRequestBodyRegister);
 
     DetectAppLayerInspectEngineRegister("http_client_body",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
             DetectEngineInspectHttpClientBody);
 
     DetectBufferTypeSetDescriptionByName("http_client_body",

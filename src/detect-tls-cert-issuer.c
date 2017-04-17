@@ -76,7 +76,7 @@ void DetectTlsIssuerRegister(void)
             PrefilterTxTlsIssuerRegister);
 
     DetectAppLayerInspectEngineRegister("tls_cert_issuer",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectTlsIssuer);
 
     g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls_cert_issuer");

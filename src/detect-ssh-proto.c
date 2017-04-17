@@ -195,10 +195,10 @@ void DetectSshProtocolRegister(void)
             PrefilterTxSshResponseProtocolRegister);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOSERVER,
+            ALPROTO_SSH, SIG_FLAG_TOSERVER, SSH_STATE_BANNER_DONE,
             InspectEngineSshProtocol);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_SSH, SIG_FLAG_TOCLIENT,
+            ALPROTO_SSH, SIG_FLAG_TOCLIENT, SSH_STATE_BANNER_DONE,
             InspectEngineSshProtocol);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

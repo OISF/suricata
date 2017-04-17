@@ -159,7 +159,7 @@ void DetectTlsRegister (void)
     g_tls_cert_list_id = DetectBufferTypeRegister("tls_cert");
 
     DetectAppLayerInspectEngineRegister("tls_cert",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             InspectTlsCert);
 }
 

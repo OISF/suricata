@@ -122,10 +122,10 @@ void DetectLuaRegister(void)
     g_smtp_generic_list_id = DetectBufferTypeRegister("smtp_generic");
 
     DetectAppLayerInspectEngineRegister("smtp_generic",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             InspectSmtpGeneric);
     DetectAppLayerInspectEngineRegister("smtp_generic",
-            ALPROTO_SMTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_SMTP, SIG_FLAG_TOCLIENT, 0,
             InspectSmtpGeneric);
 
 	SCLogDebug("registering lua rule option");

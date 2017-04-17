@@ -76,7 +76,7 @@ void DetectTlsSubjectRegister(void)
             PrefilterTxTlsSubjectRegister);
 
     DetectAppLayerInspectEngineRegister("tls_cert_subject",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectTlsSubject);
 
     g_tls_cert_subject_buffer_id = DetectBufferTypeGetByName("tls_cert_subject");

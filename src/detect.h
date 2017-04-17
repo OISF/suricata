@@ -334,7 +334,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
     uint8_t id;     /**< per sig id used in state keeping */
-    int sm_list;
+    int16_t sm_list;
+    int16_t progress;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
      *         1 Match.

@@ -59,10 +59,10 @@ void DetectTemplateBufferRegister(void)
 
     /* register inspect engines */
     DetectAppLayerInspectEngineRegister("template_buffer",
-            ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER,
+            ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectTemplateBuffer);
     DetectAppLayerInspectEngineRegister("template_buffer",
-            ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT,
+            ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectTemplateBuffer);
 
     g_template_buffer_id = DetectBufferTypeGetByName("template_buffer");

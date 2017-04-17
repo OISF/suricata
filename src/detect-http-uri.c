@@ -79,7 +79,8 @@ void DetectHttpUriRegister (void)
     DetectAppLayerMpmRegister("http_uri", SIG_FLAG_TOSERVER, 2,
             PrefilterTxUriRegister);
 
-    DetectAppLayerInspectEngineRegister("http_uri", ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+    DetectAppLayerInspectEngineRegister("http_uri",
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
             DetectEngineInspectHttpUri);
 
     DetectBufferTypeSetDescriptionByName("http_uri",

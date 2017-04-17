@@ -83,14 +83,14 @@ void DetectDceIfaceRegister(void)
     g_dce_generic_list_id = DetectBufferTypeRegister("dce_generic");
 
     DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_DCERPC, SIG_FLAG_TOSERVER, InspectDceGeneric);
+            ALPROTO_DCERPC, SIG_FLAG_TOSERVER, 0, InspectDceGeneric);
     DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_SMB, SIG_FLAG_TOSERVER, InspectDceGeneric);
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0, InspectDceGeneric);
 
     DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, InspectDceGeneric);
+            ALPROTO_DCERPC, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric);
     DetectAppLayerInspectEngineRegister("dce_generic",
-            ALPROTO_SMB, SIG_FLAG_TOCLIENT, InspectDceGeneric);
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0, InspectDceGeneric);
 }
 
 static int InspectDceGeneric(ThreadVars *tv,

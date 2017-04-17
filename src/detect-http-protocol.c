@@ -223,10 +223,10 @@ void DetectHttpProtocolRegister(void)
             PrefilterTxHttpResponseProtocolRegister);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
             InspectEngineHttpProtocol);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
             InspectEngineHttpProtocol);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

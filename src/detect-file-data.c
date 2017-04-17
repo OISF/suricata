@@ -71,10 +71,10 @@ void DetectFiledataRegister(void)
             PrefilterTxHttpResponseBodyRegister);
 
     DetectAppLayerInspectEngineRegister("file_data",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
             DetectEngineInspectHttpServerBody);
     DetectAppLayerInspectEngineRegister("file_data",
-            ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectSMTPFiledata);
 
     DetectBufferTypeRegisterSetupCallback("file_data",

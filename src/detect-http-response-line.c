@@ -88,7 +88,7 @@ void DetectHttpResponseLineRegister(void)
             PrefilterTxHttpResponseLineRegister);
 
     DetectAppLayerInspectEngineRegister("http_response_line",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_LINE,
             DetectEngineInspectHttpResponseLine);
 
     DetectBufferTypeSetDescriptionByName("http_response_line",

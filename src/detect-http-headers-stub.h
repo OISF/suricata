@@ -345,12 +345,12 @@ static void DetectHttpHeadersRegisterStub(void)
 #endif
 #ifdef KEYWORD_TOSERVER
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             InspectEngineHttpRequestHeader);
 #endif
 #ifdef KEYWORD_TOCLIENT
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
             InspectEngineHttpResponseHeader);
 #endif
 

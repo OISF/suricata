@@ -78,7 +78,7 @@ void DetectHttpRawUriRegister(void)
             PrefilterTxRawUriRegister);
 
     DetectAppLayerInspectEngineRegister("http_raw_uri",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
             DetectEngineInspectHttpRawUri);
 
     DetectBufferTypeSetDescriptionByName("http_raw_uri",

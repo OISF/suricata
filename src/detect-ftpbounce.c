@@ -76,7 +76,8 @@ void DetectFtpbounceRegister(void)
     g_ftp_request_list_id = DetectBufferTypeRegister("ftp_request");
 
     DetectAppLayerInspectEngineRegister("ftp_request",
-            ALPROTO_FTP, SIG_FLAG_TOSERVER, InspectFtpRequest);
+            ALPROTO_FTP, SIG_FLAG_TOSERVER, 0,
+            InspectFtpRequest);
 }
 
 static int InspectFtpRequest(ThreadVars *tv,

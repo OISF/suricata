@@ -94,10 +94,10 @@ void DetectSslStateRegister(void)
             "generic ssl/tls inspection");
 
     DetectAppLayerInspectEngineRegister("tls_generic",
-            ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            ALPROTO_TLS, SIG_FLAG_TOSERVER, 0,
             InspectTlsGeneric);
     DetectAppLayerInspectEngineRegister("tls_generic",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT, 0,
             InspectTlsGeneric);
 }
 

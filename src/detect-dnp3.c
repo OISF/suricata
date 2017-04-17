@@ -545,10 +545,10 @@ static void DetectDNP3DataRegister(void)
     sigmatch_table[DETECT_AL_DNP3DATA].flags |= SIGMATCH_NOOPT;
 
     DetectAppLayerInspectEngineRegister("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOSERVER,
+            ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectDNP3Data);
     DetectAppLayerInspectEngineRegister("dnp3_data",
-            ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
+            ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectDNP3Data);
 
     g_dnp3_data_buffer_id = DetectBufferTypeGetByName("dnp3_data");
@@ -565,10 +565,10 @@ void DetectDNP3Register(void)
 
     /* Register the list of func, ind and obj. */
     DetectAppLayerInspectEngineRegister("dnp3",
-            ALPROTO_DNP3, SIG_FLAG_TOSERVER,
+            ALPROTO_DNP3, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectDNP3);
     DetectAppLayerInspectEngineRegister("dnp3",
-            ALPROTO_DNP3, SIG_FLAG_TOCLIENT,
+            ALPROTO_DNP3, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectDNP3);
 
     g_dnp3_match_buffer_id = DetectBufferTypeRegister("dnp3");

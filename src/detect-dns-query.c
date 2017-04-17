@@ -80,7 +80,7 @@ void DetectDnsQueryRegister (void)
             PrefilterTxDnsQueryRegister);
 
     DetectAppLayerInspectEngineRegister("dns_query",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER,
+            ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectDnsQueryName);
 
     DetectBufferTypeSetDescriptionByName("dns_query",
@@ -90,10 +90,10 @@ void DetectDnsQueryRegister (void)
 
     /* register these generic engines from here for now */
     DetectAppLayerInspectEngineRegister("dns_request",
-            ALPROTO_DNS, SIG_FLAG_TOSERVER,
+            ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectDnsRequest);
     DetectAppLayerInspectEngineRegister("dns_response",
-            ALPROTO_DNS, SIG_FLAG_TOCLIENT,
+            ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
             DetectEngineInspectDnsResponse);
 
     DetectBufferTypeSetDescriptionByName("dns_request",

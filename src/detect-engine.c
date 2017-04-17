@@ -101,7 +101,8 @@ static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
 void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback)
+        AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback)
 {
     DetectBufferTypeRegister(name);
     int sm_list = DetectBufferTypeGetByName(name);
@@ -113,7 +114,7 @@ void DetectAppLayerInspectEngineRegister(const char *name,
         (Callback == NULL))
     {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
-        exit(EXIT_FAILURE);
+        BUG_ON(1);
     }
 
     int direction;
@@ -131,6 +132,7 @@ void DetectAppLayerInspectEngineRegister(const char *name,
     new_engine->alproto = alproto;
     new_engine->dir = direction;
     new_engine->sm_list = sm_list;
+    new_engine->progress = progress;
     new_engine->Callback = Callback;
 
     if (g_app_inspect_engines == NULL) {

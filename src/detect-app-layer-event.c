@@ -75,10 +75,10 @@ void DetectAppLayerEventRegister(void)
         DetectAppLayerEventRegisterTests;
 
     DetectAppLayerInspectEngineRegister("app-layer-events",
-            ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER,
+            ALPROTO_UNKNOWN, SIG_FLAG_TOSERVER, 0,
             DetectEngineAptEventInspect);
     DetectAppLayerInspectEngineRegister("app-layer-events",
-            ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT,
+            ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
             DetectEngineAptEventInspect);
 
     DetectBufferTypeRegisterSetupCallback("app-layer-events",

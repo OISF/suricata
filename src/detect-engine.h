@@ -107,10 +107,12 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
  * \param alproto App layer protocol for which we will register the engine.
  * \param direction The direction for the engine: SIG_FLAG_TOSERVER or
  *                  SIG_FLAG_TOCLIENT
+ * \param progress Minimal progress value for inspect engine to run
  * \param Callback The engine callback.
  */
 void DetectAppLayerInspectEngineRegister(const char *name,
-        AppProto alproto, uint32_t dir, InspectEngineFuncPtr Callback);
+        AppProto alproto, uint32_t dir,
+        int progress, InspectEngineFuncPtr Callback);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);

@@ -86,10 +86,10 @@ void DetectHttpRawHeaderRegister(void)
             PrefilterTxResponseHeadersRawRegister);
 
     DetectAppLayerInspectEngineRegister("http_raw_header",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectHttpRawHeader);
     DetectAppLayerInspectEngineRegister("http_raw_header",
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
             DetectEngineInspectHttpRawHeader);
 
     DetectBufferTypeSetDescriptionByName("http_raw_header",

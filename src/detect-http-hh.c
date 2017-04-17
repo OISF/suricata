@@ -84,7 +84,7 @@ void DetectHttpHHRegister(void)
             PrefilterTxHostnameRegister);
 
     DetectAppLayerInspectEngineRegister("http_host",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectHttpHH);
 
     DetectBufferTypeSetDescriptionByName("http_host",

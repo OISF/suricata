@@ -85,7 +85,7 @@ void DetectHttpMethodRegister(void)
             PrefilterTxMethodRegister);
 
     DetectAppLayerInspectEngineRegister("http_method",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
             DetectEngineInspectHttpMethod);
 
     DetectBufferTypeSetDescriptionByName("http_method",

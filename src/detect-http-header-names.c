@@ -387,10 +387,10 @@ void DetectHttpHeaderNamesRegister(void)
             PrefilterTxHttpResponseHeaderNamesRegister);
 
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             InspectEngineHttpHeaderNames);
     DetectAppLayerInspectEngineRegister(BUFFER_NAME,
-            ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_HEADERS,
             InspectEngineHttpHeaderNames);
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,

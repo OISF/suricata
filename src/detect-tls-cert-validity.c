@@ -121,7 +121,7 @@ void DetectTlsValidityRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
     DetectAppLayerInspectEngineRegister("tls_validity",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
             DetectEngineInspectTlsValidity);
 
     g_tls_validity_buffer_id = DetectBufferTypeGetByName("tls_validity");

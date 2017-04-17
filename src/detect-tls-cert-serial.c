@@ -76,7 +76,8 @@ void DetectTlsSerialRegister(void)
             PrefilterTxTlsSerialRegister);
 
     DetectAppLayerInspectEngineRegister("tls_cert_serial", ALPROTO_TLS,
-            SIG_FLAG_TOCLIENT, DetectEngineInspectTlsSerial);
+            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
+            DetectEngineInspectTlsSerial);
 
     g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls_cert_serial");
 }

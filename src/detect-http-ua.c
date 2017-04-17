@@ -84,7 +84,7 @@ void DetectHttpUARegister(void)
             PrefilterTxUARegister);
 
     DetectAppLayerInspectEngineRegister("http_user_agent",
-            ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_HEADERS,
             DetectEngineInspectHttpUA);
 
     DetectBufferTypeSetDescriptionByName("http_user_agent",

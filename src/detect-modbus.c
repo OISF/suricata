@@ -414,10 +414,10 @@ void DetectModbusRegister(void)
             &access_parse_regex, &access_parse_regex_study);
 
     DetectAppLayerInspectEngineRegister("modbus",
-            ALPROTO_MODBUS, SIG_FLAG_TOSERVER,
+            ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectModbus);
     DetectAppLayerInspectEngineRegister("modbus",
-            ALPROTO_MODBUS, SIG_FLAG_TOCLIENT,
+            ALPROTO_MODBUS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectModbus);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");

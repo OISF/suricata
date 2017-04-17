@@ -59,10 +59,10 @@ void DetectCipServiceRegister(void)
             = DetectCipServiceRegisterTests;
 
     DetectAppLayerInspectEngineRegister("cip",
-            ALPROTO_ENIP, SIG_FLAG_TOSERVER,
+            ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectCIP);
     DetectAppLayerInspectEngineRegister("cip",
-            ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
+            ALPROTO_ENIP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectCIP);
 
     g_cip_buffer_id = DetectBufferTypeGetByName("cip");
@@ -313,10 +313,10 @@ void DetectEnipCommandRegister(void)
             = DetectEnipCommandRegisterTests;
 
     DetectAppLayerInspectEngineRegister("enip",
-            ALPROTO_ENIP, SIG_FLAG_TOSERVER,
+            ALPROTO_ENIP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectENIP);
     DetectAppLayerInspectEngineRegister("enip",
-            ALPROTO_ENIP, SIG_FLAG_TOCLIENT,
+            ALPROTO_ENIP, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectENIP);
 
     g_enip_buffer_id = DetectBufferTypeGetByName("enip");
