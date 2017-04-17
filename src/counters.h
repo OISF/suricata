@@ -25,6 +25,21 @@
 #ifndef __COUNTERS_H__
 #define __COUNTERS_H__
 
+/**
+ * \brief Different kinds of qualifier that can be used to modify the behaviour
+ *        of the counter to be registered
+ */
+typedef enum {
+    STATS_TYPE_NORMAL = 1,
+    STATS_TYPE_AVERAGE = 2,
+    STATS_TYPE_MAXIMUM = 3,
+    STATS_TYPE_FUNC = 4,
+
+    STATS_TYPE_MAX = 5,
+} StatsType;
+
+
+
 /* forward declaration of the ThreadVars structure */
 struct ThreadVars_;
 
