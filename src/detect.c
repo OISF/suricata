@@ -1075,7 +1075,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
 
     DetectPrefilterSetNonPrefilterList(p, det_ctx);
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL_CONT);
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
@@ -1086,7 +1086,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
                                            flow_flags, alproto);
         }
     }
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL_CONT);
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
@@ -1344,10 +1344,10 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
              * signature match. It will then call PacketAlertAppend
              * itself, so we can skip it below. This is done so it
              * can store the tx_id with the alert */
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL_START);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
                                                       p, pflow, flow_flags, alproto);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL_START);
             if (state_alert == 0)
                 goto next;
 
@@ -1389,9 +1389,9 @@ end:
 
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
-        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL_UPDATE);
         DeStateUpdateInspectTransactionId(pflow, flow_flags);
-        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL_UPDATE);
     }
 
     /* so now let's iterate the alerts and remove the ones after a pass rule
