@@ -234,9 +234,15 @@ static void StatsInitCtx(void)
             SCLogDebug("Stats module has been disabled");
             SCReturn;
         }
-        const char *interval = ConfNodeLookupChildValue(stats, "interval");
-        if (interval != NULL)
-            stats_tts = (uint32_t) atoi(interval);
+        
+        intmax_t interval;
+        if (ConfGetChildValueInt(stats, "interval", &interval) == 0) {
+            stats_enabled = FALSE;
+            SCLogDebug("Stats module has been disabled, invalid interval");
+            SCReturn;
+        }
+        stats_tts = (uint32_t)interval;
+        SCLogDebug("Setting stats interval to %d seconds.", stats_tts);
     }
 
     if (!OutputStatsLoggersRegistered()) {
