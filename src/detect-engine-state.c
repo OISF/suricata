@@ -409,6 +409,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         det_ctx->tx_id = tx_id;
         det_ctx->tx_id_set = 1;
         det_ctx->p = p;
+        int tx_progress = AppLayerParserGetStateProgress(f->proto, alproto, tx, flags);
 
         /* see if we need to consider the next tx in our decision to add
          * a sig to the 'no inspect array'. */
@@ -430,6 +431,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             SCLogDebug("engine %p", engine);
             SCLogDebug("inspect_flags %x", inspect_flags);
             if (direction == engine->dir) {
+                if (tx_progress < engine->progress) {
+                    SCLogDebug("tx progress %d < engine progress %d",
+                            tx_progress, engine->progress);
+                    break;
+                }
+
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 int match = engine->Callback(tv, de_ctx, det_ctx,
                         s, engine->smd, f, flags, alstate, tx, tx_id);
@@ -481,7 +488,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
         /* if this is the last tx in our list, and it's incomplete: then
          * we store the state so that ContinueDetection knows about it */
-        int tx_is_done = (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) >=
+        int tx_is_done = (tx_progress >=
                 AppLayerParserGetStateProgressCompletionStatus(alproto, flags));
 
         SCLogDebug("tx %u, packet %u, rule %u, alert_cnt %u, last tx %d, tx_is_done %d, next_tx_no_progress %d",
@@ -639,12 +646,20 @@ static int DoInspectItem(ThreadVars *tv,
         RULE_PROFILING_END(det_ctx, s, 0, p);
         return -1;
     }
+    int tx_progress = AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags);
 
     while (engine != NULL) {
         if (!(item->flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
             SCLogDebug("inspect_flags %x", inspect_flags);
+
+            if (tx_progress < engine->progress) {
+                SCLogDebug("tx progress %d < engine progress %d",
+                        tx_progress, engine->progress);
+                break;
+            }
+
             KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
             int match = engine->Callback(tv, de_ctx, det_ctx,
                     s, engine->smd,
