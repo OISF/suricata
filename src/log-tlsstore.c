@@ -166,6 +166,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
             goto end_fwrite_fp;
     }
     fclose(fp);
+    SCFree(aft->enc_buf);
 
     //Logging certificate informations
     memcpy(filename + (strlen(filename) - 3), "meta", 4);
@@ -222,6 +223,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
 end_fwrite_fp:
     fclose(fp);
+    SCFree(aft->enc_buf);
     if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
         SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate");
         logging_dir_not_writable++;
