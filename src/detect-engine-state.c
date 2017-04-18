@@ -546,9 +546,9 @@ static int DoInspectItem(ThreadVars *tv,
         if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
             if (TxIsLast(inspect_tx_id, total_txs) || inprogress || next_tx_no_progress) {
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-                SCLogDebug("skip and bypass %u: tx %u packet %u", s->id, (uint)inspect_tx_id, (uint)p->pcap_cnt);
+                SCLogDebug("skip and bypass %u: tx %"PRIu64" packet %"PRIu64, s->id, inspect_tx_id, p->pcap_cnt);
             } else {
-                SCLogDebug("just skip: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+                SCLogDebug("just skip: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
 
                 /* make sure that if we reinspect this right now from
                  * start detection, we skip this tx we just matched on */
@@ -560,7 +560,7 @@ static int DoInspectItem(ThreadVars *tv,
 #ifdef DEBUG_VALIDATION
                 BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
 #endif
-                SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
+                SCLogDebug("storing tx_id %"PRIu64" for this sid", inspect_tx_id + 1);
             }
             return 0;
         }
@@ -590,9 +590,9 @@ static int DoInspectItem(ThreadVars *tv,
         } else {
             if (TxIsLast(inspect_tx_id, total_txs) || inprogress || next_tx_no_progress) {
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-                SCLogDebug("skip and bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+                SCLogDebug("skip and bypass: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
             } else {
-                SCLogDebug("just skip: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+                SCLogDebug("just skip: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
 
                 /* make sure that if we reinspect this right now from
                  * start detection, we skip this tx we just matched on */
@@ -604,7 +604,7 @@ static int DoInspectItem(ThreadVars *tv,
 #ifdef DEBUG_VALIDATION
                 BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
 #endif
-                SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
+                SCLogDebug("storing tx_id %"PRIu64" for this sid", inspect_tx_id + 1);
             }
             return 0;
         }
@@ -624,7 +624,7 @@ static int DoInspectItem(ThreadVars *tv,
 
     det_ctx->tx_id = inspect_tx_id;
     det_ctx->tx_id_set = 1;
-    SCLogDebug("inspecting: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+    SCLogDebug("inspecting: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
 
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     DetectEngineAppInspectionEngine *engine = s->app_inspect;
@@ -679,7 +679,7 @@ static int DoInspectItem(ThreadVars *tv,
      * there is no need for it */
     if (TxIsLast(inspect_tx_id, total_txs) || inprogress || next_tx_no_progress) {
         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-        SCLogDebug("inspected, now bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+        SCLogDebug("inspected, now bypass: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
     } else {
         /* make sure that if we reinspect this right now from
          * start detection, we skip this tx we just matched on */
@@ -691,7 +691,7 @@ static int DoInspectItem(ThreadVars *tv,
 #ifdef DEBUG_VALIDATION
         BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
 #endif
-        SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
+        SCLogDebug("storing tx_id %"PRIu64" for this sid", inspect_tx_id + 1);
     }
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
@@ -704,7 +704,7 @@ static int DoInspectItem(ThreadVars *tv,
         } else {
             PACKET_UPDATE_ACTION(p, s->action);
         }
-        SCLogDebug("MATCH: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+        SCLogDebug("MATCH: tx %"PRIu64" packet %"PRIu64, inspect_tx_id, p->pcap_cnt);
     }
 
     DetectVarProcessList(det_ctx, f, p);
