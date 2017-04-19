@@ -340,6 +340,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_CHMOD);
         CASE_CODE (SC_WARN_LOG_CF_TOO_MANY_NODES);
         CASE_CODE (SC_WARN_EVENT_DROPPED);
+        CASE_CODE (SC_ERR_NO_REDIS_ASYNC);
     }
 
     return "UNKNOWN_ERROR";
