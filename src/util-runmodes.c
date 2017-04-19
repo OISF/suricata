@@ -170,7 +170,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         for (lthread = 0; lthread < nlive; lthread++) {
             const char *dev = LiveGetDeviceName(lthread);
-            const char *visual_devname = LiveGetShortName(live_dev);
+            const char *visual_devname = LiveGetShortName(dev);
             void *aconf;
             int threads_count;
 
