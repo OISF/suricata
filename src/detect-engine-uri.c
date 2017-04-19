@@ -1983,7 +1983,6 @@ end:
 /** \test Test pcre /U with anchored regex (bug 155) */
 static int UriTestSig16(void)
 {
-    Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
         "User-Agent: Mozilla/1.0/\r\n"
@@ -1994,45 +1993,48 @@ static int UriTestSig16(void)
         "Cookie: hellocatch\r\n\r\n";
     uint32_t http_buf2_len = sizeof(http_buf2) - 1;
     TcpSession ssn;
-    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&f, 0, sizeof(Flow));
     memset(&ssn, 0, sizeof(TcpSession));
+    StreamTcpInitConfig(TRUE);
 
-    p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
+    Packet *p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->tcph->th_seq = htonl(1000);
+    Flow *f = UTHBuildFlow(AF_INET, "192.168.1.5", "192.168.1.1", 41424, 80);
+    FAIL_IF_NULL(f);
+    f->proto = IPPROTO_TCP;
 
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
+    UTHAddSessionToFlow(f, 1000, 1000);
+    UTHAddStreamToFlow(f, 0, http_buf1, http_buf1_len);
+
+    p->flow = f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
+    f->alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+    UTHAddStreamToFlow(f, 0, http_buf2, http_buf2_len);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                                 STREAM_TOSERVER, http_buf1, http_buf1_len);
     FAIL_IF(r != 0);
 
-    http_state = f.alstate;
+    http_state = f->alstate;
     FAIL_IF_NULL(http_state);
 
     /* do detect */
@@ -2043,11 +2045,11 @@ static int UriTestSig16(void)
     p->payload = http_buf2;
     p->payload_len = http_buf2_len;
 
-    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
     FAIL_IF(r != 0);
 
-    http_state = f.alstate;
+    http_state = f->alstate;
     FAIL_IF_NULL(http_state);
 
     /* do detect */
@@ -2058,8 +2060,10 @@ static int UriTestSig16(void)
     DetectEngineThreadCtxDeinit(&tv, det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHRemoveSessionFromFlow(f);
+    UTHFreeFlow(f);
+
     StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
     UTHFreePacket(p);
     PASS;
 }

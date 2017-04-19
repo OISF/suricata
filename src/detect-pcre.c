@@ -1563,30 +1563,29 @@ static int DetectPcreTestSig01(void)
         "Host: two.example.org\r\n"
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    TcpSession ssn;
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    Flow f;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
-    memset(&f, 0, sizeof(f));
     memset(&th_v, 0, sizeof(th_v));
-    memset(&ssn, 0, sizeof(TcpSession));
 
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    StreamTcpInitConfig(TRUE);
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
-    p->flow = &f;
+    FAIL_IF_NULL(p);
+    p->tcph->th_seq = htonl(1000);
+    Flow *f = UTHBuildFlow(AF_INET, "192.168.1.5", "192.168.1.1", 41424, 80);
+    FAIL_IF_NULL(f);
+    f->proto = IPPROTO_TCP;
+    UTHAddSessionToFlow(f, 1000, 1000);
+    UTHAddStreamToFlow(f, 0, buf, buflen);
+
+    p->flow = f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-
-    StreamTcpInitConfig(TRUE);
+    f->alproto = ALPROTO_HTTP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF(de_ctx == NULL);
@@ -1599,26 +1598,21 @@ static int DetectPcreTestSig01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
-    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                                 STREAM_TOSERVER | STREAM_START, buf, buflen);
     FAIL_IF(r != 0);
-    FLOWLOCK_UNLOCK(&f);
+
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     FAIL_IF_NOT(PacketAlertCheck(p, 1) == 1);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-
+    AppLayerParserThreadCtxFree(alp_tctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHRemoveSessionFromFlow(f);
+    UTHFreeFlow(f);
+
     StreamTcpFreeConfig(TRUE);
-
-    FLOW_DESTROY(&f);
-
     UTHFreePackets(&p, 1);
     PASS;
 }
