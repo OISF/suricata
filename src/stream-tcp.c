@@ -610,7 +610,8 @@ void StreamTcpFreeConfig(char quiet)
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 }
 
-/** \brief The function is used to to fetch a TCP session from the
+/** \internal
+ *  \brief The function is used to to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
  *
  *  \param p packet starting the new TCP session.
@@ -618,7 +619,7 @@ void StreamTcpFreeConfig(char quiet)
  *
  *  \retval ssn new TCP session.
  */
-TcpSession *StreamTcpNewSession (Packet *p, int id)
+static TcpSession *StreamTcpNewSession (Packet *p, int id)
 {
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
