@@ -43,6 +43,9 @@ void UTHFreePackets(Packet **, int);
 
 Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp);
 void UTHFreeFlow(Flow *flow);
+int UTHAddStreamToFlow(Flow *f, int direction, uint8_t *data, uint32_t data_len);
+int UTHAddSessionToFlow(Flow *f, uint32_t ts_isn, uint32_t tc_isn);
+int UTHRemoveSessionFromFlow(Flow *f);
 
 int UTHAppendSigs(DetectEngineCtx *, char **, int);
 int UTHMatchPackets(DetectEngineCtx *, Packet **, int);

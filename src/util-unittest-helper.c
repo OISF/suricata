@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,6 +35,9 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-sigorder.h"
+
+#include "stream-tcp.h"
+#include "stream-tcp-private.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -488,6 +491,54 @@ void UTHFreeFlow(Flow *flow)
     if (flow != NULL) {
         FlowFree(flow);
     }
+}
+
+int UTHAddStreamToFlow(Flow *f, int direction,
+    uint8_t *data, uint32_t data_len)
+{
+    FAIL_IF_NULL(f);
+    FAIL_IF_NOT(f->proto == IPPROTO_TCP);
+    FAIL_IF_NULL(f->protoctx);
+    TcpSession *ssn = f->protoctx;
+
+    StreamingBufferSegment seg;
+    TcpStream *stream = direction == 0 ? &ssn->client : &ssn->server;
+    int r = StreamingBufferAppend(&stream->sb, &seg, data, data_len);
+    FAIL_IF_NOT(r == 0);
+    stream->last_ack += data_len;
+    return 1;
+}
+
+int UTHAddSessionToFlow(Flow *f,
+    uint32_t ts_isn,
+    uint32_t tc_isn)
+{
+    FAIL_IF_NULL(f);
+
+    TcpSession *ssn = SCCalloc(1, sizeof(*ssn));
+    FAIL_IF_NULL(ssn);
+
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    ssn->client.sb = x;
+    ssn->server.sb = x;
+
+    ssn->client.isn = ts_isn;
+    ssn->server.isn = tc_isn;
+
+    f->protoctx = ssn;
+    return 1;
+}
+
+int UTHRemoveSessionFromFlow(Flow *f)
+{
+    FAIL_IF_NULL(f);
+    FAIL_IF_NOT(f->proto == IPPROTO_TCP);
+    TcpSession *ssn = f->protoctx;
+    FAIL_IF_NULL(ssn);
+    StreamTcpSessionCleanup(ssn);
+    SCFree(ssn);
+    f->protoctx = NULL;
+    return 1;
 }
 
 /**
