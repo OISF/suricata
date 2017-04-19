@@ -46,6 +46,7 @@
 #include "output.h"
 #include "log-tlslog.h"
 #include "app-layer-ssl.h"
+#include "app-layer-tls-cipher-suite.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -75,6 +76,7 @@
 #define LOG_TLS_CF_SUBJECT 's'
 #define LOG_TLS_CF_ISSUER 'i'
 #define LOG_TLS_CF_EXTENDED 'E'
+#define LOG_TLS_CF_SERVER_CIPHERSUITE 'C'
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
@@ -419,8 +421,18 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
                 }
                 break;
             case LOG_TLS_CF_EXTENDED:
-            /* Extended format  */
+                /* Extended format  */
                 LogTlsLogExtended(aft, ssl_state);
+                break;
+            case LOG_TLS_CF_SERVER_CIPHERSUITE:
+                if (ssl_state->server_connp.num_cipher_suites &&
+                    ssl_state->server_connp.cipher_suites ) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                            SSLCipherSuiteDescription(*ssl_state->server_connp.cipher_suites)
+                            );
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
                 break;
             default:
             /* NO MATCH */
