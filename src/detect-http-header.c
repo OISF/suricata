@@ -5501,6 +5501,119 @@ static int DetectEngineHttpHeaderTest33(void)
     PASS;
 }
 
+/**
+ * \test Trailing headers.
+ */
+static int DetectEngineHttpHeaderTest34(void)
+{
+    TcpSession ssn;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "host: boom\r\n"
+        "Dummy-Header1: blah\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n";
+    uint8_t http2_buf[] =
+        "13\r\n"
+        "This is dummy body1\r\n"
+        "0\r\n";
+    uint8_t http3_buf[] =
+        "Dummy-Header2: kaboom\r\n"
+        "\r\n";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    uint32_t http3_len = sizeof(http3_buf) - 1;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    Packet *p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    Packet *p3 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p1->pcap_cnt = 1;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->pcap_cnt = 2;
+    p3->flow = &f;
+    p3->flowflags |= FLOW_PKT_TOSERVER;
+    p3->flowflags |= FLOW_PKT_ESTABLISHED;
+    p3->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p3->pcap_cnt = 3;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(content:\"Dummy\"; http_header; content:\"Header2\"; http_header; within:8; "
+                               "sid:1;)");
+    FAIL_IF(de_ctx->sig_list == NULL);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                                STREAM_TOSERVER, http1_buf, http1_len);
+    FAIL_IF_NOT(r == 0);
+
+    http_state = f.alstate;
+    FAIL_IF(http_state == NULL);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF(PacketAlertCheck(p1, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http2_buf, http2_len);
+    FAIL_IF_NOT(r == 0);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF(PacketAlertCheck(p2, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, http3_buf, http3_len);
+    FAIL_IF_NOT(r == 0);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    FAIL_IF(!PacketAlertCheck(p3, 1)); /* should match in trailer */
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    UTHFreePackets(&p3, 1);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DetectHttpHeaderRegisterTests(void)
@@ -5598,8 +5711,10 @@ void DetectHttpHeaderRegisterTests(void)
 #endif
     UtRegisterTest("DetectEngineHttpHeaderTest32",
                    DetectEngineHttpHeaderTest32);
-    UtRegisterTest("DetectEngineHttpHeaderTest33",
+    UtRegisterTest("DetectEngineHttpHeaderTest33 -- Trailer",
                    DetectEngineHttpHeaderTest33);
+    UtRegisterTest("DetectEngineHttpHeaderTest34 -- Trailer",
+                   DetectEngineHttpHeaderTest34);
 #endif /* UNITTESTS */
 
     return;
