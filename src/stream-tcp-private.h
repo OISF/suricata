@@ -27,6 +27,7 @@
 #include "decode.h"
 #include "util-pool.h"
 #include "util-pool-thread.h"
+#include "util-streaming-buffer.h"
 
 #define STREAMTCP_QUEUE_FLAG_TS     0x01
 #define STREAMTCP_QUEUE_FLAG_WS     0x02
@@ -51,15 +52,20 @@ typedef struct StreamTcpSackRecord_ {
 } StreamTcpSackRecord;
 
 typedef struct TcpSegment_ {
-    uint8_t *payload;
+    PoolThreadReserved res;
+    StreamingBufferSegment sbseg;
     uint16_t payload_len;       /**< actual size of the payload */
-    uint16_t pool_size;         /**< size of the memory */
+    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
+    uint8_t flags;
     uint32_t seq;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
-    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
-    uint8_t flags;
 } TcpSegment;
+
+#define TCP_SEG_LEN(seg)        (seg)->payload_len
+#define TCP_SEG_OFFSET(seg)     (seg)->sbseg.stream_offset
+
+#define SEG_SEQ_RIGHT_EDGE(seg) ((seg)->seq + TCP_SEG_LEN((seg)))
 
 typedef struct TcpStream_ {
     uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
@@ -79,8 +85,12 @@ typedef struct TcpStream_ {
                                          This will be used to validate the last_ts, when connection has been idle for
                                          longer time.(RFC 1323)*/
     /* reassembly */
-    uint32_t ra_app_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
-    uint32_t ra_raw_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t base_seq;              /**< seq where we are left with reassebly. Matches STREAM_BASE_OFFSET below. */
+
+    uint32_t app_progress_rel;      /**< app-layer progress relative to STREAM_BASE_OFFSET */
+    uint32_t raw_progress_rel;      /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
+
+    StreamingBuffer sb;
 
     TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
     TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/
@@ -88,6 +98,10 @@ typedef struct TcpStream_ {
     StreamTcpSackRecord *sack_head; /**< head of list of SACK records */
     StreamTcpSackRecord *sack_tail; /**< tail of list of SACK records */
 } TcpStream;
+
+#define STREAM_BASE_OFFSET(stream)  ((stream)->sb.stream_offset)
+#define STREAM_APP_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->app_progress_rel)
+#define STREAM_RAW_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->raw_progress_rel)
 
 /* from /usr/include/netinet/tcp.h */
 enum
@@ -120,8 +134,7 @@ enum
 #define STREAMTCP_FLAG_TIMESTAMP                    0x0008
 /** Server supports wscale (even though it can be 0) */
 #define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
-/** 'Raw' reassembly is disabled for this ssn. */
-#define STREAMTCP_FLAG_DISABLE_RAW                  0x0020
+// vacancy
 /** Flag to indicate that the session is handling asynchronous stream.*/
 #define STREAMTCP_FLAG_ASYNC                        0x0040
 /** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
@@ -134,9 +147,7 @@ enum
 #define STREAMTCP_FLAG_CLIENT_SACKOK                0x0200
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
 #define STREAMTCP_FLAG_SACKOK                       0x0400
-/** Flag for triggering RAW reassembly before the size limit is reached or
-    the stream reaches EOF. */
-#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x0800
+// vacancy
 /** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
  *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
@@ -157,7 +168,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x0004
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x0008
-// vacancy
+/** Trigger reassembly next time we need 'raw' */
+#define STREAMTCP_STREAM_FLAG_TRIGGER_RAW       0x0010
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x0020
@@ -169,19 +181,16 @@ enum
 #define STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_SKIPPED 0x0100
 /** Raw reassembly disabled for new segments */
 #define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
-// vacancy 2x
+/** Raw reassembly disabled completely */
+#define STREAMTCP_STREAM_FLAG_DISABLE_RAW 0x400
+// vacancy 1x
+
 /** NOTE: flags field is 12 bits */
 
 
 /*
  * Per SEGMENT flags
  */
-/** Flag to indicate that the current segment has been processed by the
- *  reassembly code and should be deleted after app layer protocol has been
- *  detected. */
-#define SEGMENTTCP_FLAG_RAW_PROCESSED       0x01
-/** App Layer reassembly code is done with this segment */
-#define SEGMENTTCP_FLAG_APPLAYER_PROCESSED  0x02
 /** Log API (streaming) has processed this segment */
 #define SEGMENTTCP_FLAG_LOGAPI_PROCESSED    0x04
 
@@ -203,8 +212,7 @@ enum
 
 #define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
     do { \
-        (stream)->ra_raw_base_seq = (seq); \
-        (stream)->ra_app_base_seq = (seq); \
+        (stream)->base_seq = (seq) + 1;    \
     } while(0); \
 }
 
@@ -225,11 +233,6 @@ typedef struct TcpSession_ {
     uint32_t reassembly_depth;      /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
-    struct StreamMsg_ *toserver_smsg_head;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
-
     TcpStateQueue *queue;                   /**< list of SYN/ACK candidates */
 } TcpSession;
 

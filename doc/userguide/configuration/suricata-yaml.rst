@@ -1250,11 +1250,8 @@ option can be set off by entering 'no' instead of 'yes'.
 ::
 
   stream:
-    memcap: 33554432              #Amount of flow-information (in bytes) to keep in memory.
-    checksum_validation: yes      #Validate packet checksum, reject packets with invalid checksums.
-
-The option 'max_sessions' is the limit for concurrent sessions. It
-prevents Suricata from using all memory for sessions.
+    memcap: 64mb                # Max memory usage (in bytes) for TCP session tracking
+    checksum_validation: yes    # Validate packet checksum, reject packets with invalid checksums.
 
 To mitigate Suricata from being overloaded by fast session creation,
 the option prealloc_sessions instructs Suricata to keep a number of
@@ -1262,7 +1259,7 @@ sessions ready in memory.
 
 A TCP-session starts with the three-way-handshake. After that, data
 can be send en received. A session can last a long time. It can happen
-that Suricata will be running after a few sessions have already been
+that Suricata will be started after a few TCP sessions have already been
 started. This way, Suricata misses the original setup of those
 sessions. This setup always includes a lot of information. If you want
 Suricata to check the stream from that time on, you can do so by
@@ -1286,7 +1283,6 @@ anomalies in streams. See :ref:`host-os-policy`.
 
 ::
 
-    max_sessions: 262144         # 256k concurrent sessions
     prealloc_sessions: 32768     # 32k sessions prealloc'd
     midstream: false             # do not allow midstream session pickups
     async_oneside: false         # do not enable async stream handling
@@ -1312,19 +1308,55 @@ Suricata inspects traffic in a sliding window manner.
 
 .. image:: suricata-yaml/Inline_reassembly_unackd_data.png
 
-The reassembly-engine has to keep packets in memory to be able to make
-a reassembled stream. It can make use of the amount of bytes set
-below. Reassembling a stream is an expensive operation. In the option
-depth you can set the depth (in a stream) of the reassembling. By
-default this is 1MB.
+The reassembly-engine has to keep data segments in memory in order to
+be able to reconstruct a stream. To avoid resource starvation a memcap
+is used to limit the memory used.
+
+Reassembling a stream is an expensive operation. With the option depth
+you can control how far into a stream reassembly is done. By default
+this is 1MB. This setting can be overridden per stream by the protocol
+parsers that do file extraction.
+
+Inspection of reassembled data is done in chunks. The size of these
+chunks is set with ``toserver_chunk_size`` and ``toclient_chunk_size``.
+To avoid making the borders predictable, the sizes van be varied by
+adding in a random factor.
 
 ::
 
     reassembly:
-      memcap: 67108864             #Amount of packets (in bytes) to keep in memory.
-      depth: 1048576               #The depth of the reassembling.
-      toserver_chunk_size: 2560    # inspect raw stream in chunks of at least this size
-      toclient_chunk_size: 2560    # inspect raw stream in chunks of at least
+      memcap: 256mb             # Memory reserved for stream data reconstruction (in bytes)
+      depth: 1mb                # The depth of the reassembling.
+      toserver_chunk_size: 2560 # inspect raw stream in chunks of at least this size
+      toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
+      randomize-chunk-size: yes
+      #randomize-chunk-range: 10
+
+'Raw' reassembly is done for inspection by simple ``content``, ``pcre``
+keywords use and other payload inspection not done on specific protocol
+buffers like ``http_uri``. This type of reassembly can be turned off:
+
+::
+
+    reassembly:
+      raw: no
+
+Incoming segments are stored in a list in the stream. To avoid constant
+memory allocations a per-thread pool is used.
+
+::
+
+    reassembly:
+      segment-prealloc: 2048    # pre-alloc 2k segments per thread
+
+Resending different data on the same sequence number is a way to confuse
+network inspection.
+
+::
+
+    reassembly:
+      check-overlap-different-data: true
+
 
 *Example 15        Stream reassembly*
 

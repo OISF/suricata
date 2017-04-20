@@ -329,6 +329,7 @@ source-pfring.c source-pfring.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-inline.c stream-tcp-inline.h \
+stream-tcp-list.c stream-tcp-list.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
@@ -455,7 +456,7 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
+EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py tests
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)

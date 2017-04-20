@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,8 +27,8 @@
 #include "stream-tcp-private.h"
 
 int StreamTcpInlineMode(void);
-int StreamTcpInlineSegmentCompare(TcpSegment *, TcpSegment *);
-void StreamTcpInlineSegmentReplacePacket(Packet *, TcpSegment *);
+int StreamTcpInlineSegmentCompare(TcpStream *, Packet *, TcpSegment *);
+void StreamTcpInlineSegmentReplacePacket(TcpStream *, Packet *, TcpSegment *);
 
 void StreamTcpInlineRegisterTests(void);
 

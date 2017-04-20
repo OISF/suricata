@@ -1336,7 +1336,6 @@ void CudaReleasePacket(Packet *p)
  *   tables on priority.
  * - Introduce profiling.
  * - Retrieve sgh before buffer packet.
- * - Buffer smsgs too.
  */
 
 void SCACConstructBoth16and32StateTables(void)

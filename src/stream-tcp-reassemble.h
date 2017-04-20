@@ -51,23 +51,36 @@ enum
     OS_POLICY_LAST
 };
 
+enum StreamUpdateDir {
+    UPDATE_DIR_PACKET,
+    UPDATE_DIR_OPPOSING,
+};
+
 typedef struct TcpReassemblyThreadCtx_ {
     void *app_tctx;
+
+    int segment_thread_pool_id;
+
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
     /** number of streams that stop reassembly because their depth is reached */
     uint16_t counter_tcp_stream_depth;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
     uint16_t counter_tcp_reass_gap;
-#ifdef DEBUG
-    uint64_t fp1;
-    uint64_t fp2;
-    uint64_t sp;
-#endif
+
+    /** count packet data overlaps */
+    uint16_t counter_tcp_reass_overlap;
+    /** count overlaps with different data */
+    uint16_t counter_tcp_reass_overlap_diff_data;
+
+    uint16_t counter_tcp_reass_data_normal_fail;
+    uint16_t counter_tcp_reass_data_overlap_fail;
+    uint16_t counter_tcp_reass_list_fail;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
+void StreamTcpReassembleInitMemuse(void);
 int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueue *);
 int StreamTcpReassembleInit(char);
 void StreamTcpReassembleFree(char);
@@ -76,7 +89,7 @@ TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(ThreadVars *tv);
 void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *);
 int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                  TcpSession *ssn, TcpStream *stream,
-                                 Packet *p);
+                                 Packet *p, enum StreamUpdateDir dir);
 
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
@@ -84,17 +97,16 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
 void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction);
 
 void StreamTcpSetOSPolicy(TcpStream *, Packet *);
-void StreamTcpReassemblePause (TcpSession *, char );
-void StreamTcpReassembleUnPause (TcpSession *, char );
-int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 
-int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *);
-TcpSegment* StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *, uint16_t);
+int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpSession *ssn, TcpStream *stream, Packet *p);
+int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *, uint32_t pkt_seq, uint8_t *pkt_data, uint16_t pkt_datalen);
+TcpSegment *StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *);
 
 void StreamTcpReturnStreamSegments(TcpStream *);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
 
-void StreamTcpReassembleTriggerRawReassembly(TcpSession *);
+void StreamTcpReassembleTriggerRawReassembly(TcpSession *, int direction);
 
 void StreamTcpPruneSession(Flow *, uint8_t);
 int StreamTcpReassembleDepthReached(Packet *p);
@@ -102,9 +114,26 @@ int StreamTcpReassembleDepthReached(Packet *p);
 void StreamTcpReassembleIncrMemuse(uint64_t size);
 void StreamTcpReassembleDecrMemuse(uint64_t size);
 int StreamTcpReassembleCheckMemcap(uint32_t size);
+uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 
 void StreamTcpDisableAppLayer(Flow *f);
 int StreamTcpAppLayerIsDisabled(Flow *f);
+
+#ifdef UNITTESTS
+int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
+#endif
+
+bool StreamReassembleRawHasDataReady(TcpSession *ssn, Packet *p);
+
+static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
+{
+    /* last ack not yet initialized */
+    if (STREAM_BASE_OFFSET(stream) == 0 && stream->last_ack == 0)
+        return false;
+    if (SEQ_GT(stream->last_ack, stream->base_seq))
+        return true;
+    return false;
+}
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

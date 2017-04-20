@@ -3679,110 +3679,6 @@ static int AppLayerProtoDetectTest19(void)
     return result;
 }
 
-/** \test test if the engine detect the proto and match with it
- *        and also against a content option */
-static int AppLayerProtoDetectTest20(void)
-{
-    int result = 0;
-    Flow *f = NULL;
-    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
-        "User-Agent: Mozilla/1.0\r\n"
-        "Cookie: hellocatch\r\n\r\n";
-    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
-    TcpSession ssn;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    ThreadVars tv;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&ssn, 0, sizeof(TcpSession));
-
-    p = UTHBuildPacket(http_buf1, http_buf1_len, IPPROTO_TCP);
-
-    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 80);
-    if (f == NULL)
-        goto end;
-    f->protoctx = &ssn;
-    p->flow = f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f->alproto = ALPROTO_HTTP;
-    f->proto = IPPROTO_TCP;
-    p->flags |= PKT_STREAM_ADD;
-    p->flags |= PKT_STREAM_EOF;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    StreamTcpInitConfig(TRUE);
-
-    StreamMsg *stream_msg = StreamMsgGetFromPool();
-    if (stream_msg == NULL) {
-        printf("no stream_msg: ");
-        goto end;
-    }
-
-    memcpy(stream_msg->data, http_buf1, http_buf1_len);
-    stream_msg->data_len = http_buf1_len;
-
-    ssn.toserver_smsg_head = stream_msg;
-    ssn.toserver_smsg_tail = stream_msg;
-
-    de_ctx->flags |= DE_QUIET;
-
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
-                                   "(msg:\"Test content option\"; "
-                                   "content:\"one\"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    FLOWLOCK_WRLOCK(f);
-    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
-                                STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
-
-    /* do detect */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sig 1 didn't alert, but it should: ");
-        goto end;
-    }
-
-    result = 1;
-
- end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    UTHFreePackets(&p, 1);
-    UTHFreeFlow(f);
-    return result;
-}
-
-
 void AppLayerProtoDetectUnittestsRegister(void)
 {
     SCEnter();
@@ -3806,7 +3702,6 @@ void AppLayerProtoDetectUnittestsRegister(void)
     UtRegisterTest("AppLayerProtoDetectTest17", AppLayerProtoDetectTest17);
     UtRegisterTest("AppLayerProtoDetectTest18", AppLayerProtoDetectTest18);
     UtRegisterTest("AppLayerProtoDetectTest19", AppLayerProtoDetectTest19);
-    UtRegisterTest("AppLayerProtoDetectTest20", AppLayerProtoDetectTest20);
 
     SCReturn;
 }
