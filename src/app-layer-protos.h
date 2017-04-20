@@ -29,6 +29,7 @@ enum AppProtoEnum {
     ALPROTO_UNKNOWN = 0,
     ALPROTO_HTTP,
     ALPROTO_FTP,
+    ALPROTO_POP3,
     ALPROTO_SMTP,
     ALPROTO_TLS, /* SSLv2, SSLv3 & TLSv1 */
     ALPROTO_SSH,
