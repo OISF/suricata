@@ -18,6 +18,12 @@
 use log::*;
 use conf;
 
+pub mod parser;
+pub use self::parser::*;
+
+pub mod dns;
+pub use self::dns::*;
+
 #[no_mangle]
 pub extern "C" fn rs_dns_init() {
     SCLogNotice!("Initializing DNS analyzer");
