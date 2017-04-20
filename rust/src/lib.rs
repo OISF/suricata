@@ -16,9 +16,12 @@
  */
 
 #[macro_use]
+extern crate nom;
+
+#[macro_use]
 pub mod log;
 
 pub mod core;
 pub mod conf;
-pub mod dns;
 pub mod json;
+pub mod dns;
