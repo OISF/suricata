@@ -103,6 +103,8 @@ static int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
+    SCLogDebug("lets see");
+
     DetectSshVersionData *ssh = (DetectSshVersionData *)m;
     SshState *ssh_state = (SshState *)state;
     if (ssh_state == NULL) {
@@ -327,7 +329,6 @@ int DetectSshVersionTestParse03 (void)
 /** \test Send a get request in three chunks + more data. */
 static int DetectSshVersionTestDetect01(void)
 {
-    int result = 0;
     Flow f;
     uint8_t sshbuf1[] = "SSH-1.";
     uint32_t sshlen1 = sizeof(sshbuf1) - 1;
@@ -349,6 +350,7 @@ static int DetectSshVersionTestDetect01(void)
     memset(&ssn, 0, sizeof(ssn));
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -362,84 +364,52 @@ static int DetectSshVersionTestDetect01(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL (de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
+    SCLogDebug("==> 1");
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
                                 STREAM_TOSERVER, sshbuf1, sshlen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
+    SCLogDebug("==> 2");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
                             sshbuf2, sshlen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
+    SCLogDebug("==> 3");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
                             sshbuf3, sshlen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
+    SCLogDebug("==> 4");
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
                             sshbuf4, sshlen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     SshState *ssh_state = f.alstate;
-    if (ssh_state == NULL) {
-        printf("no ssh state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(ssh_state);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ( !(PacketAlertCheck(p, 1))) {
-        printf("Error, the sig should match: ");
-        goto end;
-    }
-
-    result = 1;
-end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-
     UTHFreePackets(&p, 1);
+    AppLayerParserThreadCtxFree(alp_tctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    return result;
+    PASS;
 }
 
 /** \test Send a get request in three chunks + more data. */
