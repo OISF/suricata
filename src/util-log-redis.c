@@ -55,7 +55,7 @@ void SCLogRedisInit()
  */
 static SCLogRedisContext * SCLogRedisContextAlloc()
 {
-    SCLogRedisContext* ctx = (SCLogRedisContext*) SCMalloc(sizeof(SCLogRedisContext));
+    SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (ctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis context");
         exit(EXIT_FAILURE);
@@ -80,7 +80,7 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx);
  */
 static SCLogRedisContext * SCLogRedisContextAsyncAlloc()
 {
-    SCLogRedisContext* ctx = (SCLogRedisContext*) SCMalloc(sizeof(SCLogRedisContext));
+    SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (unlikely(ctx == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis context");
         exit(EXIT_FAILURE);
