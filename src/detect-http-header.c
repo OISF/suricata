@@ -186,7 +186,7 @@ static void PrefilterTxHttpRequestHeaders(DetectEngineThreadCtx *det_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
 }
-#if 0
+
 static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
         const void *pectx,
         Packet *p, Flow *f, void *txv,
@@ -206,18 +206,16 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
 
     HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
-                                                    NULL, det_ctx,
-                                                    f, htp_state,
-                                                    flags,
-                                                    &buffer_len);
+    const uint8_t *buffer = GetBufferForTX(tx, idx,
+            NULL, det_ctx, f, htp_state,
+            flags, &buffer_len);
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
 }
-#endif
+
 static int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
@@ -225,14 +223,11 @@ static int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_header (request)");
-    return r;
-#if 0
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestTrailers,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER,
-        mpm_ctx, NULL, "http_header (request)");
-#endif
+        mpm_ctx, NULL, "http_header (request trailer)");
 }
 
 /** \brief HTTP Headers Mpm prefilter callback
@@ -269,7 +264,7 @@ static void PrefilterTxHttpResponseHeaders(DetectEngineThreadCtx *det_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
 }
-#if 0
+
 static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
         const void *pectx,
         Packet *p, Flow *f, void *txv,
@@ -289,7 +284,7 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
 
     HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
-    const uint8_t *buffer = DetectEngineHHDGetBufferForTX(tx, idx,
+    const uint8_t *buffer = GetBufferForTX(tx, idx,
                                                     NULL, det_ctx,
                                                     f, htp_state,
                                                     flags,
@@ -300,7 +295,7 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
 }
-#endif
+
 static int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
@@ -308,14 +303,11 @@ static int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, "http_header (response)");
-    return r;
-#if 0
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseTrailers,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER,
-        mpm_ctx, NULL, "http_header (response)");
-#endif
+        mpm_ctx, NULL, "http_header (response trailer)");
 }
 
 static int DetectEngineInspectHttpHeader(ThreadVars *tv,
