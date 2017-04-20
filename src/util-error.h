@@ -292,6 +292,7 @@ typedef enum {
     SC_ERR_LUA_SCRIPT,
     SC_WARN_NO_STATS_LOGGERS,
     SC_ERR_NO_NETMAP,
+    SC_ERR_NO_ODP,
     SC_ERR_NETMAP_CREATE,
     SC_ERR_NETMAP_READ,
     SC_ERR_THREAD_DEINIT, /**< thread's deinit function failed */

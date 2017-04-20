@@ -1,0 +1,26 @@
+    OpenDataPlane (ODP) support
+    http://opendataplane.org
+
+-=Background
+    ODP is cross platform API describing networking operations on
+different SoC or NIC. Using ODP for Suricata allows to operate with all
+existence inputs plus SoC optimized implementations.
+    To get generic version of ODP please refer to http://opendataplane.org
+as well as x86 DPDK based version. Or search you distro package for libodp.
+    To get hw optimized version of ODP please ask your HW vendor BSP.
+
+
+-=Suricata configure:
+./configure --with-libodp-includes=/opt/odp-install/include \
+        --with-libodp-libraries=/opt/Linaro/odp-install/lib --enable-odp
+
+Run:
+suricata -c /usr/local/etc/suricata/suricata.yaml --odp=eth0
+
+Where eth0 is ODP pktio name represented by platform implementation. (For odp-dpk it's number
+of dpdk ports 0, 1, 2).
+
+-=TODO
+     ODP support match wider API to use hardware optimized networking functions, which
+can be integrated to Suricata for performance benefits. Like: classification and rss support,
+cypto, hardware packet queues, timers and packer/buffer management.
