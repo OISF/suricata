@@ -572,11 +572,11 @@ static int SSHGetAlstateProgress(void *tx, uint8_t direction)
     }
 
     if (direction == STREAM_TOSERVER) {
-        if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE) {
+        if (ssh_state->cli_hdr.flags & SSH_FLAG_VERSION_PARSED) {
             return SSH_STATE_BANNER_DONE;
         }
     } else {
-        if (ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
+        if (ssh_state->srv_hdr.flags & SSH_FLAG_VERSION_PARSED) {
             return SSH_STATE_BANNER_DONE;
         }
     }
