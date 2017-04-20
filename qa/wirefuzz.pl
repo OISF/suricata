@@ -71,6 +71,7 @@ my $logdir;
 my $configfile;
 my $editeratio;
 my $valgrindopt;
+my $asan_options;
 my $shuffle;
 my $useltsuri;
 my $ltsuribin;
@@ -82,7 +83,7 @@ my $keeplogs;
 my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
+GetOptions( \%config, qw(a=s n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
 
 &parseopts();
 
@@ -188,6 +189,17 @@ sub parseopts {
         print("parseopts: rules file not specified or doesn't exist\n");
     }
 
+    # define ASAN/LSAN options
+    if ( $config{a} ) {
+        if ( $config{a} =~ /^(ASAN_OPTIONS|LSAN_OPTIONS)/ ) {
+            $asan_options = $config{a};
+            print "parseopts: Using LSAN/ASAN options " . $asan_options . "\n";
+        }
+        else {
+            print "parseopts: LSAN/ASAN not specified or not valid\n";
+        }
+    }
+    
     # exclusive rules file: do we have a path and does it exist
     if ( $config{S} && -e $config{S} ) {
         $rules = $config{S};
@@ -311,6 +323,7 @@ sub printhelp {
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
         -v=<(optional) (memcheck|drd|helgrind|callgrind) will run the command through one of the specified valgrind tools.>
+        -a=<(optional) LSAN/ASAN option(s). >
         -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
         -z=<(optional) regex for excluding certian files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
@@ -334,6 +347,11 @@ sub printhelp {
         /usr/bin/wirefuzz.pl -r=/home/somepath/pcaps/*/* -s=/home/somepath/current-all.rules -y -c=suricata.yaml -e=0.02 -p src/suricata
 
         If an error is encountered a file named <fuzzedfile>ERR.txt will be created in the log dir (current dir in this example) that will contain output from stderr,stdout, and gdb.
+        
+        ASAN/LSAN options usage(if available):
+        -a=LSAN_OPTIONS=suppressions=qa/lsan.suppress
+        If more than one is needed to be specified: 
+        -a=\"ASAN_OPTIONS=detect_leaks=1 LSAN_OPTIONS=suppressions=qa/lsan.suppress\"
 
         Take a look at the opts make it work for you environtment and from the OISF QA team thanks for helping us make our meerkat fuzzier! ;-)\n";
         exit;
@@ -411,6 +429,10 @@ while ( $successcnt < $loopnum ) {
 
         $fullcmd = "ulimit -c unlimited; ";
 
+        if ( defined $asan_options ) {
+            $fullcmd = $fullcmd . $asan_options . " ";
+        }
+        
         if ( defined $valgrindopt ) {
             if ( $valgrindopt eq "memcheck" ) {
                 $fullcmd =
