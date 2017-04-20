@@ -588,6 +588,18 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            data, data_len, flags) != 0) {
             goto failure;
         }
+    } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
+        f->alproto_orig = f->alproto;
+        AppLayerProtoDetectReset(f);
+        /* rerun protocol detection */
+        if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
+                           data, data_len, flags) != 0) {
+            goto failure;
+        }
+        if (f->alproto != ALPROTO_TLS) {
+            AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                             APPLAYER_NO_TLS_AFTER_STARTTLS);
+        }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "
                    "%"PRIu16" (flow %p)", data_len, f->alproto, f);

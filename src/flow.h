@@ -93,6 +93,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(20)
 #define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(21)
 
+/** Indicate that alproto detection for flow should be done again */
+#define FLOW_CHANGE_PROTO               BIT_U32(22)
 
 /* File flags */
 
@@ -384,6 +386,10 @@ typedef struct Flow_
     AppProto alproto_ts;
     AppProto alproto_tc;
 
+    /** original application level protocol. Used to indicate the previous
+       protocol when changing to another protocol , e.g. with STARTTLS. */
+    AppProto alproto_orig;
+
     /** detection engine ctx version used to inspect this flow. Set at initial
      *  inspection. If it doesn't match the currently in use de_ctx, the
      *  stored sgh ptrs are reset. */
@@ -455,6 +461,9 @@ void FlowShutdown(void);
 void FlowSetIPOnlyFlag(Flow *, int);
 void FlowSetHasAlertsFlag(Flow *);
 int FlowHasAlerts(const Flow *);
+void FlowSetChangeProtoFlag(Flow *);
+void FlowUnsetChangeProtoFlag(Flow *);
+int FlowChangeProto(Flow *);
 
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
