@@ -1983,7 +1983,6 @@ end:
 /** \test Test pcre /U with anchored regex (bug 155) */
 static int UriTestSig16(void)
 {
-    int result = 0;
     Flow f;
     HtpState *http_state = NULL;
     uint8_t http_buf1[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
@@ -2011,7 +2010,6 @@ static int UriTestSig16(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2021,87 +2019,49 @@ static int UriTestSig16(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                                 STREAM_TOSERVER, http_buf1, http_buf1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-    if (!PacketAlertCheck(p, 2009024)) {
-        printf("sig 1 didnt alert with pkt, but it should: ");
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p, 2009024));
     p->alerts.cnt = 0;
 
     p->payload = http_buf2;
     p->payload_len = http_buf2_len;
 
-    FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
                             STREAM_TOSERVER, http_buf2, http_buf2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(&f);
+    FAIL_IF(r != 0);
 
     http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(http_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 2009024));
 
-    if (PacketAlertCheck(p, 2009024)) {
-        printf("sig 1 alerted, but it should not (host should not match): ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 /**
