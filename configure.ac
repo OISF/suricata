@@ -218,6 +218,7 @@
             ;;
         *-*-linux*)
             #for now do nothing
+	    RUST_LDADD="-ldl -lrt"
             ;;
         *-*-mingw32*)
             CFLAGS="${CFLAGS} -DOS_WIN32"
@@ -1989,9 +1990,9 @@
         enable_rust=yes
         AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
 	if test "x$enable_debug" = "xyes"; then
-	   RUST_LDADD="../rust/target/debug/libsuricata.a -lrt -ldl"
+	   RUST_LDADD="../rust/target/debug/libsuricata.a ${RUST_LDADD}"
 	else
-	   RUST_LDADD="../rust/target/release/libsuricata.a -lrt -ldl"
+	   RUST_LDADD="../rust/target/release/libsuricata.a ${RUST_LDADD}"
 	fi
 	AC_SUBST(RUST_LDADD)
 	AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
