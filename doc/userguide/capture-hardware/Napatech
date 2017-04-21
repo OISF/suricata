@@ -1,0 +1,82 @@
+Napatech
+
+Suricata comes with native Napatech accelerator support. This means Suricata can use the Napatech API directly or a libpcap wrapper using Napatech accelerators as PCAP interfaces.
+
+Steps to use Napatech PCAP interface:
+
+Configure YAML file according to interfaces defined at ntpcap.ini (e.g.):
+
+            pcap:
+              - interface: napa0
+              - interface: napa1
+              - interface: napa2
+              - interface: napa3
+        
+Start with:
+
+            suricata --pcap
+        
+Check the results:
+
+            18/11/2014 -- 15:23:04 -  - Adding interface napa00 from config file
+            18/11/2014 -- 15:23:04 -  - Adding interface napa01 from config file
+            18/11/2014 -- 15:23:04 -  - Adding interface napa02 from config file
+            18/11/2014 -- 15:23:04 -  - Adding interface napa03 from config file
+            18/11/2014 -- 15:23:04 -  - Using 4 live device(s).
+            18/11/2014 -- 15:23:04 -  - using interface napa00
+            18/11/2014 -- 15:23:04 -  - Running in 'auto' checksum mode. Detection of interface state will require 1000 packets.
+            18/11/2014 -- 15:23:04 -  - using interface napa01
+            18/11/2014 -- 15:23:04 -  - Running in 'auto' checksum mode. Detection of interface state will require 1000 packets.
+            18/11/2014 -- 15:23:04 -  - using interface napa02
+            18/11/2014 -- 15:23:04 -  - Running in 'auto' checksum mode. Detection of interface state will require 1000 packets.
+            18/11/2014 -- 15:23:05 -  - using interface napa03
+            18/11/2014 -- 15:23:05 -  - Going to use pcap buffer size of 750000000
+            18/11/2014 -- 15:23:05 -  - RunModeIdsPcapAutoFp initialised
+        
+Steps to use native Napatech support:
+
+Configure with Napatech support:
+
+            ./configure --enable-napatech --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/
+            make
+            sudo make install
+        
+Check the results:
+            Suricata Configuration:
+            AF_PACKET support:                       no
+            PF_RING support:                         no
+            NFQueue support:                         no
+            IPFW support:                            no
+            DAG enabled:                             no
+            Napatech enabled:                        yes
+        
+Configure YAML file:
+
+            napatech:
+                # The Host Buffer Allowance for all streams
+                # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
+                hba: -1
+
+                # use_all_streams set to "yes" will query the Napatech service for all configured
+                # streams and listen on all of them. When set to "no" the streams config array
+                # will be used.
+                use-all-streams: yes
+
+                # The streams to listen on
+                streams: []		
+        
+Start Suricata:
+
+            suricata --napatech
+        
+Check the results:
+
+            18/11/2014 -- 14:18:28 -  - Opening NAPATECH Stream: 2 for processing
+            18/11/2014 -- 14:18:28 -  - Opening NAPATECH Stream: 3 for processing
+            18/11/2014 -- 14:18:28 -  - Opening NAPATECH Stream: 0 for processing
+            18/11/2014 -- 14:18:28 -  - Opening NAPATECH Stream: 1 for processing
+            18/11/2014 -- 14:18:28 -  - Napatech Packet Stream Loop Started for Stream ID: 2
+            18/11/2014 -- 14:18:28 -  - Napatech Packet Stream Loop Started for Stream ID: 0
+            18/11/2014 -- 14:18:28 -  - Napatech Packet Stream Loop Started for Stream ID: 1
+            18/11/2014 -- 14:18:28 -  - Napatech Packet Stream Loop Started for Stream ID: 3
+        
