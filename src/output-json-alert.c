@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
@@ -83,6 +84,7 @@
 #define LOG_JSON_TAGGED_PACKETS 0x080
 #define LOG_JSON_DNP3           0x100
 #define LOG_JSON_VARS           0x200
+#define LOG_JSON_METADATA       0x400
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -174,7 +176,8 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
     return;
 }
 
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js,
+                     uint16_t flags)
 {
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
@@ -285,6 +288,18 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
         json_object_set_new(ajs, "target", tjs);
     }
 
+    if (flags & LOG_JSON_METADATA) {
+        if (pa->s->metadata) {
+            DetectMetadata* kv = pa->s->metadata;
+            json_t *mjs = json_object();
+            while (kv) {
+                json_object_set_new(mjs, kv->key, json_string(kv->value));
+                kv = kv->next;
+            }
+            json_object_set_new(ajs, "metadata", mjs);
+        }
+    }
+
     /* alert */
     json_object_set_new(js, "alert", ajs);
 }
@@ -353,7 +368,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(p, pa, js);
+        AlertJsonHeader(p, pa, js, json_output_ctx->flags);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
@@ -743,7 +758,13 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        const char *metadata = ConfNodeLookupChildValue(conf, "metadata");
 
+        if (metadata != NULL) {
+            if (ConfValIsTrue(metadata)) {
+                json_output_ctx->flags |= LOG_JSON_METADATA;
+            }
+        }
         if (vars != NULL) {
             if (ConfValIsTrue(vars)) {
                 json_output_ctx->flags |= LOG_JSON_VARS;
