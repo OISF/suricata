@@ -519,6 +519,24 @@ static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
     }
 }
 
+static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
+{
+    if (op_iface_ctx->file_d == NULL) {
+        return;
+    }
+
+    if (op_iface_ctx->file == NULL) {
+        return;
+    }
+
+    fclose(op_iface_ctx->file_d);
+    op_iface_ctx->file_d = fopen(op_iface_ctx->file, "a");
+    if (op_iface_ctx->file_d == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Erroring re-opening file \"%s\": %s",
+            op_iface_ctx->file, strerror(errno));
+    }
+}
+
 /**
  * \brief Adds the global log_format to the outgoing buffer
  *
