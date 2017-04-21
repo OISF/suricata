@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
@@ -85,6 +86,7 @@
 #define LOG_JSON_FLOW              BIT_U16(5)
 #define LOG_JSON_HTTP_BODY         BIT_U16(6)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
+#define LOG_JSON_RULE_METADATA     BIT_U16(8)
 
 #define LOG_JSON_METADATA (LOG_JSON_APP_LAYER | LOG_JSON_FLOW)
 
@@ -226,9 +228,34 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     json_object_set_new(ajs, "target", tjs);
 }
 
-
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
+static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx, const PacketAlert *pa, json_t *ajs)
 {
+    if (pa->s->metadata) {
+        DetectMetadata* kv = pa->s->metadata;
+        json_t *mjs = json_object();
+        while (kv) {
+            json_t *jkey = json_object_get(mjs, kv->key);
+            if (jkey == NULL) {
+                jkey = json_array();
+                if (jkey == NULL)
+                    return;
+                json_array_append_new(jkey, json_string(kv->value));
+                json_object_set_new(mjs, kv->key, jkey);
+            } else {
+                json_array_append_new(jkey, json_string(kv->value));
+            }
+
+            kv = kv->next;
+        }
+        json_object_set_new(ajs, "metadata", mjs);
+    }
+}
+
+
+void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *js,
+                     uint16_t flags)
+{
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -269,6 +296,10 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
         AlertJsonSourceTarget(p, pa, js, ajs);
+    }
+
+    if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
+        AlertJsonMetadata(json_output_ctx, pa, ajs);
     }
 
     /* alert */
@@ -364,7 +395,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(p, pa, js);
+        AlertJsonHeader(json_output_ctx, p, pa, js, json_output_ctx->flags);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
@@ -721,7 +752,6 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
         if (xff_cfg != NULL) {
             SCFree(xff_cfg);
         }
-
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
@@ -776,6 +806,19 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+
+        ConfNode *rmetadata = ConfNodeLookupChild(conf, "rule-metadata");
+        if (rmetadata != NULL) {
+            int enabled = 0, ret;
+            ret = ConfGetChildValueBool(rmetadata, "enabled", &enabled);
+            if (ret && enabled) {
+                json_output_ctx->flags |= LOG_JSON_RULE_METADATA;
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+            DetectEngineSetParseMetadata();
+        }
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
