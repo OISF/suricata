@@ -30,6 +30,7 @@
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -453,6 +454,8 @@ typedef struct Signature_ {
     char *class_msg;
     /** Reference */
     DetectReference *references;
+    /** Metadata */
+    DetectMetadata *metadata;
 
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */

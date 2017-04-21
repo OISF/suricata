@@ -57,6 +57,23 @@ void DetectMetadataRegister (void)
     DetectSetupParseRegexes(PARSE_TAG_REGEX, &parse_tag_regex, &parse_tag_regex_study);
 }
 
+/**
+ *  \brief Free a Metadata object
+ */
+void DetectMetadataFree(DetectMetadata *mdata)
+{
+    SCEnter();
+
+    if (mdata->key != NULL) {
+        SCFree(mdata->key);
+    }
+    if (mdata->value != NULL) {
+        SCFree(mdata->value);
+    }
+    SCFree(mdata);
+
+    SCReturn;
+}
 
 static int DetectMetadataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Packet *p, const Signature *s, const SigMatchCtx *ctx)
@@ -68,7 +85,7 @@ static int DetectMetadataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return 1;
 }
 
-static void* DetectMetadataParse(char *rawstr)
+static void* DetectMetadataParse(Signature *s, char *rawstr)
 {
     DetectMetadataData *de = NULL;
 #define MAX_SUBSTRINGS 30
@@ -89,6 +106,7 @@ static void* DetectMetadataParse(char *rawstr)
     do {
         const char *key;
         const char *value;
+        DetectMetadata *dkv;
 
         ret = pcre_exec(parse_tag_regex, parse_tag_regex_study, kv, strlen(kv), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 2) {
@@ -110,6 +128,24 @@ static void* DetectMetadataParse(char *rawstr)
         }
 
         SCLogDebug("key: %s, value: %s", key, value);
+
+        dkv = SCMalloc(sizeof(DetectMetadata));
+        if (dkv) {
+            dkv->key = SCStrdup(key);
+            if (!dkv->key) {
+                SCFree(dkv);
+            } else {
+                dkv->value = SCStrdup(value);
+                if (!dkv->value) {
+                    SCFree(dkv->key);
+                    SCFree(dkv);
+                } else {
+                    dkv->next = s->metadata;
+                    s->metadata = dkv;
+                }
+            }
+        }
+
         if (!strncmp(key, "target", 7)) {
             if (!strncmp(value, "client", 7)) {
                 de = SCMalloc(sizeof(DetectMetadataData));
@@ -142,7 +178,7 @@ static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, char *raws
     SigMatch *sm = NULL;
 
     /* parse the option, if NULL we are not doing anything */
-    DetectMetadataData *ddata = DetectMetadataParse(rawstr);
+    DetectMetadataData *ddata = DetectMetadataParse(s, rawstr);
     if (ddata == NULL)
         return 0;
 
