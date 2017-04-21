@@ -221,28 +221,36 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
                     for (i = 0; i < dhcp_opt->len; i++) {
                         switch (dhcp_opt->args[i]) {
                             case DHCP_PARAM_SUBNET_MASK:
-                                 json_array_append(parmsjs, json_string("subnet_mask"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("subnet_mask"));
                                  break;
                             case DHCP_PARAM_ROUTER:
-                                 json_array_append(parmsjs, json_string("router"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("router"));
                                  break;
                             case DHCP_PARAM_DNS_SERVER:
-                                 json_array_append(parmsjs, json_string("dns_server"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("dns_server"));
                                  break;
                             case DHCP_PARAM_DOMAIN:
-                                 json_array_append(parmsjs, json_string("domain"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("domain"));
                                  break;
                             case DHCP_PARAM_ARP_TIMEOUT:
-                                 json_array_append(parmsjs, json_string("arp_timeout"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("arp_timeout"));
                                  break;
                             case DHCP_PARAM_NTP_SERVER:
-                                 json_array_append(parmsjs, json_string("ntp_server"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("ntp_server"));
                                  break;
                             case DHCP_PARAM_TFTP_SERVER_NAME:
-                                 json_array_append(parmsjs, json_string("tftp_server_name"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("tftp_server_name"));
                                  break;
                             case DHCP_PARAM_TFTP_SERVER_IP:
-                                 json_array_append(parmsjs, json_string("tftp_server_ip"));
+                                 json_array_append_new(parmsjs,
+                                         json_string("tftp_server_ip"));
                                  break;
                         }
                     }
