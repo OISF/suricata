@@ -304,28 +304,42 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
                     break;
                 case DHCP_OPT_ROUTER_IP:
                     if (option_size - offsetof(DHCPOpt, args) >= 4) {
-                        char ipaddr[4*4+1];
-                        snprintf(ipaddr, sizeof(ipaddr),
-                                 "%d.%d.%d.%d",
-                                 dhcp_opt->args[0],
-                                 dhcp_opt->args[1],
-                                 dhcp_opt->args[2],
-                                 dhcp_opt->args[3]);
-                        json_object_set_new(rspjs, "router_ip",
-                                            json_string(ipaddr));
+                        size_t off = offsetof(DHCPOpt, args);
+                        uint8_t *ptr = dhcp_opt->args;
+                        json_t *js_addrs = json_array();
+                        while (option_size - off >= 4) {
+                            char ipaddr[4*4];
+                            snprintf(ipaddr, sizeof(ipaddr),
+                                    "%d.%d.%d.%d",
+                                    ptr[0],
+                                    ptr[1],
+                                    ptr[2],
+                                    ptr[3]);
+                            json_array_append_new(js_addrs, json_string(ipaddr));
+                            off += 4;
+                            ptr += 4;
+                        }
+                        json_object_set_new(rspjs, "routers", js_addrs);
                     }
                     break;
                 case DHCP_OPT_DNS_IP:
                     if (option_size - offsetof(DHCPOpt, args) >= 4) {
-                        char ipaddr[4*4+1];
-                        snprintf(ipaddr, sizeof(ipaddr),
-                                 "%d.%d.%d.%d",
-                                 dhcp_opt->args[0],
-                                 dhcp_opt->args[1],
-                                 dhcp_opt->args[2],
-                                 dhcp_opt->args[3]);
-                        json_object_set_new(rspjs, "dns_ip",
-                                            json_string(ipaddr));
+                        size_t off = offsetof(DHCPOpt, args);
+                        uint8_t *ptr = dhcp_opt->args;
+                        json_t *js_addrs = json_array();
+                        while (option_size - off >= 4) {
+                            char ipaddr[4*4];
+                            snprintf(ipaddr, sizeof(ipaddr),
+                                    "%d.%d.%d.%d",
+                                    ptr[0],
+                                    ptr[1],
+                                    ptr[2],
+                                    ptr[3]);
+                            json_array_append_new(js_addrs, json_string(ipaddr));
+                            off += 4;
+                            ptr += 4;
+                        }
+                        json_object_set_new(rspjs, "dns", js_addrs);
                     }
                     break;
                 case DHCP_OPT_TFTP_IP:
