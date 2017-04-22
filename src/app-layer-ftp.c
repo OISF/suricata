@@ -186,16 +186,14 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
     FtpState *fstate = (FtpState *)ftp_state;
     fstate->command = FTP_COMMAND_UNKNOWN;
 
-    if (input_len >= 4) {
-        if (SCMemcmpLowercase("port", input, 4) == 0) {
-            fstate->command = FTP_COMMAND_PORT;
-        }
-
-        /* else {
-         *     Add the ftp commands you need here
-         * }
-         */
+    if (input_len >= 4 && SCMemcmpLowercase("port", input, 4) == 0) {
+        fstate->command = FTP_COMMAND_PORT;
     }
+
+    if (input_len >= 8 && SCMemcmpLowercase("auth tls", input, 8) == 0) {
+        fstate->command = FTP_COMMAND_AUTH_TLS;
+    }
+
     return 1;
 }
 
@@ -268,6 +266,14 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {
+    FtpState *state = (FtpState *)ftp_state;
+
+    if (state->command == FTP_COMMAND_AUTH_TLS) {
+        if (input_len >= 4 && SCMemcmp("234 ", input, 4) == 0) {
+            FlowSetChangeProtoFlag(f);
+        }
+    }
+
     return 1;
 }
 
@@ -379,6 +385,16 @@ static int FTPGetAlstateProgress(void *tx, uint8_t direction)
 
 static int FTPRegisterPatternsForProtocolDetection(void)
 {
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                              "220 (", 5, 0, STREAM_TOCLIENT) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
+                                               "FEAT", 4, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
     if (AppLayerProtoDetectPMRegisterPatternCI(IPPROTO_TCP, ALPROTO_FTP,
                                                "USER ", 5, 0, STREAM_TOSERVER) < 0)
     {

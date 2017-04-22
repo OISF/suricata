@@ -382,6 +382,13 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         JsonTlsLogJSONBasic(tjs, ssl_state);
     }
 
+    /* print original application level protocol when it have been changed
+       because of STARTTLS, HTTP CONNECT, or similar. */
+    if (f->alproto_orig != ALPROTO_UNKNOWN) {
+        json_object_set_new(tjs, "from_proto",
+                json_string(AppLayerGetProtoName(f->alproto_orig)));
+    }
+
     json_object_set_new(js, "tls", tjs);
 
     OutputJSONBuffer(js, tls_ctx->file_ctx, &aft->buffer);
