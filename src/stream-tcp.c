@@ -304,6 +304,22 @@ static void StreamTcpSessionPoolCleanup(void *s)
     }
 }
 
+void StreamTcpParseReassemblyDepth() {
+    char *temp_stream_reassembly_depth_str;
+    if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
+        if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
+                               &stream_config.reassembly_depth) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                       "stream.reassembly.depth "
+                       "from conf file - %s.  Killing engine",
+                       temp_stream_reassembly_depth_str);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        stream_config.reassembly_depth = 0;
+    }
+}
+
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
@@ -463,20 +479,7 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
     }
 
-    char *temp_stream_reassembly_depth_str;
-    if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
-        if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
-                               &stream_config.reassembly_depth) < 0) {
-            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
-                       "stream.reassembly.depth "
-                       "from conf file - %s.  Killing engine",
-                       temp_stream_reassembly_depth_str);
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        stream_config.reassembly_depth = 0;
-    }
-
+    StreamTcpParseReassemblyDepth();
     if (!quiet) {
         SCLogConfig("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }

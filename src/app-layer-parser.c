@@ -197,6 +197,9 @@ int AppLayerParserSetup(void)
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
     }
 
+    /* Make sure we have reassembly depth from config */
+    StreamTcpParseReassemblyDepth();
+
     /* lets set a default value for stream_depth */
     for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {

@@ -102,6 +102,7 @@ typedef struct StreamTcpThread_ {
 } StreamTcpThread;
 
 TcpStreamCnf stream_config;
+void StreamTcpParseReassemblyDepth();
 void StreamTcpInitConfig (char);
 void StreamTcpFreeConfig(char);
 void StreamTcpRegisterTests (void);
