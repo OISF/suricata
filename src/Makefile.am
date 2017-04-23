@@ -163,9 +163,16 @@ detect-ftpbounce.c detect-ftpbounce.h \
 detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
 detect-hostbits.c detect-hostbits.h \
+detect-http-accept.c detect-http-accept.h \
+detect-http-accept-enc.c detect-http-accept-enc.h \
+detect-http-accept-lang.c detect-http-accept-lang.h \
 detect-http-client-body.c detect-http-client-body.h \
+detect-http-connection.c detect-http-connection.h \
+detect-http-content-len.c detect-http-content-len.h \
+detect-http-content-type.c detect-http-content-type.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
+detect-http-headers.c detect-http-headers.h detect-http-headers-stub.h \
 detect-http-header-common.c detect-http-header-common.h \
 detect-http-header-names.c detect-http-header-names.h \
 detect-http-hh.c detect-http-hh.h \
@@ -174,6 +181,7 @@ detect-http-method.c detect-http-method.h \
 detect-http-protocol.c detect-http-protocol.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
+detect-http-referer.c detect-http-referer.h \
 detect-http-request-line.c detect-http-request-line.h \
 detect-http-response-line.c detect-http-response-line.h \
 detect-http-server-body.c detect-http-server-body.h \
