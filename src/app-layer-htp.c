@@ -1974,7 +1974,7 @@ static int HTPCallbackRequest(htp_tx_t *tx)
 
     /* request done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamReassembly(hstate->f);
+    AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOSERVER);
     SCReturnInt(HTP_OK);
 }
 
@@ -2010,7 +2010,7 @@ static int HTPCallbackResponse(htp_tx_t *tx)
 
     /* response done, do raw reassembly now to inspect state and stream
      * at the same time. */
-    AppLayerParserTriggerRawStreamReassembly(hstate->f);
+    AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
     SCReturnInt(HTP_OK);
 }
 

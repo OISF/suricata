@@ -1153,12 +1153,13 @@ int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
     SCReturnInt(r);
 }
 
-void AppLayerParserTriggerRawStreamReassembly(Flow *f)
+void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction)
 {
     SCEnter();
 
+    SCLogDebug("f %p tcp %p direction %d", f, f ? f->protoctx : NULL, direction);
     if (f != NULL && f->protoctx != NULL)
-        StreamTcpReassembleTriggerRawReassembly(f->protoctx);
+        StreamTcpReassembleTriggerRawReassembly(f->protoctx, direction);
 
     SCReturn;
 }

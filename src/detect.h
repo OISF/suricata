@@ -791,6 +791,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* detection engine variables */
 
+    uint64_t raw_stream_progress;
+
     /** offset into the payload of the last match by:
      *  content, pcre, etc */
     uint32_t buffer_offset;
@@ -864,8 +866,6 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PrefilterRuleStore pmq;
 
-    StreamMsg *smsg;
-
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */
     SpmThreadCtx *spm_thread_ctx;
@@ -900,7 +900,17 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *base64_decoded;
     int base64_decoded_len;
     int base64_decoded_len_max;
-
+#ifdef DEBUG
+    uint64_t pkt_stream_add_cnt;
+    uint64_t payload_mpm_cnt;
+    uint64_t payload_mpm_size;
+    uint64_t stream_mpm_cnt;
+    uint64_t stream_mpm_size;
+    uint64_t payload_persig_cnt;
+    uint64_t payload_persig_size;
+    uint64_t stream_persig_cnt;
+    uint64_t stream_persig_size;
+#endif
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
@@ -946,6 +956,7 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
+#define SIG_GROUP_HEAD_HAVERAWSTREAM    (1 << 0)
 #ifdef HAVE_MAGIC
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #endif
@@ -1339,7 +1350,7 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);
-int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
+void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);

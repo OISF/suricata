@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,19 +21,15 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_ENGINE_PAYLOAD_H__
-#define __DETECT_ENGINE_PAYLOAD_H__
+#ifndef __STREAM_TCP_LIST_H__
+#define __STREAM_TCP_LIST_H__
 
-int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+#include "stream-tcp-private.h"
 
-int DetectEngineInspectPacketPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, const Signature *, Flow *, Packet *);
-int DetectEngineInspectStreamPayload(DetectEngineCtx *,
-        DetectEngineThreadCtx *, const Signature *, Flow *,
-        Packet *);
+void PrintList(TcpSegment *);
 
-void PayloadRegisterTests(void);
+#ifdef UNITTESTS
+void StreamTcpListRegisterTests(void);
+#endif
 
-#endif /* __DETECT_ENGINE_PAYLOAD_H__ */
-
+#endif /* __STREAM_TCP_LIST_H__ */

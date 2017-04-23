@@ -141,7 +141,7 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
 }
 
 void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
-        Packet *p, const uint8_t flags, int has_state)
+        Packet *p, const uint8_t flags, const bool has_state)
 {
     SCEnter();
 
@@ -165,8 +165,9 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
     /* run payload inspecting engines */
     if (sgh->payload_engines &&
-        (p->payload_len > 0 || det_ctx->smsg != NULL) &&
-        !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
+        (p->payload_len || (p->flags & PKT_DETECT_HAS_STREAMDATA)) &&
+        !(p->flags & PKT_NOPAYLOAD_INSPECTION))
+    {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         PrefilterEngine *engine = sgh->payload_engines;
         while (1) {

@@ -27,10 +27,6 @@
 
 #include "stream-tcp-private.h"
 
-#define COUNTER_STREAMTCP_STREAMS 1
-
-#include "app-layer-detect-proto.h"
-#include "util-mpm.h"
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
 
@@ -48,13 +44,13 @@ typedef struct TcpStreamCnf_ {
     uint64_t memcap;
     uint64_t reassembly_memcap; /**< max memory usage for stream reassembly */
 
-    uint32_t ssn_init_flags; /**< new ssn flags will be initialized to this */
-    uint8_t segment_init_flags; /**< new seg flags will be initialized to this */
+    uint16_t stream_init_flags; /**< new stream flags will be initialized to this */
 
-    uint16_t zero_copy_size;    /**< use zero copy for app layer above segments
-                                 *   of this size */
+    uint8_t flags;
+    uint8_t max_synack_queued;
 
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
+    uint32_t prealloc_segments; /**< segments to prealloc per stream thread */
     int midstream;
     int async_oneside;
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
@@ -62,11 +58,9 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
 
-    int check_overlap_different_data;
     int bypass;
 
-    uint8_t flags;
-    uint8_t max_synack_queued;
+    StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
 
 typedef struct StreamTcpThread_ {
@@ -108,9 +102,12 @@ void StreamTcpRegisterTests (void);
 
 void StreamTcpSessionPktFree (Packet *);
 
+void StreamTcpInitMemuse(void);
 void StreamTcpIncrMemuse(uint64_t);
 void StreamTcpDecrMemuse(uint64_t);
 int StreamTcpCheckMemcap(uint64_t);
+uint64_t StreamTcpMemuseCounter(void);
+uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 
 Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 
@@ -119,6 +116,12 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
                         void *data);
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
+
+typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const uint32_t input_len);
+
+int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
+        StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
+void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
 /** ------- Inline functions: ------ */
 
@@ -178,41 +181,13 @@ static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
 enum {
     /* stream has no segments for forced reassembly, nor for detection */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NONE = 0,
-    /* stream seems to have segments that need to be forced reassembled */
-    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY = 1,
     /* stream has no segments for forced reassembly, but only segments that
      * have been sent for detection, but are stuck in the detection queues */
-    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 2,
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 1,
 };
 
-static inline int StreamNeedsReassembly(TcpSession *ssn, int direction)
-{
-    /* server tcp state */
-    if (direction) {
-        if (ssn->server.seg_list != NULL &&
-            (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-             !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
-        } else if (ssn->toclient_smsg_head != NULL) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-        } else {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
-        }
-    } else {
-        if (ssn->client.seg_list != NULL &&
-            (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-             !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
-        } else if (ssn->toserver_smsg_head != NULL) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-        } else {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
-        }
-    }
-}
-
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-void StreamTcpExitPrintStats(ThreadVars *, void *);
+int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);
@@ -227,8 +202,6 @@ void StreamTcpSessionCleanup(TcpSession *ssn);
 void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
-
-uint32_t StreamTcpGetStreamSize(TcpStream *stream);
 
 #endif /* __STREAM_TCP_H__ */
 

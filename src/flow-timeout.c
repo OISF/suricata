@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -220,7 +220,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         } else {
             p->tcph->th_seq = htonl(ssn->client.next_seq);
             p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                    ssn->server.seg_list_tail->payload_len);
+                                    TCP_SEG_LEN(ssn->server.seg_list_tail));
         }
 
         /* to client */
@@ -234,7 +234,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         } else {
             p->tcph->th_seq = htonl(ssn->server.next_seq);
             p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                    ssn->client.seg_list_tail->payload_len);
+                                    TCP_SEG_LEN(ssn->client.seg_list_tail));
         }
     }
 
@@ -304,18 +304,15 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
         SCReturnInt(0);
     }
 
-    *client = StreamNeedsReassembly(ssn, 0);
-    *server = StreamNeedsReassembly(ssn, 1);
+    *client = StreamNeedsReassembly(ssn, STREAM_TOSERVER);
+    *server = StreamNeedsReassembly(ssn, STREAM_TOCLIENT);
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
     if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
     {
-        if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
-            *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-
-        if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
-            *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+        *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+        *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
     }
 
     /* if app layer still needs some love, push through */
@@ -327,14 +324,12 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
         if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
                                                f->alparser, STREAM_TOCLIENT) < total_txs)
         {
-            if (*server != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
-                *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+            *server = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
         if (AppLayerParserGetTransactionActive(f->proto, f->alproto,
                                                f->alparser, STREAM_TOSERVER) < total_txs)
         {
-            if (*client != STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY)
-                *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
+            *client = STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         }
     }
 
@@ -361,7 +356,7 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
  */
 int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 {
-    Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
+    Packet *p1 = NULL, *p2 = NULL;
     TcpSession *ssn;
 
     /* looks like we have no flows in this queue */
@@ -384,49 +379,14 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
      * toclient which is now dummy since all we need it for is detection */
 
     /* insert a pseudo packet in the toserver direction */
-    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-        p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
+    if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
         if (p1 == NULL) {
             goto done;
         }
         PKT_SET_SRC(p1, PKT_SRC_FFR);
 
-        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-            p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
-            if (p2 == NULL) {
-                FlowDeReference(&p1->flow);
-                TmqhOutputPacketpool(NULL, p1);
-                goto done;
-            }
-            PKT_SET_SRC(p2, PKT_SRC_FFR);
-
-            p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-            if (p3 == NULL) {
-                FlowDeReference(&p1->flow);
-                TmqhOutputPacketpool(NULL, p1);
-                FlowDeReference(&p2->flow);
-                TmqhOutputPacketpool(NULL, p2);
-                goto done;
-            }
-            PKT_SET_SRC(p3, PKT_SRC_FFR);
-        } else {
-            p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
-            if (p2 == NULL) {
-                FlowDeReference(&p1->flow);
-                TmqhOutputPacketpool(NULL, p1);
-                goto done;
-            }
-            PKT_SET_SRC(p2, PKT_SRC_FFR);
-        }
-
-    } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
-            if (p1 == NULL) {
-                goto done;
-            }
-            PKT_SET_SRC(p1, PKT_SRC_FFR);
-
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
                 FlowDeReference(&p1->flow);
@@ -434,40 +394,9 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
                 goto done;
             }
             PKT_SET_SRC(p2, PKT_SRC_FFR);
-        } else {
-            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
-            if (p1 == NULL) {
-                goto done;
-            }
-            PKT_SET_SRC(p1, PKT_SRC_FFR);
-
-            if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
-                p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-                if (p2 == NULL) {
-                    FlowDeReference(&p1->flow);
-                    TmqhOutputPacketpool(NULL, p1);
-                    goto done;
-                }
-                PKT_SET_SRC(p2, PKT_SRC_FFR);
-            }
         }
-
     } else {
-        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
-            if (p1 == NULL) {
-                goto done;
-            }
-            PKT_SET_SRC(p1, PKT_SRC_FFR);
-
-            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-            if (p2 == NULL) {
-                FlowDeReference(&p1->flow);
-                TmqhOutputPacketpool(NULL, p1);
-                goto done;
-            }
-            PKT_SET_SRC(p2, PKT_SRC_FFR);
-        } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
+        if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 goto done;
@@ -481,17 +410,13 @@ int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 
     /* inject the packet(s) into the appropriate thread */
     int thread_id = (int)f->thread_id;
-    Packet *packets[4] = { p1, p2 ? p2 : p3, p2 ? p3 : NULL, NULL }; /**< null terminated array of packets */
+    Packet *packets[3] = { p1, p2 ? p2 : NULL, NULL }; /**< null terminated array of packets */
     if (unlikely(!(TmThreadsInjectPacketsById(packets, thread_id)))) {
         FlowDeReference(&p1->flow);
         TmqhOutputPacketpool(NULL, p1);
         if (p2) {
             FlowDeReference(&p2->flow);
             TmqhOutputPacketpool(NULL, p2);
-        }
-        if (p3) {
-            FlowDeReference(&p3->flow);
-            TmqhOutputPacketpool(NULL, p3);
         }
     }
 

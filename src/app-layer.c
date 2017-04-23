@@ -260,58 +260,29 @@ failure:
     return;
 }
 
-/** \todo modifying p this way seems too hacky */
 static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx,
-        Packet *p, TcpSession *ssn, TcpStream *stream,
-        uint8_t flags)
+        Packet *p, TcpSession *ssn, TcpStream *stream)
 {
     TcpStream *opposing_stream = NULL;
     if (stream == &ssn->client) {
         opposing_stream = &ssn->server;
-        if (StreamTcpInlineMode()) {
-            p->flowflags &= ~FLOW_PKT_TOSERVER;
-            p->flowflags |= FLOW_PKT_TOCLIENT;
-        } else {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT;
-            p->flowflags |= FLOW_PKT_TOSERVER;
-        }
     } else {
         opposing_stream = &ssn->client;
-        if (StreamTcpInlineMode()) {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT;
-            p->flowflags |= FLOW_PKT_TOSERVER;
-        } else {
-            p->flowflags &= ~FLOW_PKT_TOSERVER;
-            p->flowflags |= FLOW_PKT_TOCLIENT;
-        }
     }
 
-    int ret = 0;
     /* if the opposing side is not going to work, then
      * we just have to give up. */
-    if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
-        ret = -1;
-    else
-        ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
-                opposing_stream, p);
-    if (stream == &ssn->client) {
-        if (StreamTcpInlineMode()) {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT;
-            p->flowflags |= FLOW_PKT_TOSERVER;
-        } else {
-            p->flowflags &= ~FLOW_PKT_TOSERVER;
-            p->flowflags |= FLOW_PKT_TOCLIENT;
-        }
-    } else {
-        if (StreamTcpInlineMode()) {
-            p->flowflags &= ~FLOW_PKT_TOSERVER;
-            p->flowflags |= FLOW_PKT_TOCLIENT;
-        } else {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT;
-            p->flowflags |= FLOW_PKT_TOSERVER;
-        }
+    if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        SCLogDebug("opposing dir has STREAMTCP_STREAM_FLAG_NOREASSEMBLY set");
+        return -1;
     }
+
+    enum StreamUpdateDir dir = StreamTcpInlineMode() ?
+                                                UPDATE_DIR_OPPOSING :
+                                                UPDATE_DIR_PACKET;
+    int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
+            opposing_stream, p, dir);
     return ret;
 }
 
@@ -389,8 +360,11 @@ static int TCPProtoDetect(ThreadVars *tv,
         if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir))
         {
+            SCLogDebug("protocol %s needs first data in other direction",
+                    AppProtoToString(*alproto));
+
             if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
-                p, ssn, stream, flags) != 0)
+                        p, ssn, stream) != 0)
             {
                 DisableAppLayer(tv, f, p);
                 goto failure;
@@ -607,8 +581,6 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
                                     flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
-        } else {
-            SCLogDebug(" smsg not start, but no l7 data? Weird");
         }
     }
 

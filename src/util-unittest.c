@@ -39,6 +39,9 @@
 #include "util-time.h"
 #include "conf.h"
 
+#include "stream-tcp.h"
+#include "stream-tcp-reassemble.h"
+
 #ifdef UNITTESTS
 
 static pcre *parse_regex;
@@ -192,6 +195,9 @@ uint32_t UtRunTests(char *regex_arg)
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
 
+    StreamTcpInitMemuse();
+    StreamTcpReassembleInitMemuse();
+
     rcomp = UtRegex(regex_arg);
 
     if(rcomp == 1){
@@ -207,7 +213,19 @@ uint32_t UtRunTests(char *regex_arg)
                 TimeSetToCurrentTime();
 
                 ret = ut->TestFn();
+
+                if (StreamTcpMemuseCounter() != 0) {
+                    printf("STREAM MEMORY IN USE %"PRIu64"\n", StreamTcpMemuseCounter());
+                    ret = 0;
+                }
+
+                if (StreamTcpReassembleMemuseGlobalCounter() != 0) {
+                    printf("STREAM REASSEMBLY MEMORY IN USE %"PRIu64"\n", StreamTcpReassembleMemuseGlobalCounter());
+                    ret = 0;
+                }
+
                 printf("%s\n", ret ? "pass" : "FAILED");
+
                 if (!ret) {
                     if (unittests_fatal == 1) {
                         fprintf(stderr, "ERROR: unittest failed.\n");

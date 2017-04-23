@@ -1200,7 +1200,7 @@ static int FlowMgrTest02 (void)
     struct timeval ts;
     TcpSegment seg;
     TcpStream client;
-    uint8_t payload[3] = {0x41, 0x41, 0x41};
+    //uint8_t payload[3] = {0x41, 0x41, 0x41};
 
     FlowQueueInit(&flow_spare_q);
 
@@ -1216,8 +1216,8 @@ static int FlowMgrTest02 (void)
     f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
-    seg.payload = payload;
-    seg.payload_len = 3;
+    //TCP_SEG_PAYLOAD(&seg) = payload;
+    TCP_SEG_LEN(&seg) = 3;
     seg.next = NULL;
     seg.prev = NULL;
     client.seg_list = &seg;
@@ -1308,7 +1308,7 @@ static int FlowMgrTest04 (void)
     struct timeval ts;
     TcpSegment seg;
     TcpStream client;
-    uint8_t payload[3] = {0x41, 0x41, 0x41};
+    //uint8_t payload[3] = {0x41, 0x41, 0x41};
 
     FlowQueueInit(&flow_spare_q);
 
@@ -1324,8 +1324,8 @@ static int FlowMgrTest04 (void)
     f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
-    seg.payload = payload;
-    seg.payload_len = 3;
+    //TCP_SEG_PAYLOAD(&seg) = payload;
+    TCP_SEG_LEN(&seg) = 3;
     seg.next = NULL;
     seg.prev = NULL;
     client.seg_list = &seg;

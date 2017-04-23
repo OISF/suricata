@@ -998,19 +998,6 @@ static int DetectUriSigTest05(void)
     f.proto = p->proto;
 
     StreamTcpInitConfig(TRUE);
-
-    StreamMsg *stream_msg = StreamMsgGetFromPool();
-    if (stream_msg == NULL) {
-        printf("no stream_msg: ");
-        goto end;
-    }
-
-    memcpy(stream_msg->data, httpbuf1, httplen1);
-    stream_msg->data_len = httplen1;
-
-    ssn.toserver_smsg_head = stream_msg;
-    ssn.toserver_smsg_tail = stream_msg;
-
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
@@ -1127,19 +1114,6 @@ static int DetectUriSigTest06(void)
     f.proto = p->proto;
 
     StreamTcpInitConfig(TRUE);
-
-    StreamMsg *stream_msg = StreamMsgGetFromPool();
-    if (stream_msg == NULL) {
-        printf("no stream_msg: ");
-        goto end;
-    }
-
-    memcpy(stream_msg->data, httpbuf1, httplen1);
-    stream_msg->data_len = httplen1;
-
-    ssn.toserver_smsg_head = stream_msg;
-    ssn.toserver_smsg_tail = stream_msg;
-
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
