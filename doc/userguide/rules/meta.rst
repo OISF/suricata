@@ -173,9 +173,10 @@ format of priority is:
 Metadata
 --------
 
-Suricata ignores the words behind meta data.  Suricata supports this
-keyword because it is part of the signature language.  The format is:
+Suricata partially ignores the words behind meta data. Suricata only looks for
+the target keyword that is used to determine which side of the IP connection is
+the target of the attack.  The format is:
 
 ::
 
-  metadata:......;
+  metadata:...., target [client|server], ....;

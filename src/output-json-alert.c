@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
@@ -82,6 +83,7 @@
 #define LOG_JSON_TAGGED_PACKETS 0x080
 #define LOG_JSON_DNP3           0x100
 #define LOG_JSON_VARS           0x200
+#define LOG_JSON_METADATA       0x400
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -173,7 +175,8 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
     return;
 }
 
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js,
+                     AlertJsonOutputCtx *json_output_ctx)
 {
     char *action = "allowed";
     /* use packet action if rate_filter modified the action */
@@ -213,6 +216,89 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
+
+    if (pa->flags & PACKET_ALERT_HAS_METADATA) {
+        char srcip[46], dstip[46];
+        Port sp, dp;
+        json_t *sjs = json_object();
+        if (sjs == NULL) {
+            json_decref(js);
+            return;
+        }
+
+        json_t *tjs = json_object();
+        if (tjs == NULL) {
+            json_decref(js);
+            json_decref(sjs);
+            return;
+        }
+
+        if (p->flow) {
+            Flow *f = p->flow;
+            if (FLOW_IS_IPV4(f)) {
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+            } else if (FLOW_IS_IPV6(f)) {
+                PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+            }
+            sp = f->sp;
+            dp = f->dp;
+        } else {
+            if (PKT_IS_IPV4(p)) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+            } else if (PKT_IS_IPV6(p)) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+            }
+            sp = p->sp;
+            dp = p->dp;
+        }
+
+        if (pa->flags & PACKET_ALERT_DEST_IS_TARGET) {
+            json_object_set_new(sjs, "ip", json_string(srcip));
+            json_object_set_new(tjs, "ip", json_string(dstip));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_integer(sp));
+                    json_object_set_new(tjs, "port", json_integer(dp));
+            }
+        }
+        if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
+            json_object_set_new(sjs, "ip", json_string(dstip));
+            json_object_set_new(tjs, "ip", json_string(srcip));
+            switch (p->proto) {
+                case IPPROTO_ICMP:
+                case IPPROTO_ICMPV6:
+                    break;
+                case IPPROTO_UDP:
+                case IPPROTO_TCP:
+                case IPPROTO_SCTP:
+                    json_object_set_new(sjs, "port", json_integer(dp));
+                    json_object_set_new(tjs, "port", json_integer(sp));
+            }
+        }
+        json_object_set_new(ajs, "source", sjs);
+        json_object_set_new(ajs, "target", tjs);
+    }
+
+    if (json_output_ctx->flags & LOG_JSON_METADATA) {
+        if (pa->s->metadata) {
+            DetectMetadata* kv = pa->s->metadata;
+            json_t *mjs = json_object();
+            while (kv) {
+                json_object_set_new(mjs, kv->key, json_string(kv->value));
+                kv = kv->next;
+            }
+            json_object_set_new(ajs, "metadata", mjs);
+        }
+    }
 
     /* alert */
     json_object_set_new(js, "alert", ajs);
@@ -282,7 +368,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(p, pa, js);
+        AlertJsonHeader(p, pa, js, json_output_ctx);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
@@ -672,7 +758,13 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        const char *metadata = ConfNodeLookupChildValue(conf, "metadata");
 
+        if (metadata != NULL) {
+            if (ConfValIsTrue(metadata)) {
+                json_output_ctx->flags |= LOG_JSON_METADATA;
+            }
+        }
         if (vars != NULL) {
             if (ConfValIsTrue(vars)) {
                 json_output_ctx->flags |= LOG_JSON_VARS;
