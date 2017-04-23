@@ -645,7 +645,7 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     SCReturnInt(0);
 }
 
-static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
 {
     int ret;
 
@@ -662,7 +662,7 @@ static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_
  *
  * \return TM_ECODE_OK if ok, else TM_ECODE_FAILED
  */
-static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertPreludeThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     AlertPreludeThread *aun;
 
