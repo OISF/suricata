@@ -643,7 +643,7 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     SCReturnInt(0);
 }
 
-static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
 {
     int ret;
 
