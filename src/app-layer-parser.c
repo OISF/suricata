@@ -124,6 +124,9 @@ typedef struct AppLayerParserProtoCtx_
      * STREAM_TOSERVER, STREAM_TOCLIENT */
     uint8_t first_data_dir;
 
+    /* Option flags, such as supporting gaps or not. */
+    uint8_t flags;
+
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
 #endif
@@ -354,6 +357,16 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto, AppPro
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].first_data_dir |=
         (direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
+        uint8_t flags)
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].flags |= flags;
 
     SCReturn;
 }
@@ -795,8 +808,13 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
     }
 }
 
+#ifdef OLD_GAP
 #define IS_DISRUPTED(flags) \
     ((flags) & (STREAM_DEPTH|STREAM_GAP))
+#else
+#define IS_DISRUPTED(flags) \
+    ((flags) & (STREAM_DEPTH))
+#endif
 
 /**
  *  \brief get the progress value for a tx/protocol
@@ -944,6 +962,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (p->StateAlloc == NULL)
         goto end;
 
+#ifdef OLD_GAP
     /* Do this check before calling AppLayerParse */
     if (flags & STREAM_GAP) {
         SCLogDebug("stream gap detected (missing packets), "
@@ -953,6 +972,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
             AppLayerParserStreamTruncated(f->proto, alproto, f->alstate, flags);
         goto error;
     }
+#endif
 
     /* Get the parser state (if any) */
     pstate = f->alparser;
@@ -961,6 +981,20 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         if (pstate == NULL)
             goto error;
     }
+
+#ifndef OLD_GAP
+    /* Do this check before calling AppLayerParse */
+    if (flags & STREAM_GAP) {
+        if (!(p->flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
+            if (f->alstate != NULL) {
+                AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
+                        flags);
+            }
+            goto error;
+        }
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_GAP);
+    }
+#endif
 
     if (flags & STREAM_EOF)
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
@@ -1257,6 +1291,15 @@ void AppLayerParserStateSetFlag(AppLayerParserState *pstate, uint8_t flag)
     pstate->flags |= flag;
     SCReturn;
 }
+
+#ifndef OLD_GAP
+void AppLayerParserStateClearFlag(AppLayerParserState *pstate, uint8_t flag)
+{
+    SCEnter();
+    pstate->flags &= ~flag;
+    SCReturn;
+}
+#endif
 
 int AppLayerParserStateIssetFlag(AppLayerParserState *pstate, uint8_t flag)
 {
