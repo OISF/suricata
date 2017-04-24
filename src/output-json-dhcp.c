@@ -64,12 +64,12 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 {
     DHCPTransaction *dhcptx = tx;
     LogDHCPLogThread *thread = thread_data;
-    DHCPGlobalState *dhcpState = state;
+    DHCPGlobalState *dhcpState = ((DHCPState *)state)->global;
     MemBuffer *buffer = thread->buffer;
     json_t *js = NULL, *dhcpjs = NULL, *reqjs = NULL, *rspjs = NULL;
     uint8_t request_type = 0;
 
-    SCLogDebug("Logging DHCP transaction %"PRIu64".", dhcptx->tx_id);
+    SCLogNotice("Logging DHCP transaction %"PRIu64".", dhcptx->tx_id);
     if (dhcpState->log_id > tx_id) {
         SCLogDebug("Already logged DHCP transaction %"PRIu64".", dhcptx->tx_id);
         return TM_ECODE_OK;
