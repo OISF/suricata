@@ -111,13 +111,6 @@ static void *DHCPStateAlloc(void)
 {
     /* TBD: possibly make this per vlan */
     DHCPState *state = &dhcpGlobalState;
-
-    if (SC_ATOMIC_CAS(&state->initialized, 0, 1) == 1) {
-        SCMutexInit(&state->lock, NULL);
-        TAILQ_INIT(&state->tx_list);
-        SC_ATOMIC_INIT(DHCPStateAllocCount);
-    }
-    SC_ATOMIC_ADD(DHCPStateAllocCount, 1);
     return state;
 }
 
@@ -661,6 +654,10 @@ void RegisterDHCPParsers(void)
             DHCPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DHCP,
             DHCPGetEvents);
+
+        /* Initialize global state. */
+        SCMutexInit(&dhcpGlobalState.lock, NULL);
+        TAILQ_INIT(&dhcpGlobalState.tx_list);
     }
     else {
         SCLogNotice("DHCP protocol parsing disabled.");
