@@ -62,9 +62,9 @@ SCEnumCharMap dhcp_decoder_event_table[] = {
 
 static uint32_t dhcp_config_max_transactions = 32;
 
-static DHCPState dhcpGlobalState;
+static DHCPGlobalState dhcpGlobalState;
 
-static void DHCPTxFree(DHCPState *dhcp, void *tx, uint32_t locked)
+static void DHCPTxFree(DHCPGlobalState *dhcp, void *tx, uint32_t locked)
 {
     DHCPTransaction *dhcptx = tx;
 
@@ -91,7 +91,7 @@ static void DHCPTxFree(DHCPState *dhcp, void *tx, uint32_t locked)
     }
 }
 
-static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
+static DHCPTransaction *DHCPTxAlloc(DHCPGlobalState *dhcp, uint32_t xid)
 {
     DHCPTransaction *tx;
 
@@ -122,21 +122,21 @@ static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
     return tx;
 }
 
-static SC_ATOMIC_DECLARE(uint64_t, DHCPStateAllocCount);
+static SC_ATOMIC_DECLARE(uint64_t, DHCPGlobalStateAllocCount);
 
-static void *DHCPStateAlloc(void)
+static void *DHCPGlobalStateAlloc(void)
 {
     /* TBD: possibly make this per vlan */
-    DHCPState *state = &dhcpGlobalState;
+    DHCPGlobalState *state = &dhcpGlobalState;
     return state;
 }
 
-static void DHCPStateFree(void *state)
+static void DHCPGlobalStateFree(void *state)
 {
-    DHCPState *dhcp_state = state;
+    DHCPGlobalState *dhcp_state = state;
     DHCPTransaction *tx;
-    uint64_t count = SC_ATOMIC_SUB(DHCPStateAllocCount, 1);
-    /* free in-flight transactions with last DHCPStateFree */
+    uint64_t count = SC_ATOMIC_SUB(DHCPGlobalStateAllocCount, 1);
+    /* free in-flight transactions with last DHCPGlobalStateFree */
     if (count == 0) {
         SCMutexLock(&dhcp_state->lock);
         while ((tx = TAILQ_FIRST(&dhcp_state->tx_list)) != NULL) {
@@ -153,9 +153,9 @@ static void DHCPStateFree(void *state)
  * \param state a void pointer to the dhcpState object.
  * \param tx_id the transaction ID to free.
  */
-static void DHCPStateTxFree(void *state, uint64_t tx_id)
+static void DHCPGlobalStateTxFree(void *state, uint64_t tx_id)
 {
-    DHCPState *dhcp = state;
+    DHCPGlobalState *dhcp = state;
     DHCPTransaction *tx = NULL, *ttx;
 
     SCLogDebug("Freeing transaction %"PRIu64, tx_id);
@@ -181,7 +181,7 @@ static void DHCPStateTxFree(void *state, uint64_t tx_id)
     SCLogDebug("Transaction %"PRIu64" not found.", tx_id);
 }
 
-static int DHCPStateGetEventInfo(const char *event_name, int *event_id,
+static int DHCPGlobalStateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, dhcp_decoder_event_table);
@@ -199,7 +199,7 @@ static int DHCPStateGetEventInfo(const char *event_name, int *event_id,
 
 static AppLayerDecoderEvents *DHCPGetEvents(void *state, uint64_t tx_id)
 {
-    DHCPState *dhcp_state = state;
+    DHCPGlobalState *dhcp_state = state;
     DHCPTransaction *tx;
 
     SCMutexLock(&dhcp_state->lock);
@@ -216,13 +216,13 @@ static AppLayerDecoderEvents *DHCPGetEvents(void *state, uint64_t tx_id)
 
 static int DHCPHasEvents(void *state)
 {
-    DHCPState *echo = state;
+    DHCPGlobalState *echo = state;
     return echo->events;
 }
 
 static DHCPTransaction *DHCPGetTxByXid(void *state, uint32_t xid)
 {
-    DHCPState *dhcp = state;
+    DHCPGlobalState *dhcp = state;
     DHCPTransaction *tx, *ttx;
 
     SCLogDebug("Requested tx XID %"PRIu32".", xid);
@@ -331,7 +331,7 @@ static int DHCPParse(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
     void *local_data)
 {
-    DHCPState *dhcp_state = state;
+    DHCPGlobalState *dhcp_state = state;
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
@@ -503,14 +503,14 @@ end:
 
 static uint64_t DHCPGetTxCnt(void *state)
 {
-    DHCPState *dhcp = state;
+    DHCPGlobalState *dhcp = state;
     SCLogDebug("Current tx count is %"PRIu64".", dhcp->transaction_max);
     return dhcp->transaction_max;
 }
 
 static void *DHCPGetTx(void *state, uint64_t tx_id)
 {
-    DHCPState *dhcp = state;
+    DHCPGlobalState *dhcp = state;
     DHCPTransaction *tx;
 
     SCLogDebug("Requested tx ID %"PRIu64".", tx_id);
@@ -652,7 +652,7 @@ void RegisterDHCPParsers(void)
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new DHCP flow. */
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DHCP,
-            DHCPStateAlloc, DHCPStateFree);
+            DHCPGlobalStateAlloc, DHCPGlobalStateFree);
 
         /* Register request parser for parsing frame from server to client. */
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DHCP,
@@ -665,7 +665,7 @@ void RegisterDHCPParsers(void)
         /* Register a function to be called by the application layer
          * when a transaction is to be freed. */
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DHCP,
-            DHCPStateTxFree);
+            DHCPGlobalStateTxFree);
 
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DHCP,
@@ -688,7 +688,7 @@ void RegisterDHCPParsers(void)
             NULL, DHCPGetTxDetectState, DHCPSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DHCP,
-            DHCPStateGetEventInfo);
+            DHCPGlobalStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DHCP,
             DHCPGetEvents);
 

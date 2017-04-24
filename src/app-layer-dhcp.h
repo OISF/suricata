@@ -140,7 +140,7 @@ typedef struct DHCPTransaction_ {
 
 } DHCPTransaction;
 
-typedef struct DHCPState_ {
+typedef struct DHCPGlobalState_ {
 
     SCMutex lock;    /** Mutex for access to tx_list */
 
@@ -166,6 +166,6 @@ typedef struct DHCPState_ {
 
     uint16_t events; /**< Number of application layer events created
                       * for this state. */
-} DHCPState;
+} DHCPGlobalState;
 
 #endif /* __APP_LAYER_DHCP_H__ */
