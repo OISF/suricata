@@ -117,6 +117,7 @@ SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
 /* stream engine running in "inline" mode. */
 int stream_inline = 0;
+int stream_drop_invalid = 1;
 
 void StreamTcpInitMemuse(void)
 {
@@ -423,6 +424,17 @@ void StreamTcpInitConfig(char quiet)
         }
     } else {
         stream_config.bypass = 0;
+    }
+
+    int drop_invalid = 0;
+    if ((ConfGetBool("stream.drop-invalid", &drop_invalid)) == 1) {
+        if (drop_invalid == 1) {
+            stream_drop_invalid = 1;
+        } else {
+            stream_drop_invalid = 0;
+        }
+    } else {
+        stream_drop_invalid = 1;
     }
 
     if (!quiet) {
@@ -4642,7 +4654,7 @@ error:
         ReCalculateChecksum(p);
     }
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineDropInvalid()) {
         PACKET_DROP(p);
     }
     SCReturnInt(-1);

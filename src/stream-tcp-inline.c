@@ -35,6 +35,7 @@
 
 /** defined in stream-tcp-reassemble.c */
 extern int stream_inline;
+extern int stream_drop_invalid;
 
 /**
  *  \brief See if stream engine is operating in inline mode
@@ -45,6 +46,17 @@ extern int stream_inline;
 int StreamTcpInlineMode(void)
 {
     return stream_inline;
+}
+
+/**
+ *  \brief See if stream engine is dropping invalid packet in inline mode
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int StreamTcpInlineDropInvalid(void)
+{
+    return (stream_inline && stream_drop_invalid);
 }
 
 /**
