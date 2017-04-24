@@ -33,7 +33,8 @@
 #define STREAM_VERBOSE    FALSE
 /* Flag to indicate that the checksum validation for the stream engine
    has been enabled */
-#define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    0x01
+#define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    BIT_U8(0)
+#define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -210,6 +211,7 @@ void StreamTcpSessionCleanup(TcpSession *ssn);
 void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
+int StreamTcpInlineDropInvalid(void);
 
 int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
 
