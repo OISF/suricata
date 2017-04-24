@@ -64,7 +64,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 {
     DHCPTransaction *dhcptx = tx;
     LogDHCPLogThread *thread = thread_data;
-    DHCPState *dhcpState = state;
+    DHCPGlobalState *dhcpState = state;
     MemBuffer *buffer = thread->buffer;
     json_t *js = NULL, *dhcpjs = NULL, *reqjs = NULL, *rspjs = NULL;
     uint8_t request_type = 0;
