@@ -91,17 +91,17 @@ static void DHCPTxFree(DHCPGlobalState *dhcp, void *tx, uint32_t locked)
     }
 }
 
-static DHCPTransaction *DHCPTxAlloc(DHCPGlobalState *dhcp, uint32_t xid)
+static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
 {
     DHCPTransaction *tx;
 
     /* limit outstanding transactions */
-    if (unlikely(dhcp->transaction_count > dhcp_config_max_transactions)) {
+    if (unlikely(dhcp->global->transaction_count > dhcp_config_max_transactions)) {
         /* toss out the oldest */
-        tx = TAILQ_FIRST(&dhcp->tx_list);
+        tx = TAILQ_FIRST(&dhcp->global->tx_list);
         if (likely(tx != NULL)) {
-            TAILQ_REMOVE(&dhcp->tx_list, tx, next);
-            DHCPTxFree(dhcp, tx, 1);
+            TAILQ_REMOVE(&dhcp->global->tx_list, tx, next);
+            DHCPTxFree(dhcp->global, tx, 1);
         }
     }
 
@@ -111,40 +111,42 @@ static DHCPTransaction *DHCPTxAlloc(DHCPGlobalState *dhcp, uint32_t xid)
     }
 
     tx->xid = xid;
+    tx->state = dhcp;
 
     /* Increment the transaction ID on the state each time one is
      * allocated. */
-    tx->tx_id = dhcp->transaction_max++;
-    dhcp->transaction_count++;
+    tx->tx_id = dhcp->global->transaction_max++;
+    dhcp->global->transaction_count++;
 
-    TAILQ_INSERT_TAIL(&dhcp->tx_list, tx, next);
+    TAILQ_INSERT_TAIL(&dhcp->global->tx_list, tx, next);
 
     return tx;
 }
 
-static SC_ATOMIC_DECLARE(uint64_t, DHCPGlobalStateAllocCount);
-
 static void *DHCPGlobalStateAlloc(void)
 {
-    /* TBD: possibly make this per vlan */
-    DHCPGlobalState *state = &dhcpGlobalState;
+    DHCPState *state = SCCalloc(1, sizeof(*state));
+    if (unlikely(state == NULL)) {
+        return NULL;
+    }
+    state->global = &dhcpGlobalState;
     return state;
 }
 
 static void DHCPGlobalStateFree(void *state)
 {
-    DHCPGlobalState *dhcp_state = state;
-    DHCPTransaction *tx;
-    uint64_t count = SC_ATOMIC_SUB(DHCPGlobalStateAllocCount, 1);
-    /* free in-flight transactions with last DHCPGlobalStateFree */
-    if (count == 0) {
-        SCMutexLock(&dhcp_state->lock);
-        while ((tx = TAILQ_FIRST(&dhcp_state->tx_list)) != NULL) {
-            TAILQ_REMOVE(&dhcp_state->tx_list, tx, next);
-            DHCPTxFree(dhcp_state, tx, 1);
+    DHCPState *dhcp_state = state;
+    DHCPGlobalState *global = dhcp_state->global;
+    DHCPTransaction *tx, *tmp;
+    SCMutexLock(&global->lock);
+    TAILQ_FOREACH_SAFE(tx, &global->tx_list, next, tmp) {
+        if (tx->state == state) {
+            TAILQ_REMOVE(&global->tx_list, tx, next);
+            DHCPTxFree(global, tx, 1);
         }
-        SCMutexUnlock(&dhcp_state->lock);
     }
+    SCMutexUnlock(&global->lock);
+    SCFree(dhcp_state);
 }
 
 /**
@@ -155,26 +157,19 @@ static void DHCPGlobalStateFree(void *state)
  */
 static void DHCPGlobalStateTxFree(void *state, uint64_t tx_id)
 {
-    DHCPGlobalState *dhcp = state;
+    DHCPGlobalState *dhcp = ((DHCPState *)state)->global;
     DHCPTransaction *tx = NULL, *ttx;
 
     SCLogDebug("Freeing transaction %"PRIu64, tx_id);
 
     SCMutexLock(&dhcp->lock);
     TAILQ_FOREACH_SAFE(tx, &dhcp->tx_list, next, ttx) {
-
-        /* Continue if this is not the transaction we are looking
-         * for. */
-        if (tx->tx_id != tx_id) {
-            continue;
+        if (tx->state == state && tx->tx_id == tx_id) {
+            TAILQ_REMOVE(&dhcp->tx_list, tx, next);
+            DHCPTxFree(dhcp, tx, 1);
+            SCMutexUnlock(&dhcp->lock);
+            return;
         }
-
-        /* Remove and free the transaction. */
-        TAILQ_REMOVE(&dhcp->tx_list, tx, next);
-        DHCPTxFree(dhcp, tx, 1);
-
-        SCMutexUnlock(&dhcp->lock);
-        return;
     }
     SCMutexUnlock(&dhcp->lock);
 
@@ -199,12 +194,12 @@ static int DHCPGlobalStateGetEventInfo(const char *event_name, int *event_id,
 
 static AppLayerDecoderEvents *DHCPGetEvents(void *state, uint64_t tx_id)
 {
-    DHCPGlobalState *dhcp_state = state;
+    DHCPGlobalState *dhcp_state = ((DHCPState *)state)->global;
     DHCPTransaction *tx;
 
     SCMutexLock(&dhcp_state->lock);
     TAILQ_FOREACH(tx, &dhcp_state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
+        if (tx->state == state && tx->tx_id == tx_id) {
             SCMutexUnlock(&dhcp_state->lock);
             return tx->decoder_events;
         }
@@ -216,41 +211,41 @@ static AppLayerDecoderEvents *DHCPGetEvents(void *state, uint64_t tx_id)
 
 static int DHCPHasEvents(void *state)
 {
-    DHCPGlobalState *echo = state;
-    return echo->events;
+    DHCPGlobalState *dhcp = ((DHCPState *)state)->global;
+    return dhcp->events;
 }
 
-static DHCPTransaction *DHCPGetTxByXid(void *state, uint32_t xid)
+static DHCPTransaction *DHCPGetTxByXid(DHCPState *state, uint32_t xid)
 {
-    DHCPGlobalState *dhcp = state;
+    DHCPGlobalState *global = state->global;
     DHCPTransaction *tx, *ttx;
 
     SCLogDebug("Requested tx XID %"PRIu32".", xid);
 
-    SCMutexLock(&dhcp->lock);
-    TAILQ_FOREACH_SAFE(tx, &dhcp->tx_list, next, ttx) {
-        if (tx->logged) {
-            /* Remove and free the transaction. */
-            TAILQ_REMOVE(&dhcp->tx_list, tx, next);
-            DHCPTxFree(dhcp, tx, 1);
-            continue;
-        }
+    SCMutexLock(&global->lock);
+    TAILQ_FOREACH_SAFE(tx, &global->tx_list, next, ttx) {
         if (tx->xid == xid) {
-            SCMutexUnlock(&dhcp->lock);
-            SCLogDebug("Transaction %"PRIu32" found, returning tx object %p.",
+            SCMutexUnlock(&global->lock);
+            SCLogNotice("Transaction %"PRIu32" found, returning tx object %p.",
                 xid, tx);
             return tx;
         }
+        if (tx->logged) {
+            /* Remove and free the transaction. */
+            TAILQ_REMOVE(&global->tx_list, tx, next);
+            DHCPTxFree(global, tx, 1);
+            continue;
+        }
     }
-    tx = DHCPTxAlloc(dhcp, xid);
+    tx = DHCPTxAlloc(state, xid);
     if (unlikely(tx == NULL)) {
-        SCMutexUnlock(&dhcp->lock);
+        SCMutexUnlock(&global->lock);
         SCLogDebug("Failed to allocate new DHCP tx.");
         return NULL;
     }
-    SCMutexUnlock(&dhcp->lock);
+    SCMutexUnlock(&global->lock);
 
-    SCLogDebug("Transaction ID %"PRIu32" not found.", xid);
+    SCLogNotice("Transaction ID %"PRIu32" not found.", xid);
 
     return tx;
 }
@@ -331,7 +326,8 @@ static int DHCPParse(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
     void *local_data)
 {
-    DHCPGlobalState *dhcp_state = state;
+    DHCPState *dhcp_state = state;
+    DHCPGlobalState *global = dhcp_state->global;
 
     /* Likely connection closed, we can just return here. */
     if ((input == NULL || input_len == 0) &&
@@ -357,7 +353,7 @@ static int DHCPParse(Flow *f, void *state,
             (bootp->hlen == 6) &&
             (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE))) {
 
-            SCLogDebug("Parsing DHCP request len=%"PRIu32"state=%p", input_len, dhcp_state);
+            SCLogDebug("Parsing DHCP request len=%"PRIu32"state=%p", input_len, global);
 #ifdef PRINT
             PrintRawDataFp(stdout, input, input_len);
 #endif
@@ -380,7 +376,7 @@ static int DHCPParse(Flow *f, void *state,
                         tx->request_buffer = SCMalloc(tx->request_buffer_len);
                         if (unlikely(tx->request_buffer == NULL)) {
                             /* TBD: need to remove from global tx list */
-                            DHCPTxFree(dhcp_state, tx, 0);
+                            DHCPTxFree(global, tx, 0);
                             goto end;
                         }
                         memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
@@ -397,7 +393,7 @@ static int DHCPParse(Flow *f, void *state,
                         tx->request_buffer = SCMalloc(tx->request_buffer_len);
                         if (unlikely(tx->request_buffer == NULL)) {
                             /* TBD: need to remove from global tx list */
-                            DHCPTxFree(dhcp_state, tx, 0);
+                            DHCPTxFree(global, tx, 0);
                             goto end;
                         }
                         memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
@@ -414,7 +410,7 @@ static int DHCPParse(Flow *f, void *state,
                         tx->request_buffer = SCMalloc(tx->request_buffer_len);
                         if (unlikely(tx->request_buffer == NULL)) {
                             /* TBD: need to remove from global tx list */
-                            DHCPTxFree(dhcp_state, tx, 0);
+                            DHCPTxFree(global, tx, 0);
                             goto end;
                         }
                         memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
@@ -432,7 +428,7 @@ static int DHCPParse(Flow *f, void *state,
             (bootp->hlen == 6) &&
             (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE))) {
 
-            SCLogDebug("Parsing DHCP reply len=%"PRIu32"state=%p", input_len, dhcp_state);
+            SCLogDebug("Parsing DHCP reply len=%"PRIu32"state=%p", input_len, global);
 #ifdef PRINT
             PrintRawDataFp(stdout, input, input_len);
 #endif
@@ -453,13 +449,14 @@ static int DHCPParse(Flow *f, void *state,
                             SCLogDebug("Failed to allocate new DHCP tx.");
                             goto end;
                         }
+                        tx->state = state;
                         tx->response_client_ip = bootp->yiaddr;
                         if (tx->response_buffer == NULL) {
                             tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
                             tx->response_buffer = SCMalloc(tx->response_buffer_len);
                             if (unlikely(tx->response_buffer == NULL)) {
                                 /* TBD: need to remove from global tx list */
-                                DHCPTxFree(dhcp_state, tx, 0);
+                                DHCPTxFree(global, tx, 0);
                                 goto end;
                             }
                             memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
@@ -503,21 +500,21 @@ end:
 
 static uint64_t DHCPGetTxCnt(void *state)
 {
-    DHCPGlobalState *dhcp = state;
+    DHCPGlobalState *dhcp = ((DHCPState *)state)->global;
     SCLogDebug("Current tx count is %"PRIu64".", dhcp->transaction_max);
     return dhcp->transaction_max;
 }
 
 static void *DHCPGetTx(void *state, uint64_t tx_id)
 {
-    DHCPGlobalState *dhcp = state;
+    DHCPGlobalState *dhcp = ((DHCPState *)state)->global;
     DHCPTransaction *tx;
 
     SCLogDebug("Requested tx ID %"PRIu64".", tx_id);
 
     SCMutexLock(&dhcp->lock);
     TAILQ_FOREACH(tx, &dhcp->tx_list, next) {
-        if (tx->tx_id == tx_id) {
+        if (tx->state == state && tx->tx_id == tx_id) {
             SCMutexUnlock(&dhcp->lock);
             SCLogDebug("Transaction %"PRIu64" found, returning tx object %p.",
                 tx_id, tx);

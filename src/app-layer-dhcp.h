@@ -90,6 +90,8 @@ typedef struct BOOTPHdr_ {
 #define DHCP_PARAM_TFTP_SERVER_NAME 66
 #define DHCP_PARAM_TFTP_SERVER_IP 150
 
+struct DHCPState_;
+
 typedef struct DHCPOpt_ {
     uint8_t code;
     uint8_t len;
@@ -97,6 +99,8 @@ typedef struct DHCPOpt_ {
 } DHCPOpt;
 
 typedef struct DHCPTransaction_ {
+
+    struct DHCPState_ *state;
 
     uint64_t tx_id;             /*<< Internal transaction ID. */
 
@@ -167,5 +171,9 @@ typedef struct DHCPGlobalState_ {
     uint16_t events; /**< Number of application layer events created
                       * for this state. */
 } DHCPGlobalState;
+
+typedef struct DHCPState_ {
+    DHCPGlobalState *global;
+} DHCPState;
 
 #endif /* __APP_LAYER_DHCP_H__ */
