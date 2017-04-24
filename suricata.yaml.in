@@ -1182,6 +1182,7 @@ flow-timeouts:
 #   midstream: false            # don't allow midstream session pickups
 #   async-oneside: false        # don't enable async stream handling
 #   inline: no                  # stream inline mode
+#   drop-invalid: yes           # in inline mode, drop packets that are invalid with regards to streaming engine
 #   max-synack-queued: 5        # Max different SYN/ACKs to queue
 #   bypass: no                  # Bypass packets when stream.depth is reached
 #

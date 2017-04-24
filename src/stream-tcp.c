@@ -301,6 +301,17 @@ static void StreamTcpSessionPoolCleanup(void *s)
     }
 }
 
+/**
+ *  \brief See if stream engine is dropping invalid packet in inline mode
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int StreamTcpInlineDropInvalid(void)
+{
+    return (stream_inline && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
+}
+
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
@@ -423,6 +434,15 @@ void StreamTcpInitConfig(char quiet)
         }
     } else {
         stream_config.bypass = 0;
+    }
+
+    int drop_invalid = 0;
+    if ((ConfGetBool("stream.drop-invalid", &drop_invalid)) == 1) {
+        if (drop_invalid == 1) {
+            stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
+        }
+    } else {
+        stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
     }
 
     if (!quiet) {
@@ -4663,7 +4683,7 @@ error:
         ReCalculateChecksum(p);
     }
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineDropInvalid()) {
         PACKET_DROP(p);
     }
     SCReturnInt(-1);
