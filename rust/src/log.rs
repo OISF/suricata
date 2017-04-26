@@ -19,9 +19,10 @@
 
 extern crate libc;
 
-use std::os::raw::c_char;
 use std::ffi::{CString};
 use std::path::Path;
+
+use core::*;
 
 pub enum Level {
     NotSet = -1,
@@ -39,15 +40,6 @@ pub enum Level {
 }
 
 pub static mut LEVEL: i32 = Level::NotSet as i32;
-
-extern {
-    fn SCLogMessage(level: libc::c_int,
-                    filename: *const c_char,
-                    line: libc::c_uint,
-                    function: *const c_char,
-                    code: libc::c_int,
-                    message: *const c_char) -> libc::c_int;
-}
 
 pub fn get_log_level() -> i32 {
     unsafe {
@@ -69,15 +61,12 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
          code: i32, message: &str)
 {
     let filename = basename(file);
-
-    unsafe {
-        SCLogMessage(level as i32,
-                     CString::new(filename).unwrap().as_ptr(),
-                     line,
-                     CString::new(function).unwrap().as_ptr(),
-                     code,
-                     CString::new(message).unwrap().as_ptr());
-    }
+    sc_log_message(level as i32,
+                   CString::new(filename).unwrap().as_ptr(),
+                   line,
+                   CString::new(function).unwrap().as_ptr(),
+                   code,
+                   CString::new(message).unwrap().as_ptr());
 }
 
 // A macro which expends to the function name from which it was
@@ -149,7 +138,7 @@ macro_rules!SCLogDebug {
 }
 
 #[no_mangle]
-pub extern "C" fn rs_log_init(level: i32) {
+pub extern "C" fn rs_log_set_level(level: i32) {
     unsafe {
         LEVEL = level;
     }

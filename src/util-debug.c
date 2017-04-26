@@ -44,7 +44,7 @@
 #include "util-syslog.h"
 
 #ifdef HAVE_RUST
-#include "rust.h"
+#include "rust-log.h"
 #endif
 
 #include "conf.h"
@@ -1259,7 +1259,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     //SCOutputPrint(sc_did->startup_message);
 
 #ifdef HAVE_RUST
-    rs_log_init(sc_log_global_log_level);
+    rs_log_set_level(sc_log_global_log_level);
 #endif
 
     return;
