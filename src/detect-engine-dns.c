@@ -48,6 +48,10 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
+#ifdef HAVE_RUST
+#include "rust-dns-dns.h"
+#endif
+
 /** \brief Do the content inspection & validation for a signature
  *
  *  \param de_ctx Detection engine context
@@ -67,14 +71,32 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id)
 {
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
     uint8_t *buffer;
-    uint16_t buffer_len;
+    uint32_t buffer_len;
     int r = 0;
 
     SCLogDebug("start");
 
+#ifdef HAVE_RUST
+    for (uint16_t i = 0;; i++) {
+        det_ctx->discontinue_matching = 0;
+        det_ctx->buffer_offset = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
+            r = DetectEngineContentInspection(de_ctx, det_ctx,
+                s, smd, f, buffer, buffer_len, 0,
+                DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+            if (r == 1) {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+#else
+    DNSTransaction *tx = (DNSTransaction *)txv;
+    DNSQueryEntry *query = NULL;
     TAILQ_FOREACH(query, &tx->query_list, next) {
         SCLogDebug("tx %p query %p", tx, query);
         det_ctx->discontinue_matching = 0;
@@ -93,6 +115,7 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         if (r == 1)
             break;
     }
+#endif
     return r;
 }
 
@@ -110,8 +133,23 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
         const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
-
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+
+#ifdef HAVE_RUST
+    uint8_t *buffer;
+    uint32_t buffer_len;
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        if (rs_dns_tx_get_query_name(txv, i, &buffer, &buffer_len)) {
+            if (buffer_len >= mpm_ctx->minlen) {
+                (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                    &det_ctx->mtcu, &det_ctx->pmq,
+                    buffer, buffer_len);
+            }
+        } else {
+            break;
+        }
+    }
+#else
     DNSTransaction *tx = (DNSTransaction *)txv;
     DNSQueryEntry *query = NULL;
 
@@ -128,6 +166,7 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
                     buffer, buffer_len);
         }
     }
+#endif
 }
 
 int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)

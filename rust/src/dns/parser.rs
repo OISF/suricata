@@ -19,7 +19,7 @@
 
 use nom::{be_u8, be_u16, be_u32};
 use nom;
-use dns::*;
+use dns::dns::*;
 
 /// Parse a DNS header.
 named!(pub dns_parse_header<DNSHeader>,
@@ -147,19 +147,19 @@ pub fn dns_parse_response<'a>(slice: &'a [u8])
     ));
 
     let response = closure!(&'a [u8], do_parse!(
-        header: dns_parse_header >>
-        queries: count!(apply!(dns_parse_query, slice),
-                        header.questions as usize) >>
-        answers: count!(answer_parser, header.answer_rr as usize) >>
-        authorities: count!(answer_parser, header.authority_rr as usize) >>
-        (
-            DNSResponse{
-                header: header,
-                queries: queries,
-                answers: answers,
-                authorities: authorities,
-            }
-        )
+        header: dns_parse_header
+            >> queries: count!(apply!(dns_parse_query, slice),
+                               header.questions as usize)
+            >> answers: count!(answer_parser, header.answer_rr as usize)
+            >> authorities: count!(answer_parser, header.authority_rr as usize)
+            >> (
+                DNSResponse{
+                    header: header,
+                    queries: queries,
+                    answers: answers,
+                    authorities: authorities,
+                }
+            )
     ))(slice);
 
     return response;
