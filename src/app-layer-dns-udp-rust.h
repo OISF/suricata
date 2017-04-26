@@ -15,16 +15,9 @@
  * 02110-1301, USA.
  */
 
-#ifndef __RUST_H__
-#define __RUST_H__
+#ifndef __APP_LAYER_DNS_UDP_RUST_H__
+#define __APP_LAYER_DNS_UDP_RUST_H__
 
-typedef struct SuricataContext_ {
-    SCError (*SCLogMessage)(const SCLogLevel, const char *, const unsigned int,
-            const char *, const SCError, const char *message);
-    void (*DetectEngineStateFree)(DetectEngineState *);
-    void (*AppLayerDecoderEventsSetEventRaw)(AppLayerDecoderEvents **,
-            uint8_t);
-    void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
-} SuricataContext;
+void RegisterRustDNSUDPParsers(void);
 
-#endif /* !__RUST_H__ */
+#endif /* !__APP_LAYER_DNS_UDP_RUST_H__ */

@@ -124,6 +124,10 @@ enum {
     DNS_DECODER_EVENT_STATE_MEMCAP_REACHED,
 };
 
+/** Opaque Rust types. */
+typedef struct RSDNSState_ RSDNSState;
+typedef struct RSDNSTransaction_ RSDNSTransaction;
+
 /** \brief DNS packet header */
 typedef struct DNSHeader_ {
     uint16_t tx_id;
