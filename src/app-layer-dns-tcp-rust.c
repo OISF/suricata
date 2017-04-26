@@ -15,11 +15,7 @@
  * 02110-1301, USA.
  */
 
-pub mod parser;
-pub use self::parser::*;
+#ifdef HAVE_RUST
 
-pub mod dns;
-pub use self::dns::*;
+#endif /* HAVE_RUST */
 
-pub mod bindings;
-pub mod log;

@@ -15,11 +15,7 @@
  * 02110-1301, USA.
  */
 
-pub mod parser;
-pub use self::parser::*;
+#ifndef __APP_LAYER_DNS_TCP_RUST_H__
+#define __APP_LAYER_DNS_TCP_RUST_H__
 
-pub mod dns;
-pub use self::dns::*;
-
-pub mod bindings;
-pub mod log;
+#endif /* !__APP_LAYER_DNS_TCP_RUST_H__ */

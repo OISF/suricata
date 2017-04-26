@@ -27,6 +27,4 @@ typedef struct SuricataContext_ {
     void (*AppLayerDecoderEventsFreeEvents)(AppLayerDecoderEvents **);
 } SuricataContext;
 
-void rs_dns_init(void);
-
 #endif /* !__RUST_H__ */

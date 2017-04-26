@@ -15,11 +15,26 @@
  * 02110-1301, USA.
  */
 
-pub mod parser;
-pub use self::parser::*;
+extern crate libc;
+extern crate nom;
 
-pub mod dns;
-pub use self::dns::*;
+use std::slice;
 
-pub mod bindings;
-pub mod log;
+use dns::parser::*;
+
+#[no_mangle]
+pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
+                               -> libc::uint8_t
+{
+    let slice: &[u8] = unsafe {
+        slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    match dns_parse_request(slice) {
+        nom::IResult::Done(_, _) => {
+            return 1;
+        }
+        _ => {
+            return 0;
+        }
+    }
+}

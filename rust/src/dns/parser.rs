@@ -147,19 +147,19 @@ pub fn dns_parse_response<'a>(slice: &'a [u8])
     ));
 
     let response = closure!(&'a [u8], do_parse!(
-        header: dns_parse_header >>
-        queries: count!(apply!(dns_parse_query, slice),
-                        header.questions as usize) >>
-        answers: count!(answer_parser, header.answer_rr as usize) >>
-        authorities: count!(answer_parser, header.authority_rr as usize) >>
-        (
-            DNSResponse{
-                header: header,
-                queries: queries,
-                answers: answers,
-                authorities: authorities,
-            }
-        )
+        header: dns_parse_header
+            >> queries: count!(apply!(dns_parse_query, slice),
+                               header.questions as usize)
+            >> answers: count!(answer_parser, header.answer_rr as usize)
+            >> authorities: count!(answer_parser, header.authority_rr as usize)
+            >> (
+                DNSResponse{
+                    header: header,
+                    queries: queries,
+                    answers: answers,
+                    authorities: authorities,
+                }
+            )
     ))(slice);
 
     return response;
