@@ -364,9 +364,11 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         alproto_masks = &f->probing_parser_toclient_alproto_masks;
         if (pp_port_dp != NULL) {
             SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, f->dp);
-
-            /* found based on destination port, so use dp registration */
-            pe1 = pp_port_dp->dp;
+ 
+            /* Since we are analyzing the data in to_client direction
+             * and we consider inverted data, the port must be inverted
+             * to pick up the flow */
+            pe1 = pp_port_dp->sp;
         } else {
             SCLogDebug("toclient - No probing parser registered for dest port %"PRIu16,
                        f->dp);
@@ -376,7 +378,10 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         if (pp_port_sp != NULL) {
             SCLogDebug("toclient - Probing parser found for source port %"PRIu16, f->sp);
 
-            pe2 = pp_port_sp->sp;
+            /* Since we are analyzing the data in to_client direction
+             * and we consider inverted data, the port must be inverted
+             * to pick up the flow */
+            pe2 = pp_port_sp->dp;
         } else {
             SCLogDebug("toclient - No probing parser registered for source port %"PRIu16,
                         f->sp);
