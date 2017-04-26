@@ -51,7 +51,7 @@
 #include "app-layer-dns-udp.h"
 
 #ifdef HAVE_RUST
-#include "rust.h"
+#include "app-layer-dns-udp-rust.h"
 #endif
 
 /** \internal
@@ -390,9 +390,7 @@ void RegisterDNSUDPParsers(void)
     const char *proto_name = "dns";
 
 #ifdef HAVE_RUST
-    /* If DNS was implemented in Rust, we could call into the rust
-     * init function here. */
-    rs_dns_init();
+    return RegisterRustDNSUDPParsers();
 #endif
 
     /** DNS */
