@@ -91,7 +91,7 @@ SCEnumCharMap modbus_decoder_event_table[ ] = {
 
 /* Modbus Count range. */
 #define MODBUS_MIN_COUNT    1
-#define MODBUS_MAX_COUNT    250
+#define MODBUS_MAX_COUNT    255
 
 /* Modbus Function Code. */
 #define MODBUS_FUNC_NONE                0x00
