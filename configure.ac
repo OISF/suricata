@@ -470,7 +470,16 @@
         LDFLAGS="$LDFLAGS -lgxpci -lgxio -ltmc"
         ],
         [AC_MSG_RESULT([no])])
+  #inotify for pcap folder mode
+    enable_inotify="no"
 
+    AC_CHECK_HEADER(sys/inotify.h,INOTIFY="yes",INOTIFY="no")
+    if test "$INOTIFY" = "yes"; then
+        AC_CHECK_FUNCS(inotify_add_watch)
+        enable_inotify="yes"
+    fi
+    AS_IF([test "x$enable_inotify" = "xyes"], [AC_DEFINE([HAVE_INOTIFY], [1], [Pcap Folder INotify support enabled])])
+  
   #libpcre
     AC_ARG_WITH(libpcre_includes,
             [  --with-libpcre-includes=DIR  libpcre include directory],
@@ -2190,6 +2199,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+  Inotify support:                         ${enable_inotify}
 
   Rust support (experimental):             ${enable_rust}
   Experimental Rust parsers:               ${enable_rust_experimental}

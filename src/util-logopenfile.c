@@ -65,12 +65,16 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
     saun.sun_family = AF_UNIX;
     strlcpy(saun.sun_path, path, sizeof(saun.sun_path));
 
+    SCLogInfo("Log connecting to unix socket %s", path);
+
     if (connect(s, (const struct sockaddr *)&saun, sizeof(saun)) < 0)
         goto err;
 
     ret = fdopen(s, "w");
     if (ret == NULL)
         goto err;
+
+    SCLogInfo("Log connected to unix socket %s", path);
 
     return ret;
 
@@ -133,6 +137,8 @@ static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
     int tries = 0;
     int ret = 0;
     bool reopen = false;
+
+    SCLogDebug("Writing %s to socket", buffer);
 #ifdef BUILD_WITH_UNIXSOCKET
     if (ctx->fp == NULL && ctx->is_sock) {
         SCLogUnixSocketReconnect(ctx);
@@ -149,13 +155,13 @@ tryagain:
             ret = 0;
         } else {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                SCLogDebug("Socket would block, dropping event.");
+                SCLogWarning(SC_ERR_SOCKET, "Socket would block, dropping event.");
             } else if (errno == EINTR) {
                 if (tries++ == 0) {
                     SCLogDebug("Interrupted system call, trying again.");
                     goto tryagain;
                 }
-                SCLogDebug("Too many interrupted system calls, "
+                SCLogWarning(SC_ERR_SOCKET, "Too many interrupted system calls, "
                         "dropping event.");
             } else {
                 /* Some other error. Assume badness and reopen. */
