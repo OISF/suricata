@@ -25,7 +25,9 @@
 
 .. option:: -r <path>
 
-   Run in pcap offline mode reading files from pcap file.
+   Run in pcap offline mode reading files from pcap file. If <path> specifies
+   a directory, all files in that directory will be processed in order of modified time
+   maintaining flow state between files.
 
 .. option::  -i <interface>
 
