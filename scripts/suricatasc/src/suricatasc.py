@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
         self.sck_path = sck_path
         self.verbose = verbose
 
