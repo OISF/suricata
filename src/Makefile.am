@@ -313,6 +313,8 @@ output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \
 packet-queue.c packet-queue.h \
+pcap-directory-helper.c pcap-directory-helper.h \
+pcap-file-helper.c pcap-file-helper.h \
 pkt-var.c pkt-var.h \
 reputation.c reputation.h \
 respond-reject.c respond-reject.h \
