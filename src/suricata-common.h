@@ -45,6 +45,10 @@
 #define CLS 64
 #endif
 
+#if HAVE_DIRENT_H
+#include <dirent.h>
+#endif
+
 #if HAVE_STDIO_H
 #include <stdio.h>
 #endif
