@@ -48,7 +48,11 @@ example to write custom scripts:
 
 Commands in standard running mode
 ---------------------------------
+You may need to install suricatasc if you have not done so, running the following command from scripts/suricatasc
 
+::
+
+  sudo python setup.py install
 
 The set of existing commands is the following:
 
@@ -147,14 +151,20 @@ treatment:
   Success: Successfully added file to list
   >>> pcap-file /home/benches/file2.pcap /tmp/file2
   Success: Successfully added file to list
+  >>> pcap-file-continuous /home/pcaps /tmp/dirout
+  Success: Successfully added file to list
 
 You can add multiple files without waiting the result: they will be
 sequentially processed and the generated log/alert files will be put
 into the directory specified as second arguments of the pcap-file
 command. You need to provide absolute path to the files and directory
-as suricata don’t know from where the script has been run.
+as suricata doesn’t know from where the script has been run. If you pass
+a directory instead of a file, all files in the directory will be processed. If
+using ``pcap-file-continuous`` and passing in a directory, the directory will
+be monitored for new files being added until you use ``pcap-interrupt`` or
+delete/move the directory.
 
-To know how much files are waiting to get processed, you can do:
+To know how many files are waiting to get processed, you can do:
   
 ::
   
@@ -175,6 +185,22 @@ To get current processed file:
   >>> pcap-current
   Success:
   "/tmp/test.pcap"
+
+When passing in a directory, you can see last processed time (modified time of last file) in milliseconds since epoch:
+
+::
+
+  >>> pcap-last-processed
+  Success:
+  1509138964000
+
+To interrupt directory processing which terminates the current state:
+
+::
+
+  >>> pcap-interrupt
+  Success:
+  "Interrupted"
 
 Build your own client
 ---------------------
