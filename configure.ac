@@ -1981,35 +1981,64 @@
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
 # Cargo/Rust.
-    enable_rust="no"
+    dnl enable_rust="no"
+    dnl AC_ARG_ENABLE(rust, AS_HELP_STRING([--enable-rust], [Enable Rust]),
+    dnl     [enable_rust="$enableval"], [enable_rust=no])
+    AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Rust]))
+
     rust_vendor_comment="# "
-    AC_PATH_PROG(HAVE_CARGO, cargo, "no")
-    AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
-    if test "x$HAVE_CARGO" != "xno"; then
-      if test "x$HAVE_RUSTC" != "xno"; then
-        enable_rust=yes
-        AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
-	if test "x$enable_debug" = "xyes"; then
-	   RUST_LDADD="../rust/target/debug/libsuricata.a ${RUST_LDADD}"
-	else
-	   RUST_LDADD="../rust/target/release/libsuricata.a ${RUST_LDADD}"
-	fi
-	AC_SUBST(RUST_LDADD)
-	AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
-	if test "x$have_rust_vendor" = "xyes"; then
+    have_rust_vendor="no"
+
+    if test "x$enable_rust" != "xyes"; then
+      enable_rust="no"
+    else
+      AC_PATH_PROG(HAVE_CARGO, cargo, "no")
+      AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
+
+      # Deal with the case where Rust was requested but rustc or cargo
+      # cannot be found.
+      if test "x$HAVE_CARGO" = "xno"; then
+        echo ""
+        echo "   ERROR! Rust support requested but cargo not found."
+        echo ""
+        exit 1
+      fi
+      if test "x$HAVE_RUST" = "xno"; then
+        echo ""
+        echo "   ERROR! Rust support requested but rustc not found."
+        echo ""
+        exit 1
+      fi
+
+      if test "x$HAVE_CARGO" != "xno"; then
+        if test "x$HAVE_RUSTC" != "xno"; then
+          enable_rust="yes"
+          AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
+          if test "x$enable_debug" = "xyes"; then
+	    RUST_LDADD="../rust/target/debug/libsuricata.a ${RUST_LDADD}"
+          else
+	    RUST_LDADD="../rust/target/release/libsuricata.a ${RUST_LDADD}"
+          fi
+          AC_SUBST(RUST_LDADD)
+          AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+          if test "x$have_rust_vendor" = "xyes"; then
 	   rust_vendor_comment=""
-	fi
+          fi
+        fi
       fi
     fi
+
     AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes"])
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
-    AC_PATH_PROG(HAVE_CARGO_VENDOR, cargo-vendor, "no")
-    if test "x$HAVE_CARGO_VENDOR" = "xno"; then
+    if test "x$enable_rust" = "xyes"; then
+      AC_PATH_PROG(HAVE_CARGO_VENDOR, cargo-vendor, "no")
+      if test "x$HAVE_CARGO_VENDOR" = "xno"; then
         echo "   Warning: cargo-vendor not found, but it is only required"
         echo "       for building the distribution"
         echo "   To install: cargo install cargo-vendor"
+      fi
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
 
