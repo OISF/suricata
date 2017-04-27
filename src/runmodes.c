@@ -118,6 +118,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "PCAP_DEV";
         case RUNMODE_PCAP_FILE:
             return "PCAP_FILE";
+        case RUNMODE_PCAP_FOLDER:
+            return "PCAP_FOLDER";
         case RUNMODE_PFRING:
 #ifdef HAVE_PFRING
             return "PFRING";
@@ -212,6 +214,7 @@ void RunModeRegisterRunModes(void)
 
     RunModeIdsPcapRegister();
     RunModeFilePcapRegister();
+    RunModeFolderPcapRegister();
     RunModeIdsPfringRegister();
     RunModeIpsNFQRegister();
     RunModeIpsIPFWRegister();
@@ -295,6 +298,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
             case RUNMODE_PCAP_FILE:
                 custom_mode = RunModeFilePcapGetDefaultMode();
+                break;
+            case RUNMODE_PCAP_FOLDER:
+                custom_mode = RunModeFolderPcapGetDefaultMode();
                 break;
 #ifdef HAVE_PFRING
             case RUNMODE_PFRING:

@@ -322,6 +322,7 @@ runmode-nfq.c runmode-nfq.h \
 runmode-nflog.c runmode-nflog.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
+runmode-pcap-folder.c runmode-pcap-folder.h \
 runmode-pfring.c runmode-pfring.h \
 runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
@@ -339,6 +340,7 @@ source-nfq.c source-nfq.h \
 source-nflog.c source-nflog.h \
 source-pcap.c source-pcap.h \
 source-pcap-file.c source-pcap-file.h \
+source-pcap-folder.c source-pcap-folder.h \
 source-pfring.c source-pfring.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \

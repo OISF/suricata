@@ -29,6 +29,8 @@ const char *RunModeUnixSocketGetDefaultMode(void);
 int RunModeUnixSocketIsActive(void);
 
 void UnixSocketPcapFile(TmEcode tm);
+void UnixSocketPcapFolder(TmEcode tm);
+void UnixSocketPcapFolderSetLastProcessed(time_t);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
