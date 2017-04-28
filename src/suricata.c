@@ -718,11 +718,6 @@ void SCPrintBuildInfo(void)
 #ifdef HAVE_PCAP_SET_BUFF
     strlcat(features, "PCAP_SET_BUFF ", sizeof(features));
 #endif
-#if LIBPCAP_VERSION_MAJOR == 1
-    strlcat(features, "LIBPCAP_VERSION_MAJOR=1 ", sizeof(features));
-#elif LIBPCAP_VERSION_MAJOR == 0
-    strlcat(features, "LIBPCAP_VERSION_MAJOR=0 ", sizeof(features));
-#endif
 #ifdef __SC_CUDA_SUPPORT__
     strlcat(features, "CUDA ", sizeof(features));
 #endif

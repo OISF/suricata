@@ -1117,17 +1117,22 @@
     #see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
     TMPLIBS="${LIBS}"
     AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
-    if test "$LPCAPVTEST" != "no"; then
-        AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
-        if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
-            AC_DEFINE([LIBPCAP_VERSION_MAJOR],[1],(libpcap version 1.0+))
-        else
-            PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
-            AC_SUBST(PCAP_CFLAGS)
-            AC_DEFINE([LIBPCAP_VERSION_MAJOR],[1],(libpcap version 1.0+))
-        fi
+    if test "$LPCAPVTEST" = "no"; then
+        echo
+        echo "   ERROR!  libpcap library too old, need at least 1+, "
+        echo "   go get it from http://www.tcpdump.org or your distribution:"
+        echo
+        echo "   Ubuntu: apt-get install libpcap-dev"
+        echo "   Fedora: yum install libpcap-devel"
+        echo
+        exit 1
+    fi
+    AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
+    if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
+        AC_MSG_RESULT(no pcap-config is use)
     else
-        AC_DEFINE([LIBPCAP_VERSION_MAJOR],[0],(libpcap version 0.x))
+        PCAP_CFLAGS="$(pcap-config --defines) $(pcap-config --cflags)"
+        AC_SUBST(PCAP_CFLAGS)
     fi
     LIBS="${TMPLIBS}"
 
