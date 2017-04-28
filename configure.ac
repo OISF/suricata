@@ -56,9 +56,6 @@
             if test "$gccvernum" -ge "400"; then
                 dnl gcc 4.0 or later
                 GCC_CFLAGS="-Wextra -Werror-implicit-function-declaration"
-                # remove optimization options that break our code
-                # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
-                GCC_CFLAGS="$GCC_CFLAGS -fno-tree-pre"
             else
                 GCC_CFLAGS="-W"
             fi

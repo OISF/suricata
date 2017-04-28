@@ -34,7 +34,6 @@
 #include "tmqh-nfq.h"
 #include "tmqh-packetpool.h"
 #include "tmqh-flow.h"
-#include "tmqh-ringbuffer.h"
 
 void TmqhSetup (void)
 {
@@ -44,13 +43,11 @@ void TmqhSetup (void)
     TmqhNfqRegister();
     TmqhPacketpoolRegister();
     TmqhFlowRegister();
-    TmqhRingBufferRegister();
 }
 
 /** \brief Clean up registration time allocs */
 void TmqhCleanup(void)
 {
-    TmqhRingBufferDestroy();
 }
 
 Tmqh* TmqhGetQueueHandlerByName(char *name)

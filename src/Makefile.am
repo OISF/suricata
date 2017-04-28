@@ -348,7 +348,6 @@ tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \
-tmqh-ringbuffer.c tmqh-ringbuffer.h \
 tmqh-simple.c tmqh-simple.h \
 tm-queuehandlers.c tm-queuehandlers.h \
 tm-queues.c tm-queues.h \
@@ -436,7 +435,6 @@ util-proto-name.c util-proto-name.h \
 util-radix-tree.c util-radix-tree.h \
 util-random.c util-random.h \
 util-reference-config.c util-reference-config.h \
-util-ringbuffer.c util-ringbuffer.h \
 util-rohash.c util-rohash.h \
 util-rule-vars.c util-rule-vars.h \
 util-runmodes.c util-runmodes.h \

@@ -93,7 +93,6 @@
 #include "util-magic.h"
 #include "util-memcmp.h"
 #include "util-misc.h"
-#include "util-ringbuffer.h"
 #include "util-signal.h"
 
 #include "reputation.h"
@@ -190,7 +189,6 @@ static void RegisterUnittests(void)
     SCProfilingRegisterTests();
 #endif
     DeStateRegisterTests();
-    DetectRingBufferRegisterTests();
     MemcmpRegisterTests();
     DetectEngineHttpClientBodyRegisterTests();
     DetectEngineHttpServerBodyRegisterTests();
