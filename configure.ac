@@ -8,7 +8,7 @@
     AC_LANG_C
     AC_PROG_CC_C99
     AC_PROG_LIBTOOL
-    PKG_PROG_PKG_CONFIG(0.21) # 0.21 is the CentOS 5.11 version
+    PKG_PROG_PKG_CONFIG
 
     dnl Taken from https://llvm.org/svn/llvm-project/llvm/trunk/autoconf/configure.ac
     dnl check if we compile using clang or gcc. On some systems the gcc binary is
