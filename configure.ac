@@ -1810,6 +1810,8 @@
         fi
     fi
 
+    AM_CONDITIONAL([HAVE_LUA], [test "x$enable_lua" != "xno"])
+
   # libgeoip
     AC_ARG_ENABLE(geoip,
 	        AS_HELP_STRING([--enable-geoip],[Enable GeoIP support]),

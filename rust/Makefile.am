@@ -16,9 +16,16 @@ RELEASE = --release
 endif
 
 if HAVE_RUST
+
+FEATURES =
+
+if HAVE_LUA
+FEATURES +=	lua
+endif
+
 all-local:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		cargo build $(RELEASE) $(FROZEN)
+		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
 
 clean-local:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
