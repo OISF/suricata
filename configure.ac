@@ -1,4 +1,4 @@
-    AC_INIT(suricata, 4.0dev)
+    AC_INIT(suricata, 4.0.0-dev)
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
@@ -1980,6 +1980,39 @@
     fi
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
+# Cargo/Rust.
+    enable_rust="no"
+    rust_vendor_comment="# "
+    AC_PATH_PROG(HAVE_CARGO, cargo, "no")
+    AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
+    if test "x$HAVE_CARGO" != "xno"; then
+      if test "x$HAVE_RUSTC" != "xno"; then
+        enable_rust=yes
+        AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
+	if test "x$enable_debug" = "xyes"; then
+	   RUST_LDADD="../rust/target/debug/libsuricata.a -lrt -ldl"
+	else
+	   RUST_LDADD="../rust/target/release/libsuricata.a -lrt -ldl"
+	fi
+	AC_SUBST(RUST_LDADD)
+	AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
+	if test "x$have_rust_vendor" = "xyes"; then
+	   rust_vendor_comment=""
+	fi
+      fi
+    fi
+    AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes"])
+    AC_SUBST(rust_vendor_comment)
+    AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
+
+    AC_PATH_PROG(HAVE_CARGO_VENDOR, cargo-vendor, "no")
+    if test "x$HAVE_CARGO_VENDOR" = "xno"; then
+        echo "   Warning: cargo-vendor not found, but it is only required"
+        echo "       for building the distribution"
+        echo "   To install: cargo install cargo-vendor"
+    fi
+    AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -2057,8 +2090,9 @@ EXPAND_VARIABLE(localstatedir, CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
+AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
@@ -2089,6 +2123,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+
+  Rust support:                            ${enable_rust}
 
   Suricatasc install:                      ${enable_python}
 
