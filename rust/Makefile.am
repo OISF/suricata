@@ -25,14 +25,21 @@ else
 endif
 
 if HAVE_RUST
+
+FEATURES =
+
+if HAVE_LUA
+FEATURES +=	lua
+endif
+
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		python ./gen-c-headers.py && \
-		cargo build $(RELEASE) $(FROZEN)
+		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
 else
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		cargo build $(RELEASE) $(FROZEN)
+		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
 endif
 
 clean-local:
