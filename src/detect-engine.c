@@ -299,7 +299,7 @@ next:
 #ifdef DEBUG
     DetectEngineAppInspectionEngine *iter = s->app_inspect;
     while (iter) {
-        SCLogNotice("%u: engine %s id %u progress %d %s", s->id,
+        SCLogDebug("%u: engine %s id %u progress %d %s", s->id,
                 DetectBufferTypeGetNameById(iter->sm_list), iter->id,
                 iter->progress,
                 iter->sm_list == mpm_list ? "MPM":"");
