@@ -8,6 +8,9 @@ crate-type = ["staticlib"]
 [profile.release]
 debug = true
 
+[features]
+lua = []
+
 [dependencies]
 nom = "2.1.0"
 libc = "0.2.0"

@@ -24,4 +24,8 @@ pub mod log;
 pub mod core;
 pub mod conf;
 pub mod json;
+
+#[cfg(feature = "lua")]
+pub mod lua;
+
 pub mod dns;
