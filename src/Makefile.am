@@ -322,6 +322,7 @@ runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
 runmode-tile.c runmode-tile.h \
 runmodes.c runmodes.h \
+rust.h \
 source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
@@ -469,7 +470,7 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD)
+suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
