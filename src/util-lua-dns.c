@@ -60,6 +60,7 @@
 
 #ifdef HAVE_RUST
 #include "rust-dns-dns-gen.h"
+#include "rust-dns-lua-gen.h"
 #endif
 
 static int DnsGetDnsRrname(lua_State *luastate)
@@ -68,31 +69,10 @@ static int DnsGetDnsRrname(lua_State *luastate)
         return LuaCallbackError(luastate, "error: protocol not dns");
 #ifdef HAVE_RUST
     RSDNSTransaction *tx = LuaStateGetTX(luastate);
-    if (tx == NULL)
+    if (tx == NULL) {
         return LuaCallbackError(luastate, "internal error: no tx");
-
-    for (uint16_t i = 0;; i++) {
-        uint32_t buf_len;
-        uint8_t *buf;
-
-        if (!rs_dns_tx_get_query_name(tx, i, &buf, &buf_len)) {
-            break;
-        }
-
-        char *rrname = BytesToString(buf, buf_len);
-        if (rrname != NULL) {
-            size_t input_len = strlen(rrname);
-            /* sanity check */
-            if (input_len > (size_t)(2 * buf_len)) {
-                SCFree(rrname);
-                return LuaCallbackError(luastate, "invalid length");
-            }
-            int ret = LuaPushStringBuffer(luastate, (uint8_t *)rrname,
-                input_len);
-            SCFree(rrname);
-            return ret;
-        }
     }
+    return rs_dns_lua_get_rrname(luastate, tx);
 #else
     DNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
@@ -126,10 +106,10 @@ static int DnsGetTxid(lua_State *luastate)
         return LuaCallbackError(luastate, "error: protocol not dns");
 #ifdef HAVE_RUST
     RSDNSTransaction *tx = LuaStateGetTX(luastate);
-    if (tx == NULL)
+    if (tx == NULL) {
         return LuaCallbackError(luastate, "internal error: no tx");
-    uint16_t tx_id = rs_dns_tx_get_tx_id(tx);
-    lua_pushinteger(luastate, tx_id);
+    }
+    rs_dns_lua_get_tx_id(luastate, tx);
 #else
     DNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
@@ -173,12 +153,11 @@ static int DnsGetRecursionDesired(lua_State *luastate)
         return LuaCallbackError(luastate, "error: protocol not dns");
 #ifdef HAVE_RUST
     RSDNSTransaction *tx = LuaStateGetTX(luastate);
-    if (tx == NULL)
+    if (tx == NULL) {
         return LuaCallbackError(luastate, "internal error: no tx");
-
+    }
     uint16_t flags = rs_dns_tx_get_response_flags(tx);
     int recursion_desired = flags & 0x0080 ? 1 : 0;
-
     lua_pushboolean(luastate, recursion_desired);
 #else
     DNSTransaction *tx = LuaStateGetTX(luastate);
@@ -192,59 +171,15 @@ static int DnsGetRecursionDesired(lua_State *luastate)
 
 static int DnsGetQueryTable(lua_State *luastate)
 {
+    if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
+        return LuaCallbackError(luastate, "error: protocol not dns");
 #ifdef HAVE_RUST
-    if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
-        return LuaCallbackError(luastate, "error: protocol not dns");
-
     RSDNSTransaction *tx = LuaStateGetTX(luastate);
-    if (tx == NULL)
+    if (tx == NULL) {
         return LuaCallbackError(luastate, "internal error: no tx");
-
-    lua_newtable(luastate);
-
-    uint8_t *name;
-    uint32_t name_len;
-
-    for (uint16_t i = 0;; i++) {
-
-        if (!rs_dns_tx_get_query_name(tx, i, &name, &name_len)) {
-            break;
-        }
-
-        lua_pushinteger(luastate, i);
-        lua_newtable(luastate);
-
-        uint16_t rrtype;
-        if (rs_dns_tx_get_query_rrtype(tx, i, &rrtype)) {
-            char s_rrtype[16] = "";
-            DNSCreateTypeString(rrtype, s_rrtype, sizeof(s_rrtype));
-            lua_pushstring(luastate, "type");
-            lua_pushstring(luastate, s_rrtype);
-            lua_settable(luastate, -3);
-        }
-
-        char *s = BytesToString(name, name_len);
-        if (s != NULL) {
-            size_t slen = strlen(s);
-            if (slen > name_len * 2) {
-                SCFree(s);
-                return LuaCallbackError(luastate, "invalid length");
-            }
-            lua_pushstring(luastate, "rrname");
-            LuaPushStringBuffer(luastate, (uint8_t *)s, slen);
-            lua_settable(luastate, -3);
-            SCFree(s);
-        }
-
-        lua_pushinteger(luastate, i++);
-
     }
-
-    return 1;
+    return rs_dns_lua_get_query_table(luastate, tx);
 #else
-    if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
-        return LuaCallbackError(luastate, "error: protocol not dns");
-
     DNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
@@ -290,13 +225,12 @@ static int DnsGetQueryTable(lua_State *luastate)
 
 static int DnsGetAnswerTable(lua_State *luastate)
 {
-#ifdef HAVE_RUST
-    SCLogNotice("DnsGetAnswerTable not implemented for Rust DNS.");
-    return 1;
-#else
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
-
+#ifdef HAVE_RUST
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
+    return rs_dns_lua_get_answer_table(luastate, tx);
+#else
     DNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
@@ -359,13 +293,12 @@ static int DnsGetAnswerTable(lua_State *luastate)
 
 static int DnsGetAuthorityTable(lua_State *luastate)
 {
-#ifdef HAVE_RUST
-    SCLogNotice("DnsGetAuthorityTable not implemented for Rust DNS");
-    return 1;
-#else
     if (!(LuaStateNeedProto(luastate, ALPROTO_DNS)))
         return LuaCallbackError(luastate, "error: protocol not dns");
-
+#ifdef HAVE_RUST
+    RSDNSTransaction *tx = LuaStateGetTX(luastate);
+    return rs_dns_lua_get_authority_table(luastate, tx);
+#else
     DNSTransaction *tx = LuaStateGetTX(luastate);
     if (tx == NULL)
         return LuaCallbackError(luastate, "internal error: no tx");
