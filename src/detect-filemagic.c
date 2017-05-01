@@ -71,6 +71,7 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].desc = "match on the information libmagic returns about a file";
     sigmatch_table[DETECT_FILEMAGIC].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filemagic";
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetupNoSupport;
+    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 }
 
 #else /* HAVE_MAGIC */
@@ -94,6 +95,7 @@ void DetectFilemagicRegister(void)
     sigmatch_table[DETECT_FILEMAGIC].Setup = DetectFilemagicSetup;
     sigmatch_table[DETECT_FILEMAGIC].Free  = DetectFilemagicFree;
     sigmatch_table[DETECT_FILEMAGIC].RegisterTests = DetectFilemagicRegisterTests;
+    sigmatch_table[DETECT_FILEMAGIC].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
     g_file_match_list_id = DetectBufferTypeRegister("files");
 
@@ -239,7 +241,7 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval filemagic pointer to DetectFilemagicData on success
  * \retval NULL on failure
  */
-static DetectFilemagicData *DetectFilemagicParse (char *str)
+static DetectFilemagicData *DetectFilemagicParse (const char *str, bool negate)
 {
     DetectFilemagicData *filemagic = NULL;
 
@@ -250,13 +252,17 @@ static DetectFilemagicData *DetectFilemagicParse (char *str)
 
     memset(filemagic, 0x00, sizeof(DetectFilemagicData));
 
-    if (DetectContentDataParse ("filemagic", str, &filemagic->name, &filemagic->len, &filemagic->flags) == -1) {
+    if (DetectContentDataParse ("filemagic", str, &filemagic->name, &filemagic->len) == -1) {
         goto error;
     }
 
     filemagic->bm_ctx = BoyerMooreNocaseCtxInit(filemagic->name, filemagic->len);
     if (filemagic->bm_ctx == NULL) {
         goto error;
+    }
+
+    if (negate) {
+        filemagic->flags |= DETECT_CONTENT_NEGATED;
     }
 
     SCLogDebug("flags %02X", filemagic->flags);
@@ -361,7 +367,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     DetectFilemagicData *filemagic = NULL;
     SigMatch *sm = NULL;
 
-    filemagic = DetectFilemagicParse(str);
+    filemagic = DetectFilemagicParse(str, s->init_data->negated);
     if (filemagic == NULL)
         goto error;
 
@@ -416,9 +422,9 @@ static void DetectFilemagicFree(void *ptr)
 /**
  * \test DetectFilemagicTestParse01
  */
-int DetectFilemagicTestParse01 (void)
+static int DetectFilemagicTestParse01 (void)
 {
-    DetectFilemagicData *dnd = DetectFilemagicParse("\"secret.pdf\"");
+    DetectFilemagicData *dnd = DetectFilemagicParse("secret.pdf", false);
     if (dnd != NULL) {
         DetectFilemagicFree(dnd);
         return 1;
@@ -429,11 +435,11 @@ int DetectFilemagicTestParse01 (void)
 /**
  * \test DetectFilemagicTestParse02
  */
-int DetectFilemagicTestParse02 (void)
+static int DetectFilemagicTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse("\"backup.tar.gz\"");
+    DetectFilemagicData *dnd = DetectFilemagicParse("backup.tar.gz", false);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
@@ -448,11 +454,11 @@ int DetectFilemagicTestParse02 (void)
 /**
  * \test DetectFilemagicTestParse03
  */
-int DetectFilemagicTestParse03 (void)
+static int DetectFilemagicTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilemagicData *dnd = DetectFilemagicParse("\"cmd.exe\"");
+    DetectFilemagicData *dnd = DetectFilemagicParse("cmd.exe", false);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;

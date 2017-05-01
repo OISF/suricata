@@ -69,25 +69,25 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
     sigmatch_table[DETECT_REPLACE].Free  = NULL;
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
+    sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
 {
     uint8_t *content = NULL;
     uint16_t len = 0;
-    uint32_t flags = 0;
     SigMatch *pm = NULL;
     DetectContentData *ud = NULL;
 
-    int ret = DetectContentDataParse("replace", replacestr, &content, &len, &flags);
-    if (ret == -1)
-        goto error;
-
-    if (flags & DETECT_CONTENT_NEGATED) {
+    if (s->init_data->negated) {
         SCLogError(SC_ERR_INVALID_VALUE, "Can't negate replacement string: %s",
                    replacestr);
         goto error;
     }
+
+    int ret = DetectContentDataParse("replace", replacestr, &content, &len);
+    if (ret == -1)
+        goto error;
 
     switch (run_mode) {
         case RUNMODE_NFQ:

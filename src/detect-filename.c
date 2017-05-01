@@ -71,6 +71,7 @@ void DetectFilenameRegister(void)
     sigmatch_table[DETECT_FILENAME].Setup = DetectFilenameSetup;
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
+    sigmatch_table[DETECT_FILENAME].flags = SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION;
 
     DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
@@ -155,7 +156,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval filename pointer to DetectFilenameData on success
  * \retval NULL on failure
  */
-static DetectFilenameData *DetectFilenameParse (char *str)
+static DetectFilenameData *DetectFilenameParse (const char *str, bool negate)
 {
     DetectFilenameData *filename = NULL;
 
@@ -166,13 +167,17 @@ static DetectFilenameData *DetectFilenameParse (char *str)
 
     memset(filename, 0x00, sizeof(DetectFilenameData));
 
-    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len, &filename->flags) == -1) {
+    if (DetectContentDataParse ("filename", str, &filename->name, &filename->len) == -1) {
         goto error;
     }
 
     filename->bm_ctx = BoyerMooreNocaseCtxInit(filename->name, filename->len);
     if (filename->bm_ctx == NULL) {
         goto error;
+    }
+
+    if (negate) {
+        filename->flags |= DETECT_CONTENT_NEGATED;
     }
 
     SCLogDebug("flags %02X", filename->flags);
@@ -215,7 +220,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     DetectFilenameData *filename = NULL;
     SigMatch *sm = NULL;
 
-    filename = DetectFilenameParse(str);
+    filename = DetectFilenameParse(str, s->init_data->negated);
     if (filename == NULL)
         goto error;
 
@@ -264,9 +269,9 @@ static void DetectFilenameFree(void *ptr)
 /**
  * \test DetectFilenameTestParse01
  */
-int DetectFilenameTestParse01 (void)
+static int DetectFilenameTestParse01 (void)
 {
-    DetectFilenameData *dnd = DetectFilenameParse("\"secret.pdf\"");
+    DetectFilenameData *dnd = DetectFilenameParse("secret.pdf", false);
     if (dnd != NULL) {
         DetectFilenameFree(dnd);
         return 1;
@@ -277,11 +282,11 @@ int DetectFilenameTestParse01 (void)
 /**
  * \test DetectFilenameTestParse02
  */
-int DetectFilenameTestParse02 (void)
+static int DetectFilenameTestParse02 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse("\"backup.tar.gz\"");
+    DetectFilenameData *dnd = DetectFilenameParse("backup.tar.gz", false);
     if (dnd != NULL) {
         if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
             result = 1;
@@ -296,11 +301,11 @@ int DetectFilenameTestParse02 (void)
 /**
  * \test DetectFilenameTestParse03
  */
-int DetectFilenameTestParse03 (void)
+static int DetectFilenameTestParse03 (void)
 {
     int result = 0;
 
-    DetectFilenameData *dnd = DetectFilenameParse("\"cmd.exe\"");
+    DetectFilenameData *dnd = DetectFilenameParse("cmd.exe", false);
     if (dnd != NULL) {
         if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
             result = 1;

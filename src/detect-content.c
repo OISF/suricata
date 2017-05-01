@@ -59,6 +59,7 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
+    sigmatch_table[DETECT_CONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
 /**
@@ -73,48 +74,20 @@ void DetectContentRegister (void)
  *  \retval 0 ok
  */
 int DetectContentDataParse(const char *keyword, const char *contentstr,
-        uint8_t **pstr, uint16_t *plen, uint32_t *flags)
+        uint8_t **pstr, uint16_t *plen)
 {
     char *str = NULL;
-    uint16_t len;
-    uint16_t pos = 0;
-    uint16_t slen = 0;
+    size_t slen = 0;
 
     slen = strlen(contentstr);
     if (slen == 0) {
         return -1;
     }
+    uint8_t buffer[slen + 1];
+    strlcpy((char *)&buffer, contentstr, slen + 1);
+    str = (char *)buffer;
 
-    /* skip the first spaces */
-    while (pos < slen && isspace((unsigned char)contentstr[pos]))
-        pos++;
-
-    if (contentstr[pos] == '!') {
-        *flags = DETECT_CONTENT_NEGATED;
-        pos++;
-    } else
-        *flags = 0;
-
-    if (contentstr[pos] == '\"' && ((slen - pos) <= 1))
-        goto error;
-
-    if (!(contentstr[pos] == '\"' && contentstr[slen - 1] == '\"')) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s keyword arguments "
-                   "should be always enclosed in double quotes.  Invalid "
-                   "content keyword passed in this rule - \"%s\"",
-                   keyword, contentstr);
-        goto error;
-    }
-
-    if ((str = SCStrdup(contentstr + pos + 1)) == NULL)
-        goto error;
-    str[strlen(str) - 1] = '\0';
-
-    len = strlen(str);
-    if (len == 0)
-        goto error;
-
-    SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
+    SCLogDebug("\"%s\", len %" PRIuMAX, str, (uintmax_t)slen);
 
     //SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
     char converted = 0;
@@ -127,7 +100,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
         uint8_t binpos = 0;
         uint16_t bin_count = 0;
 
-        for (i = 0, x = 0; i < len; i++) {
+        for (i = 0, x = 0; i < slen; i++) {
             // SCLogDebug("str[%02u]: %c", i, str[i]);
             if (str[i] == '|') {
                 bin_count++;
@@ -199,17 +172,22 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
         }
 
         if (converted) {
-            len = x;
+            slen = x;
         }
     }
 
-    *plen = len;
-    *pstr = (uint8_t *)str;
-    return 0;
+    if (slen) {
+        uint8_t *ptr = SCCalloc(1, slen);
+        if (ptr == NULL) {
+            return -1;
+        }
+        memcpy(ptr, str, slen);
 
+        *plen = (uint16_t)slen;
+        *pstr = ptr;
+        return 0;
+    }
 error:
-    if (str != NULL)
-        SCFree(str);
     return -1;
 }
 /**
@@ -217,15 +195,14 @@ error:
  * \initonly
  */
 DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                      char *contentstr)
+                                      const char *contentstr)
 {
     DetectContentData *cd = NULL;
     uint8_t *content = NULL;
     uint16_t len = 0;
-    uint32_t flags = 0;
     int ret;
 
-    ret = DetectContentDataParse("content", contentstr, &content, &len, &flags);
+    ret = DetectContentDataParse("content", contentstr, &content, &len);
     if (ret == -1) {
         return NULL;
     }
@@ -237,9 +214,6 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
     }
 
     memset(cd, 0, sizeof(DetectContentData) + len);
-
-    if (flags == DETECT_CONTENT_NEGATED)
-        cd->flags |= DETECT_CONTENT_NEGATED;
 
     cd->content = (uint8_t *)cd + sizeof(DetectContentData);
     memcpy(cd->content, content, len);
@@ -265,16 +239,9 @@ DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
 }
 
 DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                                   char *contentstr)
+                                                   const char *contentstr)
 {
-    char str[strlen(contentstr) + 3]; // 2 for quotes, 1 for \0
-
-    str[0] = '\"';
-    memcpy(str + 1, contentstr, strlen(contentstr));
-    str[strlen(contentstr) + 1] = '\"';
-    str[strlen(contentstr) + 2] = '\0';
-
-    return DetectContentParse(spm_global_thread_ctx, str);
+    return DetectContentParse(spm_global_thread_ctx, contentstr);
 }
 
 /**
@@ -381,6 +348,10 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
     cd = DetectContentParse(de_ctx->spm_global_thread_ctx, contentstr);
     if (cd == NULL)
         goto error;
+    if (s->init_data->negated == true) {
+        cd->flags |= DETECT_CONTENT_NEGATED;
+    }
+
     DetectContentPrint(cd);
 
     int sm_list = s->init_data->list;
@@ -432,8 +403,8 @@ static int DetectContentParseTest01 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"abc\\:def\"";
-    char *teststringparsed = "abc:def";
+    const char *teststring = "abc\\:def";
+    const char *teststringparsed = "abc:def";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -463,8 +434,8 @@ static int DetectContentParseTest02 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"abc\\;def\"";
-    char *teststringparsed = "abc;def";
+    const char *teststring = "abc\\;def";
+    const char *teststringparsed = "abc;def";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -494,8 +465,8 @@ static int DetectContentParseTest03 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"abc\\\"def\"";
-    char *teststringparsed = "abc\"def";
+    const char *teststring = "abc\\\"def";
+    const char *teststringparsed = "abc\"def";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -525,8 +496,8 @@ static int DetectContentParseTest04 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"abc\\\\def\"";
-    char *teststringparsed = "abc\\def";
+    const char *teststring = "abc\\\\def";
+    const char *teststringparsed = "abc\\def";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -557,7 +528,7 @@ static int DetectContentParseTest05 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"abc\\def\"";
+    const char *teststring = "abc\\def";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -582,8 +553,8 @@ static int DetectContentParseTest06 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"a|42|c|44|e|46|\"";
-    char *teststringparsed = "abcdef";
+    const char *teststring = "a|42|c|44|e|46|";
+    const char *teststringparsed = "abcdef";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -614,7 +585,7 @@ static int DetectContentParseTest07 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"\"";
+    const char *teststring = "";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -637,7 +608,7 @@ static int DetectContentParseTest08 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    char *teststring = "\"\"";
+    const char *teststring = "";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
@@ -925,168 +896,18 @@ static int DetectContentLongPatternMatchTest11()
 
 static int DetectContentParseTest09(void)
 {
-    int result = 0;
     DetectContentData *cd = NULL;
-    char *teststring = "!\"boo\"";
+    const char *teststring = "boo";
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     FAIL_IF(spm_global_thread_ctx == NULL);
 
     cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (cd->flags & DETECT_CONTENT_NEGATED)
-            result = 1;
-
-        DetectContentFree(cd);
-    }
+    FAIL_IF_NULL(cd);
+    DetectContentFree(cd);
     SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseTest10(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "!\"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (cd->flags & DETECT_CONTENT_NEGATED)
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest11(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "\"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (!(cd->flags & DETECT_CONTENT_NEGATED))
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest12(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "\"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (!(cd->flags & DETECT_CONTENT_NEGATED))
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest13(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "!\"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (cd->flags & DETECT_CONTENT_NEGATED)
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest14(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "  \"!boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (!(cd->flags & DETECT_CONTENT_NEGATED))
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest15(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "  !\"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        if (cd->flags & DETECT_CONTENT_NEGATED)
-            result = 1;
-
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
-}
-
-static int DetectContentParseNegTest16(void)
-{
-    int result = 0;
-    DetectContentData *cd = NULL;
-    char *teststring = "  \"boo\"";
-
-    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
-    SpmGlobalThreadCtx *spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
-    FAIL_IF(spm_global_thread_ctx == NULL);
-
-    cd = DetectContentParse(spm_global_thread_ctx, teststring);
-    if (cd != NULL) {
-        result = (cd->content_len == 3 && memcmp(cd->content,"boo",3) == 0);
-        DetectContentFree(cd);
-    }
-    SpmDestroyGlobalThreadCtx(spm_global_thread_ctx);
-    return result;
+    PASS;
 }
 
 /**
@@ -1131,7 +952,7 @@ static int DetectContentParseTest18(void)
 
     s->alproto = ALPROTO_DCERPC;
 
-    result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
+    result &= (DetectContentSetup(de_ctx, s, "one") == 0);
     result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
@@ -1140,7 +961,7 @@ static int DetectContentParseTest18(void)
     if (s == NULL)
         return 0;
 
-    result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
+    result &= (DetectContentSetup(de_ctx, s, "one") == 0);
     result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
@@ -2164,16 +1985,14 @@ static int DetectContentParseTest41(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    int patlen = 257;
+    int patlen = 255;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
     if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
-    teststring[idx++] = '\"';
-    for (int i = 0; i < (patlen - 2); idx++, i++) {
+    for (int i = 0; i < patlen; idx++, i++) {
         teststring[idx] = 'a';
     }
-    teststring[idx++] = '\"';
     teststring[idx++] = '\0';
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -2199,16 +2018,14 @@ static int DetectContentParseTest42(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    int patlen = 258;
+    int patlen = 256;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
     if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
-    teststring[idx++] = '\"';
-    for (int i = 0; i < (patlen - 2); idx++, i++) {
+    for (int i = 0; i < patlen; idx++, i++) {
         teststring[idx] = 'a';
     }
-    teststring[idx++] = '\"';
     teststring[idx++] = '\0';
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -2231,20 +2048,18 @@ static int DetectContentParseTest43(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    int patlen = 260;
+    int patlen = 258;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
     if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
-    teststring[idx++] = '\"';
     teststring[idx++] = '|';
     teststring[idx++] = '4';
     teststring[idx++] = '6';
     teststring[idx++] = '|';
-    for (int i = 0; i < (patlen - 6); idx++, i++) {
+    for (int i = 0; i < (patlen - 4); idx++, i++) {
         teststring[idx] = 'a';
     }
-    teststring[idx++] = '\"';
     teststring[idx++] = '\0';
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -2270,20 +2085,18 @@ static int DetectContentParseTest44(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
-    int patlen = 261;
+    int patlen = 259;
     char *teststring = SCMalloc(sizeof(char) * (patlen + 1));
     if (unlikely(teststring == NULL))
         return 0;
     int idx = 0;
-    teststring[idx++] = '\"';
     teststring[idx++] = '|';
     teststring[idx++] = '4';
     teststring[idx++] = '6';
     teststring[idx++] = '|';
-    for (int i = 0; i < (patlen - 6); idx++, i++) {
+    for (int i = 0; i < (patlen - 4); idx++, i++) {
         teststring[idx] = 'a';
     }
-    teststring[idx++] = '\"';
     teststring[idx++] = '\0';
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
@@ -2859,13 +2672,6 @@ static void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07);
     UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08);
     UtRegisterTest("DetectContentParseTest09", DetectContentParseTest09);
-    UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10);
-    UtRegisterTest("DetectContentParseNegTest11", DetectContentParseNegTest11);
-    UtRegisterTest("DetectContentParseNegTest12", DetectContentParseNegTest12);
-    UtRegisterTest("DetectContentParseNegTest13", DetectContentParseNegTest13);
-    UtRegisterTest("DetectContentParseNegTest14", DetectContentParseNegTest14);
-    UtRegisterTest("DetectContentParseNegTest15", DetectContentParseNegTest15);
-    UtRegisterTest("DetectContentParseNegTest16", DetectContentParseNegTest16);
     UtRegisterTest("DetectContentParseTest17", DetectContentParseTest17);
     UtRegisterTest("DetectContentParseTest18", DetectContentParseTest18);
     UtRegisterTest("DetectContentParseTest19", DetectContentParseTest19);

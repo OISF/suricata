@@ -125,7 +125,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     const char *str_ptr;
     uint8_t *content = NULL;
     uint16_t contentlen = 0;
-    uint32_t contentflags = 0;
+    uint32_t contentflags = s->init_data->negated ? DETECT_CONTENT_NEGATED : 0;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
@@ -147,7 +147,15 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     }
     varcontent = (char *)str_ptr;
 
-    res = DetectContentDataParse("flowvar", varcontent, &content, &contentlen, &contentflags);
+    if (strlen(varcontent) >= 2) {
+        if (varcontent[0] == '"')
+            varcontent++;
+        if (varcontent[strlen(varcontent)-1] == '"')
+            varcontent[strlen(varcontent)-1] = '\0';
+    }
+    SCLogDebug("varcontent %s", varcontent);
+
+    res = DetectContentDataParse("flowvar", varcontent, &content, &contentlen);
     if (res == -1)
         goto error;
 

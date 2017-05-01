@@ -64,8 +64,8 @@
  * \brief Regex for parsing "id" option, matching number or "number"
  */
 
-#define PARSE_REGEX  "^\\s*(\\!*)\\s*([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
-#define PARSE_REGEX_FINGERPRINT  "^\\s*(\\!*)\\s*([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
+#define PARSE_REGEX  "^([A-z0-9\\s\\-\\.=,\\*@]+|\"[A-z0-9\\s\\-\\.=,\\*@]+\")\\s*$"
+#define PARSE_REGEX_FINGERPRINT  "^([A-z0-9\\:\\*]+|\"[A-z0-9\\:\\* ]+\")\\s*$"
 
 static pcre *subject_parse_regex;
 static pcre_extra *subject_parse_regex_study;
@@ -122,6 +122,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
+    sigmatch_table[DETECT_AL_TLS_SUBJECT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].name = "tls.issuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].desc = "match TLS/SSL certificate IssuerDN field";
@@ -130,6 +131,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].RegisterTests = DetectTlsIssuerDNRegisterTests;
+    sigmatch_table[DETECT_AL_TLS_ISSUERDN].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].name = "tls.fingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].desc = "match TLS/SSL certificate SHA1 fingerprint";
@@ -138,6 +140,7 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
+    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].flags = SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION;
 
     sigmatch_table[DETECT_AL_TLS_STORE].name = "tls_store";
     sigmatch_table[DETECT_AL_TLS_STORE].alias = "tls.store";
@@ -228,7 +231,7 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsSubjectParse (char *str)
+static DetectTlsData *DetectTlsSubjectParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
 #define MAX_SUBSTRINGS 30
@@ -242,21 +245,15 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     ret = pcre_exec(subject_parse_regex, subject_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
 
-    if (ret != 3) {
+    if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-    if (str_ptr[0] == '!')
+    if (negate)
         flag = DETECT_CONTENT_NEGATED;
-    pcre_free_substring(str_ptr);
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -322,7 +319,7 @@ static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsSubjectParse(str);
+    tls = DetectTlsSubjectParse(str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 
@@ -434,7 +431,7 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
  * \retval id_d pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsIssuerDNParse(char *str)
+static DetectTlsData *DetectTlsIssuerDNParse(const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
 #define MAX_SUBSTRINGS 30
@@ -447,22 +444,15 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
 
     ret = pcre_exec(issuerdn_parse_regex, issuerdn_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
-
-    if (ret != 3) {
+    if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-    if (str_ptr[0] == '!')
+    if (negate)
         flag = DETECT_CONTENT_NEGATED;
-    pcre_free_substring(str_ptr);
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -529,7 +519,7 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsIssuerDNParse(str);
+    tls = DetectTlsIssuerDNParse(str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 
@@ -574,7 +564,7 @@ static void DetectTlsIssuerDNFree(void *ptr)
  * \retval pointer to DetectTlsData on success
  * \retval NULL on failure
  */
-static DetectTlsData *DetectTlsFingerprintParse (char *str)
+static DetectTlsData *DetectTlsFingerprintParse (const char *str, bool negate)
 {
     DetectTlsData *tls = NULL;
 #define MAX_SUBSTRINGS 30
@@ -587,22 +577,15 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
 
     ret = pcre_exec(fingerprint_parse_regex, fingerprint_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
-
-    if (ret != 3) {
+    if (ret != 2) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.fingerprint option");
         goto error;
     }
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-    if (str_ptr[0] == '!')
+    if (negate)
         flag = DETECT_CONTENT_NEGATED;
-    pcre_free_substring(str_ptr);
 
-    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -726,7 +709,7 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, cha
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
-    tls = DetectTlsFingerprintParse(str);
+    tls = DetectTlsFingerprintParse(str, s->init_data->negated);
     if (tls == NULL)
         goto error;
 

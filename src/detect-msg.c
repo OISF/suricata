@@ -45,40 +45,18 @@ void DetectMsgRegister (void)
     sigmatch_table[DETECT_MSG].Setup = DetectMsgSetup;
     sigmatch_table[DETECT_MSG].Free = NULL;
     sigmatch_table[DETECT_MSG].RegisterTests = DetectMsgRegisterTests;
+    sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
 }
 
 static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 {
-    char *str = NULL;
-    uint16_t len;
-    uint16_t pos = 0;
-    uint16_t slen = 0;
-
-    slen = strlen(msgstr);
+    size_t slen = strlen(msgstr);
     if (slen == 0)
-        goto error;
+        return -1;
 
-    /* skip the first spaces */
-    while (pos < slen && isspace((unsigned char)msgstr[pos]))
-        pos++;
-
-    /* Strip leading and trailing "s. */
-    if (msgstr[pos] == '\"') {
-        str = SCStrdup(msgstr + pos + 1);
-        if (unlikely(str == NULL))
-            goto error;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str)-1] = '\0';
-        }
-    } else {
-        SCLogError(SC_ERR_INVALID_VALUE, "format error \'%s\'", msgstr);
-        goto error;
-    }
-
-    len = strlen(str);
-    if (len == 0)
-        goto error;
-
+    char input[slen + 1];
+    strlcpy(input, msgstr, slen + 1);
+    char *str = input;
     char converted = 0;
 
     {
@@ -86,7 +64,7 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
         uint8_t escape = 0;
 
         /* it doesn't matter if we need to escape or not we remove the extra "\" to mimic snort */
-        for (i = 0, x = 0; i < len; i++) {
+        for (i = 0, x = 0; i < slen; i++) {
             //printf("str[%02u]: %c\n", i, str[i]);
             if(!escape && str[i] == '\\') {
                 escape = 1;
@@ -119,22 +97,17 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 #endif
 
         if (converted) {
-            len = x;
-            str[len] = '\0';
+            slen = x;
+            str[slen] = '\0';
         }
     }
 
-    s->msg = SCMalloc(len + 1);
+    s->msg = SCStrdup(str);
     if (s->msg == NULL)
         goto error;
-
-    strlcpy(s->msg, str, len + 1);
-
-    SCFree(str);
     return 0;
 
 error:
-    SCFree(str);
     return -1;
 }
 

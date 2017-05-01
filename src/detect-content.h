@@ -106,11 +106,11 @@ typedef struct DetectContentData_ {
 void DetectContentRegister (void);
 uint32_t DetectContentMaxId(DetectEngineCtx *);
 DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                      char *contentstr);
+                                      const char *contentstr);
 int DetectContentDataParse(const char *keyword, const char *contentstr,
-    uint8_t **pstr, uint16_t *plen, uint32_t *flags);
+    uint8_t **pstr, uint16_t *plen);
 DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
-                                      char *contentstr);
+        const char *contentstr);
 
 int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr);
 void DetectContentPrint(DetectContentData *);

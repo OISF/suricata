@@ -73,6 +73,7 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = DetectUricontentRegisterTests;
+    sigmatch_table[DETECT_URICONTENT].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 
     g_http_uri_buffer_id = DetectBufferTypeRegister("http_uri");
 }

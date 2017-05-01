@@ -679,32 +679,100 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             goto error;
         }
     }
+    s->init_data->negated = false;
 
     /* Validate double quoting, trimming trailing white space along the way. */
     if (strlen(optvalue) > 0) {
         size_t ovlen = strlen(optvalue);
-        if (ovlen && optvalue[0] == '"') {
+        char *ptr = optvalue;
+
+        /* skip leading whitespace */
+        while (ovlen > 0) {
+            if (!isblank(*ptr))
+                break;
+            ptr++;
+            ovlen--;
+        }
+        if (ovlen == 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
+                    optname, optstr);
+            goto error;
+        }
+
+        /* see if value is negated */
+        if ((st->flags & SIGMATCH_HANDLE_NEGATION) && *ptr == '!') {
+            s->init_data->negated = true;
+            ptr++;
+            ovlen--;
+        }
+        /* skip more whitespace */
+        while (ovlen > 0) {
+            if (!isblank(*ptr))
+                break;
+            ptr++;
+            ovlen--;
+        }
+        if (ovlen == 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
+                    optname, optstr);
+            goto error;
+        }
+        /* if quoting is mandatory, enforce it */
+        if (st->flags & SIGMATCH_QUOTES_MANDATORY && ovlen && *ptr != '"') {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formattingto %s keyword: "
+                    "value must be double quoted \'%s\'", optname, optstr);
+            goto error;
+        }
+
+        if ((st->flags & (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_QUOTES_MANDATORY))
+                && ovlen && *ptr == '"')
+        {
             for (; ovlen > 0; ovlen--) {
-                if (isblank(optvalue[ovlen - 1])) {
-                    optvalue[ovlen - 1] = '\0';
+                if (isblank(ptr[ovlen - 1])) {
+                    ptr[ovlen - 1] = '\0';
                 } else {
                     break;
                 }
             }
-            if (ovlen && optvalue[ovlen - 1] != '"') {
+            if (ovlen && ptr[ovlen - 1] != '"') {
                 SCLogError(SC_ERR_INVALID_SIGNATURE,
                     "bad option value formatting (possible missing semicolon) "
                     "for keyword %s: \'%s\'", optname, optvalue);
                 goto error;
             }
+            if (ovlen > 1) {
+                /* strip leading " */
+                ptr++;
+                ovlen--;
+                ptr[ovlen - 1] = '\0';
+                ovlen--;
+            }
+            if (ovlen == 0) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bad input "
+                    "for keyword %s: \'%s\'", optname, optvalue);
+                goto error;
+            }
+        } else {
+            if (*ptr == '"') {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "quotes on %s keyword that doesn't support them: \'%s\'",
+                        optname, optstr);
+                goto error;
+            }
+        }
+        /* setup may or may not add a new SigMatch to the list */
+        if (st->Setup(de_ctx, s, ptr) < 0) {
+            SCLogDebug("\"%s\" failed to setup", st->name);
+            goto error;
+        }
+    } else {
+        /* setup may or may not add a new SigMatch to the list */
+        if (st->Setup(de_ctx, s, NULL) < 0) {
+            SCLogDebug("\"%s\" failed to setup", st->name);
+            goto error;
         }
     }
-
-    /* setup may or may not add a new SigMatch to the list */
-    if (st->Setup(de_ctx, s, strlen(optvalue) ? optvalue : NULL) < 0) {
-        SCLogDebug("\"%s\" failed to setup", st->name);
-        goto error;
-    }
+    s->init_data->negated = false;
 
     if (ret == 4) {
         return 1;

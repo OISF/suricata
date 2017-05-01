@@ -360,6 +360,10 @@ typedef struct SignatureInitData_ {
     /** Number of sigmatches. Used for assigning SigMatch::idx */
     uint16_t sm_cnt;
 
+    /** option was prefixed with '!'. Only set for sigmatches that
+     *  have the SIGMATCH_HANDLE_NEGATION flag set. */
+    bool negated;
+
     /* used to hold flags that are used during init */
     uint32_t init_flags;
     /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
@@ -1108,7 +1112,18 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_NOT_BUILT      (1 << 3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT   (1 << 4)
+#define SIGMATCH_OPTIONAL_OPT       (1 << 4)
+/** input may be wrapped in double quotes. They will be stripped before
+ *  input data is passed to keyword parser */
+#define SIGMATCH_QUOTES_OPTIONAL    (1 << 5)
+/** input MUST be wrapped in double quotes. They will be stripped before
+ *  input data is passed to keyword parser. Missing double quotes lead to
+ *  error and signature invalidation. */
+#define SIGMATCH_QUOTES_MANDATORY   (1 << 6)
+/** negation parsing is handled by the rule parser. Signature::init_data::negated
+ *  will be set to true or false prior to calling the keyword parser. Exclamation
+ *  mark is stripped from the input to the keyword parser. */
+#define SIGMATCH_HANDLE_NEGATION    (1 << 7)
 
 enum DetectEngineTenantSelectors
 {

@@ -92,6 +92,7 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;
+    sigmatch_table[DETECT_PCRE].flags = (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
     intmax_t val = 0;
 
@@ -306,8 +307,8 @@ static int DetectPcreHasUpperCase(const char *re)
     return 0;
 }
 
-static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr, int *sm_list,
-        char *capture_names, size_t capture_names_size)
+static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, const char *regexstr, int *sm_list,
+        char *capture_names, size_t capture_names_size, bool negate)
 {
     int ec;
     const char *eb;
@@ -319,18 +320,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     int check_host_header = 0;
-
     char op_str[64] = "";
-    uint8_t negate = 0;
-
-    while (*regexstr != '\0' && isspace((unsigned char)*regexstr)) {
-        regexstr++;
-    }
-
-    if (*regexstr == '!') {
-        negate = 1;
-        regexstr++;
-    }
 
     int cut_capture = 0;
     char *fcap = strstr(regexstr, "flow:");
@@ -670,14 +660,14 @@ error:
 /** \internal
  *  \brief check if we need to extract capture settings and set them up if needed
  */
-static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd,
+static int DetectPcreParseCapture(const char *regexstr, DetectEngineCtx *de_ctx, DetectPcreData *pd,
     char *capture_names)
 {
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     memset(&ov, 0, sizeof(ov));
     char type_str[16] = "";
-    char *orig_right_edge = regexstr + strlen(regexstr);
+    const char *orig_right_edge = regexstr + strlen(regexstr);
     char *name_array[DETECT_PCRE_CAPTURE_MAX] = { NULL };
     int name_idx = 0;
     int capture_cnt = 0;
@@ -811,7 +801,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     int parsed_sm_list = DETECT_SM_LIST_NOTSET;
     char capture_names[1024] = "";
 
-    pd = DetectPcreParse(de_ctx, regexstr, &parsed_sm_list, capture_names, sizeof(capture_names));
+    pd = DetectPcreParse(de_ctx, regexstr, &parsed_sm_list,
+            capture_names, sizeof(capture_names), s->init_data->negated);
     if (pd == NULL)
         goto error;
     if (DetectPcreParseCapture(regexstr, de_ctx, pd, capture_names) < 0)
@@ -906,12 +897,12 @@ static int DetectPcreParseTest01 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/blah/7";
+    const char *teststring = "/blah/7";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -930,7 +921,7 @@ static int DetectPcreParseTest02 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -949,7 +940,7 @@ static int DetectPcreParseTest03 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NOT_NULL(pd);
 
     DetectEngineCtxFree(de_ctx);
@@ -968,7 +959,7 @@ static int DetectPcreParseTest04 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -988,7 +979,7 @@ static int DetectPcreParseTest05 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -1008,7 +999,7 @@ static int DetectPcreParseTest06 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -1028,7 +1019,7 @@ static int DetectPcreParseTest07 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -1048,7 +1039,7 @@ static int DetectPcreParseTest08 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -1068,7 +1059,7 @@ static int DetectPcreParseTest09 (void)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
 
-    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, teststring, &list, NULL, 0, false);
     FAIL_IF_NULL(pd);
 
     DetectPcreFree(pd);
@@ -3400,24 +3391,24 @@ static int DetectPcreParseHttpHost(void)
 
     FAIL_IF(de_ctx == NULL);
 
-    pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list, NULL, 0, false);
     FAIL_IF(pd == NULL);
     DetectPcreFree(pd);
 
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list, NULL, 0, false);
     FAIL_IF(pd != NULL);
 
     /* Uppercase meta characters are valid. */
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list, NULL, 0, false);
     FAIL_IF(pd == NULL);
     DetectPcreFree(pd);
 
     /* This should not parse as the first \ escapes the second \, then
      * we have a D. */
     list = DETECT_SM_LIST_NOTSET;
-    pd = DetectPcreParse(de_ctx, "/\\\\Ddomain\\.com/W", &list, NULL, 0);
+    pd = DetectPcreParse(de_ctx, "/\\\\Ddomain\\.com/W", &list, NULL, 0, false);
     FAIL_IF(pd != NULL);
 
     DetectEngineCtxFree(de_ctx);
