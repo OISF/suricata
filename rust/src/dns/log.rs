@@ -24,7 +24,7 @@ use json::*;
 use dns::dns::*;
 use log::*;
 
-fn dns_rrtype_string(rrtype: u16) -> String {
+pub fn dns_rrtype_string(rrtype: u16) -> String {
     match rrtype {
         DNS_RTYPE_A => "A",
         DNS_RTYPE_CNAME => "CNAME",
@@ -51,7 +51,7 @@ fn dns_rcode_string(flags: u16) -> String {
 }
 
 /// Format bytes as an IP address string.
-fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
+pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
     if addr.len() == 4 {
         return format!("{}.{}.{}.{}", addr[0], addr[1], addr[2], addr[3]);
     }
