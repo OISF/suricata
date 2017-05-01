@@ -47,7 +47,9 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-crypt.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -349,6 +351,55 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     json_object_set_new(js, "length", json_integer(tx->response_message_len));
 }
 
+static void HttpBodyToBuffer(HtpBody *body, MemBuffer *buffer)
+{
+    HtpBodyChunk *cur = body->first;
+    for ( ; cur != NULL; cur = cur->next) {
+        uint8_t *data = NULL;
+        uint32_t data_len = 0;
+        StreamingBufferSegmentGetData(body->sb, &cur->sbseg, (const uint8_t **)&data, &data_len);
+        MemBufferWriteRaw(buffer, data, data_len);
+    }
+}
+
+static void JsonHttpLogJSONBodyPrintable(json_t *js, htp_tx_t *tx, void *data)
+{
+    MemBuffer *buffer = (MemBuffer *)data;
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        HtpBody *body = &htud->response_body;
+        if (body != NULL) {
+            uint64_t buf_len = body->content_len_so_far + 1;
+            uint8_t printable_buf[buf_len];
+            uint32_t offset = 0;
+            HttpBodyToBuffer(body, buffer);
+            PrintStringsToBuffer(printable_buf, &offset,
+                                 sizeof(printable_buf),
+                                 buffer->buffer, buffer->offset);
+            /* avoid to add an empty object */
+            if (offset > 0) {
+                json_object_set_new(js, "http_body_printable", json_string((char *)printable_buf));
+            }
+        }
+    }
+}
+
+static void JsonHttpLogJSONBodyBase64(json_t *js, htp_tx_t *tx, void *data)
+{
+    MemBuffer *buffer = (MemBuffer *)data;
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud != NULL) {
+        HtpBody *body = &htud->response_body;
+        if (body != NULL) {
+            HttpBodyToBuffer(body, data);
+            unsigned long len = buffer->offset * 2 + 1;
+            uint8_t encoded[len];
+            Base64Encode(buffer->buffer, buffer->offset, encoded, &len);
+            json_object_set_new(js, "http_body", json_string((char *)encoded));
+        }
+    }
+}
+
 /* JSON format logging */
 static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
 {
@@ -395,7 +446,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCReturnInt(TM_ECODE_OK);
 }
 
-json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
+json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id, uint16_t flags, void *data)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
@@ -408,7 +459,14 @@ json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
 
             JsonHttpLogJSONBasic(hjs, tx);
             JsonHttpLogJSONExtended(hjs, tx);
-
+            if (flags & LOG_JSON_HTTP_BODY) {
+                MemBufferReset((MemBuffer *)data);
+                JsonHttpLogJSONBodyPrintable(hjs, tx, data);
+            }
+            if (flags & LOG_JSON_HTTP_BODY_BASE64) {
+                MemBufferReset((MemBuffer *)data);
+                JsonHttpLogJSONBodyBase64(hjs, tx, data);
+            }
             return hjs;
         }
     }

@@ -165,11 +165,15 @@ outputs:
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
             http: yes                # enable dumping of http fields
+            # http-body: yes           # enable dumping of http body in Base64
+            # http-body-printable: yes # enable dumping of http body in printable format
+            # http-body-buffer-size: 4kb # max size of HTTP body buffer to output in eve-log
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of DNP3 fields
             vars: yes                # enable dumping of flowbits and other vars
+            filename: yes            # enable dumping of files
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.

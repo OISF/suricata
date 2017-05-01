@@ -54,11 +54,13 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-dnp3.h"
+#include "output-json-alert.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
+#include "output-json-file.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -72,23 +74,13 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD        0x001
-#define LOG_JSON_PACKET         0x002
-#define LOG_JSON_PAYLOAD_BASE64 0x004
-#define LOG_JSON_HTTP           0x008
-#define LOG_JSON_TLS            0x010
-#define LOG_JSON_SSH            0x020
-#define LOG_JSON_SMTP           0x040
-#define LOG_JSON_TAGGED_PACKETS 0x080
-#define LOG_JSON_DNP3           0x100
-#define LOG_JSON_VARS           0x200
-
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     uint16_t flags;
     uint32_t payload_buffer_size;
+    uint32_t http_body_buffer_size;
     HttpXFFCfg *xff_cfg;
 } AlertJsonOutputCtx;
 
@@ -97,6 +89,7 @@ typedef struct JsonAlertLogThread_ {
     LogFileCtx* file_ctx;
     MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
+    MemBuffer *http_body_buffer;
     AlertJsonOutputCtx* json_output_ctx;
 } JsonAlertLogThread;
 
@@ -261,6 +254,7 @@ static void AlertJsonPacket(const Packet *p, json_t *js)
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
+    MemBuffer *http_buffer = aft->http_body_buffer;
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
     json_t *hjs = NULL;
 
@@ -294,9 +288,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
                 /* http alert */
                 if (proto == ALPROTO_HTTP) {
-                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
-                    if (hjs)
+                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id, json_output_ctx->flags, http_buffer);
+                    if (hjs) {
                         json_object_set_new(js, "http", hjs);
+                    }
                 }
             }
         }
@@ -353,6 +348,18 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             JsonAddVars(p, p->flow, js);
         }
 
+        if (json_output_ctx->flags & LOG_JSON_FILE) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                if (proto == ALPROTO_HTTP || proto == ALPROTO_SMTP) {
+                    hjs = JsonFileAddMetadata(p, pa->tx_id);
+                    if (hjs) {
+                        json_object_set_new(js, "file", hjs);
+                    }
+                }
+            }
+        }
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
             int stream = (p->proto == IPPROTO_TCP) ?
@@ -588,10 +595,19 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     aft->payload_buffer = MemBufferCreateNew(json_output_ctx->payload_buffer_size);
     if (aft->payload_buffer == NULL) {
+        MemBufferFree(aft->json_buffer);
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    
+
+    aft->http_body_buffer = MemBufferCreateNew(json_output_ctx->http_body_buffer_size);
+    if (aft->http_body_buffer == NULL) {
+        MemBufferFree(aft->json_buffer);
+        MemBufferFree(aft->payload_buffer);
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -605,6 +621,7 @@ static TmEcode JsonAlertLogThreadDeinit(ThreadVars *t, void *data)
 
     MemBufferFree(aft->json_buffer);
     MemBufferFree(aft->payload_buffer);
+    MemBufferFree(aft->http_body_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonAlertLogThread));
@@ -659,6 +676,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     json_output_ctx->xff_cfg = xff_cfg;
 
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
+    uint32_t http_body_buffer_size = JSON_STREAM_BUFFER_SIZE;
 
     if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
@@ -666,12 +684,16 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
         const char *http = ConfNodeLookupChildValue(conf, "http");
+        const char *http_body = ConfNodeLookupChildValue(conf, "http-body");
+        const char *http_body_printable = ConfNodeLookupChildValue(conf, "http-body-printable");
+        const char *http_body_buffer_value = ConfNodeLookupChildValue(conf, "http-body-buffer-size");
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        const char *file = ConfNodeLookupChildValue(conf, "filename");
 
         if (vars != NULL) {
             if (ConfValIsTrue(vars)) {
@@ -691,6 +713,16 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (http != NULL) {
             if (ConfValIsTrue(http)) {
                 json_output_ctx->flags |= LOG_JSON_HTTP;
+            }
+        }
+        if (http_body != NULL) {
+            if (ConfValIsTrue(http_body)) {
+                json_output_ctx->flags |= LOG_JSON_HTTP_BODY_BASE64;
+            }
+        }
+        if (http_body_printable != NULL) {
+            if (ConfValIsTrue(http_body_printable)) {
+                json_output_ctx->flags |= LOG_JSON_HTTP_BODY;
             }
         }
         if (smtp != NULL) {
@@ -719,6 +751,17 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
                 payload_buffer_size = value;
             }
         }
+        if (http_body_buffer_value != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(http_body_buffer_value, &value) < 0) {
+                SCLogError(SC_ERR_ALERT_PAYLOAD_BUFFER, "Error parsing "
+                           "libhtp.response-body-inspect-window - %s. "
+                           "Killing engine", http_body_buffer_value);
+                exit(EXIT_FAILURE);
+            } else {
+                http_body_buffer_size = value;
+            }
+        }
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 json_output_ctx->flags |= LOG_JSON_PACKET;
@@ -734,8 +777,14 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
                 json_output_ctx->flags |= LOG_JSON_DNP3;
             }
         }
+        if (file != NULL) {
+            if (ConfValIsTrue(file)) {
+                json_output_ctx->flags |= LOG_JSON_FILE;
+            }
+        }
 
-	json_output_ctx->payload_buffer_size = payload_buffer_size;
+        json_output_ctx->payload_buffer_size = payload_buffer_size;
+        json_output_ctx->http_body_buffer_size = http_body_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
     }
 }
