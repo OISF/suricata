@@ -49,6 +49,11 @@
 #include "util-unittest.h"
 
 #include "app-layer-dns-udp.h"
+#include "app-layer-dns-udp-rust.h"
+
+#ifdef HAVE_RUST
+#include "rust.h"
+#endif
 
 /** \internal
  *  \brief Parse DNS request packet
@@ -383,6 +388,10 @@ static void DNSUDPConfigure(void)
 
 void RegisterDNSUDPParsers(void)
 {
+#ifdef HAVE_RUST
+    return RegisterRustDNSUDPParsers();
+#endif
+
     char *proto_name = "dns";
 
     /** DNS */

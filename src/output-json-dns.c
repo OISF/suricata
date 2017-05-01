@@ -52,6 +52,10 @@
 
 #ifdef HAVE_LIBJANSSON
 
+#ifdef HAVE_RUST
+#include "rust-dns-log.h"
+#endif
+
 /* we can do query logging as well, but it's disabled for now as the
  * TX id handling doesn't expect it */
 #define QUERY 0
@@ -258,6 +262,7 @@ typedef struct LogDnsLogThread_ {
     MemBuffer *buffer;
 } LogDnsLogThread;
 
+#ifndef HAVE_RUST
 static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
 {
     if (likely(flags == ~0UL)) {
@@ -385,7 +390,9 @@ static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
             return 0;
     }
 }
+#endif
 
+#ifndef HAVE_RUST
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry) __attribute__((nonnull));
 
@@ -433,7 +440,9 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "dns");
 }
+#endif
 
+#ifndef HAVE_RUST
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
         DNSTransaction *tx, DNSAnswerEntry *entry) __attribute__((nonnull));
 
@@ -544,7 +553,9 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
 
     return;
 }
+#endif
 
+#ifndef HAVE_RUST
 static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
         DNSTransaction *tx, DNSQueryEntry *entry) __attribute__((nonnull));
 
@@ -586,7 +597,9 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
 
     return;
 }
+#endif
 
+#ifndef HAVE_RUST
 static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id)
 {
 
@@ -614,6 +627,7 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
     }
 
 }
+#endif
 
 static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
@@ -622,9 +636,30 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
+    if (unlikely(dnslog_ctx->flags & LOG_QUERIES) == 0) {
+        return TM_ECODE_OK;
+    }
+
+#ifdef HAVE_RUST
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        js = CreateJSONHeader((Packet *)p, 1, "dns");
+        if (unlikely(js == NULL)) {
+            return TM_ECODE_OK;
+        }
+        json_t *dns = rs_dns_log_json_query(txptr, i);
+        if (unlikely(dns == NULL)) {
+            json_decref(js);
+            break;
+        }
+        json_object_set_new(js, "dns", dns);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_decref(js);
+    }
+#else
+    DNSTransaction *tx = txptr;
     if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
         DNSQueryEntry *query = NULL;
         TAILQ_FOREACH(query, &tx->query_list, next) {
@@ -637,6 +672,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
             json_decref(js);
         }
     }
+#endif
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -648,18 +684,47 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    DNSTransaction *tx = txptr;
     json_t *js;
 
-    if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
-
-        LogAnswers(td, js, tx, tx_id);
-
-        json_decref(js);
+    if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
+        return TM_ECODE_OK;
     }
+
+    js = CreateJSONHeader((Packet *)p, 0, "dns");
+
+#if HAVE_RUST
+    /* Log answers. */
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        json_t *answer = rs_dns_log_json_answer(txptr, i);
+        if (answer == NULL) {
+            break;
+        }
+        json_object_set_new(js, "dns", answer);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_object_del(js, "dns");
+    }
+
+    /* Log authorities. */
+    for (uint16_t i = 0; i < 0xffff; i++) {
+        json_t *answer = rs_dns_log_json_authority(txptr, i);
+        if (answer == NULL) {
+            break;
+        }
+        json_object_set_new(js, "dns", answer);
+        MemBufferReset(td->buffer);
+        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
+        json_object_del(js, "dns");
+    }
+#else
+    DNSTransaction *tx = txptr;
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+
+    LogAnswers(td, js, tx, tx_id);
+#endif
+
+    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
