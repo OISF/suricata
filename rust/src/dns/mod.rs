@@ -18,3 +18,6 @@
 pub mod parser;
 pub mod dns;
 pub mod log;
+
+#[cfg(feature = "lua")]
+pub mod lua;
