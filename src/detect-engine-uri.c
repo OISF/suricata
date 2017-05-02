@@ -33,6 +33,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
+#include "detect-engine-uri.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -106,7 +107,7 @@ int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectHttpUri(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);

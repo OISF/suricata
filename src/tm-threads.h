@@ -44,12 +44,12 @@ typedef struct TmSlot_ {
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
 
-    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*SlotThreadInit)(ThreadVars *, const void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
     TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
 
     /* data storage */
-    void *slot_initdata;
+    const void *slot_initdata;
     SC_ATOMIC_DECLARE(void *, slot_data);
 
     /* queue filled by the SlotFunc with packets that will
@@ -80,18 +80,17 @@ extern ThreadVars *tv_root[TVT_MAX];
 
 extern SCMutex tv_root_lock;
 
-void TmSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
-void TmSlotSetFuncAppendDelayed(ThreadVars *, TmModule *, void *, int delayed);
+void TmSlotSetFuncAppend(ThreadVars *, TmModule *, const void *);
 TmSlot *TmSlotGetSlotForTM(int);
 
-ThreadVars *TmThreadCreate(const char *, char *, char *, char *, char *, char *,
+ThreadVars *TmThreadCreate(const char *, const char *, const char *, const char *, const char *, const char *,
                            void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreatePacketHandler(const char *, char *, char *, char *, char *,
-                                        char *);
+ThreadVars *TmThreadCreatePacketHandler(const char *, const char *, const char *, const char *, const char *,
+                                        const char *);
 ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, char *module,
+ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module,
                                      int mucond);
-ThreadVars *TmThreadCreateCmdThreadByName(const char *name, char *module,
+ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module,
                                      int mucond);
 TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);

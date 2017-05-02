@@ -48,7 +48,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectICodeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectICodeSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectICodeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
 
@@ -144,7 +144,7 @@ static int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  * \retval icd pointer to DetectICodeData on success
  * \retval NULL on failure
  */
-DetectICodeData *DetectICodeParse(char *icodestr)
+static DetectICodeData *DetectICodeParse(const char *icodestr)
 {
     DetectICodeData *icd = NULL;
     char *args[3] = {NULL, NULL, NULL};
@@ -248,7 +248,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodestr)
+static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *icodestr)
 {
 
     DetectICodeData *icd = NULL;
@@ -358,7 +358,7 @@ static _Bool PrefilterICodeIsPrefilterable(const Signature *s)
 /**
  * \test DetectICodeParseTest01 is a test for setting a valid icode value
  */
-int DetectICodeParseTest01(void)
+static int DetectICodeParseTest01(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -375,7 +375,7 @@ int DetectICodeParseTest01(void)
  * \test DetectICodeParseTest02 is a test for setting a valid icode value
  *       with ">" operator
  */
-int DetectICodeParseTest02(void)
+static int DetectICodeParseTest02(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -392,7 +392,7 @@ int DetectICodeParseTest02(void)
  * \test DetectICodeParseTest03 is a test for setting a valid icode value
  *       with "<" operator
  */
-int DetectICodeParseTest03(void)
+static int DetectICodeParseTest03(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -409,7 +409,7 @@ int DetectICodeParseTest03(void)
  * \test DetectICodeParseTest04 is a test for setting a valid icode value
  *       with "<>" operator
  */
-int DetectICodeParseTest04(void)
+static int DetectICodeParseTest04(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -426,7 +426,7 @@ int DetectICodeParseTest04(void)
  * \test DetectICodeParseTest05 is a test for setting a valid icode value
  *       with spaces all around
  */
-int DetectICodeParseTest05(void)
+static int DetectICodeParseTest05(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -443,7 +443,7 @@ int DetectICodeParseTest05(void)
  * \test DetectICodeParseTest06 is a test for setting a valid icode value
  *       with ">" operator and spaces all around
  */
-int DetectICodeParseTest06(void)
+static int DetectICodeParseTest06(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -460,7 +460,7 @@ int DetectICodeParseTest06(void)
  * \test DetectICodeParseTest07 is a test for setting a valid icode value
  *       with "<>" operator and spaces all around
  */
-int DetectICodeParseTest07(void)
+static int DetectICodeParseTest07(void)
 {
     DetectICodeData *icd = NULL;
     int result = 0;
@@ -476,7 +476,7 @@ int DetectICodeParseTest07(void)
 /**
  * \test DetectICodeParseTest08 is a test for setting an invalid icode value
  */
-int DetectICodeParseTest08(void)
+static int DetectICodeParseTest08(void)
 {
     DetectICodeData *icd = NULL;
     icd = DetectICodeParse("> 8 <> 20");
@@ -491,7 +491,7 @@ int DetectICodeParseTest08(void)
  *       keyword by creating 5 rules and matching a crafted packet against
  *       them. 4 out of 5 rules shall trigger.
  */
-int DetectICodeMatchTest01(void)
+static int DetectICodeMatchTest01(void)
 {
 
     Packet *p = NULL;

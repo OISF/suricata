@@ -72,7 +72,7 @@ typedef struct DefragTrackerQueue_
 #endif
 
 /* prototypes */
-DefragTrackerQueue *DefragTrackerQueueNew();
+DefragTrackerQueue *DefragTrackerQueueNew(void);
 DefragTrackerQueue *DefragTrackerQueueInit(DefragTrackerQueue *);
 void DefragTrackerQueueDestroy (DefragTrackerQueue *);
 

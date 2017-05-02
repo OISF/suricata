@@ -56,7 +56,7 @@ void CreateIsoTimeString(const struct timeval *ts, char *str, size_t size);
 void CreateUtcIsoTimeString(const struct timeval *ts, char *str, size_t size);
 void CreateFormattedTimeString(const struct tm *t, const char * fmt, char *str, size_t size);
 time_t SCMkTimeUtc(struct tm *tp);
-int SCStringPatternToTime(char *string, char **patterns,
+int SCStringPatternToTime(char *string, const char **patterns,
                            int num_patterns, struct tm *time);
 int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str,
                            size_t size);

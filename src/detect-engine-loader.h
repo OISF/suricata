@@ -50,8 +50,8 @@ int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx);
 int DetectLoadersSync(void);
 void DetectLoadersInit(void);
 
-void TmThreadContinueDetectLoaderThreads();
-void DetectLoaderThreadSpawn();
+void TmThreadContinueDetectLoaderThreads(void);
+void DetectLoaderThreadSpawn(void);
 void TmModuleDetectLoaderRegister (void);
 
 #endif /* __DETECT_ENGINE_LOADER_H__ */

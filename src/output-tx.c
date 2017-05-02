@@ -56,7 +56,7 @@ typedef struct OutputTxLogger_ {
     uint32_t id;
     int tc_log_progress;
     int ts_log_progress;
-    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
@@ -279,7 +279,7 @@ end:
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputTxLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode OutputTxLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)

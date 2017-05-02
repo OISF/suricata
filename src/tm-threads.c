@@ -253,7 +253,7 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 
  */
 
-void *TmThreadsSlotPktAcqLoop(void *td)
+static void *TmThreadsSlotPktAcqLoop(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
@@ -390,7 +390,7 @@ error:
  *
  *  The loop runs in the caller's thread. No separate thread.
  */
-void *TmThreadsSlotPktAcqLoopAFL(void *td)
+static void *TmThreadsSlotPktAcqLoopAFL(void *td)
 {
     SCLogNotice("AFL mode starting");
 
@@ -504,7 +504,7 @@ error:
  * \todo Only the first "slot" currently makes the "post_pq" available
  *       to the thread module.
  */
-void *TmThreadsSlotVar(void *td)
+static void *TmThreadsSlotVar(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
@@ -747,7 +747,7 @@ static void *TmThreadsManagement(void *td)
  *
  * \retval TmEcode TM_ECODE_OK on success; TM_ECODE_FAILED on failure.
  */
-TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *))
+static TmEcode TmThreadSetSlots(ThreadVars *tv, const char *name, void *(*fn_p)(void *))
 {
     if (name == NULL) {
         if (fn_p == NULL) {
@@ -823,11 +823,11 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
  *
  * \retval The allocated TmSlot or NULL if there is an error
  */
-static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
+void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, const void *data)
 {
     TmSlot *slot = SCMalloc(sizeof(TmSlot));
     if (unlikely(slot == NULL))
-        return NULL;
+        return;
     memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INIT(slot->slot_data);
     slot->tv = tv;
@@ -862,26 +862,7 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
             slot->id = b->id + 1;
         }
     }
-
-    return slot;
-}
-
-void TmSlotFree(TmSlot *tms)
-{
-    SC_ATOMIC_DESTROY(tms->slot_data);
-    SCFree(tms);
-}
-
-/**
- * \brief Appends a new entry to the slots.
- *
- * \param tv   TV the slot is attached to.
- * \param tm   TM to append.
- * \param data Data to be passed on to the slot init function.
- */
-void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
-{
-    _TmSlotSetFuncAppend(tv, tm, data);
+    return;
 }
 
 /**
@@ -1137,8 +1118,8 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreate(const char *name, char *inq_name, char *inqh_name,
-                           char *outq_name, char *outqh_name, char *slots,
+ThreadVars *TmThreadCreate(const char *name, const char *inq_name, const char *inqh_name,
+                           const char *outq_name, const char *outqh_name, const char *slots,
                            void * (*fn_p)(void *), int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1258,9 +1239,9 @@ error:
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreatePacketHandler(const char *name, char *inq_name,
-                                        char *inqh_name, char *outq_name,
-                                        char *outqh_name, char *slots)
+ThreadVars *TmThreadCreatePacketHandler(const char *name, const char *inq_name,
+                                        const char *inqh_name, const char *outq_name,
+                                        const char *outqh_name, const char *slots)
 {
     ThreadVars *tv = NULL;
 
@@ -1316,7 +1297,7 @@ ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *),
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, char *module,
+ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, const char *module,
                                      int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1349,7 +1330,7 @@ ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, char *module,
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateCmdThreadByName(const char *name, char *module,
+ThreadVars *TmThreadCreateCmdThreadByName(const char *name, const char *module,
                                      int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1835,7 +1816,7 @@ void TmThreadKillThreads(void)
     return;
 }
 
-void TmThreadFree(ThreadVars *tv)
+static void TmThreadFree(ThreadVars *tv)
 {
     TmSlot *s;
     TmSlot *ps;

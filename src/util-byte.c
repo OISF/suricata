@@ -602,11 +602,9 @@ static int ByteTest16 (void)
 
     return 0;
 }
-#endif /* UNITTESTS */
 
 void ByteRegisterTests(void)
 {
-#ifdef UNITTESTS
     UtRegisterTest("ByteTest01", ByteTest01);
     UtRegisterTest("ByteTest02", ByteTest02);
     UtRegisterTest("ByteTest03", ByteTest03);
@@ -623,7 +621,6 @@ void ByteRegisterTests(void)
     UtRegisterTest("ByteTest14", ByteTest14);
     UtRegisterTest("ByteTest15", ByteTest15);
     UtRegisterTest("ByteTest16", ByteTest16);
-#endif /* UNITTESTS */
 }
-
+#endif /* UNITTESTS */
 

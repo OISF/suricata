@@ -159,7 +159,7 @@ int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx
 
 /* tests */
 
-int StreamTcpUtilTest01(void)
+static int StreamTcpUtilTest01(void)
 {
     int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -178,7 +178,7 @@ end:
 }
 
 
-int StreamTcpUtilStreamTest01(void)
+static int StreamTcpUtilStreamTest01(void)
 {
     int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -228,7 +228,7 @@ end:
     return ret;
 }
 
-int StreamTcpUtilStreamTest02(void)
+static int StreamTcpUtilStreamTest02(void)
 {
     int ret = 0;
     TcpReassemblyThreadCtx *ra_ctx = NULL;

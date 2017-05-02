@@ -24,6 +24,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-cidr.h"
 
 static uint32_t cidrs[33];
 

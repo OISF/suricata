@@ -51,7 +51,7 @@ static int DetectFtpbounceALMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
 
-static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectFtpbounceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectFtpbounceRegisterTests(void);
 static int g_ftp_request_list_id = 0;
 
@@ -220,7 +220,7 @@ static int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, char *ftpbouncestr)
+int DetectFtpbounceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *ftpbouncestr)
 {
     SCEnter();
 

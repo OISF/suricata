@@ -33,13 +33,13 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-byte-extract.h"
-#include "app-layer.h"
+#include "detect-offset.h"
 
 #include "flow-var.h"
 
 #include "util-debug.h"
 
-static int DetectOffsetSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 
 void DetectOffsetRegister (void)
 {
@@ -52,23 +52,11 @@ void DetectOffsetRegister (void)
     sigmatch_table[DETECT_OFFSET].RegisterTests = NULL;
 }
 
-int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
+int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offsetstr)
 {
-    char *str = offsetstr;
-    char dubbed = 0;
+    const char *str = offsetstr;
     SigMatch *pm = NULL;
     int ret = -1;
-
-    /* Strip leading and trailing "s. */
-    if (offsetstr[0] == '\"') {
-        str = SCStrdup(offsetstr+1);
-        if (unlikely(str == NULL))
-            goto end;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\0';
-        }
-        dubbed = 1;
-    }
 
     /* retrive the sm to apply the offset against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
@@ -128,8 +116,6 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 
     ret = 0;
  end:
-    if (dubbed)
-        SCFree(str);
     return ret;
 }
 

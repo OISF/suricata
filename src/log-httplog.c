@@ -57,7 +57,7 @@
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
+TmEcode LogHttpLogThreadInit(ThreadVars *, const void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 static void LogHttpLogDeInitCtx(OutputCtx *);
 
@@ -503,7 +503,7 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, v
     SCReturnInt(r);
 }
 
-TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode LogHttpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogHttpLogThread *aft = SCMalloc(sizeof(LogHttpLogThread));
     if (unlikely(aft == NULL))

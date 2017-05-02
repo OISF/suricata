@@ -84,8 +84,8 @@ AppLayerCounterNames applayer_counter_names[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX
 /* counter id's. Used that runtime. */
 AppLayerCounters applayer_counters[FLOW_PROTO_APPLAYER_MAX][ALPROTO_MAX];
 
-void AppLayerSetupCounters();
-void AppLayerDeSetupCounters();
+void AppLayerSetupCounters(void);
+void AppLayerDeSetupCounters(void);
 
 /***** L7 layer dispatchers *****/
 
@@ -672,10 +672,10 @@ AppProto AppLayerGetProtoByName(char *alproto_name)
     SCReturnCT(r, "AppProto");
 }
 
-char *AppLayerGetProtoName(AppProto alproto)
+const char *AppLayerGetProtoName(AppProto alproto)
 {
     SCEnter();
-    char * r = AppLayerProtoDetectGetProtoName(alproto);
+    const char * r = AppLayerProtoDetectGetProtoName(alproto);
     SCReturnCT(r, "char *");
 }
 

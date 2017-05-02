@@ -80,8 +80,7 @@ void SCProfilingSghsGlobalInit(void)
             profiling_sghs_enabled = 1;
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-
-                char *log_dir;
+                const char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
                 snprintf(profiling_file_name, sizeof(profiling_file_name),
@@ -231,7 +230,7 @@ static void DoDump(SCProfileSghDetectCtx *rules_ctx, FILE *fp, const char *name)
     fprintf(fp,"\n");
 }
 
-void
+static void
 SCProfilingSghDump(DetectEngineCtx *de_ctx)
 {
     FILE *fp;
@@ -297,7 +296,7 @@ SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *
     }
 }
 
-SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
+static SCProfileSghDetectCtx *SCProfilingSghInitCtx(void)
 {
     SCProfileSghDetectCtx *ctx = SCCalloc(1, sizeof(SCProfileSghDetectCtx));
     if (ctx != NULL) {

@@ -68,8 +68,6 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -81,6 +79,8 @@
 #include "util-memcmp.h"
 #include "util-memcpy.h"
 #include "util-mpm-ac-tile.h"
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 
 void SCACTileInitCtx(MpmCtx *);
 void SCACTileInitThreadCtx(MpmCtx *, MpmThreadCtx *);
@@ -163,7 +163,7 @@ typedef struct StateQueue_ {
  *        aren't retrieving anything for AC conf now, but we will certainly
  *        need it, when we customize AC.
  */
-static void SCACTileGetConfig()
+static void SCACTileGetConfig(void)
 {
 }
 
@@ -1172,7 +1172,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define EXTRA 4 // need 4 extra bytes to avoid OOB reads
 #endif
 
-int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
+static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
                const uint8_t *buf, uint16_t buflen,
                uint16_t state, int i, int matches,
                uint8_t *mpm_bitarray)
@@ -1528,7 +1528,7 @@ static int SCACTileTest01(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *buf = "abcdefghjiklmnopqrstuvwxyz";
 
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
@@ -1562,7 +1562,7 @@ static int SCACTileTest02(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1599,7 +1599,7 @@ static int SCACTileTest03(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1633,7 +1633,7 @@ static int SCACTileTest04(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1667,7 +1667,7 @@ static int SCACTileTest05(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    const char *buf = "abcdefghjiklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1699,7 +1699,7 @@ static int SCACTileTest06(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcd";
+    const char *buf = "abcd";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1744,7 +1744,7 @@ static int SCACTileTest07(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1841,7 +1841,7 @@ static int SCACTileTest10(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "01234567890123456789012345678901234567890123456789"
+    const char *buf = "01234567890123456789012345678901234567890123456789"
                 "01234567890123456789012345678901234567890123456789"
                 "abcdefgh"
                 "01234567890123456789012345678901234567890123456789"
@@ -1887,7 +1887,7 @@ static int SCACTileTest11(void)
 
     result = 1;
 
-    char *buf = "he";
+    const char *buf = "he";
     result &= (SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq, (uint8_t *)buf,
                               strlen(buf)) == 1);
     buf = "she";
@@ -1927,7 +1927,7 @@ static int SCACTileTest12(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyz";
+    const char *buf = "abcdefghijklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1955,13 +1955,13 @@ static int SCACTileTest13(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
+    const char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyzABCD";
+    const char *buf = "abcdefghijklmnopqrstuvwxyzABCD";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -1989,13 +1989,13 @@ static int SCACTileTest14(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
+    const char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyzABCDE";
+    const char *buf = "abcdefghijklmnopqrstuvwxyzABCDE";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2023,13 +2023,13 @@ static int SCACTileTest15(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    const char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    const char *buf = "abcdefghijklmnopqrstuvwxyzABCDEF";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2057,13 +2057,13 @@ static int SCACTileTest16(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcdefghijklmnopqrstuvwxyzABC";
+    const char *pat = "abcdefghijklmnopqrstuvwxyzABC";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyzABC";
+    const char *buf = "abcdefghijklmnopqrstuvwxyzABC";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2091,13 +2091,13 @@ static int SCACTileTest17(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcdefghijklmnopqrstuvwxyzAB";
+    const char *pat = "abcdefghijklmnopqrstuvwxyzAB";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyzAB";
+    const char *buf = "abcdefghijklmnopqrstuvwxyzAB";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2125,13 +2125,13 @@ static int SCACTileTest18(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
-    char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
+    const char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcde""fghij""klmno""pqrst""uvwxy""z";
+    const char *buf = "abcde""fghij""klmno""pqrst""uvwxy""z";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2159,13 +2159,13 @@ static int SCACTileTest19(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
-    char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    const char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2193,13 +2193,13 @@ static int SCACTileTest20(void)
     SCACTileInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
-    char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
+    const char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
     PmqSetup(&pmq);
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
+    const char *buf = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2266,7 +2266,7 @@ static int SCACTileTest22(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "abcdefghijklmnopqrstuvwxyz";
+    const char *buf = "abcdefghijklmnopqrstuvwxyz";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2364,7 +2364,7 @@ static int SCACTileTest25(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const char *buf = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2397,7 +2397,7 @@ static int SCACTileTest26(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "works";
+    const char *buf = "works";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2430,7 +2430,7 @@ static int SCACTileTest27(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "tone";
+    const char *buf = "tone";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 
@@ -2463,7 +2463,7 @@ static int SCACTileTest28(void)
 
     SCACTilePreparePatterns(&mpm_ctx);
 
-    char *buf = "tONE";
+    const char *buf = "tONE";
     uint32_t cnt = SCACTileSearch(&mpm_ctx, &mpm_thread_ctx, &pmq,
                                   (uint8_t *)buf, strlen(buf));
 

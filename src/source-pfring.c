@@ -64,11 +64,11 @@
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
-TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceivePfringThreadInit(ThreadVars *, const void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodePfringThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePfringThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
@@ -77,7 +77,7 @@ extern int max_pending_packets;
 #ifndef HAVE_PFRING
 
 /*Handle cases where we don't have PF_RING support built-in*/
-TmEcode NoPfringSupportExit(ThreadVars *, void *, void **);
+TmEcode NoPfringSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleReceivePfringRegister (void)
 {
@@ -110,7 +110,7 @@ void TmModuleDecodePfringRegister (void)
  * \param initdata pointer to the interface passed from the user
  * \param data pointer gets populated with PfringThreadVars
  */
-TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoPfringSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NO_PF_RING,"Error creating thread %s: you do not have support for pfring "
                "enabled please recompile with --enable-pfring", tv->name);
@@ -431,7 +431,7 @@ TmEcode PfringBreakLoop(ThreadVars *tv, void *data)
  * \retval TM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on error
  */
-TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     int rc;
     u_int32_t version = 0;
@@ -687,7 +687,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
  * \retval TM_ECODE_OK is returned on success
  * \retval TM_ECODE_FAILED is returned on error
  */
-TmEcode DecodePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodePfringThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
 

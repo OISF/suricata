@@ -72,7 +72,7 @@ typedef struct IPPairQueue_
 #endif
 
 /* prototypes */
-IPPairQueue *IPPairQueueNew();
+IPPairQueue *IPPairQueueNew(void);
 IPPairQueue *IPPairQueueInit(IPPairQueue *);
 void IPPairQueueDestroy (IPPairQueue *);
 

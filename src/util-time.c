@@ -438,7 +438,7 @@ time_t SCMkTimeUtc (struct tm *tp)
  * \retval 0 on success.
  * \retval 1 on failure.
  */
-int SCStringPatternToTime (char *string, char **patterns, int num_patterns,
+int SCStringPatternToTime (char *string, const char **patterns, int num_patterns,
                            struct tm *tp)
 {
     char *result = NULL;

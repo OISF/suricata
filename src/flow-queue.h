@@ -72,7 +72,7 @@ typedef struct FlowQueue_
 #endif
 
 /* prototypes */
-FlowQueue *FlowQueueNew();
+FlowQueue *FlowQueueNew(void);
 FlowQueue *FlowQueueInit(FlowQueue *);
 void FlowQueueDestroy (FlowQueue *);
 

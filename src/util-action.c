@@ -74,7 +74,7 @@ uint8_t ActionOrderVal(uint8_t action)
  * \retval uint8_t can be one of ACTION_PASS, ACTION_DROP,
  *        ACTION_REJECT or ACTION_ALERT
  */
-uint8_t ActionAsciiToFlag(char *action)
+static uint8_t ActionAsciiToFlag(const char *action)
 {
     if (strcmp(action,"pass") == 0)
         return ACTION_PASS;
@@ -168,7 +168,7 @@ int ActionInitConfig()
  * \test Check that we invalidate duplicated actions
  *       (It should default to pass, drop, reject, alert)
  */
-int UtilActionTest01(void)
+static int UtilActionTest01(void)
 {
     int res = 1;
     char config[] = "\
@@ -206,7 +206,7 @@ action-order:\n\
  * \test Check that we invalidate with unknown keywords
  *       (It should default to pass, drop, reject, alert)
  */
-int UtilActionTest02(void)
+static int UtilActionTest02(void)
 {
     int res = 1;
     char config[] = "\
@@ -244,7 +244,7 @@ action-order:\n\
  * \test Check that we invalidate if any action is missing
  *       (It should default to pass, drop, reject, alert)
  */
-int UtilActionTest03(void)
+static int UtilActionTest03(void)
 {
     int res = 1;
     char config[] = "\
@@ -281,7 +281,7 @@ action-order:\n\
  * \test Check that we invalidate if any action is missing
  *       (It should default to pass, drop, reject, alert)
  */
-int UtilActionTest04(void)
+static int UtilActionTest04(void)
 {
     int res = 1;
     char config[] = "\
@@ -316,7 +316,7 @@ action-order:\n";
  *       and/or more than the expected
  *       (It should default to pass, drop, reject, alert)
  */
-int UtilActionTest05(void)
+static int UtilActionTest05(void)
 {
     int res = 1;
     char config[] = "\
@@ -354,7 +354,7 @@ action-order:\n\
 /**
  * \test Check that we load a valid config
  */
-int UtilActionTest06(void)
+static int UtilActionTest06(void)
 {
     int res = 1;
     char config[] = "\
@@ -391,7 +391,7 @@ action-order:\n\
 /**
  * \test Check that we load a valid config
  */
-int UtilActionTest07(void)
+static int UtilActionTest07(void)
 {
     int res = 1;
     char config[] = "\
@@ -429,7 +429,7 @@ action-order:\n\
  * \test Check that we handle the "pass" action
  *       correctly at the IP Only engine in the default case
  */
-int UtilActionTest08(void)
+static int UtilActionTest08(void)
 {
     int res = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -448,7 +448,7 @@ int UtilActionTest08(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass ip 192.168.1.1 80 -> any any (msg:\"sig 2\"; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -494,7 +494,7 @@ end:
  *       correctly at the IP Only engine with more
  *       prio to drop
  */
-int UtilActionTest09(void)
+static int UtilActionTest09(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -519,7 +519,7 @@ int UtilActionTest09(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass ip 192.168.1.1 80 -> any any (msg:\"sig 2\"; sid:2;)";
     sigs[2]= "drop ip any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -570,7 +570,7 @@ end:
  * \test Check that we handle the "pass" action
  *       correctly at the detection engine in the default case
  */
-int UtilActionTest10(void)
+static int UtilActionTest10(void)
 {
     int res = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -591,7 +591,7 @@ int UtilActionTest10(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
     sigs[1]= "pass ip any any -> any any (msg:\"sig 2\"; content:\"wo\"; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
@@ -637,7 +637,7 @@ end:
  *       correctly at the detection engine with more
  *       prio to drop
  */
-int UtilActionTest11(void)
+static int UtilActionTest11(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -664,7 +664,7 @@ int UtilActionTest11(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"wo\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
@@ -715,7 +715,7 @@ end:
  * \test Check that we handle the "pass" action
  *       correctly at the detection engine in the default case
  */
-int UtilActionTest12(void)
+static int UtilActionTest12(void)
 {
     int res = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -734,7 +734,7 @@ int UtilActionTest12(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass ip any any -> any any (msg:\"Testing normal 2\"; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -778,7 +778,7 @@ end:
  *       correctly at the detection engine with more
  *       prio to drop
  */
-int UtilActionTest13(void)
+static int UtilActionTest13(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -803,7 +803,7 @@ int UtilActionTest13(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
@@ -853,7 +853,7 @@ end:
  *       correctly at the detection engine with more
  *       prio to drop and alert
  */
-int UtilActionTest14(void)
+static int UtilActionTest14(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -878,7 +878,7 @@ int UtilActionTest14(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
@@ -927,7 +927,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal)
  */
-int UtilActionTest15(void)
+static int UtilActionTest15(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -947,7 +947,7 @@ int UtilActionTest15(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -991,7 +991,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal)
  */
-int UtilActionTest16(void)
+static int UtilActionTest16(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1011,7 +1011,7 @@ int UtilActionTest16(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1055,7 +1055,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal)
  */
-int UtilActionTest17(void)
+static int UtilActionTest17(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1075,7 +1075,7 @@ int UtilActionTest17(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1119,7 +1119,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for drop
  */
-int UtilActionTest18(void)
+static int UtilActionTest18(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1144,7 +1144,7 @@ int UtilActionTest18(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1194,7 +1194,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for drop
  */
-int UtilActionTest19(void)
+static int UtilActionTest19(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1219,7 +1219,7 @@ int UtilActionTest19(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1269,7 +1269,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for drop
  */
-int UtilActionTest20(void)
+static int UtilActionTest20(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1294,7 +1294,7 @@ int UtilActionTest20(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1338,7 +1338,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
  */
-int UtilActionTest21(void)
+static int UtilActionTest21(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1363,7 +1363,7 @@ int UtilActionTest21(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1413,7 +1413,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
  */
-int UtilActionTest22(void)
+static int UtilActionTest22(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1438,7 +1438,7 @@ int UtilActionTest22(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1488,7 +1488,7 @@ end:
 /**
  * \test Check mixed sigs (iponly and normal) with more prio for alert and drop
  */
-int UtilActionTest23(void)
+static int UtilActionTest23(void)
 {
     int res = 1;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -1513,7 +1513,7 @@ int UtilActionTest23(void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
     sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
@@ -1564,7 +1564,7 @@ end:
  * \test Check that the expected defaults are loaded if the
  *     action-order configuration is not present.
  */
-int UtilActionTest24(void)
+static int UtilActionTest24(void)
 {
     int res = 1;
     char config[] = "%YAML 1.1\n"

@@ -58,7 +58,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectXbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
-static int DetectXbitSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectXbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectXbitFree (void *);
 void XBitsRegisterTests(void);
 
@@ -317,7 +317,7 @@ static int DetectXbitParse(DetectEngineCtx *de_ctx,
     return 0;
 }
 
-int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     SigMatch *sm = NULL;
     DetectXbitsData *cd = NULL;

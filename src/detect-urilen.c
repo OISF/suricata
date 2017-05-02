@@ -50,7 +50,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-static int DetectUrilenSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectUrilenSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectUrilenFree (void *);
 void DetectUrilenRegisterTests (void);
 
@@ -86,7 +86,7 @@ void DetectUrilenRegister(void)
  * \retval NULL on failure
  */
 
-DetectUrilenData *DetectUrilenParse (char *urilenstr)
+static DetectUrilenData *DetectUrilenParse (const char *urilenstr)
 {
 
     DetectUrilenData *urilend = NULL;
@@ -241,7 +241,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urilenstr)
+static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, const char *urilenstr)
 {
     SCEnter();
     DetectUrilenData *urilend = NULL;
@@ -474,7 +474,7 @@ static int DetectUrilenParseTest10(void)
  */
 
 static int DetectUrilenInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                                DetectUrilenData **urilend, char *str)
+                                DetectUrilenData **urilend, const char *str)
 {
     char fullstr[1024];
     int result = 0;

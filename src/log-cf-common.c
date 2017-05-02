@@ -260,7 +260,7 @@ static int LogCustomFormatTest01(void)
     return 1;
 }
 
-void LogCustomFormatRegisterTests(void)
+static void LogCustomFormatRegisterTests(void)
 {
     UtRegisterTest("LogCustomFormatTest01", LogCustomFormatTest01);
 }

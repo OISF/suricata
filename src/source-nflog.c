@@ -43,7 +43,7 @@
  *
  */
 
-TmEcode NoNFLOGSupportExit(ThreadVars *, void *, void **);
+TmEcode NoNFLOGSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleReceiveNFLOGRegister (void)
 {
@@ -57,7 +57,7 @@ void TmModuleDecodeNFLOGRegister (void)
     tmm_modules[TMM_DECODENFLOG].ThreadInit = NoNFLOGSupportExit;
 }
 
-TmEcode NoNFLOGSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoNFLOGSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NFLOG_NOSUPPORT,"Error creating thread %s: you do not have support for nflog "
            "enabled please recompile with --enable-nflog", tv->name);
@@ -68,12 +68,12 @@ TmEcode NoNFLOGSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #include "source-nflog.h"
 
-TmEcode ReceiveNFLOGThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveNFLOGThreadInit(ThreadVars *, const void *, void **);
 TmEcode ReceiveNFLOGThreadDeinit(ThreadVars *, void *);
 TmEcode ReceiveNFLOGLoop(ThreadVars *, void *, void *);
 void ReceiveNFLOGThreadExitStats(ThreadVars *, void *);
 
-TmEcode DecodeNFLOGThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeNFLOGThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeNFLOGThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeNFLOG(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 

@@ -70,7 +70,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectHostbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectHostbitSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectHostbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHostbitFree (void *);
 void HostBitsRegisterTests(void);
 
@@ -318,7 +318,7 @@ static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
     return 1;
 }
 
-int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectXbitsData *cd = NULL;
     SigMatch *sm = NULL;

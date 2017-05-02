@@ -78,7 +78,7 @@ static SCMutex sc_log_fd_filters_tl_m = SCMUTEX_INITIALIZER;
  * \retval  0 on successfully adding the filter;
  * \retval -1 on failure
  */
-int SCLogAddFGFilter(const char *file, const char *function,
+static int SCLogAddFGFilter(const char *file, const char *function,
                                    int line, int listtype)
 {
     SCLogFGFilterFile *fgf_file = NULL;

@@ -41,9 +41,10 @@
 
 #include "util-debug.h"
 #include "detect-pcre.h"
+#include "detect-within.h"
 #include "util-unittest.h"
 
-static int DetectWithinSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectWithinSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectWithinRegisterTests(void);
 
 void DetectWithinRegister(void)
@@ -64,23 +65,11 @@ void DetectWithinRegister(void)
  *  \retval 0 ok
  *  \retval -1 error, sig needs to be invalidated
  */
-static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, char *withinstr)
+static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, const char *withinstr)
 {
-    char *str = withinstr;
-    char dubbed = 0;
+    const char *str = withinstr;
     SigMatch *pm = NULL;
     int ret = -1;
-
-    /* Strip leading and trailing "s. */
-    if (withinstr[0] == '\"') {
-        str = SCStrdup(withinstr+1);
-        if (unlikely(str == NULL))
-            goto end;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\0';
-        }
-        dubbed = 1;
-    }
 
     /* retrieve the sm to apply the within against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
@@ -160,8 +149,6 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, char *within
 
     ret = 0;
  end:
-    if (dubbed)
-        SCFree(str);
     return ret;
 }
 
@@ -173,7 +160,7 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, char *within
  * \test DetectWithinTestPacket01 is a test to check matches of
  * within, if the previous keyword is pcre (bug 145)
  */
-int DetectWithinTestPacket01 (void)
+static int DetectWithinTestPacket01 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
@@ -201,7 +188,7 @@ end:
 }
 
 
-int DetectWithinTestPacket02 (void)
+static int DetectWithinTestPacket02 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Zero Five Ten Fourteen";

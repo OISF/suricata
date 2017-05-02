@@ -312,7 +312,7 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 
-void CreateLowercaseTable()
+static void CreateLowercaseTable(void)
 {
     /* create table for O(1) lowercase conversion lookup.  It was removed, but
      * we still need it for cuda.  So resintalling it back into the codebase */
@@ -326,7 +326,7 @@ void CreateLowercaseTable()
     }
 }
 
-void GlobalsInitPreConfig()
+void GlobalsInitPreConfig(void)
 {
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
@@ -359,7 +359,7 @@ void GlobalsInitPreConfig()
     SupportFastPatternForSigMatchTypes();
 }
 
-void GlobalsDestroy(SCInstance *suri)
+static void GlobalsDestroy(SCInstance *suri)
 {
     HostShutdown();
     HTPFreeConfig();
@@ -587,7 +587,7 @@ static void SetBpfStringFromFile(char *filename)
     SCFree(bpf_filter);
 }
 
-void usage(const char *progname)
+static void PrintUsage(const char *progname)
 {
 #ifdef REVISION
     printf("%s %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -685,12 +685,12 @@ void usage(const char *progname)
             progname);
 }
 
-void SCPrintBuildInfo(void)
+static void PrintBuildInfo(void)
 {
-    char *bits = "<unknown>-bits";
-    char *endian = "<unknown>-endian";
+    const char *bits = "<unknown>-bits";
+    const char *endian = "<unknown>-endian";
     char features[2048] = "";
-    char *tls = "pthread key";
+    const char *tls = "pthread key";
 
 #ifdef REVISION
     printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -878,7 +878,7 @@ int coverage_unittests;
 int g_ut_modules;
 int g_ut_covered;
 
-void RegisterAllModules()
+void RegisterAllModules(void)
 {
     /* commanders */
     TmModuleUnixManagerRegister();
@@ -1082,7 +1082,7 @@ static void SCInstanceInit(SCInstance *suri, const char *progname)
 #endif
 }
 
-static TmEcode PrintVersion()
+static TmEcode PrintVersion(void)
 {
 #ifdef REVISION
     printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -1094,7 +1094,7 @@ static TmEcode PrintVersion()
     return TM_ECODE_OK;
 }
 
-static TmEcode SCPrintVersion()
+static TmEcode LogVersion(void)
 {
 #ifdef REVISION
     SCLogNotice("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -1145,7 +1145,7 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
-        usage(suri->progname);
+        PrintUsage(suri->progname);
         return TM_ECODE_FAILED;
     }
     return TM_ECODE_OK;
@@ -1197,7 +1197,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                 "has been specified");
-        usage(suri->progname);
+        PrintUsage(suri->progname);
         return TM_ECODE_FAILED;
     }
     return TM_ECODE_OK;
@@ -1621,7 +1621,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
-                    usage(argv[0]);
+                    PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
 #else
@@ -1666,7 +1666,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                             "has been specified");
-                    usage(argv[0]);
+                    PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
 #endif
@@ -1765,7 +1765,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 else if (suri->run_mode != RUNMODE_DAG) {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                         "more than one run mode has been specified");
-                    usage(argv[0]);
+                    PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
                 LiveRegisterDevice(optarg);
@@ -1813,7 +1813,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                                "more than one run mode has been specified");
-                    usage(argv[0]);
+                    PrintUsage(argv[0]);
                     exit(EXIT_FAILURE);
                 }
             }
@@ -1929,7 +1929,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
-                usage(argv[0]);
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
 #else
@@ -1950,7 +1950,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
-                usage(argv[0]);
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
 #else
@@ -1964,7 +1964,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
-                usage(argv[0]);
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
@@ -1994,7 +1994,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
-                usage(argv[0]);
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
 #else
@@ -2039,7 +2039,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             break;
         default:
-            usage(argv[0]);
+            PrintUsage(argv[0]);
             return TM_ECODE_FAILED;
         }
     }
@@ -2161,7 +2161,7 @@ static int InitSignalHandler(SCInstance *suri)
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
     if (suri->do_setuid == FALSE && suri->do_setgid == FALSE) {
-        char *id;
+        const char *id;
         if (ConfGet("run-as.user", &id) == 1) {
             suri->do_setuid = TRUE;
             suri->user_name = id;
@@ -2278,7 +2278,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
 }
 
 
-int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
+static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 {
     /* Treat internal running mode */
     switch(suri->run_mode) {
@@ -2292,10 +2292,10 @@ int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             PrintVersion();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_BUILDINFO:
-            SCPrintBuildInfo();
+            PrintBuildInfo();
             return TM_ECODE_DONE;
         case RUNMODE_PRINT_USAGE:
-            usage(argv[0]);
+            PrintUsage(argv[0]);
             return TM_ECODE_DONE;
 #ifdef __SC_CUDA_SUPPORT__
         case RUNMODE_LIST_CUDA_CARDS:
@@ -2344,7 +2344,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
             suri->offline = 1;
             break;
         case RUNMODE_UNKNOWN:
-            usage(argv[0]);
+            PrintUsage(argv[0]);
             return TM_ECODE_FAILED;
         default:
             break;
@@ -2414,7 +2414,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */
-    char *temp_default_packet_size;
+    const char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         int lthread;
         int nlive;
@@ -2540,7 +2540,7 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
  */
 static int PostConfLoadedSetup(SCInstance *suri)
 {
-    char *hostmode = NULL;
+    const char *hostmode = NULL;
 
     /* do this as early as possible #1577 #1955 */
 #ifdef HAVE_LUAJIT
@@ -2566,7 +2566,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     if (suri->checksum_validation == -1) {
-        char *cv = NULL;
+        const char *cv = NULL;
         if (ConfGet("capture.checksum-validation", &cv) == 1) {
             if (strcmp(cv, "none") == 0) {
                 suri->checksum_validation = 0;
@@ -2638,7 +2638,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
         SCLogInfo("== Carrying out Engine Analysis ==");
-        char *temp = NULL;
+        const char *temp = NULL;
         if (ConfGet("engine-analysis", &temp) == 0) {
             SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
                       "Please define/enable them in the conf to use this "
@@ -2654,7 +2654,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     StorageInit();
     CIDRInit();
     SigParsePrepare();
-    SCReputationInitCtx();
     SCProtoNameInit();
 
     TagInitCtx();
@@ -2823,7 +2822,7 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig(suri.daemon, suri.verbose);
 
-    SCPrintVersion();
+    LogVersion();
     UtilCpuPrintSummary();
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {

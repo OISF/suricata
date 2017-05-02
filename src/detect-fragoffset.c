@@ -46,7 +46,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
 
@@ -136,7 +136,7 @@ static int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval fragoff pointer to DetectFragOffsetData on success
  * \retval NULL on failure
  */
-DetectFragOffsetData *DetectFragOffsetParse (char *fragoffsetstr)
+static DetectFragOffsetData *DetectFragOffsetParse (const char *fragoffsetstr)
 {
     DetectFragOffsetData *fragoff = NULL;
     char *substr[3] = {NULL, NULL, NULL};
@@ -217,7 +217,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *fragoffsetstr)
+static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *fragoffsetstr)
 {
     DetectFragOffsetData *fragoff = NULL;
     SigMatch *sm = NULL;
@@ -329,7 +329,7 @@ static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
 /**
  * \test DetectFragOffsetParseTest01 is a test for setting a valid fragoffset value
  */
-int DetectFragOffsetParseTest01 (void)
+static int DetectFragOffsetParseTest01 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse("300");
@@ -344,7 +344,7 @@ int DetectFragOffsetParseTest01 (void)
  * \test DetectFragOffsetParseTest02 is a test for setting a valid fragoffset value
  *       with spaces all around
  */
-int DetectFragOffsetParseTest02 (void)
+static int DetectFragOffsetParseTest02 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse(">300");
@@ -358,7 +358,7 @@ int DetectFragOffsetParseTest02 (void)
 /**
  * \test DetectFragOffsetParseTest03 is a test for setting an invalid fragoffset value
  */
-int DetectFragOffsetParseTest03 (void)
+static int DetectFragOffsetParseTest03 (void)
 {
     DetectFragOffsetData *fragoff = NULL;
     fragoff = DetectFragOffsetParse("badc");
@@ -374,7 +374,7 @@ int DetectFragOffsetParseTest03 (void)
  *       fragoffset keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-int DetectFragOffsetMatchTest01 (void)
+static int DetectFragOffsetMatchTest01 (void)
 {
     int result = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);

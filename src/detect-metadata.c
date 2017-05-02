@@ -28,8 +28,9 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-metadata.h"
 
-static int DetectMetadataSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectMetadataRegister (void)
 {
@@ -42,7 +43,7 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].RegisterTests = NULL;
 }
 
-static int DetectMetadataSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectMetadataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     return 0;
 }

@@ -41,56 +41,7 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
-
-
-/**
- * \brief A direct flick off libhtp-0.5.x htp_is_lws().
- */
-static int SC_htp_is_lws(int c)
-{
-    if ((c == ' ') || (c == '\t')) return 1;
-    else return 0;
-}
-
-/**
- * \brief A direct flick off libhtp-0.5.x htp_parse_positive_integer_whitespace().
- */
-static int64_t SC_htp_parse_positive_integer_whitespace(unsigned char *data, size_t len, int base)
-{
-    if (len == 0) return -1003;
-
-    size_t last_pos;
-    size_t pos = 0;
-
-    // Ignore LWS before
-    while ((pos < len) && (SC_htp_is_lws(data[pos]))) pos++;
-    if (pos == len) return -1001;
-
-    int64_t r = bstr_util_mem_to_pint(data + pos, len - pos, base, &last_pos);
-    if (r < 0) return r;
-
-    // Move after the last digit
-    pos += last_pos;
-
-    // Ignore LWS after
-    while (pos < len) {
-        if (!SC_htp_is_lws(data[pos])) {
-            return -1002;
-        }
-
-        pos++;
-    }
-
-    return r;
-}
-
-/**
- * \brief A direct flick off libhtp-0.5.x htp_parse_content_length()
- */
-int64_t SC_htp_parse_content_length(bstr *b)
-{
-    return SC_htp_parse_positive_integer_whitespace((unsigned char *) bstr_ptr(b), bstr_len(b), 10);
-}
+#include "app-layer-htp-libhtp.h"
 
 /**
  * \brief Generates the normalized uri.

@@ -57,7 +57,7 @@ typedef struct SCLogRedisContext_ {
     int  batch_count;
 } SCLogRedisContext;
 
-void SCLogRedisInit();
+void SCLogRedisInit(void);
 int SCConfLogOpenRedis(ConfNode *, void *);
 int LogFileWriteRedis(void *, const char *, size_t);
 

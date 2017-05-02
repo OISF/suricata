@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
+#include "util-cpu.h"
 
 /**
  * Ok, if they should use sysconf, check that they have the macro's
@@ -54,7 +55,7 @@
  * \retval 0 if the syscall is not available or we have an error;
  *           otherwise it will return the number of cpus configured
  */
-uint16_t UtilCpuGetNumProcessorsConfigured()
+uint16_t UtilCpuGetNumProcessorsConfigured(void)
 {
 #ifdef SYSCONF_NPROCESSORS_CONF_COMPAT
 	long nprocs = -1;
@@ -95,7 +96,7 @@ uint16_t UtilCpuGetNumProcessorsConfigured()
  * \retval 0 if the syscall is not available or we have an error;
  *           otherwise it will return the number of cpus online
  */
-uint16_t UtilCpuGetNumProcessorsOnline()
+uint16_t UtilCpuGetNumProcessorsOnline(void)
 {
 #ifdef SYSCONF_NPROCESSORS_ONLN_COMPAT
     long nprocs = -1;
@@ -130,7 +131,7 @@ uint16_t UtilCpuGetNumProcessorsOnline()
  * \retval 0 if the syscall is not available or we have an error;
  *           otherwise it will return the number of cpus allowed
  */
-uint16_t UtilCpuGetNumProcessorsMax()
+uint16_t UtilCpuGetNumProcessorsMax(void)
 {
 #ifdef SYSCONF_NPROCESSORS_MAX_COMPAT
     long nprocs = -1;
@@ -158,7 +159,7 @@ uint16_t UtilCpuGetNumProcessorsMax()
 /**
  * \brief Print a summary of CPUs detected (configured and online)
  */
-void UtilCpuPrintSummary()
+void UtilCpuPrintSummary(void)
 {
     uint16_t cpus_conf = UtilCpuGetNumProcessorsConfigured();
     uint16_t cpus_online = UtilCpuGetNumProcessorsOnline();

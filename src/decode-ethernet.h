@@ -54,5 +54,7 @@ typedef struct EthernetHdr_ {
     uint16_t eth_type;
 } __attribute__((__packed__)) EthernetHdr;
 
+void DecodeEthernetRegisterTests(void);
+
 #endif /* __DECODE_ETHERNET_H__ */
 

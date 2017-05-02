@@ -139,14 +139,14 @@ typedef struct SCInstance_ {
     char pcap_dev[128];
     char *sig_file;
     int sig_file_exclusive;
-    char *pid_filename;
+    const char *pid_filename;
     char *regex_arg;
 
     char *keyword_info;
     char *runmode_custom_mode;
 #ifndef OS_WIN32
-    char *user_name;
-    char *group_name;
+    const char *user_name;
+    const char *group_name;
     uint8_t do_setuid;
     uint8_t do_setgid;
     uint32_t userid;
@@ -161,14 +161,14 @@ typedef struct SCInstance_ {
 
     struct timeval start_time;
 
-    char *log_dir;
+    const char *log_dir;
     const char *progname; /**< pointer to argv[0] */
     const char *conf_filename;
 } SCInstance;
 
 
 /* memset to zeros, and mutex init! */
-void GlobalsInitPreConfig();
+void GlobalsInitPreConfig(void);
 
 extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
@@ -199,6 +199,7 @@ extern int run_mode_offline;
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
 void PostRunDeinit(const int runmode, struct timeval *start_time);
+void RegisterAllModules(void);
 
 #endif /* __SURICATA_H__ */
 

@@ -79,7 +79,7 @@ static pcre_extra *parse_capture_regex_study;
 static int pcre_use_jit = 1;
 #endif
 
-static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPcreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPcreFree(void *);
 static void DetectPcreRegisterTests(void);
 
@@ -792,7 +792,7 @@ error:
     return -1;
 }
 
-static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexstr)
+static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *regexstr)
 {
     SCEnter();
     DetectPcreData *pd = NULL;
@@ -916,7 +916,7 @@ static int DetectPcreParseTest02 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/blah/Ui$";
+    const char *teststring = "/blah/Ui$";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -935,7 +935,7 @@ static int DetectPcreParseTest03 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/blah/UNi";
+    const char *teststring = "/blah/UNi";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -954,7 +954,7 @@ static int DetectPcreParseTest04 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/b\\\"lah/i";
+    const char *teststring = "/b\\\"lah/i";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -974,7 +974,7 @@ static int DetectPcreParseTest05 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/b(l|a)h/";
+    const char *teststring = "/b(l|a)h/";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -994,7 +994,7 @@ static int DetectPcreParseTest06 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/b(l|a)h/smi";
+    const char *teststring = "/b(l|a)h/smi";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1014,7 +1014,7 @@ static int DetectPcreParseTest07 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/blah/Ui";
+    const char *teststring = "/blah/Ui";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1034,7 +1034,7 @@ static int DetectPcreParseTest08 (void)
 {
     int result = 1;
     DetectPcreData *pd = NULL;
-    char *teststring = "/b(l|a)h/O";
+    const char *teststring = "/b(l|a)h/O";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1054,7 +1054,7 @@ static int DetectPcreParseTest08 (void)
 static int DetectPcreParseTest09 (void)
 {
     DetectPcreData *pd = NULL;
-    char *teststring = "/lala\\\\/";
+    const char *teststring = "/lala\\\\/";
     int list = DETECT_SM_LIST_NOTSET;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1070,7 +1070,7 @@ static int DetectPcreParseTest09 (void)
 /**
  * \test Test pcre option for dce sig(yeah I'm bored of writing test titles).
  */
-int DetectPcreParseTest10(void)
+static int DetectPcreParseTest10(void)
 {
     Signature *s = SigAlloc();
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -1099,7 +1099,7 @@ int DetectPcreParseTest10(void)
 /**
  * \test Test pcre option for dce sig.
  */
-int DetectPcreParseTest11(void)
+static int DetectPcreParseTest11(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     Signature *s = NULL;
@@ -1263,7 +1263,7 @@ static int DetectPcreParseTest14(void)
 }
 
 /** \test Check a signature with pcre relative method */
-int DetectPcreParseTest15(void)
+static int DetectPcreParseTest15(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1286,7 +1286,7 @@ int DetectPcreParseTest15(void)
 
 
 /** \test Check a signature with pcre relative cookie */
-int DetectPcreParseTest16(void)
+static int DetectPcreParseTest16(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1308,7 +1308,7 @@ int DetectPcreParseTest16(void)
 }
 
 /** \test Check a signature with pcre relative raw header */
-int DetectPcreParseTest17(void)
+static int DetectPcreParseTest17(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1330,7 +1330,7 @@ int DetectPcreParseTest17(void)
 }
 
 /** \test Check a signature with pcre relative header */
-int DetectPcreParseTest18(void)
+static int DetectPcreParseTest18(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1352,7 +1352,7 @@ int DetectPcreParseTest18(void)
 }
 
 /** \test Check a signature with pcre relative client-body */
-int DetectPcreParseTest19(void)
+static int DetectPcreParseTest19(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1374,7 +1374,7 @@ int DetectPcreParseTest19(void)
 }
 
 /** \test Check a signature with pcre relative raw uri */
-int DetectPcreParseTest20(void)
+static int DetectPcreParseTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1396,7 +1396,7 @@ int DetectPcreParseTest20(void)
 }
 
 /** \test Check a signature with pcre relative uricontent */
-int DetectPcreParseTest21(void)
+static int DetectPcreParseTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1418,7 +1418,7 @@ int DetectPcreParseTest21(void)
 }
 
 /** \test Check a signature with pcre relative http_uri */
-int DetectPcreParseTest22(void)
+static int DetectPcreParseTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1440,7 +1440,7 @@ int DetectPcreParseTest22(void)
 }
 
 /** \test Check a signature with inconsistent pcre relative  */
-int DetectPcreParseTest23(void)
+static int DetectPcreParseTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1462,7 +1462,7 @@ int DetectPcreParseTest23(void)
 }
 
 /** \test Check a signature with inconsistent pcre modifiers  */
-int DetectPcreParseTest24(void)
+static int DetectPcreParseTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1483,7 +1483,7 @@ int DetectPcreParseTest24(void)
 }
 
 /** \test Check a signature with inconsistent pcre modifiers  */
-int DetectPcreParseTest25(void)
+static int DetectPcreParseTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -1934,7 +1934,7 @@ static int DetectPcreModifPTest05(void)
     PASS;
 }
 
-int DetectPcreTestSig06()
+static int DetectPcreTestSig06(void)
 {
     uint8_t *buf = (uint8_t *)
                     "lalala lalala\\ lala\n";
@@ -1955,7 +1955,7 @@ end:
 }
 
 /** \test anchored pcre */
-int DetectPcreTestSig07()
+static int DetectPcreTestSig07(void)
 {
     uint8_t *buf = (uint8_t *)
                     "lalala\n";
@@ -1971,7 +1971,7 @@ int DetectPcreTestSig07()
 }
 
 /** \test anchored pcre */
-int DetectPcreTestSig08()
+static int DetectPcreTestSig08(void)
 {
     /* test it also without ending in a newline "\n" */
     uint8_t *buf = (uint8_t *)

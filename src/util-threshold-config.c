@@ -108,9 +108,9 @@ static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
  * \retval log_filename Pointer to a string containing the path for the
  *                      Threshold Config file.
  */
-static char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
+static const char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
-    char *log_filename = NULL;
+    const char *log_filename = NULL;
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
         char config_value[256];
@@ -148,7 +148,7 @@ static char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
  */
 int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 {
-    char *filename = NULL;
+    const char *filename = NULL;
     const char *eb = NULL;
     int eo;
     int opts = 0;
@@ -996,7 +996,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
+static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 {
     uint8_t parsed_type = 0;
     uint8_t parsed_track = 0;
@@ -1046,7 +1046,7 @@ error:
  * \retval 1 On the argument string being a comment or blank line
  * \retval 0 Otherwise
  */
-int SCThresholdConfIsLineBlankOrComment(char *line)
+static int SCThresholdConfIsLineBlankOrComment(char *line)
 {
     while (*line != '\0') {
         /* we have a comment */
@@ -1072,7 +1072,7 @@ int SCThresholdConfIsLineBlankOrComment(char *line)
  * \retval the position of the slash making it multiline
  * \retval 0 Otherwise
  */
-int SCThresholdConfLineIsMultiline(char *line)
+static int SCThresholdConfLineIsMultiline(char *line)
 {
     int flag = 0;
     char *rline = line;
@@ -1099,7 +1099,7 @@ int SCThresholdConfLineIsMultiline(char *line)
  * \param fd Pointer to file descriptor.
  * \retval int of the line length
  */
-int SCThresholdConfLineLength(FILE *fd)
+static int SCThresholdConfLineLength(FILE *fd)
 {
     long pos = ftell(fd);
     int len = 0;
@@ -1196,7 +1196,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD01()
+static FILE *SCThresholdConfGenerateValidDummyFD01(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1217,7 +1217,7 @@ FILE *SCThresholdConfGenerateValidDummyFD01()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateInValidDummyFD02()
+static FILE *SCThresholdConfGenerateInValidDummyFD02(void)
 {
     FILE *fd;
     const char *buffer =
@@ -1235,7 +1235,7 @@ FILE *SCThresholdConfGenerateInValidDummyFD02()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD03()
+static FILE *SCThresholdConfGenerateValidDummyFD03(void)
 {
     FILE *fd;
     const char *buffer =
@@ -1254,7 +1254,7 @@ FILE *SCThresholdConfGenerateValidDummyFD03()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD04()
+static FILE *SCThresholdConfGenerateValidDummyFD04(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1274,7 +1274,7 @@ FILE *SCThresholdConfGenerateValidDummyFD04()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD05()
+static FILE *SCThresholdConfGenerateValidDummyFD05(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1295,7 +1295,7 @@ FILE *SCThresholdConfGenerateValidDummyFD05()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD06()
+static FILE *SCThresholdConfGenerateValidDummyFD06(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1316,7 +1316,7 @@ FILE *SCThresholdConfGenerateValidDummyFD06()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD07()
+static FILE *SCThresholdConfGenerateValidDummyFD07(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1336,7 +1336,7 @@ FILE *SCThresholdConfGenerateValidDummyFD07()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD08()
+static FILE *SCThresholdConfGenerateValidDummyFD08(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1356,7 +1356,7 @@ FILE *SCThresholdConfGenerateValidDummyFD08()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD09()
+static FILE *SCThresholdConfGenerateValidDummyFD09(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1377,7 +1377,7 @@ FILE *SCThresholdConfGenerateValidDummyFD09()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD10()
+static FILE *SCThresholdConfGenerateValidDummyFD10(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1397,7 +1397,7 @@ FILE *SCThresholdConfGenerateValidDummyFD10()
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD11()
+static FILE *SCThresholdConfGenerateValidDummyFD11(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -1417,7 +1417,7 @@ FILE *SCThresholdConfGenerateValidDummyFD11()
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest01(void)
+static int SCThresholdConfTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1450,7 +1450,7 @@ int SCThresholdConfTest01(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest02(void)
+static int SCThresholdConfTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1483,7 +1483,7 @@ int SCThresholdConfTest02(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest03(void)
+static int SCThresholdConfTest03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1516,7 +1516,7 @@ int SCThresholdConfTest03(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest04(void)
+static int SCThresholdConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1545,7 +1545,7 @@ int SCThresholdConfTest04(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest05(void)
+static int SCThresholdConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1600,7 +1600,7 @@ int SCThresholdConfTest05(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest06(void)
+static int SCThresholdConfTest06(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1633,7 +1633,7 @@ int SCThresholdConfTest06(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest07(void)
+static int SCThresholdConfTest07(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1667,7 +1667,7 @@ int SCThresholdConfTest07(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest08(void)
+static int SCThresholdConfTest08(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -1700,7 +1700,7 @@ int SCThresholdConfTest08(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest09(void)
+static int SCThresholdConfTest09(void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -1788,7 +1788,7 @@ int SCThresholdConfTest09(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest10(void)
+static int SCThresholdConfTest10(void)
 {
     HostInitConfig(HOST_QUIET);
 
@@ -1860,7 +1860,7 @@ int SCThresholdConfTest10(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest11(void)
+static int SCThresholdConfTest11(void)
 {
     HostInitConfig(HOST_QUIET);
 
@@ -1969,7 +1969,7 @@ int SCThresholdConfTest11(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest12(void)
+static int SCThresholdConfTest12(void)
 {
     HostInitConfig(HOST_QUIET);
 
@@ -2078,7 +2078,7 @@ int SCThresholdConfTest12(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest13(void)
+static int SCThresholdConfTest13(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -2111,7 +2111,7 @@ int SCThresholdConfTest13(void)
  *  \retval 1 on succces
  *  \retval 0 on failure
  */
-int SCThresholdConfTest14(void)
+static int SCThresholdConfTest14(void)
 {
     HostInitConfig(HOST_QUIET);
 
@@ -2330,7 +2330,7 @@ static int SCThresholdConfTest17(void)
  *
  * \retval fd Pointer to file descriptor.
  */
-static FILE *SCThresholdConfGenerateInvalidDummyFD12()
+static FILE *SCThresholdConfGenerateInvalidDummyFD12(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -2382,7 +2382,7 @@ static int SCThresholdConfTest18(void)
  *
  * \retval fd Pointer to file descriptor.
  */
-static FILE *SCThresholdConfGenerateInvalidDummyFD13()
+static FILE *SCThresholdConfGenerateInvalidDummyFD13(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -2431,7 +2431,7 @@ static int SCThresholdConfTest19(void)
  *
  * \retval fd Pointer to file descriptor.
  */
-FILE *SCThresholdConfGenerateValidDummyFD20()
+static FILE *SCThresholdConfGenerateValidDummyFD20(void)
 {
     FILE *fd = NULL;
     const char *buffer =

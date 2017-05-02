@@ -169,7 +169,7 @@ void SCProfilingRulesGlobalInit(void)
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
 
-                char *log_dir;
+                const char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
                 snprintf(profiling_file_name, sizeof(profiling_file_name),
@@ -428,7 +428,7 @@ static void DumpText(FILE *fp, SCProfileSummary *summary,
  *
  * \param de_ctx The active DetectEngineCtx, used to get at the loaded rules.
  */
-void
+static void
 SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
 {
     uint32_t i;
@@ -583,7 +583,7 @@ SCProfilingRuleUpdateCounter(DetectEngineThreadCtx *det_ctx, uint16_t id, uint64
     }
 }
 
-SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
+static SCProfileDetectCtx *SCProfilingRuleInitCtx(void)
 {
     SCProfileDetectCtx *ctx = SCMalloc(sizeof(SCProfileDetectCtx));
     if (ctx != NULL) {

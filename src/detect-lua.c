@@ -61,7 +61,7 @@
 
 #ifndef HAVE_LUA
 
-static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, char *c)
+static int DetectLuaSetupNoSupport (DetectEngineCtx *a, Signature *b, const char *c)
 {
     SCLogError(SC_ERR_NO_LUA_SUPPORT, "no Lua support built in, needed for lua/luajit keyword");
     return -1;
@@ -93,7 +93,7 @@ static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                 Flow *f, uint8_t flags,
                                 void *state, void *txv, const Signature *s,
                                 const SigMatchCtx *ctx);
-static int DetectLuaSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectLuaSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(void *);
 static int g_smtp_generic_list_id = 0;
@@ -173,6 +173,7 @@ static int InspectSmtpGeneric(ThreadVars *tv,
 
 #define DATATYPE_DNP3                       (1<<20)
 
+#if 0
 /** \brief dump stack from lua state to screen */
 void LuaDumpStack(lua_State *state)
 {
@@ -207,6 +208,7 @@ void LuaDumpStack(lua_State *state)
         printf("\n");
     }
 }
+#endif
 
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
@@ -658,7 +660,7 @@ static void DetectLuaThreadFree(void *ctx)
  * \retval lua pointer to DetectLuaData on success
  * \retval NULL on failure
  */
-static DetectLuaData *DetectLuaParse (const DetectEngineCtx *de_ctx, char *str)
+static DetectLuaData *DetectLuaParse (const DetectEngineCtx *de_ctx, const char *str)
 {
     DetectLuaData *lua = NULL;
 
@@ -955,7 +957,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectLuaData *lua = NULL;
     SigMatch *sm = NULL;

@@ -63,7 +63,7 @@ static pcre_extra *parse_regex_study;
 static int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectSslVersionRegisterTests(void);
 static void DetectSslVersionFree(void *);
 static int g_tls_generic_list_id = 0;
@@ -165,7 +165,7 @@ static int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssl pointer to DetectSslVersionData on success
  * \retval NULL on failure
  */
-static DetectSslVersionData *DetectSslVersionParse(char *str)
+static DetectSslVersionData *DetectSslVersionParse(const char *str)
 {
     DetectSslVersionData *ssl = NULL;
 	#define MAX_SUBSTRINGS 30
@@ -277,7 +277,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSslVersionData *ssl = NULL;
     SigMatch *sm = NULL;

@@ -62,7 +62,7 @@ static pcre_extra *parse_regex_study;
 static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsVersionRegisterTests(void);
 static void DetectTlsVersionFree(void *);
 static int g_tls_generic_list_id = 0;
@@ -133,7 +133,7 @@ static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectTlsVersionData on success
  * \retval NULL on failure
  */
-static DetectTlsVersionData *DetectTlsVersionParse (char *str)
+static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
@@ -216,7 +216,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsVersionData *tls = NULL;
     SigMatch *sm = NULL;

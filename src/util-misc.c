@@ -27,6 +27,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-misc.h"
 
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
 static pcre *parse_regex = NULL;
@@ -208,7 +209,7 @@ int ParseSizeStringU64(const char *size, uint64_t *res)
 
 #ifdef UNITTESTS
 
-int UtilMiscParseSizeStringTest01(void)
+static int UtilMiscParseSizeStringTest01(void)
 {
     const char *str;
     double result;

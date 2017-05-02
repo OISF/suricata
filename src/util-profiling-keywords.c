@@ -76,8 +76,7 @@ void SCProfilingKeywordsGlobalInit(void)
             profiling_keyword_enabled = 1;
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-
-                char *log_dir;
+                const char *log_dir;
                 log_dir = ConfigGetLogDirectory();
 
                 snprintf(profiling_file_name, sizeof(profiling_file_name), "%s/%s",
@@ -147,7 +146,7 @@ static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *n
     }
 }
 
-void
+static void
 SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
 {
     int i;
@@ -250,7 +249,7 @@ SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t
     }
 }
 
-SCProfileKeywordDetectCtx *SCProfilingKeywordInitCtx(void)
+static SCProfileKeywordDetectCtx *SCProfilingKeywordInitCtx(void)
 {
     SCProfileKeywordDetectCtx *ctx = SCMalloc(sizeof(SCProfileKeywordDetectCtx));
     if (ctx != NULL) {

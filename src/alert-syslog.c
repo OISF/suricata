@@ -88,7 +88,7 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A OutputCtx pointer on success, NULL on failure.
  */
-OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
+static OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
 {
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
@@ -146,7 +146,7 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
  * \param initdata      Pointer to the output context
  * \param data          pointer to pointer to point to the AlertSyslogThread
  */
-static TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertSyslogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     if(initdata == NULL) {
         SCLogDebug("Error getting context for AlertSyslog. \"initdata\" "
@@ -200,7 +200,7 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
-    char *action = "";
+    const char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -257,7 +257,7 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
-    char *action = "";
+    const char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -318,7 +318,7 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
-    char *action = "";
+    const char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;

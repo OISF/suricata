@@ -164,6 +164,10 @@
 #include <sys/stat.h>
 #endif
 
+#if HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif

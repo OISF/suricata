@@ -27,9 +27,9 @@
 void TmModuleReceivePcapFileRegister (void);
 void TmModuleDecodePcapFileRegister (void);
 
-void PcapIncreaseInvalidChecksum();
+void PcapIncreaseInvalidChecksum(void);
 
-void PcapFileGlobalInit();
+void PcapFileGlobalInit(void);
 
 #endif /* __SOURCE_PCAP_FILE_H__ */
 

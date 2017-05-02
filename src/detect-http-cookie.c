@@ -61,7 +61,7 @@
 #include "detect-engine-hcd.h"
 #include "stream-tcp.h"
 
-static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpCookieRegisterTests(void);
 static void DetectHttpCookieFree(void *);
 static void DetectHttpCookieSetupCallback(Signature *s);
@@ -129,7 +129,7 @@ void DetectHttpCookieFree(void *ptr)
  * \retval -1 On failure
  */
 
-static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectHttpCookieSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_COOKIE,

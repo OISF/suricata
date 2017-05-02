@@ -408,7 +408,7 @@ static void DetectBufferTypeFreeFunc(void *data)
     }
 }
 
-int DetectBufferTypeInit(void)
+static int DetectBufferTypeInit(void)
 {
     BUG_ON(g_buffer_type_hash);
     g_buffer_type_hash = HashListTableInit(256,
@@ -420,8 +420,8 @@ int DetectBufferTypeInit(void)
 
     return 0;
 }
-
-void DetectBufferTypeFree(void)
+#if 0
+static void DetectBufferTypeFree(void)
 {
     if (g_buffer_type_hash == NULL)
         return;
@@ -430,8 +430,8 @@ void DetectBufferTypeFree(void)
     g_buffer_type_hash = NULL;
     return;
 }
-
-int DetectBufferTypeAdd(const char *string)
+#endif
+static int DetectBufferTypeAdd(const char *string)
 {
     DetectBufferType *map = SCCalloc(1, sizeof(*map));
     if (map == NULL)
@@ -445,7 +445,7 @@ int DetectBufferTypeAdd(const char *string)
     return map->id;
 }
 
-DetectBufferType *DetectBufferTypeLookupByName(const char *string)
+static DetectBufferType *DetectBufferTypeLookupByName(const char *string)
 {
     DetectBufferType map = { (char *)string, NULL, 0, 0, 0, NULL, NULL };
 
@@ -507,7 +507,7 @@ const char *DetectBufferTypeGetNameById(const int id)
     return g_buffer_type_map[id]->string;
 }
 
-const DetectBufferType *DetectBufferTypeGetById(const int id)
+static const DetectBufferType *DetectBufferTypeGetById(const int id)
 {
     BUG_ON(id < 0 || id >= g_buffer_type_id);
     BUG_ON(g_buffer_type_map == NULL);
@@ -1182,10 +1182,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 {
     uint8_t profile = ENGINE_PROFILE_UNKNOWN;
-    char *max_uniq_toclient_groups_str = NULL;
-    char *max_uniq_toserver_groups_str = NULL;
-    char *sgh_mpm_context = NULL;
-    char *de_ctx_profile = NULL;
+    const char *max_uniq_toclient_groups_str = NULL;
+    const char *max_uniq_toserver_groups_str = NULL;
+    const char *sgh_mpm_context = NULL;
+    const char *de_ctx_profile = NULL;
 
     (void)ConfGet("detect.profile", &de_ctx_profile);
     (void)ConfGet("detect.sgh-mpm-context", &sgh_mpm_context);
@@ -1405,7 +1405,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     /* parse port grouping whitelisting settings */
 
-    char *ports = NULL;
+    const char *ports = NULL;
     (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
     if (ports) {
         SCLogConfig("grouping: tcp-whitelist %s", ports);
@@ -1453,7 +1453,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
-    char *pf_setting = NULL;
+    const char *pf_setting = NULL;
     if (ConfGet("detect.prefilter.default", &pf_setting) == 1 && pf_setting) {
         if (strcasecmp(pf_setting, "mpm") == 0) {
             de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
@@ -1906,7 +1906,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     return det_ctx;
 }
 
-void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
+static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
 #ifdef DEBUG
     SCLogInfo("PACKET PKT_STREAM_ADD: %"PRIu64, det_ctx->pkt_stream_add_cnt);
@@ -2355,7 +2355,7 @@ static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
     return 0;
 }
 
-int DetectLoaderSetupLoadTenant(uint32_t tenant_id, const char *yaml)
+static int DetectLoaderSetupLoadTenant(uint32_t tenant_id, const char *yaml)
 {
     TenantLoaderCtx *t = SCCalloc(1, sizeof(*t));
     if (t == NULL)
@@ -2379,7 +2379,7 @@ static int DetectLoaderFuncReloadTenant(void *vctx, int loader_id)
     return 0;
 }
 
-int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, int reload_cnt)
+static int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, int reload_cnt)
 {
     DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
     if (old_de_ctx == NULL)
@@ -2456,7 +2456,7 @@ int DetectEngineMultiTenantSetup(void)
         SCMutexLock(&master->lock);
         master->multi_tenant_enabled = 1;
 
-        char *handler = NULL;
+        const char *handler = NULL;
         if (ConfGet("multi-detect.selector", &handler) == 1) {
             SCLogConfig("multi-tenant selector type %s", handler);
 
@@ -3067,7 +3067,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
 #ifdef UNITTESTS
 
-static int DetectEngineInitYamlConf(char *conf)
+static int DetectEngineInitYamlConf(const char *conf)
 {
     ConfCreateContextBackup();
     ConfInit();
@@ -3084,7 +3084,7 @@ static void DetectEngineDeInitYamlConf(void)
 
 static int DetectEngineTest01(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3122,7 +3122,7 @@ static int DetectEngineTest01(void)
 
 static int DetectEngineTest02(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3160,7 +3160,7 @@ static int DetectEngineTest02(void)
 
 static int DetectEngineTest03(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3198,7 +3198,7 @@ static int DetectEngineTest03(void)
 
 static int DetectEngineTest04(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3236,7 +3236,7 @@ static int DetectEngineTest04(void)
 
 static int DetectEngineTest08(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3270,7 +3270,7 @@ static int DetectEngineTest08(void)
 /** \test bug 892 bad values */
 static int DetectEngineTest09(void)
 {
-    char *conf =
+    const char *conf =
         "%YAML 1.1\n"
         "---\n"
         "detect-engine:\n"
@@ -3306,7 +3306,6 @@ static int DetectEngineTest09(void)
 
 void DetectEngineRegisterTests()
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineTest01", DetectEngineTest01);
     UtRegisterTest("DetectEngineTest02", DetectEngineTest02);
@@ -3315,6 +3314,5 @@ void DetectEngineRegisterTests()
     UtRegisterTest("DetectEngineTest08", DetectEngineTest08);
     UtRegisterTest("DetectEngineTest09", DetectEngineTest09);
 #endif
-
     return;
 }

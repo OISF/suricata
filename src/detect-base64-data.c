@@ -20,10 +20,11 @@
 #include "detect-engine.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-parse.h"
+#include "detect-base64-data.h"
 
 #include "util-unittest.h"
 
-static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectBase64DataSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBase64DataRegisterTests(void);
 
 void DetectBase64DataRegister(void)
@@ -41,7 +42,7 @@ void DetectBase64DataRegister(void)
 }
 
 static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
-    char *str)
+    const char *str)
 {
     SigMatch *pm = NULL;
 
@@ -58,7 +59,7 @@ static int DetectBase64DataSetup(DetectEngineCtx *de_ctx, Signature *s,
 }
 
 int DetectBase64DataDoMatch(DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f)
+    DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f)
 {
     if (det_ctx->base64_decoded_len) {
         return DetectEngineContentInspection(de_ctx, det_ctx, s,

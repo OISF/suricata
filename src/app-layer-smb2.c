@@ -597,7 +597,7 @@ static void SMB2StateFree(void *s)
 void RegisterSMB2Parsers(void)
 {
     /** SMB2 */
-    char *proto_name = "smb2";
+    const char *proto_name = "smb2";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
@@ -617,7 +617,7 @@ void RegisterSMB2Parsers(void)
 /* UNITTESTS */
 #ifdef UNITTESTS
 
-int SMB2ParserTest01(void)
+static int SMB2ParserTest01(void)
 {
     int result = 1;
     Flow f;

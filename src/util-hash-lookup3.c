@@ -42,6 +42,7 @@ on 1 byte), but shoehorning those bytes into integers efficiently is messy.
 #ifdef linux
 # include <endian.h>    /* attempt to define endianness */
 #endif
+#include "util-hash-lookup3.h"
 
 /*
  * My best guess at if you are big-endian or little-endian.  This may

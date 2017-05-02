@@ -30,14 +30,14 @@
 #include "decode.h"
 #include "detect.h"
 #include "detect-parse.h"
-#include "flow-var.h"
+#include "detect-rawbytes.h"
 
 #include "detect-content.h"
 #include "detect-pcre.h"
 
 #include "util-debug.h"
 
-static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectRawbytesSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectRawbytesRegister (void)
 {
@@ -50,7 +50,7 @@ void DetectRawbytesRegister (void)
     sigmatch_table[DETECT_RAWBYTES].flags |= SIGMATCH_NOOPT;
 }
 
-static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
+static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
 

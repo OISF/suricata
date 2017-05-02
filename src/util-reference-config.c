@@ -51,7 +51,7 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 void SCRConfReferenceHashFree(void *ch);
 
 /* used to get the reference.config file path */
-static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
+static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 void SCReferenceConfInit(void)
 {
@@ -105,7 +105,7 @@ void SCReferenceConfDeinit(void)
  */
 static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    char *filename = NULL;
+    const char *filename = NULL;
 
     /* init the hash table to be used by the reference config references */
     de_ctx->reference_conf_ht = HashTableInit(128, SCRConfReferenceHashFunc,
@@ -159,9 +159,9 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
  * \retval log_filename Pointer to a string containing the path for the
  *                      reference.config file.
  */
-static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
+static const char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
-    char *path = NULL;
+    const char *path = NULL;
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
         char config_value[256];
@@ -614,7 +614,7 @@ FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void)
  * \test Check that the reference file is loaded and the detection engine
  *       content reference_conf_ht loaded with the reference data.
  */
-int SCRConfTest01(void)
+static int SCRConfTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -642,7 +642,7 @@ int SCRConfTest01(void)
  * \test Check that invalid references present in the reference.config file
  *       aren't loaded.
  */
-int SCRConfTest02(void)
+static int SCRConfTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -669,7 +669,7 @@ int SCRConfTest02(void)
  * \test Check that only valid references are loaded into the hash table from
  *       the reference.config file.
  */
-int SCRConfTest03(void)
+static int SCRConfTest03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -695,7 +695,7 @@ int SCRConfTest03(void)
  * \test Check if the reference info from the reference.config file have
  *       been loaded into the hash table.
  */
-int SCRConfTest04(void)
+static int SCRConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;
@@ -727,7 +727,7 @@ int SCRConfTest04(void)
  *       have not been loaded into the hash table, and cross verify to check
  *       that the hash table contains no reference data.
  */
-int SCRConfTest05(void)
+static int SCRConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;
@@ -759,7 +759,7 @@ int SCRConfTest05(void)
  * \test Check if the reference info from the reference.config file have
  *       been loaded into the hash table.
  */
-int SCRConfTest06(void)
+static int SCRConfTest06(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;

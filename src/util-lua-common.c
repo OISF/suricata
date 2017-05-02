@@ -55,6 +55,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
+#include "util-lua-common.h"
 
 int LuaCallbackError(lua_State *luastate, const char *msg)
 {

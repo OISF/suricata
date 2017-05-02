@@ -195,7 +195,7 @@ void SigGroupHeadFree(SigGroupHead *sgh)
  *
  * \retval hash The generated hash value.
  */
-uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+static uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     SigGroupHead *sgh = (SigGroupHead *)data;
     uint32_t hash = 0;
@@ -223,7 +223,7 @@ uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
  * \retval 1 If the 2 SigGroupHeads sent as args match.
  * \retval 0 If the 2 SigGroupHeads sent as args do not match.
  */
-char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2,
+static char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2,
                              uint16_t len2)
 {
     SigGroupHead *sgh1 = (SigGroupHead *)data1;

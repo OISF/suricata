@@ -55,7 +55,7 @@
 #include "detect-engine-hrud.h"
 #include "stream-tcp.h"
 
-static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawUriRegisterTests(void);
 static void DetectHttpRawUriSetupCallback(Signature *s);
 static int g_http_raw_uri_buffer_id = 0;
@@ -100,7 +100,7 @@ void DetectHttpRawUriRegister(void)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_URI,
@@ -124,7 +124,7 @@ static void DetectHttpRawUriSetupCallback(Signature *s)
  * \test Checks if a http_raw_uri is registered in a Signature, if content is not
  *       specified in the signature.
  */
-int DetectHttpRawUriTest01(void)
+static int DetectHttpRawUriTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -148,7 +148,7 @@ end:
  * \test Checks if a http_raw_uri is registered in a Signature, if some parameter
  *       is specified with http_raw_uri in the signature.
  */
-int DetectHttpRawUriTest02(void)
+static int DetectHttpRawUriTest02(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -172,7 +172,7 @@ end:
 /**
  * \test Checks if a http_raw_uri is registered in a Signature.
  */
-int DetectHttpRawUriTest03(void)
+static int DetectHttpRawUriTest03(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -220,7 +220,7 @@ end:
  * \test Checks if a http_raw_uri is registered in a Signature, when rawbytes is
  *       also specified in the signature.
  */
-int DetectHttpRawUriTest04(void)
+static int DetectHttpRawUriTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -248,7 +248,7 @@ int DetectHttpRawUriTest04(void)
  * \test Checks if a http_raw_uri is successfully converted to a rawuricontent.
  *
  */
-int DetectHttpRawUriTest05(void)
+static int DetectHttpRawUriTest05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     Signature *s = NULL;
@@ -272,7 +272,7 @@ int DetectHttpRawUriTest05(void)
         goto end;
     }
 
-    char *str = "we are testing http_raw_uri keyword";
+    const char *str = "we are testing http_raw_uri keyword";
     int uricomp = memcmp((const char *)
                          ((DetectContentData*)s->sm_lists[g_http_raw_uri_buffer_id]->ctx)->content,
                          str,
@@ -293,7 +293,7 @@ end:
     return result;
 }
 
-int DetectHttpRawUriTest12(void)
+static int DetectHttpRawUriTest12(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -340,7 +340,7 @@ int DetectHttpRawUriTest12(void)
     return result;
 }
 
-int DetectHttpRawUriTest13(void)
+static int DetectHttpRawUriTest13(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -387,7 +387,7 @@ int DetectHttpRawUriTest13(void)
     return result;
 }
 
-int DetectHttpRawUriTest14(void)
+static int DetectHttpRawUriTest14(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -411,7 +411,7 @@ int DetectHttpRawUriTest14(void)
     return result;
 }
 
-int DetectHttpRawUriTest15(void)
+static int DetectHttpRawUriTest15(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -435,7 +435,7 @@ int DetectHttpRawUriTest15(void)
     return result;
 }
 
-int DetectHttpRawUriTest16(void)
+static int DetectHttpRawUriTest16(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -459,7 +459,7 @@ int DetectHttpRawUriTest16(void)
     return result;
 }
 
-int DetectHttpRawUriTest17(void)
+static int DetectHttpRawUriTest17(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -506,7 +506,7 @@ int DetectHttpRawUriTest17(void)
     return result;
 }
 
-int DetectHttpRawUriTest18(void)
+static int DetectHttpRawUriTest18(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

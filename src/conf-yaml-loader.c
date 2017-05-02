@@ -26,6 +26,7 @@
 #include <yaml.h>
 #include "suricata-common.h"
 #include "conf.h"
+#include "conf-yaml-loader.h"
 #include "util-path.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -871,7 +872,7 @@ ConfYamlOverrideTest(void)
         "  child1:\n"
         "    key: value\n"
         ;
-    char *value;
+    const char *value;
 
     ConfCreateContextBackup();
     ConfInit();
@@ -918,7 +919,7 @@ ConfYamlOverrideFinalTest(void)
     if (ConfYamlLoadString(config, strlen(config)) != 0)
         return 0;
 
-    char *default_log_dir;
+    const char *default_log_dir;
 
     if (!ConfGet("default-log-dir", &default_log_dir))
         return 0;

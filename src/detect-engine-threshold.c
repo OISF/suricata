@@ -221,7 +221,7 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
     return e;
 }
 
-int ThresholdHandlePacketSuppress(Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
@@ -286,7 +286,7 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
  *  \retval 1 normal match
  *  \retval 0 no match
  */
-int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdData *td,
+static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdData *td,
         uint32_t sid, uint32_t gid, PacketAlert *pa)
 {
     int ret = 0;

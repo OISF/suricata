@@ -29,6 +29,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "conf-yaml-loader.h"
+#include "util-running-modes.h"
 
 int ListKeywords(const char *keyword_info)
 {

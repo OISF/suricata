@@ -61,7 +61,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilestoreFree(void *);
 static void DetectFilestoreRegisterTests(void);
 static int g_file_match_list_id = 0;
@@ -287,7 +287,7 @@ static int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, 
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
 

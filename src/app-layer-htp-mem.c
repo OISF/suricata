@@ -45,7 +45,7 @@ SC_ATOMIC_DECLARE(uint64_t, htp_memcap);
 
 void HTPParseMemcap()
 {
-    char *conf_val;
+    const char *conf_val;
 
     /** set config values for memcap, prealloc and hash_size */
     if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
@@ -66,13 +66,13 @@ void HTPParseMemcap()
     SC_ATOMIC_INIT(htp_memcap);
 }
 
-void HTPIncrMemuse(uint64_t size)
+static void HTPIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(htp_memuse, size);
     return;
 }
 
-void HTPDecrMemuse(uint64_t size)
+static void HTPDecrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_SUB(htp_memuse, size);
     return;
@@ -96,7 +96,7 @@ uint64_t HTPMemcapGlobalCounter(void)
  *  \retval 1 if in bounds
  *  \retval 0 if not in bounds
  */
-int HTPCheckMemcap(uint64_t size)
+static int HTPCheckMemcap(uint64_t size)
 {
     if (htp_config_memcap == 0 || size + SC_ATOMIC_GET(htp_memuse) <= htp_config_memcap)
         return 1;

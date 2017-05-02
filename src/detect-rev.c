@@ -25,10 +25,11 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-rev.h"
 #include "util-debug.h"
 #include "util-error.h"
 
-static int DetectRevSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectRevSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectRevRegister (void)
 {
@@ -41,22 +42,8 @@ void DetectRevRegister (void)
     sigmatch_table[DETECT_REV].RegisterTests = NULL;
 }
 
-static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    char *str = rawstr;
-    char dubbed = 0;
-
-    /* Strip leading and trailing "s. */
-    if (rawstr[0] == '\"') {
-        str = SCStrdup(rawstr+1);
-        if (unlikely(str == NULL))
-            return -1;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(rawstr)-1] = '\0';
-        }
-        dubbed = 1;
-    }
-
     unsigned long rev = 0;
     char *endptr = NULL;
     rev = strtoul(rawstr, &endptr, 10);
@@ -72,13 +59,9 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
     s->rev = (uint32_t)rev;
 
-    if (dubbed)
-        SCFree(str);
     return 0;
 
  error:
-    if (dubbed)
-        SCFree(str);
     return -1;
 }
 

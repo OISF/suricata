@@ -49,6 +49,8 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+#include "output-lua.h"
+
 #ifdef HAVE_LUA
 
 #include <lua.h>
@@ -84,7 +86,7 @@ typedef struct LogLuaThreadCtx_ {
     LogLuaCtx *lua_ctx;
 } LogLuaThreadCtx;
 
-static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data);
+static TmEcode LuaLogThreadInit(ThreadVars *t, const void *initdata, void **data);
 static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data);
 
 /** \internal
@@ -876,7 +878,7 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
  *
  *  Currently only stores a pointer to the global LogLuaCtx
  */
-static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LuaLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogLuaThreadCtx *td = SCMalloc(sizeof(*td));
     if (unlikely(td == NULL))

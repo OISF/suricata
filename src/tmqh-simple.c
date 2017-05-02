@@ -30,6 +30,7 @@
 #include "threadvars.h"
 
 #include "tm-queuehandlers.h"
+#include "tmqh-simple.h"
 
 Packet *TmqhInputSimple(ThreadVars *t);
 void TmqhOutputSimple(ThreadVars *t, Packet *p);

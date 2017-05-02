@@ -925,6 +925,7 @@ void PrintList(TcpSegment *seg)
     }
 }
 
+#if 0
 void ValidateList(const TcpStream *stream)
 {
     TcpSegment *seg = stream->seg_list;
@@ -942,6 +943,7 @@ void ValidateList(const TcpStream *stream)
         BUG_ON(seg && SEQ_LT(seg->seq, prev_seg->seq));
     }
 }
+#endif
 
 /*
  *  unittests

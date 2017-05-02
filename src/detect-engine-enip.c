@@ -72,7 +72,7 @@ void PrintENIPAL(ENIPTransaction *enip_data)
  * @param svc - the CIP service entry
  * * @param cipserviced - the CIP service rule
  */
-int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
+static int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
 {
     uint16_t class = 0;
     uint16_t attrib = 0;
@@ -161,7 +161,7 @@ int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
  * * @param cipserviced - the CIP service rule
  */
 
-int CIPServiceMatch(ENIPTransaction *enip_data,
+static int CIPServiceMatch(ENIPTransaction *enip_data,
         DetectCipServiceData *cipserviced)
 {
     int count = 1;

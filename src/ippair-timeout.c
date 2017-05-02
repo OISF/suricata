@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "ippair.h"
 #include "ippair-bit.h"
+#include "ippair-timeout.h"
 
 uint32_t IPPairGetSpareCount(void)
 {

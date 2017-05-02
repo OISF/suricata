@@ -49,6 +49,7 @@
 #include "util-time.h"
 
 #include "output-json.h"
+#include "output-json-dns.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -182,7 +183,7 @@ typedef enum {
 } DnsRRTypes;
 
 static struct {
-    char *config_rrtype;
+    const char *config_rrtype;
     uint64_t flags;
 } dns_rrtype_fields[] = {
    { "a", LOG_A },
@@ -665,7 +666,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 }
 
 #define OUTPUT_BUFFER_SIZE 65536
-static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
     if (unlikely(aft == NULL))

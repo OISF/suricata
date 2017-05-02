@@ -46,7 +46,7 @@ typedef struct NetmapIfaceSettings_
     int promisc;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
-    char *bpf_filter;
+    const char *bpf_filter;
 } NetmapIfaceSettings;
 
 typedef struct NetmapIfaceConfig_

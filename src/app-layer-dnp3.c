@@ -1583,7 +1583,7 @@ void RegisterDNP3Parsers(void)
 {
     SCEnter();
 
-    char *proto_name = "dnp3";
+    const char *proto_name = "dnp3";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
     {
@@ -2081,7 +2081,7 @@ static int DNP3ProbingParserTest(void)
 /**
  * \test Test a basic request/response.
  */
-int DNP3ParserTestRequestResponse(void)
+static int DNP3ParserTestRequestResponse(void)
 {
     DNP3State *state = NULL;
 
@@ -2231,7 +2231,7 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
 /**
  * \test Test flood state.
  */
-int DNP3ParserTestFlooded(void)
+static int DNP3ParserTestFlooded(void)
 {
     DNP3State *state = NULL;
 

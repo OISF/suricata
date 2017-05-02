@@ -59,7 +59,7 @@
 #include "detect-http-ua.h"
 #include "detect-engine-hua.h"
 
-static int DetectHttpUASetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpUARegisterTests(void);
 static void DetectHttpUAFree(void *);
 static void DetectHttpUASetupCallback(Signature *);
@@ -109,7 +109,7 @@ void DetectHttpUARegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_USER_AGENT,
@@ -1431,7 +1431,7 @@ end:
 
 
 
-int DetectHttpUATest22(void)
+static int DetectHttpUATest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1486,7 +1486,7 @@ int DetectHttpUATest22(void)
     return result;
 }
 
-int DetectHttpUATest23(void)
+static int DetectHttpUATest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1540,7 +1540,7 @@ int DetectHttpUATest23(void)
     return result;
 }
 
-int DetectHttpUATest24(void)
+static int DetectHttpUATest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1594,7 +1594,7 @@ int DetectHttpUATest24(void)
     return result;
 }
 
-int DetectHttpUATest25(void)
+static int DetectHttpUATest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1650,7 +1650,7 @@ int DetectHttpUATest25(void)
     return result;
 }
 
-int DetectHttpUATest26(void)
+static int DetectHttpUATest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1707,7 +1707,7 @@ int DetectHttpUATest26(void)
     return result;
 }
 
-int DetectHttpUATest27(void)
+static int DetectHttpUATest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1733,7 +1733,7 @@ int DetectHttpUATest27(void)
     return result;
 }
 
-int DetectHttpUATest28(void)
+static int DetectHttpUATest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1789,7 +1789,7 @@ int DetectHttpUATest28(void)
     return result;
 }
 
-int DetectHttpUATest29(void)
+static int DetectHttpUATest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1833,7 +1833,7 @@ int DetectHttpUATest29(void)
     return result;
 }
 
-int DetectHttpUATest30(void)
+static int DetectHttpUATest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1877,7 +1877,7 @@ int DetectHttpUATest30(void)
     return result;
 }
 
-int DetectHttpUATest31(void)
+static int DetectHttpUATest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1901,7 +1901,7 @@ int DetectHttpUATest31(void)
     return result;
 }
 
-int DetectHttpUATest32(void)
+static int DetectHttpUATest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1925,7 +1925,7 @@ int DetectHttpUATest32(void)
     return result;
 }
 
-int DetectHttpUATest33(void)
+static int DetectHttpUATest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1949,7 +1949,7 @@ int DetectHttpUATest33(void)
     return result;
 }
 
-int DetectHttpUATest34(void)
+static int DetectHttpUATest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2000,7 +2000,7 @@ int DetectHttpUATest34(void)
     return result;
 }
 
-int DetectHttpUATest35(void)
+static int DetectHttpUATest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2051,7 +2051,7 @@ int DetectHttpUATest35(void)
     return result;
 }
 
-int DetectHttpUATest36(void)
+static int DetectHttpUATest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

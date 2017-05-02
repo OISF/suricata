@@ -81,7 +81,7 @@ static int PoolDataPreAllocated(Pool *p, void *data)
  * \param Free free func
  * \retval the allocated Pool
  */
-Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
+Pool *PoolInit(uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *))
 {
     Pool *p = NULL;
 
@@ -383,14 +383,15 @@ void PoolPrintSaturation(Pool *p)
  * ONLY TESTS BELOW THIS COMMENT
  */
 
-void *PoolTestAlloc()
+#ifdef UNITTESTS
+static void *PoolTestAlloc(void)
 {
     void *ptr = SCMalloc(10);
     if (unlikely(ptr == NULL))
         return NULL;
     return ptr;
 }
-int PoolTestInitArg(void *data, void *allocdata)
+static int PoolTestInitArg(void *data, void *allocdata)
 {
     size_t len = strlen((char *)allocdata) + 1;
     char *str = data;
@@ -399,12 +400,11 @@ int PoolTestInitArg(void *data, void *allocdata)
     return 1;
 }
 
-void PoolTestFree(void *ptr)
+static void PoolTestFree(void *ptr)
 {
     return;
 }
 
-#ifdef UNITTESTS
 static int PoolTestInit01 (void)
 {
     Pool *p = PoolInit(10,5,10,PoolTestAlloc,NULL,NULL,PoolTestFree, NULL);

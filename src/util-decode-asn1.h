@@ -214,7 +214,7 @@ uint8_t SCAsn1DecodeContent(Asn1Ctx *);
 uint8_t SCAsn1CheckBounds(Asn1Ctx *);
 
 void DecodeAsn1RegisterTests(void);
-void SCAsn1LoadConfig();
+void SCAsn1LoadConfig(void);
 
 #endif /* __DECODE_ASN1_H__ */
 

@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-priority.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "util-error.h"
@@ -38,7 +39,7 @@
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
-static int DetectPrioritySetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPrioritySetup (DetectEngineCtx *, Signature *, const char *);
 void SCPriorityRegisterTests(void);
 
 /**
@@ -57,7 +58,7 @@ void DetectPriorityRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
 }
 
-static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char copy_str[128] = "";
 
@@ -96,7 +97,7 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
 
 #ifdef UNITTESTS
 
-int DetectPriorityTest01()
+static int DetectPriorityTest01(void)
 {
     int result = 0;
 
@@ -116,7 +117,7 @@ end:
     return result;
 }
 
-int DetectPriorityTest02()
+static int DetectPriorityTest02(void)
 {
     int result = 0;
     Signature *last = NULL;

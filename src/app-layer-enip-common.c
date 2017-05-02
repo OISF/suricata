@@ -41,7 +41,7 @@
  * @param input
  * @param offset
  */
-int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
+static int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
     if (*offset > (input_len - sizeof(uint8_t)))
@@ -61,7 +61,7 @@ int ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset, uint32_t in
  * @param input
  * @param offset
  */
-int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
+static int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
     if (*offset > (input_len - sizeof(uint16_t)))
@@ -82,7 +82,7 @@ int ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset, uint32_t 
  * @param input
  * @param offset
  */
-int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
+static int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
     if (*offset > (input_len - sizeof(uint32_t)))
@@ -103,7 +103,7 @@ int ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset, uint32_t 
  * @param input
  * @param offset
  */
-int ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
+static int ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset, uint32_t input_len)
 {
 
     if (*offset > (input_len - sizeof(uint64_t)))
@@ -143,12 +143,12 @@ static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
 
 }
 
-
+#if 0
 /**
  * \brief Delete service entry
  */
 
-void CIPServiceFree(void *s)
+static void CIPServiceFree(void *s)
 {
     SCEnter();
     if (s)
@@ -173,8 +173,7 @@ void CIPServiceFree(void *s)
     }
     SCReturn;
 }
-
-
+#endif
 
 /**
  * \brief Decode ENIP Encapsulation Header

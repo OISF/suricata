@@ -42,7 +42,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectMarkSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectMarkSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         const Signature *s, const SigMatchCtx *ctx);
 void DetectMarkDataFree(void *ptr);
@@ -72,7 +72,7 @@ void DetectMarkRegister (void)
  * \retval 0 on success
  * \retval < 0 on failure
  */
-static void * DetectMarkParse (char *rawstr)
+static void * DetectMarkParse (const char *rawstr)
 {
     int ret = 0, res = 0;
 #define MAX_SUBSTRINGS 30
@@ -182,7 +182,7 @@ static void * DetectMarkParse (char *rawstr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
 #ifdef NFQ
     DetectMarkData *data = NULL;

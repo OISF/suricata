@@ -32,7 +32,7 @@ static const char decode_pattern[] = "\\s*(bytes\\s+(\\d+),?)?"
 static pcre *decode_pcre = NULL;
 static pcre_extra *decode_pcre_study = NULL;
 
-static int DetectBase64DecodeSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectBase64DecodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBase64DecodeFree(void *);
 static void DetectBase64DecodeRegisterTests(void);
 
@@ -168,7 +168,7 @@ error:
 }
 
 static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
-    char *str)
+    const char *str)
 {
     uint32_t bytes = 0;
     uint32_t offset = 0;

@@ -55,6 +55,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-http.h"
 
 static int HttpGetRequestHost(lua_State *luastate)
 {

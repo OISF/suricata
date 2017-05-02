@@ -32,8 +32,9 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-msg.h"
 
-static int DetectMsgSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectMsgSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectMsgRegisterTests(void);
 
 void DetectMsgRegister (void)
@@ -48,7 +49,7 @@ void DetectMsgRegister (void)
     sigmatch_table[DETECT_MSG].flags = SIGMATCH_QUOTES_MANDATORY;
 }
 
-static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
+static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *msgstr)
 {
     size_t slen = strlen(msgstr);
     if (slen == 0)
@@ -118,7 +119,7 @@ static int DetectMsgParseTest01(void)
 {
     int result = 0;
     Signature *sig = NULL;
-    char *teststringparsed = "flow stateless to_server";
+    const char *teststringparsed = "flow stateless to_server";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
         goto end;
@@ -148,7 +149,7 @@ static int DetectMsgParseTest02(void)
 {
     int result = 0;
     Signature *sig = NULL;
-    char *teststringparsed = "msg escape tests wxy'\"\\;:";
+    const char *teststringparsed = "msg escape tests wxy'\"\\;:";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
         goto end;
@@ -175,7 +176,7 @@ static int DetectMsgParseTest03(void)
 {
     int result = 0;
     Signature *sig = NULL;
-    char *teststringparsed = "flow stateless to_server";
+    const char *teststringparsed = "flow stateless to_server";
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
         goto end;

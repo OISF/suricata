@@ -34,12 +34,12 @@ typedef struct DetectFileHashData_ {
 } DetectFileHashData;
 
 /* prototypes */
-int ReadHashString(uint8_t *, char *, char *, int, uint16_t);
-int LoadHashTable(ROHashTable *, char *, char *, int, uint32_t);
+int ReadHashString(uint8_t *, const char *, const char *, int, uint16_t);
+int LoadHashTable(ROHashTable *, const char *, const char *, int, uint32_t);
 
 int DetectFileHashMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
         File *, const Signature *, const SigMatchCtx *);
-int DetectFileHashSetup(DetectEngineCtx *, Signature *, char *, uint32_t, int);
+int DetectFileHashSetup(DetectEngineCtx *, Signature *, const char *, uint32_t, int);
 void DetectFileHashFree(void *);
 
 #endif /* __UTIL_DETECT_FILE_HASH_H__ */

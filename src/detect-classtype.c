@@ -42,7 +42,7 @@
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
-static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectClasstypeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectClasstypeRegisterTests(void);
 
 /**
@@ -68,19 +68,12 @@ void DetectClasstypeRegister(void)
  *
  * \retval bool success or failure.
  */
-static int DetectClasstypeParseRawString(char *rawstr, char *out, size_t outsize)
+static int DetectClasstypeParseRawString(const char *rawstr, char *out, size_t outsize)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     size_t len = strlen(rawstr);
-
-    /* get rid of the double quotes if present */
-    if (rawstr[0] == '\"' && rawstr[strlen(rawstr) - 1] == '\"') {
-        rawstr++;
-        rawstr[strlen(rawstr) - 1] = '\0';
-        len -= 2;
-    }
 
     ret = pcre_exec(regex, regex_study, rawstr, len, 0, 0, ov, 30);
     if (ret < 0) {
@@ -110,7 +103,7 @@ static int DetectClasstypeParseRawString(char *rawstr, char *out, size_t outsize
  * \retval  0 On success
  * \retval -1 On failure
  */
-static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     char parsed_ct_name[1024] = "";
     SCClassConfClasstype *ct = NULL;
@@ -153,7 +146,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
  * \test Check that supplying an invalid classtype in the rule, results in the
  *       rule being invalidated.
  */
-static int DetectClasstypeTest01()
+static int DetectClasstypeTest01(void)
 {
     int result = 0;
 
@@ -182,7 +175,7 @@ end:
  *       properly, with rules containing invalid classtypes being rejected
  *       and the ones containing valid classtypes parsed and returned.
  */
-static int DetectClasstypeTest02()
+static int DetectClasstypeTest02(void)
 {
     int result = 0;
     Signature *last = NULL;
@@ -248,7 +241,7 @@ end:
  * \test Check that the signatures are assigned priority based on classtype they
  *       are given.
  */
-static int DetectClasstypeTest03()
+static int DetectClasstypeTest03(void)
 {
     int result = 0;
     Signature *last = NULL;

@@ -93,12 +93,12 @@ static PcapFileGlobalVars pcap_g;
 
 TmEcode ReceivePcapFileLoop(ThreadVars *, void *, void *);
 
-TmEcode ReceivePcapFileThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceivePcapFileThreadInit(ThreadVars *, const void *, void **);
 void ReceivePcapFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode DecodePcapFileThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePcapFileThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
 void TmModuleReceivePcapFileRegister (void)
@@ -133,7 +133,7 @@ void PcapFileGlobalInit()
     SC_ATOMIC_INIT(pcap_g.invalid_checksums);
 }
 
-void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
+static void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 {
     SCEnter();
 
@@ -252,12 +252,12 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
 
-    char *tmpbpfstring = NULL;
-    char *tmpstring = NULL;
+    const char *tmpbpfstring = NULL;
+    const char *tmpstring = NULL;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
@@ -299,7 +299,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     } else {
         SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
-        if (pcap_compile(pcap_g.pcap_handle, &pcap_g.filter, tmpbpfstring, 1, 0) < 0) {
+        if (pcap_compile(pcap_g.pcap_handle, &pcap_g.filter, (char *)tmpbpfstring, 1, 0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",
                     pcap_geterr(pcap_g.pcap_handle));
             SCFree(ptv);
@@ -432,7 +432,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode DecodePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

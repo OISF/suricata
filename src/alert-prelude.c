@@ -58,6 +58,8 @@
 
 #include "stream.h"
 
+#include "alert-prelude.h"
+
 #ifndef PRELUDE
 
 /* Handle the case where no PRELUDE support is compiled in. */

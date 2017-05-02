@@ -47,7 +47,7 @@ typedef struct OutputFlowLogger_ {
     OutputCtx *output_ctx;
     struct OutputFlowLogger_ *next;
     const char *name;
-    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputFlowLogger;

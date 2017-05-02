@@ -33,6 +33,7 @@
 #include "util-unittest.h"
 
 #include "detect-engine-address.h"
+#include "detect-engine-address-ipv4.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 

@@ -71,7 +71,7 @@ typedef struct PcapThreadVars_
     /* thread specific bpf */
     struct bpf_program filter;
     /* ptr to string from config */
-    char *bpf_filter;
+    const char *bpf_filter;
 
     time_t last_stats_dump;
 
@@ -102,12 +102,12 @@ typedef struct PcapThreadVars_
     LiveDevice *livedev;
 } PcapThreadVars;
 
-TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceivePcapThreadInit(ThreadVars *, const void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
 TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 
-TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodePcapThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodePcapThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
@@ -171,7 +171,7 @@ static int PcapTryReopen(PcapThreadVars *ptv)
     }
     /* set bpf filter if we have one */
     if (ptv->bpf_filter != NULL) {
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,(char *)ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             return -1;
         }
@@ -187,7 +187,7 @@ static int PcapTryReopen(PcapThreadVars *ptv)
     return 0;
 }
 
-void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
+static void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
 {
     SCEnter();
 
@@ -325,10 +325,10 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
  *
  * \todo Create a general pcap setup function.
  */
-TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceivePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    PcapIfaceConfig *pcapconfig = initdata;
+    PcapIfaceConfig *pcapconfig = (PcapIfaceConfig *)initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -453,7 +453,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 
         ptv->bpf_filter = pcapconfig->bpf_filter;
 
-        if (pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
+        if (pcap_compile(ptv->pcap_handle,&ptv->filter,(char *)ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF, "bpf compilation error %s", pcap_geterr(ptv->pcap_handle));
 
             SCMutexUnlock(&pcap_bpf_compile_lock);
@@ -590,7 +590,7 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

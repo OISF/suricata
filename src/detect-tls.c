@@ -77,24 +77,24 @@ static pcre_extra *fingerprint_parse_regex_study;
 static int DetectTlsSubjectMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsSubjectSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSubjectRegisterTests(void);
 static void DetectTlsSubjectFree(void *);
 
 static int DetectTlsIssuerDNMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsIssuerDNSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerDNRegisterTests(void);
 static void DetectTlsIssuerDNFree(void *);
 
 static int DetectTlsFingerprintMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsFingerprintFree(void *);
 
-static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectTlsStorePostMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         Packet *, const Signature *s, const SigMatchCtx *unused);
 
@@ -311,7 +311,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsSubjectSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
@@ -511,7 +511,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
@@ -701,7 +701,7 @@ static int DetectTlsFingerprintMatch (ThreadVars *t, DetectEngineThreadCtx *det_
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectTlsData *tls = NULL;
     SigMatch *sm = NULL;
@@ -758,7 +758,7 @@ static void DetectTlsFingerprintFree(void *ptr)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SigMatch *sm = NULL;
 

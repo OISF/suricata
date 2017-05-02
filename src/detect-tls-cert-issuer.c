@@ -49,11 +49,12 @@
 
 #include "app-layer.h"
 #include "app-layer-ssl.h"
+#include "detect-tls-cert-issuer.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerRegisterTests(void);
 static int g_tls_cert_issuer_buffer_id = 0;
 
@@ -92,7 +93,7 @@ void DetectTlsIssuerRegister(void)
  *
  * \retval 0       On success
  */
-static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_tls_cert_issuer_buffer_id;
     s->alproto = ALPROTO_TLS;

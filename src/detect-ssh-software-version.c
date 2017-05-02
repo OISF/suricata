@@ -69,7 +69,7 @@ static pcre_extra *parse_regex_study;
 static int DetectSshSoftwareVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSshSoftwareVersionSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectSshSoftwareVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSshSoftwareVersionRegisterTests(void);
 static void DetectSshSoftwareVersionFree(void *);
 static int g_ssh_banner_list_id = 0;
@@ -151,7 +151,7 @@ static int DetectSshSoftwareVersionMatch (ThreadVars *t, DetectEngineThreadCtx *
  * \retval id_d pointer to DetectSshSoftwareVersionData on success
  * \retval NULL on failure
  */
-DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (char *str)
+static DetectSshSoftwareVersionData *DetectSshSoftwareVersionParse (const char *str)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
 #define MAX_SUBSTRINGS 30
@@ -210,7 +210,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectSshSoftwareVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSshSoftwareVersionData *ssh = NULL;
     SigMatch *sm = NULL;

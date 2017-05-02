@@ -56,6 +56,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-tls.h"
 
 static int GetCertNotBefore(lua_State *luastate, const Flow *f, int direction)
 {

@@ -110,7 +110,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
-    char *bpf_filter = NULL;
+    const char *bpf_filter = NULL;
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
             ns->bpf_filter = bpf_filter;
@@ -131,7 +131,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         if_default = NULL;
     }
 
-    char *threadsstr = NULL;
+    const char *threadsstr = NULL;
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         ns->threads = 0;
     } else {
@@ -160,7 +160,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ns->promisc = 0;
     }
 
-    char *tmpctype;
+    const char *tmpctype;
     if (ConfGetChildValueWithDefault(if_root, if_default,
                 "checksum-checks", &tmpctype) == 1)
     {
@@ -176,7 +176,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         }
     }
 
-    char *copymodestr;
+    const char *copymodestr;
     if (ConfGetChildValueWithDefault(if_root, if_default,
                 "copy-mode", &copymodestr) == 1)
     {
@@ -232,7 +232,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     ConfNode *if_root = NULL;
     ConfNode *if_default = NULL;
     ConfNode *netmap_node;
-    char *out_iface = NULL;
+    const char *out_iface = NULL;
 
     if (iface_name == NULL) {
         return NULL;
@@ -309,7 +309,7 @@ int NetmapRunModeIsIPS()
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
         }
-        char *copymodestr = NULL;
+        const char *copymodestr = NULL;
         if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
 
         if (if_root == NULL) {
@@ -340,7 +340,7 @@ int NetmapRunModeIsIPS()
                 return 0;
             }
             if_root = ConfNodeLookupKeyValue(netmap_node, "interface", live_dev);
-            char *copymodestr = NULL;
+            const char *copymodestr = NULL;
 
             if (if_root == NULL) {
                 if (if_default == NULL) {
@@ -371,7 +371,7 @@ int RunModeIdsNetmapAutoFp(void)
 
 #ifdef HAVE_NETMAP
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
 
@@ -407,7 +407,7 @@ int RunModeIdsNetmapSingle(void)
 
 #ifdef HAVE_NETMAP
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
     TimeModeSetLive();
@@ -443,7 +443,7 @@ int RunModeIdsNetmapWorkers(void)
 
 #ifdef HAVE_NETMAP
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
     TimeModeSetLive();

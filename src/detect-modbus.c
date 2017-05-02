@@ -108,7 +108,7 @@ static void DetectModbusFree(void *ptr) {
  *
  * \retval Pointer to DetectModbusData on success or NULL on failure
  */
-static DetectModbus *DetectModbusAccessParse(char *str)
+static DetectModbus *DetectModbusAccessParse(const char *str)
 {
     SCEnter();
     DetectModbus *modbus = NULL;
@@ -272,7 +272,7 @@ error:
  * \retval id_d pointer to DetectModbusData on success
  * \retval NULL on failure
  */
-static DetectModbus *DetectModbusFunctionParse(char *str)
+static DetectModbus *DetectModbusFunctionParse(const char *str)
 {
     SCEnter();
     DetectModbus *modbus = NULL;
@@ -360,7 +360,7 @@ error:
  *
  * \retval 0 on Success or -1 on Failure
  */
-static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     DetectModbus    *modbus = NULL;

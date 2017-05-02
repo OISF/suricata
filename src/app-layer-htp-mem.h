@@ -17,7 +17,7 @@
 
 #include "stream-tcp-reassemble.h"
 
-void HTPParseMemcap();
+void HTPParseMemcap(void);
 void *HTPMalloc(size_t size);
 void *HTPCalloc(size_t n, size_t size);
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size);

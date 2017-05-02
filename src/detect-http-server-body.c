@@ -59,7 +59,7 @@
 #include "detect-http-server-body.h"
 #include "stream-tcp.h"
 
-static int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpServerBodySetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpServerBodyRegisterTests(void);
 static void DetectHttpServerBodyFree(void *);
 
@@ -96,7 +96,7 @@ void DetectHttpServerBodyRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_SERVER_BODY,
@@ -1786,7 +1786,7 @@ end:
     return result;
 }
 
-int DetectHttpServerBodyTest22(void)
+static int DetectHttpServerBodyTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1841,7 +1841,7 @@ int DetectHttpServerBodyTest22(void)
     return result;
 }
 
-int DetectHttpServerBodyTest23(void)
+static int DetectHttpServerBodyTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1895,7 +1895,7 @@ int DetectHttpServerBodyTest23(void)
     return result;
 }
 
-int DetectHttpServerBodyTest24(void)
+static int DetectHttpServerBodyTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1949,7 +1949,7 @@ int DetectHttpServerBodyTest24(void)
     return result;
 }
 
-int DetectHttpServerBodyTest25(void)
+static int DetectHttpServerBodyTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2005,7 +2005,7 @@ int DetectHttpServerBodyTest25(void)
     return result;
 }
 
-int DetectHttpServerBodyTest26(void)
+static int DetectHttpServerBodyTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2062,7 +2062,7 @@ int DetectHttpServerBodyTest26(void)
 }
 
 /** \test invalid combination for content: distance, depth, http_server_body */
-int DetectHttpServerBodyTest27(void)
+static int DetectHttpServerBodyTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2088,7 +2088,7 @@ int DetectHttpServerBodyTest27(void)
     return result;
 }
 
-int DetectHttpServerBodyTest28(void)
+static int DetectHttpServerBodyTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2144,7 +2144,7 @@ int DetectHttpServerBodyTest28(void)
     return result;
 }
 
-int DetectHttpServerBodyTest29(void)
+static int DetectHttpServerBodyTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2188,7 +2188,7 @@ int DetectHttpServerBodyTest29(void)
     return result;
 }
 
-int DetectHttpServerBodyTest30(void)
+static int DetectHttpServerBodyTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2232,7 +2232,7 @@ int DetectHttpServerBodyTest30(void)
     return result;
 }
 
-int DetectHttpServerBodyTest31(void)
+static int DetectHttpServerBodyTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2256,7 +2256,7 @@ int DetectHttpServerBodyTest31(void)
     return result;
 }
 
-int DetectHttpServerBodyTest32(void)
+static int DetectHttpServerBodyTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2280,7 +2280,7 @@ int DetectHttpServerBodyTest32(void)
     return result;
 }
 
-int DetectHttpServerBodyTest33(void)
+static int DetectHttpServerBodyTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2304,7 +2304,7 @@ int DetectHttpServerBodyTest33(void)
     return result;
 }
 
-int DetectHttpServerBodyTest34(void)
+static int DetectHttpServerBodyTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2349,7 +2349,7 @@ int DetectHttpServerBodyTest34(void)
     return result;
 }
 
-int DetectHttpServerBodyTest35(void)
+static int DetectHttpServerBodyTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2400,7 +2400,7 @@ int DetectHttpServerBodyTest35(void)
     return result;
 }
 
-int DetectHttpServerBodyTest36(void)
+static int DetectHttpServerBodyTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

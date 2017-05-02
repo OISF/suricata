@@ -212,7 +212,7 @@ static void ReassembleFree(void *ptr, size_t size)
 }
 
 /** \brief alloc a tcp segment pool entry */
-void *TcpSegmentPoolAlloc()
+static void *TcpSegmentPoolAlloc(void)
 {
     if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment)) == 0) {
         return NULL;
@@ -226,7 +226,7 @@ void *TcpSegmentPoolAlloc()
     return seg;
 }
 
-int TcpSegmentPoolInit(void *data, void *initdata)
+static int TcpSegmentPoolInit(void *data, void *initdata)
 {
     TcpSegment *seg = (TcpSegment *) data;
 
@@ -251,7 +251,7 @@ int TcpSegmentPoolInit(void *data, void *initdata)
 }
 
 /** \brief clean up a tcp segment pool entry */
-void TcpSegmentPoolCleanup(void *ptr)
+static void TcpSegmentPoolCleanup(void *ptr)
 {
     if (ptr == NULL)
         return;
@@ -336,7 +336,7 @@ int StreamTcpAppLayerIsDisabled(Flow *f)
     return (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
 }
 
-int StreamTcpReassemblyConfig(char quiet)
+static int StreamTcpReassemblyConfig(char quiet)
 {
     uint32_t segment_prealloc = 2048;
     ConfNode *seg = ConfGetNode("stream.reassembly.segment-prealloc");
@@ -766,7 +766,7 @@ int StreamNeedsReassembly(const TcpSession *ssn, uint8_t direction)
 {
     const TcpStream *stream = NULL;
 #ifdef DEBUG
-    char *dirstr = NULL;
+    const char *dirstr = NULL;
 #endif
     if (direction == STREAM_TOSERVER) {
         stream = &ssn->client;

@@ -45,36 +45,6 @@
 #include "util-debug.h"
 
 /**
- *  \brief   Function to initialize the protocol detection and
- *           allocate memory to the DetectProto structure.
- *
- *  \retval  DetectProto instance pointer if successful otherwise NULL
- */
-
-DetectProto *DetectProtoInit(void)
-{
-    DetectProto *dp = SCMalloc(sizeof(DetectProto));
-    if (unlikely(dp == NULL))
-        return NULL;
-    memset(dp,0,sizeof(DetectProto));
-
-    return dp;
-}
-
-/**
- * \brief Free a DetectProto object
- *
- * \param dp Pointer to the DetectProto instance to be freed
- */
-void DetectProtoFree(DetectProto *dp)
-{
-    if (dp == NULL)
-        return;
-
-    SCFree(dp);
-}
-
-/**
  * \brief Parses a protocol sent as a string.
  *
  * \param dp  Pointer to the DetectProto instance which will be updated with the
@@ -83,7 +53,7 @@ void DetectProtoFree(DetectProto *dp)
  *
  * \retval >=0 If proto is detected, -1 otherwise.
  */
-int DetectProtoParse(DetectProto *dp, char *str)
+int DetectProtoParse(DetectProto *dp, const char *str)
 {
     if (strcasecmp(str, "tcp") == 0) {
         dp->proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
@@ -184,7 +154,7 @@ int DetectProtoContainsProto(const DetectProto *dp, int proto)
  *        setup the signature with passed values.
  */
 static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                               DetectProto *dp, char *str)
+                               DetectProto *dp, const char *str)
 {
     char fullstr[1024];
     int result = 0;

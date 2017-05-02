@@ -267,7 +267,7 @@ static void StatsInitCtx(void)
  * \brief Releases the resources alloted to the output context of the
  *        Stats API
  */
-static void StatsReleaseCtx()
+static void StatsReleaseCtx(void)
 {
     if (stats_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
@@ -528,7 +528,7 @@ static void StatsReleaseCounter(StatsCounter *pc)
  *         present counter on success
  * \retval 0 on failure
  */
-static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
+static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_name,
                                               StatsPublicThreadContext *pctx,
                                               int type_q, uint64_t (*Func)(void))
 {
@@ -883,7 +883,7 @@ void StatsSpawnThreads(void)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterCounter(char *name, struct ThreadVars_ *tv)
+uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
@@ -904,7 +904,7 @@ uint16_t StatsRegisterCounter(char *name, struct ThreadVars_ *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterAvgCounter(char *name, struct ThreadVars_ *tv)
+uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
@@ -925,7 +925,7 @@ uint16_t StatsRegisterAvgCounter(char *name, struct ThreadVars_ *tv)
  * \retval the counter id for the newly registered counter, or the already
  *         present counter
  */
-uint16_t StatsRegisterMaxCounter(char *name, struct ThreadVars_ *tv)
+uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
@@ -944,7 +944,7 @@ uint16_t StatsRegisterMaxCounter(char *name, struct ThreadVars_ *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterGlobalCounter(char *name, uint64_t (*Func)(void))
+uint16_t StatsRegisterGlobalCounter(const char *name, uint64_t (*Func)(void))
 {
 #ifdef UNITTESTS
     if (stats_ctx == NULL)
@@ -964,7 +964,7 @@ typedef struct CountersIdType_ {
     const char *string;
 } CountersIdType;
 
-uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
+static uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     CountersIdType *t = (CountersIdType *)data;
     uint32_t hash = 0;
@@ -980,7 +980,7 @@ uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
     return hash;
 }
 
-char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
+static char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
                                void *data2, uint16_t datalen2)
 {
     CountersIdType *t1 = (CountersIdType *)data1;
@@ -1004,7 +1004,7 @@ char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
     return 0;
 }
 
-void CountersIdHashFreeFunc(void *data)
+static void CountersIdHashFreeFunc(void *data)
 {
     SCFree(data);
 }
@@ -1232,13 +1232,13 @@ void StatsReleaseCounters(StatsCounter *head)
     return;
 }
 
-/**
- * \brief Releases the StatsPrivateThreadContext allocated by the user, for storing and
- *        updating local counter values
+/** \internal
+ *  \brief Releases the StatsPrivateThreadContext allocated by the user,
+ *         for storing and updating local counter values
  *
  * \param pca Pointer to the StatsPrivateThreadContext
  */
-void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
+static void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
 {
     if (pca != NULL) {
         if (pca->head != NULL) {
@@ -1274,7 +1274,7 @@ void StatsThreadCleanup(ThreadVars *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-static uint16_t RegisterCounter(char *name, char *tm_name,
+static uint16_t RegisterCounter(const char *name, const char *tm_name,
                                StatsPublicThreadContext *pctx)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name, tm_name, pctx,
@@ -1282,7 +1282,7 @@ static uint16_t RegisterCounter(char *name, char *tm_name,
     return id;
 }
 
-static int StatsTestCounterReg02()
+static int StatsTestCounterReg02(void)
 {
     StatsPublicThreadContext pctx;
 
@@ -1291,7 +1291,7 @@ static int StatsTestCounterReg02()
     return RegisterCounter(NULL, NULL, &pctx) == 0;
 }
 
-static int StatsTestCounterReg03()
+static int StatsTestCounterReg03(void)
 {
     StatsPublicThreadContext pctx;
     int result;
@@ -1305,7 +1305,7 @@ static int StatsTestCounterReg03()
     return result;
 }
 
-static int StatsTestCounterReg04()
+static int StatsTestCounterReg04(void)
 {
     StatsPublicThreadContext pctx;
     int result;
@@ -1323,7 +1323,7 @@ static int StatsTestCounterReg04()
     return result;
 }
 
-static int StatsTestGetCntArray05()
+static int StatsTestGetCntArray05(void)
 {
     ThreadVars tv;
     int id;
@@ -1340,7 +1340,7 @@ static int StatsTestGetCntArray05()
     return (r == -1) ? 1 : 0;
 }
 
-static int StatsTestGetCntArray06()
+static int StatsTestGetCntArray06(void)
 {
     ThreadVars tv;
     int id;
@@ -1362,7 +1362,7 @@ static int StatsTestGetCntArray06()
     return result;
 }
 
-static int StatsTestCntArraySize07()
+static int StatsTestCntArraySize07(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1389,7 +1389,7 @@ static int StatsTestCntArraySize07()
     PASS_IF(result == 2);
 }
 
-static int StatsTestUpdateCounter08()
+static int StatsTestUpdateCounter08(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1414,7 +1414,7 @@ static int StatsTestUpdateCounter08()
     return result == 101;
 }
 
-static int StatsTestUpdateCounter09()
+static int StatsTestUpdateCounter09(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1443,7 +1443,7 @@ static int StatsTestUpdateCounter09()
     return result;
 }
 
-static int StatsTestUpdateGlobalCounter10()
+static int StatsTestUpdateGlobalCounter10(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1477,7 +1477,7 @@ static int StatsTestUpdateGlobalCounter10()
     return result;
 }
 
-static int StatsTestCounterValues11()
+static int StatsTestCounterValues11(void)
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1518,7 +1518,7 @@ static int StatsTestCounterValues11()
 
 #endif
 
-void StatsRegisterTests()
+void StatsRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02);

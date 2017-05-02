@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-ip.h"
 
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
@@ -91,7 +92,7 @@ struct in6_addr *ValidateIPV6Address(const char *addr_str)
  * \param netmask The netmask value (cidr) to which the IP address has to be culled
  * \param key_bitlen  The bitlen of the stream
  */
-void MaskIPNetblock(uint8_t *stream, uint8_t netmask, uint16_t key_bitlen)
+void MaskIPNetblock(uint8_t *stream, int netmask, int key_bitlen)
 {
     uint32_t mask = 0;
     int i = 0;

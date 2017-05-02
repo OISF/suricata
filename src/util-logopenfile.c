@@ -353,7 +353,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
                      int rotate)
 {
     char log_path[PATH_MAX];
-    char *log_dir;
+    const char *log_dir;
     const char *filename, *filetype;
 
     // Arg check

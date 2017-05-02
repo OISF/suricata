@@ -36,6 +36,8 @@
 
 #include <stdint.h>
 
+#include "util-fix_checksum.h"
+
 /**
  * \brief Fix-up an IP checksum.
  *

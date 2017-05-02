@@ -40,7 +40,8 @@
 
 static int host_bit_id = -1;                /**< Host storage id for bits */
 
-void HostBitFreeAll(void *store) {
+static void HostBitFreeAll(void *store)
+{
     GenericVar *gv = store;
     GenericVarFree(gv);
 }

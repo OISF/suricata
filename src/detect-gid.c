@@ -36,7 +36,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-static int DetectGidSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectGidSetup (DetectEngineCtx *, Signature *, const char *);
 
 /**
  * \brief Registration function for gid: keyword
@@ -64,23 +64,8 @@ void DetectGidRegister (void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    char *str = rawstr;
-    char duped = 0;
-
-    /* Strip leading and trailing "s. */
-    if (rawstr[0] == '\"') {
-        str = SCStrdup(rawstr + 1);
-        if (unlikely(str == NULL)) {
-            return -1;
-        }
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\"';
-        }
-        duped = 1;
-    }
-
     unsigned long gid = 0;
     char *endptr = NULL;
     gid = strtoul(rawstr, &endptr, 10);
@@ -96,13 +81,9 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
     s->gid = (uint32_t)gid;
 
-    if (duped)
-        SCFree(str);
     return 0;
 
  error:
-    if (duped)
-        SCFree(str);
     return -1;
 }
 

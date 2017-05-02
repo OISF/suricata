@@ -549,7 +549,7 @@ inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
 
 const char *PktSrcToString(enum PktSrcEnum pkt_src)
 {
-    char *pkt_src_str = "<unknown>";
+    const char *pkt_src_str = "<unknown>";
     switch (pkt_src) {
         case PKT_SRC_WIRE:
             pkt_src_str = "wire/pcap";

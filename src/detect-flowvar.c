@@ -47,7 +47,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, const char *);
 static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         Packet *p, const Signature *s, const SigMatchCtx *ctx);
 static void DetectFlowvarDataFree(void *ptr);
@@ -114,7 +114,7 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return ret;
 }
 
-static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowvarData *fd = NULL;
     SigMatch *sm = NULL;

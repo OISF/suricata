@@ -51,7 +51,7 @@
 #include "stream-tcp.h"
 #include "app-layer-ssl.h"
 
-#define PARSE_REGEX1 "^\\s*(!?)([_a-zA-Z0-9]+)(.*)$"
+#define PARSE_REGEX1 "^(!?)([_a-zA-Z0-9]+)(.*)$"
 static pcre *parse_regex1;
 static pcre_extra *parse_regex1_study;
 
@@ -62,7 +62,7 @@ static pcre_extra *parse_regex2_study;
 static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectSslStateSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectSslStateRegisterTests(void);
 static void DetectSslStateFree(void *);
 
@@ -154,7 +154,7 @@ static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssd  Pointer to DetectSslStateData on succese.
  * \retval NULL On failure.
  */
-static DetectSslStateData *DetectSslStateParse(char *arg)
+static DetectSslStateData *DetectSslStateParse(const char *arg)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -303,7 +303,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectSslStateData *ssd = NULL;
     SigMatch *sm = NULL;

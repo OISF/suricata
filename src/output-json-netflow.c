@@ -45,6 +45,7 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 #include "output-json.h"
+#include "output-json-netflow.h"
 
 #include "stream-tcp-private.h"
 
@@ -62,7 +63,7 @@ typedef struct JsonNetFlowLogThread_ {
 } JsonNetFlowLogThread;
 
 
-static json_t *CreateJSONHeaderFromFlow(Flow *f, char *event_type, int dir)
+static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type, int dir)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -324,7 +325,7 @@ static void OutputNetFlowLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "netflow.json"
-OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
+static OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
 {
     SCLogInfo("hi");
     LogFileCtx *file_ctx = LogFileNewCtx();
@@ -365,7 +366,7 @@ static void OutputNetFlowLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
 
@@ -388,7 +389,7 @@ OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonNetFlowLogThread *aft = SCMalloc(sizeof(JsonNetFlowLogThread));
     if (unlikely(aft == NULL))

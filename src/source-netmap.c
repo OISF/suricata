@@ -86,7 +86,7 @@ extern intmax_t max_pending_packets;
 
 #ifndef HAVE_NETMAP
 
-TmEcode NoNetmapSupportExit(ThreadVars *, void *, void **);
+TmEcode NoNetmapSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleReceiveNetmapRegister (void)
 {
@@ -119,7 +119,7 @@ void TmModuleDecodeNetmapRegister (void)
 /**
 * \brief this function prints an error message and exits.
 */
-TmEcode NoNetmapSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoNetmapSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NO_NETMAP,"Error creating thread %s: you do not have "
             "support for netmap enabled, please recompile "
@@ -491,10 +491,10 @@ static inline void NetmapDumpCounters(NetmapThreadVars *ntv)
  * \param initdata pointer to the interface passed from the user
  * \param data pointer gets populated with NetmapThreadVars
  */
-static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    NetmapIfaceConfig *aconf = initdata;
+    NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -976,7 +976,7 @@ static TmEcode ReceiveNetmapThreadDeinit(ThreadVars *tv, void *data)
  * \param initdata Thread config.
  * \param data Pointer to DecodeThreadVars placed here.
  */
-static TmEcode DecodeNetmapThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode DecodeNetmapThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

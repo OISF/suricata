@@ -49,7 +49,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectWindowSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectWindowRegisterTests(void);
 void DetectWindowFree(void *);
 
@@ -104,7 +104,7 @@ static int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  * \retval wd pointer to DetectWindowData on success
  * \retval NULL on failure
  */
-static DetectWindowData *DetectWindowParse(char *windowstr)
+static DetectWindowData *DetectWindowParse(const char *windowstr)
 {
     DetectWindowData *wd = NULL;
 #define MAX_SUBSTRINGS 30
@@ -171,7 +171,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
+static int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *windowstr)
 {
     DetectWindowData *wd = NULL;
     SigMatch *sm = NULL;
@@ -217,7 +217,7 @@ void DetectWindowFree(void *ptr)
  * \test DetectWindowTestParse01 is a test to make sure that we set the size correctly
  *  when given valid window opt
  */
-int DetectWindowTestParse01 (void)
+static int DetectWindowTestParse01 (void)
 {
     int result = 0;
     DetectWindowData *wd = NULL;
@@ -233,7 +233,7 @@ int DetectWindowTestParse01 (void)
 /**
  * \test DetectWindowTestParse02 is a test for setting the window opt negated
  */
-int DetectWindowTestParse02 (void)
+static int DetectWindowTestParse02 (void)
 {
     int result = 0;
     DetectWindowData *wd = NULL;
@@ -253,7 +253,7 @@ int DetectWindowTestParse02 (void)
 /**
  * \test DetectWindowTestParse03 is a test to check for an empty value
  */
-int DetectWindowTestParse03 (void)
+static int DetectWindowTestParse03 (void)
 {
     int result = 0;
     DetectWindowData *wd = NULL;
@@ -271,7 +271,7 @@ int DetectWindowTestParse03 (void)
 /**
  * \test DetectWindowTestParse03 is a test to check for a big value
  */
-int DetectWindowTestParse04 (void)
+static int DetectWindowTestParse04 (void)
 {
     int result = 0;
     DetectWindowData *wd = NULL;
@@ -288,7 +288,7 @@ int DetectWindowTestParse04 (void)
 /**
  * \test DetectWindowTestPacket01 is a test to check window with constructed packets
  */
-int DetectWindowTestPacket01 (void)
+static int DetectWindowTestPacket01 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -307,7 +307,7 @@ int DetectWindowTestPacket01 (void)
     /* TCP window = 41 */
     p[1]->tcph->th_win = htons(41);
 
-    char *sigs[2];
+    const char *sigs[2];
     sigs[0]= "alert tcp any any -> any any (msg:\"Testing window 1\"; window:40; sid:1;)";
     sigs[1]= "alert tcp any any -> any any (msg:\"Testing window 2\"; window:41; sid:2;)";
 

@@ -25,9 +25,10 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-noalert.h"
 #include "util-debug.h"
 
-static int DetectNoalertSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectNoalertSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectNoalertRegister (void)
 {
@@ -40,7 +41,7 @@ void DetectNoalertRegister (void)
     sigmatch_table[DETECT_NOALERT].flags |= SIGMATCH_NOOPT;
 }
 
-static int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
+static int DetectNoalertSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");

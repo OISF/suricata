@@ -72,7 +72,7 @@ typedef struct LogDropLogThread_ {
  *
  * \return TM_ECODE_OK on success
  */
-static TmEcode LogDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogDropLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     if(initdata == NULL) {
         SCLogDebug("Error getting context for LogDropLog. \"initdata\" argument NULL");
@@ -348,7 +348,7 @@ static void LogDropLogExitPrintStats(ThreadVars *tv, void *data)
 #ifdef UNITTESTS
 
 /** \brief test if the action is drop then packet should be logged */
-int LogDropLogTest01()
+static int LogDropLogTest01(void)
 {
     int result = 0;
     EngineModeSetIPS();
@@ -413,7 +413,7 @@ int LogDropLogTest01()
 }
 
 /** \brief test if the action is alert then packet shouldn't be logged */
-int LogDropLogTest02()
+static int LogDropLogTest02(void)
 {
     int result = 0;
     EngineModeSetIPS();

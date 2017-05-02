@@ -39,6 +39,7 @@
 #define KEYWORD_TOSERVER 1
 
 #include "detect-http-headers-stub.h"
+#include "detect-http-accept-enc.h"
 
 void RegisterHttpHeadersAcceptEnc(void)
 {

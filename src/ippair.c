@@ -96,7 +96,7 @@ void IPPairFree(IPPair *h)
     }
 }
 
-IPPair *IPPairNew(Address *a, Address *b)
+static IPPair *IPPairNew(Address *a, Address *b)
 {
     IPPair *p = IPPairAlloc();
     if (p == NULL)
@@ -144,7 +144,7 @@ void IPPairInitConfig(char quiet)
     ippair_config.prealloc    = IPPAIR_DEFAULT_PREALLOC;
 
     /* Check if we have memcap and hash_size defined at config */
-    char *conf_val;
+    const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
@@ -468,7 +468,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
     return h;
 }
 
-void IPPairInit(IPPair *h, Address *a, Address *b)
+static void IPPairInit(IPPair *h, Address *a, Address *b)
 {
     COPY_ADDRESS(a, &h->a[0]);
     COPY_ADDRESS(b, &h->a[1]);

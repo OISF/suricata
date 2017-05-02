@@ -60,7 +60,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(void *);
 
 static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
@@ -163,7 +163,7 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
  * \retval de pointer to DetectFlagsData on success
  * \retval NULL on failure
  */
-static DetectFlagsData *DetectFlagsParse (char *rawstr)
+static DetectFlagsData *DetectFlagsParse (const char *rawstr)
 {
     SCEnter();
 
@@ -477,7 +477,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlagsData *de = NULL;
     SigMatch *sm = NULL;

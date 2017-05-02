@@ -242,7 +242,7 @@ typedef struct DCERPCUDP_ {
 
 int32_t DCERPCParser(DCERPC *, uint8_t *, uint32_t);
 void hexdump(const void *buf, size_t len);
-void printUUID(char *type, DCERPCUuidEntry *uuid);
+void printUUID(const char *type, DCERPCUuidEntry *uuid);
 
 #endif /* __APP_LAYER_DCERPC_COMMON_H__ */
 

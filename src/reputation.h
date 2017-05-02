@@ -84,10 +84,11 @@ typedef struct IPReputationCtx_ {
 
 uint8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
 uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version);
-void SRepResetVersion();
+void SRepResetVersion(void);
 int SRepLoadCatFileFromFD(FILE *fp);
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
 
+#if 0
 /** Reputation Data */
 //TODO: Add a timestamp here to know the last update of this reputation.
 typedef struct Reputation_ {
@@ -118,6 +119,7 @@ IPReputationCtx *SCReputationInitCtx(void);
 void SCReputationFreeCtx(IPReputationCtx *);
 
 void SCReputationPrint(Reputation *);
+#endif
 void SCReputationRegisterTests(void);
 
 #endif /* __REPUTATION_H__ */

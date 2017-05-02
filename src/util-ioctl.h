@@ -21,6 +21,7 @@
  * \author Eric Leblond <eleblond@edenwall.com>
  */
 
+#include "suricata-common.h"
 #include "util-device.h"
 
 int GetIfaceMTU(const char *pcap_dev);
@@ -35,6 +36,9 @@ int SetIfaceFlags(const char *ifname, int flags);
 #endif
 #ifdef SIOCGIFCAP
 int GetIfaceCaps(const char *ifname);
+#endif
+#ifdef SIOCSIFCAP
+int SetIfaceCaps(const char *ifname, int caps);
 #endif
 int DisableIfaceOffloading(LiveDevice *dev, int csum, int other);
 void RestoreIfaceOffloading(LiveDevice *dev);

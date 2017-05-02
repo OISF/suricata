@@ -104,7 +104,7 @@ void DetectHttpUriRegister (void)
  * \retval -1 On failure
  */
 
-int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_URI,
@@ -273,7 +273,7 @@ static int DetectHttpUriTest05(void)
         goto end;
     }
 
-    char *str = "we are testing http_uri keyword";
+    const char *str = "we are testing http_uri keyword";
     int uricomp = memcmp((const char *)((DetectContentData*) s->sm_lists[g_http_uri_buffer_id]->ctx)->content, str, strlen(str)-1);
     int urilen = ((DetectContentData*) s->sm_lists_tail[g_http_uri_buffer_id]->ctx)->content_len;
     if (uricomp != 0 ||

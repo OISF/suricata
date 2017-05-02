@@ -53,6 +53,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-vars.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -110,7 +111,7 @@ static int JsonVarsLogCondition(ThreadVars *tv, const Packet *p)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonVarsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonVarsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonVarsLogThread *aft = SCMalloc(sizeof(JsonVarsLogThread));
     if (unlikely(aft == NULL))

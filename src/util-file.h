@@ -90,7 +90,7 @@ typedef struct FileContainer_ {
     File *tail;
 } FileContainer;
 
-FileContainer *FileContainerAlloc();
+FileContainer *FileContainerAlloc(void);
 void FileContainerFree(FileContainer *);
 
 void FileContainerRecycle(FileContainer *);

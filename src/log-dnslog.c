@@ -249,7 +249,7 @@ static int LogDnsResponseLogger(ThreadVars *tv, void *data, const Packet *p,
     return LogDnsLogger(tv, data, p, f, state, tx, tx_id, STREAM_TOCLIENT);
 }
 
-static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogDnsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDnsLogThread *aft = SCMalloc(sizeof(LogDnsLogThread));
     if (unlikely(aft == NULL))

@@ -112,7 +112,7 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
 DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
         const char *contentstr);
 
-int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr);
+int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *contentstr);
 void DetectContentPrint(DetectContentData *);
 
 void DetectContentFree(void *);

@@ -32,6 +32,8 @@
 #include "util-debug.h"
 #include "suricata.h"
 
+#include "util-privs.h"
+
 #ifdef HAVE_LIBCAP_NG
 
 #include <cap-ng.h>
@@ -40,7 +42,6 @@
 #endif
 #include "threadvars.h"
 #include "util-cpu.h"
-#include "util-privs.h"
 #include "runmodes.h"
 
 /** flag indicating if we'll be using caps */
@@ -48,18 +49,6 @@ extern int sc_set_caps;
 
 /** our current runmode */
 extern int run_mode;
-
-/**
- * \brief   Drop all the previliges of the given thread
- */
-void SCDropAllCaps()
-{
-    capng_clear(CAPNG_SELECT_BOTH);
-    if (capng_apply(CAPNG_SELECT_BOTH) < 0) {
-        SCLogError(SC_ERR_CHANGING_CAPS_FAILED, "failed in dropping the caps");
-        exit(EXIT_FAILURE);
-    }
-}
 
 /**
  * \brief   Drop the previliges of the main thread
@@ -158,7 +147,7 @@ void SCDropCaps(ThreadVars *tv)
  *
  * \retval  upon success it return 0
  */
-int SCGetUserID(char *user_name, char *group_name, uint32_t *uid, uint32_t *gid)
+int SCGetUserID(const char *user_name, const char *group_name, uint32_t *uid, uint32_t *gid)
 {
     uint32_t userid = 0;
     uint32_t groupid = 0;
@@ -221,7 +210,7 @@ int SCGetUserID(char *user_name, char *group_name, uint32_t *uid, uint32_t *gid)
  *
  * \retval  upon success it return 0
  */
-int SCGetGroupID(char *group_name, uint32_t *gid)
+int SCGetGroupID(const char *group_name, uint32_t *gid)
 {
     uint32_t grpid = 0;
     struct group *gp;

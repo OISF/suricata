@@ -34,11 +34,11 @@ enum {
 };
 
 typedef struct Tmqh_ {
-    char *name;
+    const char *name;
     Packet *(*InHandler)(ThreadVars *);
     void (*InShutdownHandler)(ThreadVars *);
     void (*OutHandler)(ThreadVars *, Packet *);
-    void *(*OutHandlerCtxSetup)(char *);
+    void *(*OutHandlerCtxSetup)(const char *);
     void (*OutHandlerCtxFree)(void *);
     void (*RegisterTests)(void);
 } Tmqh;
@@ -47,7 +47,7 @@ Tmqh tmqh_table[TMQH_SIZE];
 
 void TmqhSetup (void);
 void TmqhCleanup(void);
-Tmqh* TmqhGetQueueHandlerByName(char *name);
+Tmqh* TmqhGetQueueHandlerByName(const char *name);
 
 #endif /* __TM_QUEUEHANDLERS_H__ */
 

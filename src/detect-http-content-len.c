@@ -40,6 +40,7 @@
 #define KEYWORD_TOCLIENT 1
 
 #include "detect-http-headers-stub.h"
+#include "detect-http-content-len.h"
 
 void RegisterHttpHeadersContentLen(void)
 {

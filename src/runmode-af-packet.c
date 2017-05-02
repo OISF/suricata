@@ -86,7 +86,7 @@ void RunModeIdsAFPRegister(void)
 
 #ifdef HAVE_AF_PACKET
 
-void AFPDerefConfig(void *conf)
+static void AFPDerefConfig(void *conf)
 {
     AFPIfaceConfig *pfp = (AFPIfaceConfig *)conf;
     /* Pcap config is used only once but cost of this low. */
@@ -109,19 +109,19 @@ static int cluster_id_auto = 1;
  *
  * \return a AFPIfaceConfig corresponding to the interface name
  */
-void *ParseAFPConfig(const char *iface)
+static void *ParseAFPConfig(const char *iface)
 {
-    char *threadsstr = NULL;
+    const char *threadsstr = NULL;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
     ConfNode *af_packet_node;
-    char *tmpclusterid;
-    char *tmpctype;
-    char *copymodestr;
+    const char *tmpclusterid;
+    const char *tmpctype;
+    const char *copymodestr;
     intmax_t value;
     int boolval;
-    char *bpf_filter = NULL;
-    char *out_iface = NULL;
+    const char *bpf_filter = NULL;
+    const char *out_iface = NULL;
     int cluster_type = PACKET_FANOUT_HASH;
 
     if (iface == NULL) {
@@ -488,7 +488,7 @@ finalize:
     return aconf;
 }
 
-int AFPConfigGeThreadsCount(void *conf)
+static int AFPConfigGeThreadsCount(void *conf)
 {
     AFPIfaceConfig *afp = (AFPIfaceConfig *)conf;
     return afp->threads;
@@ -518,7 +518,7 @@ int AFPRunModeIsIPS()
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
         }
-        char *copymodestr = NULL;
+        const char *copymodestr = NULL;
         if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
@@ -549,7 +549,7 @@ int AFPRunModeIsIPS()
                 return 0;
             }
             if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
-            char *copymodestr = NULL;
+            const char *copymodestr = NULL;
 
             if (if_root == NULL) {
                 if (if_default == NULL) {
@@ -582,7 +582,7 @@ int RunModeIdsAFPAutoFp(void)
 /* We include only if AF_PACKET is enabled */
 #ifdef HAVE_AF_PACKET
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
 
@@ -627,7 +627,7 @@ int RunModeIdsAFPSingle(void)
     SCEnter();
 #ifdef HAVE_AF_PACKET
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
     TimeModeSetLive();
@@ -672,7 +672,7 @@ int RunModeIdsAFPWorkers(void)
     SCEnter();
 #ifdef HAVE_AF_PACKET
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     RunModeInitialize();
     TimeModeSetLive();

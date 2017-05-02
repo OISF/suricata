@@ -60,7 +60,7 @@
  *
  */
 
-TmEcode NoNFQSupportExit(ThreadVars *, void *, void **);
+TmEcode NoNFQSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleReceiveNFQRegister (void)
 {
@@ -97,7 +97,7 @@ void TmModuleDecodeNFQRegister (void)
     tmm_modules[TMM_DECODENFQ].flags = TM_FLAG_DECODE_TM;
 }
 
-TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoNFQSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NFQ_NOSUPPORT,"Error creating thread %s: you do not have support for nfqueue "
            "enabled please recompile with --enable-nfqueue", tv->name);
@@ -142,16 +142,16 @@ static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
 TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
-TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
 TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode VerdictNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode VerdictNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeNFQThreadDeinit(ThreadVars *tv, void *data);
 
 TmEcode NFQSetVerdict(Packet *p);
@@ -223,7 +223,7 @@ void TmModuleDecodeNFQRegister (void)
 void NFQInitConfig(char quiet)
 {
     intmax_t value = 0;
-    char* nfq_mode = NULL;
+    const char *nfq_mode = NULL;
     int boolval;
 
     SCLogDebug("Initializing NFQ");
@@ -420,7 +420,7 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
  * In case of error, this function verdict the packet
  * to avoid skb to get stuck in kernel.
  */
-int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
+static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 {
     struct nfq_data *tb = (struct nfq_data *)data;
     int ret;
@@ -587,7 +587,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     return 0;
 }
 
-TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
+static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
 {
 #ifndef OS_WIN32
     struct timeval tv;
@@ -738,7 +738,7 @@ TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
     return TM_ECODE_OK;
 }
 
-TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceiveNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCMutexLock(&nfq_init_lock);
 
@@ -800,7 +800,7 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
 }
 
 
-TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode VerdictNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *) initdata;
 
@@ -915,7 +915,7 @@ void *NFQGetThread(int number)
  * \note separate functions for Linux and Win32 for readability.
  */
 #ifndef OS_WIN32
-void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
+static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
 {
     int rv, ret;
     int flag = NFQVerdictCacheLen(t) ? MSG_DONTWAIT : 0;
@@ -1296,7 +1296,7 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 /**
  * \brief Initialize the NFQ Decode threadvars
  */
-TmEcode DecodeNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodeNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
     dtv = DecodeThreadVarsAlloc(tv);

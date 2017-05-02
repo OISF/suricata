@@ -33,20 +33,7 @@
 static uint16_t tmq_id = 0;
 static Tmq tmqs[TMQ_MAX_QUEUES];
 
-Tmq* TmqAlloc(void)
-{
-    Tmq *q = SCMalloc(sizeof(Tmq));
-    if (unlikely(q == NULL))
-        goto error;
-
-    memset(q, 0, sizeof(Tmq));
-    return q;
-
-error:
-    return NULL;
-}
-
-Tmq* TmqCreateQueue(char *name)
+Tmq *TmqCreateQueue(const char *name)
 {
     if (tmq_id >= TMQ_MAX_QUEUES)
         goto error;
@@ -68,7 +55,7 @@ error:
     return NULL;
 }
 
-Tmq* TmqGetQueueByName(char *name)
+Tmq* TmqGetQueueByName(const char *name)
 {
     uint16_t i;
 

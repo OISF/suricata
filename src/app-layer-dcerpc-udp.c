@@ -835,7 +835,7 @@ static int DCERPCUDPRegisterPatternsForProtocolDetection(void)
 
 void RegisterDCERPCUDPParsers(void)
 {
-    char *proto_name = "dcerpc";
+    const char *proto_name = "dcerpc";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DCERPC, proto_name);
@@ -871,7 +871,7 @@ void RegisterDCERPCUDPParsers(void)
 /** \test DCERPC UDP Header Parsing and UUID handling
  */
 
-int DCERPCUDPParserTest01(void)
+static int DCERPCUDPParserTest01(void)
 {
     int result = 1;
     Flow f;

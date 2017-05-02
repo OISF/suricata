@@ -81,7 +81,7 @@ typedef struct ThreadsAffinityType_ {
 extern ThreadsAffinityType thread_affinity[MAX_CPU_SET];
 #endif
 
-void AffinitySetupLoadFromConfig();
+void AffinitySetupLoadFromConfig(void);
 ThreadsAffinityType * GetAffinityTypeFromName(const char *name);
 
 int AffinityGetNextCPU(ThreadsAffinityType *taf);

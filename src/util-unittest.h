@@ -35,21 +35,21 @@
 
 #ifdef UNITTESTS
 
-typedef struct UtTest_ {
-
-    char *name;
+typedef struct UtTest_
+{
+    const char *name;
     int(*TestFn)(void);
 
     struct UtTest_ *next;
 
 } UtTest;
 
-void UtRegisterTest(char *name, int(*TestFn)(void));
-uint32_t UtRunTests(char *regex_arg);
+void UtRegisterTest(const char *name, int(*TestFn)(void));
+uint32_t UtRunTests(const char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
-int UtRunSelftest (char *regex_arg);
-void UtListTests(char *regex_arg);
+int UtRunSelftest (const char *regex_arg);
+void UtListTests(const char *regex_arg);
 void UtRunModeRegister(void);
 
 extern int unittests_fatal;

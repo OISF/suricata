@@ -29,7 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-
+#include "detect-pkt-data.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
@@ -43,7 +43,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectPktDataSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPktDataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectPktDataTestRegister(void);
 
 /**
@@ -70,7 +70,7 @@ void DetectPktDataRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectPktDataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     s->init_data->list = DETECT_SM_LIST_NOTSET;

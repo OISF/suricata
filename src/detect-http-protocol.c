@@ -44,6 +44,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-http-header-common.h"
+#include "detect-http-protocol.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -193,7 +194,7 @@ static int InspectEngineHttpProtocol(ThreadVars *tv,
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_buffer_id;
     return 0;

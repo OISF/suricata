@@ -86,29 +86,10 @@ static int DetectAppLayerProtocolPacketMatch(ThreadVars *tv,
     SCReturnInt(r);
 }
 
-static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
+static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg, bool negate)
 {
     DetectAppLayerProtocolData *data;
     AppProto alproto = ALPROTO_UNKNOWN;
-    uint8_t negated = 0;
-
-    if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-protocol keyword "
-                   "supplied with no arguments.  This keyword needs "
-                   "an argument.");
-        return NULL;
-    }
-
-    while (*arg != '\0' && isspace((unsigned char)*arg))
-        arg++;
-
-    if (arg[0] == '!') {
-        negated = 1;
-        arg++;
-    }
-
-    while (*arg != '\0' && isspace((unsigned char)*arg))
-        arg++;
 
     if (strcmp(arg, "failed") == 0) {
         alproto = ALPROTO_FAILED;
@@ -125,7 +106,7 @@ static DetectAppLayerProtocolData *DetectAppLayerProtocolParse(const char *arg)
     if (unlikely(data == NULL))
         return NULL;
     data->alproto = alproto;
-    data->negated = negated;
+    data->negated = negate;
 
     return data;
 }
@@ -148,7 +129,7 @@ static _Bool HasConflicts(const DetectAppLayerProtocolData *us,
 }
 
 static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
-        Signature *s, char *arg)
+        Signature *s, const char *arg)
 {
     DetectAppLayerProtocolData *data = NULL;
     SigMatch *sm = NULL;
@@ -161,7 +142,7 @@ static int DetectAppLayerProtocolSetup(DetectEngineCtx *de_ctx,
         goto error;
     }
 
-    data = DetectAppLayerProtocolParse(arg);
+    data = DetectAppLayerProtocolParse(arg, s->init_data->negated);
     if (data == NULL)
         goto error;
 
@@ -285,6 +266,8 @@ void DetectAppLayerProtocolRegister(void)
         DetectAppLayerProtocolFree;
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].RegisterTests =
         DetectAppLayerProtocolRegisterTests;
+    sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].flags =
+        (SIGMATCH_QUOTES_OPTIONAL|SIGMATCH_HANDLE_NEGATION);
 
     sigmatch_table[DETECT_AL_APP_LAYER_PROTOCOL].SetupPrefilter =
         PrefilterSetupAppProto;
@@ -299,7 +282,7 @@ void DetectAppLayerProtocolRegister(void)
 
 static int DetectAppLayerProtocolTest01(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http", false);
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated != 0);
@@ -309,7 +292,7 @@ static int DetectAppLayerProtocolTest01(void)
 
 static int DetectAppLayerProtocolTest02(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("!http");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("http", true);
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_HTTP);
     FAIL_IF(data->negated == 0);
@@ -470,7 +453,7 @@ static int DetectAppLayerProtocolTest10(void)
 
 static int DetectAppLayerProtocolTest11(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("failed");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("failed", false);
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_FAILED);
     FAIL_IF(data->negated != 0);
@@ -480,7 +463,7 @@ static int DetectAppLayerProtocolTest11(void)
 
 static int DetectAppLayerProtocolTest12(void)
 {
-    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("!failed");
+    DetectAppLayerProtocolData *data = DetectAppLayerProtocolParse("failed", true);
     FAIL_IF_NULL(data);
     FAIL_IF(data->alproto != ALPROTO_FAILED);
     FAIL_IF(data->negated == 0);

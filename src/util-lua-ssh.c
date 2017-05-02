@@ -56,6 +56,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-ssh.h"
 
 static int GetServerProtoVersion(lua_State *luastate, const Flow *f)
 {

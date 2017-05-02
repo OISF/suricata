@@ -66,7 +66,7 @@
  *
  * \retval IPOnlyCIDRItem address of the new instance
  */
-static IPOnlyCIDRItem *IPOnlyCIDRItemNew()
+static IPOnlyCIDRItem *IPOnlyCIDRItemNew(void)
 {
     SCEnter();
     IPOnlyCIDRItem *item = NULL;
@@ -103,7 +103,7 @@ static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
  * \retval  0 On successfully parsing the address string.
  * \retval -1 On failure.
  */
-static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
+static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
 {
     char buf[256] = "";
     char *ip = NULL, *ip2 = NULL;
@@ -590,7 +590,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
     int depth = 0;
     size_t size = strlen(s);
     char address[8196] = "";
-    char *rule_var_address = NULL;
+    const char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
     IPOnlyCIDRItem *head;
     IPOnlyCIDRItem *subhead;
@@ -635,16 +635,19 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
                 if (rule_var_address == NULL)
                     goto error;
 
-                temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-
                     if (unlikely(temp_rule_var_address == NULL)) {
                         goto error;
                     }
 
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
+                } else {
+                    temp_rule_var_address = SCStrdup(rule_var_address);
+                    if (unlikely(temp_rule_var_address == NULL)) {
+                        goto error;
+                    }
                 }
 
                 subhead = IPOnlyCIDRListParse2(de_ctx, temp_rule_var_address,
@@ -654,8 +657,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
                 d_set = 0;
                 n_set = 0;
 
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
+                SCFree(temp_rule_var_address);
 
             } else {
                 address[x - 1] = '\0';
@@ -695,7 +697,6 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
                 if (rule_var_address == NULL)
                     goto error;
 
-                temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (unlikely(temp_rule_var_address == NULL)) {
@@ -703,6 +704,11 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
                     }
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
+                } else {
+                    temp_rule_var_address = SCStrdup(rule_var_address);
+                    if (unlikely(temp_rule_var_address == NULL)) {
+                        goto error;
+                    }
                 }
                 subhead = IPOnlyCIDRListParse2(de_ctx, temp_rule_var_address,
                                                (negate + n_set) % 2);
@@ -710,8 +716,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
 
                 d_set = 0;
 
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
+                SCFree(temp_rule_var_address);
             } else {
                 subhead = IPOnlyCIDRItemNew();
                 if (subhead == NULL)
@@ -1810,7 +1815,7 @@ static int IPOnlyTestSig05(void)
 
     p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -1847,7 +1852,7 @@ static int IPOnlyTestSig06(void)
 
     p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "80.58.0.33", "195.235.113.3");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -1926,7 +1931,7 @@ static int IPOnlyTestSig08(void)
 
     p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"192.168.1.1","192.168.1.5");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 192.168.1.5 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp [192.168.1.2,192.168.1.5,192.168.1.4] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp [192.168.1.0/24,!192.168.1.1] any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -1963,7 +1968,7 @@ static int IPOnlyTestSig09(void)
 
     p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565", "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -2000,7 +2005,7 @@ static int IPOnlyTestSig10(void)
 
     p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562", "3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562 any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -2081,7 +2086,7 @@ static int IPOnlyTestSig12(void)
     p[0] = UTHBuildPacketIPV6SrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"3FBE:FFFF:7654:FEDA:1245:BA98:3210:4562","3FBE:FFFF:7654:FEDA:1245:BA98:3210:4565");
     p[1] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP,"195.85.1.1","80.198.1.5");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.1 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64,192.168.1.5 any (msg:\"Testing src/dst ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp [192.168.1.1,3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565,192.168.1.4,192.168.1.5,!192.168.1.0/24] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.0/24] any (msg:\"Testing src/dst ip (sid 2)\"; sid:2;)";
     sigs[2]= "alert tcp [3FFE:FFFF:7654:FEDA:0:0:0:0/64,!3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.1] any -> [3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562,192.168.1.5] any (msg:\"Testing src/dst ip (sid 3)\"; sid:3;)";
@@ -2158,7 +2163,7 @@ static int IPOnlyTestSig15(void)
     p[0]->flags |= PKT_HAS_FLOW;
     p[0]->flowflags |= FLOW_PKT_TOSERVER;
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; "
         "flowbits:set,one; sid:1;)";
     sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; "
@@ -2202,7 +2207,7 @@ static int IPOnlyTestSig16(void)
 
     p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_TCP, "100.100.0.0", "50.0.0.0");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert tcp !100.100.0.1 any -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert tcp any any -> !50.0.0.1 any (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
 
@@ -2233,7 +2238,7 @@ static int IPOnlyTestSig17(void)
 
     p[0] = UTHBuildPacketSrcDst((uint8_t *)buf, buflen, IPPROTO_ICMP, "100.100.0.0", "50.0.0.0");
 
-    char *sigs[numsigs];
+    const char *sigs[numsigs];
     sigs[0]= "alert ip 100.100.0.0 80 -> any any (msg:\"Testing src ip (sid 1)\"; sid:1;)";
     sigs[1]= "alert ip any any -> 50.0.0.0 123 (msg:\"Testing dst ip (sid 2)\"; sid:2;)";
 

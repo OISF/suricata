@@ -495,7 +495,7 @@ static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
  * \retval  0 On successfully parsing the address string.
  * \retval -1 On failure.
  */
-int DetectAddressParseString(DetectAddress *dd, char *str)
+int DetectAddressParseString(DetectAddress *dd, const char *str)
 {
     char *ip = NULL;
     char *ip2 = NULL;
@@ -677,7 +677,7 @@ error:
  * \retval dd Pointer to the DetectAddress instance containing the address
  *            range details from the parsed ip string
  */
-static DetectAddress *DetectAddressParseSingle(char *str)
+static DetectAddress *DetectAddressParseSingle(const char *str)
 {
     DetectAddress *dd;
 
@@ -712,7 +712,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectAddressSetup(DetectAddressHead *gh, char *s)
+static int DetectAddressSetup(DetectAddressHead *gh, const char *s)
 {
     DetectAddress *ad = NULL;
     DetectAddress *ad2 = NULL;
@@ -823,7 +823,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     int depth = 0;
     size_t size = strlen(s);
     char address[8196] = "";
-    char *rule_var_address = NULL;
+    const char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
 
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
@@ -947,13 +947,16 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 }
 
                 SCLogDebug("rule_var_address %s", rule_var_address);
-                temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (unlikely(temp_rule_var_address == NULL))
                         goto error;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
+                } else {
+                    temp_rule_var_address = SCStrdup(rule_var_address);
+                    if (unlikely(temp_rule_var_address == NULL))
+                        goto error;
                 }
 
 
@@ -966,8 +969,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 }
                 d_set = 0;
                 n_set = 0;
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
+                SCFree(temp_rule_var_address);
             } else {
                 address[x - 1] = '\0';
 
@@ -1014,13 +1016,16 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 }
 
                 SCLogDebug("rule_var_address %s", rule_var_address);
-                temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (unlikely(temp_rule_var_address == NULL))
                         goto error;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
+                } else {
+                    temp_rule_var_address = SCStrdup(rule_var_address);
+                    if (unlikely(temp_rule_var_address == NULL))
+                        goto error;
                 }
 
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
@@ -1031,8 +1036,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     goto error;
                 }
                 d_set = 0;
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
+                SCFree(temp_rule_var_address);
             } else {
                 if (!((negate + n_set) % 2)) {
                     SCLogDebug("DetectAddressSetup into gh, %s", address);
@@ -1407,7 +1411,7 @@ void DetectAddressMapFree(DetectEngineCtx *de_ctx)
     return;
 }
 
-int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
+static int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
                         DetectAddressHead *address)
 {
     DetectAddressMap *map = SCCalloc(1, sizeof(*map));
@@ -1425,7 +1429,7 @@ int DetectAddressMapAdd(DetectEngineCtx *de_ctx, const char *string,
     return 0;
 }
 
-const DetectAddressHead *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
+static const DetectAddressHead *DetectAddressMapLookup(DetectEngineCtx *de_ctx,
                                                 const char *string)
 {
     DetectAddressMap map = { (char *)string, NULL };
@@ -1987,7 +1991,7 @@ typedef struct UTHValidateDetectAddressHeadRange_ {
     const char *two;
 } UTHValidateDetectAddressHeadRange;
 
-int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidateDetectAddressHeadRange *expectations)
+static int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidateDetectAddressHeadRange *expectations)
 {
     int expect = nranges;
     int have = 0;
@@ -2015,7 +2019,7 @@ int UTHValidateDetectAddressHead(DetectAddressHead *gh, int nranges, UTHValidate
     return TRUE;
 }
 
-int AddressTestParse01(void)
+static int AddressTestParse01(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4");
 
@@ -2027,7 +2031,7 @@ int AddressTestParse01(void)
     return 0;
 }
 
-int AddressTestParse02(void)
+static int AddressTestParse02(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4");
@@ -2046,7 +2050,7 @@ int AddressTestParse02(void)
     return 0;
 }
 
-int AddressTestParse03(void)
+static int AddressTestParse03(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/255.255.255.0");
 
@@ -2058,7 +2062,7 @@ int AddressTestParse03(void)
     return 0;
 }
 
-int AddressTestParse04(void)
+static int AddressTestParse04(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/255.255.255.0");
@@ -2076,7 +2080,7 @@ int AddressTestParse04(void)
     return 0;
 }
 
-int AddressTestParse05(void)
+static int AddressTestParse05(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/24");
 
@@ -2088,7 +2092,7 @@ int AddressTestParse05(void)
     return 0;
 }
 
-int AddressTestParse06(void)
+static int AddressTestParse06(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/24");
@@ -2106,7 +2110,7 @@ int AddressTestParse06(void)
     return 0;
 }
 
-int AddressTestParse07(void)
+static int AddressTestParse07(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::/3");
 
@@ -2118,7 +2122,7 @@ int AddressTestParse07(void)
     return 0;
 }
 
-int AddressTestParse08(void)
+static int AddressTestParse08(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::/3");
@@ -2140,7 +2144,7 @@ int AddressTestParse08(void)
     return 0;
 }
 
-int AddressTestParse09(void)
+static int AddressTestParse09(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::1/128");
 
@@ -2152,7 +2156,7 @@ int AddressTestParse09(void)
     return 0;
 }
 
-int AddressTestParse10(void)
+static int AddressTestParse10(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::/128");
@@ -2174,7 +2178,7 @@ int AddressTestParse10(void)
     return 0;
 }
 
-int AddressTestParse11(void)
+static int AddressTestParse11(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::/48");
 
@@ -2186,7 +2190,7 @@ int AddressTestParse11(void)
     return 0;
 }
 
-int AddressTestParse12(void)
+static int AddressTestParse12(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::/48");
@@ -2207,7 +2211,7 @@ int AddressTestParse12(void)
 
     return 0;
 }
-int AddressTestParse13(void)
+static int AddressTestParse13(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::/16");
 
@@ -2219,7 +2223,7 @@ int AddressTestParse13(void)
     return 0;
 }
 
-int AddressTestParse14(void)
+static int AddressTestParse14(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::/16");
@@ -2240,7 +2244,7 @@ int AddressTestParse14(void)
     return 0;
 }
 
-int AddressTestParse15(void)
+static int AddressTestParse15(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::/0");
 
@@ -2252,7 +2256,7 @@ int AddressTestParse15(void)
     return 0;
 }
 
-int AddressTestParse16(void)
+static int AddressTestParse16(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::/0");
@@ -2273,7 +2277,7 @@ int AddressTestParse16(void)
     return 0;
 }
 
-int AddressTestParse17(void)
+static int AddressTestParse17(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4-1.2.3.6");
 
@@ -2285,7 +2289,7 @@ int AddressTestParse17(void)
     return 0;
 }
 
-int AddressTestParse18(void)
+static int AddressTestParse18(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4-1.2.3.6");
@@ -2303,7 +2307,7 @@ int AddressTestParse18(void)
     return 0;
 }
 
-int AddressTestParse19(void)
+static int AddressTestParse19(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.6-1.2.3.4");
 
@@ -2315,7 +2319,7 @@ int AddressTestParse19(void)
     return 1;
 }
 
-int AddressTestParse20(void)
+static int AddressTestParse20(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::1-2001::4");
 
@@ -2327,7 +2331,7 @@ int AddressTestParse20(void)
     return 0;
 }
 
-int AddressTestParse21(void)
+static int AddressTestParse21(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("2001::1-2001::4");
@@ -2348,7 +2352,7 @@ int AddressTestParse21(void)
     return 0;
 }
 
-int AddressTestParse22(void)
+static int AddressTestParse22(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("2001::4-2001::1");
 
@@ -2360,7 +2364,7 @@ int AddressTestParse22(void)
     return 1;
 }
 
-int AddressTestParse23(void)
+static int AddressTestParse23(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("any");
 
@@ -2372,7 +2376,7 @@ int AddressTestParse23(void)
     return 0;
 }
 
-int AddressTestParse24(void)
+static int AddressTestParse24(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("Any");
 
@@ -2384,7 +2388,7 @@ int AddressTestParse24(void)
     return 0;
 }
 
-int AddressTestParse25(void)
+static int AddressTestParse25(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("ANY");
 
@@ -2396,7 +2400,7 @@ int AddressTestParse25(void)
     return 0;
 }
 
-int AddressTestParse26(void)
+static int AddressTestParse26(void)
 {
     int result = 0;
     DetectAddress *dd = DetectAddressParseSingle("any");
@@ -2412,7 +2416,7 @@ int AddressTestParse26(void)
     return 0;
 }
 
-int AddressTestParse27(void)
+static int AddressTestParse27(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("!192.168.0.1");
 
@@ -2424,7 +2428,7 @@ int AddressTestParse27(void)
     return 0;
 }
 
-int AddressTestParse28(void)
+static int AddressTestParse28(void)
 {
     int result = 0;
     DetectAddress *dd = DetectAddressParseSingle("!1.2.3.4");
@@ -2442,7 +2446,7 @@ int AddressTestParse28(void)
     return 0;
 }
 
-int AddressTestParse29(void)
+static int AddressTestParse29(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("!1.2.3.0/24");
 
@@ -2454,7 +2458,7 @@ int AddressTestParse29(void)
     return 0;
 }
 
-int AddressTestParse30(void)
+static int AddressTestParse30(void)
 {
     int result = 0;
     DetectAddress *dd = DetectAddressParseSingle("!1.2.3.4/24");
@@ -2476,7 +2480,7 @@ int AddressTestParse30(void)
 /**
  * \test make sure !any is rejected
  */
-int AddressTestParse31(void)
+static int AddressTestParse31(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("!any");
 
@@ -2488,7 +2492,7 @@ int AddressTestParse31(void)
     return 1;
 }
 
-int AddressTestParse32(void)
+static int AddressTestParse32(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("!2001::1");
 
@@ -2500,7 +2504,7 @@ int AddressTestParse32(void)
     return 0;
 }
 
-int AddressTestParse33(void)
+static int AddressTestParse33(void)
 {
     int result = 0;
     DetectAddress *dd = DetectAddressParseSingle("!2001::1");
@@ -2519,7 +2523,7 @@ int AddressTestParse33(void)
     return 0;
 }
 
-int AddressTestParse34(void)
+static int AddressTestParse34(void)
 {
     DetectAddress *dd = DetectAddressParseSingle("!2001::/16");
 
@@ -2531,7 +2535,7 @@ int AddressTestParse34(void)
     return 0;
 }
 
-int AddressTestParse35(void)
+static int AddressTestParse35(void)
 {
     int result = 0;
     DetectAddress *dd = DetectAddressParseSingle("!2001::/16");
@@ -2553,7 +2557,7 @@ int AddressTestParse35(void)
     return 0;
 }
 
-int AddressTestParse36(void)
+static int AddressTestParse36(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("ffff::/16");
@@ -2577,7 +2581,7 @@ int AddressTestParse36(void)
     return 0;
 }
 
-int AddressTestParse37(void)
+static int AddressTestParse37(void)
 {
     int result = 1;
     DetectAddress *dd = DetectAddressParseSingle("::/0");
@@ -2600,7 +2604,7 @@ int AddressTestParse37(void)
     return 0;
 }
 
-int AddressTestMatch01(void)
+static int AddressTestMatch01(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2625,7 +2629,7 @@ int AddressTestMatch01(void)
     return 0;
 }
 
-int AddressTestMatch02(void)
+static int AddressTestMatch02(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2650,7 +2654,7 @@ int AddressTestMatch02(void)
     return 0;
 }
 
-int AddressTestMatch03(void)
+static int AddressTestMatch03(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2675,7 +2679,7 @@ int AddressTestMatch03(void)
     return 0;
 }
 
-int AddressTestMatch04(void)
+static int AddressTestMatch04(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2700,7 +2704,7 @@ int AddressTestMatch04(void)
     return 0;
 }
 
-int AddressTestMatch05(void)
+static int AddressTestMatch05(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2725,7 +2729,7 @@ int AddressTestMatch05(void)
     return 0;
 }
 
-int AddressTestMatch06(void)
+static int AddressTestMatch06(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2750,7 +2754,7 @@ int AddressTestMatch06(void)
     return 0;
 }
 
-int AddressTestMatch07(void)
+static int AddressTestMatch07(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2775,7 +2779,7 @@ int AddressTestMatch07(void)
     return 0;
 }
 
-int AddressTestMatch08(void)
+static int AddressTestMatch08(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2800,7 +2804,7 @@ int AddressTestMatch08(void)
     return 0;
 }
 
-int AddressTestMatch09(void)
+static int AddressTestMatch09(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2825,7 +2829,7 @@ int AddressTestMatch09(void)
     return 0;
 }
 
-int AddressTestMatch10(void)
+static int AddressTestMatch10(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2850,7 +2854,7 @@ int AddressTestMatch10(void)
     return 0;
 }
 
-int AddressTestMatch11(void)
+static int AddressTestMatch11(void)
 {
     DetectAddress *dd = NULL;
     int result = 1;
@@ -2875,7 +2879,7 @@ int AddressTestMatch11(void)
     return 0;
 }
 
-int AddressTestCmp01(void)
+static int AddressTestCmp01(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -2898,7 +2902,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp02(void)
+static int AddressTestCmp02(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -2921,7 +2925,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp03(void)
+static int AddressTestCmp03(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -2944,7 +2948,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp04(void)
+static int AddressTestCmp04(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -2967,7 +2971,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp05(void)
+static int AddressTestCmp05(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -2990,7 +2994,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp06(void)
+static int AddressTestCmp06(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3013,7 +3017,7 @@ error:
     return 0;
 }
 
-int AddressTestCmpIPv407(void)
+static int AddressTestCmpIPv407(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3036,7 +3040,7 @@ error:
     return 0;
 }
 
-int AddressTestCmpIPv408(void)
+static int AddressTestCmpIPv408(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3059,7 +3063,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp07(void)
+static int AddressTestCmp07(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3082,7 +3086,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp08(void)
+static int AddressTestCmp08(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3105,7 +3109,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp09(void)
+static int AddressTestCmp09(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3128,7 +3132,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp10(void)
+static int AddressTestCmp10(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3151,7 +3155,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp11(void)
+static int AddressTestCmp11(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3174,7 +3178,7 @@ error:
     return 0;
 }
 
-int AddressTestCmp12(void)
+static int AddressTestCmp12(void)
 {
     DetectAddress *da = NULL, *db = NULL;
     int result = 1;
@@ -3197,7 +3201,7 @@ error:
     return 0;
 }
 
-int AddressTestAddressGroupSetup01(void)
+static int AddressTestAddressGroupSetup01(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3212,7 +3216,7 @@ int AddressTestAddressGroupSetup01(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup02(void)
+static int AddressTestAddressGroupSetup02(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3227,7 +3231,7 @@ int AddressTestAddressGroupSetup02(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup03(void)
+static int AddressTestAddressGroupSetup03(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3249,7 +3253,7 @@ int AddressTestAddressGroupSetup03(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup04(void)
+static int AddressTestAddressGroupSetup04(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3277,7 +3281,7 @@ int AddressTestAddressGroupSetup04(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup05(void)
+static int AddressTestAddressGroupSetup05(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3305,7 +3309,7 @@ int AddressTestAddressGroupSetup05(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup06(void)
+static int AddressTestAddressGroupSetup06(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3327,7 +3331,7 @@ int AddressTestAddressGroupSetup06(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup07(void)
+static int AddressTestAddressGroupSetup07(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3348,7 +3352,7 @@ int AddressTestAddressGroupSetup07(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup08(void)
+static int AddressTestAddressGroupSetup08(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3369,7 +3373,7 @@ int AddressTestAddressGroupSetup08(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup09(void)
+static int AddressTestAddressGroupSetup09(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3390,7 +3394,7 @@ int AddressTestAddressGroupSetup09(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup10(void)
+static int AddressTestAddressGroupSetup10(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3411,7 +3415,7 @@ int AddressTestAddressGroupSetup10(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup11(void)
+static int AddressTestAddressGroupSetup11(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3450,7 +3454,7 @@ int AddressTestAddressGroupSetup11(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup12 (void)
+static int AddressTestAddressGroupSetup12 (void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3489,7 +3493,7 @@ int AddressTestAddressGroupSetup12 (void)
     return result;
 }
 
-int AddressTestAddressGroupSetup13(void)
+static int AddressTestAddressGroupSetup13(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3528,7 +3532,7 @@ int AddressTestAddressGroupSetup13(void)
     return result;
 }
 
-int AddressTestAddressGroupSetupIPv414(void)
+static int AddressTestAddressGroupSetupIPv414(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3562,7 +3566,7 @@ int AddressTestAddressGroupSetupIPv414(void)
     return result;
 }
 
-int AddressTestAddressGroupSetupIPv415(void)
+static int AddressTestAddressGroupSetupIPv415(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3586,7 +3590,7 @@ int AddressTestAddressGroupSetupIPv415(void)
     return result;
 }
 
-int AddressTestAddressGroupSetupIPv416(void)
+static int AddressTestAddressGroupSetupIPv416(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3610,7 +3614,7 @@ int AddressTestAddressGroupSetupIPv416(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup14(void)
+static int AddressTestAddressGroupSetup14(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3625,7 +3629,7 @@ int AddressTestAddressGroupSetup14(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup15(void)
+static int AddressTestAddressGroupSetup15(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3640,7 +3644,7 @@ int AddressTestAddressGroupSetup15(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup16(void)
+static int AddressTestAddressGroupSetup16(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3662,7 +3666,7 @@ int AddressTestAddressGroupSetup16(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup17(void)
+static int AddressTestAddressGroupSetup17(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3690,7 +3694,7 @@ int AddressTestAddressGroupSetup17(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup18(void)
+static int AddressTestAddressGroupSetup18(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3718,7 +3722,7 @@ int AddressTestAddressGroupSetup18(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup19(void)
+static int AddressTestAddressGroupSetup19(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3740,7 +3744,7 @@ int AddressTestAddressGroupSetup19(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup20(void)
+static int AddressTestAddressGroupSetup20(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3761,7 +3765,7 @@ int AddressTestAddressGroupSetup20(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup21(void)
+static int AddressTestAddressGroupSetup21(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3782,7 +3786,7 @@ int AddressTestAddressGroupSetup21(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup22(void)
+static int AddressTestAddressGroupSetup22(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3803,7 +3807,7 @@ int AddressTestAddressGroupSetup22(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup23(void)
+static int AddressTestAddressGroupSetup23(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3824,7 +3828,7 @@ int AddressTestAddressGroupSetup23(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup24(void)
+static int AddressTestAddressGroupSetup24(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3894,7 +3898,7 @@ int AddressTestAddressGroupSetup24(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup25(void)
+static int AddressTestAddressGroupSetup25(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -3964,7 +3968,7 @@ int AddressTestAddressGroupSetup25(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup26(void)
+static int AddressTestAddressGroupSetup26(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4034,7 +4038,7 @@ int AddressTestAddressGroupSetup26(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup27(void)
+static int AddressTestAddressGroupSetup27(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4049,7 +4053,7 @@ int AddressTestAddressGroupSetup27(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup28(void)
+static int AddressTestAddressGroupSetup28(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4064,7 +4068,7 @@ int AddressTestAddressGroupSetup28(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup29(void)
+static int AddressTestAddressGroupSetup29(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4079,7 +4083,7 @@ int AddressTestAddressGroupSetup29(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup30(void)
+static int AddressTestAddressGroupSetup30(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4094,7 +4098,7 @@ int AddressTestAddressGroupSetup30(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup31(void)
+static int AddressTestAddressGroupSetup31(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4109,7 +4113,7 @@ int AddressTestAddressGroupSetup31(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup32(void)
+static int AddressTestAddressGroupSetup32(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4124,7 +4128,7 @@ int AddressTestAddressGroupSetup32(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup33(void)
+static int AddressTestAddressGroupSetup33(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4139,7 +4143,7 @@ int AddressTestAddressGroupSetup33(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup34(void)
+static int AddressTestAddressGroupSetup34(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4154,7 +4158,7 @@ int AddressTestAddressGroupSetup34(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup35(void)
+static int AddressTestAddressGroupSetup35(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4169,7 +4173,7 @@ int AddressTestAddressGroupSetup35(void)
     return result;
 }
 
-int AddressTestAddressGroupSetup36 (void)
+static int AddressTestAddressGroupSetup36 (void)
 {
     int result = 0;
 
@@ -4184,7 +4188,7 @@ int AddressTestAddressGroupSetup36 (void)
     return result;
 }
 
-int AddressTestAddressGroupSetup37(void)
+static int AddressTestAddressGroupSetup37(void)
 {
     int result = 0;
     DetectAddressHead *gh = DetectAddressHeadInit();
@@ -4417,7 +4421,7 @@ static int AddressTestAddressGroupSetup48(void)
     return result;
 }
 
-int AddressTestCutIPv401(void)
+static int AddressTestCutIPv401(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
@@ -4438,7 +4442,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv402(void)
+static int AddressTestCutIPv402(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
@@ -4462,7 +4466,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv403(void)
+static int AddressTestCutIPv403(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0/255.255.255.0");
@@ -4493,7 +4497,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv404(void)
+static int AddressTestCutIPv404(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.6");
@@ -4525,7 +4529,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv405(void)
+static int AddressTestCutIPv405(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.6");
@@ -4556,7 +4560,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv406(void)
+static int AddressTestCutIPv406(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
@@ -4587,7 +4591,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv407(void)
+static int AddressTestCutIPv407(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.6");
@@ -4616,7 +4620,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv408(void)
+static int AddressTestCutIPv408(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.3-1.2.3.9");
@@ -4645,7 +4649,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv409(void)
+static int AddressTestCutIPv409(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
@@ -4674,7 +4678,7 @@ error:
     return 0;
 }
 
-int AddressTestCutIPv410(void)
+static int AddressTestCutIPv410(void)
 {
     DetectAddress *a, *b, *c;
     a = DetectAddressParseSingle("1.2.3.0-1.2.3.9");
@@ -4705,7 +4709,7 @@ error:
     return 0;
 }
 
-int AddressTestParseInvalidMask01(void)
+static int AddressTestParseInvalidMask01(void)
 {
     int result = 1;
     DetectAddress *dd = NULL;
@@ -4718,7 +4722,7 @@ int AddressTestParseInvalidMask01(void)
     return result;
 }
 
-int AddressTestParseInvalidMask02(void)
+static int AddressTestParseInvalidMask02(void)
 {
     int result = 1;
     DetectAddress *dd = NULL;
@@ -4731,7 +4735,7 @@ int AddressTestParseInvalidMask02(void)
     return result;
 }
 
-int AddressTestParseInvalidMask03(void)
+static int AddressTestParseInvalidMask03(void)
 {
     int result = 1;
     DetectAddress *dd = NULL;
@@ -4744,7 +4748,7 @@ int AddressTestParseInvalidMask03(void)
     return result;
 }
 
-int AddressConfVarsTest01(void)
+static int AddressConfVarsTest01(void)
 {
     static const char *dummy_conf_string =
         "%YAML 1.1\n"
@@ -4780,7 +4784,7 @@ int AddressConfVarsTest01(void)
     return result;
 }
 
-int AddressConfVarsTest02(void)
+static int AddressConfVarsTest02(void)
 {
     static const char *dummy_conf_string =
         "%YAML 1.1\n"
@@ -4816,7 +4820,7 @@ int AddressConfVarsTest02(void)
     return result;
 }
 
-int AddressConfVarsTest03(void)
+static int AddressConfVarsTest03(void)
 {
     static const char *dummy_conf_string =
         "%YAML 1.1\n"
@@ -4852,7 +4856,7 @@ int AddressConfVarsTest03(void)
     return result;
 }
 
-int AddressConfVarsTest04(void)
+static int AddressConfVarsTest04(void)
 {
     static const char *dummy_conf_string =
         "%YAML 1.1\n"
@@ -4888,7 +4892,7 @@ int AddressConfVarsTest04(void)
     return result;
 }
 
-int AddressConfVarsTest05(void)
+static int AddressConfVarsTest05(void)
 {
     static const char *dummy_conf_string =
         "%YAML 1.1\n"

@@ -66,7 +66,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectThresholdSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectThresholdSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectThresholdFree(void *);
 
 /**
@@ -103,7 +103,7 @@ static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx,
  * \retval de pointer to DetectThresholdData on success
  * \retval NULL on failure
  */
-static DetectThresholdData *DetectThresholdParse(char *rawstr)
+static DetectThresholdData *DetectThresholdParse(const char *rawstr)
 {
     DetectThresholdData *de = NULL;
 #define MAX_SUBSTRINGS 30
@@ -222,7 +222,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectThresholdData *de = NULL;
     SigMatch *sm = NULL;

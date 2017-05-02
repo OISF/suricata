@@ -33,12 +33,12 @@
 #include "suricata-common.h"
 #include "stream.h"
 #include "detect-engine-content-inspection.h"
-
+#include "detect-engine-template.h"
 #include "app-layer-template.h"
 
 int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
     DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-    Signature *s, const SigMatchData *smd,
+    const Signature *s, const SigMatchData *smd,
     Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     TemplateTransaction *tx = (TemplateTransaction *)txv;

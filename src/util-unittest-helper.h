@@ -25,14 +25,14 @@
 #define __UTIL_UNITTEST_HELPER__
 
 #ifdef UNITTESTS
-uint32_t UTHSetIPv4Address(char *);
+uint32_t UTHSetIPv4Address(const char *);
 
-Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, char *, char *, uint16_t, uint16_t);
+Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *, uint16_t, uint16_t);
 Packet *UTHBuildPacket(uint8_t *, uint16_t, uint8_t ipproto);
-Packet *UTHBuildPacketSrcDst(uint8_t *, uint16_t, uint8_t ipproto, char *, char *);
+Packet *UTHBuildPacketSrcDst(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *);
 Packet *UTHBuildPacketSrcDstPorts(uint8_t *, uint16_t, uint8_t ipproto, uint16_t, uint16_t);
 
-Packet *UTHBuildPacketIPV6SrcDst(uint8_t *, uint16_t, uint8_t ipproto, char *, char *);
+Packet *UTHBuildPacketIPV6SrcDst(uint8_t *, uint16_t, uint8_t ipproto, const char *, const char *);
 
 int UTHPacketMatchSigMpm(Packet *, char *, uint16_t);
 Packet **UTHBuildPacketArrayFromEth(uint8_t **, int *, int);
@@ -41,23 +41,23 @@ Packet *UTHBuildPacketFromEth(uint8_t *, uint16_t);
 void UTHFreePacket(Packet *);
 void UTHFreePackets(Packet **, int);
 
-Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp);
+Flow *UTHBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp);
 void UTHFreeFlow(Flow *flow);
 int UTHAddStreamToFlow(Flow *f, int direction, uint8_t *data, uint32_t data_len);
 int UTHAddSessionToFlow(Flow *f, uint32_t ts_isn, uint32_t tc_isn);
 int UTHRemoveSessionFromFlow(Flow *f);
 
-int UTHAppendSigs(DetectEngineCtx *, char **, int);
+int UTHAppendSigs(DetectEngineCtx *, const char **, int);
 int UTHMatchPackets(DetectEngineCtx *, Packet **, int);
-int UTHPacketMatchSig(Packet *p, char *);
+int UTHPacketMatchSig(Packet *p, const char *);
 int UTHCheckPacketMatch(Packet *, uint32_t *, uint32_t *, int);
 
 int UTHCheckPacketMatchResults(Packet *, uint32_t *, uint32_t *, int);
 int UTHMatchPacketsWithResults(DetectEngineCtx *, Packet **, int, uint32_t *, uint32_t *, int);
-int UTHGenericTest(Packet **, int, char **, uint32_t *, uint32_t *, int);
+int UTHGenericTest(Packet **, int, const char **, uint32_t *, uint32_t *, int);
 
 uint32_t UTHBuildPacketOfFlows(uint32_t, uint32_t, uint8_t);
-Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, char *, char *,
+Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint8_t ipproto, const char *, const char *,
                            uint16_t , uint16_t );
 #endif
 

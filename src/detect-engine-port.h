@@ -25,7 +25,7 @@
 #define __DETECT_PORT_H__
 
 /* prototypes */
-int DetectPortParse(const DetectEngineCtx *, DetectPort **head, char *str);
+int DetectPortParse(const DetectEngineCtx *, DetectPort **head, const char *str);
 
 DetectPort *DetectPortCopy(DetectEngineCtx *, DetectPort *);
 DetectPort *DetectPortCopySingle(DetectEngineCtx *, DetectPort *);

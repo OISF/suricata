@@ -113,10 +113,10 @@ void StatsRegisterTests(void);
 void StatsReleaseResources(void);
 
 /* counter registration functions */
-uint16_t StatsRegisterCounter(char *, struct ThreadVars_ *);
-uint16_t StatsRegisterAvgCounter(char *, struct ThreadVars_ *);
-uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
-uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
+uint16_t StatsRegisterCounter(const char *, struct ThreadVars_ *);
+uint16_t StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
+uint16_t StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
+uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);

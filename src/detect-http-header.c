@@ -63,7 +63,7 @@
 #include "detect-http-header-common.h"
 #include "stream-tcp.h"
 
-static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHeaderRegisterTests(void);
 static void DetectHttpHeaderSetupCallback(Signature *);
 static int g_http_header_buffer_id = 0;
@@ -359,7 +359,7 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_HEADER,
@@ -1509,7 +1509,7 @@ end:
     return result;
 }
 
-int DetectHttpHeaderTest20(void)
+static int DetectHttpHeaderTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1553,7 +1553,7 @@ int DetectHttpHeaderTest20(void)
     return result;
 }
 
-int DetectHttpHeaderTest21(void)
+static int DetectHttpHeaderTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1597,7 +1597,7 @@ int DetectHttpHeaderTest21(void)
     return result;
 }
 
-int DetectHttpHeaderTest22(void)
+static int DetectHttpHeaderTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1621,7 +1621,7 @@ int DetectHttpHeaderTest22(void)
     return result;
 }
 
-int DetectHttpHeaderTest23(void)
+static int DetectHttpHeaderTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1645,7 +1645,7 @@ int DetectHttpHeaderTest23(void)
     return result;
 }
 
-int DetectHttpHeaderTest24(void)
+static int DetectHttpHeaderTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1669,7 +1669,7 @@ int DetectHttpHeaderTest24(void)
     return result;
 }
 
-int DetectHttpHeaderTest25(void)
+static int DetectHttpHeaderTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1720,7 +1720,7 @@ int DetectHttpHeaderTest25(void)
     return result;
 }
 
-int DetectHttpHeaderTest26(void)
+static int DetectHttpHeaderTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1771,7 +1771,7 @@ int DetectHttpHeaderTest26(void)
     return result;
 }
 
-int DetectHttpHeaderTest27(void)
+static int DetectHttpHeaderTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

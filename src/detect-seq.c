@@ -40,7 +40,7 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectSeqSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
@@ -98,7 +98,7 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectSeqSetup (DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     DetectSeqData *data = NULL;
     SigMatch *sm = NULL;
@@ -266,7 +266,7 @@ static int DetectSeqSigTest02(void)
     /* TCP w/seq=100 */
     p[1]->tcph->th_seq = htonl(100);
 
-    char *sigs[2];
+    const char *sigs[2];
     sigs[0]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:41; sid:1;)";
     sigs[1]= "alert tcp any any -> any any (msg:\"Testing seq\"; seq:42; sid:2;)";
 

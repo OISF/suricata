@@ -328,7 +328,7 @@ static void SMTPConfigure(void) {
     SCReturn;
 }
 
-void SMTPSetEvent(SMTPState *s, uint8_t e)
+static void SMTPSetEvent(SMTPState *s, uint8_t e)
 {
     SCLogDebug("setting event %u", e);
 
@@ -1472,7 +1472,7 @@ static void SMTPFreeMpmState(void)
     }
 }
 
-int SMTPStateGetEventInfo(const char *event_name,
+static int SMTPStateGetEventInfo(const char *event_name,
                           int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
@@ -1640,7 +1640,7 @@ static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
  */
 void RegisterSMTPParsers(void)
 {
-    char *proto_name = "smtp";
+    const char *proto_name = "smtp";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);

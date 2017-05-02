@@ -44,7 +44,7 @@ const char *ASN_DELIM = " \t,\n";
 
 static int DetectAsn1Match(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                      const Signature *, const SigMatchCtx *);
-static int DetectAsn1Setup (DetectEngineCtx *, Signature *, char *);
+static int DetectAsn1Setup (DetectEngineCtx *, Signature *, const char *);
 static void DetectAsn1RegisterTests(void);
 static void DetectAsn1Free(void *);
 
@@ -197,7 +197,7 @@ static int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval fd pointer to DetectAsn1Data on success
  * \retval NULL on failure
  */
-static DetectAsn1Data *DetectAsn1Parse(char *asn1str)
+static DetectAsn1Data *DetectAsn1Parse(const char *instr)
 {
     DetectAsn1Data *fd = NULL;
     char *tok = NULL;
@@ -207,10 +207,15 @@ static DetectAsn1Data *DetectAsn1Parse(char *asn1str)
     uint8_t flags = 0;
     char *saveptr = NULL;
 
+    char *asn1str = SCStrdup(instr);
+    if (asn1str == NULL)
+        return NULL;
+
     tok = strtok_r(asn1str, ASN_DELIM, &saveptr);
     if (tok == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Malformed asn1 argument: %s",
                    asn1str);
+        SCFree(asn1str);
         return NULL;
     }
 
@@ -289,7 +294,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, char *asn1str)
+static int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, const char *asn1str)
 {
     DetectAsn1Data *ad = NULL;
     SigMatch *sm = NULL;
@@ -1078,7 +1083,7 @@ static int DetectAsn1TestReal01(void)
     if (p[0] == NULL || p[1] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 130; sid:1;)";
@@ -1157,7 +1162,7 @@ static int DetectAsn1TestReal02(void)
     if (p[0] == NULL || p[1] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";
@@ -1216,7 +1221,7 @@ static int DetectAsn1TestReal03(void)
     if (p[0] == NULL || p[1] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
             /* This should match the first packet */
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
              "asn1:absolute_offset 0, double_overflow; sid:1;)";
@@ -1295,7 +1300,7 @@ static int DetectAsn1TestReal04(void)
     if (p[0] == NULL || p[1] == NULL)
         goto end;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
              "content:\"Pablo\"; asn1:absolute_offset 0, "
              "oversize_length 140; sid:1;)";

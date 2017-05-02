@@ -380,7 +380,7 @@ static void SCRadixReleasePrefix(SCRadixPrefix *prefix, SCRadixTree *tree)
  *
  * \retval node The newly created node for the radix tree
  */
-static inline SCRadixNode *SCRadixCreateNode()
+static inline SCRadixNode *SCRadixCreateNode(void)
 {
     SCRadixNode *node = NULL;
 
@@ -1661,46 +1661,7 @@ void SCRadixPrintTree(SCRadixTree *tree)
 
 #ifdef UNITTESTS
 
-int SCRadixTestInsertion01(void)
-{
-    SCRadixTree *tree = NULL;
-    SCRadixNode *node[2];
-
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-
-    node[0] = SCRadixAddKeyGeneric((uint8_t *)"abaa", 32, tree, NULL);
-    node[1] = SCRadixAddKeyGeneric((uint8_t *)"abab", 32, tree, NULL);
-
-    result &= (tree->head->bit == 30);
-    result &= (tree->head->right == node[0]);
-    result &= (tree->head->left == node[1]);
-
-    SCRadixReleaseRadixTree(tree);
-
-    return result;
-}
-
-int SCRadixTestInsertion02(void)
-{
-    SCRadixTree *tree = NULL;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    SCRadixAddKeyGeneric((uint8_t *)"aaaaaa", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"aaaaab", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"aaaaaba", 56, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"abab", 32, tree, NULL);
-    SCRadixReleaseRadixTree(tree);
-
-    /* If we don't have a segfault till here we have succeeded :) */
-    return result;
-}
-
-int SCRadixTestIPV4Insertion03(void)
+static int SCRadixTestIPV4Insertion03(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -1811,7 +1772,7 @@ int SCRadixTestIPV4Insertion03(void)
     return result;
 }
 
-int SCRadixTestIPV4Removal04(void)
+static int SCRadixTestIPV4Removal04(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -1923,101 +1884,7 @@ int SCRadixTestIPV4Removal04(void)
     return result;
 }
 
-int SCRadixTestCharacterInsertion05(void)
-{
-    SCRadixTree *tree = NULL;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    /* Let us have our team here ;-) */
-    SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Matt", 32, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Josh", 32, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Brian", 40, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Jasonmc", 56, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL);
-
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Matt", 32, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Josh", 32, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Brian", 40, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonmc", 56, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL) != NULL);
-
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"bamboo", 48, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"bool", 32, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"meerkat", 56, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree, NULL) == NULL);
-
-    SCRadixReleaseRadixTree(tree);
-
-    return result;
-}
-
-int SCRadixTestCharacterRemoval06(void)
-{
-    SCRadixTree *tree = NULL;
-    int result = 1;
-
-    tree = SCRadixCreateRadixTree(free, NULL);
-
-    /* Let us have our team here ;-) */
-    SCRadixAddKeyGeneric((uint8_t *)"Victor", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Matt", 32, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Josh", 32, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Brian", 40, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Jasonmc", 56, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL);
-    SCRadixAddKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL);
-
-    SCRadixRemoveKeyGeneric((uint8_t *)"Nathan", 48, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Brian", 40, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Margaret", 64, tree);
-
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Victor", 48, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Matt", 32, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Josh", 32, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Margaret", 64, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Brian", 40, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Nathan", 48, tree, NULL) == NULL);
-
-    SCRadixRemoveKeyGeneric((uint8_t *)"Victor", 48, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Josh", 32, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Jasonmc", 56, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Matt", 32, tree);
-
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL) != NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL) != NULL);
-
-    SCRadixRemoveKeyGeneric((uint8_t *)"Pablo", 40, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Jasonish", 64, tree);
-    SCRadixRemoveKeyGeneric((uint8_t *)"Anoop", 40, tree);
-
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Pablo", 40, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Jasonish", 64, tree, NULL) == NULL);
-    result &= (SCRadixFindKeyGeneric((uint8_t *)"Anoop", 40, tree, NULL) == NULL);
-
-    result &= (tree->head == NULL);
-
-    SCRadixReleaseRadixTree(tree);
-
-    return result;
-}
-
-int SCRadixTestIPV6Insertion07(void)
+static int SCRadixTestIPV6Insertion07(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -2131,7 +1998,7 @@ int SCRadixTestIPV6Insertion07(void)
     return result;
 }
 
-int SCRadixTestIPV6Removal08(void)
+static int SCRadixTestIPV6Removal08(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -2370,7 +2237,7 @@ int SCRadixTestIPV6Removal08(void)
     return result;
 }
 
-int SCRadixTestIPV4NetblockInsertion09(void)
+static int SCRadixTestIPV4NetblockInsertion09(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -2479,7 +2346,7 @@ int SCRadixTestIPV4NetblockInsertion09(void)
     return result;
 }
 
-int SCRadixTestIPV4NetblockInsertion10(void)
+static int SCRadixTestIPV4NetblockInsertion10(void)
 {
     SCRadixTree *tree = NULL;
     SCRadixNode *node[2];
@@ -2586,7 +2453,7 @@ int SCRadixTestIPV4NetblockInsertion10(void)
     return result;
 }
 
-int SCRadixTestIPV4NetblockInsertion11(void)
+static int SCRadixTestIPV4NetblockInsertion11(void)
 {
     SCRadixTree *tree = NULL;
     SCRadixNode *node = NULL;
@@ -2754,7 +2621,7 @@ int SCRadixTestIPV4NetblockInsertion11(void)
     return result;
 }
 
-int SCRadixTestIPV4NetblockInsertion12(void)
+static int SCRadixTestIPV4NetblockInsertion12(void)
 {
     SCRadixTree *tree = NULL;
     SCRadixNode *node[2];
@@ -2879,7 +2746,7 @@ int SCRadixTestIPV4NetblockInsertion12(void)
     return result;
 }
 
-int SCRadixTestIPV6NetblockInsertion13(void)
+static int SCRadixTestIPV6NetblockInsertion13(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -3009,7 +2876,7 @@ int SCRadixTestIPV6NetblockInsertion13(void)
     return result;
 }
 
-int SCRadixTestIPV6NetblockInsertion14(void)
+static int SCRadixTestIPV6NetblockInsertion14(void)
 {
     SCRadixTree *tree = NULL;
     SCRadixNode *node = NULL;
@@ -3115,7 +2982,7 @@ int SCRadixTestIPV6NetblockInsertion14(void)
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
+static int SCRadixTestIPV4NetBlocksAndBestSearch15(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -3175,7 +3042,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
+static int SCRadixTestIPV4NetBlocksAndBestSearch16(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -3235,7 +3102,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
+static int SCRadixTestIPV4NetBlocksAndBestSearch17(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -3295,7 +3162,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
+static int SCRadixTestIPV4NetBlocksAndBestSearch18(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -3355,7 +3222,7 @@ end:
  * \test Check special combinations of netblocks and addresses
  *       on best search checking the returned userdata
  */
-int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
+static int SCRadixTestIPV4NetBlocksAndBestSearch19(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -3601,7 +3468,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
+static int SCRadixTestIPV6NetBlocksAndBestSearch20(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -3661,7 +3528,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
+static int SCRadixTestIPV6NetBlocksAndBestSearch21(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -3721,7 +3588,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
+static int SCRadixTestIPV6NetBlocksAndBestSearch22(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -3781,7 +3648,7 @@ end:
  * \test Check that the best match search works for all the
  *       possible netblocks of a fixed address
  */
-int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
+static int SCRadixTestIPV6NetBlocksAndBestSearch23(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -3841,7 +3708,7 @@ end:
  * \test Check special combinations of netblocks and addresses
  *       on best search checking the returned userdata
  */
-int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
+static int SCRadixTestIPV6NetBlocksAndBestSearch24(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in6 servaddr;
@@ -4089,7 +3956,7 @@ end:
  *       Should always return true but the purposse of the test is to monitor
  *       the memory usage to detect memleaks (there was one on searching)
  */
-int SCRadixTestIPV4NetblockInsertion25(void)
+static int SCRadixTestIPV4NetblockInsertion25(void)
 {
     SCRadixTree *tree = NULL;
     struct sockaddr_in servaddr;
@@ -4119,7 +3986,7 @@ int SCRadixTestIPV4NetblockInsertion25(void)
  *       Should always return true but the purposse of the test is to monitor
  *       the memory usage to detect memleaks (there was one on searching)
  */
-int SCRadixTestIPV4NetblockInsertion26(void)
+static int SCRadixTestIPV4NetblockInsertion26(void)
 {
     SCRadixNode *tmp = NULL;
     SCRadixTree *tree = NULL;
@@ -4179,14 +4046,8 @@ void SCRadixRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    //UtRegisterTest("SCRadixTestInsertion01", SCRadixTestInsertion01, 1);
-    //UtRegisterTest("SCRadixTestInsertion02", SCRadixTestInsertion02, 1);
     UtRegisterTest("SCRadixTestIPV4Insertion03", SCRadixTestIPV4Insertion03);
     UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04);
-    //UtRegisterTest("SCRadixTestCharacterInsertion05",
-    //               SCRadixTestCharacterInsertion05, 1);
-    //UtRegisterTest("SCRadixTestCharacterRemoval06",
-    //               SCRadixTestCharacterRemoval06, 1);
     UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07);
     UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion09",

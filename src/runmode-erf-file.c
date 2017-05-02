@@ -56,7 +56,7 @@ void RunModeErfFileRegister(void)
 
 int RunModeErfFileSingle(void)
 {
-    char *file;
+    const char *file;
 
     SCEnter();
 
@@ -122,7 +122,7 @@ int RunModeErfFileAutoFp(void)
 
     RunModeInitialize();
 
-    char *file = NULL;
+    const char *file = NULL;
     if (ConfGet("erf-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE,
             "Failed retrieving erf-file.file from config");

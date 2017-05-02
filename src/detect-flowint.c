@@ -55,7 +55,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowintMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                        const Signature *, const SigMatchCtx *);
-static int DetectFlowintSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectFlowintSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFlowintFree(void *);
 void DetectFlowintRegisterTests(void);
 
@@ -218,7 +218,7 @@ end:
  * \retval NULL if invalid option
  * \retval DetectFlowintData pointer with the flowint parsed
  */
-DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, char *rawstr)
+static DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, const char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
     char *varname = NULL;
@@ -357,7 +357,7 @@ error:
  * \retval 0 if all is ok
  * \retval -1 if we find any problem
  */
-static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowintData *sfd = NULL;
     SigMatch *sm = NULL;
@@ -422,10 +422,11 @@ void DetectFlowintFree(void *tmp)
     }
 }
 
+#ifdef UNITTESTS
 /**
  * \brief This is a helper funtion used for debugging purposes
  */
-void DetectFlowintPrintData(DetectFlowintData *sfd)
+static void DetectFlowintPrintData(DetectFlowintData *sfd)
 {
     if (sfd == NULL) {
         SCLogDebug("DetectFlowintPrintData: Error, DetectFlowintData == NULL!");
@@ -447,12 +448,11 @@ void DetectFlowintPrintData(DetectFlowintData *sfd)
     }
 }
 
-#ifdef UNITTESTS
 /**
  * \test DetectFlowintTestParseVal01 is a test to make sure that we set the
  *  DetectFlowint correctly for setting a valid target value
  */
-int DetectFlowintTestParseVal01(void)
+static int DetectFlowintTestParseVal01(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -479,7 +479,7 @@ int DetectFlowintTestParseVal01(void)
  * \test DetectFlowintTestParseVar01 is a test to make sure that we set the
  *  DetectFlowint correctly for setting a valid target variable
  */
-int DetectFlowintTestParseVar01(void)
+static int DetectFlowintTestParseVar01(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -509,7 +509,7 @@ int DetectFlowintTestParseVar01(void)
  * \test DetectFlowintTestParseVal02 is a test to make sure that we set the
  *  DetectFlowint correctly for adding a valid target value
  */
-int DetectFlowintTestParseVal02(void)
+static int DetectFlowintTestParseVal02(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -536,7 +536,7 @@ int DetectFlowintTestParseVal02(void)
  * \test DetectFlowintTestParseVar02 is a test to make sure that we set the
  *  DetectFlowint correctly for adding a valid target variable
  */
-int DetectFlowintTestParseVar02(void)
+static int DetectFlowintTestParseVar02(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -566,7 +566,7 @@ int DetectFlowintTestParseVar02(void)
  * \test DetectFlowintTestParseVal03 is a test to make sure that we set the
  *  DetectFlowint correctly for substract a valid target value
  */
-int DetectFlowintTestParseVal03(void)
+static int DetectFlowintTestParseVal03(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -593,7 +593,7 @@ int DetectFlowintTestParseVal03(void)
  * \test DetectFlowintTestParseVar03 is a test to make sure that we set the
  *  DetectFlowint correctly for substract a valid target variable
  */
-int DetectFlowintTestParseVar03(void)
+static int DetectFlowintTestParseVar03(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -624,7 +624,7 @@ int DetectFlowintTestParseVar03(void)
  * \test DetectFlowintTestParseVal04 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if equal to a valid target value
  */
-int DetectFlowintTestParseVal04(void)
+static int DetectFlowintTestParseVal04(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -651,7 +651,7 @@ int DetectFlowintTestParseVal04(void)
  * \test DetectFlowintTestParseVar04 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if equal to a valid target variable
  */
-int DetectFlowintTestParseVar04(void)
+static int DetectFlowintTestParseVar04(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -681,7 +681,7 @@ int DetectFlowintTestParseVar04(void)
  * \test DetectFlowintTestParseVal05 is a test to make sure that we set the
  *  DetectFlowint correctly for cheking if not equal to a valid target value
  */
-int DetectFlowintTestParseVal05(void)
+static int DetectFlowintTestParseVal05(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -708,7 +708,7 @@ int DetectFlowintTestParseVal05(void)
  * \test DetectFlowintTestParseVar05 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if not equal to a valid target variable
  */
-int DetectFlowintTestParseVar05(void)
+static int DetectFlowintTestParseVar05(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -738,7 +738,7 @@ int DetectFlowintTestParseVar05(void)
  * \test DetectFlowintTestParseVal06 is a test to make sure that we set the
  *  DetectFlowint correctly for cheking if greater than a valid target value
  */
-int DetectFlowintTestParseVal06(void)
+static int DetectFlowintTestParseVal06(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -765,7 +765,7 @@ int DetectFlowintTestParseVal06(void)
  * \test DetectFlowintTestParseVar06 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if greater than a valid target variable
  */
-int DetectFlowintTestParseVar06(void)
+static int DetectFlowintTestParseVar06(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -795,7 +795,7 @@ int DetectFlowintTestParseVar06(void)
  * \test DetectFlowintTestParseVal07 is a test to make sure that we set the
  *  DetectFlowint correctly for cheking if greater or equal than a valid target value
  */
-int DetectFlowintTestParseVal07(void)
+static int DetectFlowintTestParseVal07(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -822,7 +822,7 @@ int DetectFlowintTestParseVal07(void)
  * \test DetectFlowintTestParseVar07 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if greater or equal than a valid target variable
  */
-int DetectFlowintTestParseVar07(void)
+static int DetectFlowintTestParseVar07(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -852,7 +852,7 @@ int DetectFlowintTestParseVar07(void)
  * \test DetectFlowintTestParseVal08 is a test to make sure that we set the
  *  DetectFlowint correctly for cheking if lower or equal than a valid target value
  */
-int DetectFlowintTestParseVal08(void)
+static int DetectFlowintTestParseVal08(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -879,7 +879,7 @@ int DetectFlowintTestParseVal08(void)
  * \test DetectFlowintTestParseVar08 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if lower or equal than a valid target variable
  */
-int DetectFlowintTestParseVar08(void)
+static int DetectFlowintTestParseVar08(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -909,7 +909,7 @@ int DetectFlowintTestParseVar08(void)
  * \test DetectFlowintTestParseVal09 is a test to make sure that we set the
  *  DetectFlowint correctly for cheking if lower than a valid target value
  */
-int DetectFlowintTestParseVal09(void)
+static int DetectFlowintTestParseVal09(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -936,7 +936,7 @@ int DetectFlowintTestParseVal09(void)
  * \test DetectFlowintTestParseVar09 is a test to make sure that we set the
  *  DetectFlowint correctly for checking if lower than a valid target variable
  */
-int DetectFlowintTestParseVar09(void)
+static int DetectFlowintTestParseVar09(void)
 {
     int result = 0;
     DetectFlowintData *sfd = NULL;
@@ -966,7 +966,7 @@ int DetectFlowintTestParseVar09(void)
  * \test DetectFlowintTestParseVar09 is a test to make sure that handle the
  * isset keyword correctly
  */
-int DetectFlowintTestParseIsset10(void)
+static int DetectFlowintTestParseIsset10(void)
 {
     int result = 1;
     DetectFlowintData *sfd = NULL;
@@ -1009,7 +1009,7 @@ int DetectFlowintTestParseIsset10(void)
  * \test DetectFlowintTestParseInvalidSyntaxis01 is a test to make sure that we dont set the
  *  DetectFlowint for a invalid input option
  */
-int DetectFlowintTestParseInvalidSyntaxis01(void)
+static int DetectFlowintTestParseInvalidSyntaxis01(void)
 {
     int result = 1;
     DetectFlowintData *sfd = NULL;
@@ -1095,7 +1095,7 @@ error:
  *        a "noalert", so we can do all increments
  *        silently until we reach 6 next packets counted
  */
-int DetectFlowintTestPacket01Real()
+static int DetectFlowintTestPacket01Real(void)
 {
     Packet *p = NULL;
     ThreadVars th_v;
@@ -1107,7 +1107,7 @@ int DetectFlowintTestPacket01Real()
 
     de_ctx->flags |= DE_QUIET;
 
-    char *sigs[5];
+    const char *sigs[5];
     sigs[0] = "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; flowint:myvar,=,1; flowint:maxvar,=,6; sid:101;)";
     sigs[1] = "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint: myvar,+,2; sid:102;)";
     sigs[2] = "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar,==,3; flowint: cntpackets, =, 0; sid:103;)";
@@ -1168,7 +1168,7 @@ int DetectFlowintTestPacket01Real()
  * \test DetectFlowintTestPacket02Real
  * \brief like DetectFlowintTestPacket01Real but using isset/notset keywords
  */
-static int DetectFlowintTestPacket02Real()
+static int DetectFlowintTestPacket02Real(void)
 {
     Packet *p = NULL;
     ThreadVars th_v;
@@ -1180,7 +1180,7 @@ static int DetectFlowintTestPacket02Real()
 
     de_ctx->flags |= DE_QUIET;
 
-    char *sigs[5];
+    const char *sigs[5];
     sigs[0] = "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; flowint: myvar, notset; flowint:maxvar,notset; flowint: myvar,=,1; flowint: maxvar,=,6; sid:101;)";
     sigs[1] = "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: myvar,+,2; sid:102;)";
     sigs[2] = "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar, isset; flowint: myvar,==,3; flowint:cntpackets,notset; flowint: cntpackets, =, 0; sid:103;)";
@@ -1241,7 +1241,7 @@ static int DetectFlowintTestPacket02Real()
  * \test DetectFlowintTestPacket03Real
  * \brief Check the behaviour of isset/notset
  */
-int DetectFlowintTestPacket03Real()
+static int DetectFlowintTestPacket03Real(void)
 {
     Packet *p = NULL;
     ThreadVars th_v;
@@ -1253,7 +1253,7 @@ int DetectFlowintTestPacket03Real()
 
     de_ctx->flags |= DE_QUIET;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0] = "alert tcp any any -> any any (msg:\"check notset\"; content:\"GET\"; flowint: myvar, notset; flowint: myvar,=,0; flowint: other,=,10; sid:101;)";
     sigs[1] = "alert tcp any any -> any any (msg:\"check isset\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: other,isset; sid:102;)";
     sigs[2] = "alert tcp any any -> any any (msg:\"check notset\"; content:\"Unauthorized\"; flowint:lala,isset; sid:103;)";

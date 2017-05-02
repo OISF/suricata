@@ -36,6 +36,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-engine-sigorder.h"
+#include "detect-bypass.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -51,7 +52,7 @@
 
 static int DetectBypassMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectBypassSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectBypassSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectBypassRegisterTests(void);
 
 /**
@@ -69,7 +70,7 @@ void DetectBypassRegister(void)
     sigmatch_table[DETECT_BYPASS].flags = SIGMATCH_NOOPT;
 }
 
-static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectBypassSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SigMatch *sm = NULL;
 
@@ -102,13 +103,13 @@ static int DetectBypassMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Pac
 #ifdef UNITTESTS
 static int callback_var = 0;
 
-static int BypassCallback()
+static int BypassCallback(Packet *p)
 {
     callback_var = 1;
     return 1;
 }
 
-static void ResetCallbackVar()
+static void ResetCallbackVar(void)
 {
     callback_var = 0;
 }
@@ -177,7 +178,7 @@ static int DetectBypassTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0] = "alert tcp any any -> any any (bypass; content:\"GET \"; sid:1;)";
     sigs[1] = "alert http any any -> any any "
               "(bypass; content:\"message\"; http_server_body; "

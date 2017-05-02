@@ -65,7 +65,7 @@ static pcre_extra *parse_regex_study;
 static int DetectSshVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectSshVersionSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSshVersionRegisterTests(void);
 static void DetectSshVersionFree(void *);
 static int g_ssh_banner_list_id = 0;
@@ -148,7 +148,7 @@ static int DetectSshVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval id_d pointer to DetectSshVersionData on success
  * \retval NULL on failure
  */
-DetectSshVersionData *DetectSshVersionParse (char *str)
+static DetectSshVersionData *DetectSshVersionParse (const char *str)
 {
     DetectSshVersionData *ssh = NULL;
 	#define MAX_SUBSTRINGS 30
@@ -215,7 +215,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectSshVersionData *ssh = NULL;
     SigMatch *sm = NULL;
@@ -265,7 +265,7 @@ void DetectSshVersionFree(void *ptr)
  * \test DetectSshVersionTestParse01 is a test to make sure that we parse
  *       a proto version correctly
  */
-int DetectSshVersionTestParse01 (void)
+static int DetectSshVersionTestParse01 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("1.0");
@@ -281,7 +281,7 @@ int DetectSshVersionTestParse01 (void)
  * \test DetectSshVersionTestParse02 is a test to make sure that we parse
  *       the proto version (compatible with proto version 2) correctly
  */
-int DetectSshVersionTestParse02 (void)
+static int DetectSshVersionTestParse02 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("2_compat");
@@ -297,7 +297,7 @@ int DetectSshVersionTestParse02 (void)
  * \test DetectSshVersionTestParse03 is a test to make sure that we
  *       don't return a ssh_data with an invalid value specified
  */
-int DetectSshVersionTestParse03 (void)
+static int DetectSshVersionTestParse03 (void)
 {
     DetectSshVersionData *ssh = NULL;
     ssh = DetectSshVersionParse("2_com");

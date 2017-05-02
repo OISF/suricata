@@ -63,7 +63,7 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 
-static int DetectHttpStatMsgSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpStatMsgSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpStatMsgRegisterTests(void);
 static void DetectHttpStatMsgSetupCallback(Signature *s);
 static int g_http_stat_msg_buffer_id = 0;
@@ -110,7 +110,7 @@ void DetectHttpStatMsgRegister (void)
  * \retval -1 On failure
  */
 
-static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpStatMsgSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_STAT_MSG,
@@ -131,7 +131,7 @@ static void DetectHttpStatMsgSetupCallback(Signature *s)
  *       specified in the signature or rawbyes is specified or fast_pattern is
  *       provided in the signature.
  */
-int DetectHttpStatMsgTest01(void)
+static int DetectHttpStatMsgTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -173,7 +173,7 @@ end:
  * \test Checks if a http_stat_msg is registered in a Signature and also checks
  *       the nocase
  */
-int DetectHttpStatMsgTest02(void)
+static int DetectHttpStatMsgTest02(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;

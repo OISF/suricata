@@ -30,7 +30,7 @@ typedef enum {
     SC_RULE_VARS_PORT_GROUPS,
 } SCRuleVarsType;
 
-char *SCRuleVarsGetConfVar(const DetectEngineCtx *, const char *, SCRuleVarsType);
+const char *SCRuleVarsGetConfVar(const DetectEngineCtx *, const char *, SCRuleVarsType);
 void SCRuleVarsRegisterTests(void);
 
 #endif /* __UTIL_RULE_VARS_H__ */

@@ -36,15 +36,15 @@
 #define TM_FLAG_MANAGEMENT_TM   0x20
 #define TM_FLAG_COMMAND_TM      0x40
 
-typedef TmEcode (*ThreadInitFunc)(ThreadVars *, void *, void **);
+typedef TmEcode (*ThreadInitFunc)(ThreadVars *, const void *, void **);
 typedef TmEcode (*ThreadDeinitFunc)(ThreadVars *, void *);
 typedef void (*ThreadExitPrintStatsFunc)(ThreadVars *, void *);
 
 typedef struct TmModule_ {
-    char *name;
+    const char *name;
 
     /** thread handling */
-    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadInit)(ThreadVars *, const void *, void **);
     void (*ThreadExitPrintStats)(ThreadVars *, void *);
     TmEcode (*ThreadDeinit)(ThreadVars *, void *);
 

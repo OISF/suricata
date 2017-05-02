@@ -60,7 +60,7 @@
 #include "stream-tcp.h"
 #include "detect-http-response-line.h"
 
-static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpResponseLineRegisterTests(void);
 static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
@@ -113,7 +113,7 @@ void DetectHttpResponseLineRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpResponseLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_http_response_line_id;
     s->alproto = ALPROTO_HTTP;

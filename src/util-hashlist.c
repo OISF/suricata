@@ -349,7 +349,7 @@ static int HashListTableTestAdd01 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashListTableAdd(ht, "test", 0);
+    int r = HashListTableAdd(ht, (char *)"test", 0);
     if (r != 0)
         goto end;
 
@@ -385,7 +385,7 @@ static int HashListTableTestAdd03 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashListTableAdd(ht, "test", 0);
+    int r = HashListTableAdd(ht, (char *)"test", 0);
     if (r != 0)
         goto end;
 
@@ -413,11 +413,11 @@ static int HashListTableTestAdd04 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashListTableAdd(ht, "test", 4);
+    int r = HashListTableAdd(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashListTableLookup(ht, "test", 4);
+    char *rp = HashListTableLookup(ht, (char *)"test", 4);
     if (rp == NULL)
         goto end;
 
@@ -452,15 +452,15 @@ static int HashListTableTestFull01 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashListTableAdd(ht, "test", 4);
+    int r = HashListTableAdd(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashListTableLookup(ht, "test", 4);
+    char *rp = HashListTableLookup(ht, (char *)"test", 4);
     if (rp == NULL)
         goto end;
 
-    r = HashListTableRemove(ht, "test", 4);
+    r = HashListTableRemove(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
@@ -478,15 +478,15 @@ static int HashListTableTestFull02 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashListTableAdd(ht, "test", 4);
+    int r = HashListTableAdd(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashListTableLookup(ht, "test", 4);
+    char *rp = HashListTableLookup(ht, (char *)"test", 4);
     if (rp == NULL)
         goto end;
 
-    r = HashListTableRemove(ht, "test2", 5);
+    r = HashListTableRemove(ht, (char *)"test2", 5);
     if (r == 0)
         goto end;
 

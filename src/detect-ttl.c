@@ -45,7 +45,7 @@ static pcre_extra *parse_regex_study;
 /*prototypes*/
 static int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectTtlSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTtlSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
 
@@ -130,9 +130,8 @@ static int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval NULL on failure
  */
 
-DetectTtlData *DetectTtlParse (char *ttlstr)
+static DetectTtlData *DetectTtlParse (const char *ttlstr)
 {
-
     DetectTtlData *ttld = NULL;
     char *arg1 = NULL;
     char *arg2 = NULL;
@@ -273,9 +272,8 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr)
+static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ttlstr)
 {
-
     DetectTtlData *ttld = NULL;
     SigMatch *sm = NULL;
 
@@ -392,7 +390,7 @@ static _Bool PrefilterTtlIsPrefilterable(const Signature *s)
  *
  */
 
-static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTtlData **ttld, char *str)
+static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTtlData **ttld, const char *str)
 {
     char fullstr[1024];
     int result = 0;

@@ -62,7 +62,7 @@ SCEnumCharMap sc_rule_vars_type_map[ ] = {
  * \retval conf_var_name_value Pointer to the string containing the conf value
  *                             on success; NULL on failure.
  */
-char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
+const char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
                            const char *conf_var_name,
                            SCRuleVarsType conf_vars_type)
 {
@@ -70,7 +70,7 @@ char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
 
     const char *conf_var_type_name = NULL;
     char conf_var_full_name[2048];
-    char *conf_var_full_name_value = NULL;
+    const char *conf_var_full_name_value = NULL;
 
     if (conf_var_name == NULL)
         goto end;
@@ -184,7 +184,7 @@ static const char *dummy_conf_string =
  * \test Check that valid address and port group vars are correctly retrieved
  *       from the configuration.
  */
-int SCRuleVarsPositiveTest01(void)
+static int SCRuleVarsPositiveTest01(void)
 {
     int result = 1;
 
@@ -248,7 +248,7 @@ int SCRuleVarsPositiveTest01(void)
  * \test Check that invalid address and port groups are properly handled by the
  *       API.
  */
-int SCRuleVarsNegativeTest02(void)
+static int SCRuleVarsNegativeTest02(void)
 {
     int result = 1;
 
@@ -272,7 +272,7 @@ int SCRuleVarsNegativeTest02(void)
  * \test Check that Signatures with valid address and port groups are parsed
  *       without any errors by the Signature parsing API.
  */
-int SCRuleVarsPositiveTest03(void)
+static int SCRuleVarsPositiveTest03(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -396,7 +396,7 @@ end:
  * \test Check that Signatures with invalid address and port groups, are
  *       are invalidated by the Singature parsing API.
  */
-int SCRuleVarsNegativeTest04(void)
+static int SCRuleVarsNegativeTest04(void)
 {
     int result = 0;
     Signature *s = NULL;
@@ -465,7 +465,7 @@ static const char *dummy_mt_conf_string =
  * \test Check that valid address and port group vars are correctly retrieved
  *       from the configuration.
  */
-int SCRuleVarsMTest01(void)
+static int SCRuleVarsMTest01(void)
 {
     int result = 0;
     DetectEngineCtx *de_ctx = NULL;

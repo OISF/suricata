@@ -51,6 +51,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-template.h"
+#include "output-json-template.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -149,7 +150,7 @@ static OutputCtx *OutputTemplateLogInitSub(ConfNode *conf,
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogTemplateLogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {

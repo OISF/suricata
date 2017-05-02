@@ -30,7 +30,7 @@
 #include "util-unittest.h"
 
 #ifdef DEBUG
-void StreamTcpSackPrintList(TcpStream *stream)
+static void StreamTcpSackPrintList(TcpStream *stream)
 {
     StreamTcpSackRecord *rec = stream->sack_head;
     for (; rec != NULL; rec = rec->next) {

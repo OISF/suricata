@@ -104,7 +104,7 @@ typedef struct StreamerCallbackData_ {
     enum OutputStreamingType type;
 } StreamerCallbackData;
 
-int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+static int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     StreamerCallbackData *streamer_cbdata = (StreamerCallbackData *)cbdata;
     BUG_ON(streamer_cbdata == NULL);
@@ -146,7 +146,7 @@ int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint
  *      - Invoke Streamer
  */
 
-int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
+static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 {
     SCLogDebug("called with %p, %d, %p, %02x", f, close, cbdata, iflags);
 
@@ -247,7 +247,7 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
     return 0;
 }
 
-int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t iflags)
+static int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t iflags)
 {
     SCLogDebug("called with %p, %d, %p, %02x", f, close, cbdata, iflags);
     int logged = 0;
@@ -367,7 +367,7 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, void *initdata, void **data) {
+static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, const void *initdata, void **data) {
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;

@@ -62,8 +62,8 @@ static pcre_extra *parse_regex_study;
 
 static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
-static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr);
+static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset);
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytejumpFree(void *ptr);
 static void DetectBytejumpRegisterTests(void);
 
@@ -309,7 +309,7 @@ static int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     return 1;
 }
 
-static DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset)
+static DetectBytejumpData *DetectBytejumpParse(const char *optstr, char **offset)
 {
     DetectBytejumpData *data = NULL;
     char args[10][64];
@@ -503,7 +503,7 @@ error:
     return NULL;
 }
 
-static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;

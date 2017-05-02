@@ -28,21 +28,12 @@
 
 #include "detect.h"
 #include "detect-parse.h"
-
-#include "flow-var.h"
-
 #include "detect-content.h"
-#include "detect-uricontent.h"
-#include "detect-pcre.h"
-#include "detect-http-client-body.h"
-#include "detect-http-cookie.h"
-#include "detect-http-header.h"
-#include "detect-http-method.h"
-#include "detect-http-uri.h"
+#include "detect-nocase.h"
 
 #include "util-debug.h"
 
-static int DetectNocaseSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectNocaseSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectNocaseRegister(void)
 {
@@ -66,7 +57,7 @@ void DetectNocaseRegister(void)
  *  \retval 0 ok
  *  \retval -1 failure
  */
-static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nullstr)
+static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, const char *nullstr)
 {
     SCEnter();
 

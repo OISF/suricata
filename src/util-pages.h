@@ -31,9 +31,11 @@
     /* OpenBSD won't allow for this test:
      * "suricata(...): mprotect W^X violation" */
     #define PageSupportsRWX() 0
+    #define HAVE_PAGESUPPORTSRWX_AS_MACRO 1
 #else
     #ifndef HAVE_SYS_MMAN_H
         #define PageSupportsRWX() 1
+        #define HAVE_PAGESUPPORTSRWX_AS_MACRO 1
     #else
         int PageSupportsRWX(void);
     #endif /* HAVE_SYS_MMAN_H */

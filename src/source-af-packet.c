@@ -104,7 +104,7 @@ extern int max_pending_packets;
 
 #ifndef HAVE_AF_PACKET
 
-TmEcode NoAFPSupportExit(ThreadVars *, void *, void **);
+TmEcode NoAFPSupportExit(ThreadVars *, const void *, void **);
 
 void TmModuleReceiveAFPRegister (void)
 {
@@ -137,7 +137,7 @@ void TmModuleDecodeAFPRegister (void)
 /**
  * \brief this function prints an error message and exits.
  */
-TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoAFPSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NO_AF_PACKET,"Error creating thread %s: you do not have "
                "support for AF_PACKET enabled, on Linux host please recompile "
@@ -242,7 +242,7 @@ typedef struct AFPThreadVars_
     /* socket buffer size */
     int buffer_size;
     /* Filter */
-    char *bpf_filter;
+    const char *bpf_filter;
 
     int promisc;
 
@@ -267,12 +267,12 @@ typedef struct AFPThreadVars_
 } AFPThreadVars;
 
 TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode ReceiveAFPThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveAFPThreadInit(ThreadVars *, const void *, void **);
 void ReceiveAFPThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveAFPThreadDeinit(ThreadVars *, void *);
 TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
-TmEcode DecodeAFPThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeAFPThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeAFPThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
@@ -329,7 +329,7 @@ typedef struct AFPPeersList_ {
  * or iface index.
  *
  */
-void AFPPeerUpdate(AFPThreadVars *ptv)
+static void AFPPeerUpdate(AFPThreadVars *ptv)
 {
     if (ptv->mpeer == NULL) {
         return;
@@ -342,7 +342,7 @@ void AFPPeerUpdate(AFPThreadVars *ptv)
 /**
  * \brief Clean and free ressource used by an ::AFPPeer
  */
-void AFPPeerClean(AFPPeer *peer)
+static void AFPPeerClean(AFPPeer *peer)
 {
     if (peer->flags & AFP_SOCK_PROTECT)
         SCMutexDestroy(&peer->sock_protect);
@@ -396,7 +396,7 @@ TmEcode AFPPeersListCheck()
 /**
  * \brief Declare a new AFP thread to AFP peers list.
  */
-TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
+static TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
 {
     SCEnter();
     AFPPeer *peer = SCMalloc(sizeof(AFPPeer));
@@ -456,7 +456,7 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     SCReturnInt(TM_ECODE_OK);
 }
 
-int AFPPeersListWaitTurn(AFPPeer *peer)
+static int AFPPeersListWaitTurn(AFPPeer *peer)
 {
     /* If turn is zero, we already have started threads once */
     if (peerslist.turn == 0)
@@ -467,7 +467,7 @@ int AFPPeersListWaitTurn(AFPPeer *peer)
     return 1;
 }
 
-void AFPPeersListReachedInc()
+static void AFPPeersListReachedInc(void)
 {
     if (peerslist.turn == 0)
         return;
@@ -482,7 +482,7 @@ void AFPPeersListReachedInc()
     }
 }
 
-static int AFPPeersListStarted()
+static int AFPPeersListStarted(void)
 {
     return !peerslist.turn;
 }
@@ -550,7 +550,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
  * \param user pointer to AFPThreadVars
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-int AFPRead(AFPThreadVars *ptv)
+static int AFPRead(AFPThreadVars *ptv)
 {
     Packet *p = NULL;
     /* XXX should try to use read that get directly to packet */
@@ -756,7 +756,7 @@ static TmEcode AFPWritePacket(Packet *p, int version)
     return TM_ECODE_OK;
 }
 
-void AFPReleaseDataFromRing(Packet *p)
+static void AFPReleaseDataFromRing(Packet *p)
 {
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
@@ -778,7 +778,7 @@ cleanup:
 }
 
 #ifdef HAVE_TPACKET_V3
-void AFPReleasePacketV3(Packet *p)
+static void AFPReleasePacketV3(Packet *p)
 {
     /* Need to be in copy mode and need to detect early release
        where Ethernet header could not be set (and pseudo packet) */
@@ -789,7 +789,7 @@ void AFPReleasePacketV3(Packet *p)
 }
 #endif
 
-void AFPReleasePacket(Packet *p)
+static void AFPReleasePacket(Packet *p)
 {
     AFPReleaseDataFromRing(p);
     PacketFreeOrRelease(p);
@@ -804,7 +804,7 @@ void AFPReleasePacket(Packet *p)
  * \param user pointer to AFPThreadVars
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-int AFPReadFromRing(AFPThreadVars *ptv)
+static int AFPReadFromRing(AFPThreadVars *ptv)
 {
     Packet *p = NULL;
     union thdr h;
@@ -1068,7 +1068,7 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
  * \param user pointer to AFPThreadVars
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-int AFPReadFromRingV3(AFPThreadVars *ptv)
+static int AFPReadFromRingV3(AFPThreadVars *ptv)
 {
 #ifdef HAVE_TPACKET_V3
     struct tpacket_block_desc *pbd;
@@ -1138,7 +1138,7 @@ static int AFPDerefSocket(AFPPeer* peer)
     return 1;
 }
 
-void AFPSwitchState(AFPThreadVars *ptv, int state)
+static void AFPSwitchState(AFPThreadVars *ptv, int state)
 {
     ptv->afp_state = state;
     ptv->down_count = 0;
@@ -2122,10 +2122,10 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  *
  * \todo Create a general AFP setup function.
  */
-TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
-    AFPIfaceConfig *afpconfig = initdata;
+    AFPIfaceConfig *afpconfig = (AFPIfaceConfig *)initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -2331,7 +2331,7 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode DecodeAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodeAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

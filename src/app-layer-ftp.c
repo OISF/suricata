@@ -400,7 +400,7 @@ static int FTPRegisterPatternsForProtocolDetection(void)
 
 void RegisterFTPParsers(void)
 {
-    char *proto_name = "ftp";
+    const char *proto_name = "ftp";
 
     /** FTP */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
@@ -453,7 +453,7 @@ void FTPAtExitPrintStats(void)
 #ifdef UNITTESTS
 
 /** \test Send a get request in one chunk. */
-int FTPParserTest01(void)
+static int FTPParserTest01(void)
 {
     int result = 1;
     Flow f;
@@ -504,7 +504,7 @@ end:
 }
 
 /** \test Send a splitted get request. */
-int FTPParserTest03(void)
+static int FTPParserTest03(void)
 {
     int result = 1;
     Flow f;
@@ -581,7 +581,7 @@ end:
 }
 
 /** \test See how it deals with an incomplete request. */
-int FTPParserTest06(void)
+static int FTPParserTest06(void)
 {
     int result = 1;
     Flow f;
@@ -634,7 +634,7 @@ end:
 }
 
 /** \test See how it deals with an incomplete request in multiple chunks. */
-int FTPParserTest07(void)
+static int FTPParserTest07(void)
 {
     int result = 1;
     Flow f;
@@ -701,7 +701,7 @@ end:
 
 /** \test Test case where chunks are smaller than the delim length and the
   *       last chunk is supposed to match the delim. */
-int FTPParserTest10(void)
+static int FTPParserTest10(void)
 {
     int result = 1;
     Flow f;

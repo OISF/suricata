@@ -44,6 +44,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-alert.h"
+#include "output-json-drop.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -177,7 +178,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonDropLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonDropLogThread *aft = SCMalloc(sizeof(JsonDropLogThread));
     if (unlikely(aft == NULL))

@@ -58,7 +58,7 @@ typedef struct PcapIfaceConfig_
     /* promiscuous value */
     int promisc;
     /* BPF filter */
-    char *bpf_filter;
+    const char *bpf_filter;
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);

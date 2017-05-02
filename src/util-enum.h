@@ -25,7 +25,7 @@
 #define __UTIL_ENUM_H__
 
 typedef struct SCEnumCharMap_ {
-    char *enum_name;
+    const char *enum_name;
     int enum_value;
 } SCEnumCharMap;
 

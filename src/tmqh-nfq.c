@@ -30,6 +30,7 @@
 #include "threadvars.h"
 
 #include "tm-queuehandlers.h"
+#include "tmqh-nfq.h"
 
 void TmqhOutputVerdictNfq(ThreadVars *t, Packet *p);
 

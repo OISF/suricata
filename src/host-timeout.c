@@ -28,6 +28,7 @@
 #include "detect-engine-threshold.h"
 
 #include "host-bit.h"
+#include "host-timeout.h"
 
 #include "reputation.h"
 

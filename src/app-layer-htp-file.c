@@ -43,6 +43,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-file.h"
 
 #include "util-spm.h"
 #include "util-debug.h"

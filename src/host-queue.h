@@ -72,7 +72,7 @@ typedef struct HostQueue_
 #endif
 
 /* prototypes */
-HostQueue *HostQueueNew();
+HostQueue *HostQueueNew(void);
 HostQueue *HostQueueInit(HostQueue *);
 void HostQueueDestroy (HostQueue *);
 

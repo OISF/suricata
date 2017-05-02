@@ -218,8 +218,7 @@ typedef struct Unified2AlertThread_ {
 SC_ATOMIC_DECLARE(unsigned int, unified2_event_id);  /**< Atomic counter, to link relative event */
 
 /** prototypes */
-//TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
+TmEcode Unified2AlertThreadInit(ThreadVars *, const void *, void **);
 TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 static int Unified2IPv4TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2IPv6TypeAlert(ThreadVars *, const Packet *, void *);
@@ -1147,7 +1146,7 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
  *  \retval TM_ECODE_FAILED on failure
  */
 
-TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode Unified2AlertThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     Unified2AlertThread *aun = SCMalloc(sizeof(Unified2AlertThread));
     if (unlikely(aun == NULL))
@@ -1406,7 +1405,7 @@ static int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix,
         gettimeofday(&ts, NULL);
 
     /* create the filename to use */
-    char *log_dir;
+    const char *log_dir;
     log_dir = ConfigGetLogDirectory();
 
     if (file_ctx->nostamp) {

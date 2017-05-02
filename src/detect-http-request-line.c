@@ -60,7 +60,7 @@
 #include "stream-tcp.h"
 #include "detect-http-request-line.h"
 
-static int DetectHttpRequestLineSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpRequestLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRequestLineRegisterTests(void);
 static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
@@ -113,7 +113,7 @@ void DetectHttpRequestLineRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-static int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_http_request_line_buffer_id;
     s->alproto = ALPROTO_HTTP;

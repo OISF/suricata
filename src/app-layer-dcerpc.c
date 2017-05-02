@@ -143,7 +143,7 @@ void hexdump(/*Flow *f,*/ const void *buf, size_t len)
  * \brief printUUID function used to print UUID, Major and Minor Version Number
  * and if it was Accepted or Rejected in the BIND_ACK.
  */
-void printUUID(char *type, DCERPCUuidEntry *uuid)
+void printUUID(const char *type, DCERPCUuidEntry *uuid)
 {
     uint8_t i = 0;
     if (uuid == NULL) {
@@ -2091,7 +2091,7 @@ static int DCERPCRegisterPatternsForProtocolDetection(void)
 
 void RegisterDCERPCParsers(void)
 {
-    char *proto_name = "dcerpc";
+    const char *proto_name = "dcerpc";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DCERPC, proto_name);
@@ -2144,7 +2144,7 @@ void RegisterDCERPCParsers(void)
 
 /* set this to 1 to see problem */
 
-int DCERPCParserTest01(void)
+static int DCERPCParserTest01(void)
 {
     int result = 1;
     Flow f;
@@ -2603,7 +2603,7 @@ end:
 
 /** \test DCERPC Request decoding and opnum parsing.
 */
-int DCERPCParserTest02(void)
+static int DCERPCParserTest02(void)
 {
     int result = 1;
     Flow f;
@@ -2806,7 +2806,7 @@ end:
 
 /** \test Test endianness handling
 */
-int DCERPCParserTest03(void)
+static int DCERPCParserTest03(void)
 {
     int result = 1;
     Flow f;
@@ -3003,7 +3003,7 @@ end:
 /**
  * \todo Needs to be rewritten
  */
-int DCERPCParserTest04(void)
+static int DCERPCParserTest04(void)
 {
     /* AWS - Disabled this test since clamav FPs on the payloads used.
      * We will have to rewrite this test with new payloads.  Will be done
@@ -4363,7 +4363,7 @@ end:
 /**
  * \test General test.
  */
-int DCERPCParserTest05(void)
+static int DCERPCParserTest05(void)
 {
     int result = 1;
     Flow f;
@@ -4465,7 +4465,7 @@ end:
 /**
  * \test DCERPC fragmented bind PDU(one PDU which is frag'ed)
  */
-int DCERPCParserTest06(void)
+static int DCERPCParserTest06(void)
 {
     int result = 1;
     Flow f;
@@ -4631,7 +4631,7 @@ end:
 /**
  * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
  */
-int DCERPCParserTest07(void)
+static int DCERPCParserTest07(void)
 {
     int result = 1;
     Flow f;
@@ -4734,7 +4734,7 @@ end:
 /**
  * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
  */
-int DCERPCParserTest08(void)
+static int DCERPCParserTest08(void)
 {
     int result = 1;
     Flow f;
@@ -4795,7 +4795,7 @@ end:
 /**
  * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
  */
-int DCERPCParserTest09(void)
+static int DCERPCParserTest09(void)
 {
     int result = 1;
     Flow f;
@@ -4856,7 +4856,7 @@ end:
 /**
  * \test DCERPC fragmented PDU.
  */
-int DCERPCParserTest10(void)
+static int DCERPCParserTest10(void)
 {
     int result = 1;
     Flow f;
@@ -4956,7 +4956,7 @@ end:
 /**
  * \test DCERPC fragmented PDU.
  */
-int DCERPCParserTest11(void)
+static int DCERPCParserTest11(void)
 {
     int result = 1;
     Flow f;
@@ -5061,7 +5061,7 @@ end:
 /**
  * \test DCERPC fragmented PDU.
  */
-int DCERPCParserTest12(void)
+static int DCERPCParserTest12(void)
 {
     int result = 1;
     Flow f;
@@ -5143,7 +5143,7 @@ end:
  * \test Check if the parser accepts bind pdus that have context ids starting
  *       from a non-zero value.
  */
-int DCERPCParserTest13(void)
+static int DCERPCParserTest13(void)
 {
     int result = 1;
     Flow f;
@@ -5228,7 +5228,7 @@ end:
 /**
  * \test Check for another endless loop with bind pdus.
  */
-int DCERPCParserTest14(void)
+static int DCERPCParserTest14(void)
 {
     int result = 1;
     Flow f;
@@ -5294,7 +5294,7 @@ end:
 /**
  * \test Check for another endless loop for bind_ack pdus.
  */
-int DCERPCParserTest15(void)
+static int DCERPCParserTest15(void)
 {
     int result = 1;
     Flow f;
@@ -5356,7 +5356,7 @@ end:
 /**
  * \test Check for correct internal ids for bind_acks.
  */
-int DCERPCParserTest16(void)
+static int DCERPCParserTest16(void)
 {
     int result = 1;
     Flow f;
@@ -5955,7 +5955,7 @@ end:
 /**
  * \test Check for correct internal ids for bind_acks + alter_contexts
  */
-int DCERPCParserTest17(void)
+static int DCERPCParserTest17(void)
 {
     int result = 1;
     Flow f;
@@ -6149,7 +6149,7 @@ end:
 /**
  * \test DCERPC fragmented PDU.
  */
-int DCERPCParserTest18(void)
+static int DCERPCParserTest18(void)
 {
     int result = 1;
     Flow f;
@@ -6228,7 +6228,7 @@ end:
     return result;
 }
 
-int DCERPCParserTest19(void)
+static int DCERPCParserTest19(void)
 {
     int result = 0;
     Flow f;

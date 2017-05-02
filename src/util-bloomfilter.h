@@ -36,7 +36,7 @@ typedef struct BloomFilter_ {
 BloomFilter *BloomFilterInit(uint32_t, uint8_t, uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t));
 void BloomFilterFree(BloomFilter *);
 void BloomFilterPrint(BloomFilter *);
-int BloomFilterAdd(BloomFilter *, void *, uint16_t);
+int BloomFilterAdd(BloomFilter *, const void *, uint16_t);
 uint32_t BloomFilterMemoryCnt(BloomFilter *);
 uint32_t BloomFilterMemorySize(BloomFilter *);
 

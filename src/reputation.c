@@ -177,7 +177,7 @@ void SRepReloadComplete(void)
 
 /** \brief Set effective reputation version after
  *         reputation initialization is complete. */
-void SRepInitComplete(void)
+static void SRepInitComplete(void)
 {
     (void) SC_ATOMIC_SET(srep_eversion, 1);
     SCLogDebug("effective Reputation version %u", SRepGetEffectiveVersion());
@@ -337,17 +337,6 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
 #define SREP_SHORTNAME_LEN 32
 static char srep_cat_table[SREP_MAX_CATS][SREP_SHORTNAME_LEN];
 
-int SRepCatValid(uint8_t cat)
-{
-    if (cat >= SREP_MAX_CATS)
-        return 0;
-
-    if (strlen(srep_cat_table[cat]) == 0)
-        return 0;
-
-    return 1;
-}
-
 uint8_t SRepCatGetByShortname(char *shortname)
 {
     uint8_t cat;
@@ -359,7 +348,7 @@ uint8_t SRepCatGetByShortname(char *shortname)
     return 0;
 }
 
-static int SRepLoadCatFile(char *filename)
+static int SRepLoadCatFile(const char *filename)
 {
     int r = 0;
     FILE *fp = fopen(filename, "r");
@@ -543,7 +532,7 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
  */
 static char *SRepCompleteFilePath(char *file)
 {
-    char *defaultpath = NULL;
+    const char *defaultpath = NULL;
     char *path = NULL;
 
     /* Path not specified */
@@ -593,7 +582,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
     ConfNode *file = NULL;
     int r = 0;
     char *sfile = NULL;
-    char *filename = NULL;
+    const char *filename = NULL;
     int init = 0;
     int i = 0;
 
@@ -911,6 +900,7 @@ end:
 }
 #endif
 
+#if 0
 /** Global trees that hold host reputation for IPV4 and IPV6 hosts */
 IPReputationCtx *rep_ctx;
 
@@ -2317,11 +2307,13 @@ error:
 }
 
 #endif /* UNITTESTS */
+#endif
 
 /** Register the following unittests for the Reputation module */
 void SCReputationRegisterTests(void)
 {
 #ifdef UNITTESTS
+#if 0
     UtRegisterTest("SCReputationTestIPV4AddRemoveHost01",
                    SCReputationTestIPV4AddRemoveHost01);
     UtRegisterTest("SCReputationTestIPV6AddRemoveHost01",
@@ -2339,7 +2331,7 @@ void SCReputationRegisterTests(void)
                    SCReputationTestIPV4Update01);
     UtRegisterTest("SCReputationTestIPV6Update01",
                    SCReputationTestIPV6Update01);
-
+#endif
     UtRegisterTest("SRepTest01", SRepTest01);
     UtRegisterTest("SRepTest02", SRepTest02);
     UtRegisterTest("SRepTest03", SRepTest03);

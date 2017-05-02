@@ -27,8 +27,6 @@
 void JsonHttpLogRegister(void);
 
 #ifdef HAVE_LIBJANSSON
-void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx);
-void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx);
 json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id);
 #endif /* HAVE_LIBJANSSON */
 

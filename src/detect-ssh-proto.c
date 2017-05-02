@@ -45,6 +45,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
+#include "detect-ssh-proto.h"
 
 #define KEYWORD_NAME "ssh_proto"
 #define KEYWORD_DOC "ssh-keywords#ssh-protocol"
@@ -169,7 +170,7 @@ static int InspectEngineSshProtocol(ThreadVars *tv,
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-static int DetectSshProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectSshProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_buffer_id;
     return 0;

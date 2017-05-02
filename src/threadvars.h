@@ -71,7 +71,7 @@ typedef struct ThreadVars_ {
     Tmq *inq;
     Tmq *outq;
     void *outctx;
-    char *outqh_name;
+    const char *outqh_name;
 
     /** queue handlers */
     struct Packet_ * (*tmqh_in)(struct ThreadVars_ *);

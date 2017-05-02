@@ -23,6 +23,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "util-unittest.h"
+#include "runmode-unittests.h"
 
 #ifdef UNITTESTS
 
@@ -123,7 +124,6 @@
 
 #endif /* UNITTESTS */
 
-void RegisterAllModules();
 void TmqhSetup (void);
 
 #ifdef UNITTESTS
@@ -146,6 +146,7 @@ static void RegisterUnittests(void)
     HostBitRegisterTests();
     IPPairBitRegisterTests();
     StatsRegisterTests();
+    DecodeEthernetRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
     DecodeRawRegisterTests();
@@ -230,7 +231,7 @@ static void RegisterUnittests(void)
  * This function is terminal and will call exit after being called.
  */
 
-void RunUnittests(int list_unittests, char *regex_arg)
+void RunUnittests(int list_unittests, const char *regex_arg)
 {
 #ifdef UNITTESTS
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
@@ -263,7 +264,6 @@ void RunUnittests(int list_unittests, char *regex_arg)
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
 #endif
-    SCReputationInitCtx();
     SCProtoNameInit();
 
     TagInitCtx();
@@ -278,7 +278,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
 
     StorageFinalize();
    /* test and initialize the unittesting subsystem */
-    if(regex_arg == NULL){
+    if (regex_arg == NULL){
         regex_arg = ".*";
         UtRunSelftest(regex_arg); /* inits and cleans up again */
     }

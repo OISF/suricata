@@ -83,7 +83,7 @@ SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
 SC_ATOMIC_DECLARE(unsigned int, flow_flags);
 
 void FlowRegisterTests(void);
-void FlowInitFlowProto();
+void FlowInitFlowProto(void);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
 /* Run mode selected at suricata.c */
@@ -371,7 +371,7 @@ void FlowInitConfig(char quiet)
     }
 
     /* Check if we have memcap and hash_size defined at config */
-    char *conf_val;
+    const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */

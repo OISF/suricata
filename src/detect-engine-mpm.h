@@ -57,8 +57,6 @@ void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 
-void DbgPrintSearchStats();
-
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 

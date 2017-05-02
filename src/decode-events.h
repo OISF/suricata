@@ -263,7 +263,7 @@ enum {
 /* supported decoder events */
 
 struct DecodeEvents_ {
-    char *event_name;
+    const char *event_name;
     uint8_t code;
 };
 extern const struct DecodeEvents_ DEvents[DECODE_EVENT_MAX];

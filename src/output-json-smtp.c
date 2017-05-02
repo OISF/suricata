@@ -49,6 +49,7 @@
 #include "util-time.h"
 
 #include "output-json.h"
+#include "output-json-smtp.h"
 #include "output-json-email-common.h"
 
 #ifdef HAVE_LIBJANSSON
@@ -150,7 +151,7 @@ static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "smtp.json"
-OutputCtx *OutputSmtpLogInit(ConfNode *conf)
+static OutputCtx *OutputSmtpLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
@@ -215,7 +216,7 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonEmailLogThread *aft = SCMalloc(sizeof(JsonEmailLogThread));
     if (unlikely(aft == NULL))

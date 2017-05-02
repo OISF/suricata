@@ -166,7 +166,7 @@ static PcapLogData *g_pcap_data = NULL;
 
 static int PcapLogOpenFileCtx(PcapLogData *);
 static int PcapLog(ThreadVars *, void *, const Packet *);
-static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
+static TmEcode PcapLogDataInit(ThreadVars *, const void *, void **);
 static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 static OutputCtx *PcapLogInitCtx(ConfNode *);
@@ -686,7 +686,7 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
 }
 #endif /* INIT_RING_BUFFER */
 
-static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode PcapLogDataInit(ThreadVars *t, const void *initdata, void **data)
 {
     if (initdata == NULL) {
         SCLogDebug("Error getting context for LogPcap. \"initdata\" argument NULL");
@@ -1039,7 +1039,7 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
                     "option to be set.");
                 exit(EXIT_FAILURE);
             } else {
-                char *log_dir = NULL;
+                const char *log_dir = NULL;
                 log_dir = ConfigGetLogDirectory();
 
                 strlcpy(pl->dir,
@@ -1051,7 +1051,7 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
                 strlcpy(pl->dir,
                         s_dir, sizeof(pl->dir));
             } else {
-                char *log_dir = NULL;
+                const char *log_dir = NULL;
                 log_dir = ConfigGetLogDirectory();
 
                 snprintf(pl->dir, sizeof(pl->dir), "%s/%s",
@@ -1324,7 +1324,7 @@ error:
 static int profiling_pcaplog_enabled = 0;
 static int profiling_pcaplog_output_to_file = 0;
 static char *profiling_pcaplog_file_name = NULL;
-static char *profiling_pcaplog_file_mode = "a";
+static const char *profiling_pcaplog_file_mode = "a";
 
 static void FormatNumber(uint64_t num, char *str, size_t size)
 {
@@ -1445,7 +1445,7 @@ void PcapLogProfileSetup(void)
 
         const char *filename = ConfNodeLookupChildValue(conf, "filename");
         if (filename != NULL) {
-            char *log_dir;
+            const char *log_dir;
             log_dir = ConfigGetLogDirectory();
 
             profiling_pcaplog_file_name = SCMalloc(PATH_MAX);

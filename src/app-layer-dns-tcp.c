@@ -651,7 +651,7 @@ static uint16_t DNSTcpProbeResponse(uint8_t *input, uint32_t len,
 
 void RegisterDNSTCPParsers(void)
 {
-    char *proto_name = "dns";
+    const char *proto_name = "dns";
 
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {

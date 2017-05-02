@@ -55,7 +55,7 @@ void SCAsn1LoadConfig()
  *
  * \retval byte of the status of the parser
  */
-uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac)
+static uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac)
 {
     uint8_t ret = 0;
     uint32_t tag_num = 0;
@@ -119,7 +119,7 @@ uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac)
  *
  * \retval byte of the status of the parser
  */
-uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
+static uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
 {
     uint8_t raw_len = *ac->iter;
     uint8_t ret = 0;
@@ -394,7 +394,7 @@ void SCAsn1CtxDestroy(Asn1Ctx *ac)
  *
  * \retval Asn1Node pointer to the new node allocated
  */
-Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node)
+static Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node)
 {
     if (node >= asn1_max_frames_config) {
         return NULL;
@@ -542,7 +542,7 @@ uint8_t SCAsn1Decode(Asn1Ctx *ac, uint16_t node_id)
 /**
  * \test Check we handle extended identifiers correctly
  */
-int DecodeAsn1Test01(void)
+static int DecodeAsn1Test01(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06";
 
@@ -571,7 +571,7 @@ end:
 /**
  * \test Check we handle extended identifiers correctly
  */
-int DecodeAsn1Test02(void)
+static int DecodeAsn1Test02(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x81\x81\x81\x81\x06";
 
@@ -600,7 +600,7 @@ end:
 /**
  * \test Check we handle short identifiers correctly
  */
-int DecodeAsn1Test03(void)
+static int DecodeAsn1Test03(void)
 {
     uint8_t *str = (uint8_t *) "\x28";
 
@@ -629,7 +629,7 @@ end:
 /**
  * \test Check we handle extended lengths correctly with indefinite form
  */
-int DecodeAsn1Test04(void)
+static int DecodeAsn1Test04(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x80\x12\x12\x12\x00\x00";
 
@@ -659,7 +659,7 @@ end:
  * \test Check we handle extended lengths correctly
  *       in the definite form
  */
-int DecodeAsn1Test05(void)
+static int DecodeAsn1Test05(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x82\x10\x10";
 
@@ -688,7 +688,7 @@ end:
 /**
  * \test Check we handle short lengths correctly
  */
-int DecodeAsn1Test06(void)
+static int DecodeAsn1Test06(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x26";
 
@@ -717,7 +717,7 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test07(void)
+static int DecodeAsn1Test07(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x00\x84\x06";
 
@@ -748,7 +748,7 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test08(void)
+static int DecodeAsn1Test08(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x81\xFF";
 
@@ -779,7 +779,7 @@ end:
 /**
  * \test Check we handle events correctly
  */
-int DecodeAsn1Test09(void)
+static int DecodeAsn1Test09(void)
 {
     uint8_t *str = (uint8_t *) "\x3F\x84\x06\x80\xAB\xCD\xEF";
 
@@ -810,7 +810,7 @@ end:
 /**
  * \test Decode a big chunk of data
  */
-int DecodeAsn1Test10(void)
+static int DecodeAsn1Test10(void)
 {
     // Example from the specification X.690-0207 Appendix A.3
     uint8_t *str = (uint8_t *) "\x60\x81\x85\x61\x10\x1A\x04""John""\x1A\x01"

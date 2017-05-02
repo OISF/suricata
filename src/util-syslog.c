@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "util-syslog.h"
 
 /* holds the string-enum mapping for the syslog facility in SCLogOPIfaceCtx */
 SCEnumCharMap sc_syslog_facility_map[] = {
@@ -53,7 +54,7 @@ SCEnumCharMap sc_syslog_facility_map[] = {
 };
 
 /** \brief returns the syslog facility enum map */
-SCEnumCharMap *SCSyslogGetFacilityMap()
+SCEnumCharMap *SCSyslogGetFacilityMap(void)
 {
     return sc_syslog_facility_map;
 }
@@ -71,7 +72,7 @@ SCEnumCharMap sc_syslog_level_map[ ] = {
 };
 
 /** \brief returns the syslog facility enum map */
-SCEnumCharMap *SCSyslogGetLogLevelMap()
+SCEnumCharMap *SCSyslogGetLogLevelMap(void)
 {
     return sc_syslog_level_map;
 }

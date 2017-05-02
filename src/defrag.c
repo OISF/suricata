@@ -1119,10 +1119,6 @@ error:
     return NULL;
 }
 
-void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
-                          uint16_t hdrextlen, uint16_t plen,
-                          uint16_t prev_hdrextlen);
-
 static Packet *IPV6BuildTestPacket(uint8_t proto, uint32_t id, uint16_t off,
         int mf, const char content, int content_len)
 {

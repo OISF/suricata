@@ -184,7 +184,7 @@ static int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
  * \retval The function code as an integer if successul, -1 on
  *     failure.
  */
-static int DetectDNP3FuncParseFunctionCode(char *str, uint8_t *fc)
+static int DetectDNP3FuncParseFunctionCode(const char *str, uint8_t *fc)
 {
     if (ByteExtractStringUint8(fc, 10, strlen(str), str) >= 0) {
         return 1;
@@ -202,7 +202,7 @@ static int DetectDNP3FuncParseFunctionCode(char *str, uint8_t *fc)
     return 0;
 }
 
-static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     DetectDNP3 *dnp3 = NULL;
@@ -243,7 +243,7 @@ error:
     SCReturnInt(-1);
 }
 
-static int DetectDNP3IndParseByName(char *str, uint16_t *flags)
+static int DetectDNP3IndParseByName(const char *str, uint16_t *flags)
 {
     char tmp[strlen(str) + 1];
     char *p, *last = NULL;
@@ -273,7 +273,7 @@ static int DetectDNP3IndParseByName(char *str, uint16_t *flags)
     return 1;
 }
 
-static int DetectDNP3IndParse(char *str, uint16_t *flags)
+static int DetectDNP3IndParse(const char *str, uint16_t *flags)
 {
     *flags = 0;
 
@@ -289,7 +289,7 @@ static int DetectDNP3IndParse(char *str, uint16_t *flags)
     return 0;
 }
 
-static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     DetectDNP3 *detect = NULL;
@@ -363,7 +363,7 @@ static int DetectDNP3ObjParse(const char *str, uint8_t *group, uint8_t *var)
     return 1;
 }
 
-static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     uint8_t group;
@@ -523,7 +523,7 @@ static void DetectDNP3ObjRegister(void)
     SCReturn;
 }
 
-static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectDNP3DataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
     s->init_data->list = g_dnp3_data_buffer_id;

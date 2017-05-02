@@ -46,7 +46,7 @@
  * \retval -1 the hexadecimal string is invalid
  * \retval 1 the hexadecimal string was read successfully
  */
-int ReadHashString(uint8_t *hash, char *string, char *filename, int line_no,
+int ReadHashString(uint8_t *hash, const char *string, const char *filename, int line_no,
         uint16_t expected_len)
 {
     if (strlen(string) != expected_len) {
@@ -86,7 +86,7 @@ int ReadHashString(uint8_t *hash, char *string, char *filename, int line_no,
  * \retval -1 failed to load the hash into the hash table
  * \retval 1 successfully loaded the has into the hash table
  */
-int LoadHashTable(ROHashTable *hash_table, char *string, char *filename,
+int LoadHashTable(ROHashTable *hash_table, const char *string, const char *filename,
         int line_no, uint32_t type)
 {
     /* allocate the maximum size a hash can have (in this case is SHA256, 32 bytes) */
@@ -206,7 +206,7 @@ static const char *hexcodes = "ABCDEFabcdef0123456789";
  * \retval NULL on failure
  */
 static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
-        char *str, uint32_t type)
+        const char *str, uint32_t type)
 {
     DetectFileHashData *filehash = NULL;
     FILE *fp = NULL;
@@ -302,7 +302,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, char *str,
+int DetectFileHashSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str,
         uint32_t type, int list)
 {
     DetectFileHashData *filehash = NULL;

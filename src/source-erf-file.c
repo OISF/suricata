@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "tm-threads.h"
+#include "source-erf-file.h"
 
 #define DAG_TYPE_ETH 2
 
@@ -63,11 +64,11 @@ typedef struct ErfFileThreadVars_ {
 
 static inline TmEcode ReadErfRecord(ThreadVars *, Packet *, void *);
 TmEcode ReceiveErfFileLoop(ThreadVars *, void *, void *);
-TmEcode ReceiveErfFileThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveErfFileThreadInit(ThreadVars *, const void *, void **);
 void ReceiveErfFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfFileThreadDeinit(ThreadVars *, void *);
 
-TmEcode DecodeErfFileThreadInit(ThreadVars *, void *, void **);
+TmEcode DecodeErfFileThreadInit(ThreadVars *, const void *, void **);
 TmEcode DecodeErfFileThreadDeinit(ThreadVars *tv, void *data);
 TmEcode DecodeErfFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
@@ -208,7 +209,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
  * \brief Initialize the ERF receiver thread.
  */
 TmEcode
-ReceiveErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
+ReceiveErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
 
@@ -244,7 +245,7 @@ ReceiveErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
  * \brief Initialize the ERF decoder thread.
  */
 TmEcode
-DecodeErfFileThreadInit(ThreadVars *tv, void *initdata, void **data)
+DecodeErfFileThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

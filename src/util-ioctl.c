@@ -44,12 +44,14 @@
 #include <net/if.h>
 #endif
 
+#include "util-ioctl.h"
+
 /**
  * \brief output a majorant of hardware header length
  *
  * \param Name of a network interface
  */
-int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
+static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
 {
     if ((!strcmp("eth", pcap_dev))
             ||
@@ -327,7 +329,7 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
     uint32_t value = 0;
 
     if (csum) {
-        char *rx = "unset", *tx = "unset";
+        const char *rx = "unset", *tx = "unset";
         int csum_ret = 0;
 #ifdef ETHTOOL_GRXCSUM
         if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
@@ -352,8 +354,8 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
     }
 
     if (other) {
-        char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
-        char *sg = "unset";
+        const char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
+        const char *sg = "unset";
         int other_ret = 0;
 #ifdef ETHTOOL_GGRO
         if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {

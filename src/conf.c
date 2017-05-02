@@ -217,7 +217,7 @@ ConfNode *ConfGetRootNode(void)
  *
  * \retval 1 if the value was set otherwise 0.
  */
-int ConfSet(const char *name, char *val)
+int ConfSet(const char *name, const char *val)
 {
     ConfNode *node = ConfGetNodeOrCreate(name, 0);
     if (node == NULL || node->final) {
@@ -296,7 +296,7 @@ done:
  *
  * \retval 1 if the value was set otherwise 0.
  */
-int ConfSetFinal(const char *name, char *val)
+int ConfSetFinal(const char *name, const char *val)
 {
     ConfNode *node = ConfGetNodeOrCreate(name, 1);
     if (node == NULL) {
@@ -328,7 +328,7 @@ int ConfSetFinal(const char *name, char *val)
  * \retval 1 will be returned if the name is found, otherwise 0 will
  *   be returned.
  */
-int ConfGet(const char *name, char **vptr)
+int ConfGet(const char *name, const char **vptr)
 {
     ConfNode *node = ConfGetNode(name);
     if (node == NULL) {
@@ -341,7 +341,7 @@ int ConfGet(const char *name, char **vptr)
     }
 }
 
-int ConfGetChildValue(const ConfNode *base, const char *name, char **vptr)
+int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)
 {
     ConfNode *node = ConfNodeLookupChild(base, name);
 
@@ -357,7 +357,7 @@ int ConfGetChildValue(const ConfNode *base, const char *name, char **vptr)
 
 
 int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
-    const char *name, char **vptr)
+    const char *name, const char **vptr)
 {
     int ret = ConfGetChildValue(base, name, vptr);
     /* Get 'default' value */
@@ -379,7 +379,7 @@ int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetInt(const char *name, intmax_t *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
 
@@ -399,7 +399,7 @@ int ConfGetInt(const char *name, intmax_t *val)
 
 int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
     intmax_t tmpint;
     char *endptr;
 
@@ -441,7 +441,7 @@ int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfGetBool(const char *name, int *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
 
     *val = 0;
     if (ConfGet(name, &strval) != 1)
@@ -454,7 +454,7 @@ int ConfGetBool(const char *name, int *val)
 
 int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
 
     *val = 0;
     if (ConfGetChildValue(base, name, &strval) == 0)
@@ -490,7 +490,7 @@ int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt,
  */
 int ConfValIsTrue(const char *val)
 {
-    char *trues[] = {"1", "yes", "true", "on"};
+    const char *trues[] = {"1", "yes", "true", "on"};
     size_t u;
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
@@ -515,7 +515,7 @@ int ConfValIsTrue(const char *val)
  */
 int ConfValIsFalse(const char *val)
 {
-    char *falses[] = {"0", "no", "false", "off"};
+    const char *falses[] = {"0", "no", "false", "off"};
     size_t u;
 
     for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
@@ -539,7 +539,7 @@ int ConfValIsFalse(const char *val)
  */
 int ConfGetDouble(const char *name, double *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
     double tmpdo;
     char *endptr;
 
@@ -569,7 +569,7 @@ int ConfGetDouble(const char *name, double *val)
  */
 int ConfGetFloat(const char *name, float *val)
 {
-    char *strval = NULL;
+    const char *strval = NULL;
     double tmpfl;
     char *endptr;
 
@@ -807,7 +807,7 @@ int ConfNodeChildValueIsTrue(const ConfNode *node, const char *key)
  */
 char *ConfLoadCompleteIncludePath(const char *file)
 {
-    char *defaultpath = NULL;
+    const char *defaultpath = NULL;
     char *path = NULL;
 
     /* Path not specified */
@@ -891,7 +891,7 @@ int ConfNodeIsSequence(const ConfNode *node)
 static int ConfTestGetNonExistant(void)
 {
     char name[] = "non-existant-value";
-    char *value;
+    const char *value;
 
     FAIL_IF(ConfGet(name, &value));
     PASS;
@@ -904,7 +904,7 @@ static int ConfTestSetAndGet(void)
 {
     char name[] = "some-name";
     char value[] = "some-value";
-    char *value0;
+    const char *value0;
 
     FAIL_IF(ConfSet(name, value) != 1);
     FAIL_IF(ConfGet(name, &value0) != 1);
@@ -925,7 +925,7 @@ static int ConfTestOverrideValue1(void)
     char name[] = "some-name";
     char value0[] = "some-value";
     char value1[] = "new-value";
-    char *val;
+    const char *val;
 
     FAIL_IF(ConfSet(name, value0) != 1);
     FAIL_IF(ConfSet(name, value1) != 1);
@@ -946,7 +946,7 @@ static int ConfTestOverrideValue2(void)
     char name[] = "some-name";
     char value0[] = "some-value";
     char value1[] = "new-value";
-    char *val;
+    const char *val;
 
     FAIL_IF(ConfSetFinal(name, value0) != 1);
     FAIL_IF(ConfSet(name, value1) != 0);
@@ -991,13 +991,13 @@ static int ConfTestGetInt(void)
 static int ConfTestGetBool(void)
 {
     char name[] = "some-bool";
-    char *trues[] = {
+    const char *trues[] = {
         "1",
         "on", "ON",
         "yes", "YeS",
         "true", "TRUE",
     };
-    char *falses[] = {
+    const char *falses[] = {
         "0",
         "something",
         "off", "OFF",
@@ -1024,7 +1024,7 @@ static int ConfTestGetBool(void)
 
 static int ConfNodeLookupChildTest(void)
 {
-    char *test_vals[] = { "one", "two", "three" };
+    const char *test_vals[] = { "one", "two", "three" };
     size_t u;
 
     ConfNode *parent = ConfNodeNew();
@@ -1066,7 +1066,7 @@ static int ConfNodeLookupChildTest(void)
 
 static int ConfNodeLookupChildValueTest(void)
 {
-    char *test_vals[] = { "one", "two", "three" };
+    const char *test_vals[] = { "one", "two", "three" };
     size_t u;
 
     ConfNode *parent = ConfNodeNew();
@@ -1102,7 +1102,7 @@ static int ConfNodeLookupChildValueTest(void)
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
-    char  *val = "";
+    const char  *val = "";
     ConfCreateContextBackup();
     ConfInit();
     ConfSet("af-packet.0.interface", "eth0");
@@ -1297,7 +1297,7 @@ static int ConfNodePruneTest(void)
     PASS;
 }
 
-int ConfNodeIsSequenceTest(void)
+static int ConfNodeIsSequenceTest(void)
 {
     ConfNode *node = ConfNodeNew();
     FAIL_IF(node == NULL);

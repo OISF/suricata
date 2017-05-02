@@ -41,7 +41,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectPktvarSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectPktvarSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectPktvarRegister (void)
 {
@@ -76,12 +76,12 @@ static int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pac
     return ret;
 }
 
-static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectPktvarData *cd = NULL;
     SigMatch *sm = NULL;
-    char *str = rawstr;
-    char dubbed = 0;
+    char *str;
+    int dubbed = 0;
     uint16_t len;
     char *varname = NULL, *varcontent = NULL;
 #define MAX_SUBSTRINGS 30
@@ -102,14 +102,12 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     }
     varname = (char *)str_ptr;
 
-    if (ret > 2) {
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            return -1;
-        }
-        varcontent = (char *)str_ptr;
+    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        return -1;
     }
+    varcontent = (char *)str_ptr;
 
     SCLogDebug("varname %s, varcontent %s", varname, varcontent);
 
@@ -120,6 +118,8 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
         }
         str[strlen(varcontent)-2] = '\0';
         dubbed = 1;
+    } else {
+        str = varcontent;
     }
 
     len = strlen(str);

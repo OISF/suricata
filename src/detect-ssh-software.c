@@ -45,6 +45,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssh.h"
+#include "detect-ssh-software.h"
 
 #define KEYWORD_NAME "ssh_software"
 #define KEYWORD_DOC "ssh-keywords#ssh-software"
@@ -169,7 +170,7 @@ static int InspectEngineSshSoftware(ThreadVars *tv,
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
 }
 
-static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectSshSoftwareSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_buffer_id;
     return 0;

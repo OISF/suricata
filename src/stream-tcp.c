@@ -112,7 +112,6 @@ static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect ini
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
-uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
@@ -269,7 +268,7 @@ void StreamTcpSessionPktFree (Packet *p)
 /** \brief Stream alloc function for the Pool
  *  \retval ptr void ptr to TcpSession structure with all vars set to 0/NULL
  */
-static void *StreamTcpSessionPoolAlloc()
+static void *StreamTcpSessionPoolAlloc(void)
 {
     void *ptr = NULL;
 
@@ -342,7 +341,7 @@ void StreamTcpInitConfig(char quiet)
                 stream_config.prealloc_sessions);
     }
 
-    char *temp_stream_memcap_str;
+    const char *temp_stream_memcap_str;
     if (ConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
         if (ParseSizeStringU64(temp_stream_memcap_str, &stream_config.memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing stream.memcap "
@@ -387,7 +386,7 @@ void StreamTcpInitConfig(char quiet)
                 "enabled" : "disabled");
     }
 
-    char *temp_stream_inline_str;
+    const char *temp_stream_inline_str;
     if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
         int inl = 0;
 
@@ -443,7 +442,7 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream \"max-synack-queued\": %"PRIu8, stream_config.max_synack_queued);
     }
 
-    char *temp_stream_reassembly_memcap_str;
+    const char *temp_stream_reassembly_memcap_str;
     if (ConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
         if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
                                &stream_config.reassembly_memcap) < 0) {
@@ -461,7 +460,7 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
     }
 
-    char *temp_stream_reassembly_depth_str;
+    const char *temp_stream_reassembly_depth_str;
     if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
         if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
                                &stream_config.reassembly_depth) < 0) {
@@ -488,7 +487,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (randomize) {
-        char *temp_rdrange;
+        const char *temp_rdrange;
         if (ConfGet("stream.reassembly.randomize-chunk-range",
                     &temp_rdrange) == 1) {
             if (ParseSizeStringU16(temp_rdrange, &rdrange) < 0) {
@@ -506,7 +505,7 @@ void StreamTcpInitConfig(char quiet)
         }
     }
 
-    char *temp_stream_reassembly_toserver_chunk_size_str;
+    const char *temp_stream_reassembly_toserver_chunk_size_str;
     if (ConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
@@ -528,7 +527,7 @@ void StreamTcpInitConfig(char quiet)
             (int) (stream_config.reassembly_toserver_chunk_size *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
     }
-    char *temp_stream_reassembly_toclient_chunk_size_str;
+    const char *temp_stream_reassembly_toclient_chunk_size_str;
     if (ConfGet("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
@@ -1066,7 +1065,7 @@ static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q)
 /** \internal
  *  \brief Find the Queued SYN/ACK that is the same as this SYN/ACK
  *  \retval q or NULL */
-TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p)
+static TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p)
 {
     TcpStateQueue *q = ssn->queue;
     TcpStateQueue search;
@@ -1089,7 +1088,7 @@ TcpStateQueue *StreamTcp3whsFindSynAckBySynAck(TcpSession *ssn, Packet *p)
     return q;
 }
 
-int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
+static int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
 {
     /* first see if this is already in our list */
     if (StreamTcp3whsFindSynAckBySynAck(ssn, p) != NULL)
@@ -1126,7 +1125,7 @@ int StreamTcp3whsQueueSynAck(TcpSession *ssn, Packet *p)
 /** \internal
  *  \brief Find the Queued SYN/ACK that goes with this ACK
  *  \retval q or NULL */
-TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p)
+static TcpStateQueue *StreamTcp3whsFindSynAckByAck(TcpSession *ssn, Packet *p)
 {
     uint32_t ack = TCP_GET_SEQ(p);
     uint32_t seq = TCP_GET_ACK(p) - 1;
@@ -4816,7 +4815,7 @@ static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const
  *  Reuse means a new TCP session reuses the tuple (flow in suri)
  *
  *  \retval bool true if ssn can be reused, false if not */
-int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
+static int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
     if (p->tcph->th_flags == TH_SYN) {
         return TcpSessionReuseDoneEnoughSyn(p, f, ssn);
@@ -6847,12 +6846,12 @@ static const char *dummy_conf_string1 =
  *  \param  conf_val_name   Name of the OS policy type
  *  \retval returns IP address as string on success and NULL on failure
  */
-char *StreamTcpParseOSPolicy (char *conf_var_name)
+static const char *StreamTcpParseOSPolicy (char *conf_var_name)
 {
     SCEnter();
     char conf_var_type_name[15] = "host-os-policy";
     char *conf_var_full_name = NULL;
-    char *conf_var_value = NULL;
+    const char *conf_var_value = NULL;
 
     if (conf_var_name == NULL)
         goto end;
@@ -6906,7 +6905,7 @@ static int StreamTcpTest14 (void)
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -7308,7 +7307,7 @@ static int StreamTcpTest15 (void)
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -7475,7 +7474,7 @@ static int StreamTcpTest16 (void)
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -7645,7 +7644,7 @@ static int StreamTcpTest17 (void)
     struct in_addr addr;
     IPV4Hdr ipv4h;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -7801,7 +7800,7 @@ static int StreamTcpTest18 (void)
     StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -7850,7 +7849,7 @@ static int StreamTcpTest19 (void)
     StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -7902,7 +7901,7 @@ static int StreamTcpTest20 (void)
     StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "linux";
-    char *ip_addr;
+    const char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -7954,7 +7953,7 @@ static int StreamTcpTest21 (void)
     StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "linux";
-    char *ip_addr;
+    const char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
@@ -8006,7 +8005,7 @@ static int StreamTcpTest22 (void)
     StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
-    char *ip_addr;
+    const char *ip_addr;
     TcpStream stream;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))

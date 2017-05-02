@@ -40,7 +40,7 @@
 
 typedef struct HttpXFFCfg_ {
     uint8_t flags; /**< XFF operation mode and deployment */
-    char *header; /**< XFF header name */
+    const char *header; /**< XFF header name */
 } HttpXFFCfg;
 
 void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result);

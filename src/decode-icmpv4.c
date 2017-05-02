@@ -47,7 +47,7 @@
 /**
  * Note, this is the IP header, plus a bit of the original packet, not the whole thing!
  */
-int DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
+static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 {
     /** Check the sizes, the header must fit at least */
     if (len < IPV4_HEADER_LEN) {

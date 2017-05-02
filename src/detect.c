@@ -245,9 +245,9 @@ static void PacketCreateMask(Packet *, SignatureMask *, AppProto, bool, int);
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_file)
 {
-    char *defaultpath = NULL;
+    const char *defaultpath = NULL;
     char *path = NULL;
     char varname[128];
 
@@ -1617,15 +1617,6 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint3
     return NULL;
 }
 
-
-int SignatureIsAppLayer(DetectEngineCtx *de_ctx, const Signature *s)
-{
-    if (s->alproto != 0)
-        return 1;
-
-    return 0;
-}
-
 /**
  *  \brief Check if a signature contains the filestore keyword.
  *
@@ -2308,14 +2299,14 @@ static void SigParseApplyDsizeToContent(Signature *s)
 }
 
 /** \brief Pure-PCRE or bytetest rule */
-int RuleInspectsPayloadHasNoMpm(const Signature *s)
+static int RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 1;
     return 0;
 }
 
-int RuleGetMpmPatternSize(const Signature *s)
+static int RuleGetMpmPatternSize(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return -1;
@@ -2328,7 +2319,7 @@ int RuleGetMpmPatternSize(const Signature *s)
     return (int)cd->content_len;
 }
 
-int RuleMpmIsNegated(const Signature *s)
+static int RuleMpmIsNegated(const Signature *s)
 {
     if (s->init_data->mpm_sm == NULL)
         return 0;
@@ -2342,7 +2333,7 @@ int RuleMpmIsNegated(const Signature *s)
 }
 
 #ifdef HAVE_LIBJANSSON
-json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
+static json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
                                 const int add_rules, const int add_mpm_stats)
 {
     uint32_t mpm_cnt = 0;
@@ -2576,7 +2567,7 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
 }
 #endif /* HAVE_LIBJANSSON */
 
-void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
+static void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
                        const int add_rules, const int add_mpm_stats)
 {
 #ifdef HAVE_LIBJANSSON
@@ -2658,7 +2649,7 @@ void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
     return;
 }
 
-int RulesGroupByProto(DetectEngineCtx *de_ctx)
+static int RulesGroupByProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
 
@@ -3481,29 +3472,6 @@ void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     printf("\n");
 }
 
-void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
-{
-    if (sgh == NULL || sgh->init == NULL) {
-        printf("\n");
-        return;
-    }
-
-    uint32_t sig;
-    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (!(sgh->init->sig_array[(sig/8)] & (1<<(sig%8))))
-            continue;
-
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (sid == s->id) {
-            printf("%" PRIu32 " ", de_ctx->sig_array[sig]->id);
-        }
-    }
-    printf("\n");
-}
-
 /** \brief finalize preparing sgh's */
 int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 {
@@ -3749,7 +3717,7 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
     }
 }
 
-static void SigMultilinePrint(int i, char *prefix)
+static void SigMultilinePrint(int i, const char *prefix)
 {
     if (sigmatch_table[i].desc) {
         printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
@@ -5494,7 +5462,7 @@ end:
     return result;
 }
 
-int SigTest24IPV4Keyword(void)
+static int SigTest24IPV4Keyword(void)
 {
     uint8_t valid_raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
@@ -5598,7 +5566,7 @@ end:
     return result;
 }
 
-int SigTest25NegativeIPV4Keyword(void)
+static int SigTest25NegativeIPV4Keyword(void)
 {
     uint8_t valid_raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
@@ -5699,7 +5667,7 @@ end:
     return result;
 }
 
-int SigTest26TCPV4Keyword(void)
+static int SigTest26TCPV4Keyword(void)
 {
     uint8_t raw_ipv4[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -6151,7 +6119,7 @@ end:
     return result;
 }
 
-int SigTest28TCPV6Keyword(void)
+static int SigTest28TCPV6Keyword(void)
 {
     static uint8_t valid_raw_ipv6[] = {
         0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
@@ -6279,7 +6247,7 @@ end:
     return result;
 }
 
-int SigTest29NegativeTCPV6Keyword(void)
+static int SigTest29NegativeTCPV6Keyword(void)
 {
     static uint8_t valid_raw_ipv6[] = {
         0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
@@ -6405,7 +6373,7 @@ end:
     return result;
 }
 
-int SigTest30UDPV4Keyword(void)
+static int SigTest30UDPV4Keyword(void)
 {
     uint8_t raw_ipv4[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -6509,7 +6477,7 @@ int SigTest30UDPV4Keyword(void)
     PASS;
 }
 
-int SigTest31NegativeUDPV4Keyword(void)
+static int SigTest31NegativeUDPV4Keyword(void)
 {
     uint8_t raw_ipv4[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -6633,7 +6601,7 @@ end:
 }
 
 
-int SigTest32UDPV6Keyword(void)
+static int SigTest32UDPV6Keyword(void)
 {
     static uint8_t valid_raw_ipv6[] = {
         0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
@@ -6730,7 +6698,7 @@ int SigTest32UDPV6Keyword(void)
     PASS;
 }
 
-int SigTest33NegativeUDPV6Keyword(void)
+static int SigTest33NegativeUDPV6Keyword(void)
 {
     static uint8_t valid_raw_ipv6[] = {
         0x00, 0x60, 0x97, 0x07, 0x69, 0xea, 0x00, 0x00,
@@ -6845,7 +6813,7 @@ end:
     return result;
 }
 
-int SigTest34ICMPV4Keyword(void)
+static int SigTest34ICMPV4Keyword(void)
 {
     uint8_t valid_raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
@@ -6965,7 +6933,7 @@ end:
     return result;
 }
 
-int SigTest35NegativeICMPV4Keyword(void)
+static int SigTest35NegativeICMPV4Keyword(void)
 {
     uint8_t valid_raw_ipv4[] = {
         0x45, 0x00, 0x00, 0x54, 0x00, 0x00, 0x40, 0x00,
@@ -7074,262 +7042,6 @@ int SigTest35NegativeICMPV4Keyword(void)
     else {
         result &= 1;
     }
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
-    SCFree(p1);
-    SCFree(p2);
-    return result;
-}
-
-int SigTest36ICMPV6Keyword(void)
-{
-    uint8_t valid_raw_ipv6[] = {
-        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
-        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
-        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
-        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
-        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
-        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
-        0x08, 0x00};
-
-    uint8_t invalid_raw_ipv6[] = {
-        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
-        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
-        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
-        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
-        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
-        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
-        0x08, 0x01};
-
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p1 == NULL))
-        return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p2 == NULL)) {
-        SCFree(p1);
-        return 0;
-    }
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
-
-    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
-    uint16_t buflen = strlen((char *)buf);
-
-    memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    memset(p2, 0, SIZE_OF_PACKET);
-
-    PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1->src.family = AF_INET;
-    p1->dst.family = AF_INET;
-    p1->payload = buf;
-    p1->payload_len = buflen;
-    p1->proto = IPPROTO_ICMPV6;
-
-    PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2->src.family = AF_INET;
-    p2->dst.family = AF_INET;
-    p2->payload = buf;
-    p2->payload_len = buflen;
-    p2->proto = IPPROTO_ICMPV6;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmpv6 any any -> any any "
-                               "(content:\"/one/\"; icmpv6-csum:valid; "
-                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result &= 0;
-        goto end;
-    }
-
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmpv6 any any -> any any "
-                                     "(content:\"/one/\"; icmpv6-csum:invalid; "
-                                     "msg:\"icmpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        result &= 0;
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1))
-        result &= 1;
-    else
-        result &= 0;
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 2))
-        result &= 1;
-    else
-        result &= 0;
-
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
-    SCFree(p1);
-    SCFree(p2);
-    return result;
-}
-
-int SigTest37NegativeICMPV6Keyword(void)
-{
-    uint8_t valid_raw_ipv6[] = {
-        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
-        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
-        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
-        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
-        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
-        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
-        0x08, 0x00};
-
-    uint8_t invalid_raw_ipv6[] = {
-        0x00, 0x00, 0x86, 0x05, 0x80, 0xda, 0x00, 0x60,
-        0x97, 0x07, 0x69, 0xea, 0x86, 0xdd, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x44, 0x3a, 0x40, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x60,
-        0x97, 0xff, 0xfe, 0x07, 0x69, 0xea, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x03, 0x00,
-        0xf7, 0x52, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00,
-        0x00, 0x00, 0x00, 0x14, 0x11, 0x01, 0x3f, 0xfe,
-        0x05, 0x07, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00,
-        0x86, 0xff, 0xfe, 0x05, 0x80, 0xda, 0x3f, 0xfe,
-        0x05, 0x01, 0x04, 0x10, 0x00, 0x00, 0x02, 0xc0,
-        0xdf, 0xff, 0xfe, 0x47, 0x03, 0x3e, 0xa0, 0x75,
-        0x82, 0x9b, 0x00, 0x14, 0x82, 0x8b, 0x01, 0x01,
-        0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
-        0x08, 0x01};
-
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p1 == NULL))
-        return 0;
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p2 == NULL)) {
-        SCFree(p1);
-        return 0;
-    }
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
-
-    uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
-                    "\r\n\r\n";
-    uint16_t buflen = strlen((char *)buf);
-
-    memset(&th_v, 0, sizeof(ThreadVars));
-    memset(p1, 0, SIZE_OF_PACKET);
-    memset(p2, 0, SIZE_OF_PACKET);
-
-    PACKET_RESET_CHECKSUMS(p1);
-    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1->icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1->src.family = AF_INET;
-    p1->dst.family = AF_INET;
-    p1->payload = buf;
-    p1->payload_len = buflen;
-    p1->proto = IPPROTO_ICMPV6;
-
-    PACKET_RESET_CHECKSUMS(p2);
-    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2->icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2->src.family = AF_INET;
-    p2->dst.family = AF_INET;
-    p2->payload = buf;
-    p2->payload_len = buflen;
-    p2->proto = IPPROTO_ICMPV6;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmpv6 any any -> any any "
-                               "(content:\"/one/\"; icmpv6-csum:invalid; "
-                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result &= 0;
-        goto end;
-    }
-
-    de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmpv6 any any -> any any "
-                                     "(content:\"/one/\"; icmpv6-csum:valid; "
-                                     "msg:\"icmpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
-    if (de_ctx->sig_list->next == NULL) {
-        result &= 0;
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1))
-        result &= 0;
-    else
-        result &= 1;
-
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 2))
-        result &= 0;
-    else
-        result &= 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -7931,7 +7643,7 @@ end:
  *  flasg is set, we don't need to inspect the packet contents.
  */
 
-int SigTest40NoPayloadInspection02(void)
+static int SigTest40NoPayloadInspection02(void)
 {
 
     uint8_t *buf = (uint8_t *)
@@ -9632,17 +9344,10 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTest34ICMPV4Keyword", SigTest34ICMPV4Keyword);
     UtRegisterTest("SigTest35NegativeICMPV4Keyword",
                    SigTest35NegativeICMPV4Keyword);
-
     UtRegisterTest("SigTest36ContentAndIsdataatKeywords01",
                    SigTest36ContentAndIsdataatKeywords01);
     UtRegisterTest("SigTest37ContentAndIsdataatKeywords02",
                    SigTest37ContentAndIsdataatKeywords02);
-
-    /* We need to enable these tests, as soon as we add the ICMPv6 protocol
-       support in our rules engine */
-    //UtRegisterTest("SigTest36ICMPV6Keyword", SigTest36ICMPV6Keyword, 1);
-    //UtRegisterTest("SigTest37NegativeICMPV6Keyword",
-    //               SigTest37NegativeICMPV6Keyword, 1);
 
     UtRegisterTest("SigTest38 -- byte_test test (1)", SigTest38);
 

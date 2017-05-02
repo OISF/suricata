@@ -40,7 +40,8 @@
 
 static int ippair_bit_id = -1;                /**< IPPair storage id for bits */
 
-void XBitFreeAll(void *store) {
+static void XBitFreeAll(void *store)
+{
     GenericVar *gv = store;
     GenericVarFree(gv);
 }

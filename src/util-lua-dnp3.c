@@ -28,6 +28,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-dnp3.h"
 #include "util-lua-dnp3-objects.h"
 
 /**

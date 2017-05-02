@@ -589,7 +589,7 @@ typedef struct FlowManagerThreadData_ {
 
 } FlowManagerThreadData;
 
-static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     FlowManagerThreadData *ftd = SCCalloc(1, sizeof(FlowManagerThreadData));
     if (ftd == NULL)
@@ -859,7 +859,7 @@ typedef struct FlowRecyclerThreadData_ {
     void *output_thread_data;
 } FlowRecyclerThreadData;
 
-static TmEcode FlowRecyclerThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode FlowRecyclerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     FlowRecyclerThreadData *ftd = SCCalloc(1, sizeof(FlowRecyclerThreadData));
     if (ftd == NULL)
@@ -963,7 +963,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
-int FlowRecyclerReadyToShutdown(void)
+static int FlowRecyclerReadyToShutdown(void)
 {
     uint32_t len = 0;
     FQLOCK_LOCK(&flow_recycle_q);

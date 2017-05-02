@@ -203,5 +203,7 @@ void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
 
+int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
+
 #endif /* __STREAM_TCP_H__ */
 

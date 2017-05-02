@@ -37,6 +37,7 @@
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
 #include "detect-byte-extract.h"
+#include "detect-distance.h"
 
 #include "flow-var.h"
 
@@ -45,7 +46,7 @@
 #include "detect-bytejump.h"
 #include "util-unittest-helper.h"
 
-static int DetectDistanceSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectDistanceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDistanceRegisterTests(void);
 
 void DetectDistanceRegister(void)
@@ -60,23 +61,11 @@ void DetectDistanceRegister(void)
 }
 
 static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
-        char *distancestr)
+        const char *distancestr)
 {
-    char *str = distancestr;
-    char dubbed = 0;
+    const char *str = distancestr;
     SigMatch *pm = NULL;
     int ret = -1;
-
-    /* Strip leading and trailing "s. */
-    if (distancestr[0] == '\"') {
-        str = SCStrdup(distancestr + 1);
-        if (unlikely(str == NULL))
-            goto end;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\0';
-        }
-        dubbed = 1;
-    }
 
     /* retrieve the sm to apply the distance against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
@@ -154,8 +143,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     ret = 0;
  end:
-    if (dubbed)
-        SCFree(str);
     return ret;
 }
 

@@ -61,7 +61,7 @@
 #include "stream-tcp.h"
 
 static int g_http_method_buffer_id = 0;
-static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
 static void DetectHttpMethodSetupCallback(Signature *s);
@@ -112,7 +112,7 @@ void DetectHttpMethodRegister(void)
  * \retval  0 on Success.
  * \retval -1 on Failure.
  */
-static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, str,
                                                   DETECT_AL_HTTP_METHOD,
@@ -176,7 +176,7 @@ static _Bool DetectHttpMethodValidateCallback(const Signature *s)
 #include "stream-tcp-reassemble.h"
 
 /** \test Check a signature with content */
-int DetectHttpMethodTest01(void)
+static int DetectHttpMethodTest01(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -206,7 +206,7 @@ int DetectHttpMethodTest01(void)
 }
 
 /** \test Check a signature without content (fail) */
-int DetectHttpMethodTest02(void)
+static int DetectHttpMethodTest02(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -233,7 +233,7 @@ int DetectHttpMethodTest02(void)
 }
 
 /** \test Check a signature with parameter (fail) */
-int DetectHttpMethodTest03(void)
+static int DetectHttpMethodTest03(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -261,7 +261,7 @@ int DetectHttpMethodTest03(void)
 }
 
 /** \test Check a signature with fast_pattern (should work) */
-int DetectHttpMethodTest04(void)
+static int DetectHttpMethodTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -290,7 +290,7 @@ int DetectHttpMethodTest04(void)
 }
 
 /** \test Check a signature with rawbytes (fail) */
-int DetectHttpMethodTest05(void)
+static int DetectHttpMethodTest05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -366,7 +366,7 @@ static int DetectHttpMethodTest12(void)
 }
 
 /** \test Check a signature with method + within and pcre with /M (should work) */
-int DetectHttpMethodTest13(void)
+static int DetectHttpMethodTest13(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -395,7 +395,7 @@ int DetectHttpMethodTest13(void)
 }
 
 /** \test Check a signature with method + within and pcre without /M (should fail) */
-int DetectHttpMethodTest14(void)
+static int DetectHttpMethodTest14(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -424,7 +424,7 @@ int DetectHttpMethodTest14(void)
 }
 
 /** \test Check a signature with method + within and pcre with /M (should work) */
-int DetectHttpMethodTest15(void)
+static int DetectHttpMethodTest15(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

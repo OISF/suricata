@@ -77,7 +77,7 @@ ThreadsAffinityType * GetAffinityTypeFromName(const char *name)
 }
 
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
-static void AffinitySetupInit()
+static void AffinitySetupInit(void)
 {
     int i, j;
     int ncpu = UtilCpuGetNumProcessorsConfigured();

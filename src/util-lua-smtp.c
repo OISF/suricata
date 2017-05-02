@@ -44,6 +44,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-smtp.h"
 #include "util-file.h"
 
 /*

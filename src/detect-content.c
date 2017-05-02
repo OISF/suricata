@@ -304,33 +304,6 @@ void DetectContentPrint(DetectContentData *cd)
 }
 
 /**
- * \brief Print list of DETECT_CONTENT SigMatch's allocated in a
- * SigMatch list, from the current sm to the end
- * \param sm pointer to the current SigMatch to start printing from
- */
-void DetectContentPrintAll(SigMatch *sm)
-{
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        int i = 0;
-
-        if (sm == NULL)
-            return;
-
-        SigMatch *first_sm = sm;
-
-       /* Print all of them */
-        for (; first_sm != NULL; first_sm = first_sm->next) {
-            if (first_sm->type == DETECT_CONTENT) {
-                SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
-                DetectContentPrint((DetectContentData*)first_sm->ctx);
-            }
-        }
-    }
-#endif /* DEBUG */
-}
-
-/**
  * \brief Function to setup a content pattern.
  *
  * \param de_ctx pointer to the current detection_engine
@@ -340,7 +313,7 @@ void DetectContentPrintAll(SigMatch *sm)
  * \retval -1 if error
  * \retval 0 if all was ok
  */
-int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
+int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *contentstr)
 {
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
@@ -393,6 +366,33 @@ void DetectContentFree(void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+/**
+ * \brief Print list of DETECT_CONTENT SigMatch's allocated in a
+ * SigMatch list, from the current sm to the end
+ * \param sm pointer to the current SigMatch to start printing from
+ */
+static void DetectContentPrintAll(SigMatch *sm)
+{
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        int i = 0;
+
+        if (sm == NULL)
+            return;
+
+        SigMatch *first_sm = sm;
+
+       /* Print all of them */
+        for (; first_sm != NULL; first_sm = first_sm->next) {
+            if (first_sm->type == DETECT_CONTENT) {
+                SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
+                DetectContentPrint((DetectContentData*)first_sm->ctx);
+            }
+        }
+    }
+#endif /* DEBUG */
+}
+
 static int g_file_data_buffer_id = 0;
 static int g_dce_stub_data_buffer_id = 0;
 
@@ -633,7 +633,7 @@ static int DetectContentParseTest08 (void)
  * \retval return 1 if match
  * \retval return 0 if not
  */
-static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
+static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, const char *sig,
                       uint32_t sid)
 {
     int result = 0;
@@ -705,7 +705,7 @@ end:
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-static int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid)
+static int DetectContentLongPatternMatchTestWrp(const char *sig, uint32_t sid)
 {
     /** Real packet with the following tcp data:
      * "Hi, this is a big test to check content matches of splitted"
@@ -740,9 +740,9 @@ static int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid)
 /**
  * \test Check if we match a normal pattern (not splitted)
  */
-static int DetectContentLongPatternMatchTest01()
+static int DetectContentLongPatternMatchTest01(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -750,9 +750,9 @@ static int DetectContentLongPatternMatchTest01()
 /**
  * \test Check if we match a splitted pattern
  */
-static int DetectContentLongPatternMatchTest02()
+static int DetectContentLongPatternMatchTest02(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test to check content matches of"
                 " splitted patterns between multiple chunks!\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
@@ -762,10 +762,10 @@ static int DetectContentLongPatternMatchTest02()
  * \test Check that we don't match the signature if one of the splitted
  * chunks doesn't match the packet
  */
-static int DetectContentLongPatternMatchTest03()
+static int DetectContentLongPatternMatchTest03(void)
 {
     /** The last chunk of the content should not match */
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test to check content matches of"
                 " splitted patterns between multiple splitted chunks!\"; sid:1;)";
     return (DetectContentLongPatternMatchTestWrp(sig, 1) == 0) ? 1: 0;
@@ -774,9 +774,9 @@ static int DetectContentLongPatternMatchTest03()
 /**
  * \test Check if we match multiple content (not splitted)
  */
-static int DetectContentLongPatternMatchTest04()
+static int DetectContentLongPatternMatchTest04(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is\"; depth:15 ;content:\"a big test\"; "
                 " within:15; content:\"to check content matches of\"; "
                 " within:30; content:\"splitted patterns\"; distance:1; "
@@ -790,9 +790,9 @@ static int DetectContentLongPatternMatchTest04()
  * Here we should specify only contents that fit in 32 bytes
  * Each of them with their modifier values
  */
-static int DetectContentLongPatternMatchTest05()
+static int DetectContentLongPatternMatchTest05(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big\"; depth:17; "
                 " isdataat:30, relative; "
                 " content:\"test\"; within: 5; distance:1; "
@@ -810,9 +810,9 @@ static int DetectContentLongPatternMatchTest05()
  * Here we should specify contents that fit and contents that must be splitted
  * Each of them with their modifier values
  */
-static int DetectContentLongPatternMatchTest06()
+static int DetectContentLongPatternMatchTest06(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big test to check cont\"; depth:36;"
                 " content:\"ent matches\"; within:11; distance:0; "
                 " content:\"of splitted patterns between multiple\"; "
@@ -826,9 +826,9 @@ static int DetectContentLongPatternMatchTest06()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-static int DetectContentLongPatternMatchTest07()
+static int DetectContentLongPatternMatchTest07(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"chunks!\"; "
                 " content:\"content matches\"; offset:32; depth:47; "
                 " content:\"of splitted patterns between multiple\"; "
@@ -841,9 +841,9 @@ static int DetectContentLongPatternMatchTest07()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-static int DetectContentLongPatternMatchTest08()
+static int DetectContentLongPatternMatchTest08(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"ent matches\"; "
                 " content:\"of splitted patterns between multiple\"; "
                 " within:38; distance:1; "
@@ -857,9 +857,9 @@ static int DetectContentLongPatternMatchTest08()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-static int DetectContentLongPatternMatchTest09()
+static int DetectContentLongPatternMatchTest09(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"ent matches\"; "
                 " content:\"of splitted patterns between multiple\"; "
                 " offset:47; depth:85; "
@@ -873,9 +873,9 @@ static int DetectContentLongPatternMatchTest09()
 /**
  * \test Check if we match two consecutive simple contents
  */
-static int DetectContentLongPatternMatchTest10()
+static int DetectContentLongPatternMatchTest10(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big test to check \"; "
                 " content:\"con\"; "
                 " sid:1;)";
@@ -885,9 +885,9 @@ static int DetectContentLongPatternMatchTest10()
 /**
  * \test Check if we match two contents of length 1
  */
-static int DetectContentLongPatternMatchTest11()
+static int DetectContentLongPatternMatchTest11(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"H\"; "
                 " content:\"i\"; "
                 " sid:1;)";
@@ -917,7 +917,7 @@ static int DetectContentParseTest09(void)
 static int DetectContentParseTest17(void)
 {
     int result = 0;
-    char *sigstr = "alert tcp any any -> any any (msg:\"Dummy\"; "
+    const char *sigstr = "alert tcp any any -> any any (msg:\"Dummy\"; "
         "content:\"one\"; content:\"two\"; within:2; sid:1;)";
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -1857,7 +1857,7 @@ end:
     return result;
 }
 
-static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
+static int SigTestPositiveTestContent(const char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
@@ -2136,7 +2136,7 @@ static int DetectContentParseTest45(void)
     PASS;
 }
 
-static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
+static int SigTestNegativeTestContent(const char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
     Packet *p = NULL;
@@ -2525,7 +2525,7 @@ end:
     return result;
 }
 
-static int DetectLongContentTestCommon(char *sig, uint32_t sid)
+static int DetectLongContentTestCommon(const char *sig, uint32_t sid)
 {
     /* Packet with 512 A's in it for testing long content. */
     static uint8_t pkt[739] = {
@@ -2631,7 +2631,7 @@ static int DetectLongContentTestCommon(char *sig, uint32_t sid)
 static int DetectLongContentTest1(void)
 {
     /* Signature with 256 A's. */
-    char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return DetectLongContentTestCommon(sig, 1);
 }
@@ -2639,7 +2639,7 @@ static int DetectLongContentTest1(void)
 static int DetectLongContentTest2(void)
 {
     /* Signature with 512 A's. */
-    char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return DetectLongContentTestCommon(sig, 1);
 }
@@ -2647,7 +2647,7 @@ static int DetectLongContentTest2(void)
 static int DetectLongContentTest3(void)
 {
     /* Signature with 513 A's. */
-    char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
+    const char *sig = "alert tcp any any -> any any (msg:\"Test Rule\"; content:\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"; sid:1;)";
 
     return !DetectLongContentTestCommon(sig, 1);
 }

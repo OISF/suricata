@@ -71,7 +71,7 @@ AppProto AppLayerGetProtoByName(char *alproto_name);
  *
  * \retval String representation of the protocol.
  */
-char *AppLayerGetProtoName(AppProto alproto);
+const char *AppLayerGetProtoName(AppProto alproto);
 
 void AppLayerListSupportedProtocols(void);
 

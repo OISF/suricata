@@ -113,7 +113,7 @@ static const char *UrlExeExts[] = { ".exe",
  *
  * \return none
  */
-static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t len)
+static void PrintChars(int log_level, const char *label, const uint8_t *src, uint32_t len)
 {
 #ifdef DEBUG
     if (log_level <= sc_log_global_log_level) {
@@ -1828,8 +1828,8 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
  *
  * \return A pointer to the token if found, otherwise NULL if not found
  */
-static uint8_t * FindMimeHeaderToken(MimeDecField *field, char *search_start,
-        char *search_end, uint32_t *tlen)
+static uint8_t * FindMimeHeaderToken(MimeDecField *field, const char *search_start,
+        const char *search_end, uint32_t *tlen)
 {
     uint8_t *fptr, *tptr = NULL, *tok = NULL;
 
@@ -2731,7 +2731,7 @@ static int MimeDecParseLineTest01(void)
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    char *str = "From: Sender1";
+    const char *str = "From: Sender1";
     ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "To: Recipient1";
@@ -2799,7 +2799,7 @@ static int MimeDecParseLineTest02(void)
     MimeDecParseState *state = MimeDecInitParser(&line_count,
             TestDataChunkCallback);
 
-    char *str = "From: Sender1";
+    const char *str = "From: Sender1";
     ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "To: Recipient1";
@@ -2937,9 +2937,9 @@ static int MimeBase64DecodeTest01(void)
 {
     int ret = 0;
 
-    char *msg = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@"
+    const char *msg = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@"
             "#$%^&*()-=_+,./;'[]<>?:";
-    char *base64msg = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QU"
+    const char *base64msg = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QU"
             "VJTVFVWV1hZWjEyMzQ1Njc4OTBAIyQlXiYqKCktPV8rLC4vOydbXTw+Pzo=";
 
     uint8_t *dst = SCMalloc(strlen(msg) + 1);
@@ -2960,8 +2960,8 @@ static int MimeBase64DecodeTest01(void)
 static int MimeIsExeURLTest01(void)
 {
     int ret = 0;
-    char *url1 = "http://www.google.com/";
-    char *url2 = "http://www.google.com/test.exe";
+    const char *url1 = "http://www.google.com/";
+    const char *url2 = "http://www.google.com/test.exe";
 
     if(IsExeUrl((const uint8_t *)url1, strlen(url1)) != 0){
         SCLogDebug("Debug: URL1 error");

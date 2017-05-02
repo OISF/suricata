@@ -53,7 +53,7 @@ void SCLogRedisInit()
 
 /** \brief SCLogRedisContextAlloc() - Allocates and initalizes redis context
  */
-static SCLogRedisContext * SCLogRedisContextAlloc()
+static SCLogRedisContext *SCLogRedisContextAlloc(void)
 {
     SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (ctx == NULL) {
@@ -78,7 +78,7 @@ static int SCConfLogReopenAsyncRedis(LogFileCtx *log_ctx);
 
 /** \brief SCLogRedisAsyncContextAlloc() - Allocates and initalizes redis context with async
  */
-static SCLogRedisContext * SCLogRedisContextAsyncAlloc()
+static SCLogRedisContext *SCLogRedisContextAsyncAlloc(void)
 {
     SCLogRedisContext* ctx = (SCLogRedisContext*) SCCalloc(1, sizeof(SCLogRedisContext));
     if (unlikely(ctx == NULL)) {

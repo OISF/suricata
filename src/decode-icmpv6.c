@@ -56,7 +56,7 @@
  *
  * \retval void No return value
  */
-void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
+static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 {
     /** Check the sizes, the header must fit at least */
     if (len < IPV6_HEADER_LEN) {

@@ -87,8 +87,8 @@ typedef struct AFPIfaceConfig_
     int flags;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
-    char *bpf_filter;
-    char *out_iface;
+    const char *bpf_filter;
+    const char *out_iface;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
@@ -142,9 +142,9 @@ typedef struct AFPPacketVars_
 void TmModuleReceiveAFPRegister (void);
 void TmModuleDecodeAFPRegister (void);
 
-TmEcode AFPPeersListInit();
-TmEcode AFPPeersListCheck();
-void AFPPeersListClean();
+TmEcode AFPPeersListInit(void);
+TmEcode AFPPeersListCheck(void);
+void AFPPeersListClean(void);
 int AFPGetLinkType(const char *ifname);
 
 int AFPIsFanoutSupported(void);

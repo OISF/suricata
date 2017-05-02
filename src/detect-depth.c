@@ -33,6 +33,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-byte-extract.h"
+#include "detect-depth.h"
 
 #include "flow-var.h"
 #include "app-layer.h"
@@ -40,7 +41,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-static int DetectDepthSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectDepthSetup (DetectEngineCtx *, Signature *, const char *);
 
 void DetectDepthRegister (void)
 {
@@ -53,23 +54,11 @@ void DetectDepthRegister (void)
     sigmatch_table[DETECT_DEPTH].RegisterTests = NULL;
 }
 
-static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depthstr)
+static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *depthstr)
 {
-    char *str = depthstr;
-    char dubbed = 0;
+    const char *str = depthstr;
     SigMatch *pm = NULL;
     int ret = -1;
-
-    /* Strip leading and trailing "s. */
-    if (depthstr[0] == '\"') {
-        str = SCStrdup(depthstr + 1);
-        if (unlikely(str == NULL))
-            goto end;
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\0';
-        }
-        dubbed = 1;
-    }
 
     /* retrive the sm to apply the depth against */
     pm = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
@@ -131,7 +120,5 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
     ret = 0;
  end:
-    if (dubbed)
-        SCFree(str);
     return ret;
 }

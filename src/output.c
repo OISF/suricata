@@ -232,7 +232,7 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterTxModuleWrapper(LoggerId id, const char *name,
+static void OutputRegisterTxModuleWrapper(LoggerId id, const char *name,
     const char *conf_name, OutputInitFunc InitFunc, AppProto alproto,
     TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress,
     TxLoggerCondition TxLogCondition, ThreadInitFunc ThreadInit,
@@ -269,7 +269,7 @@ error:
     exit(EXIT_FAILURE);
 }
 
-void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name,
+static void OutputRegisterTxSubModuleWrapper(LoggerId id, const char *parent_name,
     const char *name, const char *conf_name, OutputInitSubFunc InitFunc,
     AppProto alproto, TxLogger TxLogFunc, int tc_log_progress,
     int ts_log_progress, TxLoggerCondition TxLogCondition,
@@ -919,7 +919,7 @@ TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
     return TM_ECODE_OK;
 }
 
-TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     LoggerThreadStore *thread_store = SCCalloc(1, sizeof(*thread_store));
     if (thread_store == NULL) {

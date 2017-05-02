@@ -41,7 +41,7 @@ void DefragTrackerMoveToSpare(DefragTracker *h)
     (void) SC_ATOMIC_SUB(defragtracker_counter, 1);
 }
 
-DefragTracker *DefragTrackerAlloc(void)
+static DefragTracker *DefragTrackerAlloc(void)
 {
     if (!(DEFRAG_CHECK_MEMCAP(sizeof(DefragTracker)))) {
         return NULL;
@@ -63,7 +63,7 @@ error:
     return NULL;
 }
 
-void DefragTrackerFree(DefragTracker *dt)
+static void DefragTrackerFree(DefragTracker *dt)
 {
     if (dt != NULL) {
         DefragTrackerClearMemory(dt);
@@ -140,7 +140,7 @@ void DefragInitConfig(char quiet)
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
 
     /* Check if we have memcap and hash_size defined at config */
-    char *conf_val;
+    const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */

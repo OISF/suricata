@@ -22,6 +22,7 @@
 #include "detect-http-content-len.h"
 #include "detect-http-content-type.h"
 #include "detect-http-referer.h"
+#include "detect-http-headers.h"
 
 void DetectHttpHeadersRegister(void)
 {

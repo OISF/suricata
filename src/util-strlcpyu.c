@@ -27,18 +27,13 @@
 
 /* $Id: strlcpyu.c,v 1.4 2003/10/20 15:03:27 chrisgreen Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "suricata-common.h"
 
 #ifndef HAVE_STRLCPY
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char *rcsid = "$OpenBSD: strlcpy.c,v 1.4 1999/05/01 18:56:41 millert Exp $";
 #endif /* LIBC_SCCS and not lint */
-
-#include <sys/types.h>
-#include <string.h>
 
 /*
  * Copy src to string dst of size siz.  At most siz-1 characters

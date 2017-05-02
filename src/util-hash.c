@@ -330,7 +330,7 @@ static int HashTableTestAdd01 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 0);
+    int r = HashTableAdd(ht, (char *)"test", 0);
     if (r != 0)
         goto end;
 
@@ -366,15 +366,15 @@ static int HashTableTestFull01 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 4);
+    int r = HashTableAdd(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashTableLookup(ht, "test", 4);
+    char *rp = HashTableLookup(ht, (char *)"test", 4);
     if (rp == NULL)
         goto end;
 
-    r = HashTableRemove(ht, "test", 4);
+    r = HashTableRemove(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
@@ -392,15 +392,15 @@ static int HashTableTestFull02 (void)
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 4);
+    int r = HashTableAdd(ht, (char *)"test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashTableLookup(ht, "test", 4);
+    char *rp = HashTableLookup(ht, (char *)"test", 4);
     if (rp == NULL)
         goto end;
 
-    r = HashTableRemove(ht, "test2", 5);
+    r = HashTableRemove(ht, (char *)"test2", 5);
     if (r == 0)
         goto end;
 

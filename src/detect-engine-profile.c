@@ -30,6 +30,7 @@
 #include "output-json.h"
 #include "util-buffer.h"
 #include "util-print.h"
+#include "detect-engine-profile.h"
 
 #ifdef PROFILING
 #ifdef HAVE_LIBJANSSON

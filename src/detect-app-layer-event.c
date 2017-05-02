@@ -50,7 +50,7 @@
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                        Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
+static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, const char *);
 static void DetectAppLayerEventRegisterTests(void);
 static void DetectAppLayerEventFree(void *);
 static int DetectEngineAptEventInspect(ThreadVars *tv,
@@ -319,7 +319,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
     return 0;
 }
 
-static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectAppLayerEventData *data = NULL;
     SigMatch *sm = NULL;
@@ -425,7 +425,7 @@ static int DetectAppLayerEventTestGetEventInfo(const char *event_name,
 }
 
 
-int DetectAppLayerEventTest01(void)
+static int DetectAppLayerEventTest01(void)
 {
     AppLayerParserBackupParserTable();
     AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP,
@@ -460,7 +460,7 @@ int DetectAppLayerEventTest01(void)
     return result;
 }
 
-int DetectAppLayerEventTest02(void)
+static int DetectAppLayerEventTest02(void)
 {
     AppLayerParserBackupParserTable();
 
@@ -558,7 +558,7 @@ int DetectAppLayerEventTest02(void)
     return result;
 }
 
-int DetectAppLayerEventTest03(void)
+static int DetectAppLayerEventTest03(void)
 {
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -645,7 +645,7 @@ int DetectAppLayerEventTest03(void)
     PASS;
 }
 
-int DetectAppLayerEventTest04(void)
+static int DetectAppLayerEventTest04(void)
 {
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
@@ -728,7 +728,7 @@ int DetectAppLayerEventTest04(void)
     PASS;
 }
 
-int DetectAppLayerEventTest05(void)
+static int DetectAppLayerEventTest05(void)
 {
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;

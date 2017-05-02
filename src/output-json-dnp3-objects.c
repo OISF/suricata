@@ -28,6 +28,7 @@
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
+#include "output-json-dnp3-objects.h"
 
 #ifdef HAVE_LIBJANSSON
 

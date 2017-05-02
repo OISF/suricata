@@ -36,6 +36,7 @@
 
 #include "detect-engine-filedata-smtp.h"
 #include "detect-engine-hsbd.h"
+#include "detect-file-data.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -46,7 +47,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectFiledataSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFiledataRegisterTests(void);
 static void DetectFiledataSetupCallback(Signature *s);
 static int g_file_data_buffer_id = 0;
@@ -97,7 +98,7 @@ void DetectFiledataRegister(void)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCEnter();
 

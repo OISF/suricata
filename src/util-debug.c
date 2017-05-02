@@ -85,7 +85,7 @@ static SCLogConfig *sc_log_config = NULL;
 /**
  * \brief Returns the full path given a file and configured log dir
  */
-static char *SCLogGetLogFilename(char *);
+static char *SCLogGetLogFilename(const char *);
 
 /**
  * \brief Holds the global log level.  Is the same as sc_log_config->log_level
@@ -200,7 +200,7 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
 #include <jansson.h>
 /**
  */
-int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
+static int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
         SCLogLevel log_level, const char *file,
         unsigned line, const char *function, SCError error_code,
         const char *message)
@@ -284,13 +284,13 @@ static SCError SCLogMessageGetBuffer(
     const char *s = NULL;
     struct tm *tms = NULL;
 
-    char *redb = "";
-    char *red = "";
-    char *yellowb = "";
-    char *yellow = "";
-    char *green = "";
-    char *blue = "";
-    char *reset = "";
+    const char *redb = "";
+    const char *red = "";
+    const char *yellowb = "";
+    const char *yellow = "";
+    const char *green = "";
+    const char *blue = "";
+    const char *reset = "";
     if (color) {
         redb = "\x1b[1;31m";
         red = "\x1b[31m";
@@ -471,7 +471,7 @@ static SCError SCLogMessageGetBuffer(
         }
     }
 
-    char *hi = "";
+    const char *hi = "";
     if (error_code > SC_OK)
         hi = red;
     else if (log_level <= SC_LOG_NOTICE)
@@ -654,7 +654,7 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
  * \retval iface_ctx Pointer to a newly allocated output_interface_context
  * \initonly
  */
-static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
+static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx(void)
 {
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
@@ -920,7 +920,7 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
  */
 static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 {
-    char *format = NULL;
+    const char *format = NULL;
 
     /* envvar overrides config */
     format = getenv(SC_LOG_ENV_LOG_FORMAT);
@@ -1092,12 +1092,13 @@ SCLogInitData *SCLogAllocLogInitData(void)
     return sc_lid;
 }
 
+#if 0
 /**
  * \brief Frees a SCLogInitData
  *
  * \param sc_lid Pointer to the SCLogInitData to be freed
  */
-void SCLogFreeLogInitData(SCLogInitData *sc_lid)
+static void SCLogFreeLogInitData(SCLogInitData *sc_lid)
 {
     if (sc_lid != NULL) {
         if (sc_lid->startup_message != NULL)
@@ -1112,6 +1113,7 @@ void SCLogFreeLogInitData(SCLogInitData *sc_lid)
 
     return;
 }
+#endif
 
 /**
  * \brief Frees the logging module context
@@ -1276,7 +1278,7 @@ void SCLogLoadConfig(int daemon, int verbose)
     }
 
     /* Get default log level and format. */
-    char *default_log_level_s = NULL;
+    const char *default_log_level_s = NULL;
     if (ConfGet("logging.default-log-level", &default_log_level_s) == 1) {
         sc_lid->global_log_level =
             SCMapEnumNameToValue(default_log_level_s, sc_log_level_map);
@@ -1417,9 +1419,9 @@ void SCLogLoadConfig(int daemon, int verbose)
  *
  * \retval log_filename The fullpath of the logfile to open
  */
-static char *SCLogGetLogFilename(char *filearg)
+static char *SCLogGetLogFilename(const char *filearg)
 {
-    char *log_dir;
+    const char *log_dir;
     char *log_filename;
 
     log_dir = ConfigGetLogDirectory();
@@ -1471,7 +1473,7 @@ void SCLogDeInitLogModule(void)
 
 #ifdef UNITTESTS
 
-int SCLogTestInit01()
+static int SCLogTestInit01(void)
 {
     int result = 1;
 
@@ -1514,7 +1516,7 @@ int SCLogTestInit01()
     return result;
 }
 
-int SCLogTestInit02()
+static int SCLogTestInit02(void)
 {
     SCLogInitData *sc_lid = NULL;
     SCLogOPIfaceCtx *sc_iface_ctx = NULL;
@@ -1585,7 +1587,7 @@ int SCLogTestInit02()
     return result;
 }
 
-int SCLogTestInit03()
+static int SCLogTestInit03(void)
 {
     int result = 1;
 
@@ -1607,7 +1609,7 @@ int SCLogTestInit03()
     return result;
 }
 
-int SCLogTestInit04()
+static int SCLogTestInit04(void)
 {
     int result = 1;
 
@@ -1637,7 +1639,7 @@ int SCLogTestInit04()
     return result;
 }
 
-int SCLogTestInit05()
+static int SCLogTestInit05(void)
 {
     int result = 1;
 

@@ -64,7 +64,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, const Signature *s, const SigMatchCtx *ctx);
-static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr);
+static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr);
 static void DetectBytetestFree(void *ptr);
 static void DetectBytetestRegisterTests(void);
 
@@ -241,7 +241,7 @@ static int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                  ((DetectBytetestData *)ctx)->flags, 0, 0);
 }
 
-static DetectBytetestData *DetectBytetestParse(char *optstr, char **value, char **offset)
+static DetectBytetestData *DetectBytetestParse(const char *optstr, char **value, char **offset)
 {
     DetectBytetestData *data = NULL;
     char *args[9] = {
@@ -429,7 +429,7 @@ error:
     return NULL;
 }
 
-static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;

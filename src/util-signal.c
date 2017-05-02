@@ -24,6 +24,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-debug.h"
+#include "util-signal.h"
 
 int UtilSignalBlock(int signum)
 {
@@ -38,7 +39,7 @@ int UtilSignalBlock(int signum)
     return 0;
 }
 
-void UtilSignalHandlerSetup(int sig, void (*handler)())
+void UtilSignalHandlerSetup(int sig, void (*handler)(int))
 {
 #if defined (OS_WIN32)
 	signal(sig, handler);
@@ -56,7 +57,7 @@ void UtilSignalHandlerSetup(int sig, void (*handler)())
     return;
 }
 
-int UtilSignalIsHandler(int sig, void (*handler)())
+int UtilSignalIsHandler(int sig, void (*handler)(int))
 {
     struct sigaction action;
     memset(&action, 0x00, sizeof(struct sigaction));

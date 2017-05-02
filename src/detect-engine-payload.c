@@ -34,6 +34,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-state.h"
+#include "detect-engine-payload.h"
 
 #include "stream.h"
 #include "stream-tcp.h"
@@ -150,7 +151,7 @@ int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 1 match
  */
 int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, Packet *p)
+        DetectEngineThreadCtx *det_ctx, const Signature *s, Flow *f, Packet *p)
 {
     SCEnter();
     int r = 0;

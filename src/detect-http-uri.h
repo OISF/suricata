@@ -25,7 +25,7 @@
 #define _DETECT_HTTP_URI_H
 
 /* prototypes */
-int DetectHttpUriSetup (DetectEngineCtx *, Signature *, char *);
+int DetectHttpUriSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectHttpUriRegister (void);
 
 #endif /* _DETECT_HTTP_URI_H */

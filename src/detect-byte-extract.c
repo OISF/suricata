@@ -89,7 +89,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectByteExtractSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectByteExtractRegisterTests(void);
 static void DetectByteExtractFree(void *);
 
@@ -206,7 +206,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
  * \param bed On success an instance containing the parsed data.
  *            On failure, NULL.
  */
-static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
+static inline DetectByteExtractData *DetectByteExtractParse(const char *arg)
 {
     DetectByteExtractData *bed = NULL;
 #define MAX_SUBSTRINGS 100
@@ -504,7 +504,7 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;

@@ -43,7 +43,7 @@
 #include "util-debug.h"
 
 /* prototypes */
-static int DetectAckSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectAckSetup(DetectEngineCtx *, Signature *, const char *);
 static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
@@ -103,7 +103,7 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
+static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, const char *optstr)
 {
     DetectAckData *data = NULL;
     SigMatch *sm = NULL;

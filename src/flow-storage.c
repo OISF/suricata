@@ -26,7 +26,7 @@
  */
 
 #include "suricata-common.h"
-#include "host-storage.h"
+#include "flow-storage.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "util-unittest.h"

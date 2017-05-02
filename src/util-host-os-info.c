@@ -119,7 +119,7 @@ static void SCHInfoFreeUserDataOSPolicy(void *data)
  * \retval -1 On failure
  * \initonly (only specified from config, at the startup)
  */
-int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
+int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int is_ipv4)
 {
     char *ip_str = NULL;
     char *ip_str_rem = NULL;
@@ -245,7 +245,7 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
  *
  * \retval The OS flavour on success; -1 on failure, or on not finding the key
  */
-int SCHInfoGetHostOSFlavour(char *ip_addr_str)
+int SCHInfoGetHostOSFlavour(const char *ip_addr_str)
 {
     struct in_addr *ipv4_addr = NULL;
     struct in6_addr *ipv6_addr = NULL;
@@ -378,7 +378,7 @@ static void SCHInfoRestoreContextBackup(void)
  * \test Check if we the IPs with the right OS flavours are added to the host OS
  *       radix tree, and the IPS with invalid flavours returns an error(-1)
  */
-int SCHInfoTestInvalidOSFlavour01(void)
+static int SCHInfoTestInvalidOSFlavour01(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -445,7 +445,7 @@ int SCHInfoTestInvalidOSFlavour01(void)
  * \test Check that invalid ipv4 addresses and ipv4 netblocks are rejected by
  *       the host os info API
  */
-int SCHInfoTestInvalidIPV4Address02(void)
+static int SCHInfoTestInvalidIPV4Address02(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -483,7 +483,7 @@ int SCHInfoTestInvalidIPV4Address02(void)
  * \test Check that invalid ipv4 addresses and ipv4 netblocks are rejected by
  *       the host os info API
  */
-int SCHInfoTestInvalidIPV6Address03(void)
+static int SCHInfoTestInvalidIPV6Address03(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -525,7 +525,7 @@ int SCHInfoTestInvalidIPV6Address03(void)
  *       flavour, on supplying as arg an ipv4 addresses that has been added to
  *       the host os radix tree.
  */
-int SCHInfoTestValidIPV4Address04(void)
+static int SCHInfoTestValidIPV4Address04(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -637,7 +637,7 @@ int SCHInfoTestValidIPV4Address04(void)
  *       os flavour, on supplying as arg an ipv4 addresses that has been added
  *       to the host os radix tree.
  */
-int SCHInfoTestValidIPV4Address05(void)
+static int SCHInfoTestValidIPV4Address05(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -778,7 +778,7 @@ int SCHInfoTestValidIPV4Address05(void)
  *       flavour, on supplying as arg an ipv6 address that has been added to
  *       the host os radix tree.
  */
-int SCHInfoTestValidIPV6Address06(void)
+static int SCHInfoTestValidIPV6Address06(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -914,7 +914,7 @@ int SCHInfoTestValidIPV6Address06(void)
  *       os flavour, on supplying as arg an ipv6 address that has been added to
  *       the host os radix tree.
  */
-int SCHInfoTestValidIPV6Address07(void)
+static int SCHInfoTestValidIPV6Address07(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -1070,7 +1070,7 @@ int SCHInfoTestValidIPV6Address07(void)
  *       os flavour, on supplying as arg an ipv6 address that has been added to
  *       the host os radix tree.
  */
-int SCHInfoTestValidIPV6Address08(void)
+static int SCHInfoTestValidIPV6Address08(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -1243,7 +1243,7 @@ int SCHInfoTestValidIPV6Address08(void)
  *       flavour, on supplying as arg an ipv4 addresses that has been added to
  *       the host os radix tree.
  */
-int SCHInfoTestValidIPV4Address09(void)
+static int SCHInfoTestValidIPV4Address09(void)
 {
     SCHInfoCreateContextBackup();
 
@@ -1360,7 +1360,7 @@ int SCHInfoTestValidIPV4Address09(void)
 /**
  * \test Check the loading of host info from a configuration file.
  */
-int SCHInfoTestLoadFromConfig01(void)
+static int SCHInfoTestLoadFromConfig01(void)
 {
     char config[] = "\
 %YAML 1.1\n\
@@ -1403,7 +1403,7 @@ host-os-policy:\n\
 /**
  * \test Check the loading of host info from a configuration file.
  */
-int SCHInfoTestLoadFromConfig02(void)
+static int SCHInfoTestLoadFromConfig02(void)
 {
     char config[] = "\
 %YAML 1.1\n\
@@ -1471,7 +1471,7 @@ host-os-policy:\n\
 /**
  * \test Check the loading of host info from a configuration file.
  */
-int SCHInfoTestLoadFromConfig03(void)
+static int SCHInfoTestLoadFromConfig03(void)
 {
     char config[] = "\
 %YAML 1.1\n\
@@ -1517,7 +1517,7 @@ host-os-policy:\n\
 /**
  * \test Check the loading of host info from a configuration file.
  */
-int SCHInfoTestLoadFromConfig04(void)
+static int SCHInfoTestLoadFromConfig04(void)
 {
     char config[] = "\
 %YAML 1.1\n\
@@ -1563,7 +1563,7 @@ host-os-policy:\n\
 /**
  * \test Check the loading of host info from a configuration file.
  */
-int SCHInfoTestLoadFromConfig05(void)
+static int SCHInfoTestLoadFromConfig05(void)
 {
     char config[] = "\
 %YAML 1.1\n\
@@ -1576,48 +1576,25 @@ host-os-policy:\n\
   linux: [0.0.0.5]\n\
 \n";
 
-    int result = 0;
-
     SCHInfoCreateContextBackup();
 
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(config, strlen(config));
-
     SCHInfoLoadFromConfig();
 
-    if (SCHInfoGetHostOSFlavour("0.0.0.1") != OS_POLICY_BSD_RIGHT) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.2") != OS_POLICY_OLD_LINUX) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.3") != OS_POLICY_OLD_SOLARIS) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.4") != OS_POLICY_WINDOWS) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.5") != OS_POLICY_VISTA) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.0") != -1) {
-        goto end;
-    }
-    if (SCHInfoGetHostOSFlavour("0.0.0.6") != -1) {
-        goto end;
-    }
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.1") != OS_POLICY_BSD_RIGHT);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.2") != OS_POLICY_OLD_LINUX);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.3") != OS_POLICY_OLD_SOLARIS);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.4") != OS_POLICY_WINDOWS);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.5") != OS_POLICY_LINUX);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.0") != -1);
+    FAIL_IF (SCHInfoGetHostOSFlavour("0.0.0.6") != -1);
 
-
-    result = 1;
-
- end:
     ConfDeInit();
     ConfRestoreContextBackup();
-
     SCHInfoRestoreContextBackup();
-
-    return result;
+    PASS;
 }
 
 #endif /* UNITTESTS */
@@ -1650,6 +1627,7 @@ void SCHInfoRegisterTests(void)
     UtRegisterTest("SCHInfoTestLoadFromConfig02", SCHInfoTestLoadFromConfig02);
     UtRegisterTest("SCHInfoTestLoadFromConfig03", SCHInfoTestLoadFromConfig03);
     UtRegisterTest("SCHInfoTestLoadFromConfig04", SCHInfoTestLoadFromConfig04);
+    UtRegisterTest("SCHInfoTestLoadFromConfig05", SCHInfoTestLoadFromConfig05);
 #endif /* UNITTESTS */
 
 }

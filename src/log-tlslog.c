@@ -200,7 +200,7 @@ int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
     return 1;
 }
 
-static TmEcode LogTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogTlsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogTlsLogThread *aft = SCMalloc(sizeof(LogTlsLogThread));
     if (unlikely(aft == NULL))

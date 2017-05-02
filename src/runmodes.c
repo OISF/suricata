@@ -280,7 +280,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     char *local_custom_mode = NULL;
 
     if (custom_mode == NULL) {
-        char *val = NULL;
+        const char *val = NULL;
         if (ConfGet("runmode", &val) != 1) {
             custom_mode = NULL;
         } else {

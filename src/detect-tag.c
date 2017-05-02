@@ -59,7 +59,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectTagSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTagSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectTagRegisterTests(void);
 void DetectTagDataFree(void *);
 
@@ -151,7 +151,7 @@ static int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet 
  * \retval td pointer to DetectTagData on success
  * \retval NULL on failure
  */
-DetectTagData *DetectTagParse(char *tagstr)
+static DetectTagData *DetectTagParse(const char *tagstr)
 {
     DetectTagData td;
 #define MAX_SUBSTRINGS 30
@@ -281,7 +281,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
+int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, const char *tagstr)
 {
     DetectTagData *td = NULL;
     SigMatch *sm = NULL;

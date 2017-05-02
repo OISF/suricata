@@ -91,14 +91,14 @@ typedef struct UnixCommand_ {
  *
  * \retval 0 in case of error, 1 in case of success
  */
-int UnixNew(UnixCommand * this)
+static int UnixNew(UnixCommand * this)
 {
     struct sockaddr_un addr;
     int len;
     int ret;
     int on = 1;
     char sockettarget[PATH_MAX];
-    char *socketname;
+    const char *socketname;
 
     this->start_timestamp = time(NULL);
     this->socket = -1;
@@ -203,7 +203,7 @@ int UnixNew(UnixCommand * this)
     return 1;
 }
 
-void UnixCommandSetMaxFD(UnixCommand *this)
+static void UnixCommandSetMaxFD(UnixCommand *this)
 {
     UnixClient *item;
 
@@ -247,7 +247,7 @@ static void UnixClientFree(UnixClient *c)
 /**
  * \brief Close the unix socket
  */
-void UnixCommandClose(UnixCommand  *this, int fd)
+static void UnixCommandClose(UnixCommand  *this, int fd)
 {
     UnixClient *item;
     int found = 0;
@@ -274,7 +274,7 @@ void UnixCommandClose(UnixCommand  *this, int fd)
 #define UNIX_PROTO_VERSION_LENGTH 200
 #define UNIX_PROTO_VERSION "0.1"
 
-int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
+static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
 {
     MemBufferReset(client->mbuf);
 
@@ -314,7 +314,7 @@ int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-int UnixCommandAccept(UnixCommand *this)
+static int UnixCommandAccept(UnixCommand *this)
 {
     char buffer[UNIX_PROTO_VERSION_LENGTH + 1];
     json_t *client_msg;
@@ -416,7 +416,7 @@ int UnixCommandAccept(UnixCommand *this)
     return 1;
 }
 
-int UnixCommandBackgroundTasks(UnixCommand* this)
+static int UnixCommandBackgroundTasks(UnixCommand* this)
 {
     int ret = 1;
     Task *ltask;
@@ -439,7 +439,7 @@ int UnixCommandBackgroundTasks(UnixCommand* this)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
+static int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
 {
     int ret = 1;
     json_error_t error;
@@ -516,7 +516,7 @@ error:
     return 0;
 }
 
-void UnixCommandRun(UnixCommand * this, UnixClient *client)
+static void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
     char buffer[4096];
     int ret;
@@ -545,7 +545,7 @@ void UnixCommandRun(UnixCommand * this, UnixClient *client)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-int UnixMain(UnixCommand * this)
+static int UnixMain(UnixCommand * this)
 {
     struct timeval tv;
     int ret;
@@ -599,52 +599,7 @@ int UnixMain(UnixCommand * this)
     return 1;
 }
 
-/**
- * \brief Used to kill unix manager thread(s).
- *
- * \todo Kinda hackish since it uses the tv name to identify unix manager
- *       thread.  We need an all weather identification scheme.
- */
-void UnixKillUnixManagerThread(void)
-{
-    ThreadVars *tv = NULL;
-    int cnt = 0;
-
-again:
-    SCCtrlCondSignal(&unix_manager_ctrl_cond);
-    SCMutexLock(&tv_root_lock);
-
-    /* flow manager thread(s) is/are a part of mgmt threads */
-    tv = tv_root[TVT_CMD];
-
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "UnixManagerThread") == 0) {
-            TmThreadsSetFlag(tv, THV_KILL);
-            TmThreadsSetFlag(tv, THV_DEINIT);
-
-            /* be sure it has shut down */
-            if(!(TmThreadsCheckFlag(tv, THV_CLOSED))) {
-                SCMutexUnlock(&tv_root_lock);
-                usleep(100);
-                goto again;
-            }
-            cnt++;
-        }
-        tv = tv->next;
-    }
-
-    /* not possible, unless someone decides to rename UnixManagerThread */
-    if (cnt == 0) {
-        SCMutexUnlock(&tv_root_lock);
-        abort();
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-    return;
-}
-
-
-TmEcode UnixManagerShutdownCommand(json_t *cmd,
+static TmEcode UnixManagerShutdownCommand(json_t *cmd,
                                    json_t *server_msg, void *data)
 {
     SCEnter();
@@ -653,7 +608,7 @@ TmEcode UnixManagerShutdownCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerVersionCommand(json_t *cmd,
+static TmEcode UnixManagerVersionCommand(json_t *cmd,
                                    json_t *server_msg, void *data)
 {
     SCEnter();
@@ -669,7 +624,7 @@ TmEcode UnixManagerVersionCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerUptimeCommand(json_t *cmd,
+static TmEcode UnixManagerUptimeCommand(json_t *cmd,
                                  json_t *server_msg, void *data)
 {
     SCEnter();
@@ -681,7 +636,7 @@ TmEcode UnixManagerUptimeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerRunningModeCommand(json_t *cmd,
+static TmEcode UnixManagerRunningModeCommand(json_t *cmd,
                                       json_t *server_msg, void *data)
 {
     SCEnter();
@@ -689,7 +644,7 @@ TmEcode UnixManagerRunningModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
+static TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
                                       json_t *server_msg, void *data)
 {
     SCEnter();
@@ -697,7 +652,7 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
 {
     SCEnter();
     DetectEngineReloadStart();
@@ -709,12 +664,12 @@ TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerConfGetCommand(json_t *cmd,
+static TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
     SCEnter();
 
-    char *confval = NULL;
+    const char *confval = NULL;
     char *variable = NULL;
 
     json_t *jarg = json_object_get(cmd, "variable");
@@ -739,7 +694,7 @@ TmEcode UnixManagerConfGetCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-TmEcode UnixManagerListCommand(json_t *cmd,
+static TmEcode UnixManagerListCommand(json_t *cmd,
                                json_t *answer, void *data)
 {
     SCEnter();
@@ -895,7 +850,7 @@ typedef struct UnixManagerThreadData_ {
     int padding;
 } UnixManagerThreadData;
 
-static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode UnixManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
     if (utd == NULL)

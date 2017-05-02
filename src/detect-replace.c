@@ -59,7 +59,7 @@ extern int run_mode;
 #include "host.h"
 #include "util-profiling.h"
 
-static int DetectReplaceSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectReplaceSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectReplaceRegisterTests(void);
 
 void DetectReplaceRegister (void)
@@ -72,7 +72,7 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].flags = (SIGMATCH_QUOTES_MANDATORY|SIGMATCH_HANDLE_NEGATION);
 }
 
-int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
+int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *replacestr)
 {
     uint8_t *content = NULL;
     uint16_t len = 0;
@@ -220,7 +220,7 @@ void DetectReplaceFreeInternal(DetectReplaceList *replist)
  */
 static
 int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
-                                      char *sig, uint32_t sid, uint8_t *pp,
+                                      const char *sig, uint32_t sid, uint8_t *pp,
                                       uint16_t *len)
 {
     int result = 0;
@@ -305,7 +305,7 @@ end:
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep)
+static int DetectReplaceLongPatternMatchTestWrp(const char *sig, uint32_t sid, const char *sig_rep,  uint32_t sid_rep)
 {
     int ret;
     /** Real packet with the following tcp data:
@@ -353,7 +353,7 @@ int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_rep,  uint32_t sid_rep)
+static int DetectReplaceLongPatternMatchTestUDPWrp(const char *sig, uint32_t sid, const char *sig_rep,  uint32_t sid_rep)
 {
     int ret;
     /** Real UDP DNS packet with a request A to a1.twimg.com
@@ -389,9 +389,9 @@ int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_r
  */
 static int DetectReplaceMatchTest01(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -401,9 +401,9 @@ static int DetectReplaceMatchTest01(void)
  */
 static int DetectReplaceMatchTest02(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; offset: 4; replace:\"TH\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; offset:4; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -413,9 +413,9 @@ static int DetectReplaceMatchTest02(void)
  */
 static int DetectReplaceMatchTest03(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; offset: 4; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; offset:4; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -425,9 +425,9 @@ static int DetectReplaceMatchTest03(void)
  */
 static int DetectReplaceMatchTest04(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; content:\"patter\"; replace:\"matter\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"THis\"; content:\"matterns\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -437,9 +437,9 @@ static int DetectReplaceMatchTest04(void)
  */
 static int DetectReplaceMatchTest05(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"th\"; replace:\"TH\"; content:\"nutella\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"TH\"; sid:2;)";
     return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -450,9 +450,9 @@ static int DetectReplaceMatchTest05(void)
  */
 static int DetectReplaceMatchTest06(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"nutella\"; replace:\"commode\"; content:\"this is\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"commode\"; sid:2;)";
     return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -462,9 +462,9 @@ static int DetectReplaceMatchTest06(void)
  */
 static int DetectReplaceMatchTest07(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"BiG\"; nocase; replace:\"pig\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -474,9 +474,9 @@ static int DetectReplaceMatchTest07(void)
  */
 static int DetectReplaceMatchTest08(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:17; replace:\"pig\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -486,9 +486,9 @@ static int DetectReplaceMatchTest08(void)
  */
 static int DetectReplaceMatchTest09(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:16; replace:\"pig\"; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
     return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -498,9 +498,9 @@ static int DetectReplaceMatchTest09(void)
  */
 static int DetectReplaceMatchTest10(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; depth:17; replace:\"pig\"; offset: 14; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -510,9 +510,9 @@ static int DetectReplaceMatchTest10(void)
  */
 static int DetectReplaceMatchTest11(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 11; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -522,9 +522,9 @@ static int DetectReplaceMatchTest11(void)
  */
 static int DetectReplaceMatchTest12(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 4; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -534,9 +534,9 @@ static int DetectReplaceMatchTest12(void)
  */
 static int DetectReplaceMatchTest13(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 1; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -546,9 +546,9 @@ static int DetectReplaceMatchTest13(void)
  */
 static int DetectReplaceMatchTest14(void)
 {
-    char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 2; sid:1;)";
-    char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
@@ -558,9 +558,9 @@ static int DetectReplaceMatchTest14(void)
  */
 static int DetectReplaceMatchTest15(void)
 {
-    char *sig = "alert udp any any -> any any (msg:\"Nothing..\";"
+    const char *sig = "alert udp any any -> any any (msg:\"Nothing..\";"
                 " content:\"com\"; replace:\"org\"; sid:1;)";
-    char *sig_rep = "alert udp any any -> any any (msg:\"replace worked\";"
+    const char *sig_rep = "alert udp any any -> any any (msg:\"replace worked\";"
                 " content:\"twimg|03|org\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestUDPWrp(sig, 1, sig_rep, 2);
 }

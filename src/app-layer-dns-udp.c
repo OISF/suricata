@@ -383,7 +383,7 @@ static void DNSUDPConfigure(void)
 
 void RegisterDNSUDPParsers(void)
 {
-    char *proto_name = "dns";
+    const char *proto_name = "dns";
 
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {

@@ -48,6 +48,7 @@
 #include "util-crypt.h"
 
 #include "output-json.h"
+#include "output-json-tls.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -78,7 +79,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
 
 typedef struct {
-    char *name;
+    const char *name;
     uint64_t flag;
 } TlsFields;
 
@@ -391,7 +392,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     return 0;
 }
 
-static TmEcode JsonTlsLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonTlsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonTlsLogThread *aft = SCMalloc(sizeof(JsonTlsLogThread));
     if (unlikely(aft == NULL)) {
@@ -495,7 +496,7 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-OutputCtx *OutputTlsLogInit(ConfNode *conf)
+static OutputCtx *OutputTlsLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
@@ -538,7 +539,7 @@ static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
 

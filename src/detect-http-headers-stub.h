@@ -316,7 +316,7 @@ static int InspectEngineHttpResponseHeader(ThreadVars *tv,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectHttpHeadersSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpHeadersSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_buffer_id;
     return 0;

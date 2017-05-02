@@ -34,6 +34,7 @@
 #include <lauxlib.h>
 
 #include "util-lua.h"
+#include "util-lua-dnp3-objects.h"
 
 /**
  * \brief Push an object point item onto the stack.

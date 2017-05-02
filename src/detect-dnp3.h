@@ -22,7 +22,7 @@
  * Struct for mapping symbolic names to values.
  */
 typedef struct DNP3Mapping_ {
-    char     *name;
+    const char     *name;
     uint16_t  value;
 } DNP3Mapping;
 

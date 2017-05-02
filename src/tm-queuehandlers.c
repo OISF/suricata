@@ -50,7 +50,7 @@ void TmqhCleanup(void)
 {
 }
 
-Tmqh* TmqhGetQueueHandlerByName(char *name)
+Tmqh* TmqhGetQueueHandlerByName(const char *name)
 {
     int i;
 

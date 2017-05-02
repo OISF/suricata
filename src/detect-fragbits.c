@@ -50,7 +50,7 @@
  *  Regex
  *  fragbits: [!+*](MDR)
  */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([MDR]+)"
+#define PARSE_REGEX "^(?:([\\+\\*!]))?\\s*([MDR]+)"
 
 /**
  * FragBits args[0] *(3) +(2) !(1)
@@ -70,7 +70,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFragBitsFree(void *);
 
 static int PrefilterSetupFragBits(SigGroupHead *sgh);
@@ -163,7 +163,7 @@ static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval de pointer to DetectFragBitsData on success
  * \retval NULL on failure
  */
-static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
+static DetectFragBitsData *DetectFragBitsParse (const char *rawstr)
 {
     DetectFragBitsData *de = NULL;
 #define MAX_SUBSTRINGS 30
@@ -175,16 +175,13 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
     int i;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 1) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
     for (i = 0; i < (ret - 1); i++) {
-
-        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,i + 1, &str_ptr);
-
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, i + 1, &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -193,7 +190,7 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
         args[i] = (char *)str_ptr;
     }
 
-    if(args[1] == NULL) {
+    if (args[1] == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "invalid value");
         goto error;
     }
@@ -206,25 +203,19 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
 
     /** First parse args[0] */
 
-    if(args[0])   {
-
+    if (args[0] && strlen(args[0])) {
         ptr = args[0];
-
-        while (*ptr != '\0') {
-            switch (*ptr) {
-                case '!':
-                    de->modifier = MODIFIER_NOT;
-                    break;
-                case '+':
-                    de->modifier = MODIFIER_PLUS;
-                    break;
-                case '*':
-                    de->modifier = MODIFIER_ANY;
-                    break;
-            }
-            ptr++;
+        switch (*ptr) {
+            case '!':
+                de->modifier = MODIFIER_NOT;
+                break;
+            case '+':
+                de->modifier = MODIFIER_PLUS;
+                break;
+            case '*':
+                de->modifier = MODIFIER_ANY;
+                break;
         }
-
     }
 
     /** Second parse first set of fragbits */
@@ -286,14 +277,14 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFragBitsData *de = NULL;
     SigMatch *sm = NULL;
 
     de = DetectFragBitsParse(rawstr);
     if (de == NULL)
-        goto error;
+        return -1;
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -308,8 +299,8 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
     return 0;
 
 error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    if (de)
+        SCFree(de);
     return -1;
 }
 
@@ -475,8 +466,7 @@ static int FragBitsTestParse03 (void)
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
     IPV4Hdr ipv4h;
@@ -498,31 +488,22 @@ static int FragBitsTestParse03 (void)
 
     de = DetectFragBitsParse("D");
 
-    if (de == NULL || (de->fragbits != FRAGBITS_HAVE_DF))
-        goto error;
+    FAIL_IF(de == NULL || (de->fragbits != FRAGBITS_HAVE_DF));
 
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    FAIL_IF(sm == NULL);
 
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
     ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
+    FAIL_IF(ret == 0);
 
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
-        SCFree(p);
-        return 1;
-    }
-
-error:
     FlowShutdown();
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    SCFree(de);
+    SCFree(sm);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /**
@@ -572,8 +553,7 @@ static int FragBitsTestParse04 (void)
         0x00 ,0x0e ,0x10 ,0x00 ,0x04 ,0x81 ,0x6f ,0x0b,
         0x51};
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
     IPV4Hdr ipv4h;
@@ -596,35 +576,24 @@ static int FragBitsTestParse04 (void)
 
     de = DetectFragBitsParse("!D");
 
-    if (de == NULL || (de->fragbits != FRAGBITS_HAVE_DF) || (de->modifier != MODIFIER_NOT))
-        goto error;
+    FAIL_IF(de == NULL);
+    FAIL_IF(de->fragbits != FRAGBITS_HAVE_DF);
+    FAIL_IF(de->modifier != MODIFIER_NOT);
 
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    FAIL_IF(sm == NULL);
 
     sm->type = DETECT_FRAGBITS;
     sm->ctx = (SigMatchCtx *)de;
 
     ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
-
-    if(ret) {
-        if (de) SCFree(de);
-        if (sm) SCFree(sm);
-        PACKET_RECYCLE(p);
-        FlowShutdown();
-        SCFree(p);
-        return 0;
-    }
-
-    /* Error expected. */
-error:
-    if (de) SCFree(de);
-    if (sm) SCFree(sm);
+    FAIL_IF(ret);
+    SCFree(de);
+    SCFree(sm);
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
-    return 1;
+    PASS;
 }
 #endif /* UNITTESTS */
 

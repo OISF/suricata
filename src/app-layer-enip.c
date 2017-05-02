@@ -61,7 +61,7 @@ SCEnumCharMap enip_decoder_event_table[ ] = {
  *
  *  For ENIP we use a simple bool.
  */
-int ENIPGetAlstateProgress(void *tx, uint8_t direction)
+static int ENIPGetAlstateProgress(void *tx, uint8_t direction)
 {
     return 1;
 }
@@ -70,25 +70,26 @@ int ENIPGetAlstateProgress(void *tx, uint8_t direction)
  *
  *  For ENIP we use a simple bool.
  */
-int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
+static int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return 1;
 }
 
-DetectEngineState *ENIPGetTxDetectState(void *vtx)
+static DetectEngineState *ENIPGetTxDetectState(void *vtx)
 {
     ENIPTransaction *tx = (ENIPTransaction *)vtx;
     return tx->de_state;
 }
 
-int ENIPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
+static int ENIPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
 {
     ENIPTransaction *tx = (ENIPTransaction *)vtx;
     tx->de_state = s;
     return 0;
 }
 
-void *ENIPGetTx(void *alstate, uint64_t tx_id) {
+static void *ENIPGetTx(void *alstate, uint64_t tx_id)
+{
     ENIPState         *enip = (ENIPState *) alstate;
     ENIPTransaction   *tx = NULL;
 
@@ -106,11 +107,13 @@ void *ENIPGetTx(void *alstate, uint64_t tx_id) {
     return NULL;
 }
 
-uint64_t ENIPGetTxCnt(void *alstate) {
+static uint64_t ENIPGetTxCnt(void *alstate)
+{
     return ((uint64_t) ((ENIPState *) alstate)->transaction_max);
 }
 
-AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id) {
+static AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id)
+{
     ENIPState         *enip = (ENIPState *) state;
     ENIPTransaction   *tx;
 
@@ -125,11 +128,13 @@ AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id) {
     return NULL;
 }
 
-int ENIPHasEvents(void *state) {
+static int ENIPHasEvents(void *state)
+{
     return (((ENIPState *) state)->events > 0);
 }
 
-int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type) {
+static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
+{
     *event_id = SCMapEnumNameToValue(event_name, enip_decoder_event_table);
 
     if (*event_id == -1) {
@@ -148,7 +153,7 @@ int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventTy
  *
  *  return state
  */
-void *ENIPStateAlloc(void)
+static void *ENIPStateAlloc(void)
 {
     SCLogDebug("ENIPStateAlloc");
     void *s = SCMalloc(sizeof(ENIPState));
@@ -211,7 +216,7 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 /** \brief Free enip state
  *
  */
-void ENIPStateFree(void *s)
+static void ENIPStateFree(void *s)
 {
     SCEnter();
     SCLogDebug("ENIPStateFree");
@@ -265,7 +270,7 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
 /**
  *  \brief enip transaction cleanup callback
  */
-void ENIPStateTransactionFree(void *state, uint64_t tx_id)
+static void ENIPStateTransactionFree(void *state, uint64_t tx_id)
 {
     SCEnter();
     SCLogDebug("ENIPStateTransactionFree");
@@ -374,7 +379,7 @@ static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
 void RegisterENIPUDPParsers(void)
 {
     SCEnter();
-    char *proto_name = "enip";
+    const char *proto_name = "enip";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name))
     {
@@ -462,7 +467,7 @@ void RegisterENIPUDPParsers(void)
 void RegisterENIPTCPParsers(void)
 {
     SCEnter();
-    char *proto_name = "enip";
+    const char *proto_name = "enip";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name))
     {
@@ -555,7 +560,7 @@ static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
 /**
  * \brief Test if ENIP Packet matches signature
  */
-int ALDecodeENIPTest(void)
+static int ALDecodeENIPTest(void)
 {
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
     Flow f;

@@ -36,10 +36,11 @@
 
 #include "util-privs.h"
 #include "tmqh-packetpool.h"
+#include "source-napatech.h"
 
 #ifndef HAVE_NAPATECH
 
-TmEcode NoNapatechSupportExit(ThreadVars *, void *, void **);
+TmEcode NoNapatechSupportExit(ThreadVars *, const void *, void **);
 
 
 void TmModuleNapatechStreamRegister (void)
@@ -65,7 +66,7 @@ void TmModuleNapatechDecodeRegister (void)
     tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
 }
 
-TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NoNapatechSupportExit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCLogError(SC_ERR_NAPATECH_NOSUPPORT,
             "Error creating thread %s: you do not have support for Napatech adapter "
@@ -75,7 +76,6 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* Implied we do have NAPATECH support */
 
-#include "source-napatech.h"
 #include <nt.h>
 
 extern int max_pending_packets;
@@ -93,11 +93,11 @@ typedef struct NapatechThreadVars_ {
 } NapatechThreadVars;
 
 
-TmEcode NapatechStreamThreadInit(ThreadVars *, void *, void **);
+TmEcode NapatechStreamThreadInit(ThreadVars *, const void *, void **);
 void NapatechStreamThreadExitStats(ThreadVars *, void *);
 TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot);
 
-TmEcode NapatechDecodeThreadInit(ThreadVars *, void *, void **);
+TmEcode NapatechDecodeThreadInit(ThreadVars *, const void *, void **);
 TmEcode NapatechDecodeThreadDeinit(ThreadVars *tv, void *data);
 TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
@@ -149,7 +149,7 @@ void TmModuleNapatechDecodeRegister(void)
  * \param data      data pointer gets populated with
  *
  */
-TmEcode NapatechStreamThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NapatechStreamThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     struct NapatechStreamDevConf *conf = (struct NapatechStreamDevConf *)initdata;
@@ -376,7 +376,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode NapatechDecodeThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NapatechDecodeThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCEnter();
     DecodeThreadVars *dtv = NULL;

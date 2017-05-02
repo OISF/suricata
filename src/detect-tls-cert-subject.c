@@ -35,6 +35,7 @@
 #include "detect-engine-tls.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
+#include "detect-tls-cert-subject.h"
 
 #include "flow.h"
 #include "flow-util.h"
@@ -53,12 +54,12 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTlsSubjectSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSubjectRegisterTests(void);
 static int g_tls_cert_subject_buffer_id = 0;
 
 /**
- * \brief Registration function for keyword: tls_cert_issuer
+ * \brief Registration function for keyword: tls_cert_subject
  */
 void DetectTlsSubjectRegister(void)
 {
@@ -91,7 +92,7 @@ void DetectTlsSubjectRegister(void)
  *
  * \retval 0       On success
  */
-static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsSubjectSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_tls_cert_subject_buffer_id;
     s->alproto = ALPROTO_TLS;

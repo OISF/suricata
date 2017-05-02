@@ -60,7 +60,7 @@
 #include "detect-engine-hrhd.h"
 #include "stream-tcp.h"
 
-static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawHeaderRegisterTests(void);
 static void DetectHttpRawHeaderFree(void *);
 static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s);
@@ -135,7 +135,7 @@ void DetectHttpRawHeaderFree(void *ptr)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_HEADER,
@@ -1260,7 +1260,7 @@ end:
     return result;
 }
 
-int DetectHttpRawHeaderTest20(void)
+static int DetectHttpRawHeaderTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1304,7 +1304,7 @@ int DetectHttpRawHeaderTest20(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest21(void)
+static int DetectHttpRawHeaderTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1348,7 +1348,7 @@ int DetectHttpRawHeaderTest21(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest22(void)
+static int DetectHttpRawHeaderTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1372,7 +1372,7 @@ int DetectHttpRawHeaderTest22(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest23(void)
+static int DetectHttpRawHeaderTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1396,7 +1396,7 @@ int DetectHttpRawHeaderTest23(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest24(void)
+static int DetectHttpRawHeaderTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1420,7 +1420,7 @@ int DetectHttpRawHeaderTest24(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest25(void)
+static int DetectHttpRawHeaderTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1471,7 +1471,7 @@ int DetectHttpRawHeaderTest25(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest26(void)
+static int DetectHttpRawHeaderTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1522,7 +1522,7 @@ int DetectHttpRawHeaderTest26(void)
     return result;
 }
 
-int DetectHttpRawHeaderTest27(void)
+static int DetectHttpRawHeaderTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

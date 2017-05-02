@@ -70,6 +70,7 @@
 #include "util-lua-ssh.h"
 #include "util-lua-smtp.h"
 #include "util-lua-dnp3.h"
+#include "detect-lua-extensions.h"
 
 static const char luaext_key_ld[] = "suricata:luadata";
 

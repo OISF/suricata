@@ -91,8 +91,8 @@ void SCDropMainThreadCaps(uint32_t , uint32_t );
 
 #endif /* HAVE_LIBCAP_NG */
 
-int SCGetUserID(char *, char *, uint32_t *, uint32_t *);
-int SCGetGroupID(char *, uint32_t *);
+int SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
+int SCGetGroupID(const char *, uint32_t *);
 
 #endif	/* _UTIL_PRIVS_H */
 

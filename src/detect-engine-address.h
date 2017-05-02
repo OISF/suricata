@@ -31,7 +31,7 @@ DetectAddressHead *DetectAddressHeadInit(void);
 void DetectAddressHeadFree(DetectAddressHead *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 
-int DetectAddressParseString(DetectAddress *, char *);
+int DetectAddressParseString(DetectAddress *, const char *);
 int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *);
 
 DetectAddress *DetectAddressInit(void);

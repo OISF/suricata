@@ -30,6 +30,12 @@ int AddressIPv6Eq(Address *, Address *);
 int AddressIPv6Le(Address *, Address *);
 int AddressIPv6Ge(Address *, Address *);
 
+int AddressIPv6LeU32(uint32_t *a, uint32_t *b);
+int AddressIPv6LtU32(uint32_t *a, uint32_t *b);
+int AddressIPv6GtU32(uint32_t *a, uint32_t *b);
+int AddressIPv6EqU32(uint32_t *a, uint32_t *b);
+int AddressIPv6GeU32(uint32_t *a, uint32_t *b);
+
 int DetectAddressCutNotIPv6(DetectAddress *, DetectAddress **);
 int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b);
 

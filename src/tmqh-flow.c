@@ -42,7 +42,7 @@
 Packet *TmqhInputFlow(ThreadVars *t);
 void TmqhOutputFlowHash(ThreadVars *t, Packet *p);
 void TmqhOutputFlowIPPair(ThreadVars *t, Packet *p);
-void *TmqhOutputFlowSetupCtx(char *queue_str);
+void *TmqhOutputFlowSetupCtx(const char *queue_str);
 void TmqhOutputFlowFreeCtx(void *ctx);
 void TmqhFlowRegisterTests(void);
 
@@ -54,7 +54,7 @@ void TmqhFlowRegister(void)
     tmqh_table[TMQH_FLOW].OutHandlerCtxFree = TmqhOutputFlowFreeCtx;
     tmqh_table[TMQH_FLOW].RegisterTests = TmqhFlowRegisterTests;
 
-    char *scheduler = NULL;
+    const char *scheduler = NULL;
     if (ConfGet("autofp-scheduler", &scheduler) == 1) {
         if (strcasecmp(scheduler, "round-robin") == 0) {
             SCLogNotice("using flow hash instead of round robin");
@@ -162,7 +162,7 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
  *
  * \retval ctx queues handlers ctx or NULL in error
  */
-void *TmqhOutputFlowSetupCtx(char *queue_str)
+void *TmqhOutputFlowSetupCtx(const char *queue_str)
 {
     if (queue_str == NULL || strlen(queue_str) == 0)
         return NULL;
@@ -303,7 +303,7 @@ static int TmqhOutputFlowSetupCtxTest01(void)
     if (tmq == NULL)
         goto end;
 
-    char *str = "queue1,queue2,another,yetanother";
+    const char *str = "queue1,queue2,another,yetanother";
     void *ctx = TmqhOutputFlowSetupCtx(str);
 
     if (ctx == NULL)
@@ -355,7 +355,7 @@ static int TmqhOutputFlowSetupCtxTest02(void)
     if (tmq == NULL)
         goto end;
 
-    char *str = "queue1";
+    const char *str = "queue1";
     void *ctx = TmqhOutputFlowSetupCtx(str);
 
     if (ctx == NULL)
@@ -387,7 +387,7 @@ static int TmqhOutputFlowSetupCtxTest03(void)
 
     TmqResetQueues();
 
-    char *str = "queue1,queue2,another,yetanother";
+    const char *str = "queue1,queue2,another,yetanother";
     void *ctx = TmqhOutputFlowSetupCtx(str);
 
     if (ctx == NULL)

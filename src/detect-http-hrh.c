@@ -59,7 +59,7 @@
 #include "detect-http-hrh.h"
 #include "detect-engine-hrhhd.h"
 
-static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHRHRegisterTests(void);
 static void DetectHttpHRHFree(void *);
 static void DetectHttpHostRawSetupCallback(Signature *);
@@ -108,7 +108,7 @@ void DetectHttpHRHRegister(void)
  * \retval  0 On success
  * \retval -1 On failure
  */
-int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     return DetectEngineContentModifierBufferSetup(de_ctx, s, arg,
                                                   DETECT_AL_HTTP_RAW_HOST,
@@ -1416,7 +1416,7 @@ end:
     return result;
 }
 
-int DetectHttpHRHTest22(void)
+static int DetectHttpHRHTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1471,7 +1471,7 @@ int DetectHttpHRHTest22(void)
     return result;
 }
 
-int DetectHttpHRHTest23(void)
+static int DetectHttpHRHTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1525,7 +1525,7 @@ int DetectHttpHRHTest23(void)
     return result;
 }
 
-int DetectHttpHRHTest24(void)
+static int DetectHttpHRHTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1579,7 +1579,7 @@ int DetectHttpHRHTest24(void)
     return result;
 }
 
-int DetectHttpHRHTest25(void)
+static int DetectHttpHRHTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1635,7 +1635,7 @@ int DetectHttpHRHTest25(void)
     return result;
 }
 
-int DetectHttpHRHTest26(void)
+static int DetectHttpHRHTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1692,7 +1692,7 @@ int DetectHttpHRHTest26(void)
     return result;
 }
 
-int DetectHttpHRHTest27(void)
+static int DetectHttpHRHTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1718,7 +1718,7 @@ int DetectHttpHRHTest27(void)
     return result;
 }
 
-int DetectHttpHRHTest28(void)
+static int DetectHttpHRHTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1774,7 +1774,7 @@ int DetectHttpHRHTest28(void)
     return result;
 }
 
-int DetectHttpHRHTest29(void)
+static int DetectHttpHRHTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1818,7 +1818,7 @@ int DetectHttpHRHTest29(void)
     return result;
 }
 
-int DetectHttpHRHTest30(void)
+static int DetectHttpHRHTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1862,7 +1862,7 @@ int DetectHttpHRHTest30(void)
     return result;
 }
 
-int DetectHttpHRHTest31(void)
+static int DetectHttpHRHTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1886,7 +1886,7 @@ int DetectHttpHRHTest31(void)
     return result;
 }
 
-int DetectHttpHRHTest32(void)
+static int DetectHttpHRHTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1910,7 +1910,7 @@ int DetectHttpHRHTest32(void)
     return result;
 }
 
-int DetectHttpHRHTest33(void)
+static int DetectHttpHRHTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1934,7 +1934,7 @@ int DetectHttpHRHTest33(void)
     return result;
 }
 
-int DetectHttpHRHTest34(void)
+static int DetectHttpHRHTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1985,7 +1985,7 @@ int DetectHttpHRHTest34(void)
     return result;
 }
 
-int DetectHttpHRHTest35(void)
+static int DetectHttpHRHTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2036,7 +2036,7 @@ int DetectHttpHRHTest35(void)
     return result;
 }
 
-int DetectHttpHRHTest36(void)
+static int DetectHttpHRHTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;

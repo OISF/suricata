@@ -62,7 +62,7 @@ void RunModeIdsPcapRegister(void)
     return;
 }
 
-void PcapDerefConfig(void *conf)
+static void PcapDerefConfig(void *conf)
 {
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     /* Pcap config is used only once but cost of this low. */
@@ -71,16 +71,15 @@ void PcapDerefConfig(void *conf)
     }
 }
 
-
-void *ParsePcapConfig(const char *iface)
+static void *ParsePcapConfig(const char *iface)
 {
-    char *threadsstr = NULL;
+    const char *threadsstr = NULL;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
     ConfNode *pcap_node;
     PcapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
-    char *tmpbpf;
-    char *tmpctype;
+    const char *tmpbpf;
+    const char *tmpctype;
     intmax_t value;
     int promisc = 0;
     intmax_t snaplen = 0;
@@ -151,7 +150,7 @@ void *ParsePcapConfig(const char *iface)
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (aconf->buffer_size == 0) {
-        char *s_limit = NULL;
+        const char *s_limit = NULL;
         int ret;
         ret = ConfGetChildValueWithDefault(if_root, if_default, "buffer-size", &s_limit);
         if (ret == 1 && s_limit) {
@@ -218,7 +217,7 @@ void *ParsePcapConfig(const char *iface)
     return aconf;
 }
 
-int PcapConfigGeThreadsCount(void *conf)
+static int PcapConfigGeThreadsCount(void *conf)
 {
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     return pfp->threads;
@@ -230,7 +229,7 @@ int PcapConfigGeThreadsCount(void *conf)
 int RunModeIdsPcapSingle(void)
 {
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     SCEnter();
 
@@ -272,7 +271,7 @@ int RunModeIdsPcapSingle(void)
 int RunModeIdsPcapAutoFp(void)
 {
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
 
     SCEnter();
     RunModeInitialize();
@@ -304,7 +303,7 @@ int RunModeIdsPcapAutoFp(void)
 int RunModeIdsPcapWorkers(void)
 {
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
     SCEnter();
 
     RunModeInitialize();

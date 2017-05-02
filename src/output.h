@@ -195,7 +195,7 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
 void TmModuleLoggerRegister(void);
 
 TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *);
-TmEcode OutputLoggerThreadInit(ThreadVars *, void *, void **);
+TmEcode OutputLoggerThreadInit(ThreadVars *, const void *, void **);
 TmEcode OutputLoggerThreadDeinit(ThreadVars *, void *);
 void OutputLoggerExitPrintStats(ThreadVars *, void *);
 

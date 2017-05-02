@@ -36,8 +36,9 @@
 #include "detect-engine.h"
 #include "app-layer-template.h"
 #include "detect-engine-template.h"
+#include "detect-template-buffer.h"
 
-static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTemplateBufferRegisterTests(void);
 static int g_template_buffer_id = 0;
 
@@ -71,7 +72,7 @@ void DetectTemplateBufferRegister(void)
 }
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
-    char *str)
+    const char *str)
 {
     s->init_data->list = g_template_buffer_id;
     s->alproto = ALPROTO_TEMPLATE;

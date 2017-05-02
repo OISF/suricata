@@ -40,15 +40,15 @@ enum {
 };
 
 /* prototypes */
-int SigParse(DetectEngineCtx *,Signature *, char *, uint8_t);
+int SigParse(DetectEngineCtx *, Signature *, const char *, uint8_t);
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
-Signature *SigInit(DetectEngineCtx *,char *sigstr);
-Signature *SigInitReal(DetectEngineCtx *, char *);
+Signature *SigInit(DetectEngineCtx *, const char *sigstr);
+Signature *SigInitReal(DetectEngineCtx *, const char *);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
-Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
+Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 
 void SigMatchAppendSMToList(Signature *, SigMatch *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);

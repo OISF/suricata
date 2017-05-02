@@ -33,6 +33,7 @@
 #include "conf.h"
 
 #include "util-unittest.h"
+#include "util-magic.h"
 
 static magic_t g_magic_ctx = NULL;
 static SCMutex g_magic_lock;
@@ -46,7 +47,7 @@ int MagicInit(void)
 
     SCEnter();
 
-    char *filename = NULL;
+    const char *filename = NULL;
     FILE *fd = NULL;
 
     SCMutexInit(&g_magic_lock, NULL);
@@ -175,7 +176,7 @@ void MagicDeinit(void)
 #endif
 
 /** \test magic lib calls -- init */
-int MagicInitTest01(void)
+static int MagicInitTest01(void)
 {
     int result = 0;
     magic_t magic_ctx;
@@ -198,7 +199,7 @@ int MagicInitTest01(void)
 }
 
 /** \test magic init through api */
-int MagicInitTest02(void)
+static int MagicInitTest02(void)
 {
     if (g_magic_ctx != NULL) {
         printf("g_magic_ctx != NULL at start of the test: ");
@@ -226,7 +227,7 @@ int MagicInitTest02(void)
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest01(void)
+static int MagicDetectTest01(void)
 {
     magic_t magic_ctx;
     char *result = NULL;
@@ -258,7 +259,7 @@ end:
 }
 #if 0
 /** \test magic lib calls -- lookup */
-int MagicDetectTest02(void)
+static int MagicDetectTest02(void)
 {
     magic_t magic_ctx;
     char *result = NULL;
@@ -306,7 +307,7 @@ end:
 }
 #endif
 /** \test magic lib calls -- lookup */
-int MagicDetectTest03(void)
+static int MagicDetectTest03(void)
 {
     char buffer[] = {
         0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00,
@@ -353,7 +354,7 @@ int MagicDetectTest03(void)
 }
 
 /** \test magic lib calls -- lookup */
-int MagicDetectTest04(void)
+static int MagicDetectTest04(void)
 {
     magic_t magic_ctx;
     char *result = NULL;
@@ -415,7 +416,7 @@ end:
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest05(void)
+static int MagicDetectTest05(void)
 {
     const char *result = NULL;
     uint8_t buffer[] = { 0x25, 'P', 'D', 'F', '-', '1', '.', '3', 0x0d, 0x0a};
@@ -440,7 +441,7 @@ end:
 }
 #if 0
 /** \test magic api calls -- lookup */
-int MagicDetectTest06(void)
+static int MagicDetectTest06(void)
 {
     const char *result = NULL;
     uint8_t buffer[] = {
@@ -481,7 +482,7 @@ end:
 }
 #endif
 /** \test magic api calls -- lookup */
-int MagicDetectTest07(void)
+static int MagicDetectTest07(void)
 {
     const char *result = NULL;
     uint8_t buffer[] = {
@@ -526,7 +527,7 @@ int MagicDetectTest07(void)
 }
 
 /** \test magic api calls -- lookup */
-int MagicDetectTest08(void)
+static int MagicDetectTest08(void)
 {
     const char *result = NULL;
     uint8_t buffer[] = {
@@ -578,9 +579,9 @@ end:
     MagicDeinit();
     return retval;
 }
-
+#if 0
 /** \test magic api calls -- make sure memory is shared */
-int MagicDetectTest09(void)
+static int MagicDetectTest09(void)
 {
     const char *result1 = NULL;
     const char *result2 = NULL;
@@ -615,7 +616,7 @@ end:
     MagicDeinit();
     return retval;
 }
-
+#endif
 /** \test results in valgrind warning about invalid read, tested with
  *        file 5.09 and 5.11 */
 static int MagicDetectTest10ValgrindError(void)

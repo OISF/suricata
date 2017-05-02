@@ -32,6 +32,9 @@
 #include "pkt-var.h"
 
 #ifdef DEBUG
+void PacketQueueValidateDebug(PacketQueue *q);
+void PacketQueueValidate(PacketQueue *q);
+
 void PacketQueueValidateDebug(PacketQueue *q)
 {
     SCLogDebug("q->len %u, q->top %p, q->bot %p", q->len, q->top, q->bot);

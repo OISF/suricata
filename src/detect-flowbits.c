@@ -51,7 +51,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
 
@@ -149,7 +149,7 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return 0;
 }
 
-static int DetectFlowbitParse(char *str, char *cmd, int cmd_len, char *name,
+static int DetectFlowbitParse(const char *str, char *cmd, int cmd_len, char *name,
     int name_len)
 {
     const int max_substrings = 30;
@@ -196,7 +196,7 @@ static int DetectFlowbitParse(char *str, char *cmd, int cmd_len, char *name,
     return 1;
 }
 
-int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     DetectFlowbitsData *cd = NULL;
     SigMatch *sm = NULL;

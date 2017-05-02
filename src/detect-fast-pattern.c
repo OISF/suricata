@@ -42,7 +42,7 @@
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
 
-static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectFastPatternRegisterTests(void);
 
 /* holds the list of sm match lists that need to be searched for a keyword
@@ -154,7 +154,7 @@ void DetectFastPatternRegister(void)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -337,7 +337,7 @@ static int g_http_raw_uri_buffer_id = 0;
 /**
  * \test Checks if a fast_pattern is registered in a Signature
  */
-int DetectFastPatternTest01(void)
+static int DetectFastPatternTest01(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -378,7 +378,7 @@ int DetectFastPatternTest01(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature
  */
-int DetectFastPatternTest02(void)
+static int DetectFastPatternTest02(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -406,7 +406,7 @@ int DetectFastPatternTest02(void)
  * \test Checks that we have no fast_pattern registerd for a Signature when the
  *       Signature doesn't contain a fast_pattern
  */
-int DetectFastPatternTest03(void)
+static int DetectFastPatternTest03(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -447,7 +447,7 @@ int DetectFastPatternTest03(void)
  * \test Checks that a fast_pattern is not registered in a Signature, when we
  *       supply a fast_pattern with an argument
  */
-int DetectFastPatternTest04(void)
+static int DetectFastPatternTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -472,7 +472,7 @@ int DetectFastPatternTest04(void)
  * \test Checks to make sure that other sigs work that should when fast_pattern is inspecting on the same payload
  *
  */
-int DetectFastPatternTest14(void)
+static int DetectFastPatternTest14(void)
 {
     uint8_t *buf = (uint8_t *) "Dummy is our name.  Oh yes.  From right here "
         "right now, all the way to hangover.  right.  strings5_imp now here "
@@ -535,7 +535,7 @@ end:
 /**
  * \test Checks if a fast_pattern is registered in a Signature
  */
-int DetectFastPatternTest15(void)
+static int DetectFastPatternTest15(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -576,7 +576,7 @@ int DetectFastPatternTest15(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature
  */
-int DetectFastPatternTest16(void)
+static int DetectFastPatternTest16(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -614,7 +614,7 @@ int DetectFastPatternTest16(void)
     return result;
 }
 
-int DetectFastPatternTest17(void)
+static int DetectFastPatternTest17(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -650,7 +650,7 @@ int DetectFastPatternTest17(void)
     return result;
 }
 
-int DetectFastPatternTest18(void)
+static int DetectFastPatternTest18(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -686,7 +686,7 @@ int DetectFastPatternTest18(void)
     return result;
 }
 
-int DetectFastPatternTest19(void)
+static int DetectFastPatternTest19(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -708,7 +708,7 @@ int DetectFastPatternTest19(void)
     return result;
 }
 
-int DetectFastPatternTest20(void)
+static int DetectFastPatternTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -730,7 +730,7 @@ int DetectFastPatternTest20(void)
     return result;
 }
 
-int DetectFastPatternTest21(void)
+static int DetectFastPatternTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -752,7 +752,7 @@ int DetectFastPatternTest21(void)
     return result;
 }
 
-int DetectFastPatternTest22(void)
+static int DetectFastPatternTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -774,7 +774,7 @@ int DetectFastPatternTest22(void)
     return result;
 }
 
-int DetectFastPatternTest23(void)
+static int DetectFastPatternTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -796,7 +796,7 @@ int DetectFastPatternTest23(void)
     return result;
 }
 
-int DetectFastPatternTest24(void)
+static int DetectFastPatternTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -818,7 +818,7 @@ int DetectFastPatternTest24(void)
     return result;
 }
 
-int DetectFastPatternTest25(void)
+static int DetectFastPatternTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -840,7 +840,7 @@ int DetectFastPatternTest25(void)
     return result;
 }
 
-int DetectFastPatternTest26(void)
+static int DetectFastPatternTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -862,7 +862,7 @@ int DetectFastPatternTest26(void)
     return result;
 }
 
-int DetectFastPatternTest27(void)
+static int DetectFastPatternTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -884,7 +884,7 @@ int DetectFastPatternTest27(void)
     return result;
 }
 
-int DetectFastPatternTest28(void)
+static int DetectFastPatternTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -915,7 +915,7 @@ int DetectFastPatternTest28(void)
     return result;
 }
 
-int DetectFastPatternTest29(void)
+static int DetectFastPatternTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -945,7 +945,7 @@ int DetectFastPatternTest29(void)
     return result;
 }
 
-int DetectFastPatternTest30(void)
+static int DetectFastPatternTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -975,7 +975,7 @@ int DetectFastPatternTest30(void)
     return result;
 }
 
-int DetectFastPatternTest31(void)
+static int DetectFastPatternTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1005,7 +1005,7 @@ int DetectFastPatternTest31(void)
     return result;
 }
 
-int DetectFastPatternTest32(void)
+static int DetectFastPatternTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1036,7 +1036,7 @@ int DetectFastPatternTest32(void)
     return result;
 }
 
-int DetectFastPatternTest33(void)
+static int DetectFastPatternTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1058,7 +1058,7 @@ int DetectFastPatternTest33(void)
     return result;
 }
 
-int DetectFastPatternTest34(void)
+static int DetectFastPatternTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1080,7 +1080,7 @@ int DetectFastPatternTest34(void)
     return result;
 }
 
-int DetectFastPatternTest35(void)
+static int DetectFastPatternTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1102,7 +1102,7 @@ int DetectFastPatternTest35(void)
     return result;
 }
 
-int DetectFastPatternTest36(void)
+static int DetectFastPatternTest36(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1124,7 +1124,7 @@ int DetectFastPatternTest36(void)
     return result;
 }
 
-int DetectFastPatternTest37(void)
+static int DetectFastPatternTest37(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1154,7 +1154,7 @@ int DetectFastPatternTest37(void)
     return result;
 }
 
-int DetectFastPatternTest38(void)
+static int DetectFastPatternTest38(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1184,7 +1184,7 @@ int DetectFastPatternTest38(void)
     return result;
 }
 
-int DetectFastPatternTest39(void)
+static int DetectFastPatternTest39(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1214,7 +1214,7 @@ int DetectFastPatternTest39(void)
     return result;
 }
 
-int DetectFastPatternTest40(void)
+static int DetectFastPatternTest40(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1244,7 +1244,7 @@ int DetectFastPatternTest40(void)
     return result;
 }
 
-int DetectFastPatternTest41(void)
+static int DetectFastPatternTest41(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1274,7 +1274,7 @@ int DetectFastPatternTest41(void)
     return result;
 }
 
-int DetectFastPatternTest42(void)
+static int DetectFastPatternTest42(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1304,7 +1304,7 @@ int DetectFastPatternTest42(void)
     return result;
 }
 
-int DetectFastPatternTest43(void)
+static int DetectFastPatternTest43(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1334,7 +1334,7 @@ int DetectFastPatternTest43(void)
     return result;
 }
 
-int DetectFastPatternTest44(void)
+static int DetectFastPatternTest44(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1364,7 +1364,7 @@ int DetectFastPatternTest44(void)
     return result;
 }
 
-int DetectFastPatternTest45(void)
+static int DetectFastPatternTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1394,7 +1394,7 @@ int DetectFastPatternTest45(void)
     return result;
 }
 
-int DetectFastPatternTest46(void)
+static int DetectFastPatternTest46(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1416,7 +1416,7 @@ int DetectFastPatternTest46(void)
     return result;
 }
 
-int DetectFastPatternTest47(void)
+static int DetectFastPatternTest47(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1438,7 +1438,7 @@ int DetectFastPatternTest47(void)
     return result;
 }
 
-int DetectFastPatternTest48(void)
+static int DetectFastPatternTest48(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1460,7 +1460,7 @@ int DetectFastPatternTest48(void)
     return result;
 }
 
-int DetectFastPatternTest49(void)
+static int DetectFastPatternTest49(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1491,7 +1491,7 @@ int DetectFastPatternTest49(void)
     return result;
 }
 
-int DetectFastPatternTest50(void)
+static int DetectFastPatternTest50(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1513,7 +1513,7 @@ int DetectFastPatternTest50(void)
     return result;
 }
 
-int DetectFastPatternTest51(void)
+static int DetectFastPatternTest51(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1535,7 +1535,7 @@ int DetectFastPatternTest51(void)
     return result;
 }
 
-int DetectFastPatternTest52(void)
+static int DetectFastPatternTest52(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1557,7 +1557,7 @@ int DetectFastPatternTest52(void)
     return result;
 }
 
-int DetectFastPatternTest53(void)
+static int DetectFastPatternTest53(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1587,7 +1587,7 @@ int DetectFastPatternTest53(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest54(void)
+static int DetectFastPatternTest54(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -1628,7 +1628,7 @@ int DetectFastPatternTest54(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest55(void)
+static int DetectFastPatternTest55(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -1666,7 +1666,7 @@ int DetectFastPatternTest55(void)
     return result;
 }
 
-int DetectFastPatternTest56(void)
+static int DetectFastPatternTest56(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -1702,7 +1702,7 @@ int DetectFastPatternTest56(void)
     return result;
 }
 
-int DetectFastPatternTest57(void)
+static int DetectFastPatternTest57(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -1738,7 +1738,7 @@ int DetectFastPatternTest57(void)
     return result;
 }
 
-int DetectFastPatternTest58(void)
+static int DetectFastPatternTest58(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1760,7 +1760,7 @@ int DetectFastPatternTest58(void)
     return result;
 }
 
-int DetectFastPatternTest59(void)
+static int DetectFastPatternTest59(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1782,7 +1782,7 @@ int DetectFastPatternTest59(void)
     return result;
 }
 
-int DetectFastPatternTest60(void)
+static int DetectFastPatternTest60(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1804,7 +1804,7 @@ int DetectFastPatternTest60(void)
     return result;
 }
 
-int DetectFastPatternTest61(void)
+static int DetectFastPatternTest61(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1826,7 +1826,7 @@ int DetectFastPatternTest61(void)
     return result;
 }
 
-int DetectFastPatternTest62(void)
+static int DetectFastPatternTest62(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1848,7 +1848,7 @@ int DetectFastPatternTest62(void)
     return result;
 }
 
-int DetectFastPatternTest63(void)
+static int DetectFastPatternTest63(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1870,7 +1870,7 @@ int DetectFastPatternTest63(void)
     return result;
 }
 
-int DetectFastPatternTest64(void)
+static int DetectFastPatternTest64(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1892,7 +1892,7 @@ int DetectFastPatternTest64(void)
     return result;
 }
 
-int DetectFastPatternTest65(void)
+static int DetectFastPatternTest65(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1914,7 +1914,7 @@ int DetectFastPatternTest65(void)
     return result;
 }
 
-int DetectFastPatternTest66(void)
+static int DetectFastPatternTest66(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1936,7 +1936,7 @@ int DetectFastPatternTest66(void)
     return result;
 }
 
-int DetectFastPatternTest67(void)
+static int DetectFastPatternTest67(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1967,7 +1967,7 @@ int DetectFastPatternTest67(void)
     return result;
 }
 
-int DetectFastPatternTest68(void)
+static int DetectFastPatternTest68(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1997,7 +1997,7 @@ int DetectFastPatternTest68(void)
     return result;
 }
 
-int DetectFastPatternTest69(void)
+static int DetectFastPatternTest69(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2027,7 +2027,7 @@ int DetectFastPatternTest69(void)
     return result;
 }
 
-int DetectFastPatternTest70(void)
+static int DetectFastPatternTest70(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2057,7 +2057,7 @@ int DetectFastPatternTest70(void)
     return result;
 }
 
-int DetectFastPatternTest71(void)
+static int DetectFastPatternTest71(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2088,7 +2088,7 @@ int DetectFastPatternTest71(void)
     return result;
 }
 
-int DetectFastPatternTest72(void)
+static int DetectFastPatternTest72(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2110,7 +2110,7 @@ int DetectFastPatternTest72(void)
     return result;
 }
 
-int DetectFastPatternTest73(void)
+static int DetectFastPatternTest73(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2132,7 +2132,7 @@ int DetectFastPatternTest73(void)
     return result;
 }
 
-int DetectFastPatternTest74(void)
+static int DetectFastPatternTest74(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2154,7 +2154,7 @@ int DetectFastPatternTest74(void)
     return result;
 }
 
-int DetectFastPatternTest75(void)
+static int DetectFastPatternTest75(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2176,7 +2176,7 @@ int DetectFastPatternTest75(void)
     return result;
 }
 
-int DetectFastPatternTest76(void)
+static int DetectFastPatternTest76(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2206,7 +2206,7 @@ int DetectFastPatternTest76(void)
     return result;
 }
 
-int DetectFastPatternTest77(void)
+static int DetectFastPatternTest77(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2236,7 +2236,7 @@ int DetectFastPatternTest77(void)
     return result;
 }
 
-int DetectFastPatternTest78(void)
+static int DetectFastPatternTest78(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2266,7 +2266,7 @@ int DetectFastPatternTest78(void)
     return result;
 }
 
-int DetectFastPatternTest79(void)
+static int DetectFastPatternTest79(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2296,7 +2296,7 @@ int DetectFastPatternTest79(void)
     return result;
 }
 
-int DetectFastPatternTest80(void)
+static int DetectFastPatternTest80(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2326,7 +2326,7 @@ int DetectFastPatternTest80(void)
     return result;
 }
 
-int DetectFastPatternTest81(void)
+static int DetectFastPatternTest81(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2356,7 +2356,7 @@ int DetectFastPatternTest81(void)
     return result;
 }
 
-int DetectFastPatternTest82(void)
+static int DetectFastPatternTest82(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2386,7 +2386,7 @@ int DetectFastPatternTest82(void)
     return result;
 }
 
-int DetectFastPatternTest83(void)
+static int DetectFastPatternTest83(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2416,7 +2416,7 @@ int DetectFastPatternTest83(void)
     return result;
 }
 
-int DetectFastPatternTest84(void)
+static int DetectFastPatternTest84(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2449,7 +2449,7 @@ int DetectFastPatternTest84(void)
     return result;
 }
 
-int DetectFastPatternTest85(void)
+static int DetectFastPatternTest85(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2471,7 +2471,7 @@ int DetectFastPatternTest85(void)
     return result;
 }
 
-int DetectFastPatternTest86(void)
+static int DetectFastPatternTest86(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2493,7 +2493,7 @@ int DetectFastPatternTest86(void)
     return result;
 }
 
-int DetectFastPatternTest87(void)
+static int DetectFastPatternTest87(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2515,7 +2515,7 @@ int DetectFastPatternTest87(void)
     return result;
 }
 
-int DetectFastPatternTest88(void)
+static int DetectFastPatternTest88(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2546,7 +2546,7 @@ int DetectFastPatternTest88(void)
     return result;
 }
 
-int DetectFastPatternTest89(void)
+static int DetectFastPatternTest89(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2568,7 +2568,7 @@ int DetectFastPatternTest89(void)
     return result;
 }
 
-int DetectFastPatternTest90(void)
+static int DetectFastPatternTest90(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2590,7 +2590,7 @@ int DetectFastPatternTest90(void)
     return result;
 }
 
-int DetectFastPatternTest91(void)
+static int DetectFastPatternTest91(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2612,7 +2612,7 @@ int DetectFastPatternTest91(void)
     return result;
 }
 
-int DetectFastPatternTest92(void)
+static int DetectFastPatternTest92(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2639,7 +2639,7 @@ int DetectFastPatternTest92(void)
 /*   http_uri fast_pattern tests v */
 
 
-int DetectFastPatternTest93(void)
+static int DetectFastPatternTest93(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2673,7 +2673,7 @@ int DetectFastPatternTest93(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest94(void)
+static int DetectFastPatternTest94(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -2714,7 +2714,7 @@ int DetectFastPatternTest94(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest95(void)
+static int DetectFastPatternTest95(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -2752,7 +2752,7 @@ int DetectFastPatternTest95(void)
     return result;
 }
 
-int DetectFastPatternTest96(void)
+static int DetectFastPatternTest96(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -2788,7 +2788,7 @@ int DetectFastPatternTest96(void)
     return result;
 }
 
-int DetectFastPatternTest97(void)
+static int DetectFastPatternTest97(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -2824,7 +2824,7 @@ int DetectFastPatternTest97(void)
     return result;
 }
 
-int DetectFastPatternTest98(void)
+static int DetectFastPatternTest98(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2846,7 +2846,7 @@ int DetectFastPatternTest98(void)
     return result;
 }
 
-int DetectFastPatternTest99(void)
+static int DetectFastPatternTest99(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2868,7 +2868,7 @@ int DetectFastPatternTest99(void)
     return result;
 }
 
-int DetectFastPatternTest100(void)
+static int DetectFastPatternTest100(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2890,7 +2890,7 @@ int DetectFastPatternTest100(void)
     return result;
 }
 
-int DetectFastPatternTest101(void)
+static int DetectFastPatternTest101(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2912,7 +2912,7 @@ int DetectFastPatternTest101(void)
     return result;
 }
 
-int DetectFastPatternTest102(void)
+static int DetectFastPatternTest102(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2934,7 +2934,7 @@ int DetectFastPatternTest102(void)
     return result;
 }
 
-int DetectFastPatternTest103(void)
+static int DetectFastPatternTest103(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2956,7 +2956,7 @@ int DetectFastPatternTest103(void)
     return result;
 }
 
-int DetectFastPatternTest104(void)
+static int DetectFastPatternTest104(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -2978,7 +2978,7 @@ int DetectFastPatternTest104(void)
     return result;
 }
 
-int DetectFastPatternTest105(void)
+static int DetectFastPatternTest105(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3000,7 +3000,7 @@ int DetectFastPatternTest105(void)
     return result;
 }
 
-int DetectFastPatternTest106(void)
+static int DetectFastPatternTest106(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3022,7 +3022,7 @@ int DetectFastPatternTest106(void)
     return result;
 }
 
-int DetectFastPatternTest107(void)
+static int DetectFastPatternTest107(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3053,7 +3053,7 @@ int DetectFastPatternTest107(void)
     return result;
 }
 
-int DetectFastPatternTest108(void)
+static int DetectFastPatternTest108(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3083,7 +3083,7 @@ int DetectFastPatternTest108(void)
     return result;
 }
 
-int DetectFastPatternTest109(void)
+static int DetectFastPatternTest109(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3113,7 +3113,7 @@ int DetectFastPatternTest109(void)
     return result;
 }
 
-int DetectFastPatternTest110(void)
+static int DetectFastPatternTest110(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3143,7 +3143,7 @@ int DetectFastPatternTest110(void)
     return result;
 }
 
-int DetectFastPatternTest111(void)
+static int DetectFastPatternTest111(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3174,7 +3174,7 @@ int DetectFastPatternTest111(void)
     return result;
 }
 
-int DetectFastPatternTest112(void)
+static int DetectFastPatternTest112(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3196,7 +3196,7 @@ int DetectFastPatternTest112(void)
     return result;
 }
 
-int DetectFastPatternTest113(void)
+static int DetectFastPatternTest113(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3218,7 +3218,7 @@ int DetectFastPatternTest113(void)
     return result;
 }
 
-int DetectFastPatternTest114(void)
+static int DetectFastPatternTest114(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3240,7 +3240,7 @@ int DetectFastPatternTest114(void)
     return result;
 }
 
-int DetectFastPatternTest115(void)
+static int DetectFastPatternTest115(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3262,7 +3262,7 @@ int DetectFastPatternTest115(void)
     return result;
 }
 
-int DetectFastPatternTest116(void)
+static int DetectFastPatternTest116(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3292,7 +3292,7 @@ int DetectFastPatternTest116(void)
     return result;
 }
 
-int DetectFastPatternTest117(void)
+static int DetectFastPatternTest117(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3322,7 +3322,7 @@ int DetectFastPatternTest117(void)
     return result;
 }
 
-int DetectFastPatternTest118(void)
+static int DetectFastPatternTest118(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3352,7 +3352,7 @@ int DetectFastPatternTest118(void)
     return result;
 }
 
-int DetectFastPatternTest119(void)
+static int DetectFastPatternTest119(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3382,7 +3382,7 @@ int DetectFastPatternTest119(void)
     return result;
 }
 
-int DetectFastPatternTest120(void)
+static int DetectFastPatternTest120(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3412,7 +3412,7 @@ int DetectFastPatternTest120(void)
     return result;
 }
 
-int DetectFastPatternTest121(void)
+static int DetectFastPatternTest121(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3442,7 +3442,7 @@ int DetectFastPatternTest121(void)
     return result;
 }
 
-int DetectFastPatternTest122(void)
+static int DetectFastPatternTest122(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3472,7 +3472,7 @@ int DetectFastPatternTest122(void)
     return result;
 }
 
-int DetectFastPatternTest123(void)
+static int DetectFastPatternTest123(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3502,7 +3502,7 @@ int DetectFastPatternTest123(void)
     return result;
 }
 
-int DetectFastPatternTest124(void)
+static int DetectFastPatternTest124(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3535,7 +3535,7 @@ int DetectFastPatternTest124(void)
     return result;
 }
 
-int DetectFastPatternTest125(void)
+static int DetectFastPatternTest125(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3557,7 +3557,7 @@ int DetectFastPatternTest125(void)
     return result;
 }
 
-int DetectFastPatternTest126(void)
+static int DetectFastPatternTest126(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3579,7 +3579,7 @@ int DetectFastPatternTest126(void)
     return result;
 }
 
-int DetectFastPatternTest127(void)
+static int DetectFastPatternTest127(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3601,7 +3601,7 @@ int DetectFastPatternTest127(void)
     return result;
 }
 
-int DetectFastPatternTest128(void)
+static int DetectFastPatternTest128(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3632,7 +3632,7 @@ int DetectFastPatternTest128(void)
     return result;
 }
 
-int DetectFastPatternTest129(void)
+static int DetectFastPatternTest129(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3654,7 +3654,7 @@ int DetectFastPatternTest129(void)
     return result;
 }
 
-int DetectFastPatternTest130(void)
+static int DetectFastPatternTest130(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3676,7 +3676,7 @@ int DetectFastPatternTest130(void)
     return result;
 }
 
-int DetectFastPatternTest131(void)
+static int DetectFastPatternTest131(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3698,7 +3698,7 @@ int DetectFastPatternTest131(void)
     return result;
 }
 
-int DetectFastPatternTest132(void)
+static int DetectFastPatternTest132(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3720,7 +3720,7 @@ int DetectFastPatternTest132(void)
     return result;
 }
 
-int DetectFastPatternTest133(void)
+static int DetectFastPatternTest133(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3756,7 +3756,7 @@ int DetectFastPatternTest133(void)
 /* http_client_body fast_pattern tests v */
 
 
-int DetectFastPatternTest134(void)
+static int DetectFastPatternTest134(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3790,7 +3790,7 @@ int DetectFastPatternTest134(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest135(void)
+static int DetectFastPatternTest135(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -3827,7 +3827,7 @@ int DetectFastPatternTest135(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest136(void)
+static int DetectFastPatternTest136(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -3860,7 +3860,7 @@ int DetectFastPatternTest136(void)
     return result;
 }
 
-int DetectFastPatternTest137(void)
+static int DetectFastPatternTest137(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -3894,7 +3894,7 @@ int DetectFastPatternTest137(void)
     return result;
 }
 
-int DetectFastPatternTest138(void)
+static int DetectFastPatternTest138(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -3928,7 +3928,7 @@ int DetectFastPatternTest138(void)
     return result;
 }
 
-int DetectFastPatternTest139(void)
+static int DetectFastPatternTest139(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3950,7 +3950,7 @@ int DetectFastPatternTest139(void)
     return result;
 }
 
-int DetectFastPatternTest140(void)
+static int DetectFastPatternTest140(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3972,7 +3972,7 @@ int DetectFastPatternTest140(void)
     return result;
 }
 
-int DetectFastPatternTest141(void)
+static int DetectFastPatternTest141(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3994,7 +3994,7 @@ int DetectFastPatternTest141(void)
     return result;
 }
 
-int DetectFastPatternTest142(void)
+static int DetectFastPatternTest142(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4016,7 +4016,7 @@ int DetectFastPatternTest142(void)
     return result;
 }
 
-int DetectFastPatternTest143(void)
+static int DetectFastPatternTest143(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4038,7 +4038,7 @@ int DetectFastPatternTest143(void)
     return result;
 }
 
-int DetectFastPatternTest144(void)
+static int DetectFastPatternTest144(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4060,7 +4060,7 @@ int DetectFastPatternTest144(void)
     return result;
 }
 
-int DetectFastPatternTest145(void)
+static int DetectFastPatternTest145(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4082,7 +4082,7 @@ int DetectFastPatternTest145(void)
     return result;
 }
 
-int DetectFastPatternTest146(void)
+static int DetectFastPatternTest146(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4104,7 +4104,7 @@ int DetectFastPatternTest146(void)
     return result;
 }
 
-int DetectFastPatternTest147(void)
+static int DetectFastPatternTest147(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4126,7 +4126,7 @@ int DetectFastPatternTest147(void)
     return result;
 }
 
-int DetectFastPatternTest148(void)
+static int DetectFastPatternTest148(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4157,7 +4157,7 @@ int DetectFastPatternTest148(void)
     return result;
 }
 
-int DetectFastPatternTest149(void)
+static int DetectFastPatternTest149(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4187,7 +4187,7 @@ int DetectFastPatternTest149(void)
     return result;
 }
 
-int DetectFastPatternTest150(void)
+static int DetectFastPatternTest150(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4217,7 +4217,7 @@ int DetectFastPatternTest150(void)
     return result;
 }
 
-int DetectFastPatternTest151(void)
+static int DetectFastPatternTest151(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4247,7 +4247,7 @@ int DetectFastPatternTest151(void)
     return result;
 }
 
-int DetectFastPatternTest152(void)
+static int DetectFastPatternTest152(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4278,7 +4278,7 @@ int DetectFastPatternTest152(void)
     return result;
 }
 
-int DetectFastPatternTest153(void)
+static int DetectFastPatternTest153(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4300,7 +4300,7 @@ int DetectFastPatternTest153(void)
     return result;
 }
 
-int DetectFastPatternTest154(void)
+static int DetectFastPatternTest154(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4322,7 +4322,7 @@ int DetectFastPatternTest154(void)
     return result;
 }
 
-int DetectFastPatternTest155(void)
+static int DetectFastPatternTest155(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4344,7 +4344,7 @@ int DetectFastPatternTest155(void)
     return result;
 }
 
-int DetectFastPatternTest156(void)
+static int DetectFastPatternTest156(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4366,7 +4366,7 @@ int DetectFastPatternTest156(void)
     return result;
 }
 
-int DetectFastPatternTest157(void)
+static int DetectFastPatternTest157(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4396,7 +4396,7 @@ int DetectFastPatternTest157(void)
     return result;
 }
 
-int DetectFastPatternTest158(void)
+static int DetectFastPatternTest158(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4426,7 +4426,7 @@ int DetectFastPatternTest158(void)
     return result;
 }
 
-int DetectFastPatternTest159(void)
+static int DetectFastPatternTest159(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4456,7 +4456,7 @@ int DetectFastPatternTest159(void)
     return result;
 }
 
-int DetectFastPatternTest160(void)
+static int DetectFastPatternTest160(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4486,7 +4486,7 @@ int DetectFastPatternTest160(void)
     return result;
 }
 
-int DetectFastPatternTest161(void)
+static int DetectFastPatternTest161(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4516,7 +4516,7 @@ int DetectFastPatternTest161(void)
     return result;
 }
 
-int DetectFastPatternTest162(void)
+static int DetectFastPatternTest162(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4546,7 +4546,7 @@ int DetectFastPatternTest162(void)
     return result;
 }
 
-int DetectFastPatternTest163(void)
+static int DetectFastPatternTest163(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4576,7 +4576,7 @@ int DetectFastPatternTest163(void)
     return result;
 }
 
-int DetectFastPatternTest164(void)
+static int DetectFastPatternTest164(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4606,7 +4606,7 @@ int DetectFastPatternTest164(void)
     return result;
 }
 
-int DetectFastPatternTest165(void)
+static int DetectFastPatternTest165(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4639,7 +4639,7 @@ int DetectFastPatternTest165(void)
     return result;
 }
 
-int DetectFastPatternTest166(void)
+static int DetectFastPatternTest166(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4661,7 +4661,7 @@ int DetectFastPatternTest166(void)
     return result;
 }
 
-int DetectFastPatternTest167(void)
+static int DetectFastPatternTest167(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4683,7 +4683,7 @@ int DetectFastPatternTest167(void)
     return result;
 }
 
-int DetectFastPatternTest168(void)
+static int DetectFastPatternTest168(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4705,7 +4705,7 @@ int DetectFastPatternTest168(void)
     return result;
 }
 
-int DetectFastPatternTest169(void)
+static int DetectFastPatternTest169(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4736,7 +4736,7 @@ int DetectFastPatternTest169(void)
     return result;
 }
 
-int DetectFastPatternTest170(void)
+static int DetectFastPatternTest170(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4758,7 +4758,7 @@ int DetectFastPatternTest170(void)
     return result;
 }
 
-int DetectFastPatternTest171(void)
+static int DetectFastPatternTest171(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4780,7 +4780,7 @@ int DetectFastPatternTest171(void)
     return result;
 }
 
-int DetectFastPatternTest172(void)
+static int DetectFastPatternTest172(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4802,7 +4802,7 @@ int DetectFastPatternTest172(void)
     return result;
 }
 
-int DetectFastPatternTest173(void)
+static int DetectFastPatternTest173(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4824,7 +4824,7 @@ int DetectFastPatternTest173(void)
     return result;
 }
 
-int DetectFastPatternTest174(void)
+static int DetectFastPatternTest174(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4860,7 +4860,7 @@ int DetectFastPatternTest174(void)
 /*          content fast_pattern tests v */
 
 
-int DetectFastPatternTest175(void)
+static int DetectFastPatternTest175(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4882,7 +4882,7 @@ int DetectFastPatternTest175(void)
     return result;
 }
 
-int DetectFastPatternTest176(void)
+static int DetectFastPatternTest176(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4904,7 +4904,7 @@ int DetectFastPatternTest176(void)
     return result;
 }
 
-int DetectFastPatternTest177(void)
+static int DetectFastPatternTest177(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4926,7 +4926,7 @@ int DetectFastPatternTest177(void)
     return result;
 }
 
-int DetectFastPatternTest178(void)
+static int DetectFastPatternTest178(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4952,7 +4952,7 @@ int DetectFastPatternTest178(void)
 /* http_header fast_pattern tests v */
 
 
-int DetectFastPatternTest179(void)
+static int DetectFastPatternTest179(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -4988,7 +4988,7 @@ int DetectFastPatternTest179(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest180(void)
+static int DetectFastPatternTest180(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -5025,7 +5025,7 @@ int DetectFastPatternTest180(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest181(void)
+static int DetectFastPatternTest181(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -5058,7 +5058,7 @@ int DetectFastPatternTest181(void)
     return result;
 }
 
-int DetectFastPatternTest182(void)
+static int DetectFastPatternTest182(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -5092,7 +5092,7 @@ int DetectFastPatternTest182(void)
     return result;
 }
 
-int DetectFastPatternTest183(void)
+static int DetectFastPatternTest183(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -5126,7 +5126,7 @@ int DetectFastPatternTest183(void)
     return result;
 }
 
-int DetectFastPatternTest184(void)
+static int DetectFastPatternTest184(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5148,7 +5148,7 @@ int DetectFastPatternTest184(void)
     return result;
 }
 
-int DetectFastPatternTest185(void)
+static int DetectFastPatternTest185(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5170,7 +5170,7 @@ int DetectFastPatternTest185(void)
     return result;
 }
 
-int DetectFastPatternTest186(void)
+static int DetectFastPatternTest186(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5192,7 +5192,7 @@ int DetectFastPatternTest186(void)
     return result;
 }
 
-int DetectFastPatternTest187(void)
+static int DetectFastPatternTest187(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5214,7 +5214,7 @@ int DetectFastPatternTest187(void)
     return result;
 }
 
-int DetectFastPatternTest188(void)
+static int DetectFastPatternTest188(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5236,7 +5236,7 @@ int DetectFastPatternTest188(void)
     return result;
 }
 
-int DetectFastPatternTest189(void)
+static int DetectFastPatternTest189(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5258,7 +5258,7 @@ int DetectFastPatternTest189(void)
     return result;
 }
 
-int DetectFastPatternTest190(void)
+static int DetectFastPatternTest190(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5280,7 +5280,7 @@ int DetectFastPatternTest190(void)
     return result;
 }
 
-int DetectFastPatternTest191(void)
+static int DetectFastPatternTest191(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5302,7 +5302,7 @@ int DetectFastPatternTest191(void)
     return result;
 }
 
-int DetectFastPatternTest192(void)
+static int DetectFastPatternTest192(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5324,7 +5324,7 @@ int DetectFastPatternTest192(void)
     return result;
 }
 
-int DetectFastPatternTest193(void)
+static int DetectFastPatternTest193(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5355,7 +5355,7 @@ int DetectFastPatternTest193(void)
     return result;
 }
 
-int DetectFastPatternTest194(void)
+static int DetectFastPatternTest194(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5385,7 +5385,7 @@ int DetectFastPatternTest194(void)
     return result;
 }
 
-int DetectFastPatternTest195(void)
+static int DetectFastPatternTest195(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5415,7 +5415,7 @@ int DetectFastPatternTest195(void)
     return result;
 }
 
-int DetectFastPatternTest196(void)
+static int DetectFastPatternTest196(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5445,7 +5445,7 @@ int DetectFastPatternTest196(void)
     return result;
 }
 
-int DetectFastPatternTest197(void)
+static int DetectFastPatternTest197(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5476,7 +5476,7 @@ int DetectFastPatternTest197(void)
     return result;
 }
 
-int DetectFastPatternTest198(void)
+static int DetectFastPatternTest198(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5498,7 +5498,7 @@ int DetectFastPatternTest198(void)
     return result;
 }
 
-int DetectFastPatternTest199(void)
+static int DetectFastPatternTest199(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5520,7 +5520,7 @@ int DetectFastPatternTest199(void)
     return result;
 }
 
-int DetectFastPatternTest200(void)
+static int DetectFastPatternTest200(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5542,7 +5542,7 @@ int DetectFastPatternTest200(void)
     return result;
 }
 
-int DetectFastPatternTest201(void)
+static int DetectFastPatternTest201(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5564,7 +5564,7 @@ int DetectFastPatternTest201(void)
     return result;
 }
 
-int DetectFastPatternTest202(void)
+static int DetectFastPatternTest202(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5594,7 +5594,7 @@ int DetectFastPatternTest202(void)
     return result;
 }
 
-int DetectFastPatternTest203(void)
+static int DetectFastPatternTest203(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5624,7 +5624,7 @@ int DetectFastPatternTest203(void)
     return result;
 }
 
-int DetectFastPatternTest204(void)
+static int DetectFastPatternTest204(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5654,7 +5654,7 @@ int DetectFastPatternTest204(void)
     return result;
 }
 
-int DetectFastPatternTest205(void)
+static int DetectFastPatternTest205(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5684,7 +5684,7 @@ int DetectFastPatternTest205(void)
     return result;
 }
 
-int DetectFastPatternTest206(void)
+static int DetectFastPatternTest206(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5714,7 +5714,7 @@ int DetectFastPatternTest206(void)
     return result;
 }
 
-int DetectFastPatternTest207(void)
+static int DetectFastPatternTest207(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5744,7 +5744,7 @@ int DetectFastPatternTest207(void)
     return result;
 }
 
-int DetectFastPatternTest208(void)
+static int DetectFastPatternTest208(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5774,7 +5774,7 @@ int DetectFastPatternTest208(void)
     return result;
 }
 
-int DetectFastPatternTest209(void)
+static int DetectFastPatternTest209(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5804,7 +5804,7 @@ int DetectFastPatternTest209(void)
     return result;
 }
 
-int DetectFastPatternTest210(void)
+static int DetectFastPatternTest210(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5837,7 +5837,7 @@ int DetectFastPatternTest210(void)
     return result;
 }
 
-int DetectFastPatternTest211(void)
+static int DetectFastPatternTest211(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5859,7 +5859,7 @@ int DetectFastPatternTest211(void)
     return result;
 }
 
-int DetectFastPatternTest212(void)
+static int DetectFastPatternTest212(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5881,7 +5881,7 @@ int DetectFastPatternTest212(void)
     return result;
 }
 
-int DetectFastPatternTest213(void)
+static int DetectFastPatternTest213(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5903,7 +5903,7 @@ int DetectFastPatternTest213(void)
     return result;
 }
 
-int DetectFastPatternTest214(void)
+static int DetectFastPatternTest214(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5934,7 +5934,7 @@ int DetectFastPatternTest214(void)
     return result;
 }
 
-int DetectFastPatternTest215(void)
+static int DetectFastPatternTest215(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5956,7 +5956,7 @@ int DetectFastPatternTest215(void)
     return result;
 }
 
-int DetectFastPatternTest216(void)
+static int DetectFastPatternTest216(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -5978,7 +5978,7 @@ int DetectFastPatternTest216(void)
     return result;
 }
 
-int DetectFastPatternTest217(void)
+static int DetectFastPatternTest217(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6000,7 +6000,7 @@ int DetectFastPatternTest217(void)
     return result;
 }
 
-int DetectFastPatternTest218(void)
+static int DetectFastPatternTest218(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6022,7 +6022,7 @@ int DetectFastPatternTest218(void)
     return result;
 }
 
-int DetectFastPatternTest219(void)
+static int DetectFastPatternTest219(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6058,7 +6058,7 @@ int DetectFastPatternTest219(void)
 /* http_raw_header fast_pattern tests v */
 
 
-int DetectFastPatternTest220(void)
+static int DetectFastPatternTest220(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6094,7 +6094,7 @@ int DetectFastPatternTest220(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest221(void)
+static int DetectFastPatternTest221(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -6131,7 +6131,7 @@ int DetectFastPatternTest221(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest222(void)
+static int DetectFastPatternTest222(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -6164,7 +6164,7 @@ int DetectFastPatternTest222(void)
     return result;
 }
 
-int DetectFastPatternTest223(void)
+static int DetectFastPatternTest223(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -6198,7 +6198,7 @@ int DetectFastPatternTest223(void)
     return result;
 }
 
-int DetectFastPatternTest224(void)
+static int DetectFastPatternTest224(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -6232,7 +6232,7 @@ int DetectFastPatternTest224(void)
     return result;
 }
 
-int DetectFastPatternTest225(void)
+static int DetectFastPatternTest225(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6254,7 +6254,7 @@ int DetectFastPatternTest225(void)
     return result;
 }
 
-int DetectFastPatternTest226(void)
+static int DetectFastPatternTest226(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6276,7 +6276,7 @@ int DetectFastPatternTest226(void)
     return result;
 }
 
-int DetectFastPatternTest227(void)
+static int DetectFastPatternTest227(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6298,7 +6298,7 @@ int DetectFastPatternTest227(void)
     return result;
 }
 
-int DetectFastPatternTest228(void)
+static int DetectFastPatternTest228(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6320,7 +6320,7 @@ int DetectFastPatternTest228(void)
     return result;
 }
 
-int DetectFastPatternTest229(void)
+static int DetectFastPatternTest229(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6342,7 +6342,7 @@ int DetectFastPatternTest229(void)
     return result;
 }
 
-int DetectFastPatternTest230(void)
+static int DetectFastPatternTest230(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6364,7 +6364,7 @@ int DetectFastPatternTest230(void)
     return result;
 }
 
-int DetectFastPatternTest231(void)
+static int DetectFastPatternTest231(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6386,7 +6386,7 @@ int DetectFastPatternTest231(void)
     return result;
 }
 
-int DetectFastPatternTest232(void)
+static int DetectFastPatternTest232(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6408,7 +6408,7 @@ int DetectFastPatternTest232(void)
     return result;
 }
 
-int DetectFastPatternTest233(void)
+static int DetectFastPatternTest233(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6430,7 +6430,7 @@ int DetectFastPatternTest233(void)
     return result;
 }
 
-int DetectFastPatternTest234(void)
+static int DetectFastPatternTest234(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6461,7 +6461,7 @@ int DetectFastPatternTest234(void)
     return result;
 }
 
-int DetectFastPatternTest235(void)
+static int DetectFastPatternTest235(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6491,7 +6491,7 @@ int DetectFastPatternTest235(void)
     return result;
 }
 
-int DetectFastPatternTest236(void)
+static int DetectFastPatternTest236(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6521,7 +6521,7 @@ int DetectFastPatternTest236(void)
     return result;
 }
 
-int DetectFastPatternTest237(void)
+static int DetectFastPatternTest237(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6551,7 +6551,7 @@ int DetectFastPatternTest237(void)
     return result;
 }
 
-int DetectFastPatternTest238(void)
+static int DetectFastPatternTest238(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6582,7 +6582,7 @@ int DetectFastPatternTest238(void)
     return result;
 }
 
-int DetectFastPatternTest239(void)
+static int DetectFastPatternTest239(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6604,7 +6604,7 @@ int DetectFastPatternTest239(void)
     return result;
 }
 
-int DetectFastPatternTest240(void)
+static int DetectFastPatternTest240(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6626,7 +6626,7 @@ int DetectFastPatternTest240(void)
     return result;
 }
 
-int DetectFastPatternTest241(void)
+static int DetectFastPatternTest241(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6648,7 +6648,7 @@ int DetectFastPatternTest241(void)
     return result;
 }
 
-int DetectFastPatternTest242(void)
+static int DetectFastPatternTest242(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6670,7 +6670,7 @@ int DetectFastPatternTest242(void)
     return result;
 }
 
-int DetectFastPatternTest243(void)
+static int DetectFastPatternTest243(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6700,7 +6700,7 @@ int DetectFastPatternTest243(void)
     return result;
 }
 
-int DetectFastPatternTest244(void)
+static int DetectFastPatternTest244(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6730,7 +6730,7 @@ int DetectFastPatternTest244(void)
     return result;
 }
 
-int DetectFastPatternTest245(void)
+static int DetectFastPatternTest245(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6760,7 +6760,7 @@ int DetectFastPatternTest245(void)
     return result;
 }
 
-int DetectFastPatternTest246(void)
+static int DetectFastPatternTest246(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6790,7 +6790,7 @@ int DetectFastPatternTest246(void)
     return result;
 }
 
-int DetectFastPatternTest247(void)
+static int DetectFastPatternTest247(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6820,7 +6820,7 @@ int DetectFastPatternTest247(void)
     return result;
 }
 
-int DetectFastPatternTest248(void)
+static int DetectFastPatternTest248(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6850,7 +6850,7 @@ int DetectFastPatternTest248(void)
     return result;
 }
 
-int DetectFastPatternTest249(void)
+static int DetectFastPatternTest249(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6880,7 +6880,7 @@ int DetectFastPatternTest249(void)
     return result;
 }
 
-int DetectFastPatternTest250(void)
+static int DetectFastPatternTest250(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6910,7 +6910,7 @@ int DetectFastPatternTest250(void)
     return result;
 }
 
-int DetectFastPatternTest251(void)
+static int DetectFastPatternTest251(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6943,7 +6943,7 @@ int DetectFastPatternTest251(void)
     return result;
 }
 
-int DetectFastPatternTest252(void)
+static int DetectFastPatternTest252(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6965,7 +6965,7 @@ int DetectFastPatternTest252(void)
     return result;
 }
 
-int DetectFastPatternTest253(void)
+static int DetectFastPatternTest253(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -6987,7 +6987,7 @@ int DetectFastPatternTest253(void)
     return result;
 }
 
-int DetectFastPatternTest254(void)
+static int DetectFastPatternTest254(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7009,7 +7009,7 @@ int DetectFastPatternTest254(void)
     return result;
 }
 
-int DetectFastPatternTest255(void)
+static int DetectFastPatternTest255(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7040,7 +7040,7 @@ int DetectFastPatternTest255(void)
     return result;
 }
 
-int DetectFastPatternTest256(void)
+static int DetectFastPatternTest256(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7062,7 +7062,7 @@ int DetectFastPatternTest256(void)
     return result;
 }
 
-int DetectFastPatternTest257(void)
+static int DetectFastPatternTest257(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7084,7 +7084,7 @@ int DetectFastPatternTest257(void)
     return result;
 }
 
-int DetectFastPatternTest258(void)
+static int DetectFastPatternTest258(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7106,7 +7106,7 @@ int DetectFastPatternTest258(void)
     return result;
 }
 
-int DetectFastPatternTest259(void)
+static int DetectFastPatternTest259(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7128,7 +7128,7 @@ int DetectFastPatternTest259(void)
     return result;
 }
 
-int DetectFastPatternTest260(void)
+static int DetectFastPatternTest260(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7164,7 +7164,7 @@ int DetectFastPatternTest260(void)
 /*     http_method fast_pattern tests v */
 
 
-int DetectFastPatternTest261(void)
+static int DetectFastPatternTest261(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7200,7 +7200,7 @@ int DetectFastPatternTest261(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest262(void)
+static int DetectFastPatternTest262(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -7237,7 +7237,7 @@ int DetectFastPatternTest262(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest263(void)
+static int DetectFastPatternTest263(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -7270,7 +7270,7 @@ int DetectFastPatternTest263(void)
     return result;
 }
 
-int DetectFastPatternTest264(void)
+static int DetectFastPatternTest264(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -7304,7 +7304,7 @@ int DetectFastPatternTest264(void)
     return result;
 }
 
-int DetectFastPatternTest265(void)
+static int DetectFastPatternTest265(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -7338,7 +7338,7 @@ int DetectFastPatternTest265(void)
     return result;
 }
 
-int DetectFastPatternTest266(void)
+static int DetectFastPatternTest266(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7360,7 +7360,7 @@ int DetectFastPatternTest266(void)
     return result;
 }
 
-int DetectFastPatternTest267(void)
+static int DetectFastPatternTest267(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7382,7 +7382,7 @@ int DetectFastPatternTest267(void)
     return result;
 }
 
-int DetectFastPatternTest268(void)
+static int DetectFastPatternTest268(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7404,7 +7404,7 @@ int DetectFastPatternTest268(void)
     return result;
 }
 
-int DetectFastPatternTest269(void)
+static int DetectFastPatternTest269(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7426,7 +7426,7 @@ int DetectFastPatternTest269(void)
     return result;
 }
 
-int DetectFastPatternTest270(void)
+static int DetectFastPatternTest270(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7448,7 +7448,7 @@ int DetectFastPatternTest270(void)
     return result;
 }
 
-int DetectFastPatternTest271(void)
+static int DetectFastPatternTest271(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7470,7 +7470,7 @@ int DetectFastPatternTest271(void)
     return result;
 }
 
-int DetectFastPatternTest272(void)
+static int DetectFastPatternTest272(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7492,7 +7492,7 @@ int DetectFastPatternTest272(void)
     return result;
 }
 
-int DetectFastPatternTest273(void)
+static int DetectFastPatternTest273(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7514,7 +7514,7 @@ int DetectFastPatternTest273(void)
     return result;
 }
 
-int DetectFastPatternTest274(void)
+static int DetectFastPatternTest274(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7536,7 +7536,7 @@ int DetectFastPatternTest274(void)
     return result;
 }
 
-int DetectFastPatternTest275(void)
+static int DetectFastPatternTest275(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7567,7 +7567,7 @@ int DetectFastPatternTest275(void)
     return result;
 }
 
-int DetectFastPatternTest276(void)
+static int DetectFastPatternTest276(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7597,7 +7597,7 @@ int DetectFastPatternTest276(void)
     return result;
 }
 
-int DetectFastPatternTest277(void)
+static int DetectFastPatternTest277(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7627,7 +7627,7 @@ int DetectFastPatternTest277(void)
     return result;
 }
 
-int DetectFastPatternTest278(void)
+static int DetectFastPatternTest278(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7657,7 +7657,7 @@ int DetectFastPatternTest278(void)
     return result;
 }
 
-int DetectFastPatternTest279(void)
+static int DetectFastPatternTest279(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7688,7 +7688,7 @@ int DetectFastPatternTest279(void)
     return result;
 }
 
-int DetectFastPatternTest280(void)
+static int DetectFastPatternTest280(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7710,7 +7710,7 @@ int DetectFastPatternTest280(void)
     return result;
 }
 
-int DetectFastPatternTest281(void)
+static int DetectFastPatternTest281(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7732,7 +7732,7 @@ int DetectFastPatternTest281(void)
     return result;
 }
 
-int DetectFastPatternTest282(void)
+static int DetectFastPatternTest282(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7754,7 +7754,7 @@ int DetectFastPatternTest282(void)
     return result;
 }
 
-int DetectFastPatternTest283(void)
+static int DetectFastPatternTest283(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7776,7 +7776,7 @@ int DetectFastPatternTest283(void)
     return result;
 }
 
-int DetectFastPatternTest284(void)
+static int DetectFastPatternTest284(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7806,7 +7806,7 @@ int DetectFastPatternTest284(void)
     return result;
 }
 
-int DetectFastPatternTest285(void)
+static int DetectFastPatternTest285(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7836,7 +7836,7 @@ int DetectFastPatternTest285(void)
     return result;
 }
 
-int DetectFastPatternTest286(void)
+static int DetectFastPatternTest286(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7866,7 +7866,7 @@ int DetectFastPatternTest286(void)
     return result;
 }
 
-int DetectFastPatternTest287(void)
+static int DetectFastPatternTest287(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7896,7 +7896,7 @@ int DetectFastPatternTest287(void)
     return result;
 }
 
-int DetectFastPatternTest288(void)
+static int DetectFastPatternTest288(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7926,7 +7926,7 @@ int DetectFastPatternTest288(void)
     return result;
 }
 
-int DetectFastPatternTest289(void)
+static int DetectFastPatternTest289(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7956,7 +7956,7 @@ int DetectFastPatternTest289(void)
     return result;
 }
 
-int DetectFastPatternTest290(void)
+static int DetectFastPatternTest290(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -7986,7 +7986,7 @@ int DetectFastPatternTest290(void)
     return result;
 }
 
-int DetectFastPatternTest291(void)
+static int DetectFastPatternTest291(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8016,7 +8016,7 @@ int DetectFastPatternTest291(void)
     return result;
 }
 
-int DetectFastPatternTest292(void)
+static int DetectFastPatternTest292(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8049,7 +8049,7 @@ int DetectFastPatternTest292(void)
     return result;
 }
 
-int DetectFastPatternTest293(void)
+static int DetectFastPatternTest293(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8071,7 +8071,7 @@ int DetectFastPatternTest293(void)
     return result;
 }
 
-int DetectFastPatternTest294(void)
+static int DetectFastPatternTest294(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8093,7 +8093,7 @@ int DetectFastPatternTest294(void)
     return result;
 }
 
-int DetectFastPatternTest295(void)
+static int DetectFastPatternTest295(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8115,7 +8115,7 @@ int DetectFastPatternTest295(void)
     return result;
 }
 
-int DetectFastPatternTest296(void)
+static int DetectFastPatternTest296(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8146,7 +8146,7 @@ int DetectFastPatternTest296(void)
     return result;
 }
 
-int DetectFastPatternTest297(void)
+static int DetectFastPatternTest297(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8168,7 +8168,7 @@ int DetectFastPatternTest297(void)
     return result;
 }
 
-int DetectFastPatternTest298(void)
+static int DetectFastPatternTest298(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8190,7 +8190,7 @@ int DetectFastPatternTest298(void)
     return result;
 }
 
-int DetectFastPatternTest299(void)
+static int DetectFastPatternTest299(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8212,7 +8212,7 @@ int DetectFastPatternTest299(void)
     return result;
 }
 
-int DetectFastPatternTest300(void)
+static int DetectFastPatternTest300(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8234,7 +8234,7 @@ int DetectFastPatternTest300(void)
     return result;
 }
 
-int DetectFastPatternTest301(void)
+static int DetectFastPatternTest301(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8270,7 +8270,7 @@ int DetectFastPatternTest301(void)
 /* http_cookie fast_pattern tests v */
 
 
-int DetectFastPatternTest302(void)
+static int DetectFastPatternTest302(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8306,7 +8306,7 @@ int DetectFastPatternTest302(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest303(void)
+static int DetectFastPatternTest303(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -8343,7 +8343,7 @@ int DetectFastPatternTest303(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest304(void)
+static int DetectFastPatternTest304(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -8376,7 +8376,7 @@ int DetectFastPatternTest304(void)
     return result;
 }
 
-int DetectFastPatternTest305(void)
+static int DetectFastPatternTest305(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -8410,7 +8410,7 @@ int DetectFastPatternTest305(void)
     return result;
 }
 
-int DetectFastPatternTest306(void)
+static int DetectFastPatternTest306(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -8444,7 +8444,7 @@ int DetectFastPatternTest306(void)
     return result;
 }
 
-int DetectFastPatternTest307(void)
+static int DetectFastPatternTest307(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8466,7 +8466,7 @@ int DetectFastPatternTest307(void)
     return result;
 }
 
-int DetectFastPatternTest308(void)
+static int DetectFastPatternTest308(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8488,7 +8488,7 @@ int DetectFastPatternTest308(void)
     return result;
 }
 
-int DetectFastPatternTest309(void)
+static int DetectFastPatternTest309(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8510,7 +8510,7 @@ int DetectFastPatternTest309(void)
     return result;
 }
 
-int DetectFastPatternTest310(void)
+static int DetectFastPatternTest310(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8532,7 +8532,7 @@ int DetectFastPatternTest310(void)
     return result;
 }
 
-int DetectFastPatternTest311(void)
+static int DetectFastPatternTest311(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8554,7 +8554,7 @@ int DetectFastPatternTest311(void)
     return result;
 }
 
-int DetectFastPatternTest312(void)
+static int DetectFastPatternTest312(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8576,7 +8576,7 @@ int DetectFastPatternTest312(void)
     return result;
 }
 
-int DetectFastPatternTest313(void)
+static int DetectFastPatternTest313(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8598,7 +8598,7 @@ int DetectFastPatternTest313(void)
     return result;
 }
 
-int DetectFastPatternTest314(void)
+static int DetectFastPatternTest314(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8620,7 +8620,7 @@ int DetectFastPatternTest314(void)
     return result;
 }
 
-int DetectFastPatternTest315(void)
+static int DetectFastPatternTest315(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8642,7 +8642,7 @@ int DetectFastPatternTest315(void)
     return result;
 }
 
-int DetectFastPatternTest316(void)
+static int DetectFastPatternTest316(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8673,7 +8673,7 @@ int DetectFastPatternTest316(void)
     return result;
 }
 
-int DetectFastPatternTest317(void)
+static int DetectFastPatternTest317(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8703,7 +8703,7 @@ int DetectFastPatternTest317(void)
     return result;
 }
 
-int DetectFastPatternTest318(void)
+static int DetectFastPatternTest318(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8733,7 +8733,7 @@ int DetectFastPatternTest318(void)
     return result;
 }
 
-int DetectFastPatternTest319(void)
+static int DetectFastPatternTest319(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8763,7 +8763,7 @@ int DetectFastPatternTest319(void)
     return result;
 }
 
-int DetectFastPatternTest320(void)
+static int DetectFastPatternTest320(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8794,7 +8794,7 @@ int DetectFastPatternTest320(void)
     return result;
 }
 
-int DetectFastPatternTest321(void)
+static int DetectFastPatternTest321(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8816,7 +8816,7 @@ int DetectFastPatternTest321(void)
     return result;
 }
 
-int DetectFastPatternTest322(void)
+static int DetectFastPatternTest322(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8838,7 +8838,7 @@ int DetectFastPatternTest322(void)
     return result;
 }
 
-int DetectFastPatternTest323(void)
+static int DetectFastPatternTest323(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8860,7 +8860,7 @@ int DetectFastPatternTest323(void)
     return result;
 }
 
-int DetectFastPatternTest324(void)
+static int DetectFastPatternTest324(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8882,7 +8882,7 @@ int DetectFastPatternTest324(void)
     return result;
 }
 
-int DetectFastPatternTest325(void)
+static int DetectFastPatternTest325(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8912,7 +8912,7 @@ int DetectFastPatternTest325(void)
     return result;
 }
 
-int DetectFastPatternTest326(void)
+static int DetectFastPatternTest326(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8942,7 +8942,7 @@ int DetectFastPatternTest326(void)
     return result;
 }
 
-int DetectFastPatternTest327(void)
+static int DetectFastPatternTest327(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -8972,7 +8972,7 @@ int DetectFastPatternTest327(void)
     return result;
 }
 
-int DetectFastPatternTest328(void)
+static int DetectFastPatternTest328(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9002,7 +9002,7 @@ int DetectFastPatternTest328(void)
     return result;
 }
 
-int DetectFastPatternTest329(void)
+static int DetectFastPatternTest329(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9032,7 +9032,7 @@ int DetectFastPatternTest329(void)
     return result;
 }
 
-int DetectFastPatternTest330(void)
+static int DetectFastPatternTest330(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9062,7 +9062,7 @@ int DetectFastPatternTest330(void)
     return result;
 }
 
-int DetectFastPatternTest331(void)
+static int DetectFastPatternTest331(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9092,7 +9092,7 @@ int DetectFastPatternTest331(void)
     return result;
 }
 
-int DetectFastPatternTest332(void)
+static int DetectFastPatternTest332(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9122,7 +9122,7 @@ int DetectFastPatternTest332(void)
     return result;
 }
 
-int DetectFastPatternTest333(void)
+static int DetectFastPatternTest333(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9155,7 +9155,7 @@ int DetectFastPatternTest333(void)
     return result;
 }
 
-int DetectFastPatternTest334(void)
+static int DetectFastPatternTest334(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9177,7 +9177,7 @@ int DetectFastPatternTest334(void)
     return result;
 }
 
-int DetectFastPatternTest335(void)
+static int DetectFastPatternTest335(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9199,7 +9199,7 @@ int DetectFastPatternTest335(void)
     return result;
 }
 
-int DetectFastPatternTest336(void)
+static int DetectFastPatternTest336(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9221,7 +9221,7 @@ int DetectFastPatternTest336(void)
     return result;
 }
 
-int DetectFastPatternTest337(void)
+static int DetectFastPatternTest337(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9252,7 +9252,7 @@ int DetectFastPatternTest337(void)
     return result;
 }
 
-int DetectFastPatternTest338(void)
+static int DetectFastPatternTest338(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9274,7 +9274,7 @@ int DetectFastPatternTest338(void)
     return result;
 }
 
-int DetectFastPatternTest339(void)
+static int DetectFastPatternTest339(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9296,7 +9296,7 @@ int DetectFastPatternTest339(void)
     return result;
 }
 
-int DetectFastPatternTest340(void)
+static int DetectFastPatternTest340(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9318,7 +9318,7 @@ int DetectFastPatternTest340(void)
     return result;
 }
 
-int DetectFastPatternTest341(void)
+static int DetectFastPatternTest341(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9340,7 +9340,7 @@ int DetectFastPatternTest341(void)
     return result;
 }
 
-int DetectFastPatternTest342(void)
+static int DetectFastPatternTest342(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9376,7 +9376,7 @@ int DetectFastPatternTest342(void)
 /* http_raw_uri fast_pattern tests v */
 
 
-int DetectFastPatternTest343(void)
+static int DetectFastPatternTest343(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9412,7 +9412,7 @@ int DetectFastPatternTest343(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest344(void)
+static int DetectFastPatternTest344(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -9449,7 +9449,7 @@ int DetectFastPatternTest344(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest345(void)
+static int DetectFastPatternTest345(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -9482,7 +9482,7 @@ int DetectFastPatternTest345(void)
     return result;
 }
 
-int DetectFastPatternTest346(void)
+static int DetectFastPatternTest346(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -9516,7 +9516,7 @@ int DetectFastPatternTest346(void)
     return result;
 }
 
-int DetectFastPatternTest347(void)
+static int DetectFastPatternTest347(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -9550,7 +9550,7 @@ int DetectFastPatternTest347(void)
     return result;
 }
 
-int DetectFastPatternTest348(void)
+static int DetectFastPatternTest348(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9573,7 +9573,7 @@ int DetectFastPatternTest348(void)
     return result;
 }
 
-int DetectFastPatternTest349(void)
+static int DetectFastPatternTest349(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9596,7 +9596,7 @@ int DetectFastPatternTest349(void)
     return result;
 }
 
-int DetectFastPatternTest350(void)
+static int DetectFastPatternTest350(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9619,7 +9619,7 @@ int DetectFastPatternTest350(void)
     return result;
 }
 
-int DetectFastPatternTest351(void)
+static int DetectFastPatternTest351(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9642,7 +9642,7 @@ int DetectFastPatternTest351(void)
     return result;
 }
 
-int DetectFastPatternTest352(void)
+static int DetectFastPatternTest352(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9665,7 +9665,7 @@ int DetectFastPatternTest352(void)
     return result;
 }
 
-int DetectFastPatternTest353(void)
+static int DetectFastPatternTest353(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9688,7 +9688,7 @@ int DetectFastPatternTest353(void)
     return result;
 }
 
-int DetectFastPatternTest354(void)
+static int DetectFastPatternTest354(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9711,7 +9711,7 @@ int DetectFastPatternTest354(void)
     return result;
 }
 
-int DetectFastPatternTest355(void)
+static int DetectFastPatternTest355(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9734,7 +9734,7 @@ int DetectFastPatternTest355(void)
     return result;
 }
 
-int DetectFastPatternTest356(void)
+static int DetectFastPatternTest356(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9757,7 +9757,7 @@ int DetectFastPatternTest356(void)
     return result;
 }
 
-int DetectFastPatternTest357(void)
+static int DetectFastPatternTest357(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9790,7 +9790,7 @@ int DetectFastPatternTest357(void)
     return result;
 }
 
-int DetectFastPatternTest358(void)
+static int DetectFastPatternTest358(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9822,7 +9822,7 @@ int DetectFastPatternTest358(void)
     return result;
 }
 
-int DetectFastPatternTest359(void)
+static int DetectFastPatternTest359(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9854,7 +9854,7 @@ int DetectFastPatternTest359(void)
     return result;
 }
 
-int DetectFastPatternTest360(void)
+static int DetectFastPatternTest360(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9886,7 +9886,7 @@ int DetectFastPatternTest360(void)
     return result;
 }
 
-int DetectFastPatternTest361(void)
+static int DetectFastPatternTest361(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9918,7 +9918,7 @@ int DetectFastPatternTest361(void)
     return result;
 }
 
-int DetectFastPatternTest362(void)
+static int DetectFastPatternTest362(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9941,7 +9941,7 @@ int DetectFastPatternTest362(void)
     return result;
 }
 
-int DetectFastPatternTest363(void)
+static int DetectFastPatternTest363(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9964,7 +9964,7 @@ int DetectFastPatternTest363(void)
     return result;
 }
 
-int DetectFastPatternTest364(void)
+static int DetectFastPatternTest364(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -9987,7 +9987,7 @@ int DetectFastPatternTest364(void)
     return result;
 }
 
-int DetectFastPatternTest365(void)
+static int DetectFastPatternTest365(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10010,7 +10010,7 @@ int DetectFastPatternTest365(void)
     return result;
 }
 
-int DetectFastPatternTest366(void)
+static int DetectFastPatternTest366(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10042,7 +10042,7 @@ int DetectFastPatternTest366(void)
     return result;
 }
 
-int DetectFastPatternTest367(void)
+static int DetectFastPatternTest367(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10074,7 +10074,7 @@ int DetectFastPatternTest367(void)
     return result;
 }
 
-int DetectFastPatternTest368(void)
+static int DetectFastPatternTest368(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10106,7 +10106,7 @@ int DetectFastPatternTest368(void)
     return result;
 }
 
-int DetectFastPatternTest369(void)
+static int DetectFastPatternTest369(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10138,7 +10138,7 @@ int DetectFastPatternTest369(void)
     return result;
 }
 
-int DetectFastPatternTest370(void)
+static int DetectFastPatternTest370(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10170,7 +10170,7 @@ int DetectFastPatternTest370(void)
     return result;
 }
 
-int DetectFastPatternTest371(void)
+static int DetectFastPatternTest371(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10202,7 +10202,7 @@ int DetectFastPatternTest371(void)
     return result;
 }
 
-int DetectFastPatternTest372(void)
+static int DetectFastPatternTest372(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10234,7 +10234,7 @@ int DetectFastPatternTest372(void)
     return result;
 }
 
-int DetectFastPatternTest373(void)
+static int DetectFastPatternTest373(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10266,7 +10266,7 @@ int DetectFastPatternTest373(void)
     return result;
 }
 
-int DetectFastPatternTest374(void)
+static int DetectFastPatternTest374(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10301,7 +10301,7 @@ int DetectFastPatternTest374(void)
     return result;
 }
 
-int DetectFastPatternTest375(void)
+static int DetectFastPatternTest375(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10325,7 +10325,7 @@ int DetectFastPatternTest375(void)
     return result;
 }
 
-int DetectFastPatternTest376(void)
+static int DetectFastPatternTest376(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10349,7 +10349,7 @@ int DetectFastPatternTest376(void)
     return result;
 }
 
-int DetectFastPatternTest377(void)
+static int DetectFastPatternTest377(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10373,7 +10373,7 @@ int DetectFastPatternTest377(void)
     return result;
 }
 
-int DetectFastPatternTest378(void)
+static int DetectFastPatternTest378(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10406,7 +10406,7 @@ int DetectFastPatternTest378(void)
     return result;
 }
 
-int DetectFastPatternTest379(void)
+static int DetectFastPatternTest379(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10430,7 +10430,7 @@ int DetectFastPatternTest379(void)
     return result;
 }
 
-int DetectFastPatternTest380(void)
+static int DetectFastPatternTest380(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10454,7 +10454,7 @@ int DetectFastPatternTest380(void)
     return result;
 }
 
-int DetectFastPatternTest381(void)
+static int DetectFastPatternTest381(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10478,7 +10478,7 @@ int DetectFastPatternTest381(void)
     return result;
 }
 
-int DetectFastPatternTest382(void)
+static int DetectFastPatternTest382(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10502,7 +10502,7 @@ int DetectFastPatternTest382(void)
     return result;
 }
 
-int DetectFastPatternTest383(void)
+static int DetectFastPatternTest383(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10540,7 +10540,7 @@ int DetectFastPatternTest383(void)
 /* http_stat_msg fast_pattern tests v */
 
 
-int DetectFastPatternTest384(void)
+static int DetectFastPatternTest384(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10576,7 +10576,7 @@ int DetectFastPatternTest384(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest385(void)
+static int DetectFastPatternTest385(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -10613,7 +10613,7 @@ int DetectFastPatternTest385(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest386(void)
+static int DetectFastPatternTest386(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -10646,7 +10646,7 @@ int DetectFastPatternTest386(void)
     return result;
 }
 
-int DetectFastPatternTest387(void)
+static int DetectFastPatternTest387(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -10682,7 +10682,7 @@ int DetectFastPatternTest387(void)
     return result;
 }
 
-int DetectFastPatternTest388(void)
+static int DetectFastPatternTest388(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -10719,7 +10719,7 @@ int DetectFastPatternTest388(void)
     return result;
 }
 
-int DetectFastPatternTest389(void)
+static int DetectFastPatternTest389(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10742,7 +10742,7 @@ int DetectFastPatternTest389(void)
     return result;
 }
 
-int DetectFastPatternTest390(void)
+static int DetectFastPatternTest390(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10765,7 +10765,7 @@ int DetectFastPatternTest390(void)
     return result;
 }
 
-int DetectFastPatternTest391(void)
+static int DetectFastPatternTest391(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10788,7 +10788,7 @@ int DetectFastPatternTest391(void)
     return result;
 }
 
-int DetectFastPatternTest392(void)
+static int DetectFastPatternTest392(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10811,7 +10811,7 @@ int DetectFastPatternTest392(void)
     return result;
 }
 
-int DetectFastPatternTest393(void)
+static int DetectFastPatternTest393(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10834,7 +10834,7 @@ int DetectFastPatternTest393(void)
     return result;
 }
 
-int DetectFastPatternTest394(void)
+static int DetectFastPatternTest394(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10857,7 +10857,7 @@ int DetectFastPatternTest394(void)
     return result;
 }
 
-int DetectFastPatternTest395(void)
+static int DetectFastPatternTest395(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10880,7 +10880,7 @@ int DetectFastPatternTest395(void)
     return result;
 }
 
-int DetectFastPatternTest396(void)
+static int DetectFastPatternTest396(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10903,7 +10903,7 @@ int DetectFastPatternTest396(void)
     return result;
 }
 
-int DetectFastPatternTest397(void)
+static int DetectFastPatternTest397(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10926,7 +10926,7 @@ int DetectFastPatternTest397(void)
     return result;
 }
 
-int DetectFastPatternTest398(void)
+static int DetectFastPatternTest398(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10959,7 +10959,7 @@ int DetectFastPatternTest398(void)
     return result;
 }
 
-int DetectFastPatternTest399(void)
+static int DetectFastPatternTest399(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -10991,7 +10991,7 @@ int DetectFastPatternTest399(void)
     return result;
 }
 
-int DetectFastPatternTest400(void)
+static int DetectFastPatternTest400(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11023,7 +11023,7 @@ int DetectFastPatternTest400(void)
     return result;
 }
 
-int DetectFastPatternTest401(void)
+static int DetectFastPatternTest401(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11055,7 +11055,7 @@ int DetectFastPatternTest401(void)
     return result;
 }
 
-int DetectFastPatternTest402(void)
+static int DetectFastPatternTest402(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11087,7 +11087,7 @@ int DetectFastPatternTest402(void)
     return result;
 }
 
-int DetectFastPatternTest403(void)
+static int DetectFastPatternTest403(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11110,7 +11110,7 @@ int DetectFastPatternTest403(void)
     return result;
 }
 
-int DetectFastPatternTest404(void)
+static int DetectFastPatternTest404(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11133,7 +11133,7 @@ int DetectFastPatternTest404(void)
     return result;
 }
 
-int DetectFastPatternTest405(void)
+static int DetectFastPatternTest405(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11156,7 +11156,7 @@ int DetectFastPatternTest405(void)
     return result;
 }
 
-int DetectFastPatternTest406(void)
+static int DetectFastPatternTest406(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11179,7 +11179,7 @@ int DetectFastPatternTest406(void)
     return result;
 }
 
-int DetectFastPatternTest407(void)
+static int DetectFastPatternTest407(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11211,7 +11211,7 @@ int DetectFastPatternTest407(void)
     return result;
 }
 
-int DetectFastPatternTest408(void)
+static int DetectFastPatternTest408(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11243,7 +11243,7 @@ int DetectFastPatternTest408(void)
     return result;
 }
 
-int DetectFastPatternTest409(void)
+static int DetectFastPatternTest409(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11275,7 +11275,7 @@ int DetectFastPatternTest409(void)
     return result;
 }
 
-int DetectFastPatternTest410(void)
+static int DetectFastPatternTest410(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11307,7 +11307,7 @@ int DetectFastPatternTest410(void)
     return result;
 }
 
-int DetectFastPatternTest411(void)
+static int DetectFastPatternTest411(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11339,7 +11339,7 @@ int DetectFastPatternTest411(void)
     return result;
 }
 
-int DetectFastPatternTest412(void)
+static int DetectFastPatternTest412(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11371,7 +11371,7 @@ int DetectFastPatternTest412(void)
     return result;
 }
 
-int DetectFastPatternTest413(void)
+static int DetectFastPatternTest413(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11403,7 +11403,7 @@ int DetectFastPatternTest413(void)
     return result;
 }
 
-int DetectFastPatternTest414(void)
+static int DetectFastPatternTest414(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11435,7 +11435,7 @@ int DetectFastPatternTest414(void)
     return result;
 }
 
-int DetectFastPatternTest415(void)
+static int DetectFastPatternTest415(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11470,7 +11470,7 @@ int DetectFastPatternTest415(void)
     return result;
 }
 
-int DetectFastPatternTest416(void)
+static int DetectFastPatternTest416(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11494,7 +11494,7 @@ int DetectFastPatternTest416(void)
     return result;
 }
 
-int DetectFastPatternTest417(void)
+static int DetectFastPatternTest417(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11518,7 +11518,7 @@ int DetectFastPatternTest417(void)
     return result;
 }
 
-int DetectFastPatternTest418(void)
+static int DetectFastPatternTest418(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11542,7 +11542,7 @@ int DetectFastPatternTest418(void)
     return result;
 }
 
-int DetectFastPatternTest419(void)
+static int DetectFastPatternTest419(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11575,7 +11575,7 @@ int DetectFastPatternTest419(void)
     return result;
 }
 
-int DetectFastPatternTest420(void)
+static int DetectFastPatternTest420(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11599,7 +11599,7 @@ int DetectFastPatternTest420(void)
     return result;
 }
 
-int DetectFastPatternTest421(void)
+static int DetectFastPatternTest421(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11623,7 +11623,7 @@ int DetectFastPatternTest421(void)
     return result;
 }
 
-int DetectFastPatternTest422(void)
+static int DetectFastPatternTest422(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11647,7 +11647,7 @@ int DetectFastPatternTest422(void)
     return result;
 }
 
-int DetectFastPatternTest423(void)
+static int DetectFastPatternTest423(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11671,7 +11671,7 @@ int DetectFastPatternTest423(void)
     return result;
 }
 
-int DetectFastPatternTest424(void)
+static int DetectFastPatternTest424(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11709,7 +11709,7 @@ int DetectFastPatternTest424(void)
 /* http_stat_code fast_pattern tests v */
 
 
-int DetectFastPatternTest425(void)
+static int DetectFastPatternTest425(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11745,7 +11745,7 @@ int DetectFastPatternTest425(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest426(void)
+static int DetectFastPatternTest426(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -11782,7 +11782,7 @@ int DetectFastPatternTest426(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest427(void)
+static int DetectFastPatternTest427(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -11815,7 +11815,7 @@ int DetectFastPatternTest427(void)
     return result;
 }
 
-int DetectFastPatternTest428(void)
+static int DetectFastPatternTest428(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -11852,7 +11852,7 @@ int DetectFastPatternTest428(void)
     return result;
 }
 
-int DetectFastPatternTest429(void)
+static int DetectFastPatternTest429(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -11889,7 +11889,7 @@ int DetectFastPatternTest429(void)
     return result;
 }
 
-int DetectFastPatternTest430(void)
+static int DetectFastPatternTest430(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11912,7 +11912,7 @@ int DetectFastPatternTest430(void)
     return result;
 }
 
-int DetectFastPatternTest431(void)
+static int DetectFastPatternTest431(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11935,7 +11935,7 @@ int DetectFastPatternTest431(void)
     return result;
 }
 
-int DetectFastPatternTest432(void)
+static int DetectFastPatternTest432(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11958,7 +11958,7 @@ int DetectFastPatternTest432(void)
     return result;
 }
 
-int DetectFastPatternTest433(void)
+static int DetectFastPatternTest433(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -11981,7 +11981,7 @@ int DetectFastPatternTest433(void)
     return result;
 }
 
-int DetectFastPatternTest434(void)
+static int DetectFastPatternTest434(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12004,7 +12004,7 @@ int DetectFastPatternTest434(void)
     return result;
 }
 
-int DetectFastPatternTest435(void)
+static int DetectFastPatternTest435(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12027,7 +12027,7 @@ int DetectFastPatternTest435(void)
     return result;
 }
 
-int DetectFastPatternTest436(void)
+static int DetectFastPatternTest436(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12050,7 +12050,7 @@ int DetectFastPatternTest436(void)
     return result;
 }
 
-int DetectFastPatternTest437(void)
+static int DetectFastPatternTest437(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12073,7 +12073,7 @@ int DetectFastPatternTest437(void)
     return result;
 }
 
-int DetectFastPatternTest438(void)
+static int DetectFastPatternTest438(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12096,7 +12096,7 @@ int DetectFastPatternTest438(void)
     return result;
 }
 
-int DetectFastPatternTest439(void)
+static int DetectFastPatternTest439(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12129,7 +12129,7 @@ int DetectFastPatternTest439(void)
     return result;
 }
 
-int DetectFastPatternTest440(void)
+static int DetectFastPatternTest440(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12161,7 +12161,7 @@ int DetectFastPatternTest440(void)
     return result;
 }
 
-int DetectFastPatternTest441(void)
+static int DetectFastPatternTest441(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12193,7 +12193,7 @@ int DetectFastPatternTest441(void)
     return result;
 }
 
-int DetectFastPatternTest442(void)
+static int DetectFastPatternTest442(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12225,7 +12225,7 @@ int DetectFastPatternTest442(void)
     return result;
 }
 
-int DetectFastPatternTest443(void)
+static int DetectFastPatternTest443(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12257,7 +12257,7 @@ int DetectFastPatternTest443(void)
     return result;
 }
 
-int DetectFastPatternTest444(void)
+static int DetectFastPatternTest444(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12280,7 +12280,7 @@ int DetectFastPatternTest444(void)
     return result;
 }
 
-int DetectFastPatternTest445(void)
+static int DetectFastPatternTest445(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12303,7 +12303,7 @@ int DetectFastPatternTest445(void)
     return result;
 }
 
-int DetectFastPatternTest446(void)
+static int DetectFastPatternTest446(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12326,7 +12326,7 @@ int DetectFastPatternTest446(void)
     return result;
 }
 
-int DetectFastPatternTest447(void)
+static int DetectFastPatternTest447(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12349,7 +12349,7 @@ int DetectFastPatternTest447(void)
     return result;
 }
 
-int DetectFastPatternTest448(void)
+static int DetectFastPatternTest448(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12381,7 +12381,7 @@ int DetectFastPatternTest448(void)
     return result;
 }
 
-int DetectFastPatternTest449(void)
+static int DetectFastPatternTest449(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12413,7 +12413,7 @@ int DetectFastPatternTest449(void)
     return result;
 }
 
-int DetectFastPatternTest450(void)
+static int DetectFastPatternTest450(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12445,7 +12445,7 @@ int DetectFastPatternTest450(void)
     return result;
 }
 
-int DetectFastPatternTest451(void)
+static int DetectFastPatternTest451(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12477,7 +12477,7 @@ int DetectFastPatternTest451(void)
     return result;
 }
 
-int DetectFastPatternTest452(void)
+static int DetectFastPatternTest452(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12509,7 +12509,7 @@ int DetectFastPatternTest452(void)
     return result;
 }
 
-int DetectFastPatternTest453(void)
+static int DetectFastPatternTest453(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12541,7 +12541,7 @@ int DetectFastPatternTest453(void)
     return result;
 }
 
-int DetectFastPatternTest454(void)
+static int DetectFastPatternTest454(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12573,7 +12573,7 @@ int DetectFastPatternTest454(void)
     return result;
 }
 
-int DetectFastPatternTest455(void)
+static int DetectFastPatternTest455(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12605,7 +12605,7 @@ int DetectFastPatternTest455(void)
     return result;
 }
 
-int DetectFastPatternTest456(void)
+static int DetectFastPatternTest456(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12640,7 +12640,7 @@ int DetectFastPatternTest456(void)
     return result;
 }
 
-int DetectFastPatternTest457(void)
+static int DetectFastPatternTest457(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12664,7 +12664,7 @@ int DetectFastPatternTest457(void)
     return result;
 }
 
-int DetectFastPatternTest458(void)
+static int DetectFastPatternTest458(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12688,7 +12688,7 @@ int DetectFastPatternTest458(void)
     return result;
 }
 
-int DetectFastPatternTest459(void)
+static int DetectFastPatternTest459(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12712,7 +12712,7 @@ int DetectFastPatternTest459(void)
     return result;
 }
 
-int DetectFastPatternTest460(void)
+static int DetectFastPatternTest460(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12745,7 +12745,7 @@ int DetectFastPatternTest460(void)
     return result;
 }
 
-int DetectFastPatternTest461(void)
+static int DetectFastPatternTest461(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12769,7 +12769,7 @@ int DetectFastPatternTest461(void)
     return result;
 }
 
-int DetectFastPatternTest462(void)
+static int DetectFastPatternTest462(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12793,7 +12793,7 @@ int DetectFastPatternTest462(void)
     return result;
 }
 
-int DetectFastPatternTest463(void)
+static int DetectFastPatternTest463(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12817,7 +12817,7 @@ int DetectFastPatternTest463(void)
     return result;
 }
 
-int DetectFastPatternTest464(void)
+static int DetectFastPatternTest464(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12841,7 +12841,7 @@ int DetectFastPatternTest464(void)
     return result;
 }
 
-int DetectFastPatternTest465(void)
+static int DetectFastPatternTest465(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12879,7 +12879,7 @@ int DetectFastPatternTest465(void)
 /* http_server_body fast_pattern tests v */
 
 
-int DetectFastPatternTest466(void)
+static int DetectFastPatternTest466(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -12916,7 +12916,7 @@ int DetectFastPatternTest466(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest467(void)
+static int DetectFastPatternTest467(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -12953,7 +12953,7 @@ int DetectFastPatternTest467(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest468(void)
+static int DetectFastPatternTest468(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -12986,7 +12986,7 @@ int DetectFastPatternTest468(void)
     return result;
 }
 
-int DetectFastPatternTest469(void)
+static int DetectFastPatternTest469(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -13022,7 +13022,7 @@ int DetectFastPatternTest469(void)
     return result;
 }
 
-int DetectFastPatternTest470(void)
+static int DetectFastPatternTest470(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -13059,7 +13059,7 @@ int DetectFastPatternTest470(void)
     return result;
 }
 
-int DetectFastPatternTest471(void)
+static int DetectFastPatternTest471(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13082,7 +13082,7 @@ int DetectFastPatternTest471(void)
     return result;
 }
 
-int DetectFastPatternTest472(void)
+static int DetectFastPatternTest472(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13105,7 +13105,7 @@ int DetectFastPatternTest472(void)
     return result;
 }
 
-int DetectFastPatternTest473(void)
+static int DetectFastPatternTest473(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13128,7 +13128,7 @@ int DetectFastPatternTest473(void)
     return result;
 }
 
-int DetectFastPatternTest474(void)
+static int DetectFastPatternTest474(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13151,7 +13151,7 @@ int DetectFastPatternTest474(void)
     return result;
 }
 
-int DetectFastPatternTest475(void)
+static int DetectFastPatternTest475(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13174,7 +13174,7 @@ int DetectFastPatternTest475(void)
     return result;
 }
 
-int DetectFastPatternTest476(void)
+static int DetectFastPatternTest476(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13197,7 +13197,7 @@ int DetectFastPatternTest476(void)
     return result;
 }
 
-int DetectFastPatternTest477(void)
+static int DetectFastPatternTest477(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13220,7 +13220,7 @@ int DetectFastPatternTest477(void)
     return result;
 }
 
-int DetectFastPatternTest478(void)
+static int DetectFastPatternTest478(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13243,7 +13243,7 @@ int DetectFastPatternTest478(void)
     return result;
 }
 
-int DetectFastPatternTest479(void)
+static int DetectFastPatternTest479(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13266,7 +13266,7 @@ int DetectFastPatternTest479(void)
     return result;
 }
 
-int DetectFastPatternTest480(void)
+static int DetectFastPatternTest480(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13299,7 +13299,7 @@ int DetectFastPatternTest480(void)
     return result;
 }
 
-int DetectFastPatternTest481(void)
+static int DetectFastPatternTest481(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13332,7 +13332,7 @@ int DetectFastPatternTest481(void)
     return result;
 }
 
-int DetectFastPatternTest482(void)
+static int DetectFastPatternTest482(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13365,7 +13365,7 @@ int DetectFastPatternTest482(void)
     return result;
 }
 
-int DetectFastPatternTest483(void)
+static int DetectFastPatternTest483(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13398,7 +13398,7 @@ int DetectFastPatternTest483(void)
     return result;
 }
 
-int DetectFastPatternTest484(void)
+static int DetectFastPatternTest484(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13431,7 +13431,7 @@ int DetectFastPatternTest484(void)
     return result;
 }
 
-int DetectFastPatternTest485(void)
+static int DetectFastPatternTest485(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13454,7 +13454,7 @@ int DetectFastPatternTest485(void)
     return result;
 }
 
-int DetectFastPatternTest486(void)
+static int DetectFastPatternTest486(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13477,7 +13477,7 @@ int DetectFastPatternTest486(void)
     return result;
 }
 
-int DetectFastPatternTest487(void)
+static int DetectFastPatternTest487(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13500,7 +13500,7 @@ int DetectFastPatternTest487(void)
     return result;
 }
 
-int DetectFastPatternTest488(void)
+static int DetectFastPatternTest488(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13523,7 +13523,7 @@ int DetectFastPatternTest488(void)
     return result;
 }
 
-int DetectFastPatternTest489(void)
+static int DetectFastPatternTest489(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13556,7 +13556,7 @@ int DetectFastPatternTest489(void)
     return result;
 }
 
-int DetectFastPatternTest490(void)
+static int DetectFastPatternTest490(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13589,7 +13589,7 @@ int DetectFastPatternTest490(void)
     return result;
 }
 
-int DetectFastPatternTest491(void)
+static int DetectFastPatternTest491(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13622,7 +13622,7 @@ int DetectFastPatternTest491(void)
     return result;
 }
 
-int DetectFastPatternTest492(void)
+static int DetectFastPatternTest492(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13655,7 +13655,7 @@ int DetectFastPatternTest492(void)
     return result;
 }
 
-int DetectFastPatternTest493(void)
+static int DetectFastPatternTest493(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13688,7 +13688,7 @@ int DetectFastPatternTest493(void)
     return result;
 }
 
-int DetectFastPatternTest494(void)
+static int DetectFastPatternTest494(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13721,7 +13721,7 @@ int DetectFastPatternTest494(void)
     return result;
 }
 
-int DetectFastPatternTest495(void)
+static int DetectFastPatternTest495(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13754,7 +13754,7 @@ int DetectFastPatternTest495(void)
     return result;
 }
 
-int DetectFastPatternTest496(void)
+static int DetectFastPatternTest496(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13787,7 +13787,7 @@ int DetectFastPatternTest496(void)
     return result;
 }
 
-int DetectFastPatternTest497(void)
+static int DetectFastPatternTest497(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13823,7 +13823,7 @@ int DetectFastPatternTest497(void)
     return result;
 }
 
-int DetectFastPatternTest498(void)
+static int DetectFastPatternTest498(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13847,7 +13847,7 @@ int DetectFastPatternTest498(void)
     return result;
 }
 
-int DetectFastPatternTest499(void)
+static int DetectFastPatternTest499(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13871,7 +13871,7 @@ int DetectFastPatternTest499(void)
     return result;
 }
 
-int DetectFastPatternTest500(void)
+static int DetectFastPatternTest500(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13895,7 +13895,7 @@ int DetectFastPatternTest500(void)
     return result;
 }
 
-int DetectFastPatternTest501(void)
+static int DetectFastPatternTest501(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13929,7 +13929,7 @@ int DetectFastPatternTest501(void)
     return result;
 }
 
-int DetectFastPatternTest502(void)
+static int DetectFastPatternTest502(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13953,7 +13953,7 @@ int DetectFastPatternTest502(void)
     return result;
 }
 
-int DetectFastPatternTest503(void)
+static int DetectFastPatternTest503(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -13977,7 +13977,7 @@ int DetectFastPatternTest503(void)
     return result;
 }
 
-int DetectFastPatternTest504(void)
+static int DetectFastPatternTest504(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14001,7 +14001,7 @@ int DetectFastPatternTest504(void)
     return result;
 }
 
-int DetectFastPatternTest505(void)
+static int DetectFastPatternTest505(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14025,7 +14025,7 @@ int DetectFastPatternTest505(void)
     return result;
 }
 
-int DetectFastPatternTest506(void)
+static int DetectFastPatternTest506(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14084,7 +14084,7 @@ static int DetectFastPatternTest507(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest508(void)
+static int DetectFastPatternTest508(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -14121,7 +14121,7 @@ int DetectFastPatternTest508(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest509(void)
+static int DetectFastPatternTest509(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -14154,7 +14154,7 @@ int DetectFastPatternTest509(void)
     return result;
 }
 
-int DetectFastPatternTest510(void)
+static int DetectFastPatternTest510(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -14190,7 +14190,7 @@ int DetectFastPatternTest510(void)
     return result;
 }
 
-int DetectFastPatternTest511(void)
+static int DetectFastPatternTest511(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -14227,7 +14227,7 @@ int DetectFastPatternTest511(void)
     return result;
 }
 
-int DetectFastPatternTest512(void)
+static int DetectFastPatternTest512(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14250,7 +14250,7 @@ int DetectFastPatternTest512(void)
     return result;
 }
 
-int DetectFastPatternTest513(void)
+static int DetectFastPatternTest513(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14273,7 +14273,7 @@ int DetectFastPatternTest513(void)
     return result;
 }
 
-int DetectFastPatternTest514(void)
+static int DetectFastPatternTest514(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14296,7 +14296,7 @@ int DetectFastPatternTest514(void)
     return result;
 }
 
-int DetectFastPatternTest515(void)
+static int DetectFastPatternTest515(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14319,7 +14319,7 @@ int DetectFastPatternTest515(void)
     return result;
 }
 
-int DetectFastPatternTest516(void)
+static int DetectFastPatternTest516(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14342,7 +14342,7 @@ int DetectFastPatternTest516(void)
     return result;
 }
 
-int DetectFastPatternTest517(void)
+static int DetectFastPatternTest517(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14365,7 +14365,7 @@ int DetectFastPatternTest517(void)
     return result;
 }
 
-int DetectFastPatternTest518(void)
+static int DetectFastPatternTest518(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14388,7 +14388,7 @@ int DetectFastPatternTest518(void)
     return result;
 }
 
-int DetectFastPatternTest519(void)
+static int DetectFastPatternTest519(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14411,7 +14411,7 @@ int DetectFastPatternTest519(void)
     return result;
 }
 
-int DetectFastPatternTest520(void)
+static int DetectFastPatternTest520(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14434,7 +14434,7 @@ int DetectFastPatternTest520(void)
     return result;
 }
 
-int DetectFastPatternTest521(void)
+static int DetectFastPatternTest521(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14467,7 +14467,7 @@ int DetectFastPatternTest521(void)
     return result;
 }
 
-int DetectFastPatternTest522(void)
+static int DetectFastPatternTest522(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14500,7 +14500,7 @@ int DetectFastPatternTest522(void)
     return result;
 }
 
-int DetectFastPatternTest523(void)
+static int DetectFastPatternTest523(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14533,7 +14533,7 @@ int DetectFastPatternTest523(void)
     return result;
 }
 
-int DetectFastPatternTest524(void)
+static int DetectFastPatternTest524(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14566,7 +14566,7 @@ int DetectFastPatternTest524(void)
     return result;
 }
 
-int DetectFastPatternTest525(void)
+static int DetectFastPatternTest525(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14599,7 +14599,7 @@ int DetectFastPatternTest525(void)
     return result;
 }
 
-int DetectFastPatternTest526(void)
+static int DetectFastPatternTest526(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14622,7 +14622,7 @@ int DetectFastPatternTest526(void)
     return result;
 }
 
-int DetectFastPatternTest527(void)
+static int DetectFastPatternTest527(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14645,7 +14645,7 @@ int DetectFastPatternTest527(void)
     return result;
 }
 
-int DetectFastPatternTest528(void)
+static int DetectFastPatternTest528(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14668,7 +14668,7 @@ int DetectFastPatternTest528(void)
     return result;
 }
 
-int DetectFastPatternTest529(void)
+static int DetectFastPatternTest529(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14691,7 +14691,7 @@ int DetectFastPatternTest529(void)
     return result;
 }
 
-int DetectFastPatternTest530(void)
+static int DetectFastPatternTest530(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14724,7 +14724,7 @@ int DetectFastPatternTest530(void)
     return result;
 }
 
-int DetectFastPatternTest531(void)
+static int DetectFastPatternTest531(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14757,7 +14757,7 @@ int DetectFastPatternTest531(void)
     return result;
 }
 
-int DetectFastPatternTest532(void)
+static int DetectFastPatternTest532(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14790,7 +14790,7 @@ int DetectFastPatternTest532(void)
     return result;
 }
 
-int DetectFastPatternTest533(void)
+static int DetectFastPatternTest533(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14823,7 +14823,7 @@ int DetectFastPatternTest533(void)
     return result;
 }
 
-int DetectFastPatternTest534(void)
+static int DetectFastPatternTest534(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14856,7 +14856,7 @@ int DetectFastPatternTest534(void)
     return result;
 }
 
-int DetectFastPatternTest535(void)
+static int DetectFastPatternTest535(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14889,7 +14889,7 @@ int DetectFastPatternTest535(void)
     return result;
 }
 
-int DetectFastPatternTest536(void)
+static int DetectFastPatternTest536(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14922,7 +14922,7 @@ int DetectFastPatternTest536(void)
     return result;
 }
 
-int DetectFastPatternTest537(void)
+static int DetectFastPatternTest537(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14955,7 +14955,7 @@ int DetectFastPatternTest537(void)
     return result;
 }
 
-int DetectFastPatternTest538(void)
+static int DetectFastPatternTest538(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -14991,7 +14991,7 @@ int DetectFastPatternTest538(void)
     return result;
 }
 
-int DetectFastPatternTest539(void)
+static int DetectFastPatternTest539(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15015,7 +15015,7 @@ int DetectFastPatternTest539(void)
     return result;
 }
 
-int DetectFastPatternTest540(void)
+static int DetectFastPatternTest540(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15039,7 +15039,7 @@ int DetectFastPatternTest540(void)
     return result;
 }
 
-int DetectFastPatternTest541(void)
+static int DetectFastPatternTest541(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15063,7 +15063,7 @@ int DetectFastPatternTest541(void)
     return result;
 }
 
-int DetectFastPatternTest542(void)
+static int DetectFastPatternTest542(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15097,7 +15097,7 @@ int DetectFastPatternTest542(void)
     return result;
 }
 
-int DetectFastPatternTest543(void)
+static int DetectFastPatternTest543(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15121,7 +15121,7 @@ int DetectFastPatternTest543(void)
     return result;
 }
 
-int DetectFastPatternTest544(void)
+static int DetectFastPatternTest544(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15145,7 +15145,7 @@ int DetectFastPatternTest544(void)
     return result;
 }
 
-int DetectFastPatternTest545(void)
+static int DetectFastPatternTest545(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15169,7 +15169,7 @@ int DetectFastPatternTest545(void)
     return result;
 }
 
-int DetectFastPatternTest546(void)
+static int DetectFastPatternTest546(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15193,7 +15193,7 @@ int DetectFastPatternTest546(void)
     return result;
 }
 
-int DetectFastPatternTest547(void)
+static int DetectFastPatternTest547(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15232,7 +15232,7 @@ int DetectFastPatternTest547(void)
 /* http_user_agent fast_pattern tests v */
 
 
-int DetectFastPatternTest548(void)
+static int DetectFastPatternTest548(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15269,7 +15269,7 @@ int DetectFastPatternTest548(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest549(void)
+static int DetectFastPatternTest549(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -15306,7 +15306,7 @@ int DetectFastPatternTest549(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest550(void)
+static int DetectFastPatternTest550(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -15339,7 +15339,7 @@ int DetectFastPatternTest550(void)
     return result;
 }
 
-int DetectFastPatternTest551(void)
+static int DetectFastPatternTest551(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -15375,7 +15375,7 @@ int DetectFastPatternTest551(void)
     return result;
 }
 
-int DetectFastPatternTest552(void)
+static int DetectFastPatternTest552(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -15412,7 +15412,7 @@ int DetectFastPatternTest552(void)
     return result;
 }
 
-int DetectFastPatternTest553(void)
+static int DetectFastPatternTest553(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15435,7 +15435,7 @@ int DetectFastPatternTest553(void)
     return result;
 }
 
-int DetectFastPatternTest554(void)
+static int DetectFastPatternTest554(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15458,7 +15458,7 @@ int DetectFastPatternTest554(void)
     return result;
 }
 
-int DetectFastPatternTest555(void)
+static int DetectFastPatternTest555(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15481,7 +15481,7 @@ int DetectFastPatternTest555(void)
     return result;
 }
 
-int DetectFastPatternTest556(void)
+static int DetectFastPatternTest556(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15504,7 +15504,7 @@ int DetectFastPatternTest556(void)
     return result;
 }
 
-int DetectFastPatternTest557(void)
+static int DetectFastPatternTest557(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15527,7 +15527,7 @@ int DetectFastPatternTest557(void)
     return result;
 }
 
-int DetectFastPatternTest558(void)
+static int DetectFastPatternTest558(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15550,7 +15550,7 @@ int DetectFastPatternTest558(void)
     return result;
 }
 
-int DetectFastPatternTest559(void)
+static int DetectFastPatternTest559(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15573,7 +15573,7 @@ int DetectFastPatternTest559(void)
     return result;
 }
 
-int DetectFastPatternTest560(void)
+static int DetectFastPatternTest560(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15596,7 +15596,7 @@ int DetectFastPatternTest560(void)
     return result;
 }
 
-int DetectFastPatternTest561(void)
+static int DetectFastPatternTest561(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15619,7 +15619,7 @@ int DetectFastPatternTest561(void)
     return result;
 }
 
-int DetectFastPatternTest562(void)
+static int DetectFastPatternTest562(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15652,7 +15652,7 @@ int DetectFastPatternTest562(void)
     return result;
 }
 
-int DetectFastPatternTest563(void)
+static int DetectFastPatternTest563(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15684,7 +15684,7 @@ int DetectFastPatternTest563(void)
     return result;
 }
 
-int DetectFastPatternTest564(void)
+static int DetectFastPatternTest564(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15716,7 +15716,7 @@ int DetectFastPatternTest564(void)
     return result;
 }
 
-int DetectFastPatternTest565(void)
+static int DetectFastPatternTest565(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15748,7 +15748,7 @@ int DetectFastPatternTest565(void)
     return result;
 }
 
-int DetectFastPatternTest566(void)
+static int DetectFastPatternTest566(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15780,7 +15780,7 @@ int DetectFastPatternTest566(void)
     return result;
 }
 
-int DetectFastPatternTest567(void)
+static int DetectFastPatternTest567(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15803,7 +15803,7 @@ int DetectFastPatternTest567(void)
     return result;
 }
 
-int DetectFastPatternTest568(void)
+static int DetectFastPatternTest568(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15826,7 +15826,7 @@ int DetectFastPatternTest568(void)
     return result;
 }
 
-int DetectFastPatternTest569(void)
+static int DetectFastPatternTest569(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15849,7 +15849,7 @@ int DetectFastPatternTest569(void)
     return result;
 }
 
-int DetectFastPatternTest570(void)
+static int DetectFastPatternTest570(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15872,7 +15872,7 @@ int DetectFastPatternTest570(void)
     return result;
 }
 
-int DetectFastPatternTest571(void)
+static int DetectFastPatternTest571(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15904,7 +15904,7 @@ int DetectFastPatternTest571(void)
     return result;
 }
 
-int DetectFastPatternTest572(void)
+static int DetectFastPatternTest572(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15936,7 +15936,7 @@ int DetectFastPatternTest572(void)
     return result;
 }
 
-int DetectFastPatternTest573(void)
+static int DetectFastPatternTest573(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -15968,7 +15968,7 @@ int DetectFastPatternTest573(void)
     return result;
 }
 
-int DetectFastPatternTest574(void)
+static int DetectFastPatternTest574(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16000,7 +16000,7 @@ int DetectFastPatternTest574(void)
     return result;
 }
 
-int DetectFastPatternTest575(void)
+static int DetectFastPatternTest575(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16032,7 +16032,7 @@ int DetectFastPatternTest575(void)
     return result;
 }
 
-int DetectFastPatternTest576(void)
+static int DetectFastPatternTest576(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16064,7 +16064,7 @@ int DetectFastPatternTest576(void)
     return result;
 }
 
-int DetectFastPatternTest577(void)
+static int DetectFastPatternTest577(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16096,7 +16096,7 @@ int DetectFastPatternTest577(void)
     return result;
 }
 
-int DetectFastPatternTest578(void)
+static int DetectFastPatternTest578(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16128,7 +16128,7 @@ int DetectFastPatternTest578(void)
     return result;
 }
 
-int DetectFastPatternTest579(void)
+static int DetectFastPatternTest579(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16163,7 +16163,7 @@ int DetectFastPatternTest579(void)
     return result;
 }
 
-int DetectFastPatternTest580(void)
+static int DetectFastPatternTest580(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16187,7 +16187,7 @@ int DetectFastPatternTest580(void)
     return result;
 }
 
-int DetectFastPatternTest581(void)
+static int DetectFastPatternTest581(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16211,7 +16211,7 @@ int DetectFastPatternTest581(void)
     return result;
 }
 
-int DetectFastPatternTest582(void)
+static int DetectFastPatternTest582(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16235,7 +16235,7 @@ int DetectFastPatternTest582(void)
     return result;
 }
 
-int DetectFastPatternTest583(void)
+static int DetectFastPatternTest583(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16268,7 +16268,7 @@ int DetectFastPatternTest583(void)
     return result;
 }
 
-int DetectFastPatternTest584(void)
+static int DetectFastPatternTest584(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16292,7 +16292,7 @@ int DetectFastPatternTest584(void)
     return result;
 }
 
-int DetectFastPatternTest585(void)
+static int DetectFastPatternTest585(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16316,7 +16316,7 @@ int DetectFastPatternTest585(void)
     return result;
 }
 
-int DetectFastPatternTest586(void)
+static int DetectFastPatternTest586(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16340,7 +16340,7 @@ int DetectFastPatternTest586(void)
     return result;
 }
 
-int DetectFastPatternTest587(void)
+static int DetectFastPatternTest587(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16364,7 +16364,7 @@ int DetectFastPatternTest587(void)
     return result;
 }
 
-int DetectFastPatternTest588(void)
+static int DetectFastPatternTest588(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16402,7 +16402,7 @@ int DetectFastPatternTest588(void)
 /* http_host fast_pattern tests v */
 
 
-int DetectFastPatternTest589(void)
+static int DetectFastPatternTest589(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16438,7 +16438,7 @@ int DetectFastPatternTest589(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest590(void)
+static int DetectFastPatternTest590(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -16475,7 +16475,7 @@ int DetectFastPatternTest590(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest591(void)
+static int DetectFastPatternTest591(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -16508,7 +16508,7 @@ int DetectFastPatternTest591(void)
     return result;
 }
 
-int DetectFastPatternTest592(void)
+static int DetectFastPatternTest592(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -16544,7 +16544,7 @@ int DetectFastPatternTest592(void)
     return result;
 }
 
-int DetectFastPatternTest593(void)
+static int DetectFastPatternTest593(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -16581,7 +16581,7 @@ int DetectFastPatternTest593(void)
     return result;
 }
 
-int DetectFastPatternTest594(void)
+static int DetectFastPatternTest594(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16604,7 +16604,7 @@ int DetectFastPatternTest594(void)
     return result;
 }
 
-int DetectFastPatternTest595(void)
+static int DetectFastPatternTest595(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16627,7 +16627,7 @@ int DetectFastPatternTest595(void)
     return result;
 }
 
-int DetectFastPatternTest596(void)
+static int DetectFastPatternTest596(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16650,7 +16650,7 @@ int DetectFastPatternTest596(void)
     return result;
 }
 
-int DetectFastPatternTest597(void)
+static int DetectFastPatternTest597(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16673,7 +16673,7 @@ int DetectFastPatternTest597(void)
     return result;
 }
 
-int DetectFastPatternTest598(void)
+static int DetectFastPatternTest598(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16696,7 +16696,7 @@ int DetectFastPatternTest598(void)
     return result;
 }
 
-int DetectFastPatternTest599(void)
+static int DetectFastPatternTest599(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16719,7 +16719,7 @@ int DetectFastPatternTest599(void)
     return result;
 }
 
-int DetectFastPatternTest600(void)
+static int DetectFastPatternTest600(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16742,7 +16742,7 @@ int DetectFastPatternTest600(void)
     return result;
 }
 
-int DetectFastPatternTest601(void)
+static int DetectFastPatternTest601(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16765,7 +16765,7 @@ int DetectFastPatternTest601(void)
     return result;
 }
 
-int DetectFastPatternTest602(void)
+static int DetectFastPatternTest602(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16788,7 +16788,7 @@ int DetectFastPatternTest602(void)
     return result;
 }
 
-int DetectFastPatternTest603(void)
+static int DetectFastPatternTest603(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16821,7 +16821,7 @@ int DetectFastPatternTest603(void)
     return result;
 }
 
-int DetectFastPatternTest604(void)
+static int DetectFastPatternTest604(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16853,7 +16853,7 @@ int DetectFastPatternTest604(void)
     return result;
 }
 
-int DetectFastPatternTest605(void)
+static int DetectFastPatternTest605(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16885,7 +16885,7 @@ int DetectFastPatternTest605(void)
     return result;
 }
 
-int DetectFastPatternTest606(void)
+static int DetectFastPatternTest606(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16917,7 +16917,7 @@ int DetectFastPatternTest606(void)
     return result;
 }
 
-int DetectFastPatternTest607(void)
+static int DetectFastPatternTest607(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16949,7 +16949,7 @@ int DetectFastPatternTest607(void)
     return result;
 }
 
-int DetectFastPatternTest608(void)
+static int DetectFastPatternTest608(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16972,7 +16972,7 @@ int DetectFastPatternTest608(void)
     return result;
 }
 
-int DetectFastPatternTest609(void)
+static int DetectFastPatternTest609(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -16995,7 +16995,7 @@ int DetectFastPatternTest609(void)
     return result;
 }
 
-int DetectFastPatternTest610(void)
+static int DetectFastPatternTest610(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17018,7 +17018,7 @@ int DetectFastPatternTest610(void)
     return result;
 }
 
-int DetectFastPatternTest611(void)
+static int DetectFastPatternTest611(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17041,7 +17041,7 @@ int DetectFastPatternTest611(void)
     return result;
 }
 
-int DetectFastPatternTest612(void)
+static int DetectFastPatternTest612(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17073,7 +17073,7 @@ int DetectFastPatternTest612(void)
     return result;
 }
 
-int DetectFastPatternTest613(void)
+static int DetectFastPatternTest613(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17105,7 +17105,7 @@ int DetectFastPatternTest613(void)
     return result;
 }
 
-int DetectFastPatternTest614(void)
+static int DetectFastPatternTest614(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17137,7 +17137,7 @@ int DetectFastPatternTest614(void)
     return result;
 }
 
-int DetectFastPatternTest615(void)
+static int DetectFastPatternTest615(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17169,7 +17169,7 @@ int DetectFastPatternTest615(void)
     return result;
 }
 
-int DetectFastPatternTest616(void)
+static int DetectFastPatternTest616(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17201,7 +17201,7 @@ int DetectFastPatternTest616(void)
     return result;
 }
 
-int DetectFastPatternTest617(void)
+static int DetectFastPatternTest617(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17233,7 +17233,7 @@ int DetectFastPatternTest617(void)
     return result;
 }
 
-int DetectFastPatternTest618(void)
+static int DetectFastPatternTest618(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17265,7 +17265,7 @@ int DetectFastPatternTest618(void)
     return result;
 }
 
-int DetectFastPatternTest619(void)
+static int DetectFastPatternTest619(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17297,7 +17297,7 @@ int DetectFastPatternTest619(void)
     return result;
 }
 
-int DetectFastPatternTest620(void)
+static int DetectFastPatternTest620(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17332,7 +17332,7 @@ int DetectFastPatternTest620(void)
     return result;
 }
 
-int DetectFastPatternTest621(void)
+static int DetectFastPatternTest621(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17356,7 +17356,7 @@ int DetectFastPatternTest621(void)
     return result;
 }
 
-int DetectFastPatternTest622(void)
+static int DetectFastPatternTest622(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17380,7 +17380,7 @@ int DetectFastPatternTest622(void)
     return result;
 }
 
-int DetectFastPatternTest623(void)
+static int DetectFastPatternTest623(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17404,7 +17404,7 @@ int DetectFastPatternTest623(void)
     return result;
 }
 
-int DetectFastPatternTest624(void)
+static int DetectFastPatternTest624(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17437,7 +17437,7 @@ int DetectFastPatternTest624(void)
     return result;
 }
 
-int DetectFastPatternTest625(void)
+static int DetectFastPatternTest625(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17461,7 +17461,7 @@ int DetectFastPatternTest625(void)
     return result;
 }
 
-int DetectFastPatternTest626(void)
+static int DetectFastPatternTest626(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17485,7 +17485,7 @@ int DetectFastPatternTest626(void)
     return result;
 }
 
-int DetectFastPatternTest627(void)
+static int DetectFastPatternTest627(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17509,7 +17509,7 @@ int DetectFastPatternTest627(void)
     return result;
 }
 
-int DetectFastPatternTest628(void)
+static int DetectFastPatternTest628(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17533,7 +17533,7 @@ int DetectFastPatternTest628(void)
     return result;
 }
 
-int DetectFastPatternTest629(void)
+static int DetectFastPatternTest629(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17571,7 +17571,7 @@ int DetectFastPatternTest629(void)
 /* http_rawhost fast_pattern tests v */
 
 
-int DetectFastPatternTest630(void)
+static int DetectFastPatternTest630(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17608,7 +17608,7 @@ int DetectFastPatternTest630(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest631(void)
+static int DetectFastPatternTest631(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -17647,7 +17647,7 @@ int DetectFastPatternTest631(void)
 /**
  * \test Checks if a fast_pattern is registered in a Signature for uricontent.
  */
-int DetectFastPatternTest632(void)
+static int DetectFastPatternTest632(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -17682,7 +17682,7 @@ int DetectFastPatternTest632(void)
     return result;
 }
 
-int DetectFastPatternTest633(void)
+static int DetectFastPatternTest633(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -17719,7 +17719,7 @@ int DetectFastPatternTest633(void)
     return result;
 }
 
-int DetectFastPatternTest634(void)
+static int DetectFastPatternTest634(void)
 {
     SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -17757,7 +17757,7 @@ int DetectFastPatternTest634(void)
     return result;
 }
 
-int DetectFastPatternTest635(void)
+static int DetectFastPatternTest635(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17780,7 +17780,7 @@ int DetectFastPatternTest635(void)
     return result;
 }
 
-int DetectFastPatternTest636(void)
+static int DetectFastPatternTest636(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17803,7 +17803,7 @@ int DetectFastPatternTest636(void)
     return result;
 }
 
-int DetectFastPatternTest637(void)
+static int DetectFastPatternTest637(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17826,7 +17826,7 @@ int DetectFastPatternTest637(void)
     return result;
 }
 
-int DetectFastPatternTest638(void)
+static int DetectFastPatternTest638(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17849,7 +17849,7 @@ int DetectFastPatternTest638(void)
     return result;
 }
 
-int DetectFastPatternTest639(void)
+static int DetectFastPatternTest639(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17872,7 +17872,7 @@ int DetectFastPatternTest639(void)
     return result;
 }
 
-int DetectFastPatternTest640(void)
+static int DetectFastPatternTest640(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17895,7 +17895,7 @@ int DetectFastPatternTest640(void)
     return result;
 }
 
-int DetectFastPatternTest641(void)
+static int DetectFastPatternTest641(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17918,7 +17918,7 @@ int DetectFastPatternTest641(void)
     return result;
 }
 
-int DetectFastPatternTest642(void)
+static int DetectFastPatternTest642(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17941,7 +17941,7 @@ int DetectFastPatternTest642(void)
     return result;
 }
 
-int DetectFastPatternTest643(void)
+static int DetectFastPatternTest643(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17964,7 +17964,7 @@ int DetectFastPatternTest643(void)
     return result;
 }
 
-int DetectFastPatternTest644(void)
+static int DetectFastPatternTest644(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -17998,7 +17998,7 @@ int DetectFastPatternTest644(void)
     return result;
 }
 
-int DetectFastPatternTest645(void)
+static int DetectFastPatternTest645(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18031,7 +18031,7 @@ int DetectFastPatternTest645(void)
     return result;
 }
 
-int DetectFastPatternTest646(void)
+static int DetectFastPatternTest646(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18064,7 +18064,7 @@ int DetectFastPatternTest646(void)
     return result;
 }
 
-int DetectFastPatternTest647(void)
+static int DetectFastPatternTest647(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18097,7 +18097,7 @@ int DetectFastPatternTest647(void)
     return result;
 }
 
-int DetectFastPatternTest648(void)
+static int DetectFastPatternTest648(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18130,7 +18130,7 @@ int DetectFastPatternTest648(void)
     return result;
 }
 
-int DetectFastPatternTest649(void)
+static int DetectFastPatternTest649(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18153,7 +18153,7 @@ int DetectFastPatternTest649(void)
     return result;
 }
 
-int DetectFastPatternTest650(void)
+static int DetectFastPatternTest650(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18176,7 +18176,7 @@ int DetectFastPatternTest650(void)
     return result;
 }
 
-int DetectFastPatternTest651(void)
+static int DetectFastPatternTest651(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18199,7 +18199,7 @@ int DetectFastPatternTest651(void)
     return result;
 }
 
-int DetectFastPatternTest652(void)
+static int DetectFastPatternTest652(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18222,7 +18222,7 @@ int DetectFastPatternTest652(void)
     return result;
 }
 
-int DetectFastPatternTest653(void)
+static int DetectFastPatternTest653(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18255,7 +18255,7 @@ int DetectFastPatternTest653(void)
     return result;
 }
 
-int DetectFastPatternTest654(void)
+static int DetectFastPatternTest654(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18288,7 +18288,7 @@ int DetectFastPatternTest654(void)
     return result;
 }
 
-int DetectFastPatternTest655(void)
+static int DetectFastPatternTest655(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18321,7 +18321,7 @@ int DetectFastPatternTest655(void)
     return result;
 }
 
-int DetectFastPatternTest656(void)
+static int DetectFastPatternTest656(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18354,7 +18354,7 @@ int DetectFastPatternTest656(void)
     return result;
 }
 
-int DetectFastPatternTest657(void)
+static int DetectFastPatternTest657(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18387,7 +18387,7 @@ int DetectFastPatternTest657(void)
     return result;
 }
 
-int DetectFastPatternTest658(void)
+static int DetectFastPatternTest658(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18420,7 +18420,7 @@ int DetectFastPatternTest658(void)
     return result;
 }
 
-int DetectFastPatternTest659(void)
+static int DetectFastPatternTest659(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18453,7 +18453,7 @@ int DetectFastPatternTest659(void)
     return result;
 }
 
-int DetectFastPatternTest660(void)
+static int DetectFastPatternTest660(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18486,7 +18486,7 @@ int DetectFastPatternTest660(void)
     return result;
 }
 
-int DetectFastPatternTest661(void)
+static int DetectFastPatternTest661(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18522,7 +18522,7 @@ int DetectFastPatternTest661(void)
     return result;
 }
 
-int DetectFastPatternTest662(void)
+static int DetectFastPatternTest662(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18546,7 +18546,7 @@ int DetectFastPatternTest662(void)
     return result;
 }
 
-int DetectFastPatternTest663(void)
+static int DetectFastPatternTest663(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18570,7 +18570,7 @@ int DetectFastPatternTest663(void)
     return result;
 }
 
-int DetectFastPatternTest664(void)
+static int DetectFastPatternTest664(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18594,7 +18594,7 @@ int DetectFastPatternTest664(void)
     return result;
 }
 
-int DetectFastPatternTest665(void)
+static int DetectFastPatternTest665(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18628,7 +18628,7 @@ int DetectFastPatternTest665(void)
     return result;
 }
 
-int DetectFastPatternTest666(void)
+static int DetectFastPatternTest666(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18652,7 +18652,7 @@ int DetectFastPatternTest666(void)
     return result;
 }
 
-int DetectFastPatternTest667(void)
+static int DetectFastPatternTest667(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18676,7 +18676,7 @@ int DetectFastPatternTest667(void)
     return result;
 }
 
-int DetectFastPatternTest668(void)
+static int DetectFastPatternTest668(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18700,7 +18700,7 @@ int DetectFastPatternTest668(void)
     return result;
 }
 
-int DetectFastPatternTest669(void)
+static int DetectFastPatternTest669(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18724,7 +18724,7 @@ int DetectFastPatternTest669(void)
     return result;
 }
 
-int DetectFastPatternTest670(void)
+static int DetectFastPatternTest670(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -18766,10 +18766,10 @@ int DetectFastPatternTest670(void)
  * - if 2 unique patterns get unique ids.
  * - if 2 duplicate patterns, with no chop set get unique ids.
  */
-int DetectFastPatternTest671(void)
+static int DetectFastPatternTest671(void)
 {
     int no_of_sigs = 6;
-    char *sigs[no_of_sigs];
+    const char *sigs[no_of_sigs];
     Signature *s[no_of_sigs];
     DetectEngineCtx *de_ctx = NULL;
     DetectContentData *cd = NULL;
@@ -19273,7 +19273,7 @@ void DetectFastPatternRegisterTests(void)
     UtRegisterTest("DetectFastPatternTest413", DetectFastPatternTest413);
     UtRegisterTest("DetectFastPatternTest414", DetectFastPatternTest414);
     UtRegisterTest("DetectFastPatternTest415", DetectFastPatternTest415);
-    UtRegisterTest("DetectFastPatternTest416", DetectFastPatternTest415);
+    UtRegisterTest("DetectFastPatternTest416", DetectFastPatternTest416);
     UtRegisterTest("DetectFastPatternTest417", DetectFastPatternTest417);
     UtRegisterTest("DetectFastPatternTest418", DetectFastPatternTest418);
     UtRegisterTest("DetectFastPatternTest419", DetectFastPatternTest419);

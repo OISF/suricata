@@ -61,7 +61,7 @@ int AppLayerProtoDetectPrepareState(void);
 /***** PP registration *****/
 
 void AppLayerProtoDetectPPRegister(uint8_t ipproto,
-                                   char *portstr,
+                                   const char *portstr,
                                    AppProto alproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
@@ -84,14 +84,14 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
  * \brief Registers a case-sensitive pattern for protocol detection.
  */
 int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
-                                           char *pattern,
+                                           const char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction);
 /**
  * \brief Registers a case-insensitive pattern for protocol detection.
  */
 int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
-                                           char *pattern,
+                                           const char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction);
 
@@ -134,7 +134,7 @@ int AppLayerProtoDetectDeSetup(void);
  * \retval  0 On success;
  *         -1 On failure.
  */
-void AppLayerProtoDetectRegisterProtocol(AppProto alproto, char *alproto_name);
+void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_name);
 
 /**
  * \brief Given a protocol name, checks if proto detection is enabled in
@@ -168,8 +168,8 @@ void AppLayerProtoDetectDestroyCtxThread(AppLayerProtoDetectThreadCtx *tctx);
 /***** Utility *****/
 
 void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos);
-AppProto AppLayerProtoDetectGetProtoByName(char *alproto_name);
-char *AppLayerProtoDetectGetProtoName(AppProto alproto);
+AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name);
+const char *AppLayerProtoDetectGetProtoName(AppProto alproto);
 void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos);
 
 /***** Unittests *****/

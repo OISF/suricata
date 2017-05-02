@@ -260,7 +260,7 @@ uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
     return flags;
 }
 
-int FileMagicSize(void)
+static int FileMagicSize(void)
 {
     /** \todo make this size configurable */
     return 512;
@@ -1037,7 +1037,7 @@ void FileDisableFilesize(Flow *f, uint8_t direction)
  *
  *  \param ff file
  */
-void FileDisableStoringForFile(File *ff)
+static void FileDisableStoringForFile(File *ff)
 {
     SCEnter();
 

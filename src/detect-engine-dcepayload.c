@@ -36,6 +36,7 @@
 #include "detect-byte-extract.h"
 #include "detect-content.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-dcepayload.h"
 
 #include "stream-tcp.h"
 
@@ -88,10 +89,10 @@ static int DcePayloadTest15(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,14080,0,relative,dce; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,46,5,relative,dce; sid:2;)";
 
@@ -205,10 +206,10 @@ static int DcePayloadTest16(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,55,0,relative; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,11776,5,relative; sid:2;)";
 
@@ -322,10 +323,10 @@ static int DcePayloadTest17(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,55,0,relative,big; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_test:2,=,46,5,relative,little; sid:2;)";
 
@@ -439,10 +440,10 @@ static int DcePayloadTest18(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,0,relative,dce; byte_test:2,=,46,0,relative,dce; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
 
@@ -556,10 +557,10 @@ static int DcePayloadTest19(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,0,relative; byte_test:2,=,46,0,relative,dce; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
@@ -673,10 +674,10 @@ static int DcePayloadTest20(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,0,relative,big; byte_test:2,=,46,0,relative,dce; sid:1;)";
-    char *sig2 = "alert tcp any any -> any any "
+    const char *sig2 = "alert tcp any any -> any any "
         "(dce_stub_data; content:\"|5c 00 5c 00 31|\"; distance:0; "
         "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
@@ -784,7 +785,7 @@ static int DcePayloadTest21(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
         "content:\"this\"; distance:0; content:\"is\"; within:6; content:\"big\"; within:8; "
         "content:\"string\"; within:8; sid:1;)";
@@ -886,7 +887,7 @@ static int DcePayloadTest22(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
         "content:\"this\"; distance:0; content:\"is\"; within:9; content:\"big\"; within:12; "
         "content:\"string\"; within:8; sid:1;)";
@@ -988,7 +989,7 @@ static int DcePayloadTest23(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
         "content:\"now\"; distance:0; content:\"this\"; distance:-20; "
         "content:\"is\"; within:12; content:\"big\"; within:8; "
@@ -3206,7 +3207,7 @@ static int DcePayloadTest42(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
         "content:\"fix\"; distance:0; content:\"this\"; within:6; "
         "content:!\"and\"; distance:0; sid:1;)";
@@ -3310,7 +3311,7 @@ static int DcePayloadTest43(void)
     Flow f;
     int r;
 
-    char *sig1 = "alert tcp any any -> any any "
+    const char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
         "pcre:/super/R; content:\"nova\"; within:7; sid:1;)";
 

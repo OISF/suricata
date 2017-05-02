@@ -32,9 +32,9 @@ TmEcode ConfigSetLogDirectory(char *name)
     return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
 }
 
-char *ConfigGetLogDirectory()
+const char *ConfigGetLogDirectory()
 {
-    char *log_dir = NULL;
+    const char *log_dir = NULL;
 
     if (ConfGet("default-log-dir", &log_dir) != 1) {
 #ifdef OS_WIN32
@@ -50,7 +50,7 @@ char *ConfigGetLogDirectory()
     return log_dir;
 }
 
-TmEcode ConfigCheckLogDirectory(char *log_dir)
+TmEcode ConfigCheckLogDirectory(const char *log_dir)
 {
     SCEnter();
 #ifdef OS_WIN32
@@ -94,7 +94,7 @@ ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
 
 int ConfUnixSocketIsEnable(void)
 {
-    char *value;
+    const char *value;
 
     if (ConfGet("unix-command.enabled", &value) != 1) {
         return 0;

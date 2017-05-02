@@ -349,7 +349,7 @@ static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     return 0;
 }
 
-static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogFileLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogFileLogThread *aft = SCMalloc(sizeof(LogFileLogThread));
     if (unlikely(aft == NULL))
@@ -370,7 +370,7 @@ static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
     return TM_ECODE_OK;
 }
 
-TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogFileLogThread *aft = (LogFileLogThread *)data;
     if (aft == NULL) {
@@ -384,7 +384,7 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogFileLogExitPrintStats(ThreadVars *tv, void *data)
+static void LogFileLogExitPrintStats(ThreadVars *tv, void *data)
 {
     LogFileLogThread *aft = (LogFileLogThread *)data;
     if (aft == NULL) {
@@ -447,17 +447,6 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
     FileForceHashParseCfg(conf);
     FileForceTrackingEnable();
     SCReturnPtr(output_ctx, "OutputCtx");
-}
-
-/** \brief Read the config set the file pointer, open the file
- *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
- *  \return -1 if failure, 0 if succesful
- * */
-int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
-                            char *mode)
-{
-    return 0;
 }
 
 void LogFileLogRegister (void)

@@ -61,7 +61,7 @@ void RunModeFilePcapRegister(void)
  */
 int RunModeFilePcapSingle(void)
 {
-    char *file = NULL;
+    const char *file = NULL;
     char tname[TM_THREAD_NAME_MAX];
 
     if (ConfGet("pcap-file.file", &file) == 0) {
@@ -155,7 +155,7 @@ int RunModeFilePcapAutoFp(void)
 
     RunModeInitialize();
 
-    char *file = NULL;
+    const char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
         exit(EXIT_FAILURE);

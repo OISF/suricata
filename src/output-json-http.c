@@ -48,6 +48,7 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 #include "output-json.h"
+#include "output-json-http.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -125,8 +126,8 @@ typedef enum {
 } HttpField;
 
 struct {
-    char *config_field;
-    char *htp_field;
+    const char *config_field;
+    const char *htp_field;
     uint32_t flags;
 } http_fields[] =  {
     { "accept", "accept", LOG_HTTP_REQUEST },
@@ -181,7 +182,7 @@ struct {
     { "www_authenticate", "www-authenticate", 0 },
 };
 
-void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
+static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
 {
     char *c;
 
@@ -291,7 +292,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
     }
 }
 
-void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
+static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
 {
     char *c;
 
@@ -426,7 +427,7 @@ static void OutputHttpLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "http.json"
-OutputCtx *OutputHttpLogInit(ConfNode *conf)
+static OutputCtx *OutputHttpLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
@@ -480,7 +481,7 @@ static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
 
@@ -540,7 +541,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonHttpLogThread *aft = SCMalloc(sizeof(JsonHttpLogThread));
     if (unlikely(aft == NULL))

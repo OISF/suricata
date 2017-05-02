@@ -154,7 +154,7 @@ typedef struct AppLayerProtoDetectCtx_ {
     /* Indicates the protocols that have registered themselves
      * for protocol detection.  This table is independent of the
      * ipproto. */
-    char *alproto_names[ALPROTO_MAX];
+    const char *alproto_names[ALPROTO_MAX];
 } AppLayerProtoDetectCtx;
 
 /**
@@ -636,7 +636,8 @@ AppLayerProtoDetectProbingParserElementDuplicate(AppLayerProtoDetectProbingParse
     SCReturnPtr(new_pe, "AppLayerProtoDetectProbingParserElement");
 }
 
-void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp)
+#ifdef DEBUG
+static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp)
 {
     SCEnter();
 
@@ -772,6 +773,7 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
 
     SCReturn;
 }
+#endif
 
 static void AppLayerProtoDetectProbingParserElementAppend(AppLayerProtoDetectProbingParserElement **head_pe,
                                                           AppLayerProtoDetectProbingParserElement *new_pe)
@@ -1244,7 +1246,7 @@ static int AppLayerProtoDetectPMAddSignature(AppLayerProtoDetectPMCtx *ctx, Dete
 }
 
 static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alproto,
-                                                char *pattern,
+                                                const char *pattern,
                                                 uint16_t depth, uint16_t offset,
                                                 uint8_t direction,
                                                 uint8_t is_cs)
@@ -1393,7 +1395,7 @@ int AppLayerProtoDetectPrepareState(void)
  *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT for dp or sp
  */
 void AppLayerProtoDetectPPRegister(uint8_t ipproto,
-                                   char *portstr,
+                                   const char *portstr,
                                    AppProto alproto,
                                    uint16_t min_depth, uint16_t max_depth,
                                    uint8_t direction,
@@ -1505,7 +1507,7 @@ int AppLayerProtoDetectPPParseConfPorts(const char *ipproto_name,
 /***** PM registration *****/
 
 int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
-                                           char *pattern,
+                                           const char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction)
 {
@@ -1520,7 +1522,7 @@ int AppLayerProtoDetectPMRegisterPatternCS(uint8_t ipproto, AppProto alproto,
 }
 
 int AppLayerProtoDetectPMRegisterPatternCI(uint8_t ipproto, AppProto alproto,
-                                           char *pattern,
+                                           const char *pattern,
                                            uint16_t depth, uint16_t offset,
                                            uint8_t direction)
 {
@@ -1598,7 +1600,7 @@ int AppLayerProtoDetectDeSetup(void)
     SCReturnInt(0);
 }
 
-void AppLayerProtoDetectRegisterProtocol(AppProto alproto, char *alproto_name)
+void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_name)
 {
     SCEnter();
 
@@ -1770,7 +1772,7 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
     SCReturn;
 }
 
-AppProto AppLayerProtoDetectGetProtoByName(char *alproto_name)
+AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name)
 {
     SCEnter();
 
@@ -1787,7 +1789,7 @@ AppProto AppLayerProtoDetectGetProtoByName(char *alproto_name)
     SCReturnCT(ALPROTO_UNKNOWN, "AppProto");
 }
 
-char *AppLayerProtoDetectGetProtoName(AppProto alproto)
+const char *AppLayerProtoDetectGetProtoName(AppProto alproto)
 {
     return alpd_ctx.alproto_names[alproto];
 }
@@ -1830,12 +1832,12 @@ void AppLayerProtoDetectUnittestCtxRestore(void)
     SCReturn;
 }
 
-int AppLayerProtoDetectTest01(void)
+static int AppLayerProtoDetectTest01(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
-    char *buf;
+    const char *buf;
     int r = 0;
 
     buf = "HTTP";
@@ -1863,15 +1865,14 @@ int AppLayerProtoDetectTest01(void)
     return r;
 }
 
-int AppLayerProtoDetectTest02(void)
+static int AppLayerProtoDetectTest02(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
-    char *buf;
     int r = 0;
 
-    buf = "HTTP";
+    const char *buf = "HTTP";
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     buf = "ftp";
     AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
@@ -1912,13 +1913,13 @@ int AppLayerProtoDetectTest02(void)
     return r;
 }
 
-int AppLayerProtoDetectTest03(void)
+static int AppLayerProtoDetectTest03(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -1987,13 +1988,13 @@ int AppLayerProtoDetectTest03(void)
     return r;
 }
 
-int AppLayerProtoDetectTest04(void)
+static int AppLayerProtoDetectTest04(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n";
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2056,13 +2057,13 @@ int AppLayerProtoDetectTest04(void)
     return r;
 }
 
-int AppLayerProtoDetectTest05(void)
+static int AppLayerProtoDetectTest05(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "HTTP/1.1 200 OK\r\nServer: Apache/1.0\r\n\r\n<HTML><BODY>Blahblah</BODY></HTML>";
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2131,13 +2132,13 @@ int AppLayerProtoDetectTest05(void)
     return r;
 }
 
-int AppLayerProtoDetectTest06(void)
+static int AppLayerProtoDetectTest06(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "220 Welcome to the OISF FTP server\r\n";
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2204,13 +2205,13 @@ int AppLayerProtoDetectTest06(void)
     return r;
 }
 
-int AppLayerProtoDetectTest07(void)
+static int AppLayerProtoDetectTest07(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
 
     uint8_t l7data[] = "220 Welcome to the OISF HTTP/FTP server\r\n";
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2273,7 +2274,7 @@ int AppLayerProtoDetectTest07(void)
     return r;
 }
 
-int AppLayerProtoDetectTest08(void)
+static int AppLayerProtoDetectTest08(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2298,7 +2299,7 @@ int AppLayerProtoDetectTest08(void)
         0x20, 0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32,
         0x00
     };
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2361,7 +2362,7 @@ int AppLayerProtoDetectTest08(void)
     return r;
 }
 
-int AppLayerProtoDetectTest09(void)
+static int AppLayerProtoDetectTest09(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2382,7 +2383,7 @@ int AppLayerProtoDetectTest09(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x02, 0x02
     };
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2445,7 +2446,7 @@ int AppLayerProtoDetectTest09(void)
     return r;
 }
 
-int AppLayerProtoDetectTest10(void)
+static int AppLayerProtoDetectTest10(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2461,7 +2462,7 @@ int AppLayerProtoDetectTest10(void)
         0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
         0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
     };
-    char *buf;
+    const char *buf;
     int r = 0;
     Flow f;
     AppProto pm_results[ALPROTO_MAX];
@@ -2528,7 +2529,7 @@ int AppLayerProtoDetectTest10(void)
  * \test Why we still get http for connect... obviously because
  *       we also match on the reply, duh
  */
-int AppLayerProtoDetectTest11(void)
+static int AppLayerProtoDetectTest11(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2627,7 +2628,7 @@ int AppLayerProtoDetectTest11(void)
 /**
  * \test AlpProtoSignature test
  */
-int AppLayerProtoDetectTest12(void)
+static int AppLayerProtoDetectTest12(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2678,7 +2679,7 @@ int AppLayerProtoDetectTest12(void)
  * \test What about if we add some sigs only for udp but call for tcp?
  *       It should not detect any proto
  */
-int AppLayerProtoDetectTest13(void)
+static int AppLayerProtoDetectTest13(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2769,7 +2770,7 @@ int AppLayerProtoDetectTest13(void)
  *       It should detect ALPROTO_HTTP (over udp). This is just a check
  *       to ensure that TCP/UDP differences work correctly.
  */
-int AppLayerProtoDetectTest14(void)
+static int AppLayerProtoDetectTest14(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2856,7 +2857,7 @@ int AppLayerProtoDetectTest14(void)
 }
 
 typedef struct AppLayerProtoDetectPPTestDataElement_ {
-    char *alproto_name;
+    const char *alproto_name;
     AppProto alproto;
     uint16_t port;
     uint32_t alproto_mask;

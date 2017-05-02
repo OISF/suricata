@@ -28,8 +28,8 @@
 #include "conf.h"
 
 TmEcode ConfigSetLogDirectory(char *name);
-char *ConfigGetLogDirectory();
-TmEcode ConfigCheckLogDirectory(char *log_dir);
+const char *ConfigGetLogDirectory(void);
+TmEcode ConfigCheckLogDirectory(const char *log_dir);
 
 ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface);
 

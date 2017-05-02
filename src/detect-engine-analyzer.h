@@ -32,7 +32,7 @@ void CleanupFPAnalyzer(void);
 int SetupRuleAnalyzer(void);
 void CleanupRuleAnalyzer (void);
 
-int PerCentEncodingSetup ();
+int PerCentEncodingSetup (void);
 int PerCentEncodingMatch (uint8_t *content, uint8_t content_len);
 
 void EngineAnalysisFP(Signature *s, char *line);

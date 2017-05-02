@@ -45,7 +45,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
 static int PrefilterSetupIcmpId(SigGroupHead *sgh);
@@ -153,7 +153,7 @@ static int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pac
  * \retval iid pointer to DetectIcmpIdData on success
  * \retval NULL on failure
  */
-DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr)
+static DetectIcmpIdData *DetectIcmpIdParse (const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
     char *substr[3] = {NULL, NULL, NULL};
@@ -228,7 +228,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmpidstr)
+static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *icmpidstr)
 {
     DetectIcmpIdData *iid = NULL;
     SigMatch *sm = NULL;
@@ -326,7 +326,7 @@ static _Bool PrefilterIcmpIdIsPrefilterable(const Signature *s)
 /**
  * \test DetectIcmpIdParseTest01 is a test for setting a valid icmp_id value
  */
-int DetectIcmpIdParseTest01 (void)
+static int DetectIcmpIdParseTest01 (void)
 {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("300");
@@ -341,7 +341,7 @@ int DetectIcmpIdParseTest01 (void)
  * \test DetectIcmpIdParseTest02 is a test for setting a valid icmp_id value
  *       with spaces all around
  */
-int DetectIcmpIdParseTest02 (void)
+static int DetectIcmpIdParseTest02 (void)
 {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("  300  ");
@@ -356,7 +356,7 @@ int DetectIcmpIdParseTest02 (void)
  * \test DetectIcmpIdParseTest03 is a test for setting a valid icmp_id value
  *       with quotation marks
  */
-int DetectIcmpIdParseTest03 (void)
+static int DetectIcmpIdParseTest03 (void)
 {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("\"300\"");
@@ -371,7 +371,7 @@ int DetectIcmpIdParseTest03 (void)
  * \test DetectIcmpIdParseTest04 is a test for setting a valid icmp_id value
  *       with quotation marks and spaces all around
  */
-int DetectIcmpIdParseTest04 (void)
+static int DetectIcmpIdParseTest04 (void)
 {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("   \"   300 \"");
@@ -386,7 +386,7 @@ int DetectIcmpIdParseTest04 (void)
  * \test DetectIcmpIdParseTest05 is a test for setting an invalid icmp_id
  *       value with missing quotation marks
  */
-int DetectIcmpIdParseTest05 (void)
+static int DetectIcmpIdParseTest05 (void)
 {
     DetectIcmpIdData *iid = NULL;
     iid = DetectIcmpIdParse("\"300");
@@ -402,7 +402,7 @@ int DetectIcmpIdParseTest05 (void)
  *       icmp_id keyword by creating 2 rules and matching a crafted packet
  *       against them. Only the first one shall trigger.
  */
-int DetectIcmpIdMatchTest01 (void)
+static int DetectIcmpIdMatchTest01 (void)
 {
     int result = 0;
     Packet *p = NULL;
@@ -465,7 +465,7 @@ end:
  *       against them. The packet is an ICMP packet with no "id" field,
  *       therefore the rule should not trigger.
  */
-int DetectIcmpIdMatchTest02 (void)
+static int DetectIcmpIdMatchTest02 (void)
 {
     int result = 0;
 

@@ -462,7 +462,7 @@ typedef struct Signature_ {
 
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
-    char *sig_str;
+    const char *sig_str;
 
     SignatureInitData *init_data;
 
@@ -948,7 +948,7 @@ typedef struct SigTableElmt_ {
         uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 
     /** keyword setup function pointer */
-    int (*Setup)(DetectEngineCtx *, Signature *, char *);
+    int (*Setup)(DetectEngineCtx *, Signature *, const char *);
 
     _Bool (*SupportsPrefilter)(const Signature *s);
     int (*SetupPrefilter)(struct SigGroupHead_ *sgh);
@@ -1355,6 +1355,13 @@ enum {
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /* detection api */
+int SigAddressPrepareStage1(DetectEngineCtx *de_ctx);
+int SigAddressPrepareStage2(DetectEngineCtx *de_ctx);
+int SigAddressPrepareStage3(DetectEngineCtx *de_ctx);
+int SigAddressPrepareStage4(DetectEngineCtx *de_ctx);
+int SigAddressCleanupStage1(DetectEngineCtx *de_ctx);
+TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
+
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
@@ -1373,7 +1380,7 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 void DisableDetectFlowFileFlags(Flow *f);
-char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *, const char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);

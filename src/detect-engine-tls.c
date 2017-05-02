@@ -41,6 +41,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer-ssl.h"
+#include "detect-engine-tls.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -174,7 +175,7 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectTlsIssuer(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
@@ -249,7 +250,7 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  */
 int DetectEngineInspectTlsSubject(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
 {
     uint8_t *buffer;
@@ -323,7 +324,7 @@ int PrefilterTxTlsSerialRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  *  \retval 1       Match
  */
 int DetectEngineInspectTlsSerial(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                 DetectEngineThreadCtx *det_ctx, Signature *s,
+                                 DetectEngineThreadCtx *det_ctx, const Signature *s,
                                  const SigMatchData *smd, Flow *f,
                                  uint8_t flags, void *alstate, void *txv,
                                  uint64_t tx_id)
@@ -349,7 +350,7 @@ int DetectEngineInspectTlsSerial(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
 int DetectEngineInspectTlsValidity(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *txv, uint64_t tx_id)
 {

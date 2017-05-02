@@ -86,7 +86,7 @@ void BloomFilterPrint(BloomFilter *bf)
     printf("-----------------------------------------\n");
 }
 
-int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen)
+int BloomFilterAdd(BloomFilter *bf, const void *data, uint16_t datalen)
 {
     uint8_t iter = 0;
     uint32_t hash = 0;

@@ -119,7 +119,7 @@ void Daemonize (void)
         exit(EXIT_FAILURE);
     } else if (pid == 0) {
         /* Child continues here */
-        char *daemondir;
+        const char *daemondir;
 
         umask(027);
 

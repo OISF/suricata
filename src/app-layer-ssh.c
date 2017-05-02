@@ -616,7 +616,7 @@ static int SSHRegisterPatternsForProtocolDetection(void)
  */
 void RegisterSSHParsers(void)
 {
-    char *proto_name = "ssh";
+    const char *proto_name = "ssh";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SSH, proto_name);

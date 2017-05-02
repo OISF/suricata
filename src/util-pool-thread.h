@@ -62,13 +62,13 @@ void PoolThreadRegisterTests(void);
  *  \note same as PoolInit() except for "threads"
  *  \param threads number of threads to use this
  *  \retval pt thread pool or NULL on error */
-PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
+PoolThread *PoolThreadInit(int threads, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
 
 /** \brief grow a thread pool by one
  *  \note calls PoolInit so all args but 'pt' are the same
  *  \param pt thread pool to grow
  *  \retval r id of new entry on succes, -1 on error */
-int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
+int PoolThreadGrow(PoolThread *pt, uint32_t size, uint32_t prealloc_size, uint32_t elt_size,  void *(*Alloc)(void), int (*Init)(void *, void *), void *InitData,  void (*Cleanup)(void *), void (*Free)(void *));
 
 /** \brief destroy the thread pool
  *  \note wrapper around PoolFree()

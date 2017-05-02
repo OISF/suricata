@@ -55,7 +55,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIsdataatSetup (DetectEngineCtx *, Signature *, char *);
+int DetectIsdataatSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIsdataatRegisterTests(void);
 void DetectIsdataatFree(void *);
 
@@ -84,7 +84,7 @@ void DetectIsdataatRegister(void)
  * \retval idad pointer to DetectIsdataatData on success
  * \retval NULL on failure
  */
-DetectIsdataatData *DetectIsdataatParse (char *isdataatstr, char **offset)
+static DetectIsdataatData *DetectIsdataatParse (const char *isdataatstr, char **offset)
 {
     DetectIsdataatData *idad = NULL;
     char *args[3] = {NULL,NULL,NULL};
@@ -195,7 +195,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatstr)
+int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isdataatstr)
 {
     SigMatch *sm = NULL;
     SigMatch *prev_pm = NULL;
@@ -305,7 +305,7 @@ static int g_dce_stub_data_buffer_id = 0;
  * \test DetectIsdataatTestParse01 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse01 (void)
+static int DetectIsdataatTestParse01 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -322,7 +322,7 @@ int DetectIsdataatTestParse01 (void)
  * \test DetectIsdataatTestParse02 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse02 (void)
+static int DetectIsdataatTestParse02 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -339,7 +339,7 @@ int DetectIsdataatTestParse02 (void)
  * \test DetectIsdataatTestParse03 is a test to make sure that we return a correct IsdataatData structure
  *  when given valid isdataat opt
  */
-int DetectIsdataatTestParse03 (void)
+static int DetectIsdataatTestParse03 (void)
 {
     int result = 0;
     DetectIsdataatData *idad = NULL;
@@ -355,7 +355,7 @@ int DetectIsdataatTestParse03 (void)
 /**
  * \test Test isdataat option for dce sig.
  */
-int DetectIsdataatTestParse04(void)
+static int DetectIsdataatTestParse04(void)
 {
     Signature *s = SigAlloc();
     int result = 1;
@@ -380,7 +380,7 @@ int DetectIsdataatTestParse04(void)
 /**
  * \test Test isdataat option for dce sig.
  */
-int DetectIsdataatTestParse05(void)
+static int DetectIsdataatTestParse05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -482,7 +482,7 @@ int DetectIsdataatTestParse05(void)
     return result;
 }
 
-int DetectIsdataatTestParse06(void)
+static int DetectIsdataatTestParse06(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -530,7 +530,7 @@ int DetectIsdataatTestParse06(void)
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
  */
-int DetectIsdataatTestPacket01 (void)
+static int DetectIsdataatTestPacket01 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -543,7 +543,7 @@ int DetectIsdataatTestPacket01 (void)
     if (p[0] == NULL || p[1] == NULL ||p[2] == NULL)
         goto end;
 
-    char *sigs[5];
+    const char *sigs[5];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing window 1\"; isdataat:6; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing window 2\"; content:\"all\"; isdataat:1, relative; isdataat:6; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing window 3\"; isdataat:8; sid:3;)";
@@ -572,7 +572,7 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is pcre
  * (bug 144)
  */
-int DetectIsdataatTestPacket02 (void)
+static int DetectIsdataatTestPacket02 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
@@ -604,7 +604,7 @@ end:
  * isdataat, and isdataat relative works if the previous keyword is byte_jump
  * (bug 146)
  */
-int DetectIsdataatTestPacket03 (void)
+static int DetectIsdataatTestPacket03 (void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"

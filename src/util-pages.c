@@ -24,10 +24,9 @@
  */
 
 #include "suricata-common.h"
-#ifndef HAVE_SYS_MMAN_H
-#define PageSupportsRWX 1
-#else
-#include <sys/mman.h>
+#include "util-pages.h"
+
+#ifndef HAVE_PAGESUPPORTSRWX_AS_MACRO
 
 /** \brief check if OS allows for RWX pages
  *
@@ -54,5 +53,5 @@ int PageSupportsRWX(void)
     }
     return retval;
 }
-#endif /* HAVE_SYS_MMAN_H */
+#endif /* HAVE_PAGESUPPORTSRWX_AS_MACRO */
 

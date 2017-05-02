@@ -192,7 +192,7 @@ typedef struct DetectLoaderThreadData_ {
     uint32_t instance;
 } DetectLoaderThreadData;
 
-static TmEcode DetectLoaderThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode DetectLoaderThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     DetectLoaderThreadData *ftd = SCCalloc(1, sizeof(DetectLoaderThreadData));
     if (ftd == NULL)
@@ -263,7 +263,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 }
 
 /** \brief spawn the detect loader manager thread */
-void DetectLoaderThreadSpawn()
+void DetectLoaderThreadSpawn(void)
 {
     int i;
     for (i = 0; i < num_loaders; i++) {

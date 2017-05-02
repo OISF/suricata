@@ -82,7 +82,7 @@ static inline TmEcode FlowUpdate(Packet *p)
 
 static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data);
 
-static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     FlowWorkerThreadData *fw = SCCalloc(1, sizeof(*fw));
     if (fw == NULL)
@@ -160,7 +160,7 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
-TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, PacketQueue *unused)
+static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, PacketQueue *unused)
 {
     FlowWorkerThreadData *fw = data;
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);

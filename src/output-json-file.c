@@ -56,6 +56,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-file.h"
 #include "output-json-http.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
@@ -208,7 +209,7 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, co
 
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonFileLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonFileLogThread *aft = SCMalloc(sizeof(JsonFileLogThread));
     if (unlikely(aft == NULL))
@@ -261,7 +262,7 @@ static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
 

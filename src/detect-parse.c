@@ -280,7 +280,7 @@ void SigMatchFree(SigMatch *sm)
 }
 
 /* Get the detection module by name */
-SigTableElmt *SigTableGet(char *name)
+static SigTableElmt *SigTableGet(char *name)
 {
     SigTableElmt *st = NULL;
     int i = 0;
@@ -583,7 +583,7 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 
 void SigParsePrepare(void)
 {
-    char *regexstr = CONFIG_PCRE;
+    const char *regexstr = CONFIG_PCRE;
     const char *eb;
     int eo;
     int opts = 0;
@@ -828,7 +828,7 @@ error:
  * \retval  0 On successfully parsing the protocl sent as the argument.
  * \retval -1 On failure
  */
-int SigParseProto(Signature *s, const char *protostr)
+static int SigParseProto(Signature *s, const char *protostr)
 {
     SCEnter();
 
@@ -936,7 +936,7 @@ static int SigParseActionRejectValidate(const char *action)
  *            Signature.
  * \retval -1 On failure.
  */
-int SigParseAction(Signature *s, const char *action)
+static int SigParseAction(Signature *s, const char *action)
 {
     if (strcasecmp(action, "alert") == 0) {
         s->action = ACTION_ALERT;
@@ -1064,7 +1064,7 @@ error:
  *  \param -1 parse error
  *  \param 0 ok
  */
-int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction)
+int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t addrs_direction)
 {
     SCEnter();
 
@@ -1431,7 +1431,7 @@ SigMatchData* SigMatchList2DataArray(SigMatch *head)
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
+static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
@@ -1622,7 +1622,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
  * \internal
  * \brief Helper function for SigInit().
  */
-static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
+static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
                                 uint8_t dir)
 {
     Signature *sig = SigAlloc();
@@ -1718,7 +1718,7 @@ error:
  *
  * \retval Pointer to the Signature instance on success; NULL on failure.
  */
-Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr)
+Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
 {
     SCEnter();
 
@@ -1756,7 +1756,7 @@ error:
  *
  * \param data    Pointer to the data, in our case SigDuplWrapper to be freed.
  */
-void DetectParseDupSigFreeFunc(void *data)
+static void DetectParseDupSigFreeFunc(void *data)
 {
     if (data != NULL)
         SCFree(data);
@@ -1774,7 +1774,7 @@ void DetectParseDupSigFreeFunc(void *data)
  *
  * \retval sw->s->id The generated hash value.
  */
-uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+static uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     SigDuplWrapper *sw = (SigDuplWrapper *)data;
 
@@ -1793,7 +1793,7 @@ uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datal
  * \retval 1 If the 2 SigDuplWrappers sent as args match.
  * \retval 0 If the 2 SigDuplWrappers sent as args do not match.
  */
-char DetectParseDupSigCompareFunc(void *data1, uint16_t len1, void *data2,
+static char DetectParseDupSigCompareFunc(void *data1, uint16_t len1, void *data2,
                                   uint16_t len2)
 {
     SigDuplWrapper *sw1 = (SigDuplWrapper *)data1;
@@ -1991,7 +1991,7 @@ end:
  * \retval Pointer to the head Signature in the detection engine ctx sig_list
  *         on success; NULL on failure.
  */
-Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
+Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, const char *sigstr)
 {
     Signature *sig = SigInit(de_ctx, sigstr);
     if (sig == NULL) {
@@ -2150,7 +2150,7 @@ int RuleParseDataFromFile(char *filename)
  */
 
 #ifdef UNITTESTS
-int SigParseTest01 (void)
+static int SigParseTest01 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2169,7 +2169,7 @@ end:
     return result;
 }
 
-int SigParseTest02 (void)
+static int SigParseTest02 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -2208,7 +2208,7 @@ end:
 /**
  * \test SigParseTest03 test for invalid direction operator in rule
  */
-int SigParseTest03 (void)
+static int SigParseTest03 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2229,7 +2229,7 @@ end:
     return result;
 }
 
-int SigParseTest04 (void)
+static int SigParseTest04 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2249,7 +2249,7 @@ end:
 }
 
 /** \test Port validation */
-int SigParseTest05 (void)
+static int SigParseTest05 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -2272,7 +2272,7 @@ end:
 }
 
 /** \test Parsing bug debugging at 2010-03-18 */
-int SigParseTest06 (void)
+static int SigParseTest06 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -2299,7 +2299,7 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest07(void)
+static int SigParseTest07(void)
 {
     int result = 0;
 
@@ -2321,7 +2321,7 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest08(void)
+static int SigParseTest08(void)
 {
     int result = 0;
 
@@ -2344,7 +2344,7 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest09(void)
+static int SigParseTest09(void)
 {
     int result = 1;
 
@@ -2395,7 +2395,7 @@ end:
 /**
  * \test Parsing duplicate sigs.
  */
-int SigParseTest10(void)
+static int SigParseTest10(void)
 {
     int result = 1;
 
@@ -2427,7 +2427,7 @@ end:
  * \test Parsing sig with trailing space(s) as reported by
  *       Morgan Cox on oisf-users.
  */
-int SigParseTest11(void)
+static int SigParseTest11(void)
 {
     int result = 0;
 
@@ -2763,7 +2763,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest06 (void)
+static int SigParseBidirecTest06 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2783,7 +2783,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest07 (void)
+static int SigParseBidirecTest07 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2803,7 +2803,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest08 (void)
+static int SigParseBidirecTest08 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2823,7 +2823,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest09 (void)
+static int SigParseBidirecTest09 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2843,7 +2843,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest10 (void)
+static int SigParseBidirecTest10 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2863,7 +2863,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest11 (void)
+static int SigParseBidirecTest11 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2883,7 +2883,7 @@ end:
 }
 
 /** \test Direction operator validation (invalid) */
-int SigParseBidirecTest12 (void)
+static int SigParseBidirecTest12 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2903,7 +2903,7 @@ end:
 }
 
 /** \test Direction operator validation (valid) */
-int SigParseBidirecTest13 (void)
+static int SigParseBidirecTest13 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2922,7 +2922,7 @@ end:
 }
 
 /** \test Direction operator validation (valid) */
-int SigParseBidirecTest14 (void)
+static int SigParseBidirecTest14 (void)
 {
     int result = 1;
     Signature *sig = NULL;
@@ -2943,7 +2943,7 @@ end:
 /** \test Ensure that we don't set bidirectional in a
  *         normal (one direction) Signature
  */
-int SigTestBidirec01 (void)
+static int SigTestBidirec01 (void)
 {
     Signature *sig = NULL;
     int result = 0;
@@ -2974,7 +2974,7 @@ end:
 }
 
 /** \test Ensure that we set a bidirectional Signature correctly */
-int SigTestBidirec02 (void)
+static int SigTestBidirec02 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -3019,7 +3019,7 @@ end:
 *         and we install it with the rest of the signatures, checking
 *         also that it match with the correct addr directions
 */
-int SigTestBidirec03 (void)
+static int SigTestBidirec03 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -3031,7 +3031,7 @@ int SigTestBidirec03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0] = "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 1\"; sid:1;)";
     sigs[1] = "alert tcp any any <> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)";
     sigs[2] = "alert tcp any any -> 192.168.1.1 any (msg:\"SigTestBidirec03 sid 3\"; sid:3;)";
@@ -3140,7 +3140,7 @@ end:
 *         and we install it with the rest of the signatures, checking
 *         also that it match with the correct addr directions
 */
-int SigTestBidirec04 (void)
+static int SigTestBidirec04 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -3498,7 +3498,7 @@ end:
 /**
  * \test mpm
  */
-int SigParseTestMpm01 (void)
+static int SigParseTestMpm01 (void)
 {
     int result = 0;
     Signature *sig = NULL;
@@ -3529,7 +3529,7 @@ end:
 /**
  * \test mpm
  */
-int SigParseTestMpm02 (void)
+static int SigParseTestMpm02 (void)
 {
     int result = 0;
     Signature *sig = NULL;

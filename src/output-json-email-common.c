@@ -63,8 +63,8 @@
 #define LOG_EMAIL_SUBJECT_MD5   (1<<4)
 
 struct {
-    char *config_field;
-    char *email_field;
+    const char *config_field;
+    const char *email_field;
     uint32_t flags;
 } email_fields[] =  {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
@@ -235,7 +235,7 @@ static void JsonEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, json_t *js, SM
 }
 
 /* JSON format logging */
-json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id)
+static json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;

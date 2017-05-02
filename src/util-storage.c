@@ -47,7 +47,7 @@ static int storage_max_id[STORAGE_MAX];
 static int storage_registraton_closed = 0;
 static StorageMapping **storage_map = NULL;
 
-const char *StoragePrintType(StorageEnum type)
+static const char *StoragePrintType(StorageEnum type)
 {
     switch(type) {
         case STORAGE_HOST:

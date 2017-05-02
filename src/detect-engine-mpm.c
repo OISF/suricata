@@ -349,7 +349,7 @@ int SignatureHasStreamContent(const Signature *s)
  */
 uint16_t PatternMatchDefaultMatcher(void)
 {
-    char *mpm_algo;
+    const char *mpm_algo;
     uint16_t mpm_algo_val = mpm_default_matcher;
 
     /* Get the mpm algo defined in config file by the user */
@@ -862,7 +862,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
             if (appstats[x] == 0)
                 continue;
             const char *name = de_ctx->app_mpms[x].reg->name;
-            char *direction = de_ctx->app_mpms[x].reg->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
+            const char *direction = de_ctx->app_mpms[x].reg->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
             SCLogPerf("AppLayer MPM \"%s %s\": %u", direction, name, appstats[x]);
         }
     }
@@ -884,7 +884,7 @@ void MpmStoreFree(DetectEngineCtx *de_ctx)
     return;
 }
 
-void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
+static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 {
     const Signature *s = NULL;
     uint32_t sig;

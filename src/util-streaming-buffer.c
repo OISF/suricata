@@ -953,12 +953,13 @@ int StreamingBufferCompareRawData(const StreamingBuffer *sb,
     return 0;
 }
 
-void Dump(StreamingBuffer *sb)
+#ifdef UNITTESTS
+static void Dump(StreamingBuffer *sb)
 {
     PrintRawDataFp(stdout, sb->buf, sb->buf_offset);
 }
 
-void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
+static void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
 {
     const uint8_t *data = NULL;
     uint32_t data_len = 0;
@@ -968,7 +969,6 @@ void DumpSegment(StreamingBuffer *sb, StreamingBufferSegment *seg)
     }
 }
 
-#ifdef UNITTESTS
 static int StreamingBufferTest01(void)
 {
     StreamingBufferConfig cfg = { STREAMING_BUFFER_AUTOSLIDE, 8, 16, NULL, NULL, NULL, NULL };

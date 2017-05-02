@@ -48,6 +48,7 @@
 #include "util-crypt.h"
 
 #include "output-json.h"
+#include "output-json-ssh.h"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -129,7 +130,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonSshLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonSshLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonSshLogThread *aft = SCMalloc(sizeof(JsonSshLogThread));
     if (unlikely(aft == NULL))
@@ -181,7 +182,7 @@ static void OutputSshLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "ssh.json"
-OutputCtx *OutputSshLogInit(ConfNode *conf)
+static OutputCtx *OutputSshLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
@@ -223,7 +224,7 @@ static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputJsonCtx *ojc = parent_ctx->data;
 

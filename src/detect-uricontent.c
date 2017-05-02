@@ -57,7 +57,7 @@
 #include "conf.h"
 
 /* prototypes */
-static int DetectUricontentSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectUricontentSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectUricontentRegisterTests(void);
 static void DetectUricontentFree(void *);
 
@@ -152,11 +152,11 @@ void DetectUricontentPrint(DetectContentData *cd)
  *
  * \retval 0 on success, -1 on failure
  */
-int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
+int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *contentstr)
 {
     SCEnter();
 
-    char *legacy = NULL;
+    const char *legacy = NULL;
     if (ConfGet("legacy.uricontent", &legacy) == 1) {
         if (strcasecmp("disabled", legacy) == 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "uriconent deprecated.  To "
@@ -483,7 +483,7 @@ end:
 /**
  * \test Checks if a uricontent is registered in a Signature
  */
-int DetectUriSigTest01(void)
+static int DetectUriSigTest01(void)
 {
     ThreadVars th_v;
     Signature *s = NULL;
@@ -1220,7 +1220,7 @@ static int DetectUriSigTest07(void)
 /**
  * \test Test content for dce sig.
  */
-int DetectUriSigTest08(void)
+static int DetectUriSigTest08(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1249,7 +1249,7 @@ int DetectUriSigTest08(void)
 /**
  * \test Test content for dce sig.
  */
-int DetectUriSigTest09(void)
+static int DetectUriSigTest09(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1278,7 +1278,7 @@ int DetectUriSigTest09(void)
 /**
  * \test Test content for dce sig.
  */
-int DetectUriSigTest10(void)
+static int DetectUriSigTest10(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1307,7 +1307,7 @@ int DetectUriSigTest10(void)
 /**
  * \test Test content for dce sig.
  */
-int DetectUriSigTest11(void)
+static int DetectUriSigTest11(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1336,7 +1336,7 @@ int DetectUriSigTest11(void)
 /**
  * \test Parsing test
  */
-int DetectUriSigTest12(void)
+static int DetectUriSigTest12(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     DetectContentData *ud = 0;
@@ -1376,7 +1376,7 @@ end:
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest13(void)
+static int DetectUriContentParseTest13(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1405,7 +1405,7 @@ int DetectUriContentParseTest13(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest14(void)
+static int DetectUriContentParseTest14(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1434,7 +1434,7 @@ int DetectUriContentParseTest14(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest15(void)
+static int DetectUriContentParseTest15(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1463,7 +1463,7 @@ int DetectUriContentParseTest15(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest16(void)
+static int DetectUriContentParseTest16(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1492,7 +1492,7 @@ int DetectUriContentParseTest16(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest17(void)
+static int DetectUriContentParseTest17(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1521,7 +1521,7 @@ int DetectUriContentParseTest17(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest18(void)
+static int DetectUriContentParseTest18(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1550,7 +1550,7 @@ int DetectUriContentParseTest18(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest19(void)
+static int DetectUriContentParseTest19(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1579,7 +1579,7 @@ int DetectUriContentParseTest19(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest20(void)
+static int DetectUriContentParseTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1608,7 +1608,7 @@ int DetectUriContentParseTest20(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest21(void)
+static int DetectUriContentParseTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1637,7 +1637,7 @@ int DetectUriContentParseTest21(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest22(void)
+static int DetectUriContentParseTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1666,7 +1666,7 @@ int DetectUriContentParseTest22(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest23(void)
+static int DetectUriContentParseTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1695,7 +1695,7 @@ int DetectUriContentParseTest23(void)
 /**
  * \test Parsing test
  */
-int DetectUriContentParseTest24(void)
+static int DetectUriContentParseTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;

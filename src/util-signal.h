@@ -25,7 +25,7 @@
 #define __UTIL_SIGNAL_H__
 
 int UtilSignalBlock(int);
-void UtilSignalHandlerSetup(int, void (*handler)());;
-int UtilSignalIsHandler(int sig, void (*handler)());
+void UtilSignalHandlerSetup(int, void (*handler)(int));
+int UtilSignalIsHandler(int sig, void (*handler)(int));
 
 #endif /* __UTIL_SIGNAL_H__ */

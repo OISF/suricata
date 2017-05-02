@@ -148,8 +148,8 @@ void HostPrintStats (void);
 
 void HostRegisterUnittests(void);
 
-Host *HostAlloc();
-void HostFree();
+Host *HostAlloc(void);
+void HostFree(Host *);
 
 void HostUnlock(Host *h);
 

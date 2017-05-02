@@ -148,16 +148,16 @@ typedef struct SCLogOPIfaceCtx_ {
  */
 typedef struct SCLogInitData_ {
     /* startup message */
-    char *startup_message;
+    const char *startup_message;
 
     /* the log level */
     SCLogLevel global_log_level;
 
     /* the log format */
-    char *global_log_format;
+    const char *global_log_format;
 
     /* output filter */
-    char *op_filter;
+    const char *op_filter;
 
     /* list of output interfaces to be used */
     SCLogOPIfaceCtx *op_ifaces;

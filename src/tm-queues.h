@@ -33,8 +33,8 @@ typedef struct Tmq_ {
     uint8_t q_type;
 } Tmq;
 
-Tmq* TmqCreateQueue(char *name);
-Tmq* TmqGetQueueByName(char *name);
+Tmq* TmqCreateQueue(const char *name);
+Tmq* TmqGetQueueByName(const char *name);
 
 void TmqDebugList(void);
 void TmqResetQueues(void);

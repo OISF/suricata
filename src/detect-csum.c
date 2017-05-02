@@ -42,43 +42,43 @@
 /* prototypes for the "ipv4-csum" rule keyword */
 static int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectIPV4CsumFree(void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
 static int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTCPV4CsumFree(void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
 static int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTCPV6CsumFree(void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
 static int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectUDPV4CsumFree(void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
 static int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectUDPV6CsumFree(void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
 static int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectICMPV4CsumFree(void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
 static int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Packet *, const Signature *, const SigMatchCtx *);
-static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectICMPV6CsumFree(void *);
 
 static void DetectCsumRegisterTests(void);
@@ -266,7 +266,7 @@ static int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -363,7 +363,7 @@ static int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -460,7 +460,7 @@ static int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -557,7 +557,7 @@ static int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -654,7 +654,7 @@ static int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -749,7 +749,7 @@ static int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -849,7 +849,7 @@ static int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  *
  * \retval 0 on success, -1 on failure
  */
-static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum_str)
+static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *csum_str)
 {
     DetectCsumData *cd = NULL;
     SigMatch *sm = NULL;
@@ -944,7 +944,7 @@ static int DetectCsumValidArgsTestParse01(void)
     DetectEngineCtxFree(de_ctx);\
 }
 
-int DetectCsumInvalidArgsTestParse02(void)
+static int DetectCsumInvalidArgsTestParse02(void)
 {
     TEST2(ipv4);
     TEST2(tcpv4);
@@ -975,7 +975,7 @@ int DetectCsumInvalidArgsTestParse02(void)
     DetectEngineCtxFree(de_ctx);\
 }
 
-int DetectCsumValidArgsTestParse03(void)
+static int DetectCsumValidArgsTestParse03(void)
 {
     TEST3(ipv4, DETECT_IPV4_CSUM);
     TEST3(tcpv4, DETECT_TCPV4_CSUM);

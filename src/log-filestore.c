@@ -51,6 +51,7 @@
 #include "output.h"
 
 #include "log-file.h"
+#include "log-filestore.h"
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
@@ -361,7 +362,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     return 0;
 }
 
-static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogFilestoreLogThread *aft = SCMalloc(sizeof(LogFilestoreLogThread));
     if (unlikely(aft == NULL))
@@ -453,7 +454,7 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     output_ctx->data = NULL;
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
 
-    char *s_default_log_dir = NULL;
+    const char *s_default_log_dir = NULL;
     s_default_log_dir = ConfigGetLogDirectory();
 
     const char *s_base_dir = NULL;

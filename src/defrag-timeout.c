@@ -24,16 +24,7 @@
 #include "suricata-common.h"
 #include "defrag.h"
 #include "defrag-hash.h"
-
-uint32_t DefragTrackerGetSpareCount(void)
-{
-    return DefragTrackerSpareQueueGetSize();
-}
-
-uint32_t DefragTrackerGetActiveCount(void)
-{
-    return SC_ATOMIC_GET(defragtracker_counter);
-}
+#include "defrag-timeout.h"
 
 /** \internal
  *  \brief See if we can really discard this tracker. Check use_cnt reference.

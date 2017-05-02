@@ -171,7 +171,8 @@ typedef struct ModbusHeader_ ModbusHeader;
 static uint32_t request_flood = MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD;
 static uint32_t stream_depth = MODBUS_CONFIG_DEFAULT_STREAM_DEPTH;
 
-int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type) {
+static int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
+{
     *event_id = SCMapEnumNameToValue(event_name, modbus_decoder_event_table);
 
     if (*event_id == -1) {
@@ -186,7 +187,8 @@ int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEvent
     return 0;
 }
 
-void ModbusSetEvent(ModbusState *modbus, uint8_t e) {
+static void ModbusSetEvent(ModbusState *modbus, uint8_t e)
+{
     if (modbus && modbus->curr) {
         SCLogDebug("modbus->curr->decoder_events %p", modbus->curr->decoder_events);
         AppLayerDecoderEventsSetEventRaw(&modbus->curr->decoder_events, e);
@@ -196,7 +198,8 @@ void ModbusSetEvent(ModbusState *modbus, uint8_t e) {
         SCLogDebug("couldn't set event %u", e);
 }
 
-AppLayerDecoderEvents *ModbusGetEvents(void *state, uint64_t id) {
+static AppLayerDecoderEvents *ModbusGetEvents(void *state, uint64_t id)
+{
     ModbusState         *modbus = (ModbusState *) state;
     ModbusTransaction   *tx;
 
@@ -211,11 +214,13 @@ AppLayerDecoderEvents *ModbusGetEvents(void *state, uint64_t id) {
     return NULL;
 }
 
-int ModbusHasEvents(void *state) {
+static int ModbusHasEvents(void *state)
+{
     return (((ModbusState *) state)->events > 0);
 }
 
-int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
+static int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction)
+{
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
     ModbusState         *modbus = tx->modbus;
 
@@ -232,11 +237,13 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
 
 /** \brief Get value for 'complete' status in Modbus
  */
-int ModbusGetAlstateProgressCompletionStatus(uint8_t direction) {
+static int ModbusGetAlstateProgressCompletionStatus(uint8_t direction)
+{
     return 1;
 }
 
-void *ModbusGetTx(void *alstate, uint64_t tx_id) {
+static void *ModbusGetTx(void *alstate, uint64_t tx_id)
+{
     ModbusState         *modbus = (ModbusState *) alstate;
     ModbusTransaction   *tx = NULL;
 
@@ -255,13 +262,13 @@ void *ModbusGetTx(void *alstate, uint64_t tx_id) {
     return NULL;
 }
 
-void ModbusSetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static void ModbusSetTxLogged(void *alstate, void *vtx, uint32_t logger)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
     tx->logged |= logger;
 }
 
-int ModbusGetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static int ModbusGetTxLogged(void *alstate, void *vtx, uint32_t logger)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
     if (tx->logged & logger)
@@ -270,7 +277,8 @@ int ModbusGetTxLogged(void *alstate, void *vtx, uint32_t logger)
     return 0;
 }
 
-uint64_t ModbusGetTxCnt(void *alstate) {
+static uint64_t ModbusGetTxCnt(void *alstate)
+{
     return ((uint64_t) ((ModbusState *) alstate)->transaction_max);
 }
 
@@ -283,7 +291,8 @@ uint64_t ModbusGetTxCnt(void *alstate) {
  *  \retval tx or NULL      if not found
  */
 static ModbusTransaction *ModbusTxFindByTransaction(const ModbusState   *modbus,
-                                                    const uint16_t      transactionId) {
+                                                    const uint16_t      transactionId)
+{
     ModbusTransaction *tx = NULL;
 
     if (modbus->curr == NULL)
@@ -363,7 +372,8 @@ static void ModbusTxFree(ModbusTransaction *tx) {
 /**
  *  \brief Modbus transaction cleanup callback
  */
-void ModbusStateTxFree(void *state, uint64_t tx_id) {
+static void ModbusStateTxFree(void *state, uint64_t tx_id)
+{
     SCEnter();
     ModbusState         *modbus = (ModbusState *) state;
     ModbusTransaction   *tx = NULL, *ttx;
@@ -1439,13 +1449,13 @@ static uint16_t ModbusProbingParser(uint8_t     *input,
     return ALPROTO_MODBUS;
 }
 
-DetectEngineState *ModbusGetTxDetectState(void *vtx)
+static DetectEngineState *ModbusGetTxDetectState(void *vtx)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
     return tx->de_state;
 }
 
-int ModbusSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
+static int ModbusSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
     tx->de_state = s;
@@ -1458,7 +1468,7 @@ int ModbusSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
 void RegisterModbusParsers(void)
 {
     SCEnter();
-    char *proto_name = "modbus";
+    const char *proto_name = "modbus";
 
     /* Modbus application protocol V1.1b3 */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {

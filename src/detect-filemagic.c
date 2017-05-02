@@ -78,7 +78,7 @@ void DetectFilemagicRegister(void)
 
 static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFilemagicSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilemagicRegisterTests(void);
 static void DetectFilemagicFree(void *);
 static int g_file_match_list_id = 0;
@@ -144,7 +144,7 @@ int FilemagicGlobalLookup(File *file)
  *  \retval -1 error
  *  \retval 0 ok
  */
-int FilemagicThreadLookup(magic_t *ctx, File *file)
+static int FilemagicThreadLookup(magic_t *ctx, File *file)
 {
     if (ctx == NULL || file == NULL || FileDataSize(file) == 0) {
         SCReturnInt(-1);
@@ -291,7 +291,7 @@ error:
 
 static void *DetectFilemagicThreadInit(void *data)
 {
-    char *filename = NULL;
+    const char *filename = NULL;
     FILE *fd = NULL;
     DetectFilemagicData *filemagic = (DetectFilemagicData *)data;
     BUG_ON(filemagic == NULL);
@@ -362,7 +362,7 @@ static void DetectFilemagicThreadFree(void *ctx)
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectFilemagicData *filemagic = NULL;
     SigMatch *sm = NULL;

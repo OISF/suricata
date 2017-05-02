@@ -53,7 +53,7 @@
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-TmEcode LogTcpDataLogThreadInit(ThreadVars *, void *, void **);
+TmEcode LogTcpDataLogThreadInit(ThreadVars *, const void *, void **);
 TmEcode LogTcpDataLogThreadDeinit(ThreadVars *, void *);
 static void LogTcpDataLogDeInitCtx(OutputCtx *);
 
@@ -88,7 +88,7 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
     SCEnter();
     LogTcpDataLogThread *aft = thread_data;
     LogTcpDataFileCtx *td = aft->tcpdatalog_ctx;
-    char *mode = "a";
+    const char *mode = "a";
 
     if (flags & OUTPUT_STREAMING_FLAG_OPEN)
         mode = "w";
@@ -179,7 +179,7 @@ int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogTcpDataLogThreadInit(ThreadVars *t, void *initdata, void **data)
+TmEcode LogTcpDataLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogTcpDataLogThread *aft = SCMalloc(sizeof(LogTcpDataLogThread));
     if (unlikely(aft == NULL))

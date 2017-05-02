@@ -587,6 +587,7 @@ static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id)
     return store;
 }
 
+#ifdef PROFILING
 /** \warning slow */
 const char *PrefilterStoreGetName(const uint32_t id)
 {
@@ -605,3 +606,4 @@ const char *PrefilterStoreGetName(const uint32_t id)
     SCMutexUnlock(&g_prefilter_mutex);
     return name;
 }
+#endif

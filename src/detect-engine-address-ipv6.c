@@ -33,6 +33,7 @@
 #include "util-unittest.h"
 
 #include "detect-engine-address.h"
+#include "detect-engine-address-ipv6.h"
 #include "detect-engine-siggroup.h"
 #include "detect-engine-port.h"
 
@@ -811,7 +812,7 @@ int DetectAddressJoinIPv6(DetectEngineCtx *de_ctx, DetectAddress *target,
 
 #ifdef UNITTESTS
 
-int AddressTestIPv6Gt01(void)
+static int AddressTestIPv6Gt01(void)
 {
     int result = 0;
 
@@ -824,7 +825,7 @@ int AddressTestIPv6Gt01(void)
     return result;
 }
 
-int AddressTestIPv6Gt02(void)
+static int AddressTestIPv6Gt02(void)
 {
     int result = 0;
 
@@ -837,7 +838,7 @@ int AddressTestIPv6Gt02(void)
     return result;
 }
 
-int AddressTestIPv6Gt03(void)
+static int AddressTestIPv6Gt03(void)
 {
     int result = 0;
 
@@ -850,7 +851,7 @@ int AddressTestIPv6Gt03(void)
     return result;
 }
 
-int AddressTestIPv6Gt04(void)
+static int AddressTestIPv6Gt04(void)
 {
     int result = 0;
 
@@ -863,7 +864,7 @@ int AddressTestIPv6Gt04(void)
     return result;
 }
 
-int AddressTestIPv6Lt01(void)
+static int AddressTestIPv6Lt01(void)
 {
     int result = 0;
 
@@ -876,7 +877,7 @@ int AddressTestIPv6Lt01(void)
     return result;
 }
 
-int AddressTestIPv6Lt02(void)
+static int AddressTestIPv6Lt02(void)
 {
     int result = 0;
 
@@ -889,7 +890,7 @@ int AddressTestIPv6Lt02(void)
     return result;
 }
 
-int AddressTestIPv6Lt03(void)
+static int AddressTestIPv6Lt03(void)
 {
     int result = 0;
 
@@ -902,7 +903,7 @@ int AddressTestIPv6Lt03(void)
     return result;
 }
 
-int AddressTestIPv6Lt04(void)
+static int AddressTestIPv6Lt04(void)
 {
     int result = 0;
 
@@ -915,7 +916,7 @@ int AddressTestIPv6Lt04(void)
     return result;
 }
 
-int AddressTestIPv6Eq01(void)
+static int AddressTestIPv6Eq01(void)
 {
     int result = 0;
 
@@ -928,7 +929,7 @@ int AddressTestIPv6Eq01(void)
     return result;
 }
 
-int AddressTestIPv6Eq02(void)
+static int AddressTestIPv6Eq02(void)
 {
     int result = 0;
 
@@ -941,7 +942,7 @@ int AddressTestIPv6Eq02(void)
     return result;
 }
 
-int AddressTestIPv6Eq03(void)
+static int AddressTestIPv6Eq03(void)
 {
     int result = 0;
 
@@ -954,7 +955,7 @@ int AddressTestIPv6Eq03(void)
     return result;
 }
 
-int AddressTestIPv6Eq04(void)
+static int AddressTestIPv6Eq04(void)
 {
     int result = 0;
 
@@ -967,7 +968,7 @@ int AddressTestIPv6Eq04(void)
     return result;
 }
 
-int AddressTestIPv6Le01(void)
+static int AddressTestIPv6Le01(void)
 {
     int result = 0;
 
@@ -980,7 +981,7 @@ int AddressTestIPv6Le01(void)
     return result;
 }
 
-int AddressTestIPv6Le02(void)
+static int AddressTestIPv6Le02(void)
 {
     int result = 0;
 
@@ -993,7 +994,7 @@ int AddressTestIPv6Le02(void)
     return result;
 }
 
-int AddressTestIPv6Le03(void)
+static int AddressTestIPv6Le03(void)
 {
     int result = 0;
 
@@ -1006,7 +1007,7 @@ int AddressTestIPv6Le03(void)
     return result;
 }
 
-int AddressTestIPv6Le04(void)
+static int AddressTestIPv6Le04(void)
 {
     int result = 0;
 
@@ -1019,7 +1020,7 @@ int AddressTestIPv6Le04(void)
     return result;
 }
 
-int AddressTestIPv6Le05(void)
+static int AddressTestIPv6Le05(void)
 {
     int result = 0;
 
@@ -1041,7 +1042,7 @@ int AddressTestIPv6Le05(void)
     return result;
 }
 
-int AddressTestIPv6Ge01(void)
+static int AddressTestIPv6Ge01(void)
 {
     int result = 0;
 
@@ -1054,7 +1055,7 @@ int AddressTestIPv6Ge01(void)
     return result;
 }
 
-int AddressTestIPv6Ge02(void)
+static int AddressTestIPv6Ge02(void)
 {
     int result = 0;
 
@@ -1067,7 +1068,7 @@ int AddressTestIPv6Ge02(void)
     return result;
 }
 
-int AddressTestIPv6Ge03(void)
+static int AddressTestIPv6Ge03(void)
 {
     int result = 0;
 
@@ -1080,7 +1081,7 @@ int AddressTestIPv6Ge03(void)
     return result;
 }
 
-int AddressTestIPv6Ge04(void)
+static int AddressTestIPv6Ge04(void)
 {
     int result = 0;
 
@@ -1093,7 +1094,7 @@ int AddressTestIPv6Ge04(void)
     return result;
 }
 
-int AddressTestIPv6Ge05(void)
+static int AddressTestIPv6Ge05(void)
 {
     int result = 0;
 
@@ -1115,7 +1116,7 @@ int AddressTestIPv6Ge05(void)
     return result;
 }
 
-int AddressTestIPv6SubOne01(void)
+static int AddressTestIPv6SubOne01(void)
 {
     int result = 0;
 
@@ -1144,7 +1145,7 @@ int AddressTestIPv6SubOne01(void)
     return result;
 }
 
-int AddressTestIPv6SubOne02(void)
+static int AddressTestIPv6SubOne02(void)
 {
     int result = 0;
 
@@ -1173,7 +1174,7 @@ int AddressTestIPv6SubOne02(void)
     return result;
 }
 
-int AddressTestIPv6AddOne01(void)
+static int AddressTestIPv6AddOne01(void)
 {
     int result = 0;
 
@@ -1202,7 +1203,7 @@ int AddressTestIPv6AddOne01(void)
     return result;
 }
 
-int AddressTestIPv6AddOne02(void)
+static int AddressTestIPv6AddOne02(void)
 {
     int result = 0;
 

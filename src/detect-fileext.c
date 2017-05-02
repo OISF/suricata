@@ -53,7 +53,7 @@
 
 static int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFileextSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFileextSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFileextRegisterTests(void);
 static void DetectFileextFree(void *);
 static int g_file_match_list_id = 0;
@@ -198,7 +198,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectFileextData *fileext= NULL;
     SigMatch *sm = NULL;

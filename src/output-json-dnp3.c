@@ -40,6 +40,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-dnp3.h"
 #include "output-json-dnp3-objects.h"
 
 #ifdef HAVE_LIBJANSSON
@@ -389,7 +390,7 @@ static OutputCtx *OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonDNP3LogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDNP3LogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {

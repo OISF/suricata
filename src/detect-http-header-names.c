@@ -44,6 +44,7 @@
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-http-header-common.h"
+#include "detect-http-header-names.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -212,7 +213,7 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-int PrefilterTxHttpRequestHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
@@ -292,7 +293,7 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-int PrefilterTxHttpResponseHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
@@ -309,7 +310,7 @@ int PrefilterTxHttpResponseHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ct
 #endif
 }
 
-int InspectEngineHttpHeaderNames(ThreadVars *tv,
+static int InspectEngineHttpHeaderNames(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
@@ -357,7 +358,7 @@ int InspectEngineHttpHeaderNames(ThreadVars *tv,
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     s->init_data->list = g_buffer_id;
     return 0;

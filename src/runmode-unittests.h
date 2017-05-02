@@ -24,6 +24,6 @@
 #ifndef __UTIL_RUNMODE_UNITTESTS_H__
 #define __UTIL_RUNMODE_UNITTESTS_H__
 
-int RunUnittests(int list_unittests, char *regex_arg);
+void RunUnittests(int list_unittests, const char *regex_arg);
 
 #endif /* __UTIL_RUNMODE_UNITTESTS_H__ */

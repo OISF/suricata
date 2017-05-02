@@ -27,8 +27,8 @@
 #define SC_HINFO_IS_IPV6 0
 #define SC_HINFO_IS_IPV4 1
 
-int SCHInfoAddHostOSInfo(char *, char *, int);
-int SCHInfoGetHostOSFlavour(char *);
+int SCHInfoAddHostOSInfo(const char *, const char *, int);
+int SCHInfoGetHostOSFlavour(const char *);
 int SCHInfoGetIPv4HostOSFlavour(uint8_t *);
 int SCHInfoGetIPv6HostOSFlavour(uint8_t *);
 void SCHInfoCleanResources(void);

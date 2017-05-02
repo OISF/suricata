@@ -370,7 +370,7 @@ static TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, const Packet *p, void *
     return TM_ECODE_OK;
 }
 
-static TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode AlertDebugLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     AlertDebugLogThread *aft = SCMalloc(sizeof(AlertDebugLogThread));
     if (unlikely(aft == NULL))

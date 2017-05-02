@@ -46,6 +46,5 @@
 #include "suricata-common.h"
 
 bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_all);
-int64_t SC_htp_parse_content_length(bstr *b);
 
 #endif /* __APP_LAYER_HTP_LIBHTP__H__ */

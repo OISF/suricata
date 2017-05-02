@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, char *str);
+static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, const char *str);
 
 /**
  * \brief Registration function for the reference: keyword
@@ -90,7 +90,7 @@ void DetectReferenceFree(DetectReference *ref)
  * \retval ref  Pointer to signature reference on success.
  * \retval NULL On failure.
  */
-static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_ctx)
+static DetectReference *DetectReferenceParse(const char *rawstr, DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
@@ -170,7 +170,7 @@ error:
  * \retval -1 On Failure.
  */
 static int DetectReferenceSetup(DetectEngineCtx *de_ctx, Signature *s,
-                                char *rawstr)
+                                const char *rawstr)
 {
     SCEnter();
 

@@ -56,6 +56,7 @@
 
 #include "util-lua.h"
 #include "util-lua-common.h"
+#include "util-lua-dns.h"
 
 static int DnsGetDnsRrname(lua_State *luastate)
 {

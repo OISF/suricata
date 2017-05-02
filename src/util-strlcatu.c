@@ -27,18 +27,13 @@
 
 /* $Id: strlcatu.c,v 1.4 2003/10/20 15:03:27 chrisgreen Exp $ */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "suricata-common.h"
 
 #ifndef HAVE_STRLCAT
 
 #if defined(LIBC_SCCS) && !defined(lint)
 static char *rcsid = "$OpenBSD: strlcat.c,v 1.5 2001/01/13 16:17:24 millert Exp $";
 #endif /* LIBC_SCCS and not lint */
-
-#include <sys/types.h>
-#include <string.h>
 
 /*
  * Appends src to string dst of size siz (unlike strncat, siz is the

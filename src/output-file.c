@@ -185,7 +185,7 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputFileLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode OutputFileLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)

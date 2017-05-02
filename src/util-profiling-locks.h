@@ -37,8 +37,8 @@ enum {
 
 void SCProfilingAddPacketLocks(void *);
 
-int LockRecordInitHash();
-void LockRecordFreeHash();
+int LockRecordInitHash(void);
+void LockRecordFreeHash(void);
 
 #endif /* PROFILING */
 #endif /* __UTIL_PROFILE_LOCKS_H__ */

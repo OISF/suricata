@@ -57,7 +57,7 @@
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"
 
-static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceStubDataRegisterTests(void);
 static int g_dce_stub_data_buffer_id = 0;
 
@@ -235,7 +235,7 @@ void DetectDceStubDataRegister(void)
  * \retval 0 on success, -1 on failure
  */
 
-static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
         return -1;

@@ -96,7 +96,7 @@ void HostFree(Host *h)
     }
 }
 
-Host *HostNew(Address *a)
+static Host *HostNew(Address *a)
 {
     Host *h = HostAlloc();
     if (h == NULL)
@@ -148,7 +148,7 @@ void HostInitConfig(char quiet)
     host_config.prealloc    = HOST_DEFAULT_PREALLOC;
 
     /* Check if we have memcap and hash_size defined at config */
-    char *conf_val;
+    const char *conf_val;
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
@@ -345,7 +345,7 @@ void HostCleanup(void)
  *  hash_rand -- set at init time
  *  source address
  */
-uint32_t HostGetKey(Address *a)
+static inline uint32_t HostGetKey(Address *a)
 {
     uint32_t key;
 
@@ -424,7 +424,7 @@ static Host *HostGetNew(Address *a)
     return h;
 }
 
-void HostInit(Host *h, Address *a)
+static void HostInit(Host *h, Address *a)
 {
     COPY_ADDRESS(a, &h->a);
     (void) HostIncrUsecnt(h);

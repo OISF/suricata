@@ -54,7 +54,7 @@
 
 static int DetectFilenameMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, const Signature *, const SigMatchCtx *);
-static int DetectFilenameSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectFilenameSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFilenameRegisterTests(void);
 static void DetectFilenameFree(void *);
 static int g_file_match_list_id = 0;
@@ -215,7 +215,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     DetectFilenameData *filename = NULL;
     SigMatch *sm = NULL;

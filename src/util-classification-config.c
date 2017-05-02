@@ -54,7 +54,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
-static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
+static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 void SCClassConfInit(void)
 {
@@ -105,9 +105,9 @@ void SCClassConfDeinit(void)
  *
  * \retval fp NULL on error
  */
-FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
+static FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    char *filename = NULL;
+    const char *filename = NULL;
 
     /* init the hash table to be used by the classification config Classtypes */
     de_ctx->class_conf_ht = HashTableInit(128, SCClassConfClasstypeHashFunc,
@@ -160,9 +160,9 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval log_filename Pointer to a string containing the path for the
  *                      Classification Config file.
  */
-static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
+static const char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
-    char *log_filename = NULL;
+    const char *log_filename = NULL;
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
         char config_value[256];
@@ -244,7 +244,7 @@ static char *SCClassConfStringToLowercase(const char *str)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx)
+static int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx)
 {
     char ct_name[64];
     char ct_desc[512];
@@ -352,7 +352,7 @@ static int SCClassConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+static void SCClassConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint8_t i = 1;
@@ -648,7 +648,7 @@ FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void)
  * \test Check that the classification file is loaded and the detection engine
  *       content class_conf_hash_table loaded with the classtype data.
  */
-int SCClassConfTest01(void)
+static int SCClassConfTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -674,7 +674,7 @@ int SCClassConfTest01(void)
  * \test Check that invalid classtypes present in the classification config file
  *       aren't loaded.
  */
-int SCClassConfTest02(void)
+static int SCClassConfTest02(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -699,7 +699,7 @@ int SCClassConfTest02(void)
  * \test Check that only valid classtypes are loaded into the hash table from
  *       the classfication.config file.
  */
-int SCClassConfTest03(void)
+static int SCClassConfTest03(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 0;
@@ -724,7 +724,7 @@ int SCClassConfTest03(void)
  * \test Check if the classtype info from the classification.config file have
  *       been loaded into the hash table.
  */
-int SCClassConfTest04(void)
+static int SCClassConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;
@@ -757,7 +757,7 @@ int SCClassConfTest04(void)
  *       have not been loaded into the hash table, and cross verify to check
  *       that the hash table contains no classtype data.
  */
-int SCClassConfTest05(void)
+static int SCClassConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;
@@ -789,7 +789,7 @@ int SCClassConfTest05(void)
  * \test Check if the classtype info from the classification.config file have
  *       been loaded into the hash table.
  */
-int SCClassConfTest06(void)
+static int SCClassConfTest06(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     int result = 1;

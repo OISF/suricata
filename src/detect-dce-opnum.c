@@ -56,7 +56,7 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectDceOpnumMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectDceOpnumSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceOpnumFree(void *);
 static void DetectDceOpnumRegisterTests(void);
 static int g_dce_generic_list_id = 0;
@@ -285,7 +285,7 @@ static int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval 0 on success, -1 on failure
  */
 
-static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectDceOpnumData *dod = NULL;
     SigMatch *sm = NULL;

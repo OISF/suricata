@@ -49,11 +49,12 @@
 
 #include "app-layer.h"
 #include "app-layer-ssl.h"
+#include "detect-tls-cert-serial.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectTlsSerialSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTlsSerialSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSerialRegisterTests(void);
 static int g_tls_cert_serial_buffer_id = 0;
 
@@ -91,7 +92,7 @@ void DetectTlsSerialRegister(void)
  *
  * \retval 0       On success
  */
-static int DetectTlsSerialSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsSerialSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_tls_cert_serial_buffer_id;
 

@@ -452,7 +452,7 @@ static int TemplateSetTxDetectState(void *state, void *vtx,
 
 void RegisterTemplateParsers(void)
 {
-    char *proto_name = "template";
+    const char *proto_name = "template";
 
     /* TEMPLATE_START_REMOVE */
     if (ConfGetNode("app-layer.protocols.template") == NULL) {

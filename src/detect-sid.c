@@ -27,11 +27,12 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-sid.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-unittest.h"
 
-static int DetectSidSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectSidSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectSidRegisterTests(void);
 
 void DetectSidRegister (void)
@@ -45,23 +46,8 @@ void DetectSidRegister (void)
     sigmatch_table[DETECT_SID].RegisterTests = DetectSidRegisterTests;
 }
 
-static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
+static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, const char *sidstr)
 {
-    char *str = sidstr;
-    char duped = 0;
-
-    /* Strip leading and trailing "s. */
-    if (sidstr[0] == '\"') {
-        str = SCStrdup(sidstr + 1);
-        if (unlikely(str == NULL)) {
-            return -1;
-        }
-        if (strlen(str) && str[strlen(str) - 1] == '\"') {
-            str[strlen(str) - 1] = '\0';
-        }
-        duped = 1;
-    }
-
     unsigned long id = 0;
     char *endptr = NULL;
     id = strtoul(sidstr, &endptr, 10);
@@ -76,14 +62,9 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
     }
 
     s->id = (uint32_t)id;
-
-    if (duped)
-        SCFree(str);
     return 0;
 
  error:
-    if (duped)
-        SCFree(str);
     return -1;
 }
 

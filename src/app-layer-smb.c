@@ -1567,7 +1567,7 @@ static int SMBRegisterPatternsForProtocolDetection(void)
 
 void RegisterSMBParsers(void)
 {
-    char *proto_name = "smb";
+    const char *proto_name = "smb";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMB, proto_name);
@@ -1631,7 +1631,7 @@ void RegisterSMBParsers(void)
 /**
  * \test SMBParserTest01 tests the NBSS and SMB header decoding
  */
-int SMBParserTest01(void)
+static int SMBParserTest01(void)
 {
     int result = 0;
     Flow f;
@@ -1703,7 +1703,7 @@ end:
 /**
  * \test SMBParserTest02 tests the NBSS, SMB, and DCERPC over SMB header decoding
  */
-int SMBParserTest02(void)
+static int SMBParserTest02(void)
 {
     int result = 0;
     Flow f;
@@ -1781,7 +1781,7 @@ end:
     return result;
 }
 
-int SMBParserTest03(void)
+static int SMBParserTest03(void)
 {
     int result = 0;
     Flow f;
@@ -2088,7 +2088,7 @@ end:
     return result;
 }
 
-int SMBParserTest04(void)
+static int SMBParserTest04(void)
 {
     int result = 0;
     Flow f;
@@ -2219,7 +2219,7 @@ end:
     return result;
 }
 
-int SMBParserTest05(void)
+static int SMBParserTest05(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2320,7 +2320,7 @@ int SMBParserTest05(void)
     return result;
 }
 
-int SMBParserTest06(void)
+static int SMBParserTest06(void)
 {
     AppLayerProtoDetectUnittestCtxBackup();
     AppLayerProtoDetectSetup();
@@ -2404,7 +2404,7 @@ int SMBParserTest06(void)
     return result;
 }
 
-int SMBParserTest07(void)
+static int SMBParserTest07(void)
 {
     int result = 0;
     Flow f;
@@ -2465,7 +2465,7 @@ end:
     return result;
 }
 
-int SMBParserTest08(void)
+static int SMBParserTest08(void)
 {
     int result = 0;
     Flow f;
@@ -2569,7 +2569,7 @@ end:
     return result;
 }
 
-int SMBParserTest09(void)
+static int SMBParserTest09(void)
 {
     int result = 0;
     Flow f;
@@ -2691,7 +2691,7 @@ end:
  * \test Test to temporarily to show the direction demaraction issue in the
  *       smb parser.
  */
-int SMBParserTest10(void)
+static int SMBParserTest10(void)
 {
     int result = 0;
     Flow f;

@@ -49,11 +49,12 @@
 #include "app-layer.h"
 #include "app-layer-ssl.h"
 #include "detect-engine-tls.h"
+#include "detect-tls-sni.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectTlsSniSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsSniRegisterTests(void);
 static int g_tls_sni_buffer_id = 0;
 
@@ -92,7 +93,7 @@ void DetectTlsSniRegister(void)
  *
  * \retval 0       On success
  */
-static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectTlsSniSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_tls_sni_buffer_id;
     s->alproto = ALPROTO_TLS;

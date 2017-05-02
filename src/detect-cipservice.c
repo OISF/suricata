@@ -39,7 +39,7 @@
 /**
  * \brief CIP Service Detect Prototypes
  */
-static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
 static int g_cip_buffer_id = 0;
@@ -200,7 +200,7 @@ error:
  * \retval -1 on Failure
  */
 static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
-        char *rulestr)
+        const char *rulestr)
 {
     SCEnter();
 
@@ -293,7 +293,7 @@ static void DetectCipServiceRegisterTests(void)
 /**
  * \brief ENIP Commond Detect Prototypes
  */
-static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
 static int g_enip_buffer_id = 0;
@@ -372,7 +372,7 @@ error:
  * \retval -1 on Failure
  */
 static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
-        char *rulestr)
+        const char *rulestr)
 {
     DetectEnipCommandData *enipcmdd = NULL;
     SigMatch *sm = NULL;

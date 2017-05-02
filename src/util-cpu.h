@@ -25,14 +25,14 @@
 #define __UTIL_CPU_H__
 
 /* Processors configured: */
-uint16_t UtilCpuGetNumProcessorsConfigured();
+uint16_t UtilCpuGetNumProcessorsConfigured(void);
 /* Processors online: */
-uint16_t UtilCpuGetNumProcessorsOnline();
+uint16_t UtilCpuGetNumProcessorsOnline(void);
 
 /* Only on Solaris */
-uint16_t UtilCpuGetNumProcessorsMax();
+uint16_t UtilCpuGetNumProcessorsMax(void);
 
-void UtilCpuPrintSummary();
+void UtilCpuPrintSummary(void);
 
 uint64_t UtilCpuGetTicks(void);
 

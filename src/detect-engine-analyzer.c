@@ -216,7 +216,7 @@ int SetupFPAnalyzer(void)
     if (fp_engine_analysis_set == 0)
         return 0;
 
-    char *log_dir;
+    const char *log_dir;
     log_dir = ConfigGetLogDirectory();
     snprintf(log_path, sizeof(log_path), "%s/%s", log_dir,
              "rules_fast_pattern.txt");
@@ -267,7 +267,7 @@ int SetupRuleAnalyzer(void)
             rule_warnings_only = 1;
         }
         if (enabled) {
-            char *log_dir;
+            const char *log_dir;
             log_dir = ConfigGetLogDirectory();
             snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, "rules_analysis.txt");
             rule_engine_analysis_FD = fopen(log_path, "w");

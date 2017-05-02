@@ -55,7 +55,7 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
-static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, char *);
+static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceIfaceFree(void *);
 static void DetectDceIfaceRegisterTests(void);
 static int g_dce_generic_list_id = 0;
@@ -365,7 +365,7 @@ end:
  * \retval 0 on success, -1 on failure.
  */
 
-static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
     DetectDceIfaceData *did = NULL;
     SigMatch *sm = NULL;

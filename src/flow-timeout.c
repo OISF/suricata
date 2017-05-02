@@ -39,6 +39,7 @@
 #include "flow-var.h"
 #include "flow-private.h"
 #include "flow-manager.h"
+#include "flow-timeout.h"
 #include "pkt-var.h"
 #include "host.h"
 

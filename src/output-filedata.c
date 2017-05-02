@@ -294,7 +294,7 @@ static void LogFiledataLogStoreWaldo(const char *path)
 /** \brief thread init for the tx logger
  *  This will run the thread init functions for the individual registered
  *  loggers */
-static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void **data)
+static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
@@ -363,7 +363,7 @@ static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void 
             }
         }
         if (node != NULL) {
-            char *s_default_log_dir = NULL;
+            const char *s_default_log_dir = NULL;
             s_default_log_dir = ConfigGetLogDirectory();
 
             const char *waldo = node->val;

@@ -51,7 +51,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
         const Signature *, const SigMatchCtx *);
-static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
@@ -117,7 +117,7 @@ static int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet 
  * \retval id_d pointer to DetectIdData on success
  * \retval NULL on failure
  */
-DetectIdData *DetectIdParse (char *idstr)
+static DetectIdData *DetectIdParse (const char *idstr)
 {
     uint32_t temp;
     DetectIdData *id_d = NULL;
@@ -195,7 +195,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *idstr)
+int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, const char *idstr)
 {
     DetectIdData *id_d = NULL;
     SigMatch *sm = NULL;
@@ -299,7 +299,7 @@ static _Bool PrefilterIdIsPrefilterable(const Signature *s)
  * \test DetectIdTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-int DetectIdTestParse01 (void)
+static int DetectIdTestParse01 (void)
 {
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse(" 35402 ");
@@ -316,7 +316,7 @@ int DetectIdTestParse01 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-int DetectIdTestParse02 (void)
+static int DetectIdTestParse02 (void)
 {
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse("65537");
@@ -333,7 +333,7 @@ int DetectIdTestParse02 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-int DetectIdTestParse03 (void)
+static int DetectIdTestParse03 (void)
 {
     DetectIdData *id_d = NULL;
     id_d = DetectIdParse("12what?");
@@ -349,7 +349,7 @@ int DetectIdTestParse03 (void)
  * \test DetectIdTestParse04 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option but wrapped with "'s
  */
-int DetectIdTestParse04 (void)
+static int DetectIdTestParse04 (void)
 {
     DetectIdData *id_d = NULL;
     /* yep, look if we trim blank spaces correctly and ignore "'s */
@@ -366,7 +366,7 @@ int DetectIdTestParse04 (void)
  * \test DetectIdTestSig01
  * \brief Test to check "id" keyword with constructed packets
  */
-int DetectIdTestMatch01(void)
+static int DetectIdTestMatch01(void)
 {
     int result = 0;
     uint8_t *buf = (uint8_t *)"Hi all!";
@@ -388,7 +388,7 @@ int DetectIdTestMatch01(void)
     /* UDP IP id = 91011 */
     p[2]->ip4h->ip_id = htons(5101);
 
-    char *sigs[3];
+    const char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; id:1234; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; id:5678; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; id:5101; sid:3;)";

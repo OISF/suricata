@@ -39,6 +39,7 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
 #include "detect-engine-dcepayload.h"
+#include "detect-engine-file.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -73,7 +74,7 @@
  *  \note flow is not locked at this time
  */
 static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Flow *f, Signature *s, const SigMatchData *smd,
+        Flow *f, const Signature *s, const SigMatchData *smd,
         uint8_t flags, FileContainer *ffc)
 {
     int r = 0;
@@ -230,7 +231,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
  */
 int DetectFileInspectHttp(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
@@ -275,7 +276,7 @@ int DetectFileInspectHttp(ThreadVars *tv,
  */
 int DetectFileInspectSmtp(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Signature *s, const SigMatchData *smd,
+        const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();

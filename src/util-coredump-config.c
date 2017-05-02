@@ -40,7 +40,7 @@ int32_t CoredumpLoadConfig (void)
 {
 #ifdef HAVE_SYS_RESOURCE_H
     /* get core dump configuration settings for suricata */
-    char* dump_size_config = NULL;
+    const char *dump_size_config = NULL;
     rlim_t max_dump = 0;
     uint32_t unlimited = 0;
     size_t rlim_size = sizeof(rlim_t);

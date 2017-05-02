@@ -53,6 +53,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 #include "output-json-dnp3.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
@@ -175,7 +176,7 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
 
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 {
-    char *action = "allowed";
+    const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
         if (PACKET_TEST_ACTION(p, (ACTION_DROP|ACTION_REJECT|
@@ -488,7 +489,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
             continue;
         }
 
-        char *action = "allowed";
+        const char *action = "allowed";
         if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
             action = "blocked";
         } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
@@ -562,7 +563,7 @@ static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     JsonAlertLogThread *aft = SCMalloc(sizeof(JsonAlertLogThread));
     if (unlikely(aft == NULL))

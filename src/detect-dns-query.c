@@ -58,7 +58,7 @@
 
 #include "util-unittest-helper.h"
 
-static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, char *);
+static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectDnsQueryRegisterTests(void);
 static int g_dns_query_buffer_id = 0;
 
@@ -114,7 +114,7 @@ void DetectDnsQueryRegister (void)
  * \retval -1 On failure
  */
 
-static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     s->init_data->list = g_dns_query_buffer_id;
     s->alproto = ALPROTO_DNS;

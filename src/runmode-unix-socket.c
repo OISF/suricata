@@ -196,7 +196,7 @@ static TmEcode UnixListAddFile(PcapCommand *this,
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
 {
     PcapCommand *this = (PcapCommand *) data;
     int ret;
@@ -283,7 +283,7 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
  * \param this a UnixCommand:: structure
  * \retval 0 in case of error, 1 in case of success
  */
-TmEcode UnixSocketPcapFilesCheck(void *data)
+static TmEcode UnixSocketPcapFilesCheck(void *data)
 {
     PcapCommand *this = (PcapCommand *) data;
     if (unix_manager_file_task_running == 1) {

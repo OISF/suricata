@@ -152,19 +152,19 @@ void SSLSetEvent(SSLState *ssl_state, uint8_t event)
     ssl_state->events++;
 }
 
-AppLayerDecoderEvents *SSLGetEvents(void *state, uint64_t id)
+static AppLayerDecoderEvents *SSLGetEvents(void *state, uint64_t id)
 {
     SSLState *ssl_state = (SSLState *)state;
     return ssl_state->decoder_events;
 }
 
-int SSLHasEvents(void *state)
+static int SSLHasEvents(void *state)
 {
     SSLState *ssl_state = (SSLState *)state;
     return (ssl_state->events > 0);
 }
 
-int SSLStateHasTxDetectState(void *state)
+static int SSLStateHasTxDetectState(void *state)
 {
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state->de_state)
@@ -173,39 +173,39 @@ int SSLStateHasTxDetectState(void *state)
     return 0;
 }
 
-int SSLSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
+static int SSLSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
 {
     SSLState *ssl_state = (SSLState *)state;
     ssl_state->de_state = de_state;
     return 0;
 }
 
-DetectEngineState *SSLGetTxDetectState(void *vtx)
+static DetectEngineState *SSLGetTxDetectState(void *vtx)
 {
     SSLState *ssl_state = (SSLState *)vtx;
     return ssl_state->de_state;
 }
 
-void *SSLGetTx(void *state, uint64_t tx_id)
+static void *SSLGetTx(void *state, uint64_t tx_id)
 {
     SSLState *ssl_state = (SSLState *)state;
     return ssl_state;
 }
 
-uint64_t SSLGetTxCnt(void *state)
+static uint64_t SSLGetTxCnt(void *state)
 {
     /* single tx */
     return 1;
 }
 
-void SSLSetTxLogged(void *state, void *tx, uint32_t logger)
+static void SSLSetTxLogged(void *state, void *tx, uint32_t logger)
 {
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state)
         ssl_state->logged |= logger;
 }
 
-int SSLGetTxLogged(void *state, void *tx, uint32_t logger)
+static int SSLGetTxLogged(void *state, void *tx, uint32_t logger)
 {
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state && (ssl_state->logged & logger))
@@ -214,12 +214,12 @@ int SSLGetTxLogged(void *state, void *tx, uint32_t logger)
     return 0;
 }
 
-int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
+static int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return TLS_STATE_FINISHED;
 }
 
-int SSLGetAlstateProgress(void *tx, uint8_t direction)
+static int SSLGetAlstateProgress(void *tx, uint8_t direction)
 {
     SSLState *ssl_state = (SSLState *)tx;
 
@@ -1520,14 +1520,14 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
     return 1;
 }
 
-int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+static int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
-int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
+static int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data)
 {
@@ -1538,7 +1538,7 @@ int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
  * \internal
  * \brief Function to allocate the SSL state memory.
  */
-void *SSLStateAlloc(void)
+static void *SSLStateAlloc(void)
 {
     SSLState *ssl_state = SCMalloc(sizeof(SSLState));
     if (unlikely(ssl_state == NULL))
@@ -1555,7 +1555,7 @@ void *SSLStateAlloc(void)
  * \internal
  * \brief Function to free the SSL state memory.
  */
-void SSLStateFree(void *p)
+static void SSLStateFree(void *p)
 {
     SSLState *ssl_state = (SSLState *)p;
     SSLCertsChain *item;
@@ -1602,7 +1602,7 @@ void SSLStateFree(void *p)
     return;
 }
 
-void SSLStateTransactionFree(void *state, uint64_t tx_id)
+static void SSLStateTransactionFree(void *state, uint64_t tx_id)
 {
     /* do nothing */
 }
@@ -1622,7 +1622,7 @@ static uint16_t SSLProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
     return ALPROTO_FAILED;
 }
 
-int SSLStateGetEventInfo(const char *event_name,
+static int SSLStateGetEventInfo(const char *event_name,
                          int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, tls_decoder_event_table);
@@ -1788,7 +1788,7 @@ static int SSLRegisterPatternsForProtocolDetection(void)
  */
 void RegisterSSLParsers(void)
 {
-    char *proto_name = "tls";
+    const char *proto_name = "tls";
 
     /** SSLv2  and SSLv23*/
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
