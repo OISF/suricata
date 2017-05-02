@@ -484,46 +484,42 @@ static int DetectIsdataatTestParse05(void)
 
 static int DetectIsdataatTestParse06(void)
 {
-    DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    Signature *s = NULL;
-    DetectIsdataatData *data = NULL;
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
                                "content:\"one\"; "
                                "isdataat:!4,relative; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        goto end;
-    }
+    FAIL_IF(s == NULL);
 
-    s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        goto end;
-    }
+    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL);
 
-    result = 1;
+    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
+    DetectIsdataatData *data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
 
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:\"one\"; "
+                               "isdataat: !4,relative; sid:2;)");
+    FAIL_IF(s == NULL);
+
+    FAIL_IF(s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL);
+
+    FAIL_IF_NOT(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
     data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    if ( !(data->flags & ISDATAAT_RELATIVE) ||
-         (data->flags & ISDATAAT_RAWBYTES) ||
-         !(data->flags & ISDATAAT_NEGATED) ) {
-        result = 0;
-        goto end;
-    }
 
- end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    FAIL_IF_NOT(data->flags & ISDATAAT_RELATIVE);
+    FAIL_IF(data->flags & ISDATAAT_RAWBYTES);
+    FAIL_IF_NOT(data->flags & ISDATAAT_NEGATED);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
+    PASS;
 }
 
 /**
