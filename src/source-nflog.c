@@ -209,9 +209,9 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
  * \retvalTM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on error
  */
-TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
-    NflogGroupConfig *nflconfig = initdata;
+    NflogGroupConfig *nflconfig = (NflogGroupConfig *)initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -526,7 +526,7 @@ TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
  * \retval TM_ECODE_OK is returned on success
  * \retval TM_ECODE_FAILED is returned on error
  */
-TmEcode DecodeNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode DecodeNFLOGThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     DecodeThreadVars *dtv = NULL;
     dtv = DecodeThreadVarsAlloc(tv);
