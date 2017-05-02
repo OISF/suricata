@@ -589,10 +589,8 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
 {
-#ifndef OS_WIN32
     struct timeval tv;
     int opt;
-#endif
     NFQQueueVars *q = NFQGetQueue(t->nfq_index);
     if (q == NULL) {
         SCLogError(SC_ERR_NFQ_OPEN, "no queue for given index");
@@ -663,7 +661,6 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
     }
 #endif /* HAVE_NFQ_MAXLEN */
 
-#ifndef OS_WIN32
     /* set netlink buffer size to a decent value */
     nfnl_rcvbufsiz(nfq_nfnlh(q->h), queue_maxlen * 1500);
     SCLogInfo("setting nfnl bufsize to %" PRId32 "", queue_maxlen * 1500);
@@ -728,12 +725,6 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
 
     SCLogDebug("nfq_q->h %p, nfq_q->nh %p, nfq_q->qh %p, nfq_q->fd %" PRId32 "",
             q->h, q->nh, q->qh, q->fd);
-#else /* OS_WIN32 */
-    NFQMutexInit(q);
-    q->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    q->fd = nfq_fd(q->h);
-    SCLogDebug("q->h %p, q->qh %p, q->fd %p", q->h, q->qh, q->fd);
-#endif /* OS_WIN32 */
 
     return TM_ECODE_OK;
 }
@@ -742,11 +733,9 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, const void *initdata, void **data)
 {
     SCMutexLock(&nfq_init_lock);
 
-#ifndef OS_WIN32
     sigset_t sigs;
     sigfillset(&sigs);
     pthread_sigmask(SIG_BLOCK, &sigs, NULL);
-#endif /* OS_WIN32 */
 
     NFQThreadVars *ntv = (NFQThreadVars *) initdata;
     /* store the ThreadVars pointer in our NFQ thread context
@@ -914,7 +903,6 @@ void *NFQGetThread(int number)
  *
  * \note separate functions for Linux and Win32 for readability.
  */
-#ifndef OS_WIN32
 static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
 {
     int rv, ret;
@@ -959,75 +947,6 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
         }
     }
 }
-#else /* WIN32 version of NFQRecvPkt */
-void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
-{
-    int rv, ret;
-    static int timeouted = 0;
-
-    if (timeouted) {
-        if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
-            rv = -1;
-            errno = EINTR;
-            goto process_rv;
-        }
-        timeouted = 0;
-    }
-
-read_packet_again:
-
-    if (!ReadFile(t->fd, tv->buf, sizeof(tv->buf), (DWORD*)&rv, &t->ovr)) {
-        if (GetLastError() != ERROR_IO_PENDING) {
-            rv = -1;
-            errno = EIO;
-        } else {
-            if (WaitForSingleObject(t->ovr.hEvent, 1000) == WAIT_TIMEOUT) {
-                rv = -1;
-                errno = EINTR;
-                timeouted = 1;
-            } else {
-                /* We needn't to call GetOverlappedResult() because it always
-                 * fail with our error code ERROR_MORE_DATA. */
-                goto read_packet_again;
-            }
-        }
-    }
-
-process_rv:
-
-    if (rv < 0) {
-        if (errno == EINTR) {
-            /* no error on timeout */
-        } else {
-#ifdef COUNTERS
-            t->errs++;
-#endif /* COUNTERS */
-        }
-    } else if(rv == 0) {
-        SCLogWarning(SC_ERR_NFQ_RECV, "recv got returncode 0");
-    } else {
-#ifdef DBG_PERF
-        if (rv > t->dbg_maxreadsize)
-            t->dbg_maxreadsize = rv;
-#endif /* DBG_PERF */
-
-        //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
-
-        NFQMutexLock(t);
-        if (t->qh) {
-            ret = nfq_handle_packet(t->h, buf, rv);
-        } else {
-            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
-            ret = -1;
-        }
-        NFQMutexUnlock(t);
-
-        if (ret != 0) {
-            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
-        }
-    }
-}
-#endif /* OS_WIN32 */
 
 /**
  *  \brief Main NFQ reading Loop function

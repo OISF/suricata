@@ -821,45 +821,28 @@
     fi
 
     # enable support for NFQUEUE
-    AS_IF([test "x$enable_nfqueue" = "xyes"], [
+    if test "x$enable_nfqueue" = "xyes"; then
         AC_DEFINE_UNQUOTED([NFQ],[1],[Enable Linux Netfilter NFQUEUE support for inline IDP])
 
-  #libnetfilter_queue
-    AC_ARG_WITH(libnetfilter_queue_includes,
+      #libnetfilter_queue
+        AC_ARG_WITH(libnetfilter_queue_includes,
             [  --with-libnetfilter_queue-includes=DIR  libnetfilter_queue include directory],
             [with_libnetfilter_queue_includes="$withval"],[with_libnetfilter_queue_includes=no])
-    AC_ARG_WITH(libnetfilter_queue_libraries,
+        AC_ARG_WITH(libnetfilter_queue_libraries,
             [  --with-libnetfilter_queue-libraries=DIR    libnetfilter_queue library directory],
             [with_libnetfilter_queue_libraries="$withval"],[with_libnetfilter_queue_libraries="no"])
 
-    if test "$with_libnetfilter_queue_includes" != "no"; then
-        CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
-    fi
-
-    AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
-
-    if test "$with_libnetfilter_queue_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
-    fi
-
-    #LDFLAGS="${LDFLAGS} -lnetfilter_queue"
-
-    NFQ=""
-    case $host in
-    *-*-mingw32*)
-        AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",-lws2_32)
-
-        AC_ARG_WITH(netfilterforwin_includes,
-            [  --with-netfilterforwin-includes=DIR  netfilterforwin include directory],
-            [with_netfilterforwin_includes="$withval"],[with_netfilterforwin_includes=no])
-
-        if test "$with_netfilterforwin_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_netfilterforwin_includes}"
-        else
-            CPPFLAGS="${CPPFLAGS} -I../../netfilterforwin"
+        if test "$with_libnetfilter_queue_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
         fi
-        ;;
-    *)
+
+        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+
+        if test "$with_libnetfilter_queue_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
+        fi
+
+        NFQ=""
         AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
         AC_CHECK_LIB([netfilter_queue], [nfq_set_queue_maxlen],AC_DEFINE_UNQUOTED([HAVE_NFQ_MAXLEN],[1],[Found queue max length support in netfilter_queue]) ,,[-lnfnetlink])
         AC_CHECK_LIB([netfilter_queue], [nfq_set_verdict2],AC_DEFINE_UNQUOTED([HAVE_NFQ_SET_VERDICT2],[1],[Found nfq_set_verdict2 function in netfilter_queue]) ,,[-lnfnetlink])
@@ -877,12 +860,12 @@
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
-                #include <stdio.h>
-                #include <libnetfilter_queue/libnetfilter_queue.h>
+                    #include <stdio.h>
+                    #include <libnetfilter_queue/libnetfilter_queue.h>
                 ],
                 [
-                char *pktdata;
-                nfq_get_payload(NULL, &pktdata);
+                    char *pktdata;
+                    nfq_get_payload(NULL, &pktdata);
                 ])],
             [libnetfilter_queue_nfq_get_payload_signed="yes"],
             [libnetfilter_queue_nfq_get_payload_signed="no"])
@@ -891,20 +874,18 @@
             AC_DEFINE([NFQ_GET_PAYLOAD_SIGNED], [1], [For signed version of nfq_get_payload])
         fi
         CFLAGS="${STORECFLAGS}"
-    ;;
-    esac
 
-    if test "$NFQ" = "no"; then
-        echo
-        echo "   ERROR!  libnetfilter_queue library not found, go get it"
-        echo "   from www.netfilter.org."
-        echo "   we automatically append libnetfilter_queue/ when searching"
-        echo "   for headers etc. when the --with-libnfq-includes directive"
-        echo "   is used"
-        echo
-        exit 1
+        if test "$NFQ" = "no"; then
+            echo
+            echo "   ERROR!  libnetfilter_queue library not found, go get it"
+            echo "   from www.netfilter.org."
+            echo "   we automatically append libnetfilter_queue/ when searching"
+            echo "   for headers etc. when the --with-libnfq-includes directive"
+            echo "   is used"
+            echo
+            exit 1
+        fi
     fi
-  ])
 
   # libnetfilter_log
     AC_ARG_WITH(libnetfilter_log_includes,
