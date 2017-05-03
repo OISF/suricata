@@ -18,8 +18,10 @@ import argparse
 import yaml
 import os
 import json
-from subprocess import Popen, check_output, PIPE
+from subprocess import Popen, call, check_output, PIPE
 from pprint import pprint
+from tempfile import mkdtemp
+import shutil
 
 class Metadata:
     def __init__(self, name, event_type, counter):
@@ -37,7 +39,7 @@ class Metadata:
 
 parser = argparse.ArgumentParser(prog='suripcap', description='Script checking pcap')
 
-parser.add_argument('-c', '--config', dest='config', help='specify configuration file to load')
+parser.add_argument('-c', '--config', default="suripcap.yaml", dest='config', help='specify configuration file to load')
 args = parser.parse_args()
 config = args.config
 
@@ -71,6 +73,7 @@ for test in tests:
     config_file = test['config']
     ruleset_file = test['ruleset']
     pcap_file = test['filename']
+    options = test['options']
     if os.path.isfile(config_file):
         print("config_file found")
     else:
@@ -83,9 +86,10 @@ for test in tests:
         print("pcap_file found")
     else:
         print("pcap_file NOT found")
-    cmd = "../src/suricata -c %s -S %s -r %s -l /tmp" % (config_file, ruleset_file, pcap_file)
-    p = Popen(cmd.split(), stdout=PIPE)
-    with open('/tmp/eve.json') as data_file:
+    tmpdir = mkdtemp()
+    cmd = "../src/suricata -c %s -S %s -r %s -l %s %s" % (config_file, ruleset_file, pcap_file, tmpdir, options)
+    p = call(cmd.split(), stdout=PIPE)
+    with open(os.path.join(tmpdir, 'eve.json')) as data_file:
         for line in data_file:
             jsline = json.loads(line)
             for md in mdfilters:
@@ -99,6 +103,7 @@ for test in tests:
                             print("WARNING! '%s' object not found in '%s' event" %(proto, md.event_type))
                 if (jsline[u'event_type'] == "stats"):
                     jsstats = jsline[u'stats'][u'app_layer']
+    shutil.rmtree(tmpdir)
 
     for apl in applayerevents:
         print("Comparing counters for %s" % apl['name'])
