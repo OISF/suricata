@@ -29,15 +29,29 @@ class Metadata:
         self.name = name
         self.event_type = event_type
         self.counter = counter
-        self.filters_dict = {}
+        self.filters_dict = []
         self.seen = 0
 
-    def addFilter(self, proto, key, value):
-        if proto not in self.filters_dict:
-            proto_list = []
-            self.filters_dict[proto] = proto_list
+    def addFilter(self, key, value):
+        key = key.split('.')
+        self.filters_dict.append({'filter_key':key, 'filter_value':value})
 
-        self.filters_dict[proto].append({'filter_key':key, 'filter_value':value})
+    def checkFilters(self, jsline):
+        if (jsline[u'event_type'] == self.event_type):
+            found = True
+            for md_filter in self.filters_dict:
+                try:
+                    obj=jsline
+                    for key in md_filter['filter_key']:
+                        obj = obj[key]
+                    if not obj == md_filter['filter_value']:
+                            found = False
+                            break
+                    if found:
+                        md.seen += 1
+                except KeyError:
+                    pass
+
 
 parser = argparse.ArgumentParser(prog='suripcap', description='Script checking pcap')
 
@@ -64,13 +78,7 @@ for test in tests:
         md = Metadata(metadata['name'], metadata['event_type'], metadata['count'])
         for filter_str in metadata['filter'].split(' '):
             filter_str = filter_str.split('=', 2)
-            if '.' in filter_str[0]:
-                key = filter_str[0].split('.', 2)
-                proto = key[0]
-                key = key[1]
-            else:
-                proto = None
-                key = filter_str[0]
+            key = filter_str[0]
             value = filter_str[1].strip(" ")
             if value.startswith("'"):
                 value = value.strip("'")
@@ -78,7 +86,7 @@ for test in tests:
                 value = False
             elif value == 'true':
                 value = True
-            md.addFilter(proto, key, value)
+            md.addFilter(key, value)
         mdfilters.append(md)
 
     name = test['test']
@@ -107,20 +115,7 @@ for test in tests:
         for line in data_file:
             jsline = json.loads(line)
             for md in mdfilters:
-                if (jsline[u'event_type'] == md.event_type):
-                    for proto in md.filters_dict:
-                        try:
-                            jsobj = jsline[u'%s'%proto]
-                            found = True
-                            for md_filter in md.filters_dict[proto]:
-                                if not jsobj[md_filter["filter_key"]] == md_filter["filter_value"]:
-                                    found = False
-                                    print("not found: %, %s", md_filter["filter_value"], jsobj[md_filter["filter_key"]])
-                                    break
-                            if found:
-                                md.seen += 1
-                        except KeyError:
-                            pass
+                md.checkFilters(jsline)
                 if (jsline[u'event_type'] == "stats"):
                     jsstats = jsline[u'stats'][u'app_layer']
 
