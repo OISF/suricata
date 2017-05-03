@@ -30,6 +30,7 @@ class Metadata:
         self.event_type = event_type
         self.counter = counter
         self.filters_dict = {}
+        self.seen = 0
 
     def addFilter(self, proto, key, value):
         if proto not in self.filters_dict:
@@ -68,7 +69,7 @@ for test in tests:
             else:
                 proto = None
                 key = filter_str[0]
-            value = filter_str[1]
+            value = filter_str[1].strip("'")
             md.addFilter(proto, key, value)
         mdfilters.append(md)
 
@@ -100,13 +101,25 @@ for test in tests:
                     for proto in md.filters_dict:
                         try:
                             jsobj = jsline[u'%s'%proto]
+                            found = True
                             for md_filter in md.filters_dict[proto]:
-                                print(jsobj[md_filter["filter_key"]])
+                                if not jsobj[md_filter["filter_key"]] == md_filter["filter_value"]:
+                                    found = False
+                                    print("not found: %, %s", md_filter["filter_value"], jsobj[md_filter["filter_key"]])
+                                    break
+                            if found:
+                                md.seen += 1
                         except KeyError:
                             print("WARNING! '%s' object not found in '%s' event" %(proto, md.event_type))
+                            pass
                 if (jsline[u'event_type'] == "stats"):
                     jsstats = jsline[u'stats'][u'app_layer']
     shutil.rmtree(tmpdir)
+
+    for md in mdfilters:
+        if not md.counter == md.seen:
+            print("WARNING! test '%s' failed", md.name)
+            exit_code = 1
 
     for apl in applayerevents:
         print("Comparing counters for %s" % apl['name'])
@@ -115,12 +128,12 @@ for test in tests:
         if (apl['tx'] == tx):
             print("TX matched")
         else:
-            print("TX mismatch")
+            print("WARNING! TX mismatch")
             exit_code = 1
         if (apl['flow'] == flow):
             print("Flow matched")
         else:
-            print("Flow mismatch")
+            print("WARNING! Flow mismatch")
             exit_code = 1
 
 sys.exit(exit_code)
