@@ -1,19 +1,17 @@
 %YAML 1.1
 ---
 
-- test: test one
-  filename: /home/giuseppe/regular.pcap
+- test: test TLS
+  filename: docker/pcaps/tls.pcap
   ruleset: none
   config: ../suricata.yaml
+  options: -k none
   app-layer-events:
-    - name: http
-      flow: 211
-      tx: 724
-    - name: smtp
-      flow: 3
-      tx: 10
+    - name: tls
+      flow: 5
+      tx: 0
   metadata:
-    - name: toto
-      event_type: alert
-      count: 10
-      filter: "alert.signature_id=1 alert.severity=2 http.hostname='www.google.it'"
+    - name: SELKS certificate
+      event_type: tls
+      count: 5
+      filter: "tls.serial='00:97:E6:47:09:8E:EA:C9:B4'"
