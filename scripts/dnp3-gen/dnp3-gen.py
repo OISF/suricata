@@ -68,6 +68,7 @@ util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Sec
 #include <lauxlib.h>
 
 #include "util-lua.h"
+#include "util-lua-dnp3-objects.h"
 
 /**
  * \\brief Push an object point item onto the stack.
@@ -155,6 +156,7 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
+#include "output-json-dnp3-objects.h"
 
 #ifdef HAVE_LIBJANSSON
 
