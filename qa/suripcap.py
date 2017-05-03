@@ -76,10 +76,18 @@ for test in tests:
 
     for metadata in test['metadata']:
         md = Metadata(metadata['name'], metadata['event_type'], metadata['count'])
-        for filter_str in metadata['filter'].split(' '):
-            filter_str = filter_str.split('=', 2)
+        filter_str = metadata['filter'].split('=', 1)
+        while len(filter_str) >= 2:
             key = filter_str[0]
-            value = filter_str[1].strip(" ")
+            if filter_str[1].startswith("'"):
+                val_split = filter_str[1].split("' ", 1)
+            else:
+                val_split = filter_str[1].split(" ", 1)
+            value = val_split[0].strip(" ")
+            if len(val_split) > 1:
+                filter_str = val_split[1].split('=', 1)
+            else:
+                filter_str = []
             if value.startswith("'"):
                 value = value.strip("'")
             elif value == 'false':
@@ -121,7 +129,7 @@ for test in tests:
 
     for md in mdfilters:
         if not md.counter == md.seen:
-            print("WARNING! test '%s' failed" % (md.name))
+            print("WARNING! test '%s' failed (expected: %s, seen: %s)" % (md.name, md.counter, md.seen))
             exit_code = 1
 
     for apl in applayerevents:
