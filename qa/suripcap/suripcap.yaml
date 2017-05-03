@@ -2,9 +2,9 @@
 ---
 
 - test: test TLS
-  filename: docker/pcaps/tls.pcap
+  filename: ../docker/pcaps/tls.pcap
   ruleset: none
-  config: ../suricata.yaml
+  config: ../../suricata.yaml
   options: -k none
   app-layer-events:
     - name: tls
