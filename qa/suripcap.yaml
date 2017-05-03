@@ -13,5 +13,9 @@
   metadata:
     - name: SELKS certificate
       event_type: tls
-      count: 5
+      count: 4
       filter: "tls.serial='00:97:E6:47:09:8E:EA:C9:B4'"
+    - name: Session resumed
+      event_type: tls
+      count: 1
+      filter: "tls.session_resumed=true"
