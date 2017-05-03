@@ -50,6 +50,12 @@ OutputCtx *OutputJsonInitCtx(ConfNode *);
 
 enum JsonFormat { COMPACT, INDENT };
 
+enum JsonHeaderDirection {
+    DIRECTION_PACKET = 0,
+    DIRECTION_SENSITIVE,
+    DIRECTION_REVERSE,
+};
+
 /*
  * Global configuration context data
  */

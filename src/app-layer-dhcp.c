@@ -307,7 +307,7 @@ static AppProto DHCPToClientProbingParser(uint8_t *input, uint32_t input_len,
 
 static int DHCPParse(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, uint8_t direction)
 {
     DHCPState *dhcp_state = state;
     DHCPGlobalState *global = dhcp_state->global;
@@ -438,31 +438,13 @@ static int DHCPParse(Flow *f, void *state,
                                 goto end;
                             }
                             memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
-                            Packet *p = tx->p = &tx->response_p;
-                            p->ts = f->lastts;
-                            if (FLOW_IS_IPV4(f)) {
-                                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src,
-                                                              &p->src);
-                                FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst,
-                                                              &p->dst);
-                                p->ip4h++; /* force PKT_IS_IPV4 in logger */
-                            } else if (FLOW_IS_IPV4(f)) {
-                                FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src,
-                                                              &p->src);
-                                FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->dst,
-                                                              &p->dst);
-                                p->ip6h++; /* force PKT_IS_IPV6 in logger */
-                            }
-                            p->sp = f->sp;
-                            p->dp = f->dp;
-                            p->proto = f->proto;
-                            p->recursion_level = f->recursion_level;
-                            p->vlan_id[0] = f->vlan_id[0];
-                            p->vlan_id[1] = f->vlan_id[1];
-                            p->flow = f;
-
                             tx->response_seen = 1;
                         }
+
+                        if (direction == TOSERVER) {
+                            tx->reverse_flow = 1;
+                        }
+
                         break;
                     default:
                         SCLogDebug("DHCP unknown %d", dhcp->args[0]);
@@ -474,6 +456,20 @@ static int DHCPParse(Flow *f, void *state,
 
 end:    
     return 0;
+}
+
+static int DHCPParseToServer(Flow *f, void *state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        void *local_data)
+{
+    return DHCPParse(f, state, pstate, input, input_len, local_data, TOSERVER);
+}
+
+static int DHCPParseToClient(Flow *f, void *state,
+        AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+        void *local_data)
+{
+    return DHCPParse(f, state, pstate, input, input_len, local_data, TOCLIENT);
 }
 
 static uint64_t DHCPGetTxCnt(void *state)
@@ -615,11 +611,11 @@ void RegisterDHCPParsers(void)
 
         /* Register request parser for parsing frame from server to client. */
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DHCP,
-            STREAM_TOSERVER, DHCPParse);
+            STREAM_TOSERVER, DHCPParseToServer);
 
         /* Register response parser for parsing frames from server to client. */
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DHCP,
-            STREAM_TOCLIENT, DHCPParse);
+            STREAM_TOCLIENT, DHCPParseToClient);
 
         /* Register a function to be called by the application layer
          * when a transaction is to be freed. */
