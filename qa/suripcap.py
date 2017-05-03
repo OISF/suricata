@@ -42,6 +42,7 @@ class Metadata:
 parser = argparse.ArgumentParser(prog='suripcap', description='Script checking pcap')
 
 parser.add_argument('-c', '--config', default="suripcap.yaml", dest='config', help='specify configuration file to load')
+parser.add_argument('-k', '--keep', action='store_const', const=True, default=False, help='keep generated files in case of test failure')
 args = parser.parse_args()
 config = args.config
 
@@ -114,11 +115,10 @@ for test in tests:
                             pass
                 if (jsline[u'event_type'] == "stats"):
                     jsstats = jsline[u'stats'][u'app_layer']
-    shutil.rmtree(tmpdir)
 
     for md in mdfilters:
         if not md.counter == md.seen:
-            print("WARNING! test '%s' failed", md.name)
+            print("WARNING! test '%s' failed" % (md.name))
             exit_code = 1
 
     for apl in applayerevents:
@@ -135,5 +135,13 @@ for test in tests:
         else:
             print("WARNING! Flow mismatch")
             exit_code = 1
+
+if not exit_code == 0:
+    if args.keep:
+        print("INFO! Log files available in '%s'" % (tmpdir))
+    else:
+        shutil.rmtree(tmpdir)
+else:
+    shutil.rmtree(tmpdir)
 
 sys.exit(exit_code)
