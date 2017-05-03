@@ -45,13 +45,13 @@ class Metadata:
                     for key in md_filter['filter_key']:
                         obj = obj[key]
                     if not obj == md_filter['filter_value']:
-                            found = False
-                            break
-                    if found:
-                        md.seen += 1
+                        found = False
+                        break
                 except KeyError:
+                    found = False
                     pass
-
+            if found:
+                md.seen += 1
 
 parser = argparse.ArgumentParser(prog='suripcap', description='Script checking pcap')
 
