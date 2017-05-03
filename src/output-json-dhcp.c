@@ -37,6 +37,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-dhcp.h"
+#include "output-json-dhcp.h"
 
 //#define PRINT
 
@@ -125,7 +126,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 
         switch (dhcp_opt->code) {
             case DHCP_OPT_TYPE: {
-                char *s = "";
+                const char *s = "";
                 request_type = dhcp_opt->args[0];
                 switch (request_type) {
                     case DHCP_DISCOVER:
@@ -282,7 +283,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
 
             switch (dhcp_opt->code) {
                 case DHCP_OPT_TYPE: {
-                    char *s = "";
+                    const char *s = "";
                     switch (dhcp_opt->args[0]) {
                         case DHCP_OFFER:
                             s = "offer";
@@ -546,7 +547,7 @@ static OutputCtx *OutputDHCPLogInitSub(ConfNode *conf,
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, void *initdata, void **data)
+static TmEcode JsonDHCPLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
     LogDHCPLogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {

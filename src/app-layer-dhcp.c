@@ -412,7 +412,6 @@ static int DHCPParse(Flow *f, void *state,
             PrintRawDataFp(stdout, input, input_len);
 #endif
 
-            BOOTPHdr *bootp = (BOOTPHdr *)input;
             DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
 
             if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
@@ -549,7 +548,7 @@ static int DHCPSetTxDetectState(void *state, void *vtx,
 
 void RegisterDHCPParsers(void)
 {
-    char *proto_name = "dhcp";
+    const char *proto_name = "dhcp";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
 
