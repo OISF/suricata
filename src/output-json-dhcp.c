@@ -70,7 +70,7 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
     json_t *js = NULL, *dhcpjs = NULL, *reqjs = NULL, *rspjs = NULL;
     uint8_t request_type = 0;
 
-    SCLogNotice("Logging DHCP transaction %"PRIu64".", dhcptx->tx_id);
+    SCLogDebug("Logging DHCP transaction %"PRIu64".", dhcptx->tx_id);
     if (dhcpState->log_id > tx_id) {
         SCLogDebug("Already logged DHCP transaction %"PRIu64".", dhcptx->tx_id);
         return TM_ECODE_OK;
@@ -86,8 +86,9 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
         }
     }
     
-    dhcptx->p->pcap_cnt = p->pcap_cnt;
-    js = CreateJSONHeader(dhcptx->p, 0, "dhcp");
+    js = CreateJSONHeader(p,
+            dhcptx->reverse_flow ? DIRECTION_REVERSE : DIRECTION_PACKET,
+            "dhcp");
     if (unlikely(js == NULL)) {
         goto error;
     }

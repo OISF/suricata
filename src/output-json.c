@@ -285,10 +285,10 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
  * \brief Add five tuple from packet to JSON object
  *
  * \param p Packet
- * \param direction_sensitive Indicate direction sensitivity
+ * \param direction Direction of packet
  * \param js JSON object
  */
-void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
+void JsonFiveTuple(const Packet *p, int direction, json_t *js)
 {
     char srcip[46], dstip[46];
     Port sp, dp;
@@ -297,7 +297,7 @@ void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
     srcip[0] = '\0';
     dstip[0] = '\0';
 
-    if (direction_sensitive) {
+    if (direction == DIRECTION_SENSITIVE) {
         if ((PKT_IS_TOSERVER(p))) {
             if (PKT_IS_IPV4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
@@ -327,6 +327,20 @@ void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
             sp = p->dp;
             dp = p->sp;
         }
+    } else if (direction == DIRECTION_REVERSE) {
+        if (PKT_IS_IPV4(p)) {
+            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                      srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                      dstip, sizeof(dstip));
+        } else if (PKT_IS_IPV6(p)) {
+            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                      srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                      dstip, sizeof(dstip));
+        }
+        sp = p->sp;
+        dp = p->dp;
     } else {
         if (PKT_IS_IPV4(p)) {
             PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),

@@ -136,9 +136,10 @@ typedef struct DHCPTransaction_ {
 
     DetectEngineState *de_state;
 
-    Packet *p;
-    Packet response_p;          /* copy of response Packet when request/response
-                                 * processed out of order. */
+    uint8_t reverse_flow; /*<< Set when the flow is the reverse of
+                           * what Suricata detected. This is because
+                           * the response can be on a new flow, which
+                           * Suricata will flag as to server. */
 
     TAILQ_ENTRY(DHCPTransaction_) next;
 
