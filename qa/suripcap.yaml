@@ -1,0 +1,19 @@
+%YAML 1.1
+---
+
+- test: test one
+  filename: /home/giuseppe/regular.pcap
+  ruleset: none
+  config: ../suricata.yaml
+  app-layer-events:
+    - name: http
+      flow: 211
+      tx: 724
+    - name: smtp
+      flow: 3
+      tx: 10
+  metadata:
+    - name: toto
+      event_type: alert
+      count: 10
+      filter: "alert.signature_id=1 alert.severity=2 http.hostname='www.google.it'"
