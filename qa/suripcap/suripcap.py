@@ -24,6 +24,8 @@ from pprint import pprint
 from tempfile import mkdtemp
 import shutil
 
+BASEPATH = os.path.dirname(os.path.abspath(__file__))
+
 class Metadata:
     def __init__(self, name, event_type, counter):
         self.name = name
@@ -55,9 +57,10 @@ class Metadata:
 
 parser = argparse.ArgumentParser(prog='suripcap', description='Script checking pcap')
 
-parser.add_argument('-c', '--config', default="suripcap.yaml", dest='config', help='specify configuration file to load')
+parser.add_argument('-c', '--config', default=os.path.join(BASEPATH, "suripcap.yaml"), dest='config', help='specify configuration file to load')
 parser.add_argument('-k', '--keep', action='store_const', const=True, default=False, help='keep generated files in case of test failure')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
+parser.add_argument('-s', '--suricata', default="../../src/suricata", help='specify path to Suricata binary')
 args = parser.parse_args()
 config = args.config
 
@@ -119,7 +122,7 @@ for test in tests:
         print("pcap_file NOT found")
         sys.exit(1)
     tmpdir = mkdtemp()
-    cmd = "../src/suricata -c %s -S %s -r %s -l %s %s" % (config_file, ruleset_file, pcap_file, tmpdir, options)
+    cmd = "%s -c %s -S %s -r %s -l %s %s" % (args.suricata, config_file, ruleset_file, pcap_file, tmpdir, options)
     p = call(cmd.split(), stdout=PIPE)
     with open(os.path.join(tmpdir, 'eve.json')) as data_file:
         for line in data_file:
