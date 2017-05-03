@@ -226,7 +226,7 @@ static DHCPTransaction *DHCPGetTxByXid(DHCPState *state, uint32_t xid)
     TAILQ_FOREACH_SAFE(tx, &global->tx_list, next, ttx) {
         if (tx->xid == xid) {
             SCMutexUnlock(&global->lock);
-            SCLogNotice("Transaction %"PRIu32" found, returning tx object %p.",
+            SCLogDebug("Transaction %"PRIu32" found, returning tx object %p.",
                 xid, tx);
             return tx;
         }
@@ -245,7 +245,7 @@ static DHCPTransaction *DHCPGetTxByXid(DHCPState *state, uint32_t xid)
     }
     SCMutexUnlock(&global->lock);
 
-    SCLogNotice("Transaction ID %"PRIu32" not found.", xid);
+    SCLogDebug("Transaction ID %"PRIu32" not found.", xid);
 
     return tx;
 }
@@ -585,61 +585,52 @@ void RegisterDHCPParsers(void)
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
 
-        SCLogNotice("DHCP UDP protocol detection enabled.");
+        SCLogDebug("DHCP UDP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DHCP, proto_name);
 
         if (RunmodeIsUnittests()) {
 
-            SCLogNotice("Unittest mode, registeringd default configuration.");
+            SCLogConfig("Unittest mode, registeringd default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, DHCP_DEFAULT_SERVER_PORT,
                 ALPROTO_DHCP, 0, DHCP_MIN_FRAME_LEN, STREAM_TOSERVER,
                 DHCPToServerProbingParser, NULL);
 
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, DHCP_DEFAULT_CLIENT_PORT,
-                ALPROTO_DHCP/*_CLIENT*/, 0, DHCP_MIN_FRAME_LEN, STREAM_TOSERVER,
+                ALPROTO_DHCP, 0, DHCP_MIN_FRAME_LEN, STREAM_TOSERVER,
                 DHCPToClientProbingParser, NULL);
 
         }
         else {
 
-            if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
-                    proto_name, ALPROTO_DHCP, 0, DHCP_MIN_FRAME_LEN,
-                    DHCPToServerProbingParser, NULL)) {
-                SCLogNotice("No DHCP app-layer configuration, enabling DHCP"
-                    " detection UDP detection on port %s.",
-                    DHCP_DEFAULT_SERVER_PORT);
-                AppLayerProtoDetectPPRegister(IPPROTO_UDP,
+            /* Don't use the normal
+             * AppLayerProtoDetectPPParseConfPorts here, as the
+             * configuration can not express the parsing setup
+             * required for DHCP. DHCP requires the parsers to be
+             * registered in the to server direction, but uses the
+             * port to determine if parsing a request or response.
+             */
+            SCLogConfig("Enabling DHCP detection on UDP ports %s and %s.",
+                    DHCP_DEFAULT_CLIENT_PORT, DHCP_DEFAULT_SERVER_PORT);
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP,
                     DHCP_DEFAULT_SERVER_PORT, ALPROTO_DHCP, 0,
                     DHCP_MIN_FRAME_LEN, STREAM_TOSERVER,
                     DHCPToServerProbingParser, NULL);
-            }
-
-            if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
-                    proto_name, ALPROTO_DHCP/*_CLIENT*/, 0, DHCP_MIN_FRAME_LEN,
-                    DHCPToClientProbingParser, NULL)) {
-                SCLogNotice("No DHCP app-layer configuration, enabling DHCP"
-                    " detection UDP detection on port %s.",
-                    DHCP_DEFAULT_CLIENT_PORT);
-                AppLayerProtoDetectPPRegister(IPPROTO_UDP,
-                    DHCP_DEFAULT_CLIENT_PORT, ALPROTO_DHCP/*_CLIENT*/, 0,
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP,
+                    DHCP_DEFAULT_CLIENT_PORT, ALPROTO_DHCP, 0,
                     DHCP_MIN_FRAME_LEN, STREAM_TOSERVER,
                     DHCPToClientProbingParser, NULL);
-            }
-
 
         }
-
     }
-
     else {
-        SCLogNotice("Protocol detecter and parser disabled for DHCP.");
+        SCLogConfig("Protocol detecter and parser disabled for DHCP.");
         return;
     }
 
     if (AppLayerParserConfParserEnabled("udp", proto_name)) {
 
-        SCLogNotice("Registering DHCP protocol parser.");
+        SCLogConfig("Registering DHCP protocol parser.");
 
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new DHCP flow. */
