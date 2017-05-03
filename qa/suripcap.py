@@ -43,6 +43,7 @@ parser = argparse.ArgumentParser(prog='suripcap', description='Script checking p
 
 parser.add_argument('-c', '--config', default="suripcap.yaml", dest='config', help='specify configuration file to load')
 parser.add_argument('-k', '--keep', action='store_const', const=True, default=False, help='keep generated files in case of test failure')
+parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
 args = parser.parse_args()
 config = args.config
 
@@ -86,7 +87,8 @@ for test in tests:
     pcap_file = test['filename']
     options = test['options']
     if os.path.isfile(config_file):
-        print("config_file found")
+        if args.verbose:
+            print("config_file found")
     else:
         print("config_file NOT found")
     if os.path.isfile(ruleset_file):
@@ -94,7 +96,8 @@ for test in tests:
     else:
         ruleset_file = '/dev/null'
     if os.path.isfile(pcap_file):
-        print("pcap_file found")
+        if args.verbose:
+            print("pcap_file found")
     else:
         print("pcap_file NOT found")
     tmpdir = mkdtemp()
@@ -117,7 +120,6 @@ for test in tests:
                             if found:
                                 md.seen += 1
                         except KeyError:
-                            print("WARNING! '%s' object not found in '%s' event" %(proto, md.event_type))
                             pass
                 if (jsline[u'event_type'] == "stats"):
                     jsstats = jsline[u'stats'][u'app_layer']
@@ -128,16 +130,19 @@ for test in tests:
             exit_code = 1
 
     for apl in applayerevents:
-        print("Comparing counters for %s" % apl['name'])
+        if args.verbose:
+            print("Comparing counters for %s" % apl['name'])
         flow = jsstats['flow'][u'%s'%apl['name']]
         tx = jsstats['tx'][u'%s'%apl['name']]
         if (apl['tx'] == tx):
-            print("TX matched")
+            if args.verbose:
+                print("TX matched")
         else:
             print("WARNING! TX mismatch")
             exit_code = 1
         if (apl['flow'] == flow):
-            print("Flow matched")
+            if args.verbose:
+                print("Flow matched")
         else:
             print("WARNING! Flow mismatch")
             exit_code = 1
