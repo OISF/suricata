@@ -107,6 +107,7 @@ for test in tests:
             print("config_file found")
     else:
         print("config_file NOT found")
+        sys.exit(1)
     if os.path.isfile(ruleset_file):
         print("ruleset_file found")
     else:
@@ -116,6 +117,7 @@ for test in tests:
             print("pcap_file found")
     else:
         print("pcap_file NOT found")
+        sys.exit(1)
     tmpdir = mkdtemp()
     cmd = "../src/suricata -c %s -S %s -r %s -l %s %s" % (config_file, ruleset_file, pcap_file, tmpdir, options)
     p = call(cmd.split(), stdout=PIPE)
