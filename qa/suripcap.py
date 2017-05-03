@@ -70,7 +70,13 @@ for test in tests:
             else:
                 proto = None
                 key = filter_str[0]
-            value = filter_str[1].strip("'")
+            value = filter_str[1].strip(" ")
+            if value.startswith("'"):
+                value = value.strip("'")
+            elif value == 'false':
+                value = False
+            elif value == 'true':
+                value = True
             md.addFilter(proto, key, value)
         mdfilters.append(md)
 
