@@ -18,6 +18,7 @@ import argparse
 import yaml
 import os
 import json
+import sys
 from subprocess import Popen, call, check_output, PIPE
 from pprint import pprint
 from tempfile import mkdtemp
@@ -49,6 +50,8 @@ f.close()
 
 applayerevents = []
 mdfilters = []
+
+exit_code = 0
 
 for test in tests:
     for alevent in test['app-layer-events']: 
@@ -113,7 +116,11 @@ for test in tests:
             print("TX matched")
         else:
             print("TX mismatch")
+            exit_code = 1
         if (apl['flow'] == flow):
             print("Flow matched")
         else:
             print("Flow mismatch")
+            exit_code = 1
+
+sys.exit(exit_code)
