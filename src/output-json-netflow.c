@@ -214,8 +214,8 @@ static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Fl
     json_object_set_new(hjs, "age",
             json_integer(age));
 
-    json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl));
-    json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl));
+    json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl_toserver));
+    json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl_toserver));
 
     json_object_set_new(js, "netflow", hjs);
 
@@ -265,6 +265,12 @@ static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Fl
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
     json_object_set_new(hjs, "age",
             json_integer(age));
+
+    /* To client is zero if we did not see any packet */
+    if (f->max_ttl_toclient) {
+        json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl_toclient));
+        json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl_toclient));
+    }
 
     json_object_set_new(js, "netflow", hjs);
 
