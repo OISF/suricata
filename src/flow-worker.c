@@ -214,6 +214,10 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
         StreamTcp(tv, p, fw->stream_thread, &fw->pq, NULL);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
 
+        if (FlowChangeProto(p->flow)) {
+            StreamTcpDetectLogFlush(tv, fw->stream_thread, p->flow, p, &fw->pq);
+        }
+
         /* Packets here can safely access p->flow as it's locked */
         SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
         Packet *x;

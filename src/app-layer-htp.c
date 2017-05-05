@@ -2011,6 +2011,25 @@ static int HTPCallbackResponse(htp_tx_t *tx)
     /* response done, do raw reassembly now to inspect state and stream
      * at the same time. */
     AppLayerParserTriggerRawStreamReassembly(hstate->f, STREAM_TOCLIENT);
+
+    /* handle HTTP CONNECT */
+    if (tx->request_method_number == HTP_M_CONNECT) {
+        /* any 2XX status response implies that the connection will become
+           a tunnel immediately after this packet (RFC 7230, 3.3.3). */
+        if ((tx->response_status_number >= 200) &&
+                (tx->response_status_number < 300) &&
+                (hstate->transaction_cnt == 1)) {
+            uint16_t dp = 0;
+            if (tx->request_port_number != -1) {
+                dp = (uint16_t)tx->request_port_number;
+            }
+            // both ALPROTO_HTTP and ALPROTO_TLS are normal options
+            AppLayerRequestProtocolChange(hstate->f, dp, ALPROTO_UNKNOWN);
+            tx->request_progress = HTP_REQUEST_COMPLETE;
+            tx->response_progress = HTP_RESPONSE_COMPLETE;
+        }
+    }
+
     SCReturnInt(HTP_OK);
 }
 

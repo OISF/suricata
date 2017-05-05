@@ -175,7 +175,7 @@ SCFlowTuple
 SCFlowAppLayerProto
 ~~~~~~~~~~~~~~~~~~~
 
-Get alproto as string from the flow. If alproto is not (yet) known, it
+Get alprotos as string from the flow. If a alproto is not (yet) known, it
 returns "unknown".
 
 Example:
@@ -188,6 +188,12 @@ Example:
           print (alproto)
       end
   end
+
+Returns 5 values: <alproto> <alproto_ts> <alproto_tc> <alproto_orig> <alproto_expect>
+
+Orig and expect are used when changing and upgrading protocols. In a SMTP STARTTLS
+case, orig would normally be set to "smtp" and expect to "tls".
+
 
 SCFlowHasAlerts
 ~~~~~~~~~~~~~~~
