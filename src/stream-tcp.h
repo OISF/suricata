@@ -122,6 +122,7 @@ typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const u
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
+void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);
 
 /** ------- Inline functions: ------ */
 

@@ -2063,6 +2063,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
 
         /* handle data (if any) */
         StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
+
     } else {
         SCLogDebug("ssn %p: toserver => SEQ out of window, packet SEQ "
                 "%" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
@@ -5720,6 +5721,87 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
 
     StatsIncr(tv, stt->counter_tcp_pseudo);
     SCReturn;
+}
+
+/** \brief Create a pseudo packet injected into the engine to signal the
+ *         opposing direction of this stream trigger detection/logging.
+ *
+ *  \param p real packet
+ *  \param pq packet queue to store the new pseudo packet in
+ *  \param dir 0 ts 1 tc
+ */
+static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Packet *p, TcpSession *ssn, PacketQueue *pq, bool dir)
+{
+    SCEnter();
+#if 0
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        SCReturn;
+    }
+#endif
+    Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+    if (np == NULL) {
+        SCLogDebug("The packet received from packet allocation is NULL");
+        StatsIncr(tv, stt->counter_tcp_pseudo_failed);
+        SCReturn;
+    }
+    PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_DETECTLOG_FLUSH);
+
+    /* Setup the IP and TCP headers */
+    StreamTcpPseudoPacketSetupHeader(np,p);
+
+    np->tenant_id = p->flow->tenant_id;
+    np->flowflags = p->flowflags;
+
+    np->flags |= PKT_STREAM_EST;
+    np->flags |= PKT_HAS_FLOW;
+
+    if (p->flags & PKT_NOPACKET_INSPECTION) {
+        DecodeSetNoPacketInspectionFlag(np);
+    }
+    if (p->flags & PKT_NOPAYLOAD_INSPECTION) {
+        DecodeSetNoPayloadInspectionFlag(np);
+    }
+
+    if (dir == false) {
+        SCLogNotice("pseudo is to_client");
+        np->flowflags &= ~(FLOW_PKT_TOSERVER|FLOW_PKT_TOCLIENT);
+        np->flowflags |= FLOW_PKT_TOCLIENT;
+#ifdef DEBUG
+        BUG_ON(!(PKT_IS_TOCLIENT(np)));
+        BUG_ON((PKT_IS_TOSERVER(np)));
+#endif
+    } else {
+        SCLogNotice("pseudo is to_server");
+        np->flowflags &= ~(FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER);
+        np->flowflags |= FLOW_PKT_TOSERVER;
+#ifdef DEBUG
+        BUG_ON(!(PKT_IS_TOSERVER(np)));
+        BUG_ON((PKT_IS_TOCLIENT(np)));
+#endif
+    }
+
+    PacketEnqueue(pq, np);
+
+    StatsIncr(tv, stt->counter_tcp_pseudo);
+    SCReturn;
+}
+
+/** \brief create packets in both directions to flush out logging
+ *         and detection before switching protocols.
+ *         In IDS mode, create first in packet dir, 2nd in opposing
+ *         In IPS mode, do the reverse.
+ *         Flag TCP engine that data needs to be inspected regardless
+ *         of how far we are wrt inspect limits.
+ */
+void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq)
+{
+    TcpSession *ssn = f->protoctx;
+    ssn->client.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+    ssn->server.flags |= STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
+    bool ts = PKT_IS_TOSERVER(p) ? true : false;
+    ts ^= StreamTcpInlineMode();
+    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^0);
+    StreamTcpPseudoPacketCreateDetectLogFlush(tv, stt, p, ssn, pq, ts^1);
 }
 
 /**
