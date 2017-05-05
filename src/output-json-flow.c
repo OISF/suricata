@@ -198,6 +198,14 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         json_object_set_new(js, "app_proto_tc",
                 json_string(AppProtoToString(f->alproto_tc)));
     }
+    if (f->alproto_orig != f->alproto && f->alproto_orig != ALPROTO_UNKNOWN) {
+        json_object_set_new(js, "app_proto_orig",
+                json_string(AppProtoToString(f->alproto_orig)));
+    }
+    if (f->alproto_expect != f->alproto && f->alproto_expect != ALPROTO_UNKNOWN) {
+        json_object_set_new(js, "app_proto_expected",
+                json_string(AppProtoToString(f->alproto_expect)));
+    }
 
     json_object_set_new(hjs, "pkts_toserver",
             json_integer(f->todstpktcnt));
