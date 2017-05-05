@@ -447,14 +447,14 @@ static int LuaCallbackTupleFlow(lua_State *luastate)
 /** \internal
  *  \brief fill lua stack with AppLayerProto
  *  \param luastate the lua state
- *  \param f flow, locked
+ *  \param alproto AppProto to push to stack as string
  *  \retval cnt number of data items placed on the stack
  *
  *  Places: alproto as string (string)
  */
-static int LuaCallbackAppLayerProtoPushToStackFromFlow(lua_State *luastate, const Flow *f)
+static int LuaCallbackAppLayerProtoPushToStackFromFlow(lua_State *luastate, const AppProto alproto)
 {
-    const char *string = AppProtoToString(f->alproto);
+    const char *string = AppProtoToString(alproto);
     if (string == NULL)
         string = "unknown";
     lua_pushstring(luastate, string);
@@ -472,7 +472,11 @@ static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
+    r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f->alproto);
+    r += LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f->alproto_ts);
+    r += LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f->alproto_tc);
+    r += LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f->alproto_orig);
+    r += LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f->alproto_expect);
 
     return r;
 }
