@@ -339,6 +339,31 @@ static inline int FlowCreateCheck(const Packet *p)
     return 1;
 }
 
+static inline void FlowUpdateCounter(ThreadVars *tv, DecodeThreadVars *dtv,
+        uint8_t proto)
+{
+#ifdef UNITTESTS
+    if (tv && dtv) {
+#endif
+        switch (proto){
+            case IPPROTO_UDP:
+                StatsIncr(tv, dtv->counter_flow_udp);
+                break;
+            case IPPROTO_TCP:
+                StatsIncr(tv, dtv->counter_flow_tcp);
+                break;
+            case IPPROTO_ICMP:
+                StatsIncr(tv, dtv->counter_flow_icmp4);
+                break;
+            case IPPROTO_ICMPV6:
+                StatsIncr(tv, dtv->counter_flow_icmp6);
+                break;
+        }
+#ifdef UNITTESTS
+    }
+#endif
+}
+
 /**
  *  \brief Get a new flow
  *
@@ -406,6 +431,7 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
     }
 
     FLOWLOCK_WRLOCK(f);
+    FlowUpdateCounter(tv, dtv, p->proto);
     return f;
 }
 
