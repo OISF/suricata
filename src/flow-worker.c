@@ -119,6 +119,7 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
+    DecodeRegisterPerfCounters(fw->dtv, tv);
     AppLayerRegisterThreadCounters(tv);
 
     /* setup pq for stream end pkts */

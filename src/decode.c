@@ -430,6 +430,11 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     dtv->counter_erspan = StatsRegisterMaxCounter("decoder.erspan", tv);
     dtv->counter_flow_memcap = StatsRegisterCounter("flow.memcap", tv);
 
+    dtv->counter_flow_tcp = StatsRegisterCounter("flow.tcp", tv);
+    dtv->counter_flow_udp = StatsRegisterCounter("flow.udp", tv);
+    dtv->counter_flow_icmp4 = StatsRegisterCounter("flow.icmpv4", tv);
+    dtv->counter_flow_icmp6 = StatsRegisterCounter("flow.icmpv6", tv);
+
     dtv->counter_defrag_ipv4_fragments =
         StatsRegisterCounter("defrag.ipv4.fragments", tv);
     dtv->counter_defrag_ipv4_reassembled =
