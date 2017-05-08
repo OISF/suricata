@@ -10,5 +10,9 @@ alert ip any any -> any any (msg:"SURICATA Applayer Mismatch protocol both direc
 alert ip any any -> any any (msg:"SURICATA Applayer Wrong direction first Data"; flow:established; app-layer-event:applayer_wrong_direction_first_data; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260001; rev:1;)
 alert ip any any -> any any (msg:"SURICATA Applayer Detect protocol only one direction"; flow:established; app-layer-event:applayer_detect_protocol_only_one_direction; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260002; rev:1;)
 alert ip any any -> any any (msg:"SURICATA Applayer Protocol detection skipped"; flow:established; app-layer-event:applayer_proto_detection_skipped; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260003; rev:1;)
+# alert if STARTTLS was not followed by actual SSL/TLS
+alert tcp any any -> any any (msg:"SURICATA Applayer No TLS after STARTTLS"; flow:established; app-layer-event:applayer_no_tls_after_starttls; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260004; rev:2;)
+# unexpected protocol in protocol upgrade
+alert tcp any any -> any any (msg:"SURICATA Applayer Unexpected protocol"; flow:established; app-layer-event:applayer_unexpected_protocol; flowint:applayer.anomaly.count,+,1; classtype:protocol-command-decode; sid:2260005; rev:1;)
 
-#next sid is 2260004
+#next sid is 2260006

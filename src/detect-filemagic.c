@@ -56,7 +56,7 @@
 
 #ifndef HAVE_MAGIC
 
-static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectFilemagicSetupNoSupport (DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
     SCLogError(SC_ERR_NO_MAGIC_SUPPORT, "no libmagic support built in, needed for filemagic keyword");
     return -1;
