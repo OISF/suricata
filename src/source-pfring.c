@@ -504,7 +504,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         return TM_ECODE_FAILED;
     }
 
-    pfring_set_application_name(ptv->pd, PROG_NAME);
+    pfring_set_application_name(ptv->pd, (char *)PROG_NAME);
     pfring_version(ptv->pd, &version);
 
     /* We only set cluster info if the number of pfring threads is greater than 1 */

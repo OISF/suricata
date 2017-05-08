@@ -92,10 +92,10 @@ static void PfringDerefConfig(void *conf)
  */
 static void *OldParsePfringConfig(const char *iface)
 {
-    char *threadsstr = NULL;
+    const char *threadsstr = NULL;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
-    char *tmpclusterid;
-    char *tmpctype = NULL;
+    const char *tmpclusterid;
+    const char *tmpctype = NULL;
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
 
     if (unlikely(pfconf == NULL)) {
@@ -185,16 +185,16 @@ static void *OldParsePfringConfig(const char *iface)
  */
 static void *ParsePfringConfig(const char *iface)
 {
-    char *threadsstr = NULL;
+    const char *threadsstr = NULL;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
     ConfNode *pf_ring_node;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
-    char *tmpclusterid;
-    char *tmpctype = NULL;
+    const char *tmpclusterid;
+    const char *tmpctype = NULL;
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
-    char *bpf_filter = NULL;
+    const char *bpf_filter = NULL;
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -363,9 +363,9 @@ static int PfringConfigGeThreadsCount(void *conf)
     return pfp->threads;
 }
 
-static int PfringConfLevel()
+static int PfringConfLevel(void)
 {
-    char *def_dev;
+    const char *def_dev;
     /* 1.0 config should return a string */
     if (ConfGet("pfring.interface", &def_dev) != 1) {
         return PFRING_CONF_V2;
@@ -375,7 +375,7 @@ static int PfringConfLevel()
     return PFRING_CONF_V2;
 }
 
-static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
+static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
 {
      ConfGet("pfring.live-interface", live_dev);
 
@@ -408,7 +408,7 @@ int RunModeIdsPfringAutoFp(void)
 /* We include only if pfring is enabled */
 #ifdef HAVE_PFRING
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
     RunModeInitialize();
@@ -445,7 +445,7 @@ int RunModeIdsPfringSingle(void)
 /* We include only if pfring is enabled */
 #ifdef HAVE_PFRING
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
     RunModeInitialize();
@@ -482,7 +482,7 @@ int RunModeIdsPfringWorkers(void)
 /* We include only if pfring is enabled */
 #ifdef HAVE_PFRING
     int ret;
-    char *live_dev = NULL;
+    const char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
     RunModeInitialize();
