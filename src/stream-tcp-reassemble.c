@@ -881,7 +881,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
                     "got data at %"PRIu64". GAP of size %"PRIu64,
                     offset, blk->offset, blk->offset - offset);
             *data = NULL;
-            *data_len = 0;
+            *data_len = blk->offset - offset;
 
         } else if (offset > blk->offset && offset <= (blk->offset + blk->len)) {
             SCLogDebug("get data from offset %"PRIu64". SBB %"PRIu64"/%u",
@@ -964,33 +964,36 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         TcpSession *ssn, TcpStream *stream,
         Packet *p, enum StreamUpdateDir dir)
 {
-    const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
+    uint64_t app_progress = STREAM_APP_PROGRESS(stream);
 
     SCLogDebug("app progress %"PRIu64, app_progress);
     SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
 
     const uint8_t *mydata;
     uint32_t mydata_len;
-    GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
-    SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
 
-    if (mydata == NULL || mydata_len == 0) {
-        if (CheckGap(ssn, stream, p)) {
-            /* send gap signal */
-            SCLogDebug("sending GAP to app-layer");
+    while (1) {
+        GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
+        if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, stream, p)) {
+            SCLogNotice("sending GAP to app-layer (size: %u)", mydata_len);
+
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0,
+                    NULL, mydata_len,
                     StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
-            /* set a GAP flag and make sure not bothering this stream anymore */
-            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
-            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
-
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
+
+            stream->app_progress_rel += mydata_len;
+            app_progress += mydata_len;
+            continue;
+        } else if (mydata == NULL || mydata_len == 0) {
+            /* Possibly a gap, but no new data. */
+            return 0;
         }
-        return 0;
+        SCLogDebug("%"PRIu64" got %p/%u", p->pcap_cnt, mydata, mydata_len);
+        break;
     }
 
     //PrintRawDataFp(stdout, mydata, mydata_len);
@@ -1069,10 +1072,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         SCLogDebug("stream no reassembly flag set or app-layer disabled.");
         SCReturnInt(0);
     }
-    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
-        SCReturnInt(0);
-    }
-
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
