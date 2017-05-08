@@ -1009,7 +1009,7 @@ TmEcode NFQSetVerdict(Packet *p)
     p->nfq_v.verdicted = 1;
 
     /* can't verdict a "fake" packet */
-    if (p->flags & PKT_PSEUDO_STREAM_END) {
+    if (PKT_IS_PSEUDOPKT(p)) {
         return TM_ECODE_OK;
     }
 
@@ -1192,7 +1192,7 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 
     /* XXX HACK: flow timeout can call us for injected pseudo packets
      *           see bug: https://redmine.openinfosecfoundation.org/issues/1107 */
-    if (p->flags & PKT_PSEUDO_STREAM_END)
+    if (PKT_IS_PSEUDOPKT(p))
         return TM_ECODE_OK;
 
     DecodeUpdatePacketCounters(tv, dtv, p);
