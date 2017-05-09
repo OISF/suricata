@@ -81,28 +81,29 @@ for test in tests:
     for alevent in test['app-layer-events']: 
         applayerevents.append({'name':alevent['name'], 'flow':alevent['flow'], 'tx':alevent['tx']})
 
-    for metadata in test['metadata']:
-        md = Metadata(metadata['name'], metadata['event_type'], metadata['count'])
-        filter_str = metadata['filter'].split('=', 1)
-        while len(filter_str) >= 2:
-            key = filter_str[0]
-            if filter_str[1].startswith("'"):
-                val_split = filter_str[1].split("' ", 1)
-            else:
-                val_split = filter_str[1].split(" ", 1)
-            value = val_split[0].strip(" ")
-            if len(val_split) > 1:
-                filter_str = val_split[1].split('=', 1)
-            else:
-                filter_str = []
-            if value.startswith("'"):
-                value = value.strip("'")
-            elif value == 'false':
-                value = False
-            elif value == 'true':
-                value = True
-            md.addFilter(key, value)
-        mdfilters.append(md)
+    if 'metadata' in test.keys():
+        for metadata in test['metadata']:
+            md = Metadata(metadata['name'], metadata['event_type'], metadata['count'])
+            filter_str = metadata['filter'].split('=', 1)
+            while len(filter_str) >= 2:
+                key = filter_str[0]
+                if filter_str[1].startswith("'"):
+                    val_split = filter_str[1].split("' ", 1)
+                else:
+                    val_split = filter_str[1].split(" ", 1)
+                value = val_split[0].strip(" ")
+                if len(val_split) > 1:
+                    filter_str = val_split[1].split('=', 1)
+                else:
+                    filter_str = []
+                if value.startswith("'"):
+                    value = value.strip("'")
+                elif value == 'false':
+                    value = False
+                elif value == 'true':
+                    value = True
+                md.addFilter(key, value)
+            mdfilters.append(md)
 
     name = test['test']
     config_file = test['config']
