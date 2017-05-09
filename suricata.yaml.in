@@ -573,7 +573,8 @@ af-packet:
     # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
     # your system
     #mmap-locked: yes
-    # Use experimental tpacket_v3 capture mode, only active if use-mmap is true
+    # Use tpacket_v3 capture mode, only active if use-mmap is true
+    # Don't use it in IPS or TAP mode as it causes severe latency
     #tpacket-v3: yes
     # Ring size will be computed with respect to max_pending_packets and number
     # of threads. You can set manually the ring size in number of packets by setting

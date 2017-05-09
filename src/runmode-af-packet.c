@@ -264,11 +264,17 @@ static void *ParseAFPConfig(const char *iface)
                     iface,
                     aconf->out_iface);
             aconf->copy_mode = AFP_COPY_MODE_IPS;
+            if (aconf->flags & AFP_TPACKET_V3) {
+                SCLogWarning(SC_ERR_RUNMODE, "Using tpacket_v3 in IPS mode will result in high latency");
+            }
         } else if (strcmp(copymodestr, "tap") == 0) {
             SCLogInfo("AF_PACKET TAP mode activated %s->%s",
                     iface,
                     aconf->out_iface);
             aconf->copy_mode = AFP_COPY_MODE_TAP;
+            if (aconf->flags & AFP_TPACKET_V3) {
+                SCLogWarning(SC_ERR_RUNMODE, "Using tpacket_v3 in TAP mode will result in high latency");
+            }
         } else {
             SCLogInfo("Invalid mode (not in tap, ips)");
         }
