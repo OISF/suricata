@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
 
-- test: test TLS
+- test: TLS 1
   filename: ../docker/pcaps/tls.pcap
   ruleset: none
   config: ../../suricata.yaml
