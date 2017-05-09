@@ -893,7 +893,12 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
     }
 }
 
-static inline bool CheckGap(TcpStream *stream, Packet *p)
+/**
+ * \brief Check if there is a gap in the application data.
+ *
+ * \retval the size of the gap in bytes, 0 if no gap.
+ */
+static inline uint32_t CheckGap(TcpStream *stream, Packet *p)
 {
     const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
     uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
@@ -915,16 +920,16 @@ static inline bool CheckGap(TcpStream *stream, Packet *p)
                     if (next_seq_abs > app_progress+1) {
                         /* fall through */
                     } else {
-                        return false;
+                        return 0;
                     }
                 }
             }
 
             SCLogDebug("packet %u GAP! last_ack_abs %u > app_progress %u, at no data.", (uint)p->pcap_cnt, (uint)last_ack_abs, (uint)app_progress);
-            return true;
+            return delta;
         }
     }
-    return false;
+    return 0;
 }
 
 /** \internal
@@ -934,9 +939,9 @@ static inline bool CheckGap(TcpStream *stream, Packet *p)
 static int ReassembleUpdateAppLayer (ThreadVars *tv,
         TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream,
-        Packet *p, enum StreamUpdateDir dir)
+        Packet *p, enum StreamUpdateDir dir, uint32_t gap)
 {
-    const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
+    const uint64_t app_progress = STREAM_APP_PROGRESS(stream) + gap;
 
     SCLogDebug("app progress %"PRIu64, app_progress);
     SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
@@ -945,11 +950,12 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     uint32_t mydata_len;
     GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
     if (mydata == NULL || mydata_len == 0) {
-        if (CheckGap(stream, p)) {
+        /* Only check for gap and signal if not already done. */
+        if (gap == 0 && ((gap = CheckGap(stream, p) > 0))) {
             /* send gap signal */
             SCLogDebug("sending GAP to app-layer");
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0,
+                    NULL, gap,
                     StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
@@ -1005,7 +1011,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         SCLogDebug("app progress %"PRIu64" increasing with data len %u to %"PRIu64,
                 app_progress, mydata_len, app_progress + mydata_len);
 
-        stream->app_progress_rel += mydata_len;
+        stream->app_progress_rel += mydata_len + gap;
         SCLogDebug("app progress now %"PRIu64, STREAM_APP_PROGRESS(stream));
     } else {
         SCLogDebug("NOT UPDATED app progress still %"PRIu64, app_progress);
@@ -1032,6 +1038,8 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 {
     SCEnter();
 
+    uint32_t gap = 0;
+
     /* this function can be directly called by app layer protocol
      * detection. */
     if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
@@ -1042,7 +1050,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
         SCReturnInt(0);
     }
-
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
@@ -1081,12 +1088,15 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         "(base %u, isn %u, last_ack %u => diff %u) p %"PRIu64,
                         stream->base_seq, stream->isn, stream->last_ack,
                         stream->last_ack - (stream->isn + ackadd), p->pcap_cnt);
+                gap = stream->last_ack - (stream->isn + ackadd);
+            } else {
+                gap = stream->seg_list->seq - stream->base_seq;
             }
 
             /* send gap signal */
             SCLogDebug("sending GAP to app-layer");
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0,
+                    NULL, gap,
                     StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
@@ -1096,8 +1106,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
             StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
-
-            SCReturnInt(0);
         }
     }
 
@@ -1128,7 +1136,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* with all that out of the way, lets update the app-layer */
-    return ReassembleUpdateAppLayer(tv, ra_ctx, ssn, stream, p, dir);
+    return ReassembleUpdateAppLayer(tv, ra_ctx, ssn, stream, p, dir, gap);
 }
 
 /** \internal
