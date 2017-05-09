@@ -72,12 +72,11 @@ f = open(config)
 tests = yaml.safe_load(f)
 f.close()
 
-applayerevents = []
-mdfilters = []
-
 exit_code = 0
 
 for test in tests:
+    applayerevents = []
+    mdfilters = []
     if args.verbose:
         print("Running test '%s'" % (test['test']))
     for alevent in test['app-layer-events']: 
@@ -162,12 +161,12 @@ for test in tests:
             print("WARNING! Flow mismatch")
             exit_code = 1
 
-if not exit_code == 0:
-    if args.keep:
-        print("INFO! Log files available in '%s'" % (tmpdir))
+    if not exit_code == 0:
+        if args.keep:
+            print("INFO! Log files available for test '%s' in '%s'" % (test['test'], tmpdir))
+        else:
+            shutil.rmtree(tmpdir)
     else:
         shutil.rmtree(tmpdir)
-else:
-    shutil.rmtree(tmpdir)
 
 sys.exit(exit_code)
