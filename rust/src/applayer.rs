@@ -15,18 +15,26 @@
  * 02110-1301, USA.
  */
 
-#[macro_use]
-extern crate nom;
+/// LoggerFlags tracks which loggers have already been executed.
+#[derive(Debug)]
+pub struct LoggerFlags {
+    flags: u32,
+}
 
-#[macro_use]
-pub mod log;
+impl LoggerFlags {
 
-pub mod core;
-pub mod conf;
-pub mod json;
-pub mod applayer;
+    pub fn new() -> LoggerFlags {
+        return LoggerFlags{
+            flags: 0,
+        }
+    }
 
-#[cfg(feature = "lua")]
-pub mod lua;
+    pub fn set_logged(&mut self, logger: u32) {
+        self.flags |= logger;
+    }
+    
+    pub fn is_logged(&self, logger: u32) -> bool {
+        self.flags & logger != 0
+    }
 
-pub mod dns;
+}
