@@ -45,7 +45,11 @@ class Metadata:
                 try:
                     obj=jsline
                     for key in md_filter['filter_key']:
-                        obj = obj[key]
+                        try:
+                            idx = int(key)
+                        except ValueError:
+                            idx = key
+                        obj = obj[idx]
                     if not obj == md_filter['filter_value']:
                         found = False
                         break
