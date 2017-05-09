@@ -40,3 +40,22 @@
 #    - name: dns_tcp
 #      flow: 1
 #      tx: 0
+
+- test: SMTP metadata
+  filename: ../docker/pcaps/smtp.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none
+  app-layer-events:
+    - name: smtp
+      flow: 1
+      tx: 1
+  metadata:
+    - name: RCPT to
+      event_type: smtp
+      count: 1
+      filter: "smtp.rcpt_to.0='<eric@regit.org>' smtp.rcpt_to.2='<regit@regit.org>'"
+    - name: email params
+      event_type: smtp
+      count: 1
+      filter: "email.to.0='eric@regit.org' email.cc.0='eleblond@stamus-networks.com'"
