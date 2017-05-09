@@ -214,7 +214,7 @@
             ;;
         *-*-linux*)
             #for now do nothing
-	    RUST_LDADD="-ldl -lrt"
+	    RUST_LDADD="-ldl -lrt -lm"
             ;;
         *-*-mingw32*)
             CFLAGS="${CFLAGS} -DOS_WIN32"
