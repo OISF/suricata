@@ -78,6 +78,8 @@ mdfilters = []
 exit_code = 0
 
 for test in tests:
+    if args.verbose:
+        print("Running test '%s'" % (test['test']))
     for alevent in test['app-layer-events']: 
         applayerevents.append({'name':alevent['name'], 'flow':alevent['flow'], 'tx':alevent['tx']})
 
