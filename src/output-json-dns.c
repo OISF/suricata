@@ -178,7 +178,8 @@ typedef enum {
     DNS_RRTYPE_TSIG,
     DNS_RRTYPE_MAILA,
     DNS_RRTYPE_ANY,
-    DNS_RRTYPE_URI
+    DNS_RRTYPE_URI,
+    DNS_RRTYPE_MAX,
 } DnsRRTypes;
 
 static struct {
@@ -753,7 +754,7 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
                 if (field != NULL)
                 {
                     DnsRRTypes f;
-                    for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_TXT; f++)
+                    for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++)
                     {
                         if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
                                        field->val) == 0)
