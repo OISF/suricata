@@ -22,6 +22,7 @@ use std;
 use std::mem::transmute;
 
 use log::*;
+use applayer::LoggerFlags;
 use core;
 use dns::parser;
 
@@ -142,7 +143,7 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
-    pub logged: u32,
+    pub logged: LoggerFlags,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
 }
@@ -154,7 +155,7 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
-            logged: 0,
+            logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
         }
@@ -575,7 +576,7 @@ pub extern "C" fn rs_dns_tx_set_logged(_state: &mut DNSState,
                                        tx: &mut DNSTransaction,
                                        logger: libc::uint32_t)
 {
-    tx.logged |= logger;
+    tx.logged.set_logged(logger);
 }
 
 #[no_mangle]
@@ -584,7 +585,7 @@ pub extern "C" fn rs_dns_tx_get_logged(_state: &mut DNSState,
                                        logger: libc::uint32_t)
                                        -> i8
 {
-    if tx.logged & logger != 0 {
+    if tx.logged.is_logged(logger) {
         return 1;
     }
     return 0;
