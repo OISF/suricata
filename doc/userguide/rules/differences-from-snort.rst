@@ -1,6 +1,6 @@
-====================================
-Suricata Rule Differences From Snort
-====================================
+======================
+Differences From Snort
+======================
 
 Overview
 --------
@@ -22,6 +22,7 @@ Automatic Protocol Detection
    application layer protocols:
 
    -  dcerpc
+   -  dnp3
    -  dns
    -  http
    -  imap (detection only by default; no parsing)
@@ -32,7 +33,7 @@ Automatic Protocol Detection
    -  smb2 (disabled internally inside the engine)
    -  smtp
    -  ssh
-   -  tls (SSLv2, SSLv3 & TLSv1)
+   -  tls (SSLv2, SSLv3, TLSv1, TLSv1.1 and TLSv1.2)
 
 -  In Suricata, protocol detection is port agnostic (in most cases). In
    Snort, in order for the ``http_inspect`` and other preprocessors to be
@@ -245,114 +246,15 @@ Automatic Protocol Detection
 
 -  Corresponding PCRE modifier: ``C`` (same as Snort)
 
-``http_user_agent`` Buffer
---------------------------
+New HTTP keywords
+-----------------
 
--  Suricata has a ``http_user_agent`` buffer, Snort does not.
+Suricata supports several HTTP keywords that Snort doesn't have.
 
--  The ``http_user_agent`` buffer will NOT include the header name,
-   colon, or leading whitespace.  i.e. it will not include
-   "User-Agent: ".
+Examples are ``http_user_agent``, ``http_host`` and ``http_content_type``.
 
--  The ``http_user_agent`` buffer does not include a CRLF (0x0D
-   0x0A) at the end.  If you want to match the end of the buffer, use a
-   relative ``isdataat`` or a PCRE (although PCRE will be worse on
-   performance).
+See :doc:`http-keywords` for all HTTP keywords.
 
--  If a request contains multiple "User-Agent" headers, the values will
-   be concatenated in the ``http_user_agent`` buffer, in the order
-   seen from top to bottom, with a comma and space (", ") between each
-   of them.
-
-   Example request::
-
-          GET /test.html HTTP/1.1
-          User-Agent: SuriTester/0.8
-          User-Agent: GGGG
-
-   ``http_user_agent`` buffer contents::
-
-          SuriTester/0.8, GGGG
-
--  Corresponding PCRE modifier: ``V``
-
--  Using the ``http_user_agent`` buffer is more efficient when it
-   comes to performance than using the ``http_header`` buffer (~10%
-   better).
-
--  `http://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <http://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
-
-``http_host`` and ``http_raw_host`` Buffers
--------------------------------------------
-
--  Suricata has ``http_host`` and ``http_raw_host`` buffers,
-   Snort does not.
-
--  The ``http_host`` and ``http_raw_host`` buffers are populated
-   from either the URI (if the full URI is present in the request like
-   in a proxy request) or the HTTP Host header. If both are present, the
-   URI is used.
-
--  The ``http_host`` and ``http_raw_host`` buffers will NOT
-   include the header name, colon, or leading whitespace if populated
-   from the Host header.  i.e. they will not include "Host: ".
-
--  The ``http_host`` and ``http_raw_host`` buffers do not
-   include a CRLF (0x0D 0x0A) at the end.  If you want to match the end
-   of the buffer, use a relative 'isdataat' or a PCRE (although PCRE
-   will be worse on performance).
-
--  The ``http_host`` buffer is normalized to be all lower case.
-
--  The content match that ``http_host`` applies to must be all lower
-   case or have the ``nocase`` flag set.
-
--  ``http_raw_host`` matches the unnormalized buffer so matching
-   will be case-sensitive (unless ``nocase`` is set).
-
--  If a request contains multiple "Host" headers, the values will be
-   concatenated in the ``http_host`` and ``http_raw_host``
-   buffers, in the order seen from top to bottom, with a comma and space
-   (", ") between each of them.
-
-   Example request::
-
-          GET /test.html HTTP/1.1
-          Host: ABC.com
-          Accept: */*
-          Host: efg.net
-
-   ``http_host`` buffer contents::
-
-          abc.com, efg.net
-
-   ``http_raw_host`` buffer contents::
-
-          ABC.com, efg.net
-
--  Corresponding PCRE modifier (``http_host``): ``W``
--  Corresponding PCRE modifier (``http_raw_host``): ``Z``
-
-``http_server_body`` Buffer
----------------------------
-
--  Suricata has the ``http_server_body`` buffer, Snort does not.
-
--  This tells Suricata to match in the HTTP server response body.
-
--  Using ``http_server_body`` is similar to having content matches
-   that come after ``file_data`` except that it doesn't permanently
-   (unless reset) set the detection pointer to the beginning of the
-   server response body. i.e. it is not a sticky buffer.
-
--  ``http_server_body`` will match on gzip decoded data just like
-   ``file_data`` does.
-
--  Since ``http_server_body`` matches on a server response, it
-   can't be used with the ``to_server`` or ``from_client`` flow
-   directives.
-
--  Corresponding PCRE modifier: ``Q``
 
 ``byte_extract`` Keyword
 ------------------------
@@ -465,41 +367,7 @@ For details see :doc:`tls-keywords`.
 -  Use ``pkt_data`` to reset the detection pointer to the beginning of
    the packet payload.
 
--  **Buffer is normalized!**
-
-   -  Contains literal domain name
-
-      -  <length> values (as seen in a raw DNS request)
-         are literal '.' characters
-      -  no leading <length> value
-      -  No terminating NULL (0x00) byte (use a negated relative ``isdataat``
-         to match the end)
-
-      Example DNS request for "mail.google.com" (for readability, hex
-      values are encoded between pipes):
-
-      DNS query on the wire (snippet)::
-
-             |04|mail|06|google|03|com|00|
-
-      ``dns_query`` buffer::
-
-             mail.google.com
-
--  :doc:`dns-keywords`
-
-``geoip`` Keyword
------------------
-
--  Suricata has the ``geoip`` keyword, Snort does not.
-
--  Only supports IPv4
--  Uses GeoIP API of Maxmind
-
-  -  libgeoip
-  -  Must be compiled in.
-
--  See :doc:`header-keywords`, "Geoip" section
+-  See :doc:`dns-keywords` for details.
 
 IP Reputation and ``iprep`` Keyword
 -----------------------------------
@@ -528,31 +396,6 @@ IP Reputation and ``iprep`` Keyword
 -  :doc:`../reputation/ipreputation/ip-reputation-format`
 -  `http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/ <http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/>`_
 
-``xbits``
----------
-
--  Suricata supports ``xbits`` which are like ``flowbits`` but
-   can apply to disparate streams – "global flowbits"
--  Can track by ``ip_src``, ``ip_dst``, or ``ip_pair``
-
-   -  No difference between using ``hostbits`` and ``xbits``
-      with ``track ip_<src|dst>``
-
-   -  If you ``set`` on a client request and use
-      ``track ip_dst``, if you want to match on the server response,
-      you check it (``isset``) with ``track ip_src``.
-
-   -  ``track ip_pair`` has to have the same src and dst IPs on the
-      setter and checker
-
--  To not alert, use ``flowbits:noalert;``  -- there
-   is no such thing as ``xbits:noalert;``
-
--  See also:
-
-   -  `https://blog.inliniac.net/2014/12/21/crossing-the-streams-in-suricata/ <https://blog.inliniac.net/2014/12/21/crossing-the-streams-in-suricata/>`_
-   -  `http://www.cipherdyne.org/blog/2013/07/crossing-the-streams-in-ids-signature-languages.html <http://www.cipherdyne.org/blog/2013/07/crossing-the-streams-in-ids-signature-languages.html>`_
-
 Flowbits
 --------
 
@@ -573,6 +416,15 @@ Flowbits
    `https://redmine.openinfosecfoundation.org/issues/1399 <https://redmine.openinfosecfoundation.org/issues/1399>`_.
 
 -  :doc:`flow-keywords`
+
+flowbits:noalert;
+-----------------
+
+A common pattern in existing rules is to use ``flowbits:noalert;`` to make
+sure a rule doesn't generate an alert if it matches.
+
+Suricata allows using just ``noalert;`` as well. Both have an identical meaning
+in Suricata.
 
 Negated Content Match Special Case
 ----------------------------------
@@ -643,8 +495,9 @@ File Extraction
 Lua Scripting
 -------------
 
--  Suricata has the ``luajit`` keyword which allows for a rule to reference
-   a Lua script that can access the packet, payload, HTTP buffers, etc.
+-  Suricata has the ``lua`` (or ``luajit``) keyword which allows for a
+   rule to reference a Lua script that can access the packet, payload,
+   HTTP buffers, etc.
 -  Provides powerful flexibility and capabilities that Snort does
    not have.
 -  :doc:`rule-lua-scripting`

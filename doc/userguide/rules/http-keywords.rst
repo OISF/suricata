@@ -142,8 +142,8 @@ specifically and only on the HTTP method buffer. The keyword can be
 used in combination with all previously mentioned content modifiers
 such as: ``depth``, ``distance``, ``offset``, ``nocase`` and ``within``.
 
-Methods are: **GET**, **POST**, **PUT**, **HEAD**, **DELETE**, **TRACE**,
-**OPTIONS**, **CONNECT** and **PATCH**.
+Examples of methods are: **GET**, **POST**, **PUT**, **HEAD**,
+**DELETE**, **TRACE**, **OPTIONS**, **CONNECT** and **PATCH**.
 
 Example of a method in a HTTP request:
 
@@ -312,10 +312,6 @@ modifiers like ``depth``, ``distance``, ``offset``, ``nocase`` and
 ``within``. Note that the ``pcre`` keyword can also inspect this
 buffer when using the ``/V`` modifier.
 
-An analysis into the performance of ``http_user_agent``
-vs. ``http_header`` is found at:
-http://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/
-
 Normalization: leading spaces **are not** part of this buffer. So
 "User-Agent: \r\n" will result in an empty ``http_user_agent`` buffer.
 
@@ -326,6 +322,41 @@ Example of the User-Agent header in a HTTP request:
 Example of the purpose of ``http_user_agent``:
 
 .. image:: http-keywords/user_agent_match.png
+
+Notes
+~~~~~
+
+-  The ``http_user_agent`` buffer will NOT include the header name,
+   colon, or leading whitespace.  i.e. it will not include
+   "User-Agent: ".
+
+-  The ``http_user_agent`` buffer does not include a CRLF (0x0D
+   0x0A) at the end.  If you want to match the end of the buffer, use a
+   relative ``isdataat`` or a PCRE (although PCRE will be worse on
+   performance).
+
+-  If a request contains multiple "User-Agent" headers, the values will
+   be concatenated in the ``http_user_agent`` buffer, in the order
+   seen from top to bottom, with a comma and space (", ") between each
+   of them.
+
+   Example request::
+
+          GET /test.html HTTP/1.1
+          User-Agent: SuriTester/0.8
+          User-Agent: GGGG
+
+   ``http_user_agent`` buffer contents::
+
+          SuriTester/0.8, GGGG
+
+-  Corresponding PCRE modifier: ``V``
+
+-  Using the ``http_user_agent`` buffer is more efficient when it
+   comes to performance than using the ``http_header`` buffer (~10%
+   better).
+
+-  `http://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <http://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
 
 http_accept
 -----------
@@ -543,6 +574,23 @@ in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
 
+Notes
+~~~~~
+
+-  Using ``http_server_body`` is similar to having content matches
+   that come after ``file_data`` except that it doesn't permanently
+   (unless reset) set the detection pointer to the beginning of the
+   server response body. i.e. it is not a sticky buffer.
+
+-  ``http_server_body`` will match on gzip decoded data just like
+   ``file_data`` does.
+
+-  Since ``http_server_body`` matches on a server response, it
+   can't be used with the ``to_server`` or ``from_client`` flow
+   directives.
+
+-  Corresponding PCRE modifier: ``Q``
+
 http_host and http_raw_host
 ---------------------------
 
@@ -553,8 +601,56 @@ The ``http_raw_host`` inspects the raw hostname.
 The keyword can be used in combination with most of the content modifiers
 like ``distance``, ``offset``, ``within``, etc.
 
-The ``nocase`` keyword ist not allowed anymore. Keep in mind that you need
+The ``nocase`` keyword is not allowed anymore. Keep in mind that you need
 to specify a lowercase pattern.
+
+Notes
+~~~~~
+
+-  The ``http_host`` and ``http_raw_host`` buffers are populated
+   from either the URI (if the full URI is present in the request like
+   in a proxy request) or the HTTP Host header. If both are present, the
+   URI is used.
+
+-  The ``http_host`` and ``http_raw_host`` buffers will NOT
+   include the header name, colon, or leading whitespace if populated
+   from the Host header.  i.e. they will not include "Host: ".
+
+-  The ``http_host`` and ``http_raw_host`` buffers do not
+   include a CRLF (0x0D 0x0A) at the end.  If you want to match the end
+   of the buffer, use a relative 'isdataat' or a PCRE (although PCRE
+   will be worse on performance).
+
+-  The ``http_host`` buffer is normalized to be all lower case.
+
+-  The content match that ``http_host`` applies to must be all lower
+   case or have the ``nocase`` flag set.
+
+-  ``http_raw_host`` matches the unnormalized buffer so matching
+   will be case-sensitive (unless ``nocase`` is set).
+
+-  If a request contains multiple "Host" headers, the values will be
+   concatenated in the ``http_host`` and ``http_raw_host``
+   buffers, in the order seen from top to bottom, with a comma and space
+   (", ") between each of them.
+
+   Example request::
+
+          GET /test.html HTTP/1.1
+          Host: ABC.com
+          Accept: */*
+          Host: efg.net
+
+   ``http_host`` buffer contents::
+
+          abc.com, efg.net
+
+   ``http_raw_host`` buffer contents::
+
+          ABC.com, efg.net
+
+-  Corresponding PCRE modifier (``http_host``): ``W``
+-  Corresponding PCRE modifier (``http_raw_host``): ``Z``
 
 file_data
 ---------

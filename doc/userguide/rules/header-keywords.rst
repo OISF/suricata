@@ -136,6 +136,10 @@ direction you would like to match::
   dest: if the destination matches with the given geoip.
   src: the source matches with the given geoip.
 
+The keyword only supports IPv4. As it uses the GeoIP API of Maxmind,
+libgeoip must be compiled in.
+
+
 Fragments
 ---------
 

@@ -12,12 +12,31 @@ Syntax::
     xbits:<set|unset|isset|toggle>,<name>,track <ip_src|ip_dst|ip_pair> \
         [,expire <seconds>];
 
+Notes
+~~~~~
+
+-  No difference between using ``hostbits`` and ``xbits``
+   with ``track ip_<src|dst>``
+
+-  If you ``set`` on a client request and use
+   ``track ip_dst``, if you want to match on the server response,
+   you check it (``isset``) with ``track ip_src``.
+
+-  To not alert, use ``noalert;``
+
+-  See also:
+
+   -  `https://blog.inliniac.net/2014/12/21/crossing-the-streams-in-suricata/ <https://blog.inliniac.net/2014/12/21/crossing-the-streams-in-suricata/>`_
+   -  `http://www.cipherdyne.org/blog/2013/07/crossing-the-streams-in-ids-signature-languages.html <http://www.cipherdyne.org/blog/2013/07/crossing-the-streams-in-ids-signature-languages.html>`_
+
 YAML settings
 -------------
 
-Bits that are stored per host are stored in the Host table.
+Bits that are stored per host are stored in the Host table. This means that
+host table settings affect hostsbits and xbits per host.
 
-Bits that are stored per IP pair are stored in the IPPair table.
+Bits that are stored per IP pair are stored in the IPPair table. This means
+that ippair table settings, especially memcap, affect xbits per ip_pair.
 
 Threading
 ---------
