@@ -21,7 +21,9 @@ extern crate nom;
 #[macro_use]
 pub mod log;
 
+#[macro_use]
 pub mod core;
+
 pub mod conf;
 pub mod json;
 pub mod applayer;
