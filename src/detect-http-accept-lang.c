@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_accept_lang"
-#define KEYWORD_DOC "http-keywords#http-accept-lang"
+#define KEYWORD_DOC "http-keywords.html#http-accept-lang"
 #define BUFFER_NAME "http_accept_lang"
 #define BUFFER_DESC "http accept language header"
 #define HEADER_NAME "Accept-Language"

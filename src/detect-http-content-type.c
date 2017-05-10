@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_content_type"
-#define KEYWORD_DOC "http-keywords#http-content-type"
+#define KEYWORD_DOC "http-keywords.html#http-content-type"
 #define BUFFER_NAME "http_content_type"
 #define BUFFER_DESC "http content type header"
 #define HEADER_NAME "Content-Type"

@@ -66,7 +66,7 @@
 #include "util-print.h"
 
 #define KEYWORD_NAME "http_header_names"
-#define KEYWORD_DOC "http-keywords#http-header-names"
+#define KEYWORD_DOC "http-keywords.html#http-header-names"
 #define BUFFER_NAME "http_header_names"
 #define BUFFER_DESC "http header names"
 static int g_buffer_id = 0;

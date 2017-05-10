@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_referer"
-#define KEYWORD_DOC "http-keywords#http-referer"
+#define KEYWORD_DOC "http-keywords.html#http-referer"
 #define BUFFER_NAME "http_referer"
 #define BUFFER_DESC "http referer header"
 #define HEADER_NAME "Referer"

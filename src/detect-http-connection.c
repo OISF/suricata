@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_connection"
-#define KEYWORD_DOC "http-keywords#http-connection"
+#define KEYWORD_DOC "http-keywords.html#http-connection"
 #define BUFFER_NAME "http_connection"
 #define BUFFER_DESC "http connection header"
 #define HEADER_NAME "Connection"

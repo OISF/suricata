@@ -66,7 +66,7 @@
 #include "util-print.h"
 
 #define KEYWORD_NAME "http_protocol"
-#define KEYWORD_DOC "http-keywords#http-protocol"
+#define KEYWORD_DOC "http-keywords.html#http-protocol"
 #define BUFFER_NAME "http_protocol"
 #define BUFFER_DESC "http protocol"
 static int g_buffer_id = 0;

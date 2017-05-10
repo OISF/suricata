@@ -66,7 +66,7 @@
 #include "util-print.h"
 
 #define KEYWORD_NAME "http_start"
-#define KEYWORD_DOC "http-keywords#http-start"
+#define KEYWORD_DOC "http-keywords.html#http-start"
 #define BUFFER_NAME "http_start"
 #define BUFFER_DESC "http start: request/response line + headers"
 static int g_buffer_id = 0;

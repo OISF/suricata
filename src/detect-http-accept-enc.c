@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_accept_enc"
-#define KEYWORD_DOC "http-keywords#http-accept-enc"
+#define KEYWORD_DOC "http-keywords.html#http-accept-enc"
 #define BUFFER_NAME "http_accept_enc"
 #define BUFFER_DESC "http accept encoding header"
 #define HEADER_NAME "Accept-Encoding"

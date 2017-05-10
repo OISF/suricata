@@ -31,7 +31,7 @@
  */
 
 #define KEYWORD_NAME "http_content_len"
-#define KEYWORD_DOC "http-keywords#http-content-len"
+#define KEYWORD_DOC "http-keywords.html#http-content-len"
 #define BUFFER_NAME "http_content_len"
 #define BUFFER_DESC "http content length header"
 #define HEADER_NAME "Content-Length"
