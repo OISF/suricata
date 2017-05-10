@@ -650,7 +650,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
-        json_t *dns = rs_dns_log_json_query(txptr, i);
+        json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
         if (unlikely(dns == NULL)) {
             json_decref(js);
             break;
@@ -662,17 +662,15 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     }
 #else
     DNSTransaction *tx = txptr;
-    if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            js = CreateJSONHeader((Packet *)p, 1, "dns");
-            if (unlikely(js == NULL))
-                return TM_ECODE_OK;
+    DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &tx->query_list, next) {
+        js = CreateJSONHeader((Packet *)p, 1, "dns");
+        if (unlikely(js == NULL))
+            return TM_ECODE_OK;
 
-            LogQuery(td, js, tx, tx_id, query);
+        LogQuery(td, js, tx, tx_id, query);
 
-            json_decref(js);
-        }
+        json_decref(js);
     }
 #endif
 
@@ -697,7 +695,8 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 #if HAVE_RUST
     /* Log answers. */
     for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_json_answer(txptr, i);
+        json_t *answer = rs_dns_log_json_answer(txptr, i,
+                td->dnslog_ctx->flags);
         if (answer == NULL) {
             break;
         }
@@ -709,7 +708,8 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     /* Log authorities. */
     for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_json_authority(txptr, i);
+        json_t *answer = rs_dns_log_json_authority(txptr, i,
+                td->dnslog_ctx->flags);
         if (answer == NULL) {
             break;
         }
