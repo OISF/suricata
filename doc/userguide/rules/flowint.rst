@@ -38,7 +38,7 @@ a particular stream and alert if it is over 5.
 ::
 
   alert tcp any any -> any any (msg:"Counting Usernames"; content:"jonkman"; \
-  flowint: usernamecount, +, 1; noalert;)
+        flowint: usernamecount, +, 1; noalert;)
 
 This will count each occurrence and increment the var usernamecount
 and not generate an alert for each.
@@ -49,7 +49,7 @@ in the stream.
 ::
 
   alert tcp any any -> any any (msg:"More than Five Usernames!"; content:"jonkman"; \
-  flowint: usernamecount, +, 1; flowint:usernamecount, >, 5;)
+        flowint: usernamecount, +, 1; flowint:usernamecount, >, 5;)
 
 So we'll get an alert ONLY if usernamecount is over five.
 
@@ -61,7 +61,7 @@ try:
 ::
 
   alert tcp any any -> any any (msg:"Username Logged out"; content:"logout jonkman"; \
-  flowint: usernamecount, -, 1; flowint:usernamecount, >, 5;)
+        flowint: usernamecount, -, 1; flowint:usernamecount, >, 5;)
 
 So now we'll get an alert ONLY if there are more than five active
 logins for this particular username.
@@ -79,7 +79,7 @@ it.
 ::
 
   alert tcp any any -> any any (msg:"Start a login count"; content:"login failed"; \
-  flowint:loginfail, notset; flowint:loginfail, =, 1; noalert;)
+        flowint:loginfail, notset; flowint:loginfail, =, 1; noalert;)
 
 So we detect the initial fail if the variable is not yet set and set
 it to 1 if so. Our first hit.
@@ -87,14 +87,14 @@ it to 1 if so. Our first hit.
 ::
 
   alert tcp any any -> any any (msg:"Counting Logins"; content:"login failed"; \
-  flowint:loginfail, isset; flowint:loginfail, +, 1; noalert;)
+        flowint:loginfail, isset; flowint:loginfail, +, 1; noalert;)
 
 We are now incrementing the counter if it's set.
 
 ::
 
-  alert tcp any any -> any any (msg:"More than Five login fails in a Stream"; content:"login failed"; \
-  flowint:loginfail, isset; flowint:loginfail, >, 5;)
+  alert tcp any any -> any any (msg:"More than Five login fails in a Stream"; \
+        content:"login failed"; flowint:loginfail, isset; flowint:loginfail, >, 5;)
 
 
 Now we'll generate an alert if we cross five login fails in the same
@@ -106,39 +106,42 @@ logins and a failed login after that.
 ::
 
   alert tcp any any -> any any (msg:"Counting Good Logins"; content:"login successful"; \
-  flowint:loginsuccess, +, 1; noalert;)
+        flowint:loginsuccess, +, 1; noalert;)
 
 Here we're counting good logins, so now we'll count good logins
 relevant to fails:
 
 ::
 
-  alert tcp any any -> any any (msg:"Login fail after two successes"; content:"login failed"; \
-  flowint:loginsuccess, isset; flowint:loginsuccess, =, 2;)
+  alert tcp any any -> any any (msg:"Login fail after two successes"; \
+        content:"login failed"; flowint:loginsuccess, isset; flowint:loginsuccess, =, 2;)
 
 Here are some other general examples:
 
 ::
 
   alert tcp any any -> any any (msg:"Setting a flowint counter"; content:"GET"; \
-  flowint:myvar, notset; flowint:maxvar,notset; flowint:myvar,=,1; flowint: maxvar,=,6;)
+        flowint:myvar, notset; flowint:maxvar,notset;                           \
+        flowint:myvar,=,1; flowint: maxvar,=,6;)
 
 ::
 
-  alert tcp any any -> any any (msg:"Adding to flowint counter"; content:"Unauthorized"; \
-  flowint:myvar,isset; flowint: myvar,+,2;)
+  alert tcp any any -> any any (msg:"Adding to flowint counter";                \
+        content:"Unauthorized"; flowint:myvar,isset; flowint: myvar,+,2;)
 
 ::
 
-  alert tcp any any -> any any (msg:"if the flowint counter is 3 create a new counter"; content:"Unauthorized"; \
-  flowint:myvar, isset; flowint:myvar,==,3; flowint:cntpackets,notset; flowint:cntpackets, =, 0;)
+  alert tcp any any -> any any (msg:"if the flowint counter is 3 create a new counter"; \
+        content:"Unauthorized"; flowint:myvar, isset; flowint:myvar,==,3; \
+        flowint:cntpackets,notset; flowint:cntpackets, =, 0;)
 
 ::
 
-  alert tcp any any -> any any (msg:"and count the rest of the packets received without generating alerts!!!"; \
-  flowint:cntpackets,isset; flowint:cntpackets, +, 1; noalert;)
+  alert tcp any any -> any any (msg:"count the rest without generating alerts"; \
+        flowint:cntpackets,isset; flowint:cntpackets, +, 1; noalert;)
 
 ::
 
-  alert tcp any any -> any any (msg:" and fire this when it reach 6"; flowint: cntpackets, isset; \
-  flowint: maxvar,isset; flowint: cntpackets, ==, maxvar;)
+  alert tcp any any -> any any (msg:"fire this when it reach 6";                \
+        flowint: cntpackets, isset;                                             \
+        flowint: maxvar,isset; flowint: cntpackets, ==, maxvar;)
