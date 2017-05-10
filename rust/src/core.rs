@@ -28,6 +28,10 @@ pub enum AppLayerDecoderEvents {}
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
 
+macro_rules!BIT_U64 {
+    ($x:expr) => (1 << $x);
+}
+
 //
 // Function types for calls into C.
 //
