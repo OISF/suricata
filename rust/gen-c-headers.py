@@ -105,7 +105,7 @@ def convert_type(rs_type):
 def make_output_filename(filename):
     parts = filename.split(os.path.sep)[2:]
     last = os.path.splitext(parts.pop())[0]
-    outpath = "../src/rust-%s-%s.h" % (
+    outpath = "./gen/c-headers/rust-%s-%s-gen.h" % (
         "-".join(parts), last)
     return outpath.replace("--", "-")
 
@@ -172,6 +172,8 @@ def gen_headers(filename):
 
     if writer.tell() > 0:
         print("Writing %s" % (output_filename))
+        if not os.path.exists(os.path.dirname(output_filename)):
+            os.makedirs(os.path.dirname(output_filename))
         with open(output_filename, "w") as output:
             output.write(template % {
                 "prototypes": writer.getvalue(),
