@@ -19,6 +19,8 @@
 
 extern crate libc;
 
+use filecontainer::*;
+
 /// Opaque C types.
 pub enum Flow {}
 pub enum DetectEngineState {}
@@ -55,6 +57,37 @@ pub type AppLayerDecoderEventsSetEventRawFunc =
 pub type AppLayerDecoderEventsFreeEventsFunc =
     extern "C" fn (events: *mut *mut AppLayerDecoderEvents);
 
+pub struct SuricataStreamingBufferConfig;
+
+//File *(*FileOpenFile)(FileContainer *, const StreamingBufferConfig *,
+//       const uint8_t *name, uint16_t name_len,
+//       const uint8_t *data, uint32_t data_len, uint16_t flags);
+pub type SCFileOpenFileWithId = extern "C" fn (
+        file_container: &SuricataFileContainer,
+        sbcfg: &SuricataStreamingBufferConfig,
+        track_id: u32,
+        name: *const u8, name_len: u16,
+        data: *const u8, data_len: u32,
+        flags: u16) -> SuricataFile;
+//int (*FileCloseFile)(FileContainer *, const uint8_t *data, uint32_t data_len, uint16_t flags);
+pub type SCFileCloseFileById = extern "C" fn (
+        file_container: &SuricataFileContainer,
+        track_id: u32,
+        data: *const u8, data_len: u32,
+        flags: u16) -> i32;
+//int (*FileAppendData)(FileContainer *, const uint8_t *data, uint32_t data_len);
+pub type SCFileAppendDataById = extern "C" fn (
+        file_container: &SuricataFileContainer,
+        track_id: u32,
+        data: *const u8, data_len: u32) -> i32;
+// void FilePrune(FileContainer *ffc)
+pub type SCFilePrune = extern "C" fn (
+        file_container: &SuricataFileContainer);
+// void FileContainerRecycle(FileContainer *ffc)
+pub type SCFileContainerRecycle = extern "C" fn (
+        file_container: &SuricataFileContainer);
+
+
 // A Suricata context that is passed in from C. This is alternative to
 // using functions from Suricata directly, so they can be wrapped so
 // Rust unit tests will still compile when they are not linked
@@ -69,6 +102,18 @@ pub struct SuricataContext {
     DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
+
+    pub FileOpenFile: SCFileOpenFileWithId,
+    pub FileCloseFile: SCFileCloseFileById,
+    pub FileAppendData: SCFileAppendDataById,
+    pub FileContainerRecycle: SCFileContainerRecycle,
+    pub FilePrune: SCFilePrune,
+}
+
+#[allow(non_snake_case)]
+#[repr(C)]
+pub struct SuricataFileContext {
+    pub files_sbcfg: &'static SuricataStreamingBufferConfig,
 }
 
 pub static mut SC: Option<&'static SuricataContext> = None;
