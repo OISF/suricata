@@ -2786,6 +2786,13 @@ int main(int argc, char **argv)
     context.AppLayerDecoderEventsSetEventRaw =
         AppLayerDecoderEventsSetEventRaw;
     context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+
+    context.FileOpenFileWithId = FileOpenFileWithId;
+    context.FileCloseFileById = FileCloseFileById;
+    context.FileAppendDataById = FileAppendDataById;
+    context.FileContainerRecycle = FileContainerRecycle;
+    context.FilePrune = FilePrune;
+
     rs_init(&context);
 #endif
 
