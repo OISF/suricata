@@ -2001,6 +2001,7 @@
           else
 	    RUST_LDADD="../rust/target/release/libsuricata.a ${RUST_LDADD}"
           fi
+          CFLAGS="${CFLAGS} -I../rust/gen/c-headers"
           AC_SUBST(RUST_LDADD)
           AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
           if test "x$have_rust_vendor" = "xyes"; then

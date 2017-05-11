@@ -1,7 +1,9 @@
 EXTRA_DIST = 	Cargo.toml \
 		Cargo.lock \
-		src/lib.rs \
-		.cargo/config.in
+		src \
+		.cargo/config.in \
+		gen-c-headers.py \
+		gen/c-headers
 
 if HAVE_RUST
 EXTRA_DIST +=	vendor
@@ -15,10 +17,23 @@ if !DEBUG
 RELEASE = --release
 endif
 
+gen/c-headers:
+if HAVE_PYTHON
+	cd $(top_srcdir)/rust && python ./gen-c-headers.py
+else
+	@echo "python not available, will not generate headers"
+endif
+
 if HAVE_RUST
 all-local:
+if HAVE_PYTHON
+	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
+		python ./gen-c-headers.py && \
+		cargo build $(RELEASE) $(FROZEN)
+else
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		cargo build $(RELEASE) $(FROZEN)
+endif
 
 clean-local:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
@@ -26,6 +41,7 @@ clean-local:
 
 distclean-local:
 	rm -rf vendor
+	rm -rf gen
 
 check:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
