@@ -30,6 +30,7 @@ pub mod conf;
 pub mod json;
 pub mod applayer;
 pub mod filecontainer;
+pub mod filetracker;
 
 #[cfg(feature = "lua")]
 pub mod lua;
