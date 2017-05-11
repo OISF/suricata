@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+extern crate libc;
+
 #[macro_use]
 extern crate nom;
 
@@ -27,6 +29,7 @@ pub mod core;
 pub mod conf;
 pub mod json;
 pub mod applayer;
+pub mod filecontainer;
 
 #[cfg(feature = "lua")]
 pub mod lua;
