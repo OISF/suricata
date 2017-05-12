@@ -36,6 +36,7 @@
 #define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    BIT_U8(0)
 #define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
 #define STREAMTCP_INIT_FLAG_BYPASS                 BIT_U8(2)
+#define STREAMTCP_INIT_FLAG_INLINE                 BIT_U8(3)
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -213,6 +214,7 @@ void StreamTcpStreamCleanup(TcpStream *stream);
 /* check if bypass is enabled */
 int StreamTcpBypassEnabled(void);
 int StreamTcpInlineDropInvalid(void);
+int StreamTcpInlineMode(void);
 
 int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn);
 

@@ -33,20 +33,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-/** defined in stream-tcp-reassemble.c */
-extern int stream_inline;
-
-/**
- *  \brief See if stream engine is operating in inline mode
- *
- *  \retval 0 no
- *  \retval 1 yes
- */
-int StreamTcpInlineMode(void)
-{
-    return stream_inline;
-}
-
 /**
  *  \brief Compare the shared data portion of two segments
  *
