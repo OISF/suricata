@@ -141,7 +141,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     BUG_ON(logger != NULL && store == NULL);
     BUG_ON(logger == NULL && store == NULL);
 
-    uint8_t flags = 0;
+    uint8_t call_flags = 0;
     Flow * const f = p->flow;
 
     /* no flow, no files */
@@ -150,9 +150,9 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     }
 
     if (p->flowflags & FLOW_PKT_TOCLIENT)
-        flags |= STREAM_TOCLIENT;
+        call_flags |= STREAM_TOCLIENT;
     else
-        flags |= STREAM_TOSERVER;
+        call_flags |= STREAM_TOSERVER;
 
     int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
     int file_trunc = 0;
@@ -160,11 +160,12 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     file_trunc = StreamTcpReassembleDepthReached(p);
 
     FileContainer *ffc = AppLayerParserGetFiles(p->proto, f->alproto,
-                                                f->alstate, flags);
+                                                f->alstate, call_flags);
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
+            uint8_t file_flags = call_flags;
 #ifdef HAVE_MAGIC
             if (FileForceMagic() && ff->magic == NULL) {
                 FilemagicGlobalLookup(ff);
@@ -196,7 +197,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
             if (ff->file_store_id == 0) {
                 /* new file */
                 ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
-                flags |= OUTPUT_FILEDATA_FLAG_OPEN;
+                file_flags |= OUTPUT_FILEDATA_FLAG_OPEN;
             } else {
                 /* existing file */
             }
@@ -209,7 +210,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 
             /* tell the logger we're closing up */
             if (ff->state >= FILE_STATE_CLOSED)
-                flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
+                file_flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
 
             /* do the actual logging */
             const uint8_t *data = NULL;
@@ -219,12 +220,12 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
                     &data, &data_len,
                     ff->content_stored);
 
-            int file_logged = CallLoggers(tv, store, p, ff, data, data_len, flags);
+            int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags);
             if (file_logged) {
                 ff->content_stored += data_len;
 
                 /* all done */
-                if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+                if (file_flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
                     ff->flags |= FILE_STORED;
                 }
             }
