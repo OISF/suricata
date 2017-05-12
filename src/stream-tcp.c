@@ -428,12 +428,14 @@ void StreamTcpInitConfig(char quiet)
     int bypass = 0;
     if ((ConfGetBool("stream.bypass", &bypass)) == 1) {
         if (bypass == 1) {
-            stream_config.bypass = 1;
-        } else {
-            stream_config.bypass = 0;
+            stream_config.flags |= STREAMTCP_INIT_FLAG_BYPASS;
         }
-    } else {
-        stream_config.bypass = 0;
+    }
+
+    if (!quiet) {
+        SCLogConfig("stream \"bypass\": %s",
+                    (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS)
+                    ? "enabled" : "disabled");
     }
 
     int drop_invalid = 0;
@@ -443,10 +445,6 @@ void StreamTcpInitConfig(char quiet)
         }
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
-    }
-
-    if (!quiet) {
-        SCLogConfig("stream \"bypass\": %s", bypass ? "enabled" : "disabled");
     }
 
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
@@ -5919,7 +5917,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
 
 int StreamTcpBypassEnabled(void)
 {
-    return stream_config.bypass;
+    return (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS);
 }
 
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)

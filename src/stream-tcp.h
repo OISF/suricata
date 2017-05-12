@@ -35,6 +35,7 @@
    has been enabled */
 #define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    BIT_U8(0)
 #define STREAMTCP_INIT_FLAG_DROP_INVALID           BIT_U8(1)
+#define STREAMTCP_INIT_FLAG_BYPASS                 BIT_U8(2)
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
@@ -47,6 +48,7 @@ typedef struct TcpStreamCnf_ {
 
     uint16_t stream_init_flags; /**< new stream flags will be initialized to this */
 
+    /* coccinelle: TcpStreamCnf:flags:STREAMTCP_INIT_ */
     uint8_t flags;
     uint8_t max_synack_queued;
 
@@ -59,7 +61,6 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
 
-    int bypass;
     bool streaming_log_api;
 
     StreamingBufferConfig sbcnf;
