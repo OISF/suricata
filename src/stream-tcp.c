@@ -115,9 +115,6 @@ static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex *
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
-/* stream engine running in "inline" mode. */
-int stream_inline = 0;
-
 void StreamTcpInitMemuse(void)
 {
     SC_ATOMIC_INIT(st_memuse);
@@ -309,7 +306,8 @@ static void StreamTcpSessionPoolCleanup(void *s)
  */
 int StreamTcpInlineDropInvalid(void)
 {
-    return (stream_inline && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
+    return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
+            && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
 }
 
 /** \brief          To initialize the stream global configuration data
@@ -405,24 +403,24 @@ void StreamTcpInitConfig(char quiet)
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
             if (EngineModeIsIPS()) {
-                stream_inline = 1;
-            } else {
-                stream_inline = 0;
+                stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
             }
         } else if (ConfGetBool("stream.inline", &inl) == 1) {
-            stream_inline = inl;
+            if (inl) {
+                stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
+            }
         }
     } else {
         /* default to 'auto' */
         if (EngineModeIsIPS()) {
-            stream_inline = 1;
-        } else {
-            stream_inline = 0;
+            stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
         }
     }
 
     if (!quiet) {
-        SCLogConfig("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
+        SCLogConfig("stream.\"inline\": %s",
+                    stream_config.flags & STREAMTCP_INIT_FLAG_INLINE
+                    ? "enabled" : "disabled");
     }
 
     int bypass = 0;
@@ -5898,7 +5896,8 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg = stream->seg_list;
     for (; seg != NULL &&
-            (stream_inline || SEQ_LT(seg->seq, stream->last_ack));)
+            ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
+             || SEQ_LT(seg->seq, stream->last_ack));)
     {
         const uint8_t *seg_data;
         uint32_t seg_datalen;
@@ -5919,6 +5918,18 @@ int StreamTcpBypassEnabled(void)
 {
     return (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS);
 }
+
+/**
+ *  \brief See if stream engine is operating in inline mode
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int StreamTcpInlineMode(void)
+{
+    return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) ? 1 : 0;
+}
+
 
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
 {
