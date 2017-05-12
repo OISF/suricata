@@ -147,6 +147,8 @@ struct AppLayerParserState_ {
      * unless we have the entire transaction. */
     uint64_t log_id;
 
+    uint64_t min_id;
+
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
 };
@@ -748,7 +750,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
 
     /* logger is disabled, return highest 'complete' tx id */
     uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
-    uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+    uint64_t idx = f->alparser->min_id;
     int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
     void *tx;
     int state_progress;
@@ -806,8 +808,22 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
 
     uint64_t min = MIN(tx_id_ts, tx_id_tc);
     if (min > 0) {
+        uint64_t x = f->alparser->min_id;
+        for ( ; x < min - 1; x++) {
+            void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, x);
+            if (tx != 0) {
+                SCLogDebug("while freeing %"PRIu64", also free TX at %"PRIu64, min - 1, x);
+                p->StateTransactionFree(f->alstate, x);
+            }
+        }
+
         SCLogDebug("freeing %"PRIu64" %p", min - 1, p->StateTransactionFree);
-        p->StateTransactionFree(f->alstate, min - 1);
+
+        if ((AppLayerParserGetTx(f->proto, f->alproto, f->alstate, min - 1))) {
+            p->StateTransactionFree(f->alstate, min - 1);
+        }
+        f->alparser->min_id = min - 1;
+        SCLogDebug("f->alparser->min_id %"PRIu64, f->alparser->min_id);
     }
 }
 
