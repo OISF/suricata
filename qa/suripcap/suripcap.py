@@ -73,6 +73,7 @@ tests = yaml.safe_load(f)
 f.close()
 
 exit_code = 0
+global_exit = 0
 
 for test in tests:
     applayerevents = []
@@ -152,21 +153,23 @@ for test in tests:
             if args.verbose:
                 print("TX matched")
         else:
-            print("WARNING! TX mismatch")
+            print("WARNING! TX mismatch for '%s' in test '%s'" % (apl['name'], test['test']))
             exit_code = 1
         if (apl['flow'] == flow):
             if args.verbose:
                 print("Flow matched")
         else:
-            print("WARNING! Flow mismatch")
+            print("WARNING! Flow mismatch for '%s' in test '%s'" % (apl['name'], test['test']))
             exit_code = 1
 
     if not exit_code == 0:
+        global_exit = exit_code
         if args.keep:
             print("INFO! Log files available for test '%s' in '%s'" % (test['test'], tmpdir))
         else:
             shutil.rmtree(tmpdir)
     else:
         shutil.rmtree(tmpdir)
+    exit_code = 0
 
-sys.exit(exit_code)
+sys.exit(global_exit)
