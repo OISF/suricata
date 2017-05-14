@@ -343,23 +343,26 @@ static int FilePruneFile(File *file)
 void FilePrune(FileContainer *ffc)
 {
     File *file = ffc->head;
+    File *prev = NULL;
 
     while (file) {
         if (FilePruneFile(file) == 0) {
+            prev = file;
             file = file->next;
             continue;
         }
-
-        BUG_ON(file != ffc->head);
 
         SCLogDebug("removing file %p", file);
 
         File *file_next = file->next;
 
+        if (prev)
+            prev->next = file_next;
         /* update head and tail */
-        ffc->head = file_next;
+        if (file == ffc->head)
+            ffc->head = file_next;
         if (file == ffc->tail)
-            ffc->tail = NULL;
+            ffc->tail = prev;
 
         FileFree(file);
         file = file_next;
