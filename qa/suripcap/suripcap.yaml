@@ -30,16 +30,20 @@
       flow: 0
       tx: 0
 
-# Should be working
-#- test: TCP DNS 2
-#  filename: ../docker/pcaps/tcp-dns.pcap
-#  ruleset: none
-#  config: ../../suricata.yaml
-#  options: -k none --set 'app-layer.protocols.dns.tcp.detection-ports.dp=5353'
-#  app-layer-events:
-#    - name: dns_tcp
-#      flow: 1
-#      tx: 0
+- test: TCP DNS 2
+  filename: ../docker/pcaps/tcp-dns.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none --set app-layer.protocols.dns.tcp.detection-ports.dp=5353 --runmode=single
+  app-layer-events:
+    - name: dns_tcp
+      flow: 1
+      tx: 1
+  metadata:
+    - name: DNS query
+      event_type: dns
+      count: 1
+      filter: "dns.rrname=www.stearns.org"
 
 - test: SMTP metadata
   filename: ../docker/pcaps/smtp.pcap
