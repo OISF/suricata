@@ -136,8 +136,8 @@ for test in tests:
             jsline = json.loads(line)
             for md in mdfilters:
                 md.checkFilters(jsline)
-                if (jsline[u'event_type'] == "stats"):
-                    jsstats = jsline[u'stats'][u'app_layer']
+            if (jsline[u'event_type'] == "stats"):
+                jsstats = jsline[u'stats'][u'app_layer']
 
     for md in mdfilters:
         if not md.counter == md.seen:
@@ -171,5 +171,6 @@ for test in tests:
     else:
         shutil.rmtree(tmpdir)
     exit_code = 0
+    jsstats = None
 
 sys.exit(global_exit)
