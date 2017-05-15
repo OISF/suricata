@@ -1934,6 +1934,7 @@
                 AS_HELP_STRING([--enable-rust],[Enable Rust parsers]),
                 [ enable_rust="yes"],
                 [ enable_rust="no"])
+    AM_CONDITIONAL([BUILD_RUST], [test "x$enable_rust" = "xyes"])
     if test "$enable_rust" = "yes"; then
         AC_CHECK_PROG(CARGO, [cargo], [yes], [no])
         AS_IF(test x$CARGO = xno,
