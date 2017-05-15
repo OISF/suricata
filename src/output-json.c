@@ -92,6 +92,11 @@ void OutputJsonRegister (void)
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
 }
 
+json_t *SCJsonBool(int val)
+{
+    return (val ? json_true() : json_false());
+}
+
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
