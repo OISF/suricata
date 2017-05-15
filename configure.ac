@@ -1946,7 +1946,7 @@
         AC_DEFINE([HAVE_RUST],[1],[librust available])
         RUST_LDADD="../rust/target/release/librusticata.a"
         AC_SUBST(RUST_LDADD)
-        LIBS="${LIBS} -ldl ${RUST_LDADD}"
+        LIBS="${LIBS} -ldl"
     fi
 
 # get cache line size
