@@ -84,8 +84,11 @@ for test in tests:
     mdfilters = []
     if args.verbose:
         print("Running test '%s'" % (test['test']))
-    for alevent in test['app-layer-events']: 
-        applayerevents.append({'name':alevent['name'], 'flow':alevent['flow'], 'tx':alevent['tx']})
+    try:
+        for alevent in test['app-layer-events']: 
+            applayerevents.append({'name':alevent['name'], 'flow':alevent['flow'], 'tx':alevent['tx']})
+    except KeyError:
+        pass
 
     if 'metadata' in test.keys():
         for metadata in test['metadata']:
