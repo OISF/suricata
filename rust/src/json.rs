@@ -35,6 +35,7 @@ extern {
 
     fn json_string(value: *const c_char) -> *mut JsonT;
     fn json_integer(val: u64) -> *mut JsonT;
+    fn SCJsonBool(val: bool) -> *mut JsonT;
 }
 
 pub struct Json {
@@ -80,6 +81,14 @@ impl Json {
             json_object_set_new(self.js,
                                 CString::new(key).unwrap().as_ptr(),
                                 json_integer(val));
+        }
+    }
+
+    pub fn set_boolean(&self, key: &str, val: bool) {
+        unsafe {
+            json_object_set_new(self.js,
+                                CString::new(key).unwrap().as_ptr(),
+                                SCJsonBool(val));
         }
     }
 
