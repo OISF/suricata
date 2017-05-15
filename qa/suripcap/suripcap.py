@@ -50,7 +50,11 @@ class Metadata:
                         except ValueError:
                             idx = key
                         obj = obj[idx]
-                    if not obj == md_filter['filter_value']:
+                    try:
+                        value = int(md_filter['filter_value'])
+                    except ValueError:
+                        value = md_filter['filter_value']
+                    if not obj == value:
                         found = False
                         break
                 except KeyError:
@@ -119,7 +123,8 @@ for test in tests:
         print("config_file NOT found")
         sys.exit(1)
     if os.path.isfile(ruleset_file):
-        print("ruleset_file found")
+        if args.verbose:
+            print("ruleset_file found")
     else:
         ruleset_file = '/dev/null'
     if os.path.isfile(pcap_file):
