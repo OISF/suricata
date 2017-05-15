@@ -25,10 +25,6 @@
   ruleset: tls.rules
   config: ../../suricata.yaml
   options: -k none
-  app-layer-events:
-    - name: tls
-      flow: 5
-      tx: 0
   metadata:
     - name: Stamus Issuer Alert
       event_type: alert
