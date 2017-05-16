@@ -47,6 +47,17 @@ pub enum TlsParserEvents {
     RecordOverflow = 5,
 }
 
+#[no_mangle]
+pub static TLS_EVENTS: &[MyEvent]  = &[
+    r_event!( b"EMPTY_MESSAGE\0", 0 ),
+    r_event!( b"OVERFLOW_HEARTBEAT_MESSAGE\0", 1 ),
+    r_event!( b"INVALID_STATE\0", 2 ),
+    r_event!( b"RECORD_INCOMPLETE\0", 3 ),
+    r_event!( b"RECORD_WITH_EXTRA_BYTES\0", 4 ),
+    r_event!( b"RECORD_OVERFLOW\0", 5 ),
+    r_event!(0, -1),
+];
+
 /// TLS parser state
 pub struct TlsParser<'a> {
     _o: Option<&'a[u8]>,
@@ -323,6 +334,13 @@ impl<'a> RParser for TlsParser<'a> {
 
         self.parse_tcp_level(i)
     }
+
+    fn get_next_event(&mut self) -> u32 {
+        match self.events.pop() {
+            None     => R_NO_MORE_EVENTS,
+            Some(ev) => ev,
+        }
+    }
 }
 
 fn tls_probe(i: &[u8]) -> bool {
@@ -336,7 +354,7 @@ fn tls_probe(i: &[u8]) -> bool {
     }
 }
 
-r_implement_probe!(r_tls_probe,tls_probe);
+r_implement_probe!(r_tls_probe,tls_probe,ALPROTO_TLS);
 r_implement_parse!(r_tls_parse,TlsParser);
 
 // --------------------------------------------
@@ -344,15 +362,6 @@ r_implement_parse!(r_tls_parse,TlsParser);
 
 
 
-
-#[no_mangle]
-pub extern fn r_tls_get_next_event(this: &mut TlsParser) -> u32
-{
-    match this.events.pop() {
-        None     => 0xffffffff,
-        Some(ev) => ev,
-    }
-}
 
 /// Get the select ciphersuite
 ///

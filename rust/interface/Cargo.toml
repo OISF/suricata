@@ -7,3 +7,4 @@ keywords = ["Suricata","pcap","protocol","parser","nom","IDS"]
 authors = ["Pierre Chifflier <chifflier@wzdftpd.net>"]
 
 [dependencies]
+libc = "^0.2"

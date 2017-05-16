@@ -1,40 +1,31 @@
 use std::ffi::CString;
 
 pub type LogCallback = extern "C" fn (lvl: u32, file: *const i8, line: u32, func: *const i8, err: u32, msg: *const i8);
-// 
-// static RAW_LOG : *mut LogCallback = ||{};
-// 
-// #[macro_export]
-// macro_rules! SCLogMessage (
-//   ($lvl:expr, $msg:expr) => (
-//     {
-//         unsafe {  }
-//     }
-//   );
-//   ($lvl:expr, $msg:expr) => (
-//     SCLogMessage!($i, $cond, $err);
-//   );
-// );
+
+extern {
+    fn SCLogMessage(lvl: u32, file: *const i8, line: u32, func: *const i8, err: u32, msg: *const i8);
+}
 
 #[repr(C)]
 pub struct SuricataConfig {
     pub magic: u32,
-    pub log: LogCallback,
     pub log_level: i32,
     // other members
 }
 
-pub static mut suricata_config : Option<&'static SuricataConfig> = None;
+pub static mut SURICATA_CONFIG : Option<&'static SuricataConfig> = None;
 
 pub fn raw_sclog_message<'a,'b>(lvl: u32, msg: &'a str, file: &'b str, line: u32) {
-    match unsafe{suricata_config} {
+    match unsafe{SURICATA_CONFIG} {
         None => println!("({}:{}) [{}]: {}", file, line, lvl, msg),
         Some(c) => {
             let c_msg = CString::new(msg).unwrap();
             let c_file = CString::new(file).unwrap();
             let c_func = CString::new("<rust function>").unwrap();
 
-            (c.log)(lvl, c_file.as_ptr(), line, c_func.as_ptr(), 0, c_msg.as_ptr());
+            unsafe{
+                SCLogMessage(lvl, c_file.as_ptr(), line, c_func.as_ptr(), 0, c_msg.as_ptr())
+            };
         },
     };
 }

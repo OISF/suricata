@@ -1,3 +1,9 @@
+//! Logging module
+//!
+//! Send the output of logging macros to suricata
+//!
+//! Use the `SC_LOG_LEVEL` environment variable to set the threshold.
+
 extern crate log;
 
 use log::{LogRecord, LogLevel, LogLevelFilter, LogMetadata, SetLoggerError};
