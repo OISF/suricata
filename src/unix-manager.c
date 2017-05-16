@@ -889,22 +889,13 @@ TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
     SCReturnInt(TM_ECODE_OK);
 }
 
-typedef struct UnixManagerThreadData_ {
-    int padding;
-} UnixManagerThreadData;
-
-static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
+int UnixManagerInit(void)
 {
-    UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
-    if (utd == NULL)
-        return TM_ECODE_FAILED;
-
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
-        SCFree(utd);
         if (failure_fatal) {
             SCLogError(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
@@ -912,7 +903,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
         } else {
             SCLogWarning(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
-            return TM_ECODE_OK;
+            return -1;
         }
     }
 
@@ -932,6 +923,19 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("reload-tenant", UnixSocketReloadTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+
+    return 0;
+}
+
+typedef struct UnixManagerThreadData_ {
+    int padding;
+} UnixManagerThreadData;
+
+static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
+    if (utd == NULL)
+        return TM_ECODE_FAILED;
 
     *data = utd;
     return TM_ECODE_OK;
@@ -1017,10 +1021,12 @@ void UnixManagerThreadSpawnNonRunmode(void)
     /* Spawn the unix socket manager thread */
     int unix_socket = ConfUnixSocketIsEnable();
     if (unix_socket == 1) {
-        UnixManagerThreadSpawn(0);
-        UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
-                UNIX_CMD_TAKE_ARGS);
-        UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+        if (UnixManagerInit() == 0) {
+            UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
+                    UNIX_CMD_TAKE_ARGS);
+            UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+            UnixManagerThreadSpawn(0);
+        }
     }
 }
 
