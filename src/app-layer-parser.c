@@ -127,6 +127,9 @@ typedef struct AppLayerParserProtoCtx_
      * STREAM_TOSERVER, STREAM_TOCLIENT */
     uint8_t first_data_dir;
 
+    /* Option flags such as supporting gaps or not. */
+    uint64_t flags;
+
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
 #endif
@@ -362,6 +365,16 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto, AppPro
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].first_data_dir |=
         (direction & (STREAM_TOSERVER | STREAM_TOCLIENT));
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
+        uint64_t flags)
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].flags |= flags;
 
     SCReturn;
 }
@@ -994,14 +1007,15 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
     if (p->StateAlloc == NULL)
         goto end;
 
-    /* Do this check before calling AppLayerParse */
     if (flags & STREAM_GAP) {
-        SCLogDebug("stream gap detected (missing packets), "
-                   "this is not yet supported.");
-
-        if (f->alstate != NULL)
-            AppLayerParserStreamTruncated(f->proto, alproto, f->alstate, flags);
-        goto error;
+        if (!(p->flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
+            SCLogDebug("app-layer parser does not accept gaps");
+            if (f->alstate != NULL) {
+                AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
+                        flags);
+            }
+            goto error;
+        }
     }
 
     /* Get the parser state (if any) */
