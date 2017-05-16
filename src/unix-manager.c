@@ -981,10 +981,12 @@ void UnixManagerThreadSpawnNonRunmode(void)
     /* Spawn the unix socket manager thread */
     int unix_socket = ConfUnixSocketIsEnable();
     if (unix_socket == 1) {
-        UnixManagerThreadSpawn(0);
-        UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
-                UNIX_CMD_TAKE_ARGS);
-        UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+        if (UnixManagerInit() == 0) {
+            UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
+                    UNIX_CMD_TAKE_ARGS);
+            UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+            UnixManagerThreadSpawn(0);
+        }
     }
 }
 
