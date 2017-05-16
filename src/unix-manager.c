@@ -846,22 +846,13 @@ TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
     SCReturnInt(TM_ECODE_OK);
 }
 
-typedef struct UnixManagerThreadData_ {
-    int padding;
-} UnixManagerThreadData;
-
-static TmEcode UnixManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
+int UnixManagerInit(void)
 {
-    UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
-    if (utd == NULL)
-        return TM_ECODE_FAILED;
-
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
-        SCFree(utd);
         if (failure_fatal) {
             SCLogError(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
@@ -869,7 +860,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, const void *initdata, void *
         } else {
             SCLogWarning(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
-            return TM_ECODE_FAILED;
+            return -1;
         }
     }
 
@@ -892,6 +883,19 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, const void *initdata, void *
     UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
+
+    return 0;
+}
+
+typedef struct UnixManagerThreadData_ {
+    int padding;
+} UnixManagerThreadData;
+
+static TmEcode UnixManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
+{
+    UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
+    if (utd == NULL)
+        return TM_ECODE_FAILED;
 
     *data = utd;
     return TM_ECODE_OK;

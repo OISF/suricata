@@ -67,6 +67,7 @@ const char *RunModeUnixSocketGetDefaultMode(void)
 
 #ifdef BUILD_UNIX_SOCKET
 
+static int RunModeUnixSocketSingle(void);
 static int unix_manager_file_task_running = 0;
 static int unix_manager_file_task_failed = 0;
 
@@ -1007,13 +1008,16 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 }
 #endif /* BUILD_UNIX_SOCKET */
 
+#ifdef BUILD_UNIX_SOCKET
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeUnixSocketSingle(void)
+static int RunModeUnixSocketSingle(void)
 {
-#ifdef BUILD_UNIX_SOCKET
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
+
+    if (UnixManagerInit() != 0)
+        return 1;
 
     if (unlikely(pcapcmd == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
@@ -1023,20 +1027,19 @@ int RunModeUnixSocketSingle(void)
     pcapcmd->running = 0;
     pcapcmd->currentfile = NULL;
 
-    UnixManagerThreadSpawn(1);
-
-    unix_socket_mode_is_running = 1;
-
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
 
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
-#endif
+
+    UnixManagerThreadSpawn(1);
+    unix_socket_mode_is_running = 1;
 
     return 0;
 }
+#endif
 
 int RunModeUnixSocketIsActive(void)
 {
