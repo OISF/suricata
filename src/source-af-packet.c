@@ -2231,6 +2231,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
         ptv->flags |= AFP_VLAN_DISABLED;
     }
 
+    /* If kernel is older than 3.8, VLAN is not stripped so we don't
+     * get the info from packt extended header but we will use a standard
+     * parsing */
+    if (! SCKernelVersionIsAtLeast(3, 0)) {
+        ptv->vlan_disabled = 1;
+    }
+
     SCReturnInt(TM_ECODE_OK);
 }
 
