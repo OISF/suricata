@@ -1,8 +1,7 @@
 Lua Output
 ==========
 
-Note: this page new Lua scripting available for outputs. It will be
-available in 2.1.
+Lua scripts can be used to generate output from Suricata.
 
 Script structure
 ----------------
@@ -219,6 +218,25 @@ Gets the packet and byte counts per flow.
 ::
 
   tscnt, tsbytes, tccnt, tcbytes = SCFlowStats()
+
+SCFlowId
+~~~~~~~~
+
+Gets the flow id.
+
+::
+
+    id = SCFlowId()
+
+Note that simply printing 'id' will likely result in printing a scientific
+notation. To avoid that, simply do:
+
+::
+
+    id = SCFlowId()
+    idstr = string.format("%.0f",id)
+    print ("Flow ID: " .. idstr .. "\n")
+
 
 http
 ----

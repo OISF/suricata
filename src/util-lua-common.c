@@ -515,6 +515,40 @@ static int LuaCallbackStatsFlow(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with flow id
+ *  \param luastate the lua state
+ *  \param f flow, locked
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: flow id (number)
+ */
+static int LuaCallbackPushFlowIdToStackFromFlow(lua_State *luastate, const Flow *f)
+{
+    uint64_t id = FlowGetId(f);
+    /* reduce to 51 bits as Javascript and even JSON often seem to
+     * max out there. */
+    id &= 0x7ffffffffffffLL;
+    lua_pushinteger(luastate, id);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting FlowId into lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFlowId(lua_State *luastate)
+{
+    int r = 0;
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    r = LuaCallbackPushFlowIdToStackFromFlow(luastate, f);
+
+    return r;
+}
+
+/** \internal
  *  \brief fill lua stack with alert info
  *  \param luastate the lua state
  *  \param pa pointer to packet alert struct
@@ -844,6 +878,8 @@ int LuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCFlowStats");
     lua_pushcfunction(luastate, LuaCallbackFlowHasAlerts);
     lua_setglobal(luastate, "SCFlowHasAlerts");
+    lua_pushcfunction(luastate, LuaCallbackFlowId);
+    lua_setglobal(luastate, "SCFlowId");
 
     lua_pushcfunction(luastate, LuaCallbackStreamingBuffer);
     lua_setglobal(luastate, "SCStreamingBuffer");
