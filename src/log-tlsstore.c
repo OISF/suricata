@@ -131,6 +131,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
             if (ptmp == NULL) {
                 SCFree(aft->enc_buf);
                 aft->enc_buf = NULL;
+                aft->enc_buf_len = 0;
                 SCLogWarning(SC_ERR_MEM_ALLOC, "Can't allocate data for base64 encoding");
                 goto end_fp;
             }
