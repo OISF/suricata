@@ -87,6 +87,9 @@ pub type SCFilePrune = extern "C" fn (
 pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer);
 
+pub type SCFileSetTx = extern "C" fn (
+        file: &FileContainer,
+        tx_id: u64);
 
 // A Suricata context that is passed in from C. This is alternative to
 // using functions from Suricata directly, so they can be wrapped so
@@ -108,6 +111,7 @@ pub struct SuricataContext {
     pub FileAppendData: SCFileAppendDataById,
     pub FileContainerRecycle: SCFileContainerRecycle,
     pub FilePrune: SCFilePrune,
+    pub FileSetTx: SCFileSetTx,
 }
 
 #[allow(non_snake_case)]
