@@ -2792,6 +2792,7 @@ int main(int argc, char **argv)
     context.FileAppendDataById = FileAppendDataById;
     context.FileContainerRecycle = FileContainerRecycle;
     context.FilePrune = FilePrune;
+    context.FileSetTx = FileContainerSetTx;
 
     rs_init(&context);
 #endif
