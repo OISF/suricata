@@ -15,25 +15,20 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ */
 
-#[macro_use]
-extern crate nom;
+#ifndef __APP_LAYER_NFS3_H__
+#define __APP_LAYER_NFS3_H__
 
-#[macro_use]
-pub mod log;
+void RegisterNFS3Parsers(void);
+void NFS3ParserRegisterTests(void);
 
-#[macro_use]
-pub mod core;
+/** Opaque Rust types. */
+typedef struct NFS3tate_ NFS3State;
+typedef struct NFS3Transaction_ NFS3Transaction;
 
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
+#endif /* __APP_LAYER_NFS3_H__ */
