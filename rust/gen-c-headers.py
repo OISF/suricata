@@ -46,10 +46,16 @@ template = """/* Copyright (C) 2017 Open Information Security Foundation
 
 # Map of Rust types to C types.
 type_map = {
+    "bool": "bool",
     "i8": "int8_t",
+    "i16" :"int16_t",
     "i32" :"int32_t",
+    "i64" :"int64_t",
 
     "u8": "uint8_t",
+    "u16" :"uint16_t",
+    "u32" :"uint32_t",
+    "u64" :"uint64_t",
 
     "libc::c_void": "void",
 
@@ -63,14 +69,20 @@ type_map = {
     "libc::uint64_t": "uint64_t",
 
     "SuricataContext": "SuricataContext",
+    "SuricataFileContext": "SuricataFileContext",
+    "FileContainer": "FileContainer",
     "core::Flow": "Flow",
+    "Flow": "Flow",
     "DNSState": "RSDNSState",
     "DNSTransaction": "RSDNSTransaction",
+    "NFS3State": "NFS3State",
+    "NFS3Transaction": "NFS3Transaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",
     "core::AppLayerDecoderEvents": "AppLayerDecoderEvents",
     "CLuaState": "lua_State",
+    "Store": "Store",
 }
 
 def convert_type(rs_type):
@@ -86,13 +98,16 @@ def convert_type(rs_type):
         if rtype in type_map:
             if mod in [
                     "*mut",
+                    "* mut",
                     "*const",
+                    "* const",
                     "&mut",
                     "&'static mut",
                     ]:
                 return "%s *" % (type_map[rtype])
             elif mod in [
-                    "*mut *const"]:
+                    "*mut *const",
+                    "*mut*const"]:
                 return "%s **" % (type_map[rtype])
             else:
                 raise Exception("Unknown modifier '%s' in '%s'." % (
