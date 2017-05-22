@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,25 +15,15 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
+/**
+ * \file
+ *
+ * \author FirstName LastName <name@domain>
+ */
 
-#[macro_use]
-extern crate nom;
+#ifndef __OUTPUT_JSON_NFS3_H__
+#define __OUTPUT_JSON_NFS3_H__
 
-#[macro_use]
-pub mod log;
+void JsonNFS3LogRegister(void);
 
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
+#endif /* __OUTPUT_JSON_NFS3_H__ */

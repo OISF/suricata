@@ -39,4 +39,13 @@ typedef struct SuricataContext_ {
 
 } SuricataContext;
 
+typedef struct SuricataFileContext_ {
+
+    const StreamingBufferConfig *sbcfg;
+
+} SuricataFileContext;
+
+struct _Store;
+typedef struct _Store Store;
+
 #endif /* !__RUST_H__ */
