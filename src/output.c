@@ -68,6 +68,7 @@
 #include "log-tcp-data.h"
 #include "log-stats.h"
 #include "output-json.h"
+#include "output-json-nfs3.h"
 #include "output-json-template.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
@@ -1081,6 +1082,8 @@ void OutputRegisterLoggers(void)
     JsonDNP3LogRegister();
     JsonVarsLogRegister();
 
+    /* NFS3 JSON logger. */
+    JsonNFS3LogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
 }

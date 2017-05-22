@@ -15,25 +15,16 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ */
 
-#[macro_use]
-extern crate nom;
+#ifndef __DETECT_NFS3_PROCEDURE_H__
+#define __DETECT_NFS3_PROCEDURE_H__
 
-#[macro_use]
-pub mod log;
+/* prototypes */
+void DetectNfs3ProcedureRegister (void);
 
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
+#endif /* __DETECT_NFS3_PROCEDURE_H__ */
