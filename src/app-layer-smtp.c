@@ -67,6 +67,8 @@
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
 
+#define SMTP_SERVER_MIN_DEPTH 3
+
 /* we are in process of parsing a fresh command.  Just a placeholder.  If we
  * are not in STATE_COMMAND_DATA_MODE, we have to be in this mode */
 #define SMTP_PARSER_STATE_COMMAND_MODE            0x00
@@ -1634,6 +1636,22 @@ static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
     return 0;
 }
 
+static uint16_t SMTPProbingParser(Flow *f, uint8_t *input, uint32_t ilen, uint32_t *offset)
+{
+    if (ilen == 0 || ilen < SMTP_SERVER_MIN_DEPTH) {
+        SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)SMTP_SERVER_MIN_DEPTH);
+        return ALPROTO_UNKNOWN;
+    }
+
+    if (!memcmp("220", input, SMTP_SERVER_MIN_DEPTH))
+        return ALPROTO_SMTP;
+
+    if (!memcmp("554", input, SMTP_SERVER_MIN_DEPTH))
+        return ALPROTO_SMTP;
+
+    return ALPROTO_FAILED;
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1645,6 +1663,33 @@ void RegisterSMTPParsers(void)
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMTP, proto_name);
         if (SMTPRegisterPatternsForProtocolDetection() < 0 )
             return;
+
+        if (RunmodeIsUnittests()) {
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP,
+                    "25",
+                    ALPROTO_SMTP,
+                    0, SMTP_SERVER_MIN_DEPTH,
+                    STREAM_TOSERVER,
+                    NULL, SMTPProbingParser);
+        } else {
+            if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
+                                                proto_name, ALPROTO_SMTP,
+                                                0, SMTP_SERVER_MIN_DEPTH,
+                                                NULL, SMTPProbingParser)) {
+#ifndef AFLFUZZ_APPLAYER
+                SCLogNotice("no SMTP TCP config found, "
+                                                "enabling SMTP detection on "
+                                                "port 25.");
+#endif
+
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
+                        "25",
+                        ALPROTO_SMTP,
+                        0, SMTP_SERVER_MIN_DEPTH,
+                        STREAM_TOSERVER,
+                        NULL, SMTPProbingParser);
+            }
+        }
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.",
                   proto_name);
