@@ -103,12 +103,6 @@ static int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (file->name == NULL)
         SCReturnInt(0);
 
-    if (file->txid < det_ctx->tx_id)
-        SCReturnInt(0);
-
-    if (file->txid > det_ctx->tx_id)
-        SCReturnInt(0);
-
     if (file->name_len <= fileext->len)
         SCReturnInt(0);
 

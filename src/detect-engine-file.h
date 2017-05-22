@@ -34,4 +34,9 @@ int DetectFileInspectSmtp(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 
+int DetectFileInspectGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
+
 #endif /* __DETECT_ENGINE_FILE_H__ */

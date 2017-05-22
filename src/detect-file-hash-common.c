@@ -153,14 +153,6 @@ int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int ret = 0;
     DetectFileHashData *filehash = (DetectFileHashData *)m;
 
-    if (file->txid < det_ctx->tx_id) {
-        SCReturnInt(0);
-    }
-
-    if (file->txid > det_ctx->tx_id) {
-        SCReturnInt(0);
-    }
-
     if (file->state != FILE_STATE_CLOSED) {
         SCReturnInt(0);
     }

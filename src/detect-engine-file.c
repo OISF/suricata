@@ -70,8 +70,6 @@
  *  \retval 1 match
  *  \retval 2 can't match
  *  \retval 3 can't match filestore signature
- *
- *  \note flow is not locked at this time
  */
 static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         Flow *f, const Signature *s, const SigMatchData *smd,
@@ -213,52 +211,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- *  \brief Inspect the file inspecting keywords against the HTTP transactions.
- *
- *  \param tv thread vars
- *  \param det_ctx detection engine thread ctx
- *  \param f flow
- *  \param s signature to inspect
- *  \param alstate state
- *  \param flags direction flag
- *
- *  \retval 0 no match
- *  \retval 1 match
- *  \retval 2 can't match
- *  \retval 3 can't match filestore signature
- *
- *  \note flow should be locked when this function's called.
- */
-int DetectFileInspectHttp(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    FileContainer *ffc;
-    HtpState *htp_state = (HtpState *)alstate;
-
-    if (flags & STREAM_TOCLIENT)
-        ffc = htp_state->files_tc;
-    else
-        ffc = htp_state->files_ts;
-
-    int match = DetectFileInspect(tv, det_ctx, f, s, smd, flags, ffc);
-    if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
-        r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
-        SCLogDebug("sid %u can't match on this transaction", s->id);
-        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
-        SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
-        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
-    }
-
-    return r;
-}
-
-/**
- *  \brief Inspect the file inspecting keywords against the SMTP transactions.
+ *  \brief Inspect the file inspecting keywords against the state
  *
  *  \param tv thread vars
  *  \param det_ctx detection engine thread ctx
@@ -274,27 +227,24 @@ int DetectFileInspectHttp(ThreadVars *tv,
  *
  *  \note flow is not locked at this time
  */
-int DetectFileInspectSmtp(ThreadVars *tv,
+int DetectFileInspectGeneric(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     SCEnter();
-    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    SMTPState *smtp_state = NULL;
-    FileContainer *ffc;
 
-    smtp_state = (SMTPState *)alstate;
-    if (smtp_state == NULL) {
-        SCLogDebug("no SMTP state");
-        goto end;
+    if (alstate == NULL) {
+        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
     }
 
-    if (flags & STREAM_TOSERVER)
-        ffc = smtp_state->files_ts;
-    else
-        goto end;
+    const uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, alstate, direction);
+    if (ffc == NULL || ffc->head == NULL) {
+        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_NO_MATCH);
+    }
 
+    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     int match = DetectFileInspect(tv, det_ctx, f, s, smd, flags, ffc);
     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -309,6 +259,5 @@ int DetectFileInspectSmtp(ThreadVars *tv,
         r = match;
     }
 
-end:
     SCReturnInt(r);
 }

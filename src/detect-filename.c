@@ -75,14 +75,14 @@ void DetectFilenameRegister(void)
 
     DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_BODY,
-            DetectFileInspectHttp);
+            DetectFileInspectGeneric);
     DetectAppLayerInspectEngineRegister("files",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectFileInspectHttp);
+            DetectFileInspectGeneric);
 
     DetectAppLayerInspectEngineRegister("files",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectFileInspectSmtp);
+            DetectFileInspectGeneric);
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
@@ -113,12 +113,6 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectFilenameData *filename = (DetectFilenameData *)m;
 
     if (file->name == NULL)
-        SCReturnInt(0);
-
-    if (file->txid < det_ctx->tx_id)
-        SCReturnInt(0);
-
-    if (file->txid > det_ctx->tx_id)
         SCReturnInt(0);
 
     if (BoyerMooreNocase(filename->name, filename->len, file->name,

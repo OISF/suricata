@@ -187,12 +187,6 @@ static int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int ret = 0;
     DetectFilemagicData *filemagic = (DetectFilemagicData *)m;
 
-    if (file->txid < det_ctx->tx_id)
-        SCReturnInt(0);
-
-    if (file->txid > det_ctx->tx_id)
-        SCReturnInt(0);
-
     DetectFilemagicThreadData *tfilemagic = (DetectFilemagicThreadData *)DetectThreadCtxGetKeywordThreadCtx(det_ctx, filemagic->thread_ctx_id);
     if (tfilemagic == NULL) {
         SCReturnInt(0);
