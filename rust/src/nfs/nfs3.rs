@@ -93,6 +93,31 @@ pub static mut suricata_nfs3_file_config: Option<&'static SuricataFileContext> =
 #[derive(Debug)]
 pub enum NFS3TransactionTypeData {
     RENAME(Vec<u8>),
+    FILE(NFS3TransactionFile),
+}
+
+#[derive(Debug)]
+pub struct NFS3TransactionFile {
+    /// additional procedures part of a single file transfer. Currently
+    /// only COMMIT on WRITEs.
+    pub file_additional_procs: Vec<u32>,
+
+    /// last xid of this file transfer. Last READ or COMMIT normally.
+    pub file_last_xid: u32,
+
+    /// file tracker for a single file. Boxed so that we don't use
+    /// as much space if we're not a file tx.
+    pub file_tracker: Option<Box<FileTransferTracker>>,
+}
+
+impl NFS3TransactionFile {
+    pub fn new() -> NFS3TransactionFile {
+        return NFS3TransactionFile {
+            file_additional_procs: Vec::new(),
+            file_last_xid: 0,
+            file_tracker: None,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -126,18 +151,8 @@ pub struct NFS3Transaction {
     pub file_tx_direction: u8, // STREAM_TOCLIENT or STREAM_TOSERVER
     pub file_handle: Vec<u8>,
 
+    /// Procedure type specific data
     pub type_data: Option<NFS3TransactionTypeData>,
-
-    /// additional procedures part of a single file transfer. Currently
-    /// only COMMIT on WRITEs.
-    pub file_additional_procs: Vec<u32>,
-
-    /// last xid of this file transfer. Last READ or COMMIT normally.
-    pub file_last_xid: u32,
-
-    /// file tracker for a single file. Boxed so that we don't use
-    /// as much space if we're not a file tx.
-    pub file_tracker: Option<Box<FileTransferTracker>>,
 
     pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
@@ -164,9 +179,6 @@ impl NFS3Transaction {
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
-            file_additional_procs:Vec::new(),
-            file_last_xid: 0,
-            file_tracker: None,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -497,15 +509,19 @@ impl NFS3State {
                     let file_handle = cr.handle.value.to_vec();
                     match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
                         Some((tx, files, flags)) => {
-                            match tx.file_tracker {
-                                Some(ref mut sft) => {  // mutable reference to md for updating
+                            let tdf = match tx.type_data {
+                                Some(NFS3TransactionTypeData::FILE(ref mut d)) => d,
+                                _ => panic!("BUG"),
+                            };
+                            tdf.file_additional_procs.push(NFSPROC3_COMMIT);
+                            match tdf.file_tracker {
+                                Some(ref mut sft) => {
                                     sft.close(files, flags);
                                 },
-                                None => { },
+                                    None => { },
                             }
-                            tx.file_last_xid = r.hdr.xid;
+                            tdf.file_last_xid = r.hdr.xid;
                             tx.request_done = true;
-                            tx.file_additional_procs.push(NFSPROC3_COMMIT);
                         },
                         None => { },
                     }
@@ -558,12 +574,17 @@ impl NFS3State {
         tx.is_file_tx = true;
         tx.file_tx_direction = direction;
 
-        tx.file_tracker = Some(Box::new(FileTransferTracker::new()));
-        match tx.file_tracker {
-            Some(ref mut ft) => { ft.tx_id = tx.id; },
-            None => { },
+        tx.type_data = Some(NFS3TransactionTypeData::FILE(NFS3TransactionFile::new()));
+        match tx.type_data {
+            Some(NFS3TransactionTypeData::FILE(ref mut d)) => {
+                d.file_tracker = Some(Box::new(FileTransferTracker::new()));
+                match d.file_tracker {
+                    Some(ref mut ft) => { ft.tx_id = tx.id; },
+                        None => { },
+                }
+            },
+            _ => { },
         }
-
         SCLogDebug!("new_file_tx: TX FILE created: ID {} NAME {}",
                 tx.id, String::from_utf8_lossy(file_name));
         self.transactions.push(tx);
@@ -614,11 +635,15 @@ impl NFS3State {
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
             Some((tx, files, flags)) => {
-                filetracker_newchunk(&mut tx.file_tracker, files, flags,
+                let ref mut tdf = match tx.type_data {
+                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    _ => { panic!("BUG") },
+                };
+                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, w.file_data, w.offset,
                         w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
                 if is_last {
-                    tx.file_last_xid = r.hdr.xid;
+                    tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
                     tx.response_done = true;
                 }
@@ -628,14 +653,18 @@ impl NFS3State {
         };
         if !found {
             let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
-            filetracker_newchunk(&mut tx.file_tracker, files, flags,
+            let ref mut tdf = match tx.type_data {
+                Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    _ => { panic!("BUG") },
+            };
+            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                     &file_name, w.file_data, w.offset,
                     w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
             tx.procedure = NFSPROC3_WRITE;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             if is_last {
-                tx.file_last_xid = r.hdr.xid;
+                tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
                 tx.request_done = true;
             }
@@ -842,7 +871,11 @@ impl NFS3State {
         // get the tx and update it
         let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
             Some((tx, files, flags)) => {
-                let cs1 = match tx.file_tracker {
+                let ref mut tdf = match tx.type_data {
+                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    _ => { panic!("BUG") },
+                };
+                let cs1 = match tdf.file_tracker {
                     Some(ref mut ft) => {
                         let cs2 = ft.update(files, flags, data);
                         // return number of bytes we consumed
@@ -894,11 +927,15 @@ impl NFS3State {
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
             Some((tx, files, flags)) => {
-                filetracker_newchunk(&mut tx.file_tracker, files, flags,
+                let ref mut tdf = match tx.type_data {
+                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    _ => { panic!("BUG") },
+                };
+                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, reply.data, chunk_offset,
                         reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
                 if is_last {
-                    tx.file_last_xid = r.hdr.xid;
+                    tdf.file_last_xid = r.hdr.xid;
                     tx.response_status = reply.status;
                     tx.is_last = true;
                     tx.response_done = true;
@@ -909,14 +946,18 @@ impl NFS3State {
         };
         if !found {
             let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOCLIENT);
-            filetracker_newchunk(&mut tx.file_tracker, files, flags,
+            let ref mut tdf = match tx.type_data {
+                Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                _ => { panic!("BUG") },
+            };
+            filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                     &file_name, reply.data, chunk_offset,
                     reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
             tx.procedure = NFSPROC3_READ;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             if is_last {
-                tx.file_last_xid = r.hdr.xid;
+                tdf.file_last_xid = r.hdr.xid;
                 tx.response_status = reply.status;
                 tx.is_last = true;
                 tx.response_done = true;
@@ -1384,9 +1425,20 @@ pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFS3Transaction,
         return 1;
     }
 
+    if !tx.is_file_tx {
+        return 0;
+    }
+
+    /* file tx handling follows */
+
+    let ref tdf = match tx.type_data {
+        Some(NFS3TransactionTypeData::FILE(ref x)) => x,
+        _ => { panic!("BUG") },
+    };
+
     let idx = i as usize - 1;
-    if idx < tx.file_additional_procs.len() {
-        let p = tx.file_additional_procs[idx];
+    if idx < tdf.file_additional_procs.len() {
+        let p = tdf.file_additional_procs[idx];
         unsafe {
             *procedure = p as libc::uint32_t;
         }
