@@ -107,7 +107,7 @@ pub struct NFS3TransactionFile {
 
     /// file tracker for a single file. Boxed so that we don't use
     /// as much space if we're not a file tx.
-    pub file_tracker: Option<Box<FileTransferTracker>>,
+    pub file_tracker: FileTransferTracker,
 }
 
 impl NFS3TransactionFile {
@@ -115,7 +115,7 @@ impl NFS3TransactionFile {
         return NFS3TransactionFile {
             file_additional_procs: Vec::new(),
             file_last_xid: 0,
-            file_tracker: None,
+            file_tracker: FileTransferTracker::new(),
         }
     }
 }
@@ -152,6 +152,8 @@ pub struct NFS3Transaction {
     pub file_handle: Vec<u8>,
 
     /// Procedure type specific data
+    /// TODO see if this can be an Option<Box<NFS3TransactionTypeData>>. Initial
+    /// attempt failed.
     pub type_data: Option<NFS3TransactionTypeData>,
 
     pub logged: LoggerFlags,
@@ -245,20 +247,15 @@ impl NFS3Files {
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-fn filetracker_newchunk(ftopt: &mut Option<Box<FileTransferTracker>>, files: &mut SuricataFileContainer,
+fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut SuricataFileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
-    match ftopt {
-        &mut Some(ref mut ft) => {
-            match unsafe {suricata_nfs3_file_config} {
-                Some(sfcm) => {
-                    ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
-                            chunk_size, fill_bytes, is_last, xid); }
-                None => panic!("BUG"),
-            }
-        },
-        &mut None => { panic!("BUG"); },
+    match unsafe {suricata_nfs3_file_config} {
+        Some(sfcm) => {
+            ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
+                    chunk_size, fill_bytes, is_last, xid); }
+        None => panic!("BUG"),
     }
 }
 
@@ -514,12 +511,7 @@ impl NFS3State {
                                 _ => panic!("BUG"),
                             };
                             tdf.file_additional_procs.push(NFSPROC3_COMMIT);
-                            match tdf.file_tracker {
-                                Some(ref mut sft) => {
-                                    sft.close(files, flags);
-                                },
-                                    None => { },
-                            }
+                            tdf.file_tracker.close(files, flags);
                             tdf.file_last_xid = r.hdr.xid;
                             tx.request_done = true;
                         },
@@ -577,11 +569,7 @@ impl NFS3State {
         tx.type_data = Some(NFS3TransactionTypeData::FILE(NFS3TransactionFile::new()));
         match tx.type_data {
             Some(NFS3TransactionTypeData::FILE(ref mut d)) => {
-                d.file_tracker = Some(Box::new(FileTransferTracker::new()));
-                match d.file_tracker {
-                    Some(ref mut ft) => { ft.tx_id = tx.id; },
-                        None => { },
-                }
+                d.file_tracker.tx_id = tx.id;
             },
             _ => { },
         }
@@ -875,16 +863,8 @@ impl NFS3State {
                     Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
                 };
-                let cs1 = match tdf.file_tracker {
-                    Some(ref mut ft) => {
-                        let cs2 = ft.update(files, flags, data);
-                        // return number of bytes we consumed
-                        SCLogDebug!("consumed {}", cs2);
-                        cs2
-                    },
-                    None => { 0 },
-                };
-                cs1
+                let cs = tdf.file_tracker.update(files, flags, data);
+                cs
             },
             None => { 0 },
         };
