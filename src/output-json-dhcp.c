@@ -159,16 +159,23 @@ static int JsonDHCPLogger(ThreadVars *tv, void *thread_data,
                 }
                 }
                 break;
-            case DHCP_OPT_HOSTNAME: {
-                char *s = BytesToString(dhcp_opt->args, dhcp_opt->len);
-                json_object_set_new(reqjs, "hostname", json_string(s));
-                SCFree(s);
+            case DHCP_OPT_HOSTNAME:
+                if (dhcp_opt->len) {
+                    char *val = BytesToString(dhcp_opt->args, dhcp_opt->len);
+                    if (val != NULL) {
+                        json_object_set_new(reqjs, "hostname", json_string(val));
+                        SCFree(val);
+                    }
                 }
                 break;
-            case DHCP_OPT_VENDOR_CLASS: {
-                char *s = BytesToString(dhcp_opt->args, dhcp_opt->len);
-                json_object_set_new(reqjs, "vendor_class", json_string(s));
-                SCFree(s);
+            case DHCP_OPT_VENDOR_CLASS:
+                if (dhcp_opt->len) {
+                    char *val = BytesToString(dhcp_opt->args, dhcp_opt->len);
+                    if (val != NULL) {
+                        json_object_set_new(reqjs, "vendor_class",
+                                json_string(val));
+                        SCFree(val);
+                    }
                 }
                 break;
             case DHCP_OPT_CLIENT_ID:
