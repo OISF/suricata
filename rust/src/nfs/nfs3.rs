@@ -90,12 +90,18 @@ pub static mut suricata_nfs3_file_config: Option<&'static SuricataFileContext> =
  * Transaction lookup.
  */
 
+#[derive(Debug)]
+pub enum NFS3TransactionTypeData {
+    RENAME(Vec<u8>),
+}
 
 #[derive(Debug)]
 pub struct NFS3Transaction {
     pub id: u64,    /// internal id
     pub xid: u32,   /// nfs3 req/reply pair id
     pub procedure: u32,
+    /// file name of the object we're dealing with. In case of RENAME
+    /// this is the 'from' or original name.
     pub file_name: Vec<u8>,
 
     pub request_machine_name: Vec<u8>,
@@ -119,6 +125,8 @@ pub struct NFS3Transaction {
     /// a single file on one direction
     pub file_tx_direction: u8, // STREAM_TOCLIENT or STREAM_TOSERVER
     pub file_handle: Vec<u8>,
+
+    pub type_data: Option<NFS3TransactionTypeData>,
 
     /// additional procedures part of a single file transfer. Currently
     /// only COMMIT on WRITEs.
@@ -155,6 +163,7 @@ impl NFS3Transaction {
             is_file_tx: false,
             file_tx_direction: 0,
             file_handle:Vec::new(),
+            type_data: None,
             file_additional_procs:Vec::new(),
             file_last_xid: 0,
             file_tracker: None,
@@ -389,32 +398,54 @@ impl NFS3State {
         };
     }
 
+    fn xidmap_handle2name(&mut self, xidmap: &mut NFS3RequestXidMap) {
+        match self.namemap.get(&xidmap.file_handle) {
+            Some(n) => {
+                SCLogDebug!("xidmap_handle2name: name {:?}", n);
+                xidmap.file_name = n.to_vec();
+            },
+            _ => {
+                SCLogDebug!("xidmap_handle2name: object {:?} not found",
+                        xidmap.file_handle);
+            },
+        }
+    }
+
     /// complete request record
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
         let mut xidmap = NFS3RequestXidMap::new(r.procedure, 0);
+        let mut aux_file_name = Vec::new();
 
         if r.procedure == NFSPROC3_LOOKUP {
             self.process_request_record_lookup(r, &mut xidmap);
 
+        } else if r.procedure == NFSPROC3_ACCESS {
+            match parse_nfs3_request_access(r.prog_data) {
+                IResult::Done(_, ar) => {
+                    xidmap.file_handle = ar.handle.value.to_vec();
+                    self.xidmap_handle2name(&mut xidmap);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+        } else if r.procedure == NFSPROC3_GETATTR {
+            match parse_nfs3_request_getattr(r.prog_data) {
+                IResult::Done(_, gar) => {
+                    xidmap.file_handle = gar.handle.value.to_vec();
+                    self.xidmap_handle2name(&mut xidmap);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
         } else if r.procedure == NFSPROC3_READ {
             match parse_nfs3_request_read(r.prog_data) {
                 IResult::Done(_, nfs3_read_record) => {
                     xidmap.chunk_offset = nfs3_read_record.offset;
                     xidmap.file_handle = nfs3_read_record.handle.value.to_vec();
-
-                    match self.namemap.get(nfs3_read_record.handle.value) {
-                        Some(n) => {
-                            SCLogDebug!("READ name {:?}", n);
-                            xidmap.file_name = n.to_vec();
-                        },
-                        _ => {
-                            SCLogDebug!("READ object {:?} not found",
-                                    nfs3_read_record.handle.value);
-                        },
-                    }
+                    self.xidmap_handle2name(&mut xidmap);
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -430,7 +461,29 @@ impl NFS3State {
         } else if r.procedure == NFSPROC3_CREATE {
             match parse_nfs3_request_create(r.prog_data) {
                 IResult::Done(_, nfs3_create_record) => {
+                    xidmap.file_handle = nfs3_create_record.handle.value.to_vec();
                     xidmap.file_name = nfs3_create_record.name_vec;
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+
+        } else if r.procedure == NFSPROC3_REMOVE {
+            match parse_nfs3_request_remove(r.prog_data) {
+                IResult::Done(_, rr) => {
+                    xidmap.file_handle = rr.handle.value.to_vec();
+                    xidmap.file_name = rr.name_vec;
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+
+        } else if r.procedure == NFSPROC3_RENAME {
+            match parse_nfs3_request_rename(r.prog_data) {
+                IResult::Done(_, rr) => {
+                    xidmap.file_handle = rr.from_handle.value.to_vec();
+                    xidmap.file_name = rr.from_name_vec;
+                    aux_file_name = rr.to_name_vec;
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -472,8 +525,11 @@ impl NFS3State {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
-
             self.ts_txs_updated = true;
+
+            if r.procedure == NFSPROC3_RENAME {
+                tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
+            }
 
             match &r.creds_unix {
                 &Some(ref u) => {
