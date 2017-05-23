@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -35,29 +35,12 @@
 
 //#define PRINT
 
-/* The default port to probe for echo traffic if not provided in the
- * configuration file. */
 #define DHCP_DEFAULT_SERVER_PORT "67"
 #define DHCP_DEFAULT_CLIENT_PORT "68"
 
 #define DHCP_MIN_FRAME_LEN 232
 
-/* Enum of app-layer events for an echo protocol. Normally you might
- * have events for errors in parsing data, like unexpected data being
- * received. For echo we'll make something up, and log an app-layer
- * level alert if an empty message is received.
- *
- * Example rule:
- *
- * alert dhcp any any -> any any (msg:"SURCATA dhcp empty message"; \
- *    app-layer-event:dhcp.empty_message; sid:X; rev:Y;)
- */
-enum {
-    DHCP_DECODER_EVENT_EMPTY_MESSAGE,
-};
-
-SCEnumCharMap dhcp_decoder_event_table[] = {
-    {"EMPTY_MESSAGE", DHCP_DECODER_EVENT_EMPTY_MESSAGE},
+static SCEnumCharMap dhcp_decoder_event_table[] = {
 };
 
 static uint32_t dhcp_config_max_transactions = 32;
@@ -223,8 +206,8 @@ static AppLayerDecoderEvents *DHCPGetEvents(void *state, uint64_t tx_id)
 
 static int DHCPHasEvents(void *state)
 {
-    DHCPState *echo = state;
-    return echo->events;
+    DHCPState *dhcp_state = state;
+    return dhcp_state->events;
 }
 
 static DHCPTransaction *DHCPGetTxByXid(void *state, uint32_t xid)
@@ -263,9 +246,9 @@ static DHCPTransaction *DHCPGetTxByXid(void *state, uint32_t xid)
 }
 
 /**
- * \brief Probe the input to see if it looks like echo.
+ * \brief Probe the input to see if it looks like DHCP.
  *
- * \retval ALPROTO_DHCP if it looks like echo, otherwise
+ * \retval ALPROTO_DHCP if it looks like DHCP, otherwise
  *     ALPROTO_UNKNOWN.
  */
 static AppProto DHCPToServerProbingParser(uint8_t *input, uint32_t input_len,
@@ -299,9 +282,9 @@ static AppProto DHCPToServerProbingParser(uint8_t *input, uint32_t input_len,
 }
 
 /**
- * \brief Probe the input to see if it looks like echo.
+ * \brief Probe the input to see if it looks like DHCP.
  *
- * \retval ALPROTO_DHCP if it looks like echo, otherwise
+ * \retval ALPROTO_DHCP if it looks like DHCP, otherwise
  *     ALPROTO_UNKNOWN.
  */
 static AppProto DHCPToClientProbingParser(uint8_t *input, uint32_t input_len,
@@ -351,10 +334,6 @@ static int DHCPParse(Flow *f, void *state,
     if (input == NULL || input_len == 0) {
         return 0;
     }
-
-    /* Normally you would parse out data here and store it in the
-     * transaction object, but as this is echo, we'll just record the
-     * request data. */
 
     if (input_len >= DHCP_MIN_FRAME_LEN) {
         BOOTPHdr *bootp = (BOOTPHdr *)input;
@@ -548,16 +527,6 @@ static int DHCPGetAlstateProgressCompletionStatus(uint8_t direction) {
 
 /**
  * \brief Return the state of a transaction in a given direction.
- *
- * In the case of the echo protocol, the existence of a transaction
- * means that the request is done. However, some protocols that may
- * need multiple chunks of data to complete the request may need more
- * than just the existence of a transaction for the request to be
- * considered complete.
- *
- * For the response to be considered done, the response for a request
- * needs to be seen.  The response_done flag is set on response for
- * checking here.
  */
 static int DHCPGetStateProgress(void *tx, uint8_t direction)
 {
@@ -574,18 +543,12 @@ static int DHCPGetStateProgress(void *tx, uint8_t direction)
     return 0;
 }
 
-/**
- * \brief ???
- */
 static DetectEngineState *DHCPGetTxDetectState(void *vtx)
 {
     DHCPTransaction *tx = vtx;
     return tx->de_state;
 }
 
-/**
- * \brief ???
- */
 static int DHCPSetTxDetectState(void *state, void *vtx,
     DetectEngineState *s)
 {
