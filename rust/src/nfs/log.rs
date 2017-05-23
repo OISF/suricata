@@ -62,21 +62,18 @@ fn nfs3_creds_object(tx: &NFS3Transaction) -> Json
     return js;
 }
 
-fn nfs3_write_object(tx: &NFS3Transaction) -> Json
+fn nfs3_file_object(tx: &NFS3Transaction) -> Json
 {
     let js = Json::object();
     js.set_boolean("first", tx.is_first);
     js.set_boolean("last", tx.is_last);
-    js.set_integer("last_xid", tx.file_last_xid as u64);
-    return js;
-}
 
-fn nfs3_read_object(tx: &NFS3Transaction) -> Json
-{
-    let js = Json::object();
-    js.set_boolean("first", tx.is_first);
-    js.set_boolean("last", tx.is_last);
-    js.set_integer("last_xid", tx.file_last_xid as u64);
+    let ref tdf = match tx.type_data {
+        Some(NFS3TransactionTypeData::FILE(ref x)) => x,
+        _ => { panic!("BUG") },
+    };
+
+    js.set_integer("last_xid", tdf.file_last_xid as u64);
     return js;
 }
 
@@ -114,10 +111,10 @@ pub extern "C" fn rs_nfs3_log_json_response(tx: &mut NFS3Transaction) -> *mut Js
     }
 
     if tx.procedure == NFSPROC3_READ {
-        let read_js = nfs3_read_object(tx);
+        let read_js = nfs3_file_object(tx);
         js.set("read", read_js);
     } else if tx.procedure == NFSPROC3_WRITE {
-        let write_js = nfs3_write_object(tx);
+        let write_js = nfs3_file_object(tx);
         js.set("write", write_js);
     } else if tx.procedure == NFSPROC3_RENAME {
         let rename_js = nfs3_rename_object(tx);
