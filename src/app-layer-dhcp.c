@@ -324,132 +324,132 @@ static int DHCPParse(Flow *f, void *state,
         return 0;
     }
 
-    if (input_len >= DHCP_MIN_FRAME_LEN) {
-        BOOTPHdr *bootp = (BOOTPHdr *)input;
+    if (input_len < DHCP_MIN_FRAME_LEN) {
+        /* Not enough data. */
+        return 0;
+    }
 
-        if ((bootp->op == BOOTP_REQUEST) &&
-            (bootp->htype == BOOTP_ETHERNET) &&
-            (bootp->hlen == 6) &&
-            (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE))) {
+    BOOTPHdr *bootp = (BOOTPHdr *)input;
 
-            SCLogDebug("Parsing DHCP request len=%"PRIu32"state=%p", input_len, global);
+    if (!((bootp->htype == BOOTP_ETHERNET) && (bootp->hlen == 6) &&
+                    (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE)))) {
+        /* Not valid ethernet bootp. */
+        return 0;
+    }
+
+    if (bootp->op == BOOTP_REQUEST) {
+        SCLogDebug("Parsing DHCP request len=%"PRIu32"state=%p", input_len, global);
 #ifdef PRINT
-            PrintRawDataFp(stdout, input, input_len);
+        PrintRawDataFp(stdout, input, input_len);
 #endif
 
-            DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
+        DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
 
-            if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
-                (dhcp->len == 1)) {
-                DHCPTransaction *tx;
+        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
+            (dhcp->len == 1)) {
+            DHCPTransaction *tx;
 
-                switch (dhcp->args[0]) {
-                    case DHCP_DISCOVER:
-                    case DHCP_REQUEST:
-                        tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
-                        if (unlikely(tx == NULL)) {
-                            SCLogDebug("Failed to allocate new DHCP tx.");
-                            goto end;
-                        }
-                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                        if (unlikely(tx->request_buffer == NULL)) {
-                            /* TBD: need to remove from global tx list */
-                            DHCPTxFree(global, tx, 0);
-                            goto end;
-                        }
-                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
-                        tx->request_seen = 1;
-                        break;
-                    case DHCP_INFORM:
-                        tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
-                        if (unlikely(tx == NULL)) {
-                            SCLogDebug("Failed to allocate new DHCP tx.");
-                            goto end;
-                        }
-                        tx->request_client_ip = bootp->ciaddr;
-                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                        if (unlikely(tx->request_buffer == NULL)) {
-                            /* TBD: need to remove from global tx list */
-                            DHCPTxFree(global, tx, 0);
-                            goto end;
-                        }
-                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
-                        tx->request_seen = 1;
-                        break;
-                    case DHCP_RELEASE:
-                    case DHCP_DECLINE:
-                        tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
-                        if (unlikely(tx == NULL)) {
-                            SCLogDebug("Failed to allocate new DHCP tx.");
-                            goto end;
-                        }
-                        tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
-                        tx->request_buffer = SCMalloc(tx->request_buffer_len);
-                        if (unlikely(tx->request_buffer == NULL)) {
-                            /* TBD: need to remove from global tx list */
-                            DHCPTxFree(global, tx, 0);
-                            goto end;
-                        }
-                        memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
-                        /* response to release not required */
-                        tx->response_unneeded = 1;
-                        tx->request_seen = 1;
-                        break;
-                    default:
-                        SCLogDebug("DHCP unknown %d", dhcp->args[0]);
-                        break;
-                }
+            switch (dhcp->args[0]) {
+                case DHCP_DISCOVER:
+                case DHCP_REQUEST:
+                    tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
+                    if (unlikely(tx == NULL)) {
+                        SCLogDebug("Failed to allocate new DHCP tx.");
+                        goto end;
+                    }
+                    tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                    tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                    if (unlikely(tx->request_buffer == NULL)) {
+                        /* TBD: need to remove from global tx list */
+                        DHCPTxFree(global, tx, 0);
+                        goto end;
+                    }
+                    memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                    tx->request_seen = 1;
+                    break;
+                case DHCP_INFORM:
+                    tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
+                    if (unlikely(tx == NULL)) {
+                        SCLogDebug("Failed to allocate new DHCP tx.");
+                        goto end;
+                    }
+                    tx->request_client_ip = bootp->ciaddr;
+                    tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                    tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                    if (unlikely(tx->request_buffer == NULL)) {
+                        /* TBD: need to remove from global tx list */
+                        DHCPTxFree(global, tx, 0);
+                        goto end;
+                    }
+                    memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                    tx->request_seen = 1;
+                    break;
+                case DHCP_RELEASE:
+                case DHCP_DECLINE:
+                    tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
+                    if (unlikely(tx == NULL)) {
+                        SCLogDebug("Failed to allocate new DHCP tx.");
+                        goto end;
+                    }
+                    tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
+                    tx->request_buffer = SCMalloc(tx->request_buffer_len);
+                    if (unlikely(tx->request_buffer == NULL)) {
+                        /* TBD: need to remove from global tx list */
+                        DHCPTxFree(global, tx, 0);
+                        goto end;
+                    }
+                    memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
+                    /* response to release not required */
+                    tx->response_unneeded = 1;
+                    tx->request_seen = 1;
+                    break;
+                default:
+                    SCLogDebug("DHCP unknown %d", dhcp->args[0]);
+                    break;
             }
-        } else if ((bootp->op == BOOTP_REPLY) &&
-            (bootp->htype == BOOTP_ETHERNET) &&
-            (bootp->hlen == 6) &&
-            (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE))) {
-
-            SCLogDebug("Parsing DHCP reply len=%"PRIu32"state=%p", input_len, global);
+        }
+    } else if (bootp->op == BOOTP_REPLY) {
+        SCLogDebug("Parsing DHCP reply len=%"PRIu32"state=%p", input_len, global);
 #ifdef PRINT
-            PrintRawDataFp(stdout, input, input_len);
+        PrintRawDataFp(stdout, input, input_len);
 #endif
 
-            DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
+        DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
 
-            if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
-                (dhcp->len == 1)) {
-                DHCPTransaction *tx;
+        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
+            (dhcp->len == 1)) {
+            DHCPTransaction *tx;
 
-                switch (dhcp->args[0]) {
-                    case DHCP_OFFER:
-                    case DHCP_ACK:
-                    case DHCP_NACK:
-                        tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
-                        if (unlikely(tx == NULL)) {
-                            SCLogDebug("Failed to allocate new DHCP tx.");
+            switch (dhcp->args[0]) {
+                case DHCP_OFFER:
+                case DHCP_ACK:
+                case DHCP_NACK:
+                    tx = DHCPGetTxByXid(dhcp_state, bootp->xid);
+                    if (unlikely(tx == NULL)) {
+                        SCLogDebug("Failed to allocate new DHCP tx.");
+                        goto end;
+                    }
+                    tx->state = state;
+                    tx->response_client_ip = bootp->yiaddr;
+                    if (tx->response_buffer == NULL) {
+                        tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
+                        tx->response_buffer = SCMalloc(tx->response_buffer_len);
+                        if (unlikely(tx->response_buffer == NULL)) {
+                            /* TBD: need to remove from global tx list */
+                            DHCPTxFree(global, tx, 0);
                             goto end;
                         }
-                        tx->state = state;
-                        tx->response_client_ip = bootp->yiaddr;
-                        if (tx->response_buffer == NULL) {
-                            tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
-                            tx->response_buffer = SCMalloc(tx->response_buffer_len);
-                            if (unlikely(tx->response_buffer == NULL)) {
-                                /* TBD: need to remove from global tx list */
-                                DHCPTxFree(global, tx, 0);
-                                goto end;
-                            }
-                            memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
-                            tx->response_seen = 1;
-                        }
+                        memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
+                        tx->response_seen = 1;
+                    }
 
-                        if (direction == TOSERVER) {
-                            tx->reverse_flow = 1;
-                        }
-
-                        break;
-                    default:
-                        SCLogDebug("DHCP unknown %d", dhcp->args[0]);
-                        break;
+                if (direction == TOSERVER) {
+                    tx->reverse_flow = 1;
                 }
+            break;
+            default:
+                SCLogDebug("DHCP unknown %d", dhcp->args[0]);
+                break;
             }
         }
     }
