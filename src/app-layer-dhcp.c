@@ -47,31 +47,21 @@ static uint32_t dhcp_config_max_transactions = 32;
 
 static DHCPGlobalState dhcpGlobalState;
 
-static void DHCPTxFree(DHCPGlobalState *dhcp, void *tx, uint32_t locked)
+static void DHCPTxFree(DHCPTransaction *tx)
 {
-    DHCPTransaction *dhcptx = tx;
+    if (tx->request_buffer != NULL)
+        SCFree(tx->request_buffer);
 
-    if (dhcptx->request_buffer != NULL)
-        SCFree(dhcptx->request_buffer);
+    if (tx->response_buffer != NULL)
+        SCFree(tx->response_buffer);
 
-    if (dhcptx->response_buffer != NULL)
-        SCFree(dhcptx->response_buffer);
+    if (tx->decoder_events != NULL)
+        AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
-    if (dhcptx->decoder_events != NULL)
-        AppLayerDecoderEventsFreeEvents(&dhcptx->decoder_events);
-
-    if (dhcptx->de_state != NULL)
-        DetectEngineStateFree(dhcptx->de_state);
+    if (tx->de_state != NULL)
+        DetectEngineStateFree(tx->de_state);
 
     SCFree(tx);
-
-    if (unlikely(locked == 0)) {
-        SCMutexLock(&dhcp->lock);
-    }
-    dhcp->transaction_count++;
-    if (unlikely(locked == 0)) {
-        SCMutexUnlock(&dhcp->lock);
-    }
 }
 
 static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
@@ -84,7 +74,8 @@ static DHCPTransaction *DHCPTxAlloc(DHCPState *dhcp, uint32_t xid)
         tx = TAILQ_FIRST(&dhcp->global->tx_list);
         if (likely(tx != NULL)) {
             TAILQ_REMOVE(&dhcp->global->tx_list, tx, next);
-            DHCPTxFree(dhcp->global, tx, 1);
+            DHCPTxFree(tx);
+            dhcp->global->transaction_count--;
         }
     }
 
@@ -125,7 +116,8 @@ static void DHCPGlobalStateFree(void *state)
     TAILQ_FOREACH_SAFE(tx, &global->tx_list, next, tmp) {
         if (tx->state == state) {
             TAILQ_REMOVE(&global->tx_list, tx, next);
-            DHCPTxFree(global, tx, 1);
+            DHCPTxFree(tx);
+            global->transaction_count--;
         }
     }
     SCMutexUnlock(&global->lock);
@@ -138,23 +130,24 @@ static void DHCPGlobalStateFree(void *state)
  * \param state a void pointer to the dhcpState object.
  * \param tx_id the transaction ID to free.
  */
-static void DHCPGlobalStateTxFree(void *state, uint64_t tx_id)
+static void DHCPStateTxFree(void *state, uint64_t tx_id)
 {
-    DHCPGlobalState *dhcp = ((DHCPState *)state)->global;
+    DHCPGlobalState *global = ((DHCPState *)state)->global;
     DHCPTransaction *tx = NULL, *ttx;
 
     SCLogDebug("Freeing transaction %"PRIu64, tx_id);
 
-    SCMutexLock(&dhcp->lock);
-    TAILQ_FOREACH_SAFE(tx, &dhcp->tx_list, next, ttx) {
+    SCMutexLock(&global->lock);
+    TAILQ_FOREACH_SAFE(tx, &global->tx_list, next, ttx) {
         if (tx->state == state && tx->tx_id == tx_id) {
-            TAILQ_REMOVE(&dhcp->tx_list, tx, next);
-            DHCPTxFree(dhcp, tx, 1);
-            SCMutexUnlock(&dhcp->lock);
+            TAILQ_REMOVE(&global->tx_list, tx, next);
+            DHCPTxFree(tx);
+            SCMutexUnlock(&global->lock);
+            global->transaction_count--;
             return;
         }
     }
-    SCMutexUnlock(&dhcp->lock);
+    SCMutexUnlock(&global->lock);
 
     SCLogDebug("Transaction %"PRIu64" not found.", tx_id);
 }
@@ -216,7 +209,7 @@ static DHCPTransaction *DHCPGetTxByXid(DHCPState *state, uint32_t xid)
         if (tx->logged) {
             /* Remove and free the transaction. */
             TAILQ_REMOVE(&global->tx_list, tx, next);
-            DHCPTxFree(global, tx, 1);
+            DHCPTxFree(tx);
             continue;
         }
     }
@@ -330,6 +323,7 @@ static int DHCPParse(Flow *f, void *state,
     }
 
     BOOTPHdr *bootp = (BOOTPHdr *)input;
+    DHCPTransaction *tx = NULL;
 
     if (!((bootp->htype == BOOTP_ETHERNET) && (bootp->hlen == 6) &&
                     (bootp->magic == ntohl(BOOTP_DHCP_MAGIC_COOKIE)))) {
@@ -345,10 +339,7 @@ static int DHCPParse(Flow *f, void *state,
 
         DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
 
-        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
-            (dhcp->len == 1)) {
-            DHCPTransaction *tx;
-
+        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) && (dhcp->len == 1)) {
             switch (dhcp->args[0]) {
                 case DHCP_DISCOVER:
                 case DHCP_REQUEST:
@@ -360,9 +351,7 @@ static int DHCPParse(Flow *f, void *state,
                     tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
                     tx->request_buffer = SCMalloc(tx->request_buffer_len);
                     if (unlikely(tx->request_buffer == NULL)) {
-                        /* TBD: need to remove from global tx list */
-                        DHCPTxFree(global, tx, 0);
-                        goto end;
+                        goto fail;
                     }
                     memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
                     tx->request_seen = 1;
@@ -377,9 +366,7 @@ static int DHCPParse(Flow *f, void *state,
                     tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
                     tx->request_buffer = SCMalloc(tx->request_buffer_len);
                     if (unlikely(tx->request_buffer == NULL)) {
-                        /* TBD: need to remove from global tx list */
-                        DHCPTxFree(global, tx, 0);
-                        goto end;
+                        goto fail;
                     }
                     memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
                     tx->request_seen = 1;
@@ -394,9 +381,7 @@ static int DHCPParse(Flow *f, void *state,
                     tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
                     tx->request_buffer = SCMalloc(tx->request_buffer_len);
                     if (unlikely(tx->request_buffer == NULL)) {
-                        /* TBD: need to remove from global tx list */
-                        DHCPTxFree(global, tx, 0);
-                        goto end;
+                        goto fail;
                     }
                     memcpy(tx->request_buffer, dhcp, tx->request_buffer_len);
                     /* response to release not required */
@@ -416,10 +401,7 @@ static int DHCPParse(Flow *f, void *state,
 
         DHCPOpt *dhcp = (DHCPOpt *)(input + sizeof(BOOTPHdr));
 
-        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) &&
-            (dhcp->len == 1)) {
-            DHCPTransaction *tx;
-
+        if ((dhcp->code == DHCP_DHCP_MSG_TYPE) && (dhcp->len == 1)) {
             switch (dhcp->args[0]) {
                 case DHCP_OFFER:
                 case DHCP_ACK:
@@ -435,9 +417,7 @@ static int DHCPParse(Flow *f, void *state,
                         tx->response_buffer_len = input_len - sizeof(BOOTPHdr);
                         tx->response_buffer = SCMalloc(tx->response_buffer_len);
                         if (unlikely(tx->response_buffer == NULL)) {
-                            /* TBD: need to remove from global tx list */
-                            DHCPTxFree(global, tx, 0);
-                            goto end;
+                            goto fail;
                         }
                         memcpy(tx->response_buffer, dhcp, tx->response_buffer_len);
                         tx->response_seen = 1;
@@ -455,6 +435,15 @@ static int DHCPParse(Flow *f, void *state,
     }
 
 end:    
+    return 0;
+fail:
+    if (tx != NULL) {
+        SCMutexLock(&global->lock);
+        TAILQ_REMOVE(&global->tx_list, tx, next);
+        global->transaction_count--;
+        SCMutexUnlock(&global->lock);
+        DHCPTxFree(tx);
+    }
     return 0;
 }
 
@@ -611,7 +600,7 @@ void RegisterDHCPParsers(void)
         /* Register a function to be called by the application layer
          * when a transaction is to be freed. */
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DHCP,
-            DHCPGlobalStateTxFree);
+            DHCPStateTxFree);
 
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DHCP,
