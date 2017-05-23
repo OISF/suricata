@@ -36,6 +36,22 @@ pub extern "C" fn rs_nfs3_tx_logging_is_filtered(tx: &mut NFS3Transaction)
     return 0;
 }
 
+fn nfs3_rename_object(tx: &NFS3Transaction) -> Json
+{
+    let js = Json::object();
+    let from_str = String::from_utf8_lossy(&tx.file_name);
+    js.set_string("from", &from_str);
+
+    let to_vec = match tx.type_data {
+        Some(NFS3TransactionTypeData::RENAME(ref x)) => { x.to_vec() },
+        _ => { Vec::new() }
+    };
+
+    let to_str = String::from_utf8_lossy(&to_vec);
+    js.set_string("to", &to_str);
+    return js;
+}
+
 fn nfs3_creds_object(tx: &NFS3Transaction) -> Json
 {
     let js = Json::object();
@@ -100,10 +116,12 @@ pub extern "C" fn rs_nfs3_log_json_response(tx: &mut NFS3Transaction) -> *mut Js
     if tx.procedure == NFSPROC3_READ {
         let read_js = nfs3_read_object(tx);
         js.set("read", read_js);
-    }
-    if tx.procedure == NFSPROC3_WRITE {
+    } else if tx.procedure == NFSPROC3_WRITE {
         let write_js = nfs3_write_object(tx);
         js.set("write", write_js);
+    } else if tx.procedure == NFSPROC3_RENAME {
+        let rename_js = nfs3_rename_object(tx);
+        js.set("rename", rename_js);
     }
 
     return js.unwrap();
