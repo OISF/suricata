@@ -138,6 +138,71 @@ named!(pub parse_nfs3_request_create<Nfs3RequestCreate>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Nfs3RequestRemove<'a> {
+    pub handle: Nfs3Handle<'a>,
+    pub name_len: u32,
+    pub name_vec: Vec<u8>,
+}
+
+named!(pub parse_nfs3_request_remove<Nfs3RequestRemove>,
+    do_parse!(
+            handle: parse_nfs3_handle
+        >>  name_len: be_u32
+        >>  name: take!(name_len)
+        >>  fill_bytes: rest
+        >> (
+            Nfs3RequestRemove {
+                handle:handle,
+                name_len:name_len,
+                name_vec:name.to_vec(),
+            }
+        ))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3RequestRename<'a> {
+    pub from_handle: Nfs3Handle<'a>,
+    pub from_name_vec: Vec<u8>,
+    pub to_handle: Nfs3Handle<'a>,
+    pub to_name_vec: Vec<u8>,
+}
+
+named!(pub parse_nfs3_request_rename<Nfs3RequestRename>,
+    do_parse!(
+            from_handle: parse_nfs3_handle
+        >>  from_name_len: be_u32
+        >>  from_name: take!(from_name_len)
+        >>  from_fill_bytes: cond!(from_name_len % 4 != 0, take!(4 - from_name_len % 4))
+        >>  to_handle: parse_nfs3_handle
+        >>  to_name_len: be_u32
+        >>  to_name: take!(to_name_len)
+        >>  to_fill_bytes: rest
+        >> (
+            Nfs3RequestRename {
+                from_handle:from_handle,
+                from_name_vec:from_name.to_vec(),
+                to_handle:to_handle,
+                to_name_vec:to_name.to_vec(),
+            }
+        ))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3RequestGetAttr<'a> {
+    pub handle: Nfs3Handle<'a>,
+}
+
+named!(pub parse_nfs3_request_getattr<Nfs3RequestGetAttr>,
+    do_parse!(
+            handle: parse_nfs3_handle
+        >> (
+            Nfs3RequestGetAttr {
+                handle:handle,
+            }
+        ))
+);
+
+#[derive(Debug,PartialEq)]
 pub struct Nfs3RequestAccess<'a> {
     pub handle: Nfs3Handle<'a>,
     pub check_access: u32,
