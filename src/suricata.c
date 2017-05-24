@@ -2576,6 +2576,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
             break;
     }
 
+    if (suri->runmode_custom_mode) {
+        ConfSet("runmode", suri->runmode_custom_mode);
+    }
+
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
