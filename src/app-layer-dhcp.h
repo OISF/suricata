@@ -99,12 +99,13 @@ typedef struct DHCPOpt_ {
 } DHCPOpt;
 
 typedef struct DHCPTransaction_ {
+    TAILQ_ENTRY(DHCPTransaction_) next;
+
+    uint64_t tx_id;             /**< Internal transaction ID. */
 
     struct DHCPState_ *state;
 
-    uint64_t tx_id;             /*<< Internal transaction ID. */
-
-    AppLayerDecoderEvents *decoder_events; /*<< Application layer
+    AppLayerDecoderEvents *decoder_events; /**< Application layer
                                             * events that occurred
                                             * while parsing this
                                             * transaction. */
@@ -128,33 +129,24 @@ typedef struct DHCPTransaction_ {
         uint8_t response_client_ip_bytes[sizeof(uint32_t)];
     };
 
-    uint32_t request_seen : 1; /*<< Flag to be set when the request is
-                                * seen. */
-    uint32_t response_seen : 1; /*<< Flag to be set when the response is
-                                * seen. */
-    uint32_t response_unneeded : 1;
-
     DetectEngineState *de_state;
 
-    uint8_t reverse_flow; /*<< Set when the flow is the reverse of
-                           * what Suricata detected. This is because
-                           * the response can be on a new flow, which
-                           * Suricata will flag as to server. */
+    uint8_t request_seen : 1; /**< Flag to be set when the request is
+                               * seen. */
+    uint8_t response_seen : 1; /**< Flag to be set when the response is
+                                * seen. */
+    uint8_t response_unneeded : 1;
 
-    TAILQ_ENTRY(DHCPTransaction_) next;
-
+    uint8_t reverse_flow:1; /*<< Set when the flow is the reverse of
+                             * what Suricata detected. This is because
+                             * the response can be on a new flow, which
+                             * Suricata will flag as to server. */
 } DHCPTransaction;
 
 typedef struct DHCPGlobalState_ {
-
-    SCMutex lock;    /** Mutex for access to tx_list */
-
-
-    SC_ATOMIC_DECLARE(uint32_t, initialized);
-
     TAILQ_HEAD(, DHCPTransaction_) tx_list; /**< List of DHCP transactions
-                                       * associated with this
-                                       * state. */
+                                             * associated with this
+                                             * state. */
 
     uint64_t transaction_max; /**< A count of the number of
                                * transactions created.  The
@@ -162,12 +154,15 @@ typedef struct DHCPGlobalState_ {
                                * is allocted by incrementing this
                                * value. */
 
-    /* Indicates the current transaction being logged. 
-     */
-    uint64_t log_id;
+    uint64_t log_id;      /**< Indicates the current transaction being
+                           * logged. */
+
+    SC_ATOMIC_DECLARE(uint32_t, initialized);
 
     uint32_t transaction_count; /**< A count of the number of
                                  * in-progress transactions. */
+
+    SCMutex lock;    /**< Mutex for access to tx_list */
 
     uint16_t events; /**< Number of application layer events created
                       * for this state. */
