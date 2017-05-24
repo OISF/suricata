@@ -67,7 +67,7 @@ const char *RunModeUnixSocketGetDefaultMode(void)
 
 #ifdef BUILD_UNIX_SOCKET
 
-static int RunModeUnixSocketSingle(void);
+static int RunModeUnixSocketMaster(void);
 static int unix_manager_file_task_running = 0;
 static int unix_manager_file_task_failed = 0;
 
@@ -351,6 +351,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
 
     /* Un-pause all the paused threads */
+    TmThreadWaitOnThreadInit();
     TmThreadContinueThreads();
     return TM_ECODE_OK;
 }
@@ -359,10 +360,14 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 void RunModeUnixSocketRegister(void)
 {
 #ifdef BUILD_UNIX_SOCKET
+    /* a bit of a hack, but register twice to --list-runmodes shows both */
     RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "single",
                               "Unix socket mode",
-                              RunModeUnixSocketSingle);
-    default_mode = "single";
+                              RunModeUnixSocketMaster);
+    RunModeRegisterNewRunMode(RUNMODE_UNIX_SOCKET, "autofp",
+                              "Unix socket mode",
+                              RunModeUnixSocketMaster);
+    default_mode = "autofp";
 #endif
     return;
 }
@@ -1012,7 +1017,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-static int RunModeUnixSocketSingle(void)
+static int RunModeUnixSocketMaster(void)
 {
     if (UnixManagerInit() != 0)
         return 1;
