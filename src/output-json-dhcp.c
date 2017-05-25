@@ -160,11 +160,11 @@ static void JsonDHCPLogRequest(json_t *js, DHCPTransaction *tx, bool extended)
         }
     }
 
-    dhcp_opt = (DHCPOpt *)tx->request_buffer;
+    for (offset = 0; offset <= tx->request_buffer_len; offset += option_size) {
 
-    for (offset = 0;
-         JsonDHCPOptEnd(dhcp_opt) == 0 && offset <= tx->request_buffer_len;
-         offset += option_size) {
+        if (tx->request_buffer_len - offset < sizeof(DHCPOpt)) {
+            break;
+        }
 
         dhcp_opt = (DHCPOpt *)&tx->request_buffer[offset];
 
@@ -295,11 +295,11 @@ static void JsonDHCPLogResponse(json_t *js, DHCPTransaction *tx, bool extended)
         }
     }
 
-    dhcp_opt = (DHCPOpt *)tx->response_buffer;
+    for (offset = 0; offset <= tx->response_buffer_len; offset += option_size) {
 
-    for (offset = 0;
-         JsonDHCPOptEnd(dhcp_opt) == 0 && offset <= tx->response_buffer_len;
-         offset += option_size) {
+        if (tx->response_buffer_len - offset < sizeof(DHCPOpt)) {
+            break;
+        }
 
         dhcp_opt = (DHCPOpt *)&tx->response_buffer[offset];
 
