@@ -35,6 +35,7 @@
 #include "util-logopenfile-tile.h"
 
 const char * redis_push_cmd = "LPUSH";
+const char * redis_rpush_cmd = "RPUSH";
 const char * redis_publish_cmd = "PUBLISH";
 
 /** \brief connect to the indicated local stream socket, logging any errors
@@ -416,6 +417,12 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
             exit(EXIT_FAILURE);
         }
+    } else if (!strcmp(redis_mode, "rlist")) {
+        log_ctx->redis_setup.command = redis_rpush_cmd;
+        if (!log_ctx->redis_setup.command) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
+            exit(EXIT_FAILURE);
+        }   
     } else {
         log_ctx->redis_setup.command = redis_publish_cmd;
         if (!log_ctx->redis_setup.command) {
