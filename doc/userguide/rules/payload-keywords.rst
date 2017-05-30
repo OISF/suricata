@@ -107,7 +107,7 @@ The format of this keyword is::
 
   nocase;
 
-You have to place it behind the content you want to modify, like::
+You have to place it after the content you want to modify, like::
 
   content: “abc”; nocase;
 
