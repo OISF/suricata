@@ -136,18 +136,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
-    OutputTxLogger *logger = list;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-#ifdef DEBUG_VALIDATION
-    BUG_ON(logger == NULL && store != NULL);
-    BUG_ON(logger != NULL && store == NULL);
-    BUG_ON(logger == NULL && store == NULL);
-#endif
     if (p->flow == NULL)
         return TM_ECODE_OK;
 
     Flow * const f = p->flow;
-
     const AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
@@ -192,9 +184,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
                 tx_progress_ts, tx_progress_tc);
 
-        // call each logger here (pseudo code)
-        logger = list;
-        store = op_thread_data->store;
+        const OutputTxLogger *logger = list;
+        const OutputLoggerThreadStore *store = op_thread_data->store;
+#ifdef DEBUG_VALIDATION
+        BUG_ON(logger == NULL && store != NULL);
+        BUG_ON(logger != NULL && store == NULL);
+        BUG_ON(logger == NULL && store == NULL);
+#endif
         while (logger && store) {
             BUG_ON(logger->LogFunc == NULL);
 
