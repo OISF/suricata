@@ -1014,11 +1014,10 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
  */
 static int RunModeUnixSocketSingle(void)
 {
-    PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
-
     if (UnixManagerInit() != 0)
         return 1;
 
+    PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
     if (unlikely(pcapcmd == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
         return 1;
