@@ -524,10 +524,7 @@ static int LuaCallbackStatsFlow(lua_State *luastate)
  */
 static int LuaCallbackPushFlowIdToStackFromFlow(lua_State *luastate, const Flow *f)
 {
-    uint64_t id = FlowGetId(f);
-    /* reduce to 51 bits as Javascript and even JSON often seem to
-     * max out there. */
-    id &= 0x7ffffffffffffLL;
+    int64_t id = FlowGetId(f);
     lua_pushinteger(luastate, id);
     return 1;
 }

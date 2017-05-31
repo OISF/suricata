@@ -579,9 +579,13 @@ static inline void FlowDeReference(Flow **d)
  */
 static inline int64_t FlowGetId(const Flow *f)
 {
-    return (int64_t)f->flow_hash << 31 |
+    int64_t id = (int64_t)f->flow_hash << 31 |
         (int64_t)(f->startts.tv_sec & 0x0000FFFF) << 16 |
         (int64_t)(f->startts.tv_usec & 0x0000FFFF);
+    /* reduce to 51 bits as Javascript and even JSON often seem to
+     * max out there. */
+    id &= 0x7ffffffffffffLL;
+    return id;
 }
 
 int FlowClearMemory(Flow *,uint8_t );

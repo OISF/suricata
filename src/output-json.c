@@ -381,9 +381,6 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     if (f == NULL)
         return;
     int64_t flow_id = FlowGetId(f);
-    /* reduce to 51 bits as Javascript and even JSON often seem to
-     * max out there. */
-    flow_id &= 0x7ffffffffffffLL;
     json_object_set_new(js, "flow_id", json_integer(flow_id));
 }
 
