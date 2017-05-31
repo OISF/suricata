@@ -81,6 +81,8 @@ static int g_file_store_enable = 0;
  */
 static uint32_t g_file_store_reassembly_depth = 0;
 
+static int32_t g_file_store_max_open_files =  FILE_MAX_OPEN_FILES;
+
 /* prototypes */
 static void FileFree(File *);
 
@@ -162,6 +164,17 @@ int FileWriteMeta(void)
 {
     return g_file_write_meta;
 }
+
+void FileSetMaxOpenFiles(uint32_t count)
+{
+    g_file_store_max_open_files = count;
+}
+
+int32_t FileGetMaxOpenFiles(void)
+{
+    return g_file_store_max_open_files;
+}
+
 /**
  * \brief Function to parse forced file hashing configuration.
  */
@@ -781,6 +794,8 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     ff->state = FILE_STATE_OPENED;
     SCLogDebug("flowfile state transitioned to FILE_STATE_OPENED");
+
+    ff->fd = -1;
 
     FileContainerAdd(ffc, ff);
 

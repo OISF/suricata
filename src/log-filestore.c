@@ -64,6 +64,8 @@
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
+SC_ATOMIC_DECLARE(int32_t, filestore_open_file_cnt);  /**< Atomic counter, to link relative event */
+
 typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
@@ -307,7 +309,7 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
 }
 
 static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-        const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
+        File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
@@ -344,12 +346,20 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
             SCLogDebug("failed to create file");
             return -1;
         }
+        if (SC_ATOMIC_GET(filestore_open_file_cnt) < FileGetMaxOpenFiles()) {
+            ff->fd = file_fd;
+            SC_ATOMIC_ADD(filestore_open_file_cnt, 1);
+        }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
-        file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
-        if (file_fd == -1) {
-            SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
-            return -1;
+        if (ff->fd == -1) {
+            file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
+            if (file_fd == -1) {
+                SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
+                return -1;
+            }
+        } else {
+            file_fd = ff->fd;
         }
     }
 
@@ -357,11 +367,22 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
             SCLogDebug("write failed: %s", strerror(errno));
+            if (ff->fd != -1) {
+                SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
+            }
+            ff->fd = -1;
         }
-        close(file_fd);
+        if (ff->fd == -1) {
+            close(file_fd);
+        }
     }
 
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        if (ff->fd != -1) {
+            close(ff->fd);
+            ff->fd = -1;
+            SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
+        }
         LogFilestoreLogCloseMetaFile(ff);
     }
 
@@ -514,6 +535,21 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
+    const char *file_count_str = ConfNodeLookupChildValue(conf, "max-open-files");
+    if (file_count_str != NULL && strcmp(file_count_str, "no")) {
+        uint32_t file_count = 0;
+        if (ParseSizeStringU32(file_count_str,
+                               &file_count) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                       "file-store.max-open-files "
+                       "from conf file - %s.  Killing engine",
+                       stream_depth_str);
+            exit(EXIT_FAILURE);
+        } else {
+            FileSetMaxOpenFiles(file_count);
+        }
+    }
+
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
@@ -526,5 +562,7 @@ void LogFilestoreRegister (void)
         LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
         LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
 
+    SC_ATOMIC_INIT(filestore_open_file_cnt);
+    SC_ATOMIC_SET(filestore_open_file_cnt, 0);
     SCLogDebug("registered");
 }
