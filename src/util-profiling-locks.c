@@ -38,7 +38,7 @@ __thread int record_locks = 0;
 int profiling_locks_enabled = 0;
 int profiling_locks_output_to_file = 0;
 char *profiling_locks_file_name = NULL;
-char *profiling_locks_file_mode = "a";
+const char *profiling_locks_file_mode = "a";
 
 typedef struct LockRecord_ {
     char *file; // hash
@@ -106,7 +106,7 @@ int LockRecordInitHash()
     return 0;
 }
 
-void LockRecordAdd(ProfilingLock *l)
+static void LockRecordAdd(ProfilingLock *l)
 {
     LockRecord fn = { NULL, NULL, 0,0,0,0,0,0}, *ptr = &fn;
     fn.file = l->file;
@@ -153,7 +153,7 @@ void SCProfilingAddPacketLocks(void *p)
     }
 }
 
-void SCProfilingListLocks(void)
+static void SCProfilingListLocks(void)
 {
     FILE *fp = NULL;
 
@@ -180,7 +180,7 @@ void SCProfilingListLocks(void)
     while (b) {
         LockRecord *r = HashListTableGetListData(b);
 
-        char *lock;
+        const char *lock;
         switch (r->type) {
             case LOCK_MUTEX:
                 lock = "mtx";
