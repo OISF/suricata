@@ -1325,6 +1325,7 @@ enum DetectEngineTenantSelectors
     TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
     TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
     TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
+    TENANT_SELECTOR_LIVEDEV,        /**< map livedev to tenant id */
 };
 
 typedef struct DetectEngineTenantMapping_ {
