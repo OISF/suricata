@@ -442,6 +442,10 @@ outputs:
       #waldo: file.waldo # waldo file to store the file_id across runs
       # uncomment to disable meta file writing
       #write-meta: no
+      # uncomment the following variable to define how many files can
+      # remain open for filestore by Suricata. Default value is 0 which
+      # means files get closed after each write
+      #max-open-files: 1000
 
   # output module to log files tracked in a easily parsable json format
   - file-log:

@@ -172,6 +172,7 @@
 #include "host-storage.h"
 
 #include "util-lua.h"
+#include "log-filestore.h"
 
 #ifdef HAVE_RUST
 #include "rust.h"
@@ -2218,6 +2219,7 @@ void PreRunInit(const int runmode)
     DefragInit();
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);
+    LogFilestoreInitConfig();
     StreamTcpInitConfig(STREAM_VERBOSE);
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
