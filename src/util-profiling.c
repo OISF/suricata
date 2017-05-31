@@ -55,7 +55,7 @@ static FILE *packet_profile_csv_fp = NULL;
 extern int profiling_locks_enabled;
 extern int profiling_locks_output_to_file;
 extern char *profiling_locks_file_name;
-extern char *profiling_locks_file_mode;
+extern const char *profiling_locks_file_mode;
 
 typedef struct SCProfilePacketData_ {
     uint64_t min;
@@ -255,8 +255,7 @@ SCProfilingInit(void)
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
-                char *log_dir;
-                log_dir = ConfigGetLogDirectory();
+                const char *log_dir = ConfigGetLogDirectory();
 
                 profiling_locks_file_name = SCMalloc(PATH_MAX);
                 if (unlikely(profiling_locks_file_name == NULL)) {
