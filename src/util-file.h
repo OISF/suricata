@@ -69,6 +69,8 @@ typedef struct File_ {
     uint32_t file_track_id;         /**< id used by protocol parser. Optional
                                      *   only used if FILE_USE_TRACKID flag set */
     uint32_t file_store_id;         /**< id used in store file name file.<id> */
+    int fd;                         /**< file descriptor for filestore, not
+                                        open if equal to -1 */
     uint8_t *name;
 #ifdef HAVE_MAGIC
     char *magic;
