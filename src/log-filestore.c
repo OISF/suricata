@@ -330,8 +330,10 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
-        /* create a .meta file that contains time, src/dst/sp/dp/proto */
-        LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
+        if (FileWriteMeta()) {
+            /* create a .meta file that contains time, src/dst/sp/dp/proto */
+            LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
+        }
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
@@ -356,7 +358,9 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     }
 
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        LogFilestoreLogCloseMetaFile(ff);
+        if (FileWriteMeta()) {
+            LogFilestoreLogCloseMetaFile(ff);
+        }
     }
 
     return 0;
@@ -482,6 +486,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     if (force_magic != NULL && ConfValIsTrue(force_magic)) {
         FileForceMagicEnable();
         SCLogInfo("forcing magic lookup for stored files");
+    }
+
+    const char *write_meta = ConfNodeLookupChildValue(conf, "write-meta");
+    if (write_meta != NULL && !ConfValIsTrue(write_meta)) {
+        FileWriteMetaDisable();
+        SCLogInfo("Will not write meta file");
     }
 
     FileForceHashParseCfg(conf);
