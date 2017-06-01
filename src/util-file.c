@@ -67,6 +67,10 @@ static int g_file_force_sha256 = 0;
  */
 static int g_file_force_tracking = 0;
 
+/** \brief switch to write meta file
+ */
+static int g_file_write_meta = 1;
+
 /** \brief switch to use g_file_store_reassembly_depth
  *         to reassembly files
  */
@@ -149,7 +153,15 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
+void FileWriteMetaDisable(void)
+{
+    g_file_write_meta = 0;
+}
 
+int FileWriteMeta(void)
+{
+    return g_file_write_meta;
+}
 /**
  * \brief Function to parse forced file hashing configuration.
  */

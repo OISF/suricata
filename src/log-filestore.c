@@ -169,6 +169,9 @@ static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
 }
 
 static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *filename, int ipver) {
+    if (!FileWriteMeta())
+        return;
+
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -241,6 +244,9 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
 
 static void LogFilestoreLogCloseMetaFile(const File *ff)
 {
+    if (!FileWriteMeta())
+        return;
+
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_store_id);
@@ -482,6 +488,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     if (force_magic != NULL && ConfValIsTrue(force_magic)) {
         FileForceMagicEnable();
         SCLogInfo("forcing magic lookup for stored files");
+    }
+
+    const char *write_meta = ConfNodeLookupChildValue(conf, "write-meta");
+    if (write_meta != NULL && !ConfValIsTrue(write_meta)) {
+        FileWriteMetaDisable();
+        SCLogInfo("Will not write meta file");
     }
 
     FileForceHashParseCfg(conf);
