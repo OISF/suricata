@@ -151,99 +151,98 @@ static int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
     SCLogDebug("called with %p, %d, %p, %02x", f, close, cbdata, iflags);
 
     HtpState *s = f->alstate;
-    if (s != NULL && s->conn != NULL) {
-        int tx_progress_done_value_ts =
-            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
-                                                           STREAM_TOSERVER);
-        int tx_progress_done_value_tc =
-            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
-                                                           STREAM_TOCLIENT);
+    if (s == NULL || s->conn == NULL) {
+        return 0;
+    }
 
-        // for each tx
-        uint64_t tx_id = 0;
-        const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
-        SCLogDebug("s->conn %p", s->conn);
-        for (tx_id = 0; tx_id < total_txs; tx_id++) { // TODO optimization store log tx
-            htp_tx_t *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
-            if (tx != NULL) {
-                int tx_done = 0;
-                int tx_logged = 0;
+    const int tx_progress_done_value_ts =
+        AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
+                STREAM_TOSERVER);
+    const int tx_progress_done_value_tc =
+        AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
+                STREAM_TOCLIENT);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
 
-                int tx_progress_ts = AppLayerParserGetStateProgress(
-                        IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
-                if (tx_progress_ts >= tx_progress_done_value_ts) {
-                    int tx_progress_tc = AppLayerParserGetStateProgress(
-                            IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
-                    if (tx_progress_tc >= tx_progress_done_value_tc) {
-                        tx_done = 1;
-                    }
+    uint64_t tx_id = 0;
+    for (tx_id = 0; tx_id < total_txs; tx_id++) { // TODO optimization store log tx
+        htp_tx_t *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
+        if (tx == NULL) {
+            continue;
+        }
+
+        int tx_done = 0;
+        int tx_logged = 0;
+        int tx_progress_ts = AppLayerParserGetStateProgress(
+                IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
+        if (tx_progress_ts >= tx_progress_done_value_ts) {
+            int tx_progress_tc = AppLayerParserGetStateProgress(
+                    IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
+            if (tx_progress_tc >= tx_progress_done_value_tc) {
+                tx_done = 1;
+            }
+        }
+
+        SCLogDebug("tx %p", tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            SCLogDebug("htud %p", htud);
+            HtpBody *body = NULL;
+            if (iflags & OUTPUT_STREAMING_FLAG_TOCLIENT)
+                body = &htud->request_body;
+            else if (iflags & OUTPUT_STREAMING_FLAG_TOSERVER)
+                body = &htud->response_body;
+
+            if (body == NULL) {
+                SCLogDebug("no body");
+                goto next;
+            }
+            if (body->first == NULL) {
+                SCLogDebug("no body chunks");
+                goto next;
+            }
+            if (body->last->logged == 1) {
+                SCLogDebug("all logged already");
+                goto next;
+            }
+
+            // for each chunk
+            HtpBodyChunk *chunk = body->first;
+            for ( ; chunk != NULL; chunk = chunk->next) {
+                if (chunk->logged) {
+                    SCLogDebug("logged %d", chunk->logged);
+                    continue;
                 }
 
-                SCLogDebug("tx %p", tx);
-                HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-                if (htud != NULL) {
-                    SCLogDebug("htud %p", htud);
-                    HtpBody *body = NULL;
-                    if (iflags & OUTPUT_STREAMING_FLAG_TOCLIENT)
-                        body = &htud->request_body;
-                    else if (iflags & OUTPUT_STREAMING_FLAG_TOSERVER)
-                        body = &htud->response_body;
-
-                    if (body == NULL) {
-                        SCLogDebug("no body");
-                        goto next;
-                    }
-                    if (body->first == NULL) {
-                        SCLogDebug("no body chunks");
-                        goto next;
-                    }
-                    if (body->last->logged == 1) {
-                        SCLogDebug("all logged already");
-                        goto next;
-                    }
-
-                    // for each chunk
-                    HtpBodyChunk *chunk = body->first;
-                    for ( ; chunk != NULL; chunk = chunk->next) {
-                        if (chunk->logged) {
-                            SCLogDebug("logged %d", chunk->logged);
-                            continue;
-                        }
-
-                        uint8_t flags = iflags | OUTPUT_STREAMING_FLAG_TRANSACTION;
-                        if (chunk->sbseg.stream_offset == 0)
-                            flags |= OUTPUT_STREAMING_FLAG_OPEN;
-                        /* if we need to close and we're at the last segment in the list
-                         * we add the 'close' flag so the logger can close up. */
-                        if ((tx_done || close) && chunk->next == NULL) {
-                            flags |= OUTPUT_STREAMING_FLAG_CLOSE;
-                        }
-
-                        const uint8_t *data = NULL;
-                        uint32_t data_len = 0;
-                        StreamingBufferSegmentGetData(body->sb, &chunk->sbseg, &data, &data_len);
-
-                        // invoke Streamer
-                        Streamer(cbdata, f, data, data_len, tx_id, flags);
-                        //PrintRawDataFp(stdout, data, data_len);
-                        chunk->logged = 1;
-                        tx_logged = 1;
-                    }
-
-                  next:
-                    /* if we need to close we need to invoke the Streamer for sure. If we
-                     * logged no chunks, we call the Streamer with NULL data so it can
-                     * close up. */
-                    if (tx_logged == 0 && (close||tx_done)) {
-                        Streamer(cbdata, f, NULL, 0, tx_id,
-                                OUTPUT_STREAMING_FLAG_CLOSE|OUTPUT_STREAMING_FLAG_TRANSACTION);
-                    }
+                uint8_t flags = iflags | OUTPUT_STREAMING_FLAG_TRANSACTION;
+                if (chunk->sbseg.stream_offset == 0)
+                    flags |= OUTPUT_STREAMING_FLAG_OPEN;
+                /* if we need to close and we're at the last segment in the list
+                 * we add the 'close' flag so the logger can close up. */
+                if ((tx_done || close) && chunk->next == NULL) {
+                    flags |= OUTPUT_STREAMING_FLAG_CLOSE;
                 }
+
+                const uint8_t *data = NULL;
+                uint32_t data_len = 0;
+                StreamingBufferSegmentGetData(body->sb, &chunk->sbseg, &data, &data_len);
+
+                // invoke Streamer
+                Streamer(cbdata, f, data, data_len, tx_id, flags);
+                //PrintRawDataFp(stdout, data, data_len);
+                chunk->logged = 1;
+                tx_logged = 1;
+            }
+
+        next:
+            /* if we need to close we need to invoke the Streamer for sure. If we
+             * logged no chunks, we call the Streamer with NULL data so it can
+             * close up. */
+            if (tx_logged == 0 && (close||tx_done)) {
+                Streamer(cbdata, f, NULL, 0, tx_id,
+                        OUTPUT_STREAMING_FLAG_CLOSE|OUTPUT_STREAMING_FLAG_TRANSACTION);
             }
         }
     }
-
-
     return 0;
 }
 
