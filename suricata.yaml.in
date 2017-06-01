@@ -440,6 +440,8 @@ outputs:
       # perform file extraction. Set to 0 for unlimited.
       #stream-depth: 0
       #waldo: file.waldo # waldo file to store the file_id across runs
+      # uncomment to disable meta file writing
+      #write-meta: no
 
   # output module to log files tracked in a easily parsable json format
   - file-log:

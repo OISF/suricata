@@ -149,7 +149,6 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
-
 /**
  * \brief Function to parse forced file hashing configuration.
  */
