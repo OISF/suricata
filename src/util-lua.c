@@ -70,6 +70,10 @@ lua_State *LuaGetState(void)
 void LuaReturnState(lua_State *s)
 {
     if (s != NULL) {
+        /* clear the stack */
+        while (lua_gettop(s) > 0) {
+            lua_pop(s, 1);
+        }
 #ifdef HAVE_LUAJIT
         LuajitReturnState(s);
 #else
