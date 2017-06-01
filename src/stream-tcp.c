@@ -5044,6 +5044,22 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
         }
     }
 
+    if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
+        if (PKT_IS_TOSERVER(p)) {
+            if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.next_seq)) {
+                SCLogDebug("ssn %p: ASYNC accept RST", ssn);
+                return 1;
+            }
+        } else {
+            if (SEQ_GEQ(TCP_GET_SEQ(p), ssn->server.next_seq)) {
+                SCLogDebug("ssn %p: ASYNC accept RST", ssn);
+                return 1;
+            }
+        }
+        SCLogDebug("ssn %p: ASYNC reject RST", ssn);
+        return 0;
+    }
+
     switch (os_policy) {
         case OS_POLICY_HPUX11:
             if(PKT_IS_TOSERVER(p)){
