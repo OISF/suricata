@@ -647,8 +647,6 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
         goto error;
     }
 
-    /* pop the table */
-    lua_pop(luastate, 1);
     LuaReturnState(luastate);
     return 0;
 error:
