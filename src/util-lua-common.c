@@ -108,7 +108,7 @@ void LuaPushTableKeyValueArray(lua_State *luastate, const char *key, const uint8
  *  \param p packet
  *  \retval cnt number of data items placed on the stack
  *
- *  Places: payload (string)
+ *  Places: payload (string), open (bool), close (bool), toserver (bool), toclient (bool)
  */
 static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaStreamingBuffer *b)
 {
@@ -116,7 +116,9 @@ static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaS
     lua_pushlstring (luastate, (const char *)b->data, b->data_len);
     lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_OPEN));
     lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_CLOSE));
-    return 3;
+    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOSERVER));
+    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_TOCLIENT));
+    return 5;
 }
 
 /** \internal
