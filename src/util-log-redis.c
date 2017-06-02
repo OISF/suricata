@@ -34,6 +34,7 @@
 #endif /* HAVE_LIBEVENT_PTHREADS */
 
 static const char * redis_push_cmd = "LPUSH";
+static const char * redis_rpush_cmd = "RPUSH";
 static const char * redis_publish_cmd = "PUBLISH";
 static const char * redis_default_key = "suricata";
 static const char * redis_default_server = "127.0.0.1";
@@ -499,6 +500,8 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
 
     if (!strcmp(redis_mode, "list")) {
         log_ctx->redis_setup.command = redis_push_cmd;
+    } else if(!strcmp(redis_mode, "rlist")){
+        log_ctx->redis_setup.command = redis_rpush_cmd;
     } else {
         log_ctx->redis_setup.command = redis_publish_cmd;
     }
