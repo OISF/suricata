@@ -1493,40 +1493,23 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
  *  consumed until now.
  *
  *  \param ssn tcp session
- *  \param p packet
+ *  \param stream tcp stream
  *  \param Callback the function pointer to the callback function
  *  \param cb_data callback data
+ *  \param[in] progress_in progress to work from
  *  \param[out] progress_out absolute progress value of the data this
  *                           call handled.
  */
-int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
+static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
                         StreamReassembleRawFunc Callback, void *cb_data,
-                        uint64_t *progress_out)
+                        const uint64_t progress_in,
+                        uint64_t *progress_out, bool eof)
 {
     SCEnter();
     int r = 0;
 
-    /* handle inline seperately as the logic is very different */
-    if (StreamTcpInlineMode() == TRUE) {
-        return StreamReassembleRawInline(ssn, p, Callback, cb_data, progress_out);
-    }
-
-    TcpStream *stream;
-    if (PKT_IS_TOSERVER(p)) {
-        stream = &ssn->client;
-    } else {
-        stream = &ssn->server;
-    }
-
-    if ((stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY|STREAMTCP_STREAM_FLAG_DISABLE_RAW)) ||
-        StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0)
-    {
-        *progress_out = STREAM_RAW_PROGRESS(stream);
-        return 0;
-    }
-
     StreamingBufferBlock *iter = NULL;
-    uint64_t progress = STREAM_RAW_PROGRESS(stream);
+    uint64_t progress = progress_in;
     uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream); /* absolute right edge of ack'd data */
 
     /* get window of data that is acked */
@@ -1555,7 +1538,7 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         SCLogDebug("stream %p data in buffer %p of len %u and offset %u",
                 stream, &stream->sb, mydata_len, (uint)progress);
 
-        if (p->flags & PKT_PSEUDO_STREAM_END) {
+        if (eof) {
             // inspect all remaining data, ack'd or not
         } else {
             if (last_ack_abs < progress) {
@@ -1586,8 +1569,8 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         BUG_ON(r < 0);
 
         if (mydata_offset == progress) {
-            SCLogDebug("raw progress %"PRIu64" increasing with data len %u to %"PRIu64,
-                    progress, mydata_len, STREAM_RAW_PROGRESS(stream) + mydata_len);
+            SCLogDebug("progress %"PRIu64" increasing with data len %u to %"PRIu64,
+                    progress, mydata_len, progress_in + mydata_len);
 
             progress += mydata_len;
             SCLogDebug("raw progress now %"PRIu64, progress);
@@ -1610,6 +1593,46 @@ int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
 end:
     *progress_out = progress;
     return r;
+}
+
+int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
+                        StreamReassembleRawFunc Callback, void *cb_data,
+                        uint64_t *progress_out)
+{
+    /* handle inline seperately as the logic is very different */
+    if (StreamTcpInlineMode() == TRUE) {
+        return StreamReassembleRawInline(ssn, p, Callback, cb_data, progress_out);
+    }
+
+    TcpStream *stream;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+    } else {
+        stream = &ssn->server;
+    }
+
+    if ((stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY|STREAMTCP_STREAM_FLAG_DISABLE_RAW)) ||
+        StreamTcpReassembleRawCheckLimit(ssn, stream, p) == 0)
+    {
+        *progress_out = STREAM_RAW_PROGRESS(stream);
+        return 0;
+    }
+
+    return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
+            STREAM_RAW_PROGRESS(stream), progress_out,
+            (p->flags & PKT_PSEUDO_STREAM_END));
+}
+
+int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
+                        StreamReassembleRawFunc Callback, void *cb_data,
+                        uint64_t progress_in,
+                        uint64_t *progress_out, bool eof)
+{
+    if (stream->flags & (STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        return 0;
+
+    return StreamReassembleRawDo(ssn, stream, Callback, cb_data,
+            progress_in, progress_out, eof);
 }
 
 /** \internal

@@ -619,6 +619,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 {
     int use_app = 1;
     int use_raw = 1;
+    int use_log = 1;
 
     uint64_t left_edge = 0;
     if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
@@ -631,6 +632,9 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW) {
         // raw is dead
         use_raw = 0;
+    }
+    if (!stream_config.streaming_log_api) {
+        use_log = 0;
     }
 
     if (use_raw) {
@@ -662,6 +666,14 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     } else {
         left_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
         SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
+    }
+
+    if (use_log) {
+        if (use_app || use_raw) {
+            left_edge = MIN(left_edge, STREAM_LOG_PROGRESS(stream));
+        } else {
+            left_edge = STREAM_LOG_PROGRESS(stream);
+        }
     }
 
     /* in inline mode keep at least unack'd segments so we can check for overlaps */
@@ -785,6 +797,11 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         } else {
             stream->raw_progress_rel = 0;
         }
+        if (slide <= stream->log_progress_rel) {
+            stream->log_progress_rel -= slide;
+        } else {
+            stream->log_progress_rel = 0;
+        }
 
         SCLogDebug("stream base_seq %u at stream offset %"PRIu64,
                 stream->base_seq, STREAM_BASE_OFFSET(stream));
@@ -794,9 +811,9 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     TcpSegment *seg = stream->seg_list;
     while (seg != NULL)
     {
-        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32", FLAGS %02x",
+        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
                 seg, seg->seq, TCP_SEG_LEN(seg),
-                (uint32_t)(seg->seq + TCP_SEG_LEN(seg)), seg->flags);
+                (uint32_t)(seg->seq + TCP_SEG_LEN(seg)));
 
         if (StreamTcpReturnSegmentCheck(stream, seg) == 0) {
             SCLogDebug("not removing segment");
@@ -886,8 +903,8 @@ void PrintList(TcpSegment *seg)
                         (seg->seq - next_seq));
         }
 
-        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p, flags 0x%02x",
-                    seg->seq, TCP_SEG_LEN(seg), seg, seg->prev, seg->next, seg->flags);
+        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p",
+                    seg->seq, TCP_SEG_LEN(seg), seg, seg->prev, seg->next);
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
             /* check for SEQ_LT cornercase where a - b is exactly 2147483648,

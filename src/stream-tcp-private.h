@@ -53,11 +53,9 @@ typedef struct StreamTcpSackRecord_ {
 
 typedef struct TcpSegment_ {
     PoolThreadReserved res;
-    StreamingBufferSegment sbseg;
     uint16_t payload_len;       /**< actual size of the payload */
-    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
-    uint8_t flags;
     uint32_t seq;
+    StreamingBufferSegment sbseg;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
 } TcpSegment;
@@ -89,6 +87,7 @@ typedef struct TcpStream_ {
 
     uint32_t app_progress_rel;      /**< app-layer progress relative to STREAM_BASE_OFFSET */
     uint32_t raw_progress_rel;      /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
+    uint32_t log_progress_rel;      /**< streaming logger progress relative to STREAM_BASE_OFFSET */
 
     StreamingBuffer sb;
 
@@ -102,6 +101,7 @@ typedef struct TcpStream_ {
 #define STREAM_BASE_OFFSET(stream)  ((stream)->sb.stream_offset)
 #define STREAM_APP_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->app_progress_rel)
 #define STREAM_RAW_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->raw_progress_rel)
+#define STREAM_LOG_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->log_progress_rel)
 
 /* from /usr/include/netinet/tcp.h */
 enum
@@ -188,11 +188,6 @@ enum
 /** NOTE: flags field is 12 bits */
 
 
-/*
- * Per SEGMENT flags
- */
-/** Log API (streaming) has processed this segment */
-#define SEGMENTTCP_FLAG_LOGAPI_PROCESSED    0x04
 
 
 #define PAWS_24DAYS         2073600         /**< 24 days in seconds */

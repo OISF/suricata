@@ -59,6 +59,7 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toclient_chunk_size;
 
     int bypass;
+    bool streaming_log_api;
 
     StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
@@ -119,10 +120,16 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
 
 typedef int (*StreamReassembleRawFunc)(void *data, const uint8_t *input, const uint32_t input_len);
 
+int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
+        StreamReassembleRawFunc Callback, void *cb_data,
+        uint64_t progress_in,
+        uint64_t *progress_out, bool eof);
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
         StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
+
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);
+
 
 /** ------- Inline functions: ------ */
 
