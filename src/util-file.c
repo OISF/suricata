@@ -81,7 +81,7 @@ static int g_file_store_enable = 0;
  */
 static uint32_t g_file_store_reassembly_depth = 0;
 
-static int32_t g_file_store_max_open_files =  FILE_MAX_OPEN_FILES;
+static uint32_t g_file_store_max_open_files =  FILE_MAX_OPEN_FILES;
 
 /* prototypes */
 static void FileFree(File *);
@@ -170,7 +170,7 @@ void FileSetMaxOpenFiles(uint32_t count)
     g_file_store_max_open_files = count;
 }
 
-int32_t FileGetMaxOpenFiles(void)
+uint32_t FileGetMaxOpenFiles(void)
 {
     return g_file_store_max_open_files;
 }

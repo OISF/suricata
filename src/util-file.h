@@ -226,7 +226,7 @@ void FileWriteMetaDisable(void);
 int FileWriteMeta(void);
 
 void FileSetMaxOpenFiles(uint32_t count);
-int32_t FileGetMaxOpenFiles(void);
+uint32_t FileGetMaxOpenFiles(void);
 
 void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint64_t);

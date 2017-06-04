@@ -64,13 +64,22 @@
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
-SC_ATOMIC_DECLARE(int32_t, filestore_open_file_cnt);  /**< Atomic counter, to link relative event */
+SC_ATOMIC_DECLARE(uint32_t, filestore_open_file_cnt);  /**< Atomic counter, to link relative event */
 
 typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    uint16_t counter_max_hits;
 } LogFilestoreLogThread;
+
+
+static uint64_t LogFilestoreOpenFilesCounter(void)
+{
+    uint64_t fcopy = SC_ATOMIC_GET(filestore_open_file_cnt);
+    return fcopy;
+}
+
 
 static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
 {
@@ -349,6 +358,10 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         if (SC_ATOMIC_GET(filestore_open_file_cnt) < FileGetMaxOpenFiles()) {
             ff->fd = file_fd;
             SC_ATOMIC_ADD(filestore_open_file_cnt, 1);
+        } else {
+            if (FileGetMaxOpenFiles() > 0) {
+                StatsIncr(tv, aft->counter_max_hits);
+            }
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
@@ -424,6 +437,8 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, vo
         }
 
     }
+
+    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", t);
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -552,6 +567,13 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
     SCReturnPtr(output_ctx, "OutputCtx");
 }
+
+
+void LogFilestoreInitConfig(void)
+{
+    StatsRegisterGlobalCounter("file_store.open_files", LogFilestoreOpenFilesCounter);
+}
+
 
 void LogFilestoreRegister (void)
 {
