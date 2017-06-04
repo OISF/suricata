@@ -67,6 +67,16 @@
 
 #include "util-validate.h"
 
+static HtpBody *GetResponseBody(htp_tx_t *tx)
+{
+    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+    if (htud == NULL) {
+        SCLogDebug("no htud");
+        return NULL;
+    }
+
+    return &htud->response_body;
+}
 
 InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
@@ -83,19 +93,18 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
     HtpState *htp_state = f->alstate;
     const uint8_t flags = flow_flags;
 
-    HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
-    if (htud == NULL) {
-        SCLogDebug("no htud");
+    HtpBody *body = GetResponseBody(tx);
+    if (body == NULL) {
         return NULL;
     }
 
     /* no new data */
-    if (htud->response_body.body_inspected == htud->response_body.content_len_so_far) {
+    if (body->body_inspected == body->content_len_so_far) {
         SCLogDebug("no new data");
         return NULL;
     }
 
-    HtpBodyChunk *cur = htud->response_body.first;
+    HtpBodyChunk *cur = body->first;
     if (cur == NULL) {
         SCLogDebug("No http chunks to inspect for this transacation");
         return NULL;
@@ -104,7 +113,7 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("response.body_limit %u response_body.content_len_so_far %"PRIu64
                ", response.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
               htp_state->cfg->response.body_limit,
-              htud->response_body.content_len_so_far,
+              body->content_len_so_far,
               htp_state->cfg->response.inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
@@ -113,8 +122,8 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->response.body_limit == 0 ||
-             htud->response_body.content_len_so_far < htp_state->cfg->response.body_limit) &&
-            htud->response_body.content_len_so_far < htp_state->cfg->response.inspect_min_size &&
+             body->content_len_so_far < htp_state->cfg->response.body_limit) &&
+            body->content_len_so_far < htp_state->cfg->response.inspect_min_size &&
             !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
@@ -131,25 +140,25 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
      * the new data.
      */
     uint64_t offset = 0;
-    if (htud->response_body.body_inspected > htp_state->cfg->response.inspect_min_size) {
-        BUG_ON(htud->response_body.content_len_so_far < htud->response_body.body_inspected);
-        uint64_t inspect_win = htud->response_body.content_len_so_far - htud->response_body.body_inspected;
+    if (body->body_inspected > htp_state->cfg->response.inspect_min_size) {
+        BUG_ON(body->content_len_so_far < body->body_inspected);
+        uint64_t inspect_win = body->content_len_so_far - body->body_inspected;
         SCLogDebug("inspect_win %"PRIu64, inspect_win);
         if (inspect_win < htp_state->cfg->response.inspect_window) {
             uint64_t inspect_short = htp_state->cfg->response.inspect_window - inspect_win;
-            if (htud->response_body.body_inspected < inspect_short)
+            if (body->body_inspected < inspect_short)
                 offset = 0;
             else
-                offset = htud->response_body.body_inspected - inspect_short;
+                offset = body->body_inspected - inspect_short;
         } else {
-            offset = htud->response_body.body_inspected - (htp_state->cfg->response.inspect_window / 4);
+            offset = body->body_inspected - (htp_state->cfg->response.inspect_window / 4);
         }
     }
 
     const uint8_t *data;
     uint32_t data_len;
 
-    StreamingBufferGetDataAtOffset(htud->response_body.sb,
+    StreamingBufferGetDataAtOffset(body->sb,
             &data, &data_len, offset);
     InspectionBufferSetup(buffer, data, data_len);
     buffer->inspect_offset = offset;
@@ -171,8 +180,8 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
 
     /* move inspected tracker to end of the data. HtpBodyPrune will consider
      * the window sizes when freeing data */
-    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
-    SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
+    body->body_inspected = body->content_len_so_far;
+    SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
