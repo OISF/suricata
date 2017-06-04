@@ -172,6 +172,7 @@
 #include "host-storage.h"
 
 #include "util-lua.h"
+#include "log-filestore.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -2213,6 +2214,7 @@ void PreRunInit(const int runmode)
     DefragInit();
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);
+    LogFilestoreInitConfig();
     StreamTcpInitConfig(STREAM_VERBOSE);
     AppLayerParserPostStreamSetup();
     AppLayerRegisterGlobalCounters();
