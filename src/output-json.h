@@ -43,8 +43,8 @@ void JsonAddVars(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonFiveTuple(const Packet *, int, json_t *);
-json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
+json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type, uint8_t options_flags);
+json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint8_t options_flags, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 

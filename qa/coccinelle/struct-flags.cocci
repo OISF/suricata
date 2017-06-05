@@ -1,35 +1,37 @@
 @flags@
-SignatureHeader *struct0;
-identifier struct_flags0 =~ "^(?!SIG_FLAG).+";
-Signature *struct1;
-identifier struct_flags1 =~ "^(?!SIG_FLAG).+";
-Signature *struct2;
+LogFileCtx *struct0;
+identifier struct_flags0 =~ "^(?!LOGFILE_LOG).+";
+Packet *struct1;
+identifier struct_flags1 =~ "^(?!FLOW_PKT_).+";
+SignatureInitData *struct2;
 identifier struct_flags2 =~ "^(?!SIG_FLAG_INIT_).+";
-Flow *struct3;
-identifier struct_flags3 =~ "^(?!FLOW_).+";
+Signature *struct3;
+identifier struct_flags3 =~ "^(?!SIG_FLAG).+";
 TcpSegment *struct4;
 identifier struct_flags4 =~ "^(?!SEGMENTTCP_FLAG).+";
 TcpStream *struct5;
 identifier struct_flags5 =~ "^(?!STREAMTCP_STREAM_FLAG_).+";
 TcpSession *struct6;
 identifier struct_flags6 =~ "^(?!STREAMTCP_FLAG).+";
-Packet *struct7;
-identifier struct_flags7 =~ "^(?!FLOW_PKT_).+";
+Flow *struct7;
+identifier struct_flags7 =~ "^(?!FLOWFILE_).+";
+Flow *struct8;
+identifier struct_flags8 =~ "^(?!FLOW_END_FLAG_).+";
 position p1;
 @@
 
 (
-struct0->flags@p1 |= struct_flags0
+struct0->option_flags@p1 |= struct_flags0
 |
-struct0->flags@p1 & struct_flags0
+struct0->option_flags@p1 & struct_flags0
 |
-struct0->flags@p1 &= ~struct_flags0
+struct0->option_flags@p1 &= ~struct_flags0
 |
-struct1->flags@p1 |= struct_flags1
+struct1->flowflags@p1 |= struct_flags1
 |
-struct1->flags@p1 & struct_flags1
+struct1->flowflags@p1 & struct_flags1
 |
-struct1->flags@p1 &= ~struct_flags1
+struct1->flowflags@p1 &= ~struct_flags1
 |
 struct2->init_flags@p1 |= struct_flags2
 |
@@ -61,11 +63,17 @@ struct6->flags@p1 & struct_flags6
 |
 struct6->flags@p1 &= ~struct_flags6
 |
-struct7->flowflags@p1 |= struct_flags7
+struct7->file_flags@p1 |= struct_flags7
 |
-struct7->flowflags@p1 & struct_flags7
+struct7->file_flags@p1 & struct_flags7
 |
-struct7->flowflags@p1 &= ~struct_flags7
+struct7->file_flags@p1 &= ~struct_flags7
+|
+struct8->flow_end_flags@p1 |= struct_flags8
+|
+struct8->flow_end_flags@p1 & struct_flags8
+|
+struct8->flow_end_flags@p1 &= ~struct_flags8
 )
 
 @script:python@

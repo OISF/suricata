@@ -34,6 +34,8 @@ The most common way to use this is through 'EVE', which is a firehose approach w
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      # Log ethernet header in events when available
+      #log-ethernet: yes
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
@@ -119,6 +121,9 @@ The most common way to use this is through 'EVE', which is a firehose approach w
 
 Each alert, http log, etc will go into this one file: 'eve.json'. This file
 can then be processed by 3rd party tools like Logstash or jq.
+
+If log-ethernet is set to yes, then ethernet headers will be added to events
+if available.
 
 Output types
 ~~~~~~~~~~~~
