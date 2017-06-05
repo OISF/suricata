@@ -2039,7 +2039,7 @@ AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc qa/suripcap/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}

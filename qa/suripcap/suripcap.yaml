@@ -1,0 +1,21 @@
+%YAML 1.1
+---
+
+- test: test TLS
+  filename: ../docker/pcaps/tls.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none
+  app-layer-events:
+    - name: tls
+      flow: 5
+      tx: 0
+  metadata:
+    - name: SELKS certificate
+      event_type: tls
+      count: 4
+      filter: "tls.serial='00:97:E6:47:09:8E:EA:C9:B4' tls.issuerdn='C=FR, ST=IDF, L=Paris, O=Stamus, CN=SELKS'"
+    - name: Session resumed
+      event_type: tls
+      count: 1
+      filter: "tls.session_resumed=true"
