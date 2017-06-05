@@ -267,8 +267,7 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
                     json_object_set_new(sjs, "port", json_integer(sp));
                     json_object_set_new(tjs, "port", json_integer(dp));
             }
-        }
-        if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
+        } else if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
             json_object_set_new(sjs, "ip", json_string(dstip));
             json_object_set_new(tjs, "ip", json_string(srcip));
             switch (p->proto) {
