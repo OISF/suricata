@@ -31,6 +31,7 @@ addons:
       - libjansson-dev
       - libevent-dev
       - libevent-pthreads-2.0-5
+      - python-yaml
     # Now define the default set of packages which is those above, and
     # libjansson.
     packages: &packages
@@ -134,6 +135,11 @@ script:
         make ${j} check 2> stderr.log
     else
         make ${j} check
+    fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        cd qa/suripcap/
+        python suripcap.py
     fi
 
 before_install:

@@ -498,6 +498,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                 TcpSessionSetReassemblyDepth(ssn,
                         AppLayerParserGetStreamDepth(f));
                 *alproto = ALPROTO_FAILED;
+                AppLayerIncFlowCounter(tv, f);
                 FlagPacketFlow(p, f, flags);
 
                 SCLogDebug("packet %u: pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
