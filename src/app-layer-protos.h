@@ -44,6 +44,7 @@ enum AppProtoEnum {
     ALPROTO_MODBUS,
     ALPROTO_ENIP,
     ALPROTO_DNP3,
+    ALPROTO_DHCP,
     ALPROTO_TEMPLATE,
 
     /* used by the probing parser when alproto detection fails
