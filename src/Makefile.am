@@ -20,7 +20,9 @@ app-layer-dnp3.c app-layer-dnp3.h \
 app-layer-dnp3-objects.c app-layer-dnp3-objects.h \
 app-layer-dns-common.c app-layer-dns-common.h \
 app-layer-dns-tcp.c app-layer-dns-tcp.h \
+app-layer-dns-tcp-rust.c app-layer-dns-tcp-rust.h \
 app-layer-dns-udp.c app-layer-dns-udp.h \
+app-layer-dns-udp-rust.c app-layer-dns-udp-rust.h \
 app-layer-enip.c app-layer-enip.h \
 app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
@@ -322,6 +324,7 @@ runmode-unittests.c runmode-unittests.h \
 runmode-unix-socket.c runmode-unix-socket.h \
 runmode-tile.c runmode-tile.h \
 runmodes.c runmodes.h \
+rust.h \
 source-af-packet.c source-af-packet.h \
 source-erf-dag.c source-erf-dag.h \
 source-erf-file.c source-erf-file.h \
@@ -469,7 +472,11 @@ AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
 suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
-suricata_LDADD = $(HTP_LDADD)
+suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
+
+if HAVE_RUST
+suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
+endif
 
 # Rules to build CUDA ptx modules
 if BUILD_CUDA
