@@ -43,6 +43,10 @@
 #include "util-unittest.h"
 #include "util-syslog.h"
 
+#ifdef HAVE_RUST
+#include "rust-log-gen.h"
+#endif
+
 #include "conf.h"
 
 /* holds the string-enum mapping for the enums held in the table SCLogLevel */
@@ -1255,6 +1259,10 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
     sc_log_module_cleaned = 0;
 
     //SCOutputPrint(sc_did->startup_message);
+
+#ifdef HAVE_RUST
+    rs_log_set_level(sc_log_global_log_level);
+#endif
 
     return;
 }

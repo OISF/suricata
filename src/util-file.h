@@ -172,6 +172,7 @@ int FileStore(File *);
  *  \param txid the tx id
  */
 int FileSetTx(File *, uint64_t txid);
+void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id);
 
 /**
  *  \brief disable file storage for a flow
