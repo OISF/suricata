@@ -351,7 +351,7 @@ static int StreamTcpReassemblyConfig(char quiet)
         segment_prealloc = prealloc;
     }
     if (!quiet)
-        SCLogInfo("stream.reassembly \"segment-prealloc\": %u", segment_prealloc);
+        SCLogConfig("stream.reassembly \"segment-prealloc\": %u", segment_prealloc);
     stream_config.prealloc_segments = segment_prealloc;
 
     int overlap_diff_data = 0;
