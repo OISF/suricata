@@ -46,6 +46,7 @@
 #include "output.h"
 #include "log-tlslog.h"
 #include "app-layer-ssl.h"
+#include "app-layer-tls-cipher-suite.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -76,6 +77,8 @@
 #define LOG_TLS_CF_SUBJECT 's'
 #define LOG_TLS_CF_ISSUER 'i'
 #define LOG_TLS_CF_EXTENDED 'E'
+#define LOG_TLS_CF_SERVER_CIPHERSUITE 'C'
+#define LOG_TLS_CF_CLIENT_CIPHERSUITE 'c'
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
@@ -425,8 +428,48 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
                 }
                 break;
             case LOG_TLS_CF_EXTENDED:
-            /* Extended format  */
+                /* Extended format  */
                 LogTlsLogExtended(aft, ssl_state);
+                break;
+            case LOG_TLS_CF_SERVER_CIPHERSUITE:
+                if (ssl_state->server_connp.num_cipher_suites &&
+                    ssl_state->server_connp.cipher_suites ) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                            SSLCipherSuiteDescription(*ssl_state->server_connp.cipher_suites)
+                            );
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
+                break;
+            case LOG_TLS_CF_CLIENT_CIPHERSUITE:
+                if (ssl_state->client_connp.num_cipher_suites &&
+                        ssl_state->client_connp.cipher_suites ) {
+                    char number[7] = {0};
+                    uint16_t value;
+                    unsigned char *bytes = NULL;
+                    const char *desc = NULL;
+
+                    for (uint32_t j = 0; j < ssl_state->client_connp.num_cipher_suites; ++j) {
+                        value = ssl_state->client_connp.cipher_suites[j];
+                        desc = SSLCipherSuiteDescription(value);
+
+                        if (i>0) {
+                            MemBufferWriteString(aft->buffer, ",");
+                        }
+
+                        if (!desc || *desc == '-') {
+                            bzero(number, 7);
+                            bytes = (unsigned char *) &value;
+                            snprintf(number, 6, "0X%02X%02X",
+                                    (unsigned int) bytes[0], (unsigned int) bytes[1]);
+                            MemBufferWriteString(aft->buffer, "%s", number);
+                        } else {
+                            MemBufferWriteString(aft->buffer, "%s", desc);
+                        }
+                    }
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
                 break;
             default:
             /* NO MATCH */
