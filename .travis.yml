@@ -47,8 +47,10 @@ matrix:
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,cocci"
+        - NAME="linux,gcc,cocci,rust"
         - *default-cflags
+        - ENABLE_RUST="yes"
+        - ARGS="--enable-rust"
       addons:
         apt:
           sources:
@@ -137,6 +139,11 @@ script:
     fi
 
 before_install:
+  - |
+    if [[ "$ENABLE_RUST" == "yes" ]]; then
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
+    fi
+  - export PATH=$HOME/.cargo/bin:$PATH
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
