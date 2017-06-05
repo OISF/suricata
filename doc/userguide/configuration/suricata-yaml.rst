@@ -1287,6 +1287,11 @@ anomalies in streams. See :ref:`host-os-policy`.
     midstream: false             # do not allow midstream session pickups
     async_oneside: false         # do not enable async stream handling
     inline: no                   # stream inline mode
+    drop-invalid: yes            # drop invalid packets
+
+The 'drop-invalid' option can be set to no to avoid blocking packets that are
+seen invalid by the streaming engine. This can be useful to cover some weird cases
+seen in some layer 2 IPS setup.
 
 **Example 11   Normal/IDS mode**
 
