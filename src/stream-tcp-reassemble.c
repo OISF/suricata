@@ -975,7 +975,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     while (1) {
         GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, stream, p)) {
-            SCLogNotice("sending GAP to app-layer (size: %u)", mydata_len);
+            SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
 
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     NULL, mydata_len,
