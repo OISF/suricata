@@ -173,6 +173,7 @@
 #include "detect-geoip.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
+#include "detect-target.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
 #include "detect-engine-content-inspection.h"
@@ -3939,6 +3940,7 @@ void SigTableSetup(void)
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
+    DetectTargetRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
     DetectHttpRequestLineRegister();
