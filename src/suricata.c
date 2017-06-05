@@ -124,6 +124,7 @@
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
+#include "app-layer-dhcp.h"
 
 #include "util-decode-der.h"
 #include "util-radix-tree.h"
@@ -1361,6 +1362,14 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
         AppLayerParserSetup();
         RegisterDNP3Parsers();
         exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DNP3, opt_arg));
+    } else if(strcmp(opt_name, "afl-dhcp-request") == 0) {
+        AppLayerParserSetup();
+        RegisterDHCPParsers();
+        exit(AppLayerParserRequestFromFile(IPPROTO_UDP, ALPROTO_DHCP, opt_arg));
+    } else if(strcmp(opt_name, "afl-dhcp") == 0) {
+        AppLayerParserSetup();
+        RegisterDHCPParsers();
+        exit(AppLayerParserFromFile(IPPROTO_UDP, ALPROTO_DHCP, opt_arg));
     } else
 #endif
 #ifdef AFLFUZZ_MIME
@@ -1487,6 +1496,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-mime", required_argument, 0 , 0},
         {"afl-dnp3-request", required_argument, 0, 0},
         {"afl-dnp3", required_argument, 0, 0},
+        {"afl-dhcp-request", required_argument, 0, 0},
+        {"afl-dhcp", required_argument, 0, 0},
 
         /* Other AFL options. */
         {"afl-rules", required_argument, 0 , 0},

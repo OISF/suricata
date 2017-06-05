@@ -197,6 +197,11 @@ outputs:
             # custom allows additional http fields to be included in eve-log
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
+        - dhcp:
+            # By default only basic information about a DHCP lease is
+            # logged. For full details of the request and reply
+            # enable extended logging.
+            extended: no
         - dns:
             # control logging of queries and answers
             # default yes, no to disable
@@ -675,6 +680,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    dhcp:
+      enabled: yes
     tls:
       enabled: yes
       detection-ports:
@@ -1242,7 +1249,6 @@ host:
 #  hash-size: 4096
 #  prealloc: 1000
 #  memcap: 32mb
-
 
 ##
 ## Performance tuning and profiling
