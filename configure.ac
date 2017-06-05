@@ -211,6 +211,9 @@
             CFLAGS="${CFLAGS} -DOS_DARWIN"
             CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
             LDFLAGS="${LDFLAGS} -L/opt/local/lib"
+	    if test -e /usr/local/share/misc/magic.mgc; then
+	       e_magic_file=/usr/local/share/misc/magic
+	    fi
             ;;
         *-*-linux*)
             #for now do nothing
