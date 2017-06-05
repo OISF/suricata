@@ -47,6 +47,10 @@
 
 #include "app-layer-dns-tcp.h"
 
+#ifdef HAVE_RUST
+#include "app-layer-dns-tcp-rust.h"
+#endif
+
 struct DNSTcpHeader_ {
     uint16_t len;
     uint16_t tx_id;
@@ -693,7 +697,10 @@ static uint16_t DNSTcpProbeResponse(uint8_t *input, uint32_t len,
 void RegisterDNSTCPParsers(void)
 {
     const char *proto_name = "dns";
-
+#ifdef HAVE_RUST
+    RegisterRustDNSTCPParsers();
+    return;
+#endif
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);
