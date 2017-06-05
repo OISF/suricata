@@ -2833,6 +2833,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    StreamTcpParseConfig(STREAM_VERBOSE);
+
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
