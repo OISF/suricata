@@ -1,0 +1,10 @@
+[package]
+name = "suricata-interface"
+version = "0.1.0"
+description = "Suricata Rust parsers library, common interfaces"
+license = "GPL-2+"
+keywords = ["Suricata","pcap","protocol","parser","nom","IDS"]
+authors = ["Pierre Chifflier <chifflier@wzdftpd.net>"]
+
+[dependencies]
+libc = "^0.2"

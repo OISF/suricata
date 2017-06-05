@@ -1,0 +1,29 @@
+[package]
+name = "rusticata"
+version = "0.1.0"
+description = "Glue layer for loading Rust parsers in Suricata"
+license = "GPL-2.0"
+keywords = ["Suricata","IDS","TLS","SSL","protocol","parser","nom"]
+homepage = "https://github.com/rusticata/rusticata"
+repository = "https://github.com/rusticata/rusticata.git"
+authors = ["Pierre Chifflier <chifflier@wzdftpd.net>"]
+
+[lib]
+# crate-type = ["dylib"]
+crate-type = ["staticlib"]
+
+[dependencies]
+libc = "^0.2"
+log = "0.3.6"
+lazy_static = "0.1.*"
+nom = {version = "=3.*", features=["verbose-errors"] }
+enum_primitive = "0.1.0"
+num-traits = "0.1.36"
+tls-parser = "=0.5.0"
+ntp-parser = "=0.1.5"
+
+[dependencies.suricata-interface]
+path = "./interface"
+
+# [dependencies.suricata-quic]
+# path = "./parsers/quic"

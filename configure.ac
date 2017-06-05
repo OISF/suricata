@@ -1930,6 +1930,26 @@
         fi
     fi
 
+    AC_ARG_ENABLE(rust,
+                AS_HELP_STRING([--enable-rust],[Enable Rust parsers]),
+                [ enable_rust="yes"],
+                [ enable_rust="no"])
+    AM_CONDITIONAL([BUILD_RUST], [test "x$enable_rust" = "xyes"])
+    if test "$enable_rust" = "yes"; then
+        AC_CHECK_PROG(CARGO, [cargo], [yes], [no])
+        AS_IF(test x$CARGO = xno,
+              AC_MSG_ERROR([cargo is required])
+              )
+        AC_CHECK_PROG(RUSTC, [rustc], [yes], [no])
+        AS_IF(test x$RUSTC = xno,
+              AC_MSG_ERROR([rustc is required])
+              )
+        AC_DEFINE([HAVE_RUST],[1],[librust available])
+        RUST_LDADD="../rust/target/release/librusticata.a"
+        AC_SUBST(RUST_LDADD)
+        LIBS="${LIBS} -ldl"
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -2039,7 +2059,7 @@ AC_SUBST(CONFIGURE_PREFIX)
 AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile rust/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
@@ -2070,6 +2090,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+  Rust support:                            ${enable_rust}
 
   Suricatasc install:                      ${enable_python}
 

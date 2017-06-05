@@ -172,6 +172,7 @@
 #include "host-storage.h"
 
 #include "util-lua.h"
+#include "util-rust.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -2825,6 +2826,8 @@ int main(int argc, char **argv)
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig(suri.daemon, suri.verbose);
+
+    RustInit();
 
     LogVersion();
     UtilCpuPrintSummary();
