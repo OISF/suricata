@@ -235,6 +235,8 @@ outputs:
             # to yes
             #md5: [body, subject]
 
+        #- dnp3
+        #- nfs3
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -244,7 +246,6 @@ outputs:
         - flow
         # uni-directional flows
         #- netflow
-        #- dnp3
         # Vars log flowbits and other packet and flow vars
         #- vars
 
@@ -675,6 +676,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    nfs3:
+      enabled: yes
     tls:
       enabled: yes
       detection-ports:

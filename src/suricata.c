@@ -173,6 +173,11 @@
 
 #include "util-lua.h"
 
+#ifdef HAVE_RUST
+#include "rust.h"
+#include "rust-core-gen.h"
+#endif
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -2773,6 +2778,24 @@ int main(int argc, char **argv)
 {
     SCInstance suri;
     SCInstanceInit(&suri, argv[0]);
+
+#ifdef HAVE_RUST
+    SuricataContext context;
+    context.SCLogMessage = SCLogMessage;
+    context.DetectEngineStateFree = DetectEngineStateFree;
+    context.AppLayerDecoderEventsSetEventRaw =
+        AppLayerDecoderEventsSetEventRaw;
+    context.AppLayerDecoderEventsFreeEvents = AppLayerDecoderEventsFreeEvents;
+
+    context.FileOpenFileWithId = FileOpenFileWithId;
+    context.FileCloseFileById = FileCloseFileById;
+    context.FileAppendDataById = FileAppendDataById;
+    context.FileContainerRecycle = FileContainerRecycle;
+    context.FilePrune = FilePrune;
+    context.FileSetTx = FileContainerSetTx;
+
+    rs_init(&context);
+#endif
 
     SC_ATOMIC_INIT(engine_stage);
 

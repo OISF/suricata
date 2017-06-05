@@ -64,6 +64,8 @@ typedef struct AlertJsonThread_ {
     LogFileCtx *file_ctx;
 } AlertJsonThread;
 
+json_t *SCJsonBool(int val);
+
 #endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_H__ */

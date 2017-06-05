@@ -50,6 +50,10 @@
 
 #include "app-layer-dns-udp.h"
 
+#ifdef HAVE_RUST
+#include "app-layer-dns-udp-rust.h"
+#endif
+
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -384,6 +388,10 @@ static void DNSUDPConfigure(void)
 void RegisterDNSUDPParsers(void)
 {
     const char *proto_name = "dns";
+
+#ifdef HAVE_RUST
+    return RegisterRustDNSUDPParsers();
+#endif
 
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {

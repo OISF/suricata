@@ -164,6 +164,10 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
 static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p,
     Flow *f, void *state, void *tx, uint64_t tx_id, uint8_t direction)
 {
+#ifdef HAVE_RUST
+    SCLogNotice("LogDnsLogger not implemented for Rust DNS.");
+    return 0;
+#endif
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);

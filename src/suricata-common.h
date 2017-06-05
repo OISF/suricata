@@ -229,7 +229,8 @@
 #endif
 /* Appears not all current distros have jansson that defines this. */
 #ifndef json_boolean
-#define json_boolean(val)      ((val) ? json_true() : json_false())
+#define json_boolean(val)      SCJsonBool((val))
+//#define json_boolean(val)      ((val) ? json_true() : json_false())
 #endif
 #endif
 
@@ -395,6 +396,7 @@ typedef enum {
     LOGGER_JSON_HTTP,
     LOGGER_JSON_SMTP,
     LOGGER_JSON_TLS,
+    LOGGER_JSON_NFS3,
     LOGGER_JSON_TEMPLATE,
     LOGGER_TLS_STORE,
     LOGGER_TLS,
