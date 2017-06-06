@@ -98,7 +98,7 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
 SC_ATOMIC_DECLARE(unsigned int, g_file_store_id);
 
 static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
-        Packet *p, const File *ff,
+        Packet *p, File *ff,
         const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     OutputFiledataLogger *logger = list;

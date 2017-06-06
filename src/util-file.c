@@ -67,6 +67,10 @@ static int g_file_force_sha256 = 0;
  */
 static int g_file_force_tracking = 0;
 
+/** \brief switch to write meta file
+ */
+static int g_file_write_meta = 1;
+
 /** \brief switch to use g_file_store_reassembly_depth
  *         to reassembly files
  */
@@ -76,6 +80,8 @@ static int g_file_store_enable = 0;
  *         for files
  */
 static uint32_t g_file_store_reassembly_depth = 0;
+
+static int32_t g_file_store_max_open_files =  FILE_MAX_OPEN_FILES;
 
 /* prototypes */
 static void FileFree(File *);
@@ -149,6 +155,25 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
+void FileWriteMetaDisable(void)
+{
+    g_file_write_meta = 0;
+}
+
+int FileWriteMeta(void)
+{
+    return g_file_write_meta;
+}
+
+void FileSetMaxOpenFiles(uint32_t count)
+{
+    g_file_store_max_open_files = count;
+}
+
+int32_t FileGetMaxOpenFiles(void)
+{
+    return g_file_store_max_open_files;
+}
 
 /**
  * \brief Function to parse forced file hashing configuration.
@@ -776,6 +801,8 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     ff->state = FILE_STATE_OPENED;
     SCLogDebug("flowfile state transitioned to FILE_STATE_OPENED");
+
+    ff->fd = -1;
 
     FileContainerAdd(ffc, ff);
 
