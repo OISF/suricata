@@ -778,6 +778,9 @@ static void PrintBuildInfo(void)
 #ifdef HAVE_MAGIC
     strlcat(features, "MAGIC ", sizeof(features));
 #endif
+#if defined(HAVE_RUST)
+    strlcat(features, "RUST ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
