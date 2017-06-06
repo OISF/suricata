@@ -199,7 +199,7 @@ pub fn dns_parse_rdata<'a>(data: &'a [u8], message: &'a [u8], rrtype: u16)
         DNS_RTYPE_MX => {
             // For MX we we skip over the preference field before
             // parsing out the name.
-            closure!(do_parse!(
+            closure!(&'a [u8], do_parse!(
                 be_u16 >>
                 name: apply!(dns_parse_name, message) >>
                     (name)
