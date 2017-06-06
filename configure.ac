@@ -1968,7 +1968,7 @@
     dnl enable_rust="no"
     dnl AC_ARG_ENABLE(rust, AS_HELP_STRING([--enable-rust], [Enable Rust]),
     dnl     [enable_rust="$enableval"], [enable_rust=no])
-    AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Rust]))
+    AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Experimental Rust support]))
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
@@ -2009,7 +2009,7 @@
           AC_SUBST(RUST_LDADD)
           AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
           if test "x$have_rust_vendor" = "xyes"; then
-	   rust_vendor_comment=""
+	        rust_vendor_comment=""
           fi
         fi
       fi
@@ -2140,7 +2140,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
 
-  Rust support:                            ${enable_rust}
+  Rust support (experimental):             ${enable_rust}
 
   Suricatasc install:                      ${enable_python}
 
