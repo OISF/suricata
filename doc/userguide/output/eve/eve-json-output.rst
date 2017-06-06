@@ -66,6 +66,8 @@ The most common way to use this is through 'EVE', which is a firehose approach w
               # than one IP address is present, the last IP address will be the
               # one taken into consideration.
               header: X-Forwarded-For
+            # Log signature metadata in the alert event
+            metadata: yes
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log

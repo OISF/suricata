@@ -173,9 +173,12 @@ format of priority is:
 Metadata
 --------
 
-Suricata ignores the words behind meta data.  Suricata supports this
-keyword because it is part of the signature language.  The format is:
+Suricata partially ignores the words behind meta data.  Suricata uses it
+only as optional fields in alert.  The format is:
 
 ::
 
-  metadata:......;
+  metadata: key1 value1[, key2 value2]*;
+ 
+ Constraint on key is that it can't contain a space. Value can't contain
+ a comma.
