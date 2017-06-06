@@ -12,5 +12,5 @@ debug = true
 lua = []
 
 [dependencies]
-nom = "2.1.0"
-libc = "0.2.0"
+nom = "~3.0"
+libc = "~0.2.0"

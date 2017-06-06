@@ -1,6 +1,7 @@
 !Cargo.toml.in
 /.cargo/config
 /Cargo.toml
+/Cargo.lock
 /target
 /vendor
 /gen

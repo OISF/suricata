@@ -1,12 +1,12 @@
 EXTRA_DIST = 	Cargo.toml \
-		Cargo.lock \
 		src \
 		.cargo/config.in \
 		gen-c-headers.py \
 		gen/c-headers
 
 if HAVE_RUST
-EXTRA_DIST +=	vendor
+EXTRA_DIST +=	Cargo.lock \
+		vendor
 endif
 
 if HAVE_RUST_VENDOR
@@ -53,6 +53,9 @@ distclean-local:
 check:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		cargo test
+
+Cargo.lock: Cargo.toml
+	cargo update
 else
 all-local clean-local check:
 endif
