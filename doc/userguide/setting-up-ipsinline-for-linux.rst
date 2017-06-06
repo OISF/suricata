@@ -117,7 +117,7 @@ The options -i (input) -o (output) can be combined with all previous mentioned o
 
 If you would stop Suricata and use internet, the traffic will not come through. To make internet work correctly, you have to erase all iptable rules.
 
-To simply inspect all traffic on the host, before routing desicion and input/output separation, you can use mangle PREROUTING table:
+To simply inspect all incoming traffic on the host, before routing decision that separates `INPUT` and `FORWARD`, you can use `PREROUTING` chain from `mangle` table:
 
 ::
 
