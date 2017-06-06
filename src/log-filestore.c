@@ -64,11 +64,20 @@
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
+SC_ATOMIC_DECLARE(uint32_t, filestore_open_file_cnt);  /**< Atomic counter of simultaneously open files */
+
 typedef struct LogFilestoreLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    uint16_t counter_max_hits;
 } LogFilestoreLogThread;
+
+static uint64_t LogFilestoreOpenFilesCounter(void)
+{
+    uint64_t fcopy = SC_ATOMIC_GET(filestore_open_file_cnt);
+    return fcopy;
+}
 
 static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
 {
@@ -168,7 +177,36 @@ static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
     }
 }
 
+/** \brief switch to write meta file
+ */
+static int g_file_write_meta = 1;
+
+static void FileWriteMetaDisable(void)
+{
+    g_file_write_meta = 0;
+}
+
+static int FileWriteMeta(void)
+{
+    return g_file_write_meta;
+}
+
+static uint32_t g_file_store_max_open_files = 0;
+
+static void FileSetMaxOpenFiles(uint32_t count)
+{
+    g_file_store_max_open_files = count;
+}
+
+static uint32_t FileGetMaxOpenFiles(void)
+{
+    return g_file_store_max_open_files;
+}
+
 static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *filename, int ipver) {
+    if (!FileWriteMeta())
+        return;
+
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -241,6 +279,9 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
 
 static void LogFilestoreLogCloseMetaFile(const File *ff)
 {
+    if (!FileWriteMeta())
+        return;
+
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_store_id);
@@ -301,7 +342,7 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
 }
 
 static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-        const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
+        File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
@@ -333,17 +374,34 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         /* create a .meta file that contains time, src/dst/sp/dp/proto */
         LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
 
-        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-        if (file_fd == -1) {
-            SCLogDebug("failed to create file");
-            return -1;
+        if (SC_ATOMIC_GET(filestore_open_file_cnt) < FileGetMaxOpenFiles()) {
+            SC_ATOMIC_ADD(filestore_open_file_cnt, 1);
+            ff->fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+            if (ff->fd == -1) {
+                SCLogDebug("failed to create file");
+                return -1;
+            }
+            file_fd = ff->fd;
+        } else {
+            file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+            if (file_fd == -1) {
+                SCLogDebug("failed to create file");
+                return -1;
+            }
+            if (FileGetMaxOpenFiles() > 0) {
+                StatsIncr(tv, aft->counter_max_hits);
+            }
         }
     /* we can get called with a NULL ffd when we need to close */
     } else if (data != NULL) {
-        file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
-        if (file_fd == -1) {
-            SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
-            return -1;
+        if (ff->fd == -1) {
+            file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
+            if (file_fd == -1) {
+                SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
+                return -1;
+            }
+        } else {
+            file_fd = ff->fd;
         }
     }
 
@@ -351,11 +409,22 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
             SCLogDebug("write failed: %s", strerror(errno));
+            if (ff->fd != -1) {
+                SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
+            }
+            ff->fd = -1;
         }
-        close(file_fd);
+        if (ff->fd == -1) {
+            close(file_fd);
+        }
     }
 
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        if (ff->fd != -1) {
+            close(ff->fd);
+            ff->fd = -1;
+            SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
+        }
         LogFilestoreLogCloseMetaFile(ff);
     }
 
@@ -397,6 +466,8 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, vo
         }
 
     }
+
+    aft->counter_max_hits = StatsRegisterCounter("file_store.open_files_max_hit", t);
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -484,6 +555,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("forcing magic lookup for stored files");
     }
 
+    const char *write_meta = ConfNodeLookupChildValue(conf, "write-meta");
+    if (write_meta != NULL && !ConfValIsTrue(write_meta)) {
+        FileWriteMetaDisable();
+        SCLogInfo("File-store output will not write meta files");
+    }
+
     FileForceHashParseCfg(conf);
     SCLogInfo("storing files in %s", g_logfile_base_dir);
 
@@ -502,8 +579,34 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
+    const char *file_count_str = ConfNodeLookupChildValue(conf, "max-open-files");
+    if (file_count_str != NULL) {
+        uint32_t file_count = 0;
+        if (ParseSizeStringU32(file_count_str,
+                               &file_count) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                       "file-store.max-open-files "
+                       "from conf file - %s.  Killing engine",
+                       stream_depth_str);
+            exit(EXIT_FAILURE);
+        } else {
+            if (file_count != 0) {
+                FileSetMaxOpenFiles(file_count);
+                SCLogInfo("file-store will keep a max of %d simultaneously"
+                          " open files", file_count);
+            }
+        }
+    }
+
     SCReturnPtr(output_ctx, "OutputCtx");
 }
+
+
+void LogFilestoreInitConfig(void)
+{
+    StatsRegisterGlobalCounter("file_store.open_files", LogFilestoreOpenFilesCounter);
+}
+
 
 void LogFilestoreRegister (void)
 {
@@ -514,5 +617,7 @@ void LogFilestoreRegister (void)
         LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
         LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
 
+    SC_ATOMIC_INIT(filestore_open_file_cnt);
+    SC_ATOMIC_SET(filestore_open_file_cnt, 0);
     SCLogDebug("registered");
 }
