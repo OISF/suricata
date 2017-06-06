@@ -26,7 +26,6 @@
 
 #include "stream-tcp-private.h"
 
-int StreamTcpInlineMode(void);
 int StreamTcpInlineSegmentCompare(TcpStream *, Packet *, TcpSegment *);
 void StreamTcpInlineSegmentReplacePacket(TcpStream *, Packet *, TcpSegment *);
 

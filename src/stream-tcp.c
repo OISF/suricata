@@ -115,9 +115,6 @@ static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex *
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
-/* stream engine running in "inline" mode. */
-int stream_inline = 0;
-
 void StreamTcpInitMemuse(void)
 {
     SC_ATOMIC_INIT(st_memuse);
@@ -301,6 +298,18 @@ static void StreamTcpSessionPoolCleanup(void *s)
     }
 }
 
+/**
+ *  \brief See if stream engine is dropping invalid packet in inline mode
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int StreamTcpInlineDropInvalid(void)
+{
+    return ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
+            && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
+}
+
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
@@ -394,39 +403,46 @@ void StreamTcpInitConfig(char quiet)
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
             if (EngineModeIsIPS()) {
-                stream_inline = 1;
-            } else {
-                stream_inline = 0;
+                stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
             }
         } else if (ConfGetBool("stream.inline", &inl) == 1) {
-            stream_inline = inl;
+            if (inl) {
+                stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
+            }
         }
     } else {
         /* default to 'auto' */
         if (EngineModeIsIPS()) {
-            stream_inline = 1;
-        } else {
-            stream_inline = 0;
+            stream_config.flags |= STREAMTCP_INIT_FLAG_INLINE;
         }
     }
 
     if (!quiet) {
-        SCLogConfig("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
+        SCLogConfig("stream.\"inline\": %s",
+                    stream_config.flags & STREAMTCP_INIT_FLAG_INLINE
+                    ? "enabled" : "disabled");
     }
 
     int bypass = 0;
     if ((ConfGetBool("stream.bypass", &bypass)) == 1) {
         if (bypass == 1) {
-            stream_config.bypass = 1;
-        } else {
-            stream_config.bypass = 0;
+            stream_config.flags |= STREAMTCP_INIT_FLAG_BYPASS;
         }
-    } else {
-        stream_config.bypass = 0;
     }
 
     if (!quiet) {
-        SCLogConfig("stream \"bypass\": %s", bypass ? "enabled" : "disabled");
+        SCLogConfig("stream \"bypass\": %s",
+                    (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS)
+                    ? "enabled" : "disabled");
+    }
+
+    int drop_invalid = 0;
+    if ((ConfGetBool("stream.drop-invalid", &drop_invalid)) == 1) {
+        if (drop_invalid == 1) {
+            stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
+        }
+    } else {
+        stream_config.flags |= STREAMTCP_INIT_FLAG_DROP_INVALID;
     }
 
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
@@ -4663,7 +4679,7 @@ error:
         ReCalculateChecksum(p);
     }
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineDropInvalid()) {
         PACKET_DROP(p);
     }
     SCReturnInt(-1);
@@ -5880,7 +5896,8 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg = stream->seg_list;
     for (; seg != NULL &&
-            (stream_inline || SEQ_LT(seg->seq, stream->last_ack));)
+            ((stream_config.flags & STREAMTCP_INIT_FLAG_INLINE)
+             || SEQ_LT(seg->seq, stream->last_ack));)
     {
         const uint8_t *seg_data;
         uint32_t seg_datalen;
@@ -5899,8 +5916,20 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
 
 int StreamTcpBypassEnabled(void)
 {
-    return stream_config.bypass;
+    return (stream_config.flags & STREAMTCP_INIT_FLAG_BYPASS);
 }
+
+/**
+ *  \brief See if stream engine is operating in inline mode
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int StreamTcpInlineMode(void)
+{
+    return (stream_config.flags & STREAMTCP_INIT_FLAG_INLINE) ? 1 : 0;
+}
+
 
 void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
 {

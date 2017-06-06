@@ -1,29 +1,29 @@
 @flags@
-SignatureHeader *struct0;
-identifier struct_flags0 =~ "^(?!SIG_FLAG).+";
+SignatureInitData *struct0;
+identifier struct_flags0 =~ "^(?!SIG_FLAG_INIT_).+";
 Signature *struct1;
 identifier struct_flags1 =~ "^(?!SIG_FLAG).+";
-Signature *struct2;
-identifier struct_flags2 =~ "^(?!SIG_FLAG_INIT_).+";
+Flow *struct2;
+identifier struct_flags2 =~ "^(?!FLOWFILE_).+";
 Flow *struct3;
-identifier struct_flags3 =~ "^(?!FLOW_).+";
-TcpSegment *struct4;
-identifier struct_flags4 =~ "^(?!SEGMENTTCP_FLAG).+";
-TcpStream *struct5;
-identifier struct_flags5 =~ "^(?!STREAMTCP_STREAM_FLAG_).+";
-TcpSession *struct6;
-identifier struct_flags6 =~ "^(?!STREAMTCP_FLAG).+";
+identifier struct_flags3 =~ "^(?!FLOW_END_FLAG_).+";
+TcpStream *struct4;
+identifier struct_flags4 =~ "^(?!STREAMTCP_STREAM_FLAG_).+";
+TcpSession *struct5;
+identifier struct_flags5 =~ "^(?!STREAMTCP_FLAG).+";
+TcpStreamCnf *struct6;
+identifier struct_flags6 =~ "^(?!STREAMTCP_INIT_).+";
 Packet *struct7;
 identifier struct_flags7 =~ "^(?!FLOW_PKT_).+";
 position p1;
 @@
 
 (
-struct0->flags@p1 |= struct_flags0
+struct0->init_flags@p1 |= struct_flags0
 |
-struct0->flags@p1 & struct_flags0
+struct0->init_flags@p1 & struct_flags0
 |
-struct0->flags@p1 &= ~struct_flags0
+struct0->init_flags@p1 &= ~struct_flags0
 |
 struct1->flags@p1 |= struct_flags1
 |
@@ -31,17 +31,17 @@ struct1->flags@p1 & struct_flags1
 |
 struct1->flags@p1 &= ~struct_flags1
 |
-struct2->init_flags@p1 |= struct_flags2
+struct2->file_flags@p1 |= struct_flags2
 |
-struct2->init_flags@p1 & struct_flags2
+struct2->file_flags@p1 & struct_flags2
 |
-struct2->init_flags@p1 &= ~struct_flags2
+struct2->file_flags@p1 &= ~struct_flags2
 |
-struct3->flags@p1 |= struct_flags3
+struct3->flow_end_flags@p1 |= struct_flags3
 |
-struct3->flags@p1 & struct_flags3
+struct3->flow_end_flags@p1 & struct_flags3
 |
-struct3->flags@p1 &= ~struct_flags3
+struct3->flow_end_flags@p1 &= ~struct_flags3
 |
 struct4->flags@p1 |= struct_flags4
 |
