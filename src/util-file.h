@@ -33,6 +33,8 @@
 
 #include "util-streaming-buffer.h"
 
+#define FILE_MAX_OPEN_FILES 0
+
 #define FILE_TRUNCATED  BIT_U16(0)
 #define FILE_NOMAGIC    BIT_U16(1)
 #define FILE_NOMD5      BIT_U16(2)
@@ -69,6 +71,8 @@ typedef struct File_ {
     uint32_t file_track_id;         /**< id used by protocol parser. Optional
                                      *   only used if FILE_USE_TRACKID flag set */
     uint32_t file_store_id;         /**< id used in store file name file.<id> */
+    int fd;                         /**< file descriptor for filestore, not
+                                        open if equal to -1 */
     uint8_t *name;
 #ifdef HAVE_MAGIC
     char *magic;
@@ -218,6 +222,12 @@ int FileForceSha256(void);
 void FileForceHashParseCfg(ConfNode *);
 
 void FileForceTrackingEnable(void);
+
+void FileWriteMetaDisable(void);
+int FileWriteMeta(void);
+
+void FileSetMaxOpenFiles(uint32_t count);
+uint32_t FileGetMaxOpenFiles(void);
 
 void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint64_t);
