@@ -149,7 +149,6 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
-
 /**
  * \brief Function to parse forced file hashing configuration.
  */
@@ -776,6 +775,8 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     ff->state = FILE_STATE_OPENED;
     SCLogDebug("flowfile state transitioned to FILE_STATE_OPENED");
+
+    ff->fd = -1;
 
     FileContainerAdd(ffc, ff);
 

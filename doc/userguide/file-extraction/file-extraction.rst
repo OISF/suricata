@@ -42,8 +42,10 @@ drop dir must be configured.
       force-md5: no     # force logging of md5 checksums
       stream-depth: 1mb # reassemble 1mb into a stream, set to no to disable
       waldo: file.waldo # waldo file to store the file_id across runs
+      max-open-files: 0 # how many files to keep open (O means none)
+      write-meta: yes   # write a .meta file if set to yes
 
-Each file that is stored with have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used.
+Each file that is stored with have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used. A "file.<id>.meta" file is generated containing file metadata if write-meta is set to yes (default).
 
 
 ::
