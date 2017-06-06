@@ -227,6 +227,7 @@ static char *SCLogFilenameFromPattern(const char *pattern)
 
     int rc = SCTimeToStringPattern(time(NULL), pattern, filename, PATH_MAX);
     if (rc != 0) {
+        SCFree(filename);
         return NULL;
     }
 
