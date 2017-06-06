@@ -107,7 +107,7 @@ To use it::
 
     sudo add-apt-repository ppa:oisf/suricata-stable
     sudo apt-get update
-    sudo sudo apt-get install suricata
+    sudo apt-get install suricata
 
 Debian
 ^^^^^^
