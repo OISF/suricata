@@ -281,6 +281,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 
     int state = SC_ATOMIC_GET(f->flow_state);
 
+    if (f->lastts.tv_sec > 0) {
+        f->lastts_gap = MAX((p->ts.tv_sec - f->lastts.tv_sec), f->lastts_gap);
+    }
     if (state != FLOW_STATE_CAPTURE_BYPASSED) {
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts, &f->lastts);

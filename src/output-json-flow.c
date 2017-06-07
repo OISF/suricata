@@ -223,6 +223,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
     json_object_set_new(hjs, "start", json_string(timebuf1));
     json_object_set_new(hjs, "end", json_string(timebuf2));
+    if (f->lastts_gap > 0)
+        json_object_set_new(hjs, "max_pause", json_integer(f->lastts_gap));
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
     json_object_set_new(hjs, "age",

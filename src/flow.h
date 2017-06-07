@@ -405,6 +405,9 @@ typedef struct Flow_
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;
 
+    /** Max time in seconds between 2 flow updates */
+    uint32_t lastts_gap;
+
     /** application level storage ptrs.
      *
      */
