@@ -707,6 +707,21 @@
         exit 1
     fi
 
+    # hpfeeds
+
+    AC_CHECK_LIB(hpfeeds, hpf_msg_publish, LHPFEEDS="yes", LHPFEEDS="no")
+
+    if test "$LHPFEEDS" != "no"; then
+        LIBS="${LIBS} -lhpfeeds"
+    else
+        echo
+        echo "   ERROR! hpfeeds not found"
+        echo "   Get it https://github.com/threatstream/hpfeeds"
+        echo
+        exit 1
+    fi
+
+
   # libjansson
     enable_jansson="no"
     AC_ARG_WITH(libjansson_includes,

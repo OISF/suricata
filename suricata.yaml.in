@@ -134,6 +134,17 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+
+
+  # hpfeeds output
+  - alert-hpfeeds:
+      enabled: yes
+      host: 104.131.177.234 
+      ident: suricata
+      secret: s3cr3t
+      channel: suricata.events
+      reconnect: yes # do we reconnect if publish fails ?!
+
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: @e_enable_evelog@
@@ -995,6 +1006,7 @@ unix-command:
 legacy:
   uricontent: enabled
 
+
 ##
 ## Detection settings
 ##
@@ -1546,7 +1558,7 @@ capture:
 #
 netmap:
    # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
- - interface: eth2
+ - interface: eth0
    # Number of receive threads. "auto" uses number of RSS queues on interface.
    #threads: auto
    # You can use the following variables to activate netmap tap or IPS mode.
