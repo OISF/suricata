@@ -28,6 +28,7 @@
 #include "runmodes.h"
 #include "util-daemon.h"
 #include "util-debug.h"
+#include "util-byte.h"
 #include "conf.h"
 
 #ifndef OS_WIN32
@@ -121,7 +122,14 @@ void Daemonize (void)
         /* Child continues here */
         const char *daemondir;
 
-        umask(027);
+        char *daemon_umask;
+        if (ConfGet("daemon-umask", &daemon_umask) == 1) {
+            mode_t mask;
+            if (ByteExtractStringUint32(&mask, 8, strlen(daemon_umask),
+                                        daemon_umask) > 0) {
+                umask(mask);
+            }
+        }
 
         sid = setsid();
         if (sid < 0) {
