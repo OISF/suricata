@@ -194,6 +194,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         return 0;
 
     SCLogDebug("sid %"PRIu32"", s->id);
+    SCLogDebug("alert flags: %d", det_ctx->alert_flags);
 
     /* It should be usually the last, so check it before iterating */
     if (p->alerts.cnt == 0 || (p->alerts.cnt > 0 &&
@@ -201,7 +202,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
         /* We just add it */
         p->alerts.alerts[p->alerts.cnt].num = s->num;
         p->alerts.alerts[p->alerts.cnt].action = s->action;
-        p->alerts.alerts[p->alerts.cnt].flags = flags;
+        p->alerts.alerts[p->alerts.cnt].flags = det_ctx->alert_flags | flags;
         p->alerts.alerts[p->alerts.cnt].s = s;
         p->alerts.alerts[p->alerts.cnt].tx_id = tx_id;
     } else {
@@ -215,7 +216,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, const Signature *s,
 
         p->alerts.alerts[i].num = s->num;
         p->alerts.alerts[i].action = s->action;
-        p->alerts.alerts[i].flags = flags;
+        p->alerts.alerts[i].flags = det_ctx->alert_flags | flags;
         p->alerts.alerts[i].s = s;
         p->alerts.alerts[i].tx_id = tx_id;
     }

@@ -170,6 +170,7 @@ outputs:
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of DNP3 fields
             vars: yes                # enable dumping of flowbits and other vars
+            #metadata: yes            # enable dumping of key/value pairs defined by metadata keyword of signature
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.

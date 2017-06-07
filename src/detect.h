@@ -30,6 +30,7 @@
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -459,6 +460,8 @@ typedef struct Signature_ {
     char *class_msg;
     /** Reference */
     DetectReference *references;
+    /** Metadata */
+    DetectMetadata *metadata;
 
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
@@ -909,6 +912,8 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *base64_decoded;
     int base64_decoded_len;
     int base64_decoded_len_max;
+    uint8_t alert_flags;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
@@ -1342,6 +1347,7 @@ enum {
     DETECT_BASE64_DATA,
 
     DETECT_TEMPLATE,
+    DETECT_TARGET,
     DETECT_AL_TEMPLATE_BUFFER,
 
     DETECT_BYPASS,

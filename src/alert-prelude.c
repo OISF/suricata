@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -255,7 +255,8 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
  *
  * \return 0 if ok
  */
-static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
+static int EventToSourceTarget(const PacketAlert *pa, const Packet *p,
+                               idmef_alert_t *alert)
 {
     int ret;
     idmef_node_t *node;
@@ -267,6 +268,8 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
     static char saddr[128], daddr[128];
     uint8_t ip_vers;
     uint8_t ip_proto;
+    uint16_t sp, dp;
+    uint8_t invert = 0;
 
     SCEnter();
 
@@ -276,16 +279,77 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
     if ( ! IPH_IS_VALID(p) )
         SCReturnInt(0);
 
+
+    if (pa->flags & PACKET_ALERT_HAS_IDMEF) {
+        if (pa->flags & PACKET_ALERT_SRC_IS_TARGET) {
+            invert = 1;
+        } else {
+            invert = 0;
+        }
+    } else {
+        invert = 0;
+    }
+
     if (PKT_IS_IPV4(p)) {
         ip_vers = 4;
         ip_proto = IPV4_GET_RAW_IPPROTO(p->ip4h);
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), saddr, sizeof(saddr));
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), daddr, sizeof(daddr));
+        if (p->flow) {
+            Flow *f = p->flow;
+            if (invert) {
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), saddr, sizeof(saddr));
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), daddr, sizeof(daddr));
+                sp = f->dp;
+                dp = f->sp;
+            } else {
+                PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), saddr, sizeof(saddr));
+                PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), daddr, sizeof(daddr));
+                sp = f->sp;
+                dp = f->dp;
+            }
+        } else  {
+            if (invert) {
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), saddr, sizeof(saddr));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), daddr, sizeof(daddr));
+                sp = p->dp;
+                dp = p->sp;
+            } else {
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), saddr, sizeof(saddr));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), daddr, sizeof(daddr));
+                sp = p->sp;
+                dp = p->dp;
+
+            }
+        }
     } else if (PKT_IS_IPV6(p)) {
         ip_vers = 6;
         ip_proto = IPV6_GET_L4PROTO(p);
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), saddr, sizeof(saddr));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), daddr, sizeof(daddr));
+        if (p->flow) {
+            Flow *f = p->flow;
+            if (invert) {
+                PrintInet(AF_INET6, (const void *)&(f->src.address), saddr, sizeof(saddr));
+                PrintInet(AF_INET6, (const void *)&(f->dst.address), daddr, sizeof(daddr));
+                sp = f->sp;
+                dp = f->dp;
+            } else {
+                PrintInet(AF_INET6, (const void *)&(f->dst.address), saddr, sizeof(saddr));
+                PrintInet(AF_INET6, (const void *)&(f->src.address), daddr, sizeof(daddr));
+                sp = f->dp;
+                dp = f->sp;
+
+            }
+        } else {
+            if (invert) {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), saddr, sizeof(saddr));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), daddr, sizeof(daddr));
+                sp = p->dp;
+                dp = p->sp;
+            } else {
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), saddr, sizeof(saddr));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), daddr, sizeof(daddr));
+                sp = p->sp;
+                dp = p->dp;
+            }
+        }
     } else
         SCReturnInt(0);
 
@@ -298,7 +362,7 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
-        idmef_service_set_port(service, p->sp);
+        idmef_service_set_port(service, sp);
 
     idmef_service_set_ip_version(service, ip_vers);
     idmef_service_set_iana_protocol_number(service, ip_proto);
@@ -326,7 +390,7 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
-        idmef_service_set_port(service, p->dp);
+        idmef_service_set_port(service, dp);
 
     idmef_service_set_ip_version(service, ip_vers);
     idmef_service_set_iana_protocol_number(service, ip_proto);
@@ -645,7 +709,7 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     SCReturnInt(0);
 }
 
-static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
 {
     int ret;
 
@@ -910,7 +974,7 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (unlikely(ret < 0))
         goto err;
 
-    ret = EventToSourceTarget(p, alert);
+    ret = EventToSourceTarget(pa, p, alert);
     if (unlikely(ret < 0))
         goto err;
 

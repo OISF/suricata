@@ -173,9 +173,29 @@ format of priority is:
 Metadata
 --------
 
-Suricata ignores the words behind meta data.  Suricata supports this
-keyword because it is part of the signature language.  The format is:
+Suricata partially ignores the words behind meta data.  Suricata uses it
+only as optional fields in alert.  The format is:
 
 ::
 
-  metadata:......;
+  metadata: key1 value1[, key2 value2]*;
+ 
+ Constraint on key is that it can't contain a space. Value can't contain
+ a comma.
+
+Target
+------
+
+The target keyword allows the rules writer to specify which side of the
+alert is the target of the attack. If specified, the alert event is enhanced
+to contain information about source and target.
+
+The format is:
+
+::
+
+ target: [src_ip|dest_ip]
+
+If the value is src_ip then the source IP in the generated event (src_ip
+field in JSON) is the target of the attack. If target is set to dest_ip
+then the tarfet is the destination IP in the generated event.

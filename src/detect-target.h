@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2015-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,28 +18,16 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __DETECT_METADATA_H__
-#define __DETECT_METADATA_H__
+#ifndef __DETECT_TARGET_H__
+#define __DETECT_TARGET_H__
 
-/**
- * \brief Signature metadata list.
- */
-typedef struct DetectMetadata_ {
-    /* pointer to key */
-    char *key;
-    /* value data */
-    char *value;
-    /* next reference in the signature */
-    struct DetectMetadata_ *next;
-} DetectMetadata;
+typedef struct DetectTargetData_ {
+    uint8_t flags;
+} DetectTargetData;
 
-/* prototypes */
-void DetectMetadataRegister (void);
+void DetectTargetRegister(void);
 
-void DetectMetadataFree(DetectMetadata *mdata);
-
-#endif /* __DETECT_METADATA_H__ */
-
+#endif /* __DETECT_TARGET_H__ */
