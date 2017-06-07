@@ -1,3 +1,17 @@
+3.2.2 -- 2017-06-07
+
+Feature #1675: Support additional runmodes for unix-socket
+Bug #2043: 3.2.x backport: make install-full can have race conditions on OSX.
+Bug #2047: af-packet: faulty VLAN handling in tpacket-v3 mode (3.2.x)
+Bug #2048: bad checksum 0xffff (3.2.x)
+Bug #2052: ippair: xbit unset memory leak (3.2.x)
+Bug #2071: file store: file log / file store mismatch with multiple files (3.2.x)
+Bug #2073: app-layer: fix memleak on bad traffic (3.2.x)
+Bug #2079: http body handling: failed assertion (3.2.x)
+Bug #2085: ippair: pair is direction sensitive (3.2.x)
+Bug #2119: 3.2.x - defrag - overlap issue in linux policy
+Bug #2122: unix socket: race condition on start up (3.2.x)
+
 3.2.1 -- 2017-02-15
 
 Feature #1951: Allow building without libmagic/file
