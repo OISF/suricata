@@ -197,8 +197,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                 TLSCertificateErrCodeToWarning(ssl_state, errcode);
             } else {
                 if (i == 0) {
-                    ssl_state->server_connp.cert0_not_before = not_before;
-                    ssl_state->server_connp.cert0_not_after = not_after;
+                    if (ssl_state->server_connp.cert0_not_before == 0)
+                        ssl_state->server_connp.cert0_not_before = not_before;
+                    if (ssl_state->server_connp.cert0_not_after == 0)
+                        ssl_state->server_connp.cert0_not_after = not_after;
                 }
             }
 
