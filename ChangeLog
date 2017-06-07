@@ -1,3 +1,49 @@
+4.0.0-beta1 -- 2017-06-07
+
+Feature #805: Add support for applayer change
+Feature #806: Implement STARTTLS support
+Feature #1636: Signal rotation of unified2 log file without restart
+Feature #1953: lua: expose flow_id
+Feature #1969: TLS transactions with session resumption are not logged
+Feature #1978: Using date in logs name
+Feature #1998: eve.tls: custom TLS logging
+Feature #2006: tls: decode certificate serial number
+Feature #2011: eve.alert: print outside IP addresses on alerts on traffic inside tunnels
+Feature #2046: Support custom file permissions per logger
+Feature #2061: lua: get timestamps from flow
+Feature #2077: Additional HTTP Header Contents and Negation
+Feature #2129: nfs: parser, logger and detection
+Feature #2130: dns: rust parser with stateless behaviour
+Feature #2132: eve: flowbit and other vars logging
+Feature #2132: eve: flowbit and other vars logging
+Feature #2133: unix socket: add/remove hostbits
+Bug #1335: suricata option --pidfile overwrites any file
+Bug #1470: make install-full can have race conditions on OSX.
+Bug #1759: CentOS5 EOL tasks
+Bug #2037: travis: move off legacy support
+Bug #2039: suricata stops processing when http-log output via unix_stream backs up
+Bug #2041: bad checksum 0xffff
+Bug #2044: af-packet: faulty VLAN handling in tpacket-v3 mode
+Bug #2045: geoip: compile warning on CentOS 7
+Bug #2049: Empty rule files cause failure exit code without corresponding message
+Bug #2051: ippair: xbit unset memory leak
+Bug #2053: ippair: pair is direction sensitive
+Bug #2070: file store: file log / file store mismatch with multiple files
+Bug #2072: app-layer: fix memleak on bad traffic
+Bug #2078: http body handling: failed assertion
+Bug #2088: modbus: clang-4.0 compiler warnings
+Bug #2093: Handle TCP stream gaps.
+Bug #2097: "Name of device should not be null" appears in suricata.log when using pfring with configuration from suricata.yaml
+Bug #2098: isdataat: fix parsing issue with leading spaces
+Bug #2108: pfring: errors when compiled with asan/debug
+Bug #2111: doc: links towards http_header_names
+Bug #2112: doc: links towards certain http_ keywords not working
+Bug #2113: Race condition starting Unix Server
+Bug #2118: defrag - overlap issue in linux policy
+Bug #2125: ASAN SEGV - Suricata version 4.0dev (rev 922a27e)
+Optimization #521: Introduce per stream thread segment pool
+Optimization #1873: Classtypes missing on decoder-events,files, and stream-events
+
 3.2.1 -- 2017-02-15
 
 Feature #1951: Allow building without libmagic/file
