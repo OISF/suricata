@@ -127,6 +127,8 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
  */
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
 {
+    SCMutexLock(&log_ctx->fp_mutex);
+
     /* Check for rotation. */
     if (log_ctx->rotation_flag) {
         log_ctx->rotation_flag = 0;
@@ -151,6 +153,8 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
             }
         }
     }
+
+    SCMutexUnlock(&log_ctx->fp_mutex);
 
     return ret;
 }
@@ -255,6 +259,35 @@ SCConfLogOpenGeneric(ConfNode *conf,
     const char *append = ConfNodeLookupChildValue(conf, "append");
     if (append == NULL)
         append = DEFAULT_LOG_MODE_APPEND;
+
+    /* JSON flags */
+#ifdef HAVE_LIBJANSSON
+    log_ctx->json_flags = JSON_PRESERVE_ORDER|JSON_COMPACT|
+                          JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH;
+
+    ConfNode *json_flags = ConfNodeLookupChild(conf, "json");
+
+    if (json_flags != 0) {
+        const char *preserve_order = ConfNodeLookupChildValue(json_flags,
+                                                              "preserve-order");
+        if (preserve_order != NULL && ConfValIsFalse(preserve_order))
+            log_ctx->json_flags &= ~(JSON_PRESERVE_ORDER);
+
+        const char *compact = ConfNodeLookupChildValue(json_flags, "compact");
+        if (compact != NULL && ConfValIsFalse(compact))
+            log_ctx->json_flags &= ~(JSON_COMPACT);
+
+        const char *ensure_ascii = ConfNodeLookupChildValue(json_flags,
+                                                            "ensure-ascii");
+        if (ensure_ascii != NULL && ConfValIsFalse(ensure_ascii))
+            log_ctx->json_flags &= ~(JSON_ENSURE_ASCII);
+
+        const char *escape_slash = ConfNodeLookupChildValue(json_flags,
+                                                            "escape-slash");
+        if (escape_slash != NULL && ConfValIsFalse(escape_slash))
+            log_ctx->json_flags &= ~(JSON_ESCAPE_SLASH);
+    }
+#endif /* HAVE_LIBJANSSON */
 
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
@@ -642,10 +675,8 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
     {
         /* append \n for files only */
         MemBufferWriteString(buffer, "\n");
-        SCMutexLock(&file_ctx->fp_mutex);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
                         MEMBUFFER_OFFSET(buffer), file_ctx);
-        SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {

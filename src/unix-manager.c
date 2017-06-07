@@ -610,8 +610,8 @@ void UnixKillUnixManagerThread(void)
     ThreadVars *tv = NULL;
     int cnt = 0;
 
+again:
     SCCtrlCondSignal(&unix_manager_ctrl_cond);
-
     SCMutexLock(&tv_root_lock);
 
     /* flow manager thread(s) is/are a part of mgmt threads */
@@ -623,8 +623,10 @@ void UnixKillUnixManagerThread(void)
             TmThreadsSetFlag(tv, THV_DEINIT);
 
             /* be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+            if(!(TmThreadsCheckFlag(tv, THV_CLOSED))) {
+                SCMutexUnlock(&tv_root_lock);
                 usleep(100);
+                goto again;
             }
             cnt++;
         }
@@ -923,6 +925,9 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("reload-tenant", UnixSocketReloadTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
 
     return 0;
 }
@@ -1040,6 +1045,7 @@ void UnixSocketKillSocketThread(void)
 {
     ThreadVars *tv = NULL;
 
+again:
     SCMutexLock(&tv_root_lock);
 
     /* unix manager thread(s) is/are a part of command threads */
@@ -1060,8 +1066,10 @@ void UnixSocketKillSocketThread(void)
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
             /* Be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+            if (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCMutexUnlock(&tv_root_lock);
                 usleep(100);
+                goto again;
             }
         }
         tv = tv->next;

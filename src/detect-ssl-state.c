@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,11 +59,20 @@ static pcre_extra *parse_regex1_study;
 static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
-int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                        uint8_t, void *, Signature *, SigMatch *);
-int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
-void DetectSslStateRegisterTests(void);
-void DetectSslStateFree(void *);
+static int DetectSslStateMatch(ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
+static int DetectSslStateSetup(DetectEngineCtx *, Signature *, char *);
+static void DetectSslStateRegisterTests(void);
+static void DetectSslStateFree(void *);
+
+static int InspectTlsGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id);
+
+static int g_tls_generic_list_id = 0;
 
 /**
  * \brief Registers the keyword handlers for the "ssl_state" keyword.
@@ -71,14 +80,35 @@ void DetectSslStateFree(void *);
 void DetectSslStateRegister(void)
 {
     sigmatch_table[DETECT_AL_SSL_STATE].name = "ssl_state";
-    sigmatch_table[DETECT_AL_SSL_STATE].Match = NULL;
-    sigmatch_table[DETECT_AL_SSL_STATE].AppLayerMatch = DetectSslStateMatch;
+    sigmatch_table[DETECT_AL_SSL_STATE].AppLayerTxMatch = DetectSslStateMatch;
     sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1, &parse_regex1_study);
     DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2, &parse_regex2_study);
+
+    g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
+
+    DetectBufferTypeSetDescriptionByName("tls_generic",
+            "generic ssl/tls inspection");
+
+    DetectAppLayerInspectEngineRegister("tls_generic",
+            ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            InspectTlsGeneric);
+    DetectAppLayerInspectEngineRegister("tls_generic",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
+            InspectTlsGeneric);
+}
+
+static int InspectTlsGeneric(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
+                                          f, flags, alstate, txv, tx_id);
 }
 
 /**
@@ -95,11 +125,11 @@ void DetectSslStateRegister(void)
  * \retval 1 Match.
  * \retval 0 No match.
  */
-int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Flow *f, uint8_t flags, void *alstate, Signature *s,
-                        SigMatch *m)
+static int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *alstate, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
-    DetectSslStateData *ssd = (DetectSslStateData *)m->ctx;
+    const DetectSslStateData *ssd = (const DetectSslStateData *)m;
     SSLState *ssl_state = (SSLState *)alstate;
     if (ssl_state == NULL) {
         SCLogDebug("no app state, no match");
@@ -124,7 +154,7 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssd  Pointer to DetectSslStateData on succese.
  * \retval NULL On failure.
  */
-DetectSslStateData *DetectSslStateParse(char *arg)
+static DetectSslStateData *DetectSslStateParse(char *arg)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -273,10 +303,13 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
+static int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     DetectSslStateData *ssd = NULL;
     SigMatch *sm = NULL;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
 
     ssd = DetectSslStateParse(arg);
     if (ssd == NULL)
@@ -289,16 +322,7 @@ int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     sm->type = DETECT_AL_SSL_STATE;
     sm->ctx = (SigMatchCtx*)ssd;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
-                   "Rule contains conflicting keywords.  Have non-tls alproto "
-                   "set for a rule containing \"ssl_state\" keyword");
-        goto error;
-    }
-    s->alproto = ALPROTO_TLS;
-
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
+    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
     return 0;
 
 error:
@@ -314,7 +338,7 @@ error:
  *
  * \param ptr pointer to the data to be freed.
  */
-void DetectSslStateFree(void *ptr)
+static void DetectSslStateFree(void *ptr)
 {
     if (ptr != NULL)
         SCFree(ptr);
@@ -326,7 +350,7 @@ void DetectSslStateFree(void *ptr)
 
 #ifdef UNITTESTS
 
-int DetectSslStateTest01(void)
+static int DetectSslStateTest01(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("client_hello");
     FAIL_IF_NULL(ssd);
@@ -335,7 +359,7 @@ int DetectSslStateTest01(void)
     PASS;
 }
 
-int DetectSslStateTest02(void)
+static int DetectSslStateTest02(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
     FAIL_IF_NULL(ssd);
@@ -345,7 +369,7 @@ int DetectSslStateTest02(void)
     PASS;
 }
 
-int DetectSslStateTest03(void)
+static int DetectSslStateTest03(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello");
@@ -357,7 +381,7 @@ int DetectSslStateTest03(void)
     PASS;
 }
 
-int DetectSslStateTest04(void)
+static int DetectSslStateTest04(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -372,7 +396,7 @@ int DetectSslStateTest04(void)
     PASS;
 }
 
-int DetectSslStateTest05(void)
+static int DetectSslStateTest05(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse(", server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -382,7 +406,7 @@ int DetectSslStateTest05(void)
     PASS;
 }
 
-int DetectSslStateTest06(void)
+static int DetectSslStateTest06(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
@@ -810,7 +834,7 @@ static int DetectSslStateTest07(void)
  * \brief Test that the "|" character still works as a separate for
  * compatibility with older Suricata rules.
  */
-int DetectSslStateTest08(void)
+static int DetectSslStateTest08(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello|client_hello");
     FAIL_IF_NULL(ssd);
@@ -823,7 +847,7 @@ int DetectSslStateTest08(void)
 /**
  * \test Test parsing of negated states.
  */
-int DetectSslStateTestParseNegate(void)
+static int DetectSslStateTestParseNegate(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("!client_hello");
     FAIL_IF_NULL(ssd);
@@ -842,7 +866,7 @@ int DetectSslStateTestParseNegate(void)
 
 #endif /* UNITTESTS */
 
-void DetectSslStateRegisterTests(void)
+static void DetectSslStateRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01);
@@ -856,6 +880,5 @@ void DetectSslStateRegisterTests(void)
     UtRegisterTest("DetectSslStateTestParseNegate",
         DetectSslStateTestParseNegate);
 #endif
-
     return;
 }

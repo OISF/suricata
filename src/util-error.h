@@ -325,6 +325,8 @@ typedef enum {
     SC_WARN_REMOVE_FILE,
     SC_ERR_NO_MAGIC_SUPPORT,
     SC_ERR_REDIS,
+    SC_ERR_VAR_LIMIT,
+    SC_WARN_DUPLICATE_OUTPUT,
 } SCError;
 
 const char *SCErrorToString(SCError);

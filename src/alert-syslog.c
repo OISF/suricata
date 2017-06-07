@@ -205,9 +205,8 @@ static TmEcode AlertSyslogIPv4(ThreadVars *tv, const Packet *p, void *data)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    /* Not sure if this mutex is needed around calls to syslog. */
     SCMutexLock(&ast->file_ctx->fp_mutex);
-
-    ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -264,8 +263,6 @@ static TmEcode AlertSyslogIPv6(ThreadVars *tv, const Packet *p, void *data)
         return TM_ECODE_OK;
 
     SCMutexLock(&ast->file_ctx->fp_mutex);
-
-    ast->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -328,7 +325,6 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
 
     SCMutexLock(&ast->file_ctx->fp_mutex);
 
-    ast->file_ctx->alerts += p->alerts.cnt;
     char temp_buf_hdr[512];
     char temp_buf_pkt[65] = "";
     char temp_buf_tail[32];
@@ -371,22 +367,6 @@ static TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, const Packet *p, void *da
     return TM_ECODE_OK;
 }
 
-/**
- * \brief   Function to print the total alert while closing the engine
- *
- * \param tv    Pointer to the output threadvars
- * \param data  Pointer to the AlertSyslogThread data
- */
-static void AlertSyslogExitPrintStats(ThreadVars *tv, void *data)
-{
-    AlertSyslogThread *ast = (AlertSyslogThread *)data;
-    if (ast == NULL) {
-        return;
-    }
-
-    SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
-}
-
 static int AlertSyslogCondition(ThreadVars *tv, const Packet *p)
 {
     return (p->alerts.cnt > 0 ? TRUE : FALSE);
@@ -413,7 +393,6 @@ void AlertSyslogRegister (void)
 #ifndef OS_WIN32
     OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
         AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
-        AlertSyslogThreadInit, AlertSyslogThreadDeinit,
-        AlertSyslogExitPrintStats);
+        AlertSyslogThreadInit, AlertSyslogThreadDeinit, NULL);
 #endif /* !OS_WIN32 */
 }

@@ -109,8 +109,6 @@ typedef struct LogFileCtx_ {
     uint64_t size_limit;    /**< file size limit */
     uint64_t size_current;  /**< file current size */
 
-    /* Alerts on the module (not on the file) */
-    uint64_t alerts;
     /* flag to avoid multiple threads printing the same stats */
     uint8_t flags;
 
@@ -118,8 +116,14 @@ typedef struct LogFileCtx_ {
      * allow for rotataion. */
     uint8_t is_regular;
 
+    /* JSON flags */
+    size_t json_flags;  /* passed to json_dump_callback() */
+
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
+
+    /* Set to true if the filename should not be timestamped. */
+    bool nostamp;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */

@@ -69,8 +69,6 @@ void DetectReplaceRegister (void)
     sigmatch_table[DETECT_REPLACE].Setup = DetectReplaceSetup;
     sigmatch_table[DETECT_REPLACE].Free  = NULL;
     sigmatch_table[DETECT_REPLACE].RegisterTests = DetectReplaceRegisterTests;
-
-    sigmatch_table[DETECT_REPLACE].flags |= SIGMATCH_PAYLOAD;
 }
 
 int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
@@ -103,9 +101,9 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
             return 0;
     }
 
-    /* add to the latest "content" keyword from either dmatch or pmatch */
-    pm =  SigMatchGetLastSMFromLists(s, 2,
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    /* add to the latest "content" keyword from pmatch */
+    pm = DetectGetLastSMByListId(s, DETECT_SM_LIST_PMATCH,
+            DETECT_CONTENT, -1);
     if (pm == NULL) {
         SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "replace needs"
                 "preceding content option for raw sig");

@@ -49,9 +49,10 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, char *str);
-void DsizeRegisterTests(void);
+static void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
 static int PrefilterSetupDsize(SigGroupHead *sgh);
@@ -105,7 +106,8 @@ DsizeMatch(const uint16_t psize, const uint8_t mode,
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+    const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -254,9 +256,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;
 
-    if (SigMatchGetLastSMFromLists(s, 2,
-                                   DETECT_DSIZE,
-                                   s->sm_lists_tail[DETECT_SM_LIST_MATCH]) != NULL) {
+    if (DetectGetLastSMFromLists(s, DETECT_DSIZE, -1)) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
                    "the same sig.  Invalidating signature.");
         goto error;
@@ -290,8 +290,8 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
     s->flags |= SIG_FLAG_DSIZE;
 
-    if (s->dsize_sm == NULL) {
-        s->dsize_sm = sm;
+    if (s->init_data->dsize_sm == NULL) {
+        s->init_data->dsize_sm = sm;
     }
 
     return 0;
@@ -364,7 +364,7 @@ static int PrefilterSetupDsize(SigGroupHead *sgh)
 static _Bool PrefilterDsizeIsPrefilterable(const Signature *s)
 {
     const SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch (sm->type) {
             case DETECT_DSIZE:
                 return TRUE;
@@ -864,7 +864,7 @@ end:
 /**
  * \brief this function registers unit tests for dsize
  */
-void DsizeRegisterTests(void)
+static void DsizeRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DsizeTestParse01", DsizeTestParse01);

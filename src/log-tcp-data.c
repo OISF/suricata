@@ -55,7 +55,6 @@
 
 TmEcode LogTcpDataLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogTcpDataLogThreadDeinit(ThreadVars *, void *);
-void LogTcpDataLogExitPrintStats(ThreadVars *, void *);
 static void LogTcpDataLogDeInitCtx(OutputCtx *);
 
 int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags);
@@ -63,12 +62,10 @@ int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uin
 void LogTcpDataLogRegister (void) {
     OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data",
         LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_TCP_DATA,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit,
-        LogTcpDataLogExitPrintStats);
+        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
     OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "http-body-data",
         LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES,
-        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit,
-        LogTcpDataLogExitPrintStats);
+        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit, NULL);
 }
 
 typedef struct LogTcpDataFileCtx_ {
@@ -161,10 +158,8 @@ static int LogTcpDataLoggerFile(ThreadVars *tv, void *thread_data, const Flow *f
         PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset,
                 aft->buffer->size, (uint8_t *)data,data_len);
 
-        SCMutexLock(&td->file_ctx->fp_mutex);
         td->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
                 MEMBUFFER_OFFSET(aft->buffer), td->file_ctx);
-        SCMutexUnlock(&td->file_ctx->fp_mutex);
     }
     SCReturnInt(TM_ECODE_OK);
 }
@@ -224,13 +219,6 @@ TmEcode LogTcpDataLogThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(aft);
     return TM_ECODE_OK;
-}
-
-void LogTcpDataLogExitPrintStats(ThreadVars *tv, void *data) {
-    LogTcpDataLogThread *aft = (LogTcpDataLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
 }
 
 /** \brief Create a new http log LogFileCtx.

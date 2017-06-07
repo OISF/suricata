@@ -168,6 +168,7 @@ outputs:
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of DNP3 fields
+            vars: yes                # enable dumping of flowbits and other vars
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
@@ -205,6 +206,9 @@ outputs:
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
+            # custom allows to control which tls fields that are included
+            # in eve-log
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
@@ -237,6 +241,8 @@ outputs:
         # uni-directional flows
         #- netflow
         #- dnp3
+        # Vars log flowbits and other packet and flow vars
+        #- vars
 
   # alert output for use with Barnyard2
   - unified2-alert:
@@ -246,6 +252,11 @@ outputs:
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
       # is parsed as bytes.
       #limit: 32mb
+
+      # By default unified2 log files have the file creation time (in
+      # unix epoch format) appended to the filename. Set this to yes to
+      # disable this behaviour.
+      #nostamp: no
 
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
@@ -1414,10 +1425,11 @@ profiling:
     append: yes
 
     # Sort options: ticks, avgticks, checks, matches, maxticks
-    sort: avgticks
+    # If commented out all the sort options will be used.
+    #sort: avgticks
 
-    # Limit the number of items printed at exit (ignored for json).
-    limit: 100
+    # Limit the number of sids for which stats are shown at exit (per sort).
+    limit: 10
 
     # output to json
     json: @e_enable_evelog@

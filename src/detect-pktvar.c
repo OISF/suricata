@@ -39,7 +39,8 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+static int DetectPktvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        const Signature *, const SigMatchCtx *);
 static int DetectPktvarSetup (DetectEngineCtx *, Signature *, char *);
 
 void DetectPktvarRegister (void)
@@ -50,8 +51,6 @@ void DetectPktvarRegister (void)
     sigmatch_table[DETECT_PKTVAR].Free  = NULL;
     sigmatch_table[DETECT_PKTVAR].RegisterTests  = NULL;
 
-    sigmatch_table[DETECT_PKTVAR].flags |= SIGMATCH_PAYLOAD;
-
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
@@ -61,12 +60,13 @@ void DetectPktvarRegister (void)
  *        -1: error
  */
 
-int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     const DetectPktvarData *pd = (const DetectPktvarData *)ctx;
 
-    PktVar *pv = PktVarGet(p, pd->name);
+    PktVar *pv = PktVarGet(p, pd->id);
     if (pv != NULL) {
         uint8_t *ptr = SpmSearch(pv->value, pv->value_len, pd->content, pd->content_len);
         if (ptr != NULL)
@@ -92,7 +92,6 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for pktvar.", rawstr);
         return -1;
-
     }
 
     const char *str_ptr;
@@ -199,12 +198,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
         return -1;
     }
 
-    cd->name = SCStrdup(varname);
-    if (cd->name == NULL) {
-        SCFree(cd);
-        if (dubbed) SCFree(str);
-        return -1;
-    }
+    cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
 
     memcpy(cd->content, str, len);
     cd->content_len = len;
@@ -228,8 +222,6 @@ error:
     if (dubbed)
         SCFree(str);
     if (cd) {
-        if (cd->name)
-            SCFree(cd->name);
         SCFree(cd);
     }
     if (sm)

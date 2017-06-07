@@ -48,9 +48,7 @@
 #include "host.h"
 #include "util-profiling.h"
 
-int DetectContentMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectContentSetup(DetectEngineCtx *, Signature *, char *);
-void DetectContentRegisterTests(void);
+static void DetectContentRegisterTests(void);
 
 void DetectContentRegister (void)
 {
@@ -61,8 +59,6 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].Setup = DetectContentSetup;
     sigmatch_table[DETECT_CONTENT].Free  = DetectContentFree;
     sigmatch_table[DETECT_CONTENT].RegisterTests = DetectContentRegisterTests;
-
-    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
 }
 
 /**
@@ -387,16 +383,8 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
         goto error;
     DetectContentPrint(cd);
 
-    int sm_list;
-    if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_FILEDATA && s->alproto == ALPROTO_HTTP) {
-            AppLayerHtpEnableResponseBodyCallback();
-            s->alproto = ALPROTO_HTTP;
-        }
-
-        s->flags |= SIG_FLAG_APPLAYER;
-        sm_list = s->list;
-    } else {
+    int sm_list = s->init_data->list;
+    if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;
     }
 
@@ -434,11 +422,13 @@ void DetectContentFree(void *ptr)
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
+static int g_file_data_buffer_id = 0;
+static int g_dce_stub_data_buffer_id = 0;
 
 /**
  * \test DetectCotentParseTest01 this is a test to make sure we can deal with escaped colons
  */
-int DetectContentParseTest01 (void)
+static int DetectContentParseTest01 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -469,7 +459,7 @@ int DetectContentParseTest01 (void)
 /**
  * \test DetectCotentParseTest02 this is a test to make sure we can deal with escaped semi-colons
  */
-int DetectContentParseTest02 (void)
+static int DetectContentParseTest02 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -500,7 +490,7 @@ int DetectContentParseTest02 (void)
 /**
  * \test DetectCotentParseTest03 this is a test to make sure we can deal with escaped double-quotes
  */
-int DetectContentParseTest03 (void)
+static int DetectContentParseTest03 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -531,7 +521,7 @@ int DetectContentParseTest03 (void)
 /**
  * \test DetectCotentParseTest04 this is a test to make sure we can deal with escaped backslashes
  */
-int DetectContentParseTest04 (void)
+static int DetectContentParseTest04 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -563,7 +553,7 @@ int DetectContentParseTest04 (void)
 /**
  * \test DetectCotentParseTest05 test illegal escape
  */
-int DetectContentParseTest05 (void)
+static int DetectContentParseTest05 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -588,7 +578,7 @@ int DetectContentParseTest05 (void)
 /**
  * \test DetectCotentParseTest06 test a binary content
  */
-int DetectContentParseTest06 (void)
+static int DetectContentParseTest06 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -620,7 +610,7 @@ int DetectContentParseTest06 (void)
 /**
  * \test DetectCotentParseTest07 test an empty content
  */
-int DetectContentParseTest07 (void)
+static int DetectContentParseTest07 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -643,7 +633,7 @@ int DetectContentParseTest07 (void)
 /**
  * \test DetectCotentParseTest08 test an empty content
  */
-int DetectContentParseTest08 (void)
+static int DetectContentParseTest08 (void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -672,7 +662,7 @@ int DetectContentParseTest08 (void)
  * \retval return 1 if match
  * \retval return 0 if not
  */
-int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
+static int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
                       uint32_t sid)
 {
     int result = 0;
@@ -744,7 +734,7 @@ end:
 /**
  * \brief Wrapper for DetectContentLongPatternMatchTest
  */
-int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid)
+static int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid)
 {
     /** Real packet with the following tcp data:
      * "Hi, this is a big test to check content matches of splitted"
@@ -779,7 +769,7 @@ int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid)
 /**
  * \test Check if we match a normal pattern (not splitted)
  */
-int DetectContentLongPatternMatchTest01()
+static int DetectContentLongPatternMatchTest01()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test\"; sid:1;)";
@@ -789,7 +779,7 @@ int DetectContentLongPatternMatchTest01()
 /**
  * \test Check if we match a splitted pattern
  */
-int DetectContentLongPatternMatchTest02()
+static int DetectContentLongPatternMatchTest02()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test to check content matches of"
@@ -801,7 +791,7 @@ int DetectContentLongPatternMatchTest02()
  * \test Check that we don't match the signature if one of the splitted
  * chunks doesn't match the packet
  */
-int DetectContentLongPatternMatchTest03()
+static int DetectContentLongPatternMatchTest03()
 {
     /** The last chunk of the content should not match */
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
@@ -813,7 +803,7 @@ int DetectContentLongPatternMatchTest03()
 /**
  * \test Check if we match multiple content (not splitted)
  */
-int DetectContentLongPatternMatchTest04()
+static int DetectContentLongPatternMatchTest04()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is\"; depth:15 ;content:\"a big test\"; "
@@ -829,7 +819,7 @@ int DetectContentLongPatternMatchTest04()
  * Here we should specify only contents that fit in 32 bytes
  * Each of them with their modifier values
  */
-int DetectContentLongPatternMatchTest05()
+static int DetectContentLongPatternMatchTest05()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big\"; depth:17; "
@@ -849,7 +839,7 @@ int DetectContentLongPatternMatchTest05()
  * Here we should specify contents that fit and contents that must be splitted
  * Each of them with their modifier values
  */
-int DetectContentLongPatternMatchTest06()
+static int DetectContentLongPatternMatchTest06()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big test to check cont\"; depth:36;"
@@ -865,7 +855,7 @@ int DetectContentLongPatternMatchTest06()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-int DetectContentLongPatternMatchTest07()
+static int DetectContentLongPatternMatchTest07()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"chunks!\"; "
@@ -880,7 +870,7 @@ int DetectContentLongPatternMatchTest07()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-int DetectContentLongPatternMatchTest08()
+static int DetectContentLongPatternMatchTest08()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"ent matches\"; "
@@ -896,7 +886,7 @@ int DetectContentLongPatternMatchTest08()
  * \test Check if we match contents that are in the payload
  * but not in the same order as specified in the signature
  */
-int DetectContentLongPatternMatchTest09()
+static int DetectContentLongPatternMatchTest09()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"ent matches\"; "
@@ -912,7 +902,7 @@ int DetectContentLongPatternMatchTest09()
 /**
  * \test Check if we match two consecutive simple contents
  */
-int DetectContentLongPatternMatchTest10()
+static int DetectContentLongPatternMatchTest10()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big test to check \"; "
@@ -924,7 +914,7 @@ int DetectContentLongPatternMatchTest10()
 /**
  * \test Check if we match two contents of length 1
  */
-int DetectContentLongPatternMatchTest11()
+static int DetectContentLongPatternMatchTest11()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"H\"; "
@@ -933,7 +923,7 @@ int DetectContentLongPatternMatchTest11()
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
-int DetectContentParseTest09(void)
+static int DetectContentParseTest09(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -954,7 +944,7 @@ int DetectContentParseTest09(void)
     return result;
 }
 
-int DetectContentParseTest10(void)
+static int DetectContentParseTest10(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -975,7 +965,7 @@ int DetectContentParseTest10(void)
     return result;
 }
 
-int DetectContentParseNegTest11(void)
+static int DetectContentParseNegTest11(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -996,7 +986,7 @@ int DetectContentParseNegTest11(void)
     return result;
 }
 
-int DetectContentParseNegTest12(void)
+static int DetectContentParseNegTest12(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -1017,7 +1007,7 @@ int DetectContentParseNegTest12(void)
     return result;
 }
 
-int DetectContentParseNegTest13(void)
+static int DetectContentParseNegTest13(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -1038,7 +1028,7 @@ int DetectContentParseNegTest13(void)
     return result;
 }
 
-int DetectContentParseNegTest14(void)
+static int DetectContentParseNegTest14(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -1059,7 +1049,7 @@ int DetectContentParseNegTest14(void)
     return result;
 }
 
-int DetectContentParseNegTest15(void)
+static int DetectContentParseNegTest15(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -1080,7 +1070,7 @@ int DetectContentParseNegTest15(void)
     return result;
 }
 
-int DetectContentParseNegTest16(void)
+static int DetectContentParseNegTest16(void)
 {
     int result = 0;
     DetectContentData *cd = NULL;
@@ -1103,7 +1093,7 @@ int DetectContentParseNegTest16(void)
  * \test Test cases where if within specified is < content lenggth we invalidate
  *       the sig.
  */
-int DetectContentParseTest17(void)
+static int DetectContentParseTest17(void)
 {
     int result = 0;
     char *sigstr = "alert tcp any any -> any any (msg:\"Dummy\"; "
@@ -1129,7 +1119,7 @@ end:
 /**
  * \test Test content for dce sig.
  */
-int DetectContentParseTest18(void)
+static int DetectContentParseTest18(void)
 {
     Signature *s = SigAlloc();
     int result = 1;
@@ -1142,7 +1132,7 @@ int DetectContentParseTest18(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
@@ -1151,7 +1141,7 @@ int DetectContentParseTest18(void)
         return 0;
 
     result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
-    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[g_dce_stub_data_buffer_id] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigFree(s);
@@ -1164,7 +1154,7 @@ int DetectContentParseTest18(void)
  * \test Test content for dce sig.
  */
 
-int DetectContentParseTest19(void)
+static int DetectContentParseTest19(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1187,13 +1177,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1216,13 +1206,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1247,13 +1237,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1265,7 +1255,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (data->offset == 5 && data->depth == 9);
-    data = (DetectContentData *)s->sm_lists[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1288,13 +1278,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1318,13 +1308,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         !(data->flags & DETECT_CONTENT_WITHIN) ||
@@ -1348,13 +1338,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1378,13 +1368,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1408,13 +1398,13 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_CONTENT);
+    result &= (s->sm_lists_tail[g_dce_stub_data_buffer_id]->type == DETECT_CONTENT);
     result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
-    data = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
+    data = (DetectContentData *)s->sm_lists_tail[g_dce_stub_data_buffer_id]->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
@@ -1436,7 +1426,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     s = s->next;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
+    if (s->sm_lists_tail[g_dce_stub_data_buffer_id] != NULL) {
         result = 0;
         goto end;
     }
@@ -1453,7 +1443,7 @@ int DetectContentParseTest19(void)
 /**
  * \test Test content for dce sig.
  */
-int DetectContentParseTest20(void)
+static int DetectContentParseTest20(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1482,7 +1472,7 @@ int DetectContentParseTest20(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest21(void)
+static int DetectContentParseTest21(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1511,7 +1501,7 @@ int DetectContentParseTest21(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest22(void)
+static int DetectContentParseTest22(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1540,7 +1530,7 @@ int DetectContentParseTest22(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest23(void)
+static int DetectContentParseTest23(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1569,7 +1559,7 @@ int DetectContentParseTest23(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest24(void)
+static int DetectContentParseTest24(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     DetectContentData *cd = 0;
@@ -1610,7 +1600,7 @@ end:
 /**
  * \test Parsing test
  */
-int DetectContentParseTest25(void)
+static int DetectContentParseTest25(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1639,7 +1629,7 @@ int DetectContentParseTest25(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest26(void)
+static int DetectContentParseTest26(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1668,7 +1658,7 @@ int DetectContentParseTest26(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest27(void)
+static int DetectContentParseTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1697,7 +1687,7 @@ int DetectContentParseTest27(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest28(void)
+static int DetectContentParseTest28(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1726,7 +1716,7 @@ int DetectContentParseTest28(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest29(void)
+static int DetectContentParseTest29(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1755,7 +1745,7 @@ int DetectContentParseTest29(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest30(void)
+static int DetectContentParseTest30(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1784,7 +1774,7 @@ int DetectContentParseTest30(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest31(void)
+static int DetectContentParseTest31(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1813,7 +1803,7 @@ int DetectContentParseTest31(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest32(void)
+static int DetectContentParseTest32(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1842,7 +1832,7 @@ int DetectContentParseTest32(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest33(void)
+static int DetectContentParseTest33(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1871,7 +1861,7 @@ int DetectContentParseTest33(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest34(void)
+static int DetectContentParseTest34(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1900,7 +1890,7 @@ int DetectContentParseTest34(void)
 /**
  * \test Parsing test
  */
-int DetectContentParseTest35(void)
+static int DetectContentParseTest35(void)
 {
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
@@ -1952,7 +1942,7 @@ static int DetectContentParseTest36(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -1992,7 +1982,7 @@ static int DetectContentParseTest37(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2032,7 +2022,7 @@ static int DetectContentParseTest38(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2116,7 +2106,7 @@ static int DetectContentParseTest39(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2156,7 +2146,7 @@ static int DetectContentParseTest40(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+    if (de_ctx->sig_list->sm_lists[g_file_data_buffer_id] == NULL) {
         printf("content not in FILEDATA list: ");
         goto end;
     }
@@ -2170,7 +2160,7 @@ end:
     return result;
 }
 
-int DetectContentParseTest41(void)
+static int DetectContentParseTest41(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -2205,7 +2195,7 @@ int DetectContentParseTest41(void)
 /**
  * Tests that content lengths > 255 are supported.
  */
-int DetectContentParseTest42(void)
+static int DetectContentParseTest42(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -2237,7 +2227,7 @@ int DetectContentParseTest42(void)
     return result;
 }
 
-int DetectContentParseTest43(void)
+static int DetectContentParseTest43(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -2276,7 +2266,7 @@ int DetectContentParseTest43(void)
 /**
  * Tests that content lengths > 255 are supported.
  */
-int DetectContentParseTest44(void)
+static int DetectContentParseTest44(void)
 {
     int result = 1;
     DetectContentData *cd = NULL;
@@ -2315,7 +2305,7 @@ int DetectContentParseTest44(void)
 /**
  * \test Parsing test to check for unescaped quote within content section
  */
-int DetectContentParseTest45(void)
+static int DetectContentParseTest45(void)
 {
     DetectEngineCtx *de_ctx = NULL;
 
@@ -2854,9 +2844,12 @@ static int DetectLongContentTest3(void)
 /**
  * \brief this function registers unit tests for DetectContent
  */
-void DetectContentRegisterTests(void)
+static void DetectContentRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
+    g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+    g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
+
     UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01);
     UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02);
     UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03);

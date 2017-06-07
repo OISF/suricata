@@ -55,6 +55,7 @@
 
 static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectTlsIssuerRegisterTests(void);
+static int g_tls_cert_issuer_buffer_id = 0;
 
 /**
  * \brief Registration function for keyword: tls_cert_issuer
@@ -65,21 +66,20 @@ void DetectTlsIssuerRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].desc = "content modifier to match specifically and only on the TLS cert issuer buffer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tls-cert-issuer";
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Setup = DetectTlsIssuerSetup;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].Free  = NULL;
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].RegisterTests = DetectTlsIssuerRegisterTests;
 
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
-    sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_PAYLOAD;
 
-    DetectMpmAppLayerRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSISSUER_MATCH, 2,
+    DetectAppLayerMpmRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT, 2,
             PrefilterTxTlsIssuerRegister);
 
-    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSISSUER_MATCH,
+    DetectAppLayerInspectEngineRegister("tls_cert_issuer",
+            ALPROTO_TLS, SIG_FLAG_TOCLIENT,
             DetectEngineInspectTlsIssuer);
+
+    g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls_cert_issuer");
 }
 
 
@@ -94,7 +94,7 @@ void DetectTlsIssuerRegister(void)
  */
 static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    s->list = DETECT_SM_LIST_TLSISSUER_MATCH;
+    s->init_data->list = g_tls_cert_issuer_buffer_id;
     s->alproto = ALPROTO_TLS;
     return 0;
 }
@@ -123,7 +123,7 @@ static int DetectTlsIssuerTest01(void)
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     FAIL_IF_NOT_NULL(sm);
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH];
+    sm = de_ctx->sig_list->sm_lists[g_tls_cert_issuer_buffer_id];
     FAIL_IF_NULL(sm);
 
     FAIL_IF(sm->type != DETECT_CONTENT);

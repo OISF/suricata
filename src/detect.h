@@ -47,6 +47,8 @@
 
 #include "stream.h"
 
+#include "util-var-name.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -87,84 +89,31 @@ struct SCSigSignatureWrapper_;
 enum DetectSigmatchListEnum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
-    /* list for http_uri keyword and the ones relative to it */
-    DETECT_SM_LIST_UMATCH,
-    /* list for http_raw_uri keyword and the ones relative to it */
-    DETECT_SM_LIST_HRUDMATCH,
-    /* list for http_client_body keyword and the ones relative to it */
-    DETECT_SM_LIST_HCBDMATCH,
-    /* list for http_server_body keyword and the ones relative to it */
-    DETECT_SM_LIST_FILEDATA,
-    /* list for http_header keyword and the ones relative to it */
-    DETECT_SM_LIST_HHDMATCH,
-    /* list for http_raw_header keyword and the ones relative to it */
-    DETECT_SM_LIST_HRHDMATCH,
-    /* list for http_stat_msg keyword and the ones relative to it */
-    DETECT_SM_LIST_HSMDMATCH,
-    /* list for http_stat_code keyword and the ones relative to it */
-    DETECT_SM_LIST_HSCDMATCH,
-    /* list for http_host keyword and the ones relative to it */
-    DETECT_SM_LIST_HHHDMATCH,
-    /* list for http_raw_host keyword and the ones relative to it */
-    DETECT_SM_LIST_HRHHDMATCH,
-    /* list for http_method keyword and the ones relative to it */
-    DETECT_SM_LIST_HMDMATCH,
-    /* list for http_cookie keyword and the ones relative to it */
-    DETECT_SM_LIST_HCDMATCH,
-    /* list for http_user_agent keyword and the ones relative to it */
-    DETECT_SM_LIST_HUADMATCH,
-    /* list for http_request_line keyword and the ones relative to it */
-    DETECT_SM_LIST_HTTP_REQLINEMATCH,
-    /* list for http_response_line keyword and the ones relative to it */
-    DETECT_SM_LIST_HTTP_RESLINEMATCH,
-    /* app event engine sm list */
-    DETECT_SM_LIST_APP_EVENT,
 
-    DETECT_SM_LIST_AMATCH,
-    DETECT_SM_LIST_DMATCH,
-
-    DETECT_SM_LIST_FILEMATCH,
-
-    DETECT_SM_LIST_DNSREQUEST_MATCH,    /**< per DNS query tx match list */
-    DETECT_SM_LIST_DNSRESPONSE_MATCH,   /**< per DNS response tx match list */
-    DETECT_SM_LIST_DNSQUERYNAME_MATCH,  /**< per query in a tx list */
-
-    DETECT_SM_LIST_TLSSNI_MATCH,
-    DETECT_SM_LIST_TLSISSUER_MATCH,
-    DETECT_SM_LIST_TLSSUBJECT_MATCH,
-    DETECT_SM_LIST_TLSVALIDITY_MATCH,
-
-    DETECT_SM_LIST_MODBUS_MATCH,
-
-    DETECT_SM_LIST_CIP_MATCH,
-    DETECT_SM_LIST_ENIP_MATCH,
-
+    /* base64_data keyword uses some hardcoded logic so consider
+     * built-in
+     * TODO convert to inspect engine */
     DETECT_SM_LIST_BASE64_DATA,
 
-    DETECT_SM_LIST_DNP3_DATA_MATCH,
-    DETECT_SM_LIST_DNP3_MATCH,
-
-    DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
-
-    /* Demarcation between detection and post-detection lists. All
-     * detection lists must come before this. */
-    DETECT_SM_LIST_DETECT_MAX,
-
     /* list for post match actions: flowbit set, flowint increment, etc */
-    DETECT_SM_LIST_POSTMATCH = DETECT_SM_LIST_DETECT_MAX,
+    DETECT_SM_LIST_POSTMATCH,
 
     DETECT_SM_LIST_TMATCH, /**< post-detection tagging */
 
     /* lists for alert thresholding and suppression */
     DETECT_SM_LIST_SUPPRESS,
     DETECT_SM_LIST_THRESHOLD,
+
     DETECT_SM_LIST_MAX,
 
-    /* used for Signature->list, which indicates which list
-     * we're adding keywords to in cases of sticky buffers like
-     * file_data */
-    DETECT_SM_LIST_NOTSET,
+    /* start of dynamically registered lists */
+    DETECT_SM_LIST_DYNAMIC_START = DETECT_SM_LIST_MAX,
 };
+
+/* used for Signature->list, which indicates which list
+ * we're adding keywords to in cases of sticky buffers like
+ * file_data */
+#define DETECT_SM_LIST_NOTSET INT_MAX
 
 /* a is ... than b */
 enum {
@@ -297,8 +246,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
 #define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
-#define SIG_FLAG_INIT_PAYLOAD        (1<<4)  /**< signature is inspecting the packet payload */
-#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 5) /** < signature has seen the first ip_proto keyword */
+#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 4) /** < signature has seen the first ip_proto keyword */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
@@ -321,8 +269,6 @@ typedef struct DetectPort_ {
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
 
-#define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
-#define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
 #define FILE_SIG_NEED_FILE          0x01
@@ -378,12 +324,17 @@ typedef struct SigMatchData_ {
 
 struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
+typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
+        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
+        const struct Signature_ *sig, const SigMatchData *smd,
+        Flow *f, uint8_t flags, void *alstate,
+        void *tx, uint64_t tx_id);
+
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
     uint8_t dir;
-    uint8_t id;
+    uint8_t id;     /**< per sig id used in state keeping */
     int sm_list;
-    uint32_t inspect_flags;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
      *         1 Match.
@@ -391,14 +342,52 @@ typedef struct DetectEngineAppInspectionEngine_ {
      *         3 Special value used by filestore sigs to indicate disabling
      *           filestore for the tx.
      */
-    int (*Callback)(ThreadVars *tv,
-                    struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
-                    struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
-                    void *tx, uint64_t tx_id);
+    InspectEngineFuncPtr Callback;
+
+    SigMatchData *smd;
 
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
+#ifdef UNITTESTS
+#define sm_lists init_data->smlists
+#define sm_lists_tail init_data->smlists_tail
+#endif
+
+typedef struct SignatureInitData_ {
+    /** Number of sigmatches. Used for assigning SigMatch::idx */
+    uint16_t sm_cnt;
+
+    /* used to hold flags that are used during init */
+    uint32_t init_flags;
+    /* coccinelle: SignatureInitData:init_flags:SIG_FLAG_INIT_ */
+
+    /* used at init to determine max dsize */
+    SigMatch *dsize_sm;
+
+    /* the fast pattern added from this signature */
+    SigMatch *mpm_sm;
+    /* used to speed up init of prefilter */
+    SigMatch *prefilter_sm;
+
+    /* SigMatch list used for adding content and friends. E.g. file_data; */
+    int list;
+
+    /** score to influence rule grouping. A higher value leads to a higher
+     *  likelyhood of a rulegroup with this sig ending up as a contained
+     *  group. */
+    int whitelist;
+
+    /** address settings for this signature */
+    const DetectAddressHead *src, *dst;
+
+    int prefilter_list;
+
+    /* holds all sm lists */
+    struct SigMatch_ **smlists;
+    /* holds all sm lists' tails */
+    struct SigMatch_ **smlists_tail;
+} SignatureInitData;
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -445,27 +434,18 @@ typedef struct Signature_ {
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif
-    /** number of sigmatches in the match and pmatch list */
-    uint16_t sm_cnt;
-
-    /* used to hold flags that are predominantly used during init */
-    uint32_t init_flags;
-    /* coccinelle: Signature:init_flags:SIG_FLAG_INIT_ */
 
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
     DetectEngineAppInspectionEngine *app_inspect;
 
-    /* Hold copies of the sm lists for Match() */
+    /* Matching structures for the built-ins. The others are in
+     * their inspect engines. */
     SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
 
-    /* holds all sm lists */
-    struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
-    /* holds all sm lists' tails */
-    struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
-
-    SigMatch *filestore_sm;
+    /* memory is still owned by the sm_lists/sm_arrays entry */
+    const struct DetectFilestoreData_ *filestore_ctx;
 
     char *msg;
 
@@ -474,29 +454,11 @@ typedef struct Signature_ {
     /** Reference */
     DetectReference *references;
 
-    /** address settings for this signature */
-    const DetectAddressHead *src, *dst;
-
-    /* used at init to determine max dsize */
-    SigMatch *dsize_sm;
-    /* the fast pattern added from this signature */
-    SigMatch *mpm_sm;
-    /* used to speed up init of prefilter */
-    SigMatch *prefilter_sm;
-
-    /* SigMatch list used for adding content and friends. E.g. file_data; */
-    int list;
-
-    /** score to influence rule grouping. A higher value leads to a higher
-     *  likelyhood of a rulegroup with this sig ending up as a contained
-     *  group. */
-    int whitelist;
-
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
 
-    int prefilter_list;
+    SignatureInitData *init_data;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -528,20 +490,21 @@ typedef struct DetectReplaceList_ {
 } DetectReplaceList;
 
 /** only execute flowvar storage if rule matched */
-#define DETECT_FLOWVAR_TYPE_POSTMATCH   1
-/** execute flowvar storage even if rule doesn't match (for lua) */
-#define DETECT_FLOWVAR_TYPE_ALWAYS      2
+#define DETECT_VAR_TYPE_FLOW_POSTMATCH      1
+#define DETECT_VAR_TYPE_PKT_POSTMATCH       2
 
 /** list for flowvar store candidates, to be stored from
  *  post-match function */
-typedef struct DetectFlowvarList_ {
-    uint16_t idx;                       /**< flowvar name idx */
+typedef struct DetectVarList_ {
+    uint32_t idx;                       /**< flowvar name idx */
     uint16_t len;                       /**< data len */
+    uint16_t key_len;
     int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
+    uint8_t *key;
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
                                              post-match, post-non-match */
-    struct DetectFlowvarList_ *next;
-} DetectFlowvarList;
+    struct DetectVarList_ *next;
+} DetectVarList;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
@@ -658,10 +621,6 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *mpm_hash_table;
 
-    HashListTable *variable_names;
-    HashListTable *variable_idxs;
-    uint16_t variable_names_idx;
-
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
 
@@ -709,8 +668,8 @@ typedef struct DetectEngineCtx_ {
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
 
-    /* id used by every detect engine ctx instance */
-    uint32_t id;
+    /** version of the detect engine */
+    uint32_t version;
 
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
@@ -730,7 +689,7 @@ typedef struct DetectEngineCtx_ {
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
-    struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
+    struct SCProfileKeywordDetectCtx_ **profile_keyword_ctx_per_list;
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
 #endif
@@ -812,6 +771,9 @@ typedef struct DetectEngineThreadCtx_ {
      *        on this beeing the first member */
     uint32_t tenant_id;
 
+    /** ticker that is incremented once per packet. */
+    uint64_t ticker;
+
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
@@ -847,12 +809,6 @@ typedef struct DetectEngineThreadCtx_ {
     uint64_t hcbd_start_tx_id;
     uint16_t hcbd_buffers_size;
     uint16_t hcbd_buffers_list_len;
-
-    uint8_t **hhd_buffers;
-    uint32_t *hhd_buffers_len;
-    uint16_t hhd_buffers_size;
-    uint16_t hhd_buffers_list_len;
-    uint64_t hhd_start_tx_id;
 
     FiledataReassembledBody *smtp;
     uint64_t smtp_start_tx_id;
@@ -922,8 +878,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     /* string to replace */
     DetectReplaceList *replist;
-    /* flowvars to store in post match function */
-    DetectFlowvarList *flowvarlist;
+    /* vars to store in post match function */
+    DetectVarList *varlist;
 
     /* Array in which the filestore keyword stores file id and tx id. If the
      * full signature matches, these are processed by a post-match filestore
@@ -934,10 +890,12 @@ typedef struct DetectEngineThreadCtx_ {
     } filestore[DETECT_FILESTORE_MAX];
 
     DetectEngineCtx *de_ctx;
-    /** store for keyword contexts that need a per thread storage because of
-     *  thread safety issues */
+    /** store for keyword contexts that need a per thread storage. Per de_ctx. */
     void **keyword_ctxs_array;
     int keyword_ctxs_size;
+    /** store for keyword contexts that need a per thread storage. Global. */
+    int global_keyword_ctxs_size;
+    void **global_keyword_ctxs_array;
 
     uint8_t *base64_decoded;
     int base64_decoded_len;
@@ -947,21 +905,17 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
     struct SCProfileKeywordData_ *keyword_perf_data;
-    struct SCProfileKeywordData_ *keyword_perf_data_per_list[DETECT_SM_LIST_MAX];
+    struct SCProfileKeywordData_ **keyword_perf_data_per_list;
     int keyword_perf_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
     struct SCProfileSghData_ *sgh_perf_data;
 #endif
 } DetectEngineThreadCtx;
 
 /** \brief element in sigmatch type table.
- *  \note FileMatch pointer below takes a locked flow, AppLayerMatch an unlocked flow
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
-
-    /** AppLayer match function  pointer */
-    int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, const Signature *, const SigMatchCtx *);
 
     /** AppLayer TX match function pointer */
     int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,
@@ -972,7 +926,7 @@ typedef struct SigTableElmt_ {
     int (*FileMatch)(ThreadVars *,  /**< thread local vars */
         DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
-        uint8_t flags, File *, Signature *, SigMatch *);
+        uint8_t flags, File *, const Signature *, const SigMatchCtx *);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
@@ -985,13 +939,10 @@ typedef struct SigTableElmt_ {
 
     uint8_t flags;
 
-    /** unused: warn user. Will be removed in the future. */
-    AppProto alproto __attribute__((deprecated));
-
-    char *name;     /**< keyword name alias */
-    char *alias;    /**< name alias */
-    char *desc;
-    char *url;
+    const char *name;     /**< keyword name alias */
+    const char *alias;    /**< name alias */
+    const char *desc;
+    const char *url;
 
 } SigTableElmt;
 
@@ -1137,13 +1088,11 @@ typedef struct SigGroupHead_ {
 #define SIGMATCH_IPONLY_COMPAT  (1 << 1)
 /** sigmatch is compatible with a decode event only rule */
 #define SIGMATCH_DEONLY_COMPAT  (1 << 2)
-/**< Flag to indicate that the signature inspects the packet payload */
-#define SIGMATCH_PAYLOAD        (1 << 3)
 /**< Flag to indicate that the signature is not built-in */
-#define SIGMATCH_NOT_BUILT      (1 << 4)
+#define SIGMATCH_NOT_BUILT      (1 << 3)
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
-#define SIGMATCH_OPTIONAL_OPT   (1 << 5)
+#define SIGMATCH_OPTIONAL_OPT   (1 << 4)
 
 enum DetectEngineTenantSelectors
 {
@@ -1167,6 +1116,9 @@ typedef struct DetectEngineMasterCtx_ {
     /** enable multi tenant mode */
     int multi_tenant_enabled;
 
+    /** version, incremented after each 'apply to threads' */
+    uint32_t version;
+
     /** list of active detection engines. This list is used to generate the
      *  threads det_ctx's */
     DetectEngineCtx *list;
@@ -1182,6 +1134,9 @@ typedef struct DetectEngineMasterCtx_ {
      *  structures. */
     DetectEngineTenantMapping *tenant_mapping_list;
 
+    /** list of keywords that need thread local ctxs */
+    DetectEngineThreadKeywordCtxItem *keyword_list;
+    int keyword_id;
 } DetectEngineMasterCtx;
 
 /** \brief Signature loader statistics */
@@ -1279,10 +1234,13 @@ enum {
 
     DETECT_AL_HTTP_COOKIE,
     DETECT_AL_HTTP_METHOD,
+    DETECT_AL_HTTP_PROTOCOL,
+    DETECT_AL_HTTP_START,
     DETECT_AL_URILEN,
     DETECT_AL_HTTP_CLIENT_BODY,
     DETECT_AL_HTTP_SERVER_BODY,
     DETECT_AL_HTTP_HEADER,
+    DETECT_AL_HTTP_HEADER_NAMES,
     DETECT_AL_HTTP_RAW_HEADER,
     DETECT_AL_HTTP_URI,
     DETECT_AL_HTTP_RAW_URI,
@@ -1293,7 +1251,9 @@ enum {
     DETECT_AL_HTTP_RAW_HOST,
     DETECT_AL_HTTP_REQUEST_LINE,
     DETECT_AL_HTTP_RESPONSE_LINE,
+    DETECT_AL_SSH_PROTOCOL,
     DETECT_AL_SSH_PROTOVERSION,
+    DETECT_AL_SSH_SOFTWARE,
     DETECT_AL_SSH_SOFTWAREVERSION,
     DETECT_AL_SSL_VERSION,
     DETECT_AL_SSL_STATE,
@@ -1328,6 +1288,7 @@ enum {
     DETECT_AL_TLS_SNI,
     DETECT_AL_TLS_CERT_ISSUER,
     DETECT_AL_TLS_CERT_SUBJECT,
+    DETECT_AL_TLS_CERT_SERIAL,
     DETECT_AL_MODBUS,
     DETECT_CIPSERVICE,
     DETECT_ENIPCOMMAND,
@@ -1380,24 +1341,24 @@ void SigTableSetup(void);
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
-int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);
 SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 Signature *DetectGetTagSignature(void);
 
-int SignatureIsFilestoring(Signature *);
-int SignatureIsFilemagicInspecting(Signature *);
-int SignatureIsFileMd5Inspecting(Signature *);
-int SignatureIsFileSha1Inspecting(Signature *s);
-int SignatureIsFileSha256Inspecting(Signature *s);
-int SignatureIsFilesizeInspecting(Signature *);
+int SignatureIsFilestoring(const Signature *);
+int SignatureIsFilemagicInspecting(const Signature *);
+int SignatureIsFileMd5Inspecting(const Signature *);
+int SignatureIsFileSha1Inspecting(const Signature *s);
+int SignatureIsFileSha256Inspecting(const Signature *s);
+int SignatureIsFilesizeInspecting(const Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                   Signature *s);
+                                   const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s);
 
 #endif /* __DETECT_H__ */

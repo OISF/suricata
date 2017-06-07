@@ -69,7 +69,6 @@
 
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
-void AlertFastLogExitPrintStats(ThreadVars *, void *);
 void AlertFastLogRegisterTests(void);
 static void AlertFastLogDeInitCtx(OutputCtx *);
 
@@ -80,8 +79,7 @@ void AlertFastLogRegister(void)
 {
     OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
         AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
-        AlertFastLogThreadInit, AlertFastLogThreadDeinit,
-        AlertFastLogExitPrintStats);
+        AlertFastLogThreadInit, AlertFastLogThreadDeinit, NULL);
     AlertFastLogRegisterTests();
 }
 
@@ -98,12 +96,8 @@ int AlertFastLogCondition(ThreadVars *tv, const Packet *p)
 static inline void AlertFastLogOutputAlert(AlertFastLogThread *aft, char *buffer,
                                            int alert_size)
 {
-    SCMutex *file_lock = &aft->file_ctx->fp_mutex;
     /* Output the alert string and count alerts. Only need to lock here. */
-    SCMutexLock(file_lock);
-    aft->file_ctx->alerts++;
     aft->file_ctx->Write(buffer, alert_size, aft->file_ctx);
-    SCMutexUnlock(file_lock);
 }
 
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
@@ -219,16 +213,6 @@ TmEcode AlertFastLogThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(aft);
     return TM_ECODE_OK;
-}
-
-void AlertFastLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    AlertFastLogThread *aft = (AlertFastLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
-
-    //SCLogInfo("Fast log output wrote %" PRIu64 " alerts", aft->file_ctx->alerts);
 }
 
 /**

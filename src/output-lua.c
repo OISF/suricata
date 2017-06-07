@@ -237,81 +237,6 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
 }
 
 /** \internal
- *  \brief Packet Logger for lua scripts, for ssh
- *
- *  A single call to this function will run one script for a single
- *  packet. If it is called, it means that the registered condition
- *  function has returned TRUE.
- *
- *  The script is called once for each packet.
- */
-static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p)
-{
-    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
-
-    char timebuf[64];
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    SCMutexLock(&td->lua_ctx->m);
-
-    lua_getglobal(td->lua_ctx->luastate, "log");
-
-    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
-    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
-
-    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
-
-    SCMutexUnlock(&td->lua_ctx->m);
-
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
-    if (ssh_state != NULL)
-        ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED_LUA;
-
-    SCReturnInt(0);
-}
-
-static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
-{
-    if (p->flow == NULL) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        return FALSE;
-    }
-
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto dontlog;
-
-    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
-    if (ssh_state == NULL) {
-        SCLogDebug("no ssh state, so no request logging");
-        goto dontlog;
-    }
-
-    if (ssh_state->cli_hdr.software_version == NULL ||
-        ssh_state->srv_hdr.software_version == NULL)
-        goto dontlog;
-
-    /* We only log the state once */
-    if (ssh_state->cli_hdr.flags & SSH_FLAG_STATE_LOGGED_LUA)
-        goto dontlog;
-
-    return TRUE;
-dontlog:
-    return FALSE;
-}
-
-/** \internal
  *  \brief Packet Logger for lua scripts, for packets
  *
  *  A single call to this function will run one script for a single
@@ -882,8 +807,10 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
             AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
         } else if (opts.alproto == ALPROTO_SSH) {
-            om->PacketLogFunc = LuaPacketLoggerSsh;
-            om->PacketConditionFunc = LuaPacketConditionSsh;
+            om->TxLogFunc = LuaTxLogger;
+            om->alproto = ALPROTO_SSH;
+            om->tc_log_progress = SSH_STATE_BANNER_DONE;
+            om->ts_log_progress = SSH_STATE_BANNER_DONE;
         } else if (opts.alproto == ALPROTO_SMTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SMTP;

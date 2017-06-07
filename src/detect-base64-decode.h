@@ -27,7 +27,7 @@ typedef struct DetectBase64Decode_ {
 } DetectBase64Decode;
 
 void DetectBase64DecodeRegister(void);
-int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, Signature *,
-    const SigMatch *, uint8_t *, uint32_t);
+int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, const Signature *,
+    const SigMatchData *, uint8_t *, uint32_t);
 
 #endif /* __DETECT_BASE64_DECODE_H__ */

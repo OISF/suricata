@@ -196,3 +196,63 @@ Example of a DNS answer with an IPv4 (resource record type 'A') return:
       "ttl":8,
       "rdata": "199.16.156.6"
   }
+
+Event type: TLS
+---------------
+
+Fields
+~~~~~~
+
+* "subject": The subject field from the TLS certificate
+* "issuer": The issuer field from the TLS certificate
+
+If extended logging is enabled the following fields are also included:
+
+* "serial": The serial number of the TLS certificate
+* "fingerprint": The (SHA1) fingerprint of the TLS certificate
+* "sni": The Server Name Indication (SNI) extension sent by the client
+* "version": The SSL/TLS version used
+* "notbefore": The NotBefore field from the TLS certificate
+* "notafter": The NotAfter field from the TLS certificate
+
+In addition to this, custom logging also allows the following fields:
+
+* "certificate": The TLS certificate base64 encoded
+* "chain": The entire TLS certificate chain base64 encoded
+
+Examples
+~~~~~~~~
+
+Example of regular TLS logging:
+
+::
+
+  "tls": {
+      "subject": "C=US, ST=California, L=Mountain View, O=Google Inc, CN=*.google.com",
+      "issuerdn": "C=US, O=Google Inc, CN=Google Internet Authority G2"
+  }
+
+Example of extended TLS logging:
+
+::
+
+  "tls": {
+      "subject": "C=US, ST=California, L=Mountain View, O=Google Inc, CN=*.google.com",
+      "issuerdn": "C=US, O=Google Inc, CN=Google Internet Authority G2",
+      "serial": "0C:00:99:B7:D7:54:C9:F6:77:26:31:7E:BA:EA:7C:1C",
+      "fingerprint": "8f:51:12:06:a0:cc:4e:cd:e8:a3:8b:38:f8:87:59:e5:af:95:ca:cd",
+      "sni": "calendar.google.com",
+      "version": "TLS 1.2",
+      "notbefore": "2017-01-04T10:48:43",
+      "notafter": "2017-03-29T10:18:00"
+  }
+
+Example of certificate logging using TLS custom logging (subject, sni, certificate):
+
+::
+
+  "tls": {
+      "subject": "C=US, ST=California, L=Mountain View, O=Google Inc, CN=*.googleapis.com
+      "sni": "www.googleapis.com",
+      "certificate": "MIIE3TCCA8WgAwIBAgIIQPsvobRZN0gwDQYJKoZIhvcNAQELBQAwSTELMA [...]"
+   }

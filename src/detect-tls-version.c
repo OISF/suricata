@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,10 +59,13 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+static int DetectTlsVersionMatch (ThreadVars *, DetectEngineThreadCtx *,
+        Flow *, uint8_t, void *, void *,
+        const Signature *, const SigMatchCtx *);
 static int DetectTlsVersionSetup (DetectEngineCtx *, Signature *, char *);
-void DetectTlsVersionRegisterTests(void);
-void DetectTlsVersionFree(void *);
+static void DetectTlsVersionRegisterTests(void);
+static void DetectTlsVersionFree(void *);
+static int g_tls_generic_list_id = 0;
 
 /**
  * \brief Registration function for keyword: tls.version
@@ -72,13 +75,14 @@ void DetectTlsVersionRegister (void)
     sigmatch_table[DETECT_AL_TLS_VERSION].name = "tls.version";
     sigmatch_table[DETECT_AL_TLS_VERSION].desc = "match on TLS/SSL version";
     sigmatch_table[DETECT_AL_TLS_VERSION].url = DOC_URL DOC_VERSION "/rules/tls-keywords.html#tlsversion";
-    sigmatch_table[DETECT_AL_TLS_VERSION].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerMatch = DetectTlsVersionMatch;
+    sigmatch_table[DETECT_AL_TLS_VERSION].AppLayerTxMatch = DetectTlsVersionMatch;
     sigmatch_table[DETECT_AL_TLS_VERSION].Setup = DetectTlsVersionSetup;
     sigmatch_table[DETECT_AL_TLS_VERSION].Free  = DetectTlsVersionFree;
     sigmatch_table[DETECT_AL_TLS_VERSION].RegisterTests = DetectTlsVersionRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+
+    g_tls_generic_list_id = DetectBufferTypeRegister("tls_generic");
 }
 
 /**
@@ -92,11 +96,13 @@ void DetectTlsVersionRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
 {
     SCEnter();
 
-    DetectTlsVersionData *tls_data = (DetectTlsVersionData *)m->ctx;
+    const DetectTlsVersionData *tls_data = (const DetectTlsVersionData *)m;
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");
@@ -127,7 +133,7 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
  * \retval id_d pointer to DetectTlsVersionData on success
  * \retval NULL on failure
  */
-DetectTlsVersionData *DetectTlsVersionParse (char *str)
+static DetectTlsVersionData *DetectTlsVersionParse (char *str)
 {
     uint16_t temp;
     DetectTlsVersionData *tls = NULL;
@@ -215,8 +221,12 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     DetectTlsVersionData *tls = NULL;
     SigMatch *sm = NULL;
 
+    if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
+        return -1;
+
     tls = DetectTlsVersionParse(str);
-    if (tls == NULL) goto error;
+    if (tls == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -227,19 +237,15 @@ static int DetectTlsVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->type = DETECT_AL_TLS_VERSION;
     sm->ctx = (void *)tls;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
+    SigMatchAppendSMToList(s, sm, g_tls_generic_list_id);
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-
-    s->alproto = ALPROTO_TLS;
     return 0;
 
 error:
-    if (tls != NULL) DetectTlsVersionFree(tls);
-    if (sm != NULL) SCFree(sm);
+    if (tls != NULL)
+        DetectTlsVersionFree(tls);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }
@@ -249,7 +255,7 @@ error:
  *
  * \param id_d pointer to DetectTlsVersionData
  */
-void DetectTlsVersionFree(void *ptr)
+static void DetectTlsVersionFree(void *ptr)
 {
     DetectTlsVersionData *id_d = (DetectTlsVersionData *)ptr;
     SCFree(id_d);
@@ -261,7 +267,7 @@ void DetectTlsVersionFree(void *ptr)
  * \test DetectTlsVersionTestParse01 is a test to make sure that we parse the "id"
  *       option correctly when given valid id option
  */
-int DetectTlsVersionTestParse01 (void)
+static int DetectTlsVersionTestParse01 (void)
 {
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse("1.0");
@@ -276,7 +282,7 @@ int DetectTlsVersionTestParse01 (void)
  *       option correctly when given an invalid id option
  *       it should return id_d = NULL
  */
-int DetectTlsVersionTestParse02 (void)
+static int DetectTlsVersionTestParse02 (void)
 {
     DetectTlsVersionData *tls = NULL;
     tls = DetectTlsVersionParse("2.5");
@@ -578,7 +584,7 @@ static int DetectTlsVersionTestDetect03(void)
 /**
  * \brief this function registers unit tests for DetectTlsVersion
  */
-void DetectTlsVersionRegisterTests(void)
+static void DetectTlsVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01);

@@ -670,7 +670,7 @@ static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
     int32_t parsed = 0;
 
     if (sstate->andx.paddingparsed) {
-        parsed = DCERPCParser(&sstate->dcerpc, input, input_len);
+        parsed = DCERPCParser(&sstate->ds.dcerpc, input, input_len);
         if (parsed == -1 || parsed > sstate->bytecount.bytecountleft || parsed > (int32_t)input_len) {
             SCReturnInt(-1);
         } else {
@@ -1435,7 +1435,7 @@ static void *SMBStateAlloc(void)
         SCReturnPtr(NULL, "void");
     }
 
-    DCERPCInit(&s->dcerpc);
+    DCERPCInit(&s->ds.dcerpc);
 
     SCReturnPtr(s, "void");
 }
@@ -1448,10 +1448,62 @@ static void SMBStateFree(void *s)
     SCEnter();
     SMBState *sstate = (SMBState *) s;
 
-    DCERPCCleanup(&sstate->dcerpc);
+    DCERPCCleanup(&sstate->ds.dcerpc);
+
+    if (sstate->ds.de_state) {
+        DetectEngineStateFree(sstate->ds.de_state);
+    }
 
     SCFree(s);
     SCReturn;
+}
+
+static int SMBStateHasTxDetectState(void *state)
+{
+    SMBState *smb_state = (SMBState *)state;
+    if (smb_state->ds.de_state)
+        return 1;
+    return 0;
+}
+
+static int SMBSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
+{
+    SMBState *smb_state = (SMBState *)state;
+    smb_state->ds.de_state = de_state;
+    return 0;
+}
+
+static DetectEngineState *SMBGetTxDetectState(void *vtx)
+{
+    SMBState *smb_state = (SMBState *)vtx;
+    return smb_state->ds.de_state;
+}
+
+static void SMBStateTransactionFree(void *state, uint64_t tx_id)
+{
+    /* do nothing */
+}
+
+static void *SMBGetTx(void *state, uint64_t tx_id)
+{
+    SMBState *smb_state = (SMBState *)state;
+    return smb_state;
+}
+
+static uint64_t SMBGetTxCnt(void *state)
+{
+    /* single tx */
+    return 1;
+}
+
+static int SMBGetAlstateProgressCompletionStatus(uint8_t direction)
+{
+    return 1;
+}
+
+static int SMBGetAlstateProgress(void *tx, uint8_t direction)
+{
+    return 0;
 }
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
@@ -1547,6 +1599,20 @@ void RegisterSMBParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
+
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMB, SMBStateTransactionFree);
+
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB, SMBStateHasTxDetectState,
+                                               SMBGetTxDetectState, SMBSetTxDetectState);
+
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMB, SMBGetTx);
+
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMB, SMBGetTxCnt);
+
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMB, SMBGetAlstateProgress);
+
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMB,
+                                                               SMBGetAlstateProgressCompletionStatus);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection "
                   "still on.", proto_name);
@@ -1705,7 +1771,7 @@ int SMBParserTest02(void)
         goto end;
     }
 
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    printUUID("BIND", smb_state->ds.dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -2012,7 +2078,7 @@ int SMBParserTest03(void)
         goto end;
     }
     FLOWLOCK_UNLOCK(&f);
-    printUUID("BIND", smb_state->dcerpc.dcerpcbindbindack.uuid_entry);
+    printUUID("BIND", smb_state->ds.dcerpc.dcerpcbindbindack.uuid_entry);
     result = 1;
 end:
     if (alp_tctx != NULL)

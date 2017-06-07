@@ -51,6 +51,7 @@ struct TmSlot_;
  *  the engine. This is to force timely handling of maintenance taks like
  *  rule reloads even if no packets are read by the capture method. */
 #define THV_CAPTURE_INJECT_PKT (1<<11)
+#define THV_DEAD        (1 << 12) /**< thread has been joined with pthread_join() */
 
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {

@@ -80,6 +80,10 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
+            # custom allows to control which tls fields that are included
+            # in eve-log
+            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain]
+
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
@@ -181,6 +185,24 @@ YAML::
 To reduce verbosity the output can be filtered by supplying the record types
 to be logged under ``custom``.
 
+TLS
+~~~
+
+TLS records are logged one record per session.
+
+YAML::
+
+        - tls:
+            extended: yes     # enable this for extended logging information
+            # custom allows to control which tls fields that are included
+            # in eve-log
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+
+The default is to log certificate subject and issuer. If ``extended`` is
+enabled, then the log gets more verbose.
+
+By using ``custom`` it is possible to select which TLS fields to log.
+
 Multiple Logger Instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -246,3 +268,26 @@ For most output types, you can add multiple:
 
 Except for ``drop`` for which only a single logger instance is supported.
 
+JSON flags
+~~~~~~~~~~
+
+Several flags can be specified to control the JSON output in EVE:
+
+::
+
+  outputs:
+    - eve-log:
+        json:
+          # Sort object keys in the same order as they were inserted
+          preserve-order: yes
+
+          # Make the output more compact
+          compact: yes
+
+          # Escape all unicode characters outside the ASCII range
+          ensure-ascii: yes
+
+          # Escape the '/' characters in string with '\/'
+          escape-slash: yes
+
+All these flags are enabled by default, and can be modified per EVE instance.

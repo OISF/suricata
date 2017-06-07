@@ -40,7 +40,7 @@
 #define DETECT_XBITS_EXPIRE_DEFAULT 30
 
 typedef struct DetectXbitsData_ {
-    uint16_t idx;
+    uint32_t idx;
     uint8_t cmd;
     uint8_t tracker;
     uint32_t expire;

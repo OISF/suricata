@@ -55,7 +55,6 @@
 
 TmEcode LogStatsLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
-void LogStatsLogExitPrintStats(ThreadVars *, void *);
 static void LogStatsLogDeInitCtx(OutputCtx *);
 
 typedef struct LogStatsFileCtx_ {
@@ -156,10 +155,8 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
         }
     }
 
-    SCMutexLock(&aft->statslog_ctx->file_ctx->fp_mutex);
     aft->statslog_ctx->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
         MEMBUFFER_OFFSET(aft->buffer), aft->statslog_ctx->file_ctx);
-    SCMutexUnlock(&aft->statslog_ctx->file_ctx->fp_mutex);
 
     MemBufferReset(aft->buffer);
 
@@ -206,14 +203,6 @@ TmEcode LogStatsLogThreadDeinit(ThreadVars *t, void *data)
 
     SCFree(aft);
     return TM_ECODE_OK;
-}
-
-void LogStatsLogExitPrintStats(ThreadVars *tv, void *data)
-{
-    LogStatsLogThread *aft = (LogStatsLogThread *)data;
-    if (aft == NULL) {
-        return;
-    }
 }
 
 /** \brief Create a new http log LogFileCtx.
@@ -298,5 +287,5 @@ void LogStatsLogRegister (void)
 {
     OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
         LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
-        LogStatsLogThreadDeinit, LogStatsLogExitPrintStats);
+        LogStatsLogThreadDeinit, NULL);
 }

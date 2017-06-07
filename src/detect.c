@@ -52,6 +52,7 @@
 #include "detect-tls-sni.h"
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
+#include "detect-tls-cert-serial.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-filedata-smtp.h"
@@ -138,15 +139,17 @@
 #include "detect-http-client-body.h"
 #include "detect-http-server-body.h"
 #include "detect-http-header.h"
+#include "detect-http-header-names.h"
 #include "detect-http-raw-header.h"
 #include "detect-http-uri.h"
+#include "detect-http-protocol.h"
+#include "detect-http-start.h"
 #include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
-#include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
@@ -180,7 +183,9 @@
 #include "detect-tls.h"
 #include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
+#include "detect-ssh-proto.h"
 #include "detect-ssh-proto-version.h"
+#include "detect-ssh-software.h"
 #include "detect-ssh-software-version.h"
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
@@ -203,6 +208,7 @@
 #include "util-lua.h"
 #include "util-var-name.h"
 #include "util-classification-config.h"
+#include "util-threshold-config.h"
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -517,6 +523,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
+    SCThresholdConfInitContext(de_ctx);
+
     /* Setup the signature group lookup structure and pattern matchers */
     if (SigGroupBuild(de_ctx) < 0)
         goto end;
@@ -539,24 +547,22 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                   Signature *s)
+                                   const Signature *s)
 {
     /* run the packet match functions */
-    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+    if (smd != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
-        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
         SCLogDebug("running match functions, sm %p", smd);
 
-        if (smd != NULL) {
-            while (1) {
-                KEYWORD_PROFILING_START;
-                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
-                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                if (smd->is_last)
-                    break;
-                smd++;
-            }
+        while (1) {
+            KEYWORD_PROFILING_START;
+            (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+            if (smd->is_last)
+                break;
+            smd++;
         }
     }
 
@@ -849,72 +855,6 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
 }
 #endif
 
-static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEngineCtx *de_ctx)
-{
-#define MALLOC_JUMP 5
-
-    int i = 0;
-
-    GenericVar *gv = p->flow->flowvar;
-
-    while (gv != NULL) {
-        i++;
-        gv = gv->next;
-    }
-    if (i == 0)
-        return;
-
-    p->debuglog_flowbits_names_len = i;
-
-    p->debuglog_flowbits_names = SCMalloc(sizeof(char *) *
-                                          p->debuglog_flowbits_names_len);
-    if (p->debuglog_flowbits_names == NULL) {
-        return;
-    }
-    memset(p->debuglog_flowbits_names, 0,
-           sizeof(char *) * p->debuglog_flowbits_names_len);
-
-    i = 0;
-    gv = p->flow->flowvar;
-    while (gv != NULL) {
-        if (gv->type != DETECT_FLOWBITS) {
-            gv = gv->next;
-            continue;
-        }
-
-        FlowBit *fb = (FlowBit *) gv;
-        const char *name = VariableIdxGetName(de_ctx, fb->idx, VAR_TYPE_FLOW_BIT);
-        if (name != NULL) {
-            p->debuglog_flowbits_names[i] = SCStrdup(name);
-            if (p->debuglog_flowbits_names[i] == NULL) {
-                return;
-            }
-            i++;
-        }
-
-        if (i == p->debuglog_flowbits_names_len) {
-            p->debuglog_flowbits_names_len += MALLOC_JUMP;
-            const char **names = SCRealloc(p->debuglog_flowbits_names,
-                                                   sizeof(char *) *
-                                                   p->debuglog_flowbits_names_len);
-            if (names == NULL) {
-                SCFree(p->debuglog_flowbits_names);
-                p->debuglog_flowbits_names = NULL;
-                p->debuglog_flowbits_names_len = 0;
-                return;
-            }
-            p->debuglog_flowbits_names = names;
-            memset(p->debuglog_flowbits_names +
-                   p->debuglog_flowbits_names_len - MALLOC_JUMP,
-                   0, sizeof(char *) * MALLOC_JUMP);
-        }
-
-        gv = gv->next;
-    }
-
-    return;
-}
-
 static inline void
 DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
@@ -1034,8 +974,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
     uint8_t flow_flags = 0; /* flow/state flags */
-    Signature *s = NULL;
-    Signature *next_s = NULL;
+    const Signature *s = NULL;
+    const Signature *next_s = NULL;
     uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
@@ -1046,6 +986,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    det_ctx->ticker++;
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
     det_ctx->smsg = NULL;
@@ -1085,22 +1026,20 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
 
             /* live ruleswap check for flow updates */
-            if (pflow->de_ctx_id == 0) {
+            if (pflow->de_ctx_version == 0) {
                 /* first time this flow is inspected, set id */
-                pflow->de_ctx_id = de_ctx->id;
-            } else if (pflow->de_ctx_id != de_ctx->id) {
+                pflow->de_ctx_version = de_ctx->version;
+            } else if (pflow->de_ctx_version != de_ctx->version) {
                 /* first time we inspect flow with this de_ctx, reset */
                 pflow->flags &= ~FLOW_SGH_TOSERVER;
                 pflow->flags &= ~FLOW_SGH_TOCLIENT;
                 pflow->sgh_toserver = NULL;
                 pflow->sgh_toclient = NULL;
 
-                pflow->de_ctx_id = de_ctx->id;
+                pflow->de_ctx_version = de_ctx->version;
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
 
-                DetectEngineStateReset(pflow->de_state,
-                        (STREAM_TOSERVER|STREAM_TOCLIENT));
                 DetectEngineStateResetTxs(pflow);
             }
 
@@ -1230,9 +1169,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
                                            flow_flags, alproto, alversion);
-        } else if (has_inspectable_state == 2) {
-            /* no inspectable state, so pretend we don't have a state at all */
-            has_state = 0;
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
@@ -1492,15 +1428,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
-                   "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
-                   s->sm_lists[DETECT_SM_LIST_AMATCH],
-                   s->sm_lists[DETECT_SM_LIST_UMATCH],
-                   s->sm_lists[DETECT_SM_LIST_DMATCH],
-                   s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
-
         /* consider stateful sig matches */
         if (sflags & SIG_FLAG_STATE_MATCH) {
             if (has_state == 0) {
@@ -1544,7 +1471,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
         alerts++;
 next:
-        DetectFlowvarProcessList(det_ctx, pflow);
+        DetectVarProcessList(det_ctx, pflow, p);
         DetectReplaceFree(det_ctx);
         RULE_PROFILING_END(det_ctx, s, smatch, p);
 
@@ -1582,19 +1509,12 @@ end:
 
     DetectEngineCleanHCBDBuffers(det_ctx);
     DetectEngineCleanHSBDBuffers(det_ctx);
-    DetectEngineCleanHHDBuffers(det_ctx);
     DetectEngineCleanSMTPBuffers(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
     if (p->flags & PKT_HAS_FLOW) {
-        if (debuglog_enabled) {
-            if (p->alerts.cnt > 0) {
-                AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(p, de_ctx);
-            }
-        }
-
         /* HACK: prevent the wrong sgh (or NULL) from being stored in the
          * flow's sgh pointers */
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
@@ -1791,7 +1711,7 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint3
 }
 
 
-int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s)
+int SignatureIsAppLayer(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != 0)
         return 1;
@@ -1807,7 +1727,7 @@ int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilestoring(Signature *s)
+int SignatureIsFilestoring(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1826,7 +1746,7 @@ int SignatureIsFilestoring(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilemagicInspecting(Signature *s)
+int SignatureIsFilemagicInspecting(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1845,7 +1765,7 @@ int SignatureIsFilemagicInspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileMd5Inspecting(Signature *s)
+int SignatureIsFileMd5Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_MD5))
         return 1;
@@ -1861,7 +1781,7 @@ int SignatureIsFileMd5Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileSha1Inspecting(Signature *s)
+int SignatureIsFileSha1Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA1))
         return 1;
@@ -1877,7 +1797,7 @@ int SignatureIsFileSha1Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFileSha256Inspecting(Signature *s)
+int SignatureIsFileSha256Inspecting(const Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA256))
         return 1;
@@ -1893,7 +1813,7 @@ int SignatureIsFileSha256Inspecting(Signature *s)
  *  \retval 0 no
  *  \retval 1 yes
  */
-int SignatureIsFilesizeInspecting(Signature *s)
+int SignatureIsFilesizeInspecting(const Signature *s)
 {
     if (s == NULL)
         return 0;
@@ -1910,55 +1830,24 @@ int SignatureIsFilesizeInspecting(Signature *s)
  *  \retval 1 sig is ip only
  *  \retval 0 sig is not ip only
  */
-int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s)
+int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
-        return 0;
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
-        return 0;
+        SCReturnInt(0);
+    }
 
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to IP-only. */
@@ -1979,7 +1868,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s)
         cidr_item = cidr_item->next;
     }
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         goto iponly;
 
@@ -2015,50 +1904,19 @@ static int SignatureIsPDOnly(const Signature *s)
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
-        return 0;
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
 
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
-        return 0;
+        SCReturnInt(0);
+    }
 
     /* TMATCH list can be ignored, it contains TAGs and
      * tags are compatible to DP-only. */
@@ -2066,7 +1924,7 @@ static int SignatureIsPDOnly(const Signature *s)
     /* match list matches may be compatible to DP only. We follow the same
      * logic as IP-only so we can use that flag */
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         return 0;
 
@@ -2108,25 +1966,12 @@ static int SignatureIsPDOnly(const Signature *s)
  *  \retval 1 sig is inspecting the payload
  *  \retval 0 sig is not inspecting the payload
  */
-static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s)
+static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, const Signature *s)
 {
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         return 1;
     }
-#if 0
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL)
-        return 0;
-
-    for (; sm != NULL; sm = sm->next) {
-        if (sigmatch_table[sm->type].flags & SIGMATCH_PAYLOAD) {
-            if (!(de_ctx->flags & DE_QUIET))
-                SCLogDebug("Signature (%" PRIu32 "): is inspecting payload.", s->id);
-            return 1;
-        }
-    }
-#endif
     return 0;
 }
 
@@ -2138,40 +1983,37 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s)
  *  \retval 0 not a DEOnly sig
  *  \retval 1 DEOnly sig
  */
-static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s)
+static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN) {
         SCReturnInt(0);
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_UMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_AMATCH]    != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HCDMATCH]  != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL)
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
     {
         SCReturnInt(0);
     }
 
+    /* for now assume that all registered buffer types are incompatible */
+    const int nlists = DetectBufferTypeMaxId();
+    for (int i = 0; i < nlists; i++) {
+        if (s->init_data->smlists[i] == NULL)
+            continue;
+        if (!(DetectBufferTypeGetNameById(i)))
+            continue;
+
+        SCReturnInt(0);
+    }
+
     /* check for conflicting keywords */
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
             SCReturnInt(0);
     }
 
     /* need at least one decode event keyword to be considered decode event. */
-    sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
             goto deonly;
@@ -2290,129 +2132,13 @@ static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
         SCLogDebug("sig requires payload");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
-        SCLogDebug("sig requires dce state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
-        /* set the state depending from the protocol */
-        if (s->alproto == ALPROTO_HTTP)
-            s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        else if (s->alproto == ALPROTO_SMTP)
-            s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-
-        SCLogDebug("sig requires http or smtp app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
-    }
-
     SigMatch *sm;
-    for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
-        switch(sm->type) {
-            case DETECT_AL_URILEN:
-            case DETECT_AL_HTTP_URI:
-                s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                SCLogDebug("sig requires dce http state");
-                break;
-            case DETECT_AL_APP_LAYER_EVENT:
-                s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
-                break;
-        }
-    }
-
-    for (sm = s->sm_lists[DETECT_SM_LIST_APP_EVENT] ; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_AL_APP_LAYER_EVENT:
-            {
-                DetectAppLayerEventData *aed = (DetectAppLayerEventData *)sm->ctx;
-                switch (aed->alproto) {
-                    case ALPROTO_HTTP:
-                        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                        SCLogDebug("sig %u requires http app state (http event)", s->id);
-                        break;
-                    case ALPROTO_SMTP:
-                        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-                        SCLogDebug("sig %u requires smtp app state (smtp event)", s->id);
-                        break;
-                    case ALPROTO_DNS:
-                        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
-                        SCLogDebug("sig %u requires dns app state (dns event)", s->id);
-                        break;
-                    case ALPROTO_TLS:
-                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
-                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
-                        break;
-                }
-                break;
-            }
-        }
-    }
-
-    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+    for (sm = s->init_data->smlists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_FLOWBITS:
             {
@@ -2545,12 +2271,7 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires flow");
     }
 
-    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
-        s->mask |= SIG_MASK_REQUIRE_FLOW;
-        SCLogDebug("sig requires flow");
-    }
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+    if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
@@ -2578,8 +2299,8 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
  */
 static int SigParseGetMaxDsize(Signature *s)
 {
-    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
-        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->init_data->dsize_sm->ctx;
 
         switch (dd->mode) {
             case DETECTDSIZE_LT:
@@ -2600,8 +2321,8 @@ static int SigParseGetMaxDsize(Signature *s)
  */
 static void SigParseSetDsizePair(Signature *s)
 {
-    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
-        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+    if (s->flags & SIG_FLAG_DSIZE && s->init_data->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->init_data->dsize_sm->ctx;
 
         uint16_t low = 0;
         uint16_t high = 65535;
@@ -2648,7 +2369,7 @@ static void SigParseApplyDsizeToContent(Signature *s)
             return;
         }
 
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+        SigMatch *sm = s->init_data->smlists[DETECT_SM_LIST_PMATCH];
         for ( ; sm != NULL;  sm = sm->next) {
             if (sm->type != DETECT_CONTENT) {
                 continue;
@@ -2671,19 +2392,19 @@ static void SigParseApplyDsizeToContent(Signature *s)
 /** \brief Pure-PCRE or bytetest rule */
 int RuleInspectsPayloadHasNoMpm(const Signature *s)
 {
-    if (s->mpm_sm == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+    if (s->init_data->mpm_sm == NULL && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
         return 1;
     return 0;
 }
 
 int RuleGetMpmPatternSize(const Signature *s)
 {
-    if (s->mpm_sm == NULL)
+    if (s->init_data->mpm_sm == NULL)
         return -1;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
     if (mpm_list < 0)
         return -1;
-    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
     if (cd == NULL)
         return -1;
     return (int)cd->content_len;
@@ -2691,12 +2412,12 @@ int RuleGetMpmPatternSize(const Signature *s)
 
 int RuleMpmIsNegated(const Signature *s)
 {
-    if (s->mpm_sm == NULL)
+    if (s->init_data->mpm_sm == NULL)
         return 0;
-    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
     if (mpm_list < 0)
         return 0;
-    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
     if (cd == NULL)
         return 0;
     return (cd->flags & DETECT_CONTENT_NEGATED);
@@ -2766,10 +2487,10 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             any5_cnt++;
         }
 
-        if (s->mpm_sm == NULL) {
+        if (s->init_data->mpm_sm == NULL) {
             nonmpm_cnt++;
 
-            if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
                 SCLogDebug("SGH %p Non-MPM inspecting only packets. Rule %u", sgh, s->id);
             }
 
@@ -2788,9 +2509,9 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
             }
 
         } else {
-            int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+            int mpm_list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             BUG_ON(mpm_list < 0);
-            const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+            const DetectContentData *cd = (const DetectContentData *)s->init_data->mpm_sm->ctx;
             uint32_t size = cd->content_len < 256 ? cd->content_len : 255;
 
             mpm_sizes[mpm_list][size]++;
@@ -3183,8 +2904,8 @@ static int RuleSetWhitelist(Signature *s)
             wl = 77;
 
             /* one byte pattern in packet/stream payloads */
-        } else if (s->mpm_sm != NULL &&
-                   SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH &&
+        } else if (s->init_data->mpm_sm != NULL &&
+                   SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) == DETECT_SM_LIST_PMATCH &&
                    RuleGetMpmPatternSize(s) == 1)
         {
             SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
@@ -3198,7 +2919,7 @@ static int RuleSetWhitelist(Signature *s)
         }
     }
 
-    s->whitelist = wl;
+    s->init_data->whitelist = wl;
     return wl;
 }
 
@@ -3250,7 +2971,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             goto next;
         }
 
-        int wl = s->whitelist;
+        int wl = s->init_data->whitelist;
         while (p) {
             int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? 111 : 0;
             pwl = MAX(wl,pwl);
@@ -3364,6 +3085,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
+    const int nlists = DetectBufferTypeMaxId();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
@@ -3400,12 +3122,11 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         /* see if any sig is inspecting the packet payload */
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_INIT_PAYLOAD;
             cnt_payload++;
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
         } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_INIT_DEONLY;
+            tmp_s->init_data->init_flags |= SIG_FLAG_INIT_DEONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
             cnt_deonly++;
         }
@@ -3421,7 +3142,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             char copresent = 0;
             SigMatch *sm;
             DetectContentData *co;
-            for (sm = tmp_s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+            for (sm = tmp_s->init_data->smlists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_CONTENT)
                     continue;
 
@@ -3459,8 +3180,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
-                SigMatch *sm = tmp_s->sm_lists[i];
+            for (i = 0; i < nlists; i++) {
+                SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
                         if (sigmatch_table[sm->type].SupportsPrefilter(tmp_s) == TRUE) {
@@ -3473,11 +3194,11 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
-                    SigMatch *sm = tmp_s->sm_lists[i];
+                for (i = 0; i < nlists; i++) {
+                    SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
-                            tmp_s->prefilter_sm = sm;
+                            tmp_s->init_data->prefilter_sm = sm;
                             tmp_s->flags |= SIG_FLAG_PREFILTER;
                             SCLogConfig("sid %u: prefilter is on \"%s\"", tmp_s->id, sigmatch_table[sm->type].name);
                             break;
@@ -3486,6 +3207,13 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                     }
                 }
             }
+        }
+
+        /* run buffer type callbacks if any */
+        int x;
+        for (x = 0; x < nlists; x++) {
+            if (tmp_s->init_data->smlists[x])
+                DetectBufferRunSetupCallback(x, tmp_s);
         }
 
         de_ctx->sig_cnt++;
@@ -3728,7 +3456,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
         }
 
-        if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
+        if (tmp_s->init_data->init_flags & SIG_FLAG_INIT_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         }
 
@@ -3918,43 +3646,44 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-static int SigMatchListLen(SigMatch *sm)
-{
-    int len = 0;
-    for (; sm != NULL; sm = sm->next)
-        len++;
-
-    return len;
-}
-
+/** \internal
+ *  \brief perform final per signature setup tasks
+ *
+ *  - Create SigMatchData arrays from the init only SigMatch lists
+ *  - Setup per signature inspect engines
+ *  - remove signature init data.
+ */
 static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
+    const int nlists = DetectBufferTypeMaxId();
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
+        /* set up inspect engines */
+        DetectEngineAppInspectionEngine2Signature(s);
+
+        /* built-ins */
         int type;
         for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
-            SigMatch *sm = s->sm_lists[type];
-            int len = SigMatchListLen(sm);
-            if (len == 0)
-                s->sm_arrays[type] = NULL;
-            else {
-                SigMatchData *smd = (SigMatchData*)SCMalloc(len * sizeof(SigMatchData));
-                if (smd == NULL) {
-                    SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
-                    exit(EXIT_FAILURE);
-                }
-                /* Copy sm type and Context into array */
-                s->sm_arrays[type] = smd;
-                for (; sm != NULL; sm = sm->next, smd++) {
-                    smd->type = sm->type;
-                    smd->ctx = sm->ctx;
-                    smd->is_last = (sm->next == NULL);
-                }
+            SigMatch *sm = s->init_data->smlists[type];
+            s->sm_arrays[type] = SigMatchList2DataArray(sm);
+        }
+
+        /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
+        int i;
+        for (i = 0; i < nlists; i++) {
+            SigMatch *sm = s->init_data->smlists[i];
+            while (sm != NULL) {
+                SigMatch *nsm = sm->next;
+                SigMatchFree(sm);
+                sm = nsm;
             }
         }
-        DetectEngineAppInspectionEngine2Signature(s);
+        SCFree(s->init_data->smlists);
+        SCFree(s->init_data->smlists_tail);
+        SCFree(s->init_data);
+        s->init_data = NULL;
     }
 
 
@@ -4056,6 +3785,10 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 #endif
     SCFree(de_ctx->app_mpms);
     de_ctx->app_mpms = NULL;
+
+    if (!DetectEngineMultiTenantEnabled()) {
+        VarNameStoreActivateStaging();
+    }
     return 0;
 }
 
@@ -4085,12 +3818,6 @@ static void PrintFeatureList(const SigTableElmt *e, char sep)
         if (prev == 1)
             printf("%c", sep);
         printf("compatible with decoder event only rule");
-        prev = 1;
-    }
-    if (flags & SIGMATCH_PAYLOAD) {
-        if (prev == 1)
-            printf("%c", sep);
-        printf("payload inspecting keyword");
         prev = 1;
     }
     if (e->SupportsPrefilter) {
@@ -4208,6 +3935,9 @@ void SigTableSetup(void)
     DetectHttpResponseLineRegister();
     DetectHttpServerBodyRegister();
     DetectHttpHeaderRegister();
+    DetectHttpHeaderNamesRegister();
+    DetectHttpProtocolRegister();
+    DetectHttpStartRegister();
     DetectHttpRawHeaderRegister();
     DetectHttpMethodRegister();
     DetectHttpCookieRegister();
@@ -4238,6 +3968,7 @@ void SigTableSetup(void)
     DetectTlsSniRegister();
     DetectTlsIssuerRegister();
     DetectTlsSubjectRegister();
+    DetectTlsSerialRegister();
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
@@ -4295,7 +4026,9 @@ void SigTableSetup(void)
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
     DetectAsn1Register();
+    DetectSshProtocolRegister();
     DetectSshVersionRegister();
+    DetectSshSoftwareRegister();
     DetectSshSoftwareVersionRegister();
     DetectSslStateRegister();
     DetectSslVersionRegister();
@@ -4312,6 +4045,9 @@ void SigTableSetup(void)
     DetectBypassRegister();
     DetectHttpRequestLineRegister();
     DetectHttpResponseLineRegister();
+
+    /* close keyword registration */
+    DetectBufferTypeFinalizeRegistration();
 }
 
 void SigTableRegisterTests(void)
@@ -5397,59 +5133,42 @@ static int SigTest17 (void)
     Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 0;
-
     memset(&th_v, 0, sizeof(th_v));
 
     p = UTHBuildPacketSrcDstPorts((uint8_t *)buf, buflen, IPPROTO_TCP, 12345, 80);
+    FAIL_IF_NULL(p);
 
     ConfCreateContextBackup();
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    PktVar *pv_hn = PktVarGet(p, "http_host");
-    if (pv_hn != NULL) {
-        if (memcmp(pv_hn->value, "one.example.org", pv_hn->value_len < 15 ? pv_hn->value_len : 15) == 0)
-            result = 1;
-        else {
-            printf("\"");
-            PrintRawUriFp(stdout, pv_hn->value, pv_hn->value_len);
-            printf("\" != \"one.example.org\": ");
-        }
-        PktVarFree(pv_hn);
-    } else {
-        printf("Pkt var http_host not captured: ");
-    }
 
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    uint32_t capid = VarNameStoreLookupByName("http_host", VAR_TYPE_PKT_VAR);
+
+    PktVar *pv_hn = PktVarGet(p, capid);
+    FAIL_IF_NULL(pv_hn);
+
+    FAIL_IF(pv_hn->value_len != 15);
+    FAIL_IF_NOT(memcmp(pv_hn->value, "one.example.org", pv_hn->value_len) == 0);
+
+    PktVarFree(pv_hn);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     ConfDeInit();
     ConfRestoreContextBackup();
     UTHFreePackets(&p, 1);
-    return result;
+
+    PASS;
 }
 
 static int SigTest18 (void)
@@ -8299,15 +8018,13 @@ int SigTest40NoPayloadInspection02(void)
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-    return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int result = 1;
-
     memset(&th_v, 0, sizeof(th_v));
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
     memset(p, 0, SIZE_OF_PACKET);
+
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->payload = buf;
@@ -8315,40 +8032,26 @@ int SigTest40NoPayloadInspection02(void)
     p->proto = IPPROTO_TCP;
     p->flags |= PKT_NOPAYLOAD_INSPECTION;
 
+    DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        result = 0;
-        goto end;
-    }
-
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        result = 0;
-        goto end;
-    }
+    Signature *s = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    if (!(de_ctx->sig_list->init_flags & SIG_FLAG_INIT_PAYLOAD))
-        result = 0;
-
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        result &= 0;
-    else
-        result &= 1;
+    FAIL_IF(PacketAlertCheck(p, 1));
 
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     SCFree(p);
-    return result;
+    PASS;
 }
 
 static int SigTestMemory01 (void)
