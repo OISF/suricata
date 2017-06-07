@@ -205,7 +205,8 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     if (dns_state != NULL) {
         if (timercmp(&dns_state->last_req, &dns_state->last_resp, >=)) {
-            if (dns_state->window <= dns_state->unreplied_cnt) {
+            if ((dns_state->window < dns_config.request_flood) &&
+                (dns_state->window <= dns_state->unreplied_cnt)) {
                 dns_state->window++;
             }
         }
