@@ -55,7 +55,7 @@ build_script:
     - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; src/suricata.exe -u -l /tmp/"'
     - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; exec 0</dev/null; make -j3 DISTCHECK_CONFIGURE_FLAGS="--enable-unittests --disable-shared --disable-gccmarch-native" LDFLAGS=$LDFLAGS CC=$CC distcheck CFLAGS=$CFLAGS"'
 
-#on_finish:
-#    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+on_finish:
+    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 #    - '%CYG_BASH% -lc "cd $APPVEYOR_BUILD_FOLDER; cat config.log"'
 

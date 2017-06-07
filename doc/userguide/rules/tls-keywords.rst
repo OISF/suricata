@@ -45,6 +45,22 @@ Example::
 
 ``tls_cert_serial`` can be used as ``fast_pattern``.
 
+tls_cert_fingerprint
+--------------------
+
+Match on the SHA-1 fingerprint of the certificate.
+
+Example::
+
+  alert tls any any -> any any (msg:"match cert fingerprint"; \
+    tls_cert_fingerprint; \
+    content:"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18"; \
+    sid:200023;)
+
+``tls_cert_fingerprint`` is a 'Sticky buffer'.
+
+``tls_cert_fingerprint`` can be used as ``fast_pattern``.
+
 tls_sni
 -------
 
