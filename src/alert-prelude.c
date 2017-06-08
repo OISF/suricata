@@ -53,6 +53,16 @@
 #include "util-print.h"
 
 #include "output.h"
+
+#ifdef HAVE_LIBJANSSON
+#include "output-json.h"
+#include "output-json-http.h"
+#include "output-json-tls.h"
+#include "output-json-ssh.h"
+#include "output-json-smtp.h"
+#include "output-json-email-common.h"
+#endif
+
 #include "util-privs.h"
 #include "util-optimize.h"
 
@@ -273,10 +283,10 @@ static int EventToSourceTarget(const PacketAlert *pa, const Packet *p,
 
     SCEnter();
 
-    if ( !p )
+    if (!p)
         SCReturnInt(0);
 
-    if ( ! IPH_IS_VALID(p) )
+    if (!IPH_IS_VALID(p))
         SCReturnInt(0);
 
     if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
@@ -329,7 +339,7 @@ static int EventToSourceTarget(const PacketAlert *pa, const Packet *p,
     if (unlikely(ret < 0))
         SCReturnInt(ret);
 
-    if ( p->tcph || p->udph )
+    if (p->tcph || p->udph)
         idmef_service_set_port(service, sp);
 
     idmef_service_set_ip_version(service, ip_vers);
@@ -357,7 +367,7 @@ static int EventToSourceTarget(const PacketAlert *pa, const Packet *p,
     if (unlikely(ret < 0))
         SCReturnInt(ret);
 
-    if ( p->tcph || p->udph )
+    if (p->tcph || p->udph)
         idmef_service_set_port(service, dp);
 
     idmef_service_set_ip_version(service, ip_vers);
@@ -394,7 +404,7 @@ static int AddByteData(idmef_alert_t *alert, const char *meaning, const unsigned
 
     SCEnter();
 
-    if ( ! data || ! size )
+    if (!data || !size)
         SCReturnInt(0);
 
     ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
@@ -463,6 +473,101 @@ static int AddIntData(idmef_alert_t *alert, const char *meaning, uint32_t data)
 }
 
 /**
+ * \brief Add string data, to be stored in the Additional Data
+ * field of the IDMEF alert (see section 4.2.4.6 of RFC 4765).
+ * \param alert IDMEF alert where to add additional data
+ * \param meaning Name of the value to add to IDMEF alert
+ * \param data String to add to IDMEF alert
+ * \return 0 if ok
+ */
+static int AddStringData(idmef_alert_t *alert, const char *meaning, const char *data)
+{
+    int ret;
+    idmef_additional_data_t *ad;
+    prelude_string_t * p_str;
+
+    SCEnter();
+
+    ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
+    if (unlikely(ret < 0))
+        SCReturnInt(ret);
+
+    ret = idmef_additional_data_new_meaning(ad, &p_str);
+    if (ret < 0) {
+        idmef_additional_data_destroy(ad);
+        SCReturnInt(ret);
+    }
+
+    ret = prelude_string_ncat(p_str, meaning, strlen(meaning));
+    if (ret < 0) {
+        idmef_additional_data_destroy(ad);
+        SCReturnInt(ret);
+    }
+
+    ret = prelude_string_new(&p_str);
+    if (ret < 0) {
+        idmef_additional_data_destroy(ad);
+        SCReturnInt(ret);
+    }
+
+    ret = prelude_string_ncat(p_str, data, strlen(data));
+    if (ret < 0) {
+        prelude_string_destroy(p_str);
+        idmef_additional_data_destroy(ad);
+        SCReturnInt(ret);
+    }
+
+    ret = idmef_additional_data_set_string_dup_fast(ad, prelude_string_get_string(p_str), prelude_string_get_len(p_str));
+
+    prelude_string_destroy(p_str);
+
+    if (ret < 0) {
+        idmef_additional_data_destroy(ad);
+        SCReturnInt(ret);
+    }
+    SCReturnInt(0);
+}
+
+/**
+ * \brief Add real data, to be stored in the Additional Data
+ * field of the IDMEF alert (see section 4.2.4.6 of RFC 4765).
+ * \param alert IDMEF alert where to add additional data
+ * \param meaning Name of the value to add to IDMEF alert
+ * \param data Real to add to IDMEF alert
+ * \return 0 if ok
+ */
+static int AddRealData(idmef_alert_t *alert, const char *meaning, uint32_t data)
+{
+    int ret;
+    prelude_string_t *str;
+    idmef_additional_data_t *ad;
+
+    SCEnter();
+
+    ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
+    if (unlikely(ret < 0))
+        SCReturnInt(ret);
+
+    idmef_additional_data_set_real(ad, data);
+
+    ret = idmef_additional_data_new_meaning(ad, &str);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating additional-data meaning: %s.",
+                        prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(-1);
+    }
+
+    ret = prelude_string_set_ref(str, meaning);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting integer data meaning: %s.",
+                        prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
  * \brief Add IPv4 header data, to be stored in the Additional Data
  * field of the IDMEF alert (see section 4.2.4.6 of RFC 4765).
  *
@@ -510,6 +615,181 @@ static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t 
     SCReturnInt(0);
 }
 
+#ifdef HAVE_LIBJANSSON
+/**
+ * \brief Convert JSON object to Prelude additional data with
+ * the right type of data. Browse the JSON object to get
+ * the key=value information.
+ * \param key Name of the JSON value
+ * \param value JSON object to add to the IDMEF alert
+ * \param alert IDMEF alert
+ * \return 0 if ok
+ */
+int JsonToAdditionnalData(const char * key, json_t * value, idmef_alert_t *alert) {
+    int ret;
+    const char *key_js;
+    char local_key[128];
+    json_t *value_js;
+    size_t index;
+    SCEnter();
+
+    if (!json_is_object(value) && key == NULL)
+        SCReturnInt(-1);
+
+    if (json_is_object(value)) {
+        json_object_foreach(value, key_js, value_js) {
+            if (key != NULL) {
+                snprintf(local_key, sizeof(local_key), "%s_%s", key, key_js);
+            } else {
+                snprintf(local_key, sizeof(local_key), "%s", key_js);
+            }
+            ret = JsonToAdditionnalData(local_key, value_js, alert);
+        }
+    } else if (json_is_array(value)) {
+        json_array_foreach(value, index, value_js) {
+            snprintf(local_key, sizeof(local_key), "%s_%d", key, index);
+            ret = JsonToAdditionnalData(local_key, value_js, alert);
+        }
+    } else if (json_is_integer(value)) {
+        ret = AddIntData(alert, key, json_integer_value(value));
+    } else if (json_is_real(value)) {
+        ret = AddRealData(alert, key, json_real_value(value));
+    } else if (json_is_boolean(value)) {
+        ret = AddIntData(alert, key, json_is_true(value));
+    } else if (json_is_string(value)) {
+        ret = AddStringData(alert, key, json_string_value(value));
+    } else {
+        ret = AddStringData(alert, key, json_dumps(value, 0));
+    }
+    SCReturnInt(ret);
+}
+
+/**
+ * \brief Handle ALPROTO_HTTP JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoHTTP(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    json_t *js;
+
+    js = JsonHttpAddMetadata(p->flow, pa->tx_id);
+    if (js == NULL)
+        return;
+
+    JsonToAdditionnalData(NULL, js, alert);
+
+    json_decref(js);
+
+}
+
+/**
+ * \brief Handle ALPROTO_TLS JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoTLS(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    json_t *js;
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
+
+    if (ssl_state == NULL)
+        return;
+
+    js = json_object();
+    if (js == NULL)
+        return;
+
+    JsonTlsLogJSONBasic(js, ssl_state);
+    JsonTlsLogJSONExtended(js, ssl_state);
+    JsonToAdditionnalData(NULL, js, alert);
+
+    json_decref(js);
+
+}
+
+/**
+ * \brief Handle ALPROTO_SSH JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoSSH(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    json_t *js, *s_js;
+    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+
+    if (ssh_state == NULL)
+        return;
+
+    js = json_object();
+    if (js == NULL)
+        return;
+
+    JsonSshLogJSON(js, ssh_state);
+
+    s_js = json_object_get(js, "server");
+    if (s_js != NULL) {
+        JsonToAdditionnalData(NULL, s_js, alert);
+    }
+
+    s_js = json_object_get(js, "client");
+    if (s_js != NULL) {
+        JsonToAdditionnalData(NULL, s_js, alert);
+    }
+
+    json_decref(js);
+
+}
+
+/**
+ * \brief Handle ALPROTO_SMTP JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoSMTP(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    json_t *js;
+
+    js = JsonSMTPAddMetadata(p->flow, pa->tx_id);
+    if (js == NULL)
+        return;
+
+    JsonToAdditionnalData(NULL, js, alert);
+
+    json_decref(js);
+
+}
+
+/**
+ * \brief Handle ALPROTO_SMTP Email JSON information
+ * \param p Packet where to extract data
+ * \param pa Packet alert information
+ * \param alert IDMEF alert
+ * \return void
+ */
+static void PacketToDataProtoEmail(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
+{
+    json_t *js;
+
+    js = JsonEmailAddMetadata(p->flow, pa->tx_id);
+    if (js == NULL)
+        return;
+
+    JsonToAdditionnalData(NULL, js, alert);
+
+    json_decref(js);
+
+}
+
+#endif
 
 /**
  * \brief Convert IP packet to an IDMEF alert (RFC 4765).
@@ -525,17 +805,44 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
     if (unlikely(p == NULL))
         SCReturnInt(0);
 
+#ifdef HAVE_LIBJANSSON
+    if (p->flow != NULL) {
+        uint16_t proto = FlowGetAppProtocol(p->flow);
+
+        switch (proto) {
+
+            case ALPROTO_HTTP:
+                PacketToDataProtoHTTP(p, pa, alert);
+                break;
+
+            case ALPROTO_TLS:
+                PacketToDataProtoTLS(p, pa, alert);
+                break;
+
+            case ALPROTO_SSH:
+                PacketToDataProtoSSH(p, pa, alert);
+                break;
+
+            case ALPROTO_SMTP:
+                PacketToDataProtoSMTP(p, pa, alert);
+                PacketToDataProtoEmail(p, pa, alert);
+                break;
+        }
+
+    }
+#endif
+
     AddIntData(alert, "snort_rule_sid", pa->s->id);
     AddIntData(alert, "snort_rule_rev", pa->s->rev);
 
     if (ctx->log_packet_header) {
-        if ( PKT_IS_IPV4(p) )
+        if (PKT_IS_IPV4(p))
             PacketToDataV4(p, pa, alert);
 
-        else if ( PKT_IS_IPV6(p) )
+        else if (PKT_IS_IPV6(p))
             PacketToDataV6(p, pa, alert);
 
-        if ( PKT_IS_TCP(p) ) {
+        if (PKT_IS_TCP(p)) {
             AddIntData(alert, "tcp_seq", TCP_GET_SEQ(p));
             AddIntData(alert, "tcp_ack", TCP_GET_ACK(p));
 
@@ -564,19 +871,19 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             AddIntData(alert, "tcp_hlen", TCP_GET_HLEN(p));
         }
 
-        else if ( PKT_IS_UDP(p) ) {
+        else if (PKT_IS_UDP(p)) {
             AddIntData(alert, "udp_len", UDP_GET_LEN(p));
             AddIntData(alert, "udp_sum", UDP_GET_SUM(p));
         }
 
-        else if ( PKT_IS_ICMPV4(p) ) {
+        else if (PKT_IS_ICMPV4(p)) {
             AddIntData(alert, "icmp_type", ICMPV4_GET_TYPE(p));
             AddIntData(alert, "icmp_code", ICMPV4_GET_CODE(p));
             AddIntData(alert, "icmp_sum", ICMPV4_GET_RAW_CSUM(p));
 
         }
 
-        else if ( PKT_IS_ICMPV6(p) ) {
+        else if (PKT_IS_ICMPV6(p)) {
             AddIntData(alert, "icmp_type", ICMPV6_GET_TYPE(p));
             AddIntData(alert, "icmp_code", ICMPV6_GET_CODE(p));
             AddIntData(alert, "icmp_csum", ICMPV6_GET_RAW_CSUM(p));
@@ -603,7 +910,7 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
 
     SCEnter();
 
-    if ( sig_id >= SNORT_MAX_OWNED_SID )
+    if (sig_id >= SNORT_MAX_OWNED_SID)
         SCReturnInt(0);
 
     ret = idmef_classification_new_reference(class, &ref, IDMEF_LIST_APPEND);
@@ -616,7 +923,7 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
 
     idmef_reference_set_origin(ref, IDMEF_REFERENCE_ORIGIN_VENDOR_SPECIFIC);
 
-    if ( gen_id == 0 )
+    if (gen_id == 0)
         ret = prelude_string_sprintf(str, "%u", sig_id);
     else
         ret = prelude_string_sprintf(str, "%u:%u", gen_id, sig_id);
@@ -636,7 +943,7 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
     if (unlikely(ret < 0))
         SCReturnInt(ret);
 
-    if ( gen_id == 0 )
+    if (gen_id == 0)
         ret = prelude_string_sprintf(str, ANALYZER_SID_URL "%u", sig_id);
     else
         ret = prelude_string_sprintf(str, ANALYZER_SID_URL "%u-%u", gen_id, sig_id);
@@ -663,7 +970,7 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     if (unlikely(ret < 0))
         SCReturnInt(ret);
 
-    if ( pa->s->gid == 0 )
+    if (pa->s->gid == 0)
         ret = prelude_string_sprintf(str, "%u", pa->s->id);
     else
         ret = prelude_string_sprintf(str, "%u:%u", pa->s->gid, pa->s->id);
@@ -804,7 +1111,7 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     log_packet_header = ConfNodeLookupChildValue(conf, "log-packet-header");
 
     ret = prelude_client_new(&client, prelude_profile_name);
-    if ( unlikely(ret < 0 || client == NULL )) {
+    if (unlikely(ret < 0 || client == NULL)) {
         prelude_perror(ret, "Unable to create a prelude client object");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
@@ -905,7 +1212,7 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (p->alerts.cnt == 0)
         SCReturnInt(TM_ECODE_OK);
 
-    if ( !IPH_IS_VALID(p) )
+    if (!IPH_IS_VALID(p))
         SCReturnInt(TM_ECODE_OK);
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
