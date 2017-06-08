@@ -853,6 +853,7 @@ int UnixManagerInit(void)
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
+        SCFree(utd);
         if (failure_fatal) {
             SCLogError(SC_ERR_INITIALIZATION,
                     "Unable to create unix command socket");
