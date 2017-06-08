@@ -283,6 +283,9 @@ pub struct NFS3State {
     ts_chunk_left: u32,
     tc_chunk_left: u32,
 
+    ts_ssn_gap: bool,
+    tc_ssn_gap: bool,
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -308,6 +311,8 @@ impl NFS3State {
             tc_chunk_xid:0,
             ts_chunk_left:0,
             tc_chunk_left:0,
+            ts_ssn_gap:false,
+            tc_ssn_gap:false,
             tx_id:0,
             de_state_count:0,
             //ts_txs_updated:false,
@@ -701,7 +706,14 @@ impl NFS3State {
         let xidmap;
         match self.requestmap.remove(&r.hdr.xid) {
             Some(p) => { xidmap = p; },
-            _ => { SCLogDebug!("REPLY: xid {} NOT FOUND", r.hdr.xid); return 0; },
+            _ => {
+                SCLogDebug!("REPLY: xid {} NOT FOUND. GAPS? TS:{} TC:{}",
+                        r.hdr.xid, self.ts_ssn_gap, self.tc_ssn_gap);
+
+                // TODO we might be able to try to infer from the size + data
+                // that this is a READ reply and pass the data to the file API anyway?
+                return 0;
+            },
         }
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
@@ -809,7 +821,7 @@ impl NFS3State {
 
     // update in progress chunks for file transfers
     // return how much data we consumed
-    fn filetracker_update(&mut self, direction: u8, data: &[u8]) -> u32 {
+    fn filetracker_update(&mut self, direction: u8, data: &[u8], gap_size: u32) -> u32 {
         let mut chunk_left = if direction == STREAM_TOSERVER {
             self.ts_chunk_left
         } else {
@@ -877,6 +889,7 @@ impl NFS3State {
             self.tc_chunk_left = chunk_left;
         }
 
+        let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // get the tx and update it
         let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
             Some((tx, files, flags)) => {
@@ -884,7 +897,15 @@ impl NFS3State {
                     Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
                 };
-                let cs = tdf.file_tracker.update(files, flags, data);
+                if ssn_gap {
+                    let queued_data = tdf.file_tracker.get_queued_size();
+                    if queued_data > 2000000 { // TODO should probably be configurable
+                        SCLogDebug!("QUEUED size {} while we've seen GAPs. Truncating file.", queued_data);
+                        tdf.file_tracker.trunc(files, flags);
+                    }
+                }
+
+                let cs = tdf.file_tracker.update(files, flags, data, gap_size);
                 cs
             },
             None => { 0 },
@@ -993,6 +1014,32 @@ impl NFS3State {
         xidmap.procedure
     }
 
+    pub fn parse_tcp_data_ts_gap<'b>(&mut self, gap_size: u32) -> u32 {
+        if self.tcp_buffer_ts.len() > 0 {
+            self.tcp_buffer_ts.clear();
+        }
+        let v = Vec::new();
+        let consumed = self.filetracker_update(STREAM_TOSERVER, &v, gap_size);
+        if consumed > gap_size {
+            panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
+        }
+        self.ts_ssn_gap = true;
+        return 0
+    }
+
+    pub fn parse_tcp_data_tc_gap<'b>(&mut self, gap_size: u32) -> u32 {
+        if self.tcp_buffer_tc.len() > 0 {
+            self.tcp_buffer_tc.clear();
+        }
+        let v = Vec::new();
+        let consumed = self.filetracker_update(STREAM_TOCLIENT, &v, gap_size);
+        if consumed > gap_size {
+            panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
+        }
+        self.tc_ssn_gap = true;
+        return 0
+    }
+
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32 {
         let mut v : Vec<u8>;
@@ -1006,7 +1053,7 @@ impl NFS3State {
                 v = self.tcp_buffer_ts.split_off(0);
                 // sanity check vector length to avoid memory exhaustion
                 if self.tcp_buffer_ts.len() + i.len() > 1000000 {
-                    SCLogNotice!("parse_tcp_data_ts: TS buffer exploded {} {}",
+                    SCLogDebug!("parse_tcp_data_ts: TS buffer exploded {} {}",
                             self.tcp_buffer_ts.len(), i.len());
                     return 1;
                 };
@@ -1017,17 +1064,15 @@ impl NFS3State {
         //SCLogDebug!("tcp_buffer ({})",tcp_buffer.len());
         let mut cur_i = tcp_buffer;
         if cur_i.len() > 1000000 {
-            SCLogNotice!("BUG buffer exploded: {}", cur_i.len());
+            SCLogDebug!("BUG buffer exploded: {}", cur_i.len());
         }
-
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i);
+        let consumed = self.filetracker_update(STREAM_TOSERVER, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 { panic!("BUG consumed more than we gave it"); }
             cur_i = &cur_i[consumed as usize..];
         }
-
         while cur_i.len() > 0 { // min record size
             match parse_rpc_request_partial(cur_i) {
                 IResult::Done(_, ref rpc_phdr) => {
@@ -1122,6 +1167,7 @@ impl NFS3State {
                     SCLogDebug!("TC buffer exploded");
                     return 1;
                 };
+
                 v.extend_from_slice(i);
                 v.as_slice()
             },
@@ -1130,17 +1176,16 @@ impl NFS3State {
 
         let mut cur_i = tcp_buffer;
         if cur_i.len() > 100000 {
-            SCLogNotice!("parse_tcp_data_tc: BUG buffer exploded {}", cur_i.len());
+            SCLogDebug!("parse_tcp_data_tc: BUG buffer exploded {}", cur_i.len());
         }
 
         // take care of in progress file chunk transfers
         // and skip buffer beyond it
-        let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i);
+        let consumed = self.filetracker_update(STREAM_TOCLIENT, cur_i, 0);
         if consumed > 0 {
             if consumed > cur_i.len() as u32 { panic!("BUG consumed more than we gave it"); }
             cur_i = &cur_i[consumed as usize..];
         }
-
         while cur_i.len() > 0 {
             match parse_rpc_packet_header(cur_i) {
                 IResult::Done(_, ref rpc_hdr) => {
@@ -1260,6 +1305,14 @@ pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
+
+    if buf.as_ptr().is_null() && input_len > 0 {
+        if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
+            return 1
+        }
+        return -1
+    }
+
     if state.parse_tcp_data_ts(buf) == 0 {
         1
     } else {
@@ -1278,6 +1331,14 @@ pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+
+    if buf.as_ptr().is_null() && input_len > 0 {
+        if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
+            return 1
+        }
+        return -1
+    }
+
     if state.parse_tcp_data_tc(buf) == 0 {
         1
     } else {
