@@ -124,6 +124,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     if (ff->magic)
         json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
 #endif
+    json_object_set_new(fjs, "gaps", json_boolean((ff->flags & FILE_HAS_GAPS)));
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             json_object_set_new(fjs, "state", json_string("CLOSED"));

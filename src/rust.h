@@ -33,6 +33,8 @@ typedef struct SuricataContext_ {
             const uint8_t *data, uint32_t data_len, uint16_t flags);
     int (*FileAppendDataById)(FileContainer *, uint32_t track_id,
             const uint8_t *data, uint32_t data_len);
+    int (*FileAppendGAPById)(FileContainer *, uint32_t track_id,
+            const uint8_t *data, uint32_t data_len);
     void (*FileContainerRecycle)(FileContainer *ffc);
     void (*FilePrune)(FileContainer *ffc);
     void (*FileSetTx)(FileContainer *, uint64_t);

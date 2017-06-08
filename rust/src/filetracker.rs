@@ -15,7 +15,19 @@
  * 02110-1301, USA.
  */
 
-// written by Victor Julien
+/**
+ *  \file
+ *  \author Victor Julien <victor@inliniac.net>
+ *
+ * Tracks chunk based file transfers. Chunks may be transfered out
+ * of order, but cannot be transfered in parallel. So only one
+ * chunk at a time.
+ *
+ * GAP handling. If a data gap is encountered, the file is truncated
+ * and new data is no longer pushed down to the lower level APIs.
+ * The tracker does continue to follow the file.
+ */
+
 extern crate libc;
 use log::*;
 use core::*;
@@ -24,9 +36,25 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use filecontainer::*;
 
 #[derive(Debug)]
+pub struct FileChunk {
+    contains_gap: bool,
+    chunk: Vec<u8>,
+}
+
+impl FileChunk {
+    pub fn new(size: u32) -> FileChunk {
+        FileChunk {
+            contains_gap: false,
+            chunk: Vec::with_capacity(size as usize),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct FileTransferTracker {
     file_size: u64,
     tracked: u64,
+    cur_ooo: u64,   // how many bytes do we have queued from ooo chunks
     track_id: u32,
     chunk_left: u32,
 
@@ -36,8 +64,9 @@ pub struct FileTransferTracker {
     pub file_open: bool,
     chunk_is_last: bool,
     chunk_is_ooo: bool,
+    file_is_truncated: bool,
 
-    chunks: HashMap<u64, Vec<u8>>,
+    chunks: HashMap<u64, FileChunk>,
     cur_ooo_chunk_offset: u64,
 }
 
@@ -46,6 +75,7 @@ impl FileTransferTracker {
         FileTransferTracker {
             file_size:0,
             tracked:0,
+            cur_ooo:0,
             track_id:0,
             chunk_left:0,
             tx_id:0,
@@ -53,6 +83,7 @@ impl FileTransferTracker {
             file_open:false,
             chunk_is_last:false,
             chunk_is_ooo:false,
+            file_is_truncated:false,
             cur_ooo_chunk_offset:0,
             chunks:HashMap::new(),
         }
@@ -70,10 +101,23 @@ impl FileTransferTracker {
     }
 
     pub fn close(&mut self, files: &mut FileContainer, flags: u16) {
-        files.file_close(&self.track_id, flags);
+        if !self.file_is_truncated {
+            files.file_close(&self.track_id, flags);
+        }
         self.file_open = false;
         self.tracked = 0;
         files.files_prune();
+    }
+
+    pub fn trunc (&mut self, files: &mut FileContainer, flags: u16) {
+        if self.file_is_truncated {
+            return;
+        }
+        let myflags = flags | 1; // TODO util-file.c::FILE_TRUNCATED
+        files.file_close(&self.track_id, myflags);
+        SCLogDebug!("truncated file");
+        files.files_prune();
+        self.file_is_truncated = true;
     }
 
     pub fn create(&mut self, name: &[u8], file_size: u64) {
@@ -92,8 +136,15 @@ impl FileTransferTracker {
 
         SCLogDebug!("NEW CHUNK: chunk_size {} fill_bytes {}", chunk_size, fill_bytes);
 
+        // for now assume that is_last means its really the last chunk
+        // so no out of order chunks coming after. This means that if
+        // the last chunk is out or order, we've missed chunks before.
         if chunk_offset != self.tracked {
             SCLogDebug!("NEW CHUNK IS OOO: expected {}, got {}", self.tracked, chunk_offset);
+            if is_last {
+                SCLogDebug!("last chunk is out of order, this means we missed data before");
+                self.trunc(files, flags);
+            }
             self.chunk_is_ooo = true;
             self.cur_ooo_chunk_offset = chunk_offset;
         }
@@ -108,14 +159,21 @@ impl FileTransferTracker {
             self.open(config, files, flags, name);
         }
 
-        let res = self.update(files, flags, data);
+        let res = self.update(files, flags, data, 0);
         SCLogDebug!("NEW CHUNK: update res {:?}", res);
         res
     }
 
+    /// update the file tracker
+    /// If gap_size > 0 'data' should not be used.
     /// return how much we consumed of data
-    pub fn update(&mut self, files: &mut FileContainer, flags: u16, data: &[u8]) -> u32 {
+    pub fn update(&mut self, files: &mut FileContainer, flags: u16, data: &[u8], gap_size: u32) -> u32 {
         let mut consumed = 0 as usize;
+        let is_gap = gap_size > 0;
+        if is_gap || gap_size > 0 {
+            SCLogDebug!("is_gap {} size {} ooo? {}", is_gap, gap_size, self.chunk_is_ooo);
+        }
+
         if self.chunk_left + self.fill_bytes as u32 == 0 {
             //SCLogDebug!("UPDATE: nothing to do");
             return 0
@@ -140,7 +198,7 @@ impl FileTransferTracker {
                 let d = &data[0..self.chunk_left as usize];
 
                 if self.chunk_is_ooo == false {
-                    let res = files.file_append(&self.track_id, d);
+                    let res = files.file_append(&self.track_id, d, is_gap);
                     if res != 0 { panic!("append failed"); }
 
                     self.tracked += self.chunk_left as u64;
@@ -149,11 +207,13 @@ impl FileTransferTracker {
                             d.len(), self.cur_ooo_chunk_offset, self.tracked);
                     let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
                         Vacant(entry) => {
-                            entry.insert(Vec::with_capacity(self.chunk_left as usize))
+                            entry.insert(FileChunk::new(self.chunk_left))
                         },
                         Occupied(entry) => entry.into_mut(),
                     };
-                    c.extend(d);
+                    self.cur_ooo += d.len() as u64;
+                    c.contains_gap |= is_gap;
+                    c.chunk.extend(d);
                 }
 
                 consumed += self.chunk_left as usize;
@@ -169,7 +229,6 @@ impl FileTransferTracker {
                         SCLogDebug!("CHUNK(post) fill bytes now still {}", self.fill_bytes);
                     }
                     self.chunk_left = 0;
-                    //return consumed as u32
                 } else {
                     self.chunk_left = 0;
 
@@ -177,13 +236,14 @@ impl FileTransferTracker {
                         loop {
                             let offset = self.tracked;
                             match self.chunks.remove(&self.tracked) {
-                                Some(a) => {
-                                    let res = files.file_append(&self.track_id, &a);
-                                    if res != 0 { panic!("append failed"); }
+                                Some(c) => {
+                                    let res = files.file_append(&self.track_id, &c.chunk, c.contains_gap);
+                                    if res != 0 { panic!("append failed: files.file_append() returned {}", res); }
 
-                                    self.tracked += a.len() as u64;
+                                    self.tracked += c.chunk.len() as u64;
+                                    self.cur_ooo -= c.chunk.len() as u64;
 
-                                    SCLogDebug!("STORED OOO CHUNK at offset {}, tracked now {}, stored len {}", offset, self.tracked, a.len());
+                                    SCLogDebug!("STORED OOO CHUNK at offset {}, tracked now {}, stored len {}", offset, self.tracked, c.chunk.len());
                                 },
                                 _ => {
                                     SCLogDebug!("NO STORED CHUNK found at offset {}", self.tracked);
@@ -208,15 +268,17 @@ impl FileTransferTracker {
 
             } else {
                 if self.chunk_is_ooo == false {
-                    let res = files.file_append(&self.track_id, data);
+                    let res = files.file_append(&self.track_id, data, is_gap);
                     if res != 0 { panic!("append failed"); }
                     self.tracked += data.len() as u64;
                 } else {
                     let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
-                        Vacant(entry) => entry.insert(Vec::with_capacity(32768)),
+                        Vacant(entry) => entry.insert(FileChunk::new(32768)),
                         Occupied(entry) => entry.into_mut(),
                     };
-                    c.extend(data);
+                    c.chunk.extend(data);
+                    c.contains_gap |= is_gap;
+                    self.cur_ooo += data.len() as u64;
                 }
 
                 self.chunk_left -= data.len() as u32;
@@ -225,5 +287,9 @@ impl FileTransferTracker {
         }
         files.files_prune();
         consumed as u32
+    }
+
+    pub fn get_queued_size(&self) -> u64 {
+        self.cur_ooo
     }
 }

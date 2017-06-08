@@ -80,6 +80,10 @@ pub type SCFileAppendDataById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,
         data: *const u8, data_len: u32) -> i32;
+pub type SCFileAppendGAPById = extern "C" fn (
+        file_container: &FileContainer,
+        track_id: u32,
+        data: *const u8, data_len: u32) -> i32;
 // void FilePrune(FileContainer *ffc)
 pub type SCFilePrune = extern "C" fn (
         file_container: &FileContainer);
@@ -109,6 +113,7 @@ pub struct SuricataContext {
     pub FileOpenFile: SCFileOpenFileWithId,
     pub FileCloseFile: SCFileCloseFileById,
     pub FileAppendData: SCFileAppendDataById,
+    pub FileAppendGAP: SCFileAppendGAPById,
     pub FileContainerRecycle: SCFileContainerRecycle,
     pub FilePrune: SCFilePrune,
     pub FileSetTx: SCFileSetTx,
