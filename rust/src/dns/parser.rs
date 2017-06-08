@@ -234,6 +234,7 @@ pub fn dns_parse_request<'a>(input: &'a [u8]) -> nom::IResult<&[u8], DNSRequest>
 #[cfg(test)]
 mod tests {
 
+    use dns::dns::{DNSHeader,DNSAnswerEntry};
     use dns::parser::*;
     use nom::IResult;
 
