@@ -205,6 +205,13 @@ pub fn dns_parse_rdata<'a>(data: &'a [u8], message: &'a [u8], rrtype: u16)
                     (name)
             ))(data)
         },
+        DNS_RTYPE_TXT => {
+            closure!(&'a [u8], do_parse!(
+                len: be_u8 >>
+                txt: take!(len) >>
+                    (txt.to_vec())
+            ))(data)
+        },
         _ => nom::IResult::Done(data, data.to_vec())
     }
 }

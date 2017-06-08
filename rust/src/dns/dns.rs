@@ -32,6 +32,7 @@ pub const DNS_RTYPE_CNAME: u16 = 5;
 pub const DNS_RTYPE_SOA:   u16 = 6;
 pub const DNS_RTYPE_PTR:   u16 = 12;
 pub const DNS_RTYPE_MX:    u16 = 15;
+pub const DNS_RTYPE_TXT:   u16 = 16;
 pub const DNS_RTYPE_AAAA:  u16 = 28;
 pub const DNS_RTYPE_SSHFP: u16 = 44;
 pub const DNS_RTYPE_RRSIG: u16 = 46;
