@@ -346,6 +346,10 @@ void RegisterNFS3Parsers(void)
 //            NFS3StateGetEventInfo);
 //        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS3,
 //            NFS3GetEvents);
+
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_NFS3,
+                APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
     }
     else {
         SCLogDebug("NFS3 protocol parsing disabled.");
