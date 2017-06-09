@@ -271,6 +271,8 @@ pub struct DNSState {
 
     pub request_buffer: Vec<u8>,
     pub response_buffer: Vec<u8>,
+
+    gap: bool,
 }
 
 impl DNSState {
@@ -283,6 +285,7 @@ impl DNSState {
             events: 0,
             request_buffer: Vec::new(),
             response_buffer: Vec::new(),
+            gap: false,
         };
     }
 
@@ -296,6 +299,7 @@ impl DNSState {
             events: 0,
             request_buffer: Vec::with_capacity(0xffff),
             response_buffer: Vec::with_capacity(0xffff),
+            gap: false,
         };
     }
 
@@ -465,6 +469,14 @@ impl DNSState {
     /// Always buffer and read from the buffer. Should optimize to skip
     /// the buffer if not needed.
     pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
+        if self.gap {
+            if probe_tcp(input) {
+                self.gap = false;
+            } else {
+                return 0
+            }
+        }
+
         self.request_buffer.extend_from_slice(input);
 
         while self.request_buffer.len() > 0 {
@@ -496,6 +508,14 @@ impl DNSState {
     /// Always buffer and read from the buffer. Should optimize to skip
     /// the buffer if not needed.
     pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
+        if self.gap {
+            if probe_tcp(input) {
+                self.gap = false;
+            } else {
+                return 0
+            }
+        }
+
         self.response_buffer.extend_from_slice(input);
         let size = match nom::be_u16(&self.response_buffer) {
             nom::IResult::Done(_, len) => {
@@ -511,7 +531,25 @@ impl DNSState {
             }
             return -1;
         }
-        0
+        return 0
+    }
+
+    /// A gap has been seen in the request direction. Set the gap flag
+    /// to clear any buffered data.
+    pub fn request_gap(&mut self, gap: u32) {
+        if gap > 0 {
+            self.request_buffer.clear();
+            self.gap = true;
+        }
+    }
+
+    /// A gap has been seen in the response direction. Set the gap
+    /// flag to clear any buffered data.
+    pub fn response_gap(&mut self, gap: u32) {
+        if gap > 0 {
+            self.response_buffer.clear();
+            self.gap = true;
+        }
     }
 }
 
@@ -521,6 +559,27 @@ impl Drop for DNSState {
     fn drop(&mut self) {
         self.free();
     }
+}
+
+/// Probe input to see if it looks like DNS.
+fn probe(input: &[u8]) -> bool {
+    match parser::dns_parse_request(input) {
+        nom::IResult::Done(_, _) => true,
+        _ => false
+    }
+}
+
+/// Probe TCP input to see if it looks like DNS.
+pub fn probe_tcp(input: &[u8]) -> bool {
+    match nom::be_u16(input) {
+        nom::IResult::Done(rem, len) => {
+            if rem.len() >= len as usize {
+                return probe(rem);
+            }
+        },
+        _ => {}
+    }
+    return false;
 }
 
 /// Returns *mut DNSState
@@ -596,8 +655,15 @@ pub extern "C" fn rs_dns_parse_request_tcp(_flow: *mut core::Flow,
                                            input_len: libc::uint32_t,
                                            _data: *mut libc::c_void)
                                            -> libc::int8_t {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
-    return state.parse_request_tcp(buf);
+    if input_len > 0 {
+        if input != std::ptr::null_mut() {
+            let buf = unsafe{
+                std::slice::from_raw_parts(input, input_len as usize)};
+            return state.parse_request_tcp(buf);
+        }
+        state.request_gap(input_len);
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -608,8 +674,15 @@ pub extern "C" fn rs_dns_parse_response_tcp(_flow: *mut core::Flow,
                                             input_len: libc::uint32_t,
                                             _data: *mut libc::c_void)
                                             -> libc::int8_t {
-    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
-    return state.parse_response_tcp(buf);
+    if input_len > 0 {
+        if input != std::ptr::null_mut() {
+            let buf = unsafe{
+                std::slice::from_raw_parts(input, input_len as usize)};
+            return state.parse_response_tcp(buf);
+        }
+        state.response_gap(input_len);
+    }
+    return 0;
 }
 
 #[no_mangle]
@@ -800,14 +873,10 @@ pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    match parser::dns_parse_request(slice) {
-        nom::IResult::Done(_, _) => {
-            return 1;
-        }
-        _ => {
-            return 0;
-        }
+    if probe(slice) {
+        return 1;
     }
+    return 0;
 }
 
 #[no_mangle]
@@ -818,18 +887,8 @@ pub extern "C" fn rs_dns_probe_tcp(input: *const libc::uint8_t,
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    match nom::be_u16(slice) {
-        nom::IResult::Done(rem, len) => {
-            if rem.len() >= len as usize {
-                match parser::dns_parse_request(rem) {
-                    nom::IResult::Done(_, _) => {
-                        return 1;
-                    }
-                    _ => {}
-                }
-            }
-        }
-        _ => {}
+    if probe_tcp(slice) {
+        return 1;
     }
     return 0;
 }

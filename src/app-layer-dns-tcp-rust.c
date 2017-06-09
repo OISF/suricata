@@ -180,6 +180,11 @@ void RegisterRustDNSTCPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                 rs_dns_state_progress_completion_status);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
+
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_DNS,
+                APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
+
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
