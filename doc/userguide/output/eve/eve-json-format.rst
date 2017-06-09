@@ -64,6 +64,27 @@ Example:
 
 Action is set to "allowed" unless a rule used the "drop" action and Suricata is in IPS mode, or when the rule used the "reject" action.
 
+It can also contain information about Source and Target of the attack in the alert.source and alert.target field. Metadata
+information can also be added to the alert to get more context.
+
+::
+
+   "alert": {
+     "action": "allowed",
+     "gid": 1,
+     "signature_id": 1,
+     "rev": 1,
+     "signature": "HTTP body talking about corruption",
+     "severity": 3,
+     "source": {
+       "ip": "192.168.43.32",
+       "port": 36292
+     },
+     "target": {
+       "ip": "179.60.192.3",
+       "port": 80
+     },
+
 Event type: HTTP
 ----------------
 
