@@ -276,6 +276,7 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
         DNS_RTYPE_SOA => "SOA",
         DNS_RTYPE_PTR => "PTR",
         DNS_RTYPE_MX => "MX",
+        DNS_RTYPE_TXT => "TXT",
         DNS_RTYPE_AAAA => "AAAA",
         DNS_RTYPE_SSHFP => "SSHFP",
         DNS_RTYPE_RRSIG => "RRSIG",
@@ -389,6 +390,7 @@ fn dns_log_json_answer(header: &DNSHeader, answer: &DNSAnswerEntry)
         }
         DNS_RTYPE_CNAME |
         DNS_RTYPE_MX |
+        DNS_RTYPE_TXT |
         DNS_RTYPE_PTR => {
             js.set_string("rdata", answer.data_to_string());
         },
