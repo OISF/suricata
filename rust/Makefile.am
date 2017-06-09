@@ -5,8 +5,11 @@ EXTRA_DIST = 	Cargo.toml \
 		gen/c-headers
 
 if HAVE_RUST
-EXTRA_DIST +=	Cargo.lock \
-		vendor
+
+EXTRA_DIST +=	Cargo.lock
+
+if HAVE_CARGO_VENDOR
+EXTRA_DIST +=	vendor
 endif
 
 if HAVE_RUST_VENDOR
@@ -16,15 +19,6 @@ endif
 if !DEBUG
 RELEASE = --release
 endif
-
-gen/c-headers:
-if HAVE_PYTHON
-	cd $(top_srcdir)/rust && python ./gen-c-headers.py
-else
-	@echo "python not available, will not generate headers"
-endif
-
-if HAVE_RUST
 
 FEATURES =
 
@@ -56,15 +50,23 @@ check:
 
 Cargo.lock: Cargo.toml
 	cargo update
-else
-all-local clean-local check:
-endif
 
 if HAVE_CARGO_VENDOR
 vendor:
 	cargo vendor > /dev/null
 else
 vendor:
-	@echo "error: cargo vendor not installed"
-	exit 1
+endif
+
+else # HAVE_RUST
+
+all-local clean-local check vendor:
+
+endif # HAVE_RUST
+
+gen/c-headers:
+if HAVE_PYTHON
+	cd $(top_srcdir)/rust && python ./gen-c-headers.py
+else
+	@echo "python not available, will not generate headers"
 endif

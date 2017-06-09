@@ -47,10 +47,8 @@ matrix:
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,cocci,rust"
+        - NAME="linux,gcc,cocci"
         - *default-cflags
-        - ENABLE_RUST="yes"
-        - ARGS="--enable-rust"
       addons:
         apt:
           sources:
@@ -58,6 +56,23 @@ matrix:
           packages:
             - *packages
             - coccinelle
+    # Linux, gcc, Rust (latest stable).
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust"
+        - *default-cflags
+        - ENABLE_RUST="yes"
+        - ARGS="--enable-rust"
+    # Linux, gcc, Rust (1.7.0 - oldest supported).
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-1.7.0"
+        - *default-cflags
+        - ENABLE_RUST="yes"
+        - RUST_VERSION="1.7.0"
+        - ARGS="--enable-rust"
     # Linux, gcc, -DNDEBUG.
     - os: linux
       compiler: gcc
@@ -139,11 +154,15 @@ script:
     fi
 
 before_install:
+  - export PATH=$HOME/.cargo/bin:$PATH
   - |
     if [[ "$ENABLE_RUST" == "yes" ]]; then
         curl https://sh.rustup.rs -sSf | sh -s -- -y
+        if [[ "$RUST_VERSION" != "" ]]; then
+            rustup override set $RUST_VERSION
+        fi
+        rustc --version
     fi
-  - export PATH=$HOME/.cargo/bin:$PATH
   - |
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         brew update
