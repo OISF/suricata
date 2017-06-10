@@ -140,14 +140,32 @@ static int NFS3HasEvents(void *state)
  * \retval ALPROTO_NFS3 if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFS3ProbingParser(uint8_t *input, uint32_t input_len,
+static AppProto NFS3ProbingParserTS(uint8_t *input, uint32_t input_len,
     uint32_t *offset)
 {
     if (input_len < NFS3_MIN_FRAME_LEN) {
         return ALPROTO_UNKNOWN;
     }
 
-    int8_t r = rs_nfs_probe(input, input_len);
+    int8_t r = rs_nfs_probe_ts(input, input_len);
+    if (r == 1) {
+        return ALPROTO_NFS3;
+    } else if (r == -1) {
+        return ALPROTO_FAILED;
+    }
+
+    SCLogDebug("Protocol not detected as ALPROTO_NFS3.");
+    return ALPROTO_UNKNOWN;
+}
+
+static AppProto NFS3ProbingParserTC(uint8_t *input, uint32_t input_len,
+    uint32_t *offset)
+{
+    if (input_len < NFS3_MIN_FRAME_LEN) {
+        return ALPROTO_UNKNOWN;
+    }
+
+    int8_t r = rs_nfs_probe_tc(input, input_len);
     if (r == 1) {
         return ALPROTO_NFS3;
     } else if (r == -1) {
@@ -269,21 +287,21 @@ void RegisterNFS3Parsers(void)
             SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, NFS3_DEFAULT_PORT,
                 ALPROTO_NFS3, 0, NFS3_MIN_FRAME_LEN, STREAM_TOSERVER,
-                NFS3ProbingParser, NULL);
+                NFS3ProbingParserTS, NFS3ProbingParserTC);
 
         }
         else {
 
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_NFS3, 0, NFS3_MIN_FRAME_LEN,
-                    NFS3ProbingParser, NULL)) {
+                    NFS3ProbingParserTS, NFS3ProbingParserTC)) {
                 SCLogDebug("No NFS3 app-layer configuration, enabling NFS3"
                     " detection TCP detection on port %s.",
                     NFS3_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP,
                     NFS3_DEFAULT_PORT, ALPROTO_NFS3, 0,
                     NFS3_MIN_FRAME_LEN, STREAM_TOSERVER,
-                    NFS3ProbingParser, NULL);
+                    NFS3ProbingParserTS, NFS3ProbingParserTC);
             }
 
         }

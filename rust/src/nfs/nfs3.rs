@@ -1645,31 +1645,25 @@ pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
 
 /// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_nfs_probe(input: *const libc::uint8_t, len: libc::uint32_t)
+pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
     return nfs3_probe(slice, STREAM_TOSERVER);
-/*
-    match parse_rpc(slice) {
-        IResult::Done(_, ref rpc_hdr) => {
-            if rpc_hdr.progver == 3 && rpc_hdr.program == 100003 {
-                return 1;
-            } else {
-                return -1;
-            }
-        },
-        IResult::Incomplete(_) => {
-            return 0;
-        },
-        IResult::Error(_) => {
-            return -1;
-        },
-    }
-*/
 }
+/// TOCLIENT probe function
+#[no_mangle]
+pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32_t)
+                               -> libc::int8_t
+{
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    return nfs3_probe(slice, STREAM_TOCLIENT);
+}
+
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_getfiles(direction: u8, ptr: *mut NFS3State) -> * mut FileContainer {
