@@ -286,6 +286,9 @@ pub struct NFS3State {
     ts_ssn_gap: bool,
     tc_ssn_gap: bool,
 
+    ts_gap: bool, // last TS update was gap
+    tc_gap: bool, // last TC update was gap
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -313,6 +316,8 @@ impl NFS3State {
             tc_chunk_left:0,
             ts_ssn_gap:false,
             tc_ssn_gap:false,
+            ts_gap:false,
+            tc_gap:false,
             tx_id:0,
             de_state_count:0,
             //ts_txs_updated:false,
@@ -1024,6 +1029,7 @@ impl NFS3State {
             panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
         }
         self.ts_ssn_gap = true;
+        self.ts_gap = true;
         return 0
     }
 
@@ -1037,6 +1043,7 @@ impl NFS3State {
             panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
         }
         self.tc_ssn_gap = true;
+        self.tc_gap = true;
         return 0
     }
 
@@ -1073,6 +1080,35 @@ impl NFS3State {
             if consumed > cur_i.len() as u32 { panic!("BUG consumed more than we gave it"); }
             cur_i = &cur_i[consumed as usize..];
         }
+        if self.ts_gap {
+            SCLogNotice!("TS trying to catch up after GAP (input {})", cur_i.len());
+
+            let mut cnt = 0;
+            while cur_i.len() > 0 {
+                cnt += 1;
+                match nfs3_probe(cur_i, STREAM_TOSERVER) {
+                    1 => {
+                        SCLogNotice!("expected data found");
+                        self.ts_gap = false;
+                        break;
+                    },
+                    0 => {
+                        SCLogNotice!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
+                        self.tcp_buffer_tc.extend_from_slice(cur_i);
+                        return 0;
+                    },
+                    -1 => {
+                        cur_i = &cur_i[1..];
+                        if cur_i.len() == 0 {
+                            SCLogNotice!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
+                        }
+                    },
+                    _ => { panic!("hell just froze over"); },
+                }
+            }
+            SCLogNotice!("TS GAP handling done (input {})", cur_i.len());
+        }
+
         while cur_i.len() > 0 { // min record size
             match parse_rpc_request_partial(cur_i) {
                 IResult::Done(_, ref rpc_phdr) => {
@@ -1172,7 +1208,7 @@ impl NFS3State {
                 v.as_slice()
             },
         };
-        SCLogDebug!("tcp_buffer ({})",tcp_buffer.len());
+        SCLogDebug!("TC tcp_buffer ({}), input ({})",tcp_buffer.len(), i.len());
 
         let mut cur_i = tcp_buffer;
         if cur_i.len() > 100000 {
@@ -1186,6 +1222,35 @@ impl NFS3State {
             if consumed > cur_i.len() as u32 { panic!("BUG consumed more than we gave it"); }
             cur_i = &cur_i[consumed as usize..];
         }
+        if self.tc_gap {
+            SCLogNotice!("TC trying to catch up after GAP (input {})", cur_i.len());
+
+            let mut cnt = 0;
+            while cur_i.len() > 0 {
+                cnt += 1;
+                match nfs3_probe(cur_i, STREAM_TOCLIENT) {
+                    1 => {
+                        SCLogNotice!("expected data found");
+                        self.tc_gap = false;
+                        break;
+                    },
+                    0 => {
+                        SCLogNotice!("incomplete, queue and retry with the next block (input {}). Looped {} times.", cur_i.len(), cnt);
+                        self.tcp_buffer_tc.extend_from_slice(cur_i);
+                        return 0;
+                    },
+                    -1 => {
+                        cur_i = &cur_i[1..];
+                        if cur_i.len() == 0 {
+                            SCLogNotice!("all post-GAP data in this chunk was bad. Looped {} times.", cnt);
+                        }
+                    },
+                    _ => { panic!("hell just froze over"); },
+                }
+            }
+            SCLogNotice!("TC GAP handling done (input {})", cur_i.len());
+        }
+
         while cur_i.len() > 0 {
             match parse_rpc_packet_header(cur_i) {
                 IResult::Done(_, ref rpc_hdr) => {
@@ -1525,6 +1590,59 @@ pub extern "C" fn rs_nfs3_init(context: &'static mut SuricataFileContext)
     }
 }
 
+pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
+    if direction == STREAM_TOCLIENT {
+        match parse_rpc_reply(i) {
+            IResult::Done(_, ref rpc) => {
+                if rpc.hdr.frag_len >= 24 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
+                    SCLogNotice!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
+                    return 1;
+                } else {
+                    return -1;
+                }
+            },
+            IResult::Incomplete(_) => {
+                match parse_rpc_packet_header (i) {
+                    IResult::Done(_, ref rpc_hdr) => {
+                        if rpc_hdr.frag_len >= 24 && rpc_hdr.frag_len <= 35000 && rpc_hdr.xid != 0 && rpc_hdr.msgtype == 1 {
+                            SCLogNotice!("TC PROBE LEN {} XID {} TYPE {}", rpc_hdr.frag_len, rpc_hdr.xid, rpc_hdr.msgtype);
+                            return 1;
+                        } else {
+                            return -1;
+                        }
+                    },
+                    IResult::Incomplete(_) => { },
+                    IResult::Error(_) => {
+                        return -1;
+                    },
+                }
+
+
+                return 0;
+            },
+            IResult::Error(_) => {
+                return -1;
+            },
+        }
+    } else {
+        match parse_rpc(i) {
+            IResult::Done(_, ref rpc) => {
+                if rpc.hdr.frag_len >= 40 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            },
+            IResult::Incomplete(_) => {
+                return 0;
+            },
+            IResult::Error(_) => {
+                return -1;
+            },
+        }
+    }
+}
+
 /// TOSERVER probe function
 #[no_mangle]
 pub extern "C" fn rs_nfs_probe(input: *const libc::uint8_t, len: libc::uint32_t)
@@ -1533,6 +1651,8 @@ pub extern "C" fn rs_nfs_probe(input: *const libc::uint8_t, len: libc::uint32_t)
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
+    return nfs3_probe(slice, STREAM_TOSERVER);
+/*
     match parse_rpc(slice) {
         IResult::Done(_, ref rpc_hdr) => {
             if rpc_hdr.progver == 3 && rpc_hdr.program == 100003 {
@@ -1548,6 +1668,7 @@ pub extern "C" fn rs_nfs_probe(input: *const libc::uint8_t, len: libc::uint32_t)
             return -1;
         },
     }
+*/
 }
 
 #[no_mangle]
