@@ -130,6 +130,7 @@ static OutputCtx *OutputNFS3LogInitSub(ConfNode *conf,
     SCLogDebug("NFS3 log sub-module initialized.");
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS3);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS3);
 
     return output_ctx;
 }

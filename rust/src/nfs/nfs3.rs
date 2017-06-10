@@ -289,6 +289,8 @@ pub struct NFS3State {
     ts_gap: bool, // last TS update was gap
     tc_gap: bool, // last TC update was gap
 
+    is_udp: bool,
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -318,6 +320,7 @@ impl NFS3State {
             tc_ssn_gap:false,
             ts_gap:false,
             tc_gap:false,
+            is_udp:false,
             tx_id:0,
             de_state_count:0,
             //ts_txs_updated:false,
@@ -686,9 +689,11 @@ impl NFS3State {
                 tx.request_done = true;
             }
         }
-        self.ts_chunk_xid = r.hdr.xid;
-        let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
-        self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+        if !self.is_udp {
+            self.ts_chunk_xid = r.hdr.xid;
+            let file_data_len = w.file_data.len() as u32 - fill_bytes as u32;
+            self.ts_chunk_left = w.file_len as u32 - file_data_len as u32;
+        }
         0
     }
 
@@ -994,8 +999,10 @@ impl NFS3State {
         //if is_last {
         //    self.tc_txs_updated = true;
         //}
-        self.tc_chunk_xid = r.hdr.xid;
-        self.tc_chunk_left = reply.count as u32 - reply.data.len() as u32;
+        if !self.is_udp {
+            self.tc_chunk_xid = r.hdr.xid;
+            self.tc_chunk_left = reply.count as u32 - reply.data.len() as u32;
+        }
 
         SCLogDebug!("REPLY {} to procedure {} blob size {} / {}: chunk_left {}",
                 r.hdr.xid, NFSPROC3_READ, r.prog_data.len(), reply.count, self.tc_chunk_left);
@@ -1321,6 +1328,43 @@ impl NFS3State {
         };
         status
     }
+    /// Parsing function
+    pub fn parse_udp_ts<'b>(&mut self, input: &'b[u8]) -> u32 {
+        let mut status = 0;
+        SCLogDebug!("parse_udp_ts ({})", input.len());
+        if input.len() > 0 {
+            match parse_rpc_udp_request(input) {
+                IResult::Done(_, ref rpc_record) => {
+                    self.is_udp = true;
+                    status |= self.process_request_record(rpc_record);
+                },
+                IResult::Incomplete(_) => {
+                },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e); //break
+                },
+            }
+        }
+        status
+    }
+
+    /// Parsing function
+    pub fn parse_udp_tc<'b>(&mut self, input: &'b[u8]) -> u32 {
+        let mut status = 0;
+        SCLogDebug!("parse_udp_tc ({})", input.len());
+        if input.len() > 0 {
+            match parse_rpc_udp_reply(input) {
+                IResult::Done(_, ref rpc_record) => {
+                    self.is_udp = true;
+                    status |= self.process_reply_record(rpc_record);
+                },
+                IResult::Incomplete(_) => {
+                },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e); //break
+                },
+            }
+        };
+        status
+    }
     fn getfiles(&mut self, direction: u8) -> * mut FileContainer {
         //SCLogDebug!("direction: {}", direction);
         if direction == STREAM_TOCLIENT {
@@ -1405,6 +1449,45 @@ pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
     }
 
     if state.parse_tcp_data_tc(buf) == 0 {
+        1
+    } else {
+        -1
+    }
+}
+
+/// C binding parse a DNS request. Returns 1 on success, -1 on failure.
+#[no_mangle]
+pub extern "C" fn rs_nfs3_parse_request_udp(_flow: *mut Flow,
+                                       state: &mut NFS3State,
+                                       _pstate: *mut libc::c_void,
+                                       input: *mut libc::uint8_t,
+                                       input_len: libc::uint32_t,
+                                       _data: *mut libc::c_void)
+                                       -> libc::int8_t
+{
+    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+    SCLogDebug!("parsing {} bytes of request data", input_len);
+
+    if state.parse_udp_ts(buf) == 0 {
+        1
+    } else {
+        -1
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs3_parse_response_udp(_flow: *mut Flow,
+                                        state: &mut NFS3State,
+                                        _pstate: *mut libc::c_void,
+                                        input: *mut libc::uint8_t,
+                                        input_len: libc::uint32_t,
+                                        _data: *mut libc::c_void)
+                                        -> libc::int8_t
+{
+    SCLogDebug!("parsing {} bytes of response data", input_len);
+    let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+
+    if state.parse_udp_tc(buf) == 0 {
         1
     } else {
         -1
@@ -1643,6 +1726,43 @@ pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
     }
 }
 
+pub fn nfs3_probe_udp(i: &[u8], direction: u8) -> i8 {
+    if direction == STREAM_TOCLIENT {
+        match parse_rpc_udp_reply(i) {
+            IResult::Done(_, ref rpc) => {
+                if i.len() >= 32 && rpc.hdr.msgtype == 1 && rpc.reply_state == 0 && rpc.accept_state == 0 {
+                    SCLogNotice!("TC PROBE LEN {} XID {} TYPE {}", rpc.hdr.frag_len, rpc.hdr.xid, rpc.hdr.msgtype);
+                    return 1;
+                } else {
+                    return -1;
+                }
+            },
+            IResult::Incomplete(_) => {
+                return -1;
+            },
+            IResult::Error(_) => {
+                return -1;
+            },
+        }
+    } else {
+        match parse_rpc_udp_request(i) {
+            IResult::Done(_, ref rpc) => {
+                if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            },
+            IResult::Incomplete(_) => {
+                return -1;
+            },
+            IResult::Error(_) => {
+                return -1;
+            },
+        }
+    }
+}
+
 /// TOSERVER probe function
 #[no_mangle]
 pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32_t)
@@ -1664,6 +1784,26 @@ pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32
     return nfs3_probe(slice, STREAM_TOCLIENT);
 }
 
+/// TOSERVER probe function
+#[no_mangle]
+pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::uint32_t)
+                               -> libc::int8_t
+{
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    return nfs3_probe_udp(slice, STREAM_TOSERVER);
+}
+/// TOCLIENT probe function
+#[no_mangle]
+pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::uint32_t)
+                               -> libc::int8_t
+{
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    return nfs3_probe_udp(slice, STREAM_TOCLIENT);
+}
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_getfiles(direction: u8, ptr: *mut NFS3State) -> * mut FileContainer {
