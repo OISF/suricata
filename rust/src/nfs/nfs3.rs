@@ -499,7 +499,24 @@ impl NFS3State {
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
-
+        } else if r.procedure == NFSPROC3_MKDIR {
+            match parse_nfs3_request_mkdir(r.prog_data) {
+                IResult::Done(_, mr) => {
+                    xidmap.file_handle = mr.handle.value.to_vec();
+                    xidmap.file_name = mr.name_vec;
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+        } else if r.procedure == NFSPROC3_RMDIR {
+            match parse_nfs3_request_rmdir(r.prog_data) {
+                IResult::Done(_, rr) => {
+                    xidmap.file_handle = rr.handle.value.to_vec();
+                    xidmap.file_name = rr.name_vec;
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
         } else if r.procedure == NFSPROC3_COMMIT {
             SCLogDebug!("COMMIT, closing shop");
 

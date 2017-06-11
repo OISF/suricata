@@ -160,6 +160,47 @@ named!(pub parse_nfs3_request_remove<Nfs3RequestRemove>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Nfs3RequestRmdir<'a> {
+    pub handle: Nfs3Handle<'a>,
+    pub name_vec: Vec<u8>,
+}
+
+named!(pub parse_nfs3_request_rmdir<Nfs3RequestRmdir>,
+    do_parse!(
+            dir_handle: parse_nfs3_handle
+        >>  name_len: be_u32
+        >>  name: take!(name_len)
+        >>  fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >> (
+            Nfs3RequestRmdir {
+                handle:dir_handle,
+                name_vec:name.to_vec(),
+            }
+        ))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct Nfs3RequestMkdir<'a> {
+    pub handle: Nfs3Handle<'a>,
+    pub name_vec: Vec<u8>,
+}
+
+named!(pub parse_nfs3_request_mkdir<Nfs3RequestMkdir>,
+    do_parse!(
+            dir_handle: parse_nfs3_handle
+        >>  name_len: be_u32
+        >>  name: take!(name_len)
+        >>  fill_bytes: cond!(name_len % 4 != 0, take!(4 - name_len % 4))
+        >>  attributes: rest
+        >> (
+            Nfs3RequestMkdir {
+                handle:dir_handle,
+                name_vec:name.to_vec(),
+            }
+        ))
+);
+
+#[derive(Debug,PartialEq)]
 pub struct Nfs3RequestRename<'a> {
     pub from_handle: Nfs3Handle<'a>,
     pub from_name_vec: Vec<u8>,
