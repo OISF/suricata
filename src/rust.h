@@ -50,4 +50,8 @@ typedef struct SuricataFileContext_ {
 struct _Store;
 typedef struct _Store Store;
 
+/** Opaque Rust types. */
+typedef struct NFS3tate_ NFS3State;
+typedef struct NFS3Transaction_ NFS3Transaction;
+
 #endif /* !__RUST_H__ */

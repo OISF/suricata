@@ -55,6 +55,7 @@
 
 #ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
+#include "rust.h"
 #include "rust-nfs-log-gen.h"
 
 typedef struct LogNFS3FileCtx_ {
