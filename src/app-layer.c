@@ -548,15 +548,25 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         alproto = f->alproto_tc;
     }
 
+    /* If a gap notification, relay the notification on to the
+     * app-layer if known. */
+    if (flags & STREAM_GAP) {
+        if (alproto == ALPROTO_UNKNOWN) {
+            StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+            SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);        } else {
+            PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
+                                    flags, data, data_len);
+            PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+        }
+        goto end;
+    }
+
     /* if we don't know the proto yet and we have received a stream
      * initializer message, we run proto detection.
      * We receive 2 stream init msgs (one for each direction) but we
      * only run the proto detection once. */
-    if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_GAP)) {
-        StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-        SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
-
-    } else if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
+    if (alproto == ALPROTO_UNKNOWN && (flags & STREAM_START)) {
         /* run protocol detection */
         if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
                            data, data_len, flags) != 0) {
