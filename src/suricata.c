@@ -84,6 +84,7 @@
 
 #include "source-pcap.h"
 #include "source-pcap-file.h"
+#include "source-pcap-folder.h"
 
 #include "source-pfring.h"
 
@@ -908,6 +909,9 @@ void RegisterAllModules(void)
     /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
+    /* pcap folder */
+    TmModuleReceivePcapFolderRegister();
+    TmModuleDecodePcapFolderRegister();
 #ifdef HAVE_MPIPE
     /* mpipe */
     TmModuleReceiveMpipeRegister();
@@ -1556,7 +1560,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:vk:";
+    char short_opts[] = "c:TDhi:l:q:d:r:R:us:S:U:VF:vk:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1978,6 +1982,20 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             if (ConfSetFinal("pcap-file.file", optarg) != 1) {
                 fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
+                return TM_ECODE_FAILED;
+            }
+            break;
+        case 'R':
+            if (suri->run_mode == RUNMODE_UNKNOWN) {
+                suri->run_mode = RUNMODE_PCAP_FOLDER;
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                PrintUsage(argv[0]);
+                return TM_ECODE_FAILED;
+            }
+            if (ConfSetFinal("pcap-folder.folder", optarg) != 1) {
+                fprintf(stderr, "ERROR: Failed to set pcap-folder.folder\n");
                 return TM_ECODE_FAILED;
             }
             break;

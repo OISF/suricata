@@ -20,6 +20,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
+#include "runmode-pcap-folder.h"
 #include "output.h"
 
 #include "util-debug.h"
@@ -58,6 +59,7 @@ typedef struct PcapCommand_ {
     TAILQ_HEAD(, PcapFiles_) files;
     int running;
     char *currentfile;
+    char *currentfolder;
 } PcapCommand;
 
 const char *RunModeUnixSocketGetDefaultMode(void)
@@ -70,6 +72,10 @@ const char *RunModeUnixSocketGetDefaultMode(void)
 static int RunModeUnixSocketMaster(void);
 static int unix_manager_file_task_running = 0;
 static int unix_manager_file_task_failed = 0;
+
+static int unix_manager_folder_task_running = 0;
+static int unix_manager_folder_task_failed = 0;
+static time_t unix_manager_folder_last_processed = 0;
 
 /**
  * \brief return list of files in the queue
@@ -129,6 +135,24 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
     } else {
         json_object_set_new(answer, "message", json_string("None"));
     }
+    return TM_ECODE_OK;
+}
+
+static TmEcode UnixSocketPcapFolderStatus(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+    if (unix_manager_folder_task_running && !unix_manager_folder_task_failed) {
+        json_object_set_new(answer, "message", json_string("Running"));
+    } else {
+        json_object_set_new(answer, "message", json_string("Waiting"));
+    }
+    return TM_ECODE_OK;
+}
+
+static TmEcode UnixSocketPcapFolderLastProcessed(json_t *cmd, json_t* answer, void *data)
+{
+    json_object_set_new(answer, "last_processed", json_integer(unix_manager_folder_last_processed));
+
     return TM_ECODE_OK;
 }
 
@@ -355,6 +379,111 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     TmThreadContinueThreads();
     return TM_ECODE_OK;
 }
+
+/**
+ * \brief Command to add a file to treatment list
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketPcapFolderAdd(json_t *cmd, json_t* answer, void *data)
+{
+    PcapCommand *this = (PcapCommand *) data;
+    const char *folder;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    json_t *jarg = json_object_get(cmd, "folder");
+    if(!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    folder = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(folder, &st) != 0) {
+#else
+    if(stat(folder, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("Folder does not exist"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (this->currentfolder == NULL)
+    {
+        this->currentfolder = SCStrdup(folder);
+        return TM_ECODE_OK;
+    }
+    else
+    {
+        json_object_set_new(answer, "message", json_string("Previously set folder is still queued"));
+        return TM_ECODE_FAILED;
+    }
+}
+
+
+/**
+ * \brief Handle the file queue
+ *
+ * This function check if there is currently a file
+ * being parse. If it is not the case, it will start to
+ * work on a new file. This implies to start a new 'pcap-file'
+ * running mode after having set the file and the output dir.
+ * This function also handles the cleaning of the previous
+ * running mode.
+ *
+ * \param this a UnixCommand:: structure
+ * \retval 0 in case of error, 1 in case of success
+ */
+TmEcode UnixSocketPcapFolderCheck(void *data)
+{
+    PcapCommand *this = (PcapCommand *) data;
+    if (unix_manager_folder_task_running == 1) {
+        return TM_ECODE_OK;
+    }
+    if (unix_manager_folder_task_failed == 1) {
+        if (unix_manager_folder_task_failed) {
+            SCLogInfo("Preceeding task failed, cleaning the running mode");
+        }
+        unix_manager_folder_task_failed = 0;
+        if (this->currentfolder) {
+            SCFree(this->currentfolder);
+        }
+        this->currentfolder = NULL;
+
+        PostRunDeinit(RUNMODE_PCAP_FOLDER, NULL /* no ts */);
+        return TM_ECODE_OK;
+    }
+
+    if (this->currentfolder == NULL)
+    {
+        return TM_ECODE_OK;
+    }
+
+    SCLogInfo("Starting run for '%s'", this->currentfolder);
+    unix_manager_folder_task_running = 1;
+    if (ConfSet("pcap-folder.folder", this->currentfolder) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                "Can not set working folder to '%s'", this->currentfolder);
+        SCFree(this->currentfolder);
+        this->currentfolder = NULL;
+        return TM_ECODE_FAILED;
+    }
+    SCFree(this->currentfolder);
+    this->currentfolder = NULL;
+
+    PreRunInit(RUNMODE_PCAP_FOLDER);
+    PreRunPostPrivsDropInit(RUNMODE_PCAP_FOLDER);
+    RunModeDispatch(RUNMODE_PCAP_FOLDER, NULL);
+
+    /* Un-pause all the paused threads */
+    TmThreadContinueThreads();
+    return TM_ECODE_OK;
+}
 #endif
 
 void RunModeUnixSocketRegister(void)
@@ -387,6 +516,29 @@ void UnixSocketPcapFile(TmEcode tm)
             break;
     }
 #endif
+}
+
+void UnixSocketPcapFolder(TmEcode tm)
+{
+#ifdef BUILD_UNIX_SOCKET
+    switch (tm) {
+        case TM_ECODE_DONE:
+            unix_manager_folder_task_running = 0;
+            break;
+        case TM_ECODE_FAILED:
+            unix_manager_folder_task_running = 0;
+            unix_manager_folder_task_failed = 1;
+            break;
+        case TM_ECODE_OK:
+            unix_manager_folder_task_running = 1;
+            break;
+    }
+#endif
+}
+
+void UnixSocketPcapFolderSetLastProcessed(time_t time)
+{
+    unix_manager_folder_last_processed = time;
 }
 
 #ifdef BUILD_UNIX_SOCKET
@@ -1030,13 +1182,19 @@ static int RunModeUnixSocketMaster(void)
     TAILQ_INIT(&pcapcmd->files);
     pcapcmd->running = 0;
     pcapcmd->currentfile = NULL;
+    pcapcmd->currentfolder = NULL;
 
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
 
+    UnixManagerRegisterCommand("pcap-folder-add", UnixSocketPcapFolderAdd, pcapcmd, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("pcap-folder-status", UnixSocketPcapFolderStatus, pcapcmd, 0);
+    UnixManagerRegisterCommand("pcap-folder-last-processed", UnixSocketPcapFolderLastProcessed, pcapcmd, 0);
+
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
+    UnixManagerRegisterBackgroundTask(UnixSocketPcapFolderCheck, pcapcmd);
 
     UnixManagerThreadSpawn(1);
     unix_socket_mode_is_running = 1;
