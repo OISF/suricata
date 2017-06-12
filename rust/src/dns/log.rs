@@ -418,7 +418,7 @@ fn dns_log_json_failure(r: &DNSResponse, index: usize, flags: u64)
     js.set_string("type", "answer");
     js.set_integer("id", r.header.tx_id as u64);
     js.set_string("rcode", &dns_rcode_string(r.header.flags));
-    js.set_string("rrname", std::str::from_utf8(&query.name[..]).unwrap());
+    js.set_string("rrname", std::str::from_utf8(&query.name[..]).unwrap_or(""));
 
     return js.unwrap();
 }
