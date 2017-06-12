@@ -27,8 +27,4 @@
 void RegisterNFS3UDPParsers(void);
 void NFS3UDPParserRegisterTests(void);
 
-/** Opaque Rust types. */
-typedef struct NFS3tate_ NFS3State;
-typedef struct NFS3Transaction_ NFS3Transaction;
-
 #endif /* __APP_LAYER_NFS3_H__ */
