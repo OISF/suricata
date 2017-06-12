@@ -143,44 +143,44 @@ static int NFS3HasEvents(void *state)
 static AppProto NFS3ProbingParserTS(uint8_t *input, uint32_t input_len,
     uint32_t *offset)
 {
-    SCLogNotice("probing");
+    SCLogDebug("probing");
     if (input_len < NFS3_MIN_FRAME_LEN) {
-        SCLogNotice("unknown");
+        SCLogDebug("unknown");
         return ALPROTO_UNKNOWN;
     }
 
     int8_t r = rs_nfs_probe_udp_ts(input, input_len);
     if (r == 1) {
-        SCLogNotice("nfs3");
+        SCLogDebug("nfs3");
         return ALPROTO_NFS3;
     } else if (r == -1) {
-        SCLogNotice("failed");
+        SCLogDebug("failed");
         return ALPROTO_FAILED;
     }
 
-    SCLogNotice("Protocol not detected as ALPROTO_NFS3.");
+    SCLogDebug("Protocol not detected as ALPROTO_NFS3.");
     return ALPROTO_UNKNOWN;
 }
 
 static AppProto NFS3ProbingParserTC(uint8_t *input, uint32_t input_len,
     uint32_t *offset)
 {
-    SCLogNotice("probing");
+    SCLogDebug("probing");
     if (input_len < NFS3_MIN_FRAME_LEN) {
-        SCLogNotice("unknown");
+        SCLogDebug("unknown");
         return ALPROTO_UNKNOWN;
     }
 
     int8_t r = rs_nfs_probe_tc(input, input_len);
     if (r == 1) {
-        SCLogNotice("nfs3");
+        SCLogDebug("nfs3");
         return ALPROTO_NFS3;
     } else if (r == -1) {
-        SCLogNotice("failed");
+        SCLogDebug("failed");
         return ALPROTO_FAILED;
     }
 
-    SCLogNotice("Protocol not detected as ALPROTO_NFS3.");
+    SCLogDebug("Protocol not detected as ALPROTO_NFS3.");
     return ALPROTO_UNKNOWN;
 }
 
@@ -286,13 +286,13 @@ void RegisterNFS3UDPParsers(void)
 
         rs_nfs3_init(&sfc);
 
-        SCLogNotice("NFS3 UDP protocol detection enabled.");
+        SCLogDebug("NFS3 UDP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_NFS3, proto_name);
 
         if (RunmodeIsUnittests()) {
 
-            SCLogNotice("Unittest mode, registering default configuration.");
+            SCLogDebug("Unittest mode, registering default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, NFS3_DEFAULT_PORT,
                 ALPROTO_NFS3, 0, NFS3_MIN_FRAME_LEN, STREAM_TOSERVER,
                 NFS3ProbingParserTS, NFS3ProbingParserTC);
@@ -303,7 +303,7 @@ void RegisterNFS3UDPParsers(void)
             if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                     proto_name, ALPROTO_NFS3, 0, NFS3_MIN_FRAME_LEN,
                     NFS3ProbingParserTS, NFS3ProbingParserTC)) {
-                SCLogNotice("No NFS3 app-layer configuration, enabling NFS3"
+                SCLogDebug("No NFS3 app-layer configuration, enabling NFS3"
                     " detection TCP detection on port %s.",
                     NFS3_DEFAULT_PORT);
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP,
@@ -317,13 +317,13 @@ void RegisterNFS3UDPParsers(void)
     }
 
     else {
-        SCLogNotice("Protocol detecter and parser disabled for NFS3.");
+        SCLogDebug("Protocol detecter and parser disabled for NFS3.");
         return;
     }
 
     if (AppLayerParserConfParserEnabled("udp", proto_name))
     {
-        SCLogNotice("Registering NFS3 protocol parser.");
+        SCLogDebug("Registering NFS3 protocol parser.");
 
         /* Register functions for state allocation and freeing. A
          * state is allocated for every new NFS3 flow. */

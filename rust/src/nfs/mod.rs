@@ -18,6 +18,7 @@
 pub mod types;
 #[macro_use]
 pub mod parser;
+pub mod nfs2_records;
 pub mod nfs3;
 pub mod log;
 

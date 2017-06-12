@@ -36,6 +36,7 @@ use filecontainer::*;
 
 use nfs::types::*;
 use nfs::parser::*;
+use nfs::nfs2_records::*;
 
 /// nom bug leads to this wrappers being necessary
 /// TODO for some reason putting these in parser.rs and making them public
@@ -196,6 +197,7 @@ impl NFS3Transaction {
 
 #[derive(Debug)]
 pub struct NFS3RequestXidMap {
+    progver: u32,
     procedure: u32,
     chunk_offset: u64,
     file_name:Vec<u8>,
@@ -205,9 +207,11 @@ pub struct NFS3RequestXidMap {
 }
 
 impl NFS3RequestXidMap {
-    pub fn new(procedure: u32, chunk_offset: u64) -> NFS3RequestXidMap {
+    pub fn new(progver: u32, procedure: u32, chunk_offset: u64) -> NFS3RequestXidMap {
         NFS3RequestXidMap {
-            procedure:procedure, chunk_offset:chunk_offset,
+            progver:progver,
+            procedure:procedure,
+            chunk_offset:chunk_offset,
             file_name:Vec::new(),
             file_handle:Vec::new(),
         }
@@ -417,7 +421,7 @@ impl NFS3State {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
             },
-            IResult::Incomplete(_) => { panic!("WEIRD"); },
+            IResult::Incomplete(_) => { panic!("WEIRD: parse_nfs3_request_lookup said: incomplete"); },
             IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
         };
     }
@@ -440,7 +444,7 @@ impl NFS3State {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
-        let mut xidmap = NFS3RequestXidMap::new(r.procedure, 0);
+        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
 
         if r.procedure == NFSPROC3_LOOKUP {
@@ -589,6 +593,69 @@ impl NFS3State {
         0
     }
 
+    /// complete request record
+    fn process_request_record_v2<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
+        SCLogDebug!("NFSv2 REQUEST {} procedure {} ({}) blob size {}",
+                r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
+
+        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
+        let aux_file_name = Vec::new();
+
+        if r.procedure == NFSPROC3_LOOKUP {
+            match parse_nfs2_request_lookup(r.prog_data) {
+                IResult::Done(_, ar) => {
+                    xidmap.file_handle = ar.handle.value.to_vec();
+                    self.xidmap_handle2name(&mut xidmap);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+        } else if r.procedure == NFSPROC3_READ {
+            match parse_nfs2_request_read(r.prog_data) {
+                IResult::Done(_, read_record) => {
+                    xidmap.chunk_offset = read_record.offset as u64;
+                    xidmap.file_handle = read_record.handle.value.to_vec();
+                    self.xidmap_handle2name(&mut xidmap);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
+        }
+
+        if !(r.procedure == NFSPROC3_COMMIT || // commit handled separately
+             r.procedure == NFSPROC3_WRITE  || // write handled in file tx
+             r.procedure == NFSPROC3_READ)     // read handled in file tx at reply
+        {
+            let mut tx = self.new_tx();
+            tx.xid = r.hdr.xid;
+            tx.procedure = r.procedure;
+            tx.request_done = true;
+            tx.file_name = xidmap.file_name.to_vec();
+            //self.ts_txs_updated = true;
+
+            if r.procedure == NFSPROC3_RENAME {
+                tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
+            }
+
+            match &r.creds_unix {
+                &Some(ref u) => {
+                    tx.request_machine_name = u.machine_name_buf.to_vec();
+                    tx.request_uid = u.uid;
+                    tx.request_gid = u.gid;
+                    tx.has_creds = true;
+                },
+                _ => { },
+            }
+            SCLogDebug!("NFSv2 TX created: ID {} XID {} PROCEDURE {}",
+                    tx.id, tx.xid, tx.procedure);
+            self.transactions.push(tx);
+        }
+
+        SCLogDebug!("NFSv2: TS creating xidmap {}", r.hdr.xid);
+        self.requestmap.insert(r.hdr.xid, xidmap);
+        0
+    }
+
     fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
         -> (&mut NFS3Transaction, &mut FileContainer, u16)
     {
@@ -704,27 +771,15 @@ impl NFS3State {
             panic!("call me for procedure WRITE *only*");
         }
 
-        let mut xidmap = NFS3RequestXidMap::new(r.procedure, 0);
+        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
         xidmap.file_handle = w.handle.value.to_vec();
         self.requestmap.insert(r.hdr.xid, xidmap);
 
         return self.process_write_record(r, w);
     }
 
-    fn process_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>) -> u32 {
+    fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFS3RequestXidMap) -> u32 {
         let status;
-        let xidmap;
-        match self.requestmap.remove(&r.hdr.xid) {
-            Some(p) => { xidmap = p; },
-            _ => {
-                SCLogDebug!("REPLY: xid {} NOT FOUND. GAPS? TS:{} TC:{}",
-                        r.hdr.xid, self.ts_ssn_gap, self.tc_ssn_gap);
-
-                // TODO we might be able to try to infer from the size + data
-                // that this is a READ reply and pass the data to the file API anyway?
-                return 0;
-            },
-        }
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
             match parse_nfs3_response_lookup(r.prog_data) {
@@ -735,7 +790,7 @@ impl NFS3State {
                     status = lookup.status;
 
                     SCLogDebug!("LOOKUP handle {:?}", lookup.handle);
-                    self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name);
+                    self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name.to_vec());
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -751,7 +806,7 @@ impl NFS3State {
                     match nfs3_create_record.handle {
                         Some(h) => {
                             SCLogDebug!("handle {:?}", h);
-                            self.namemap.insert(h.value.to_vec(), xidmap.file_name);
+                            self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
                         },
                         _ => { },
                     }
@@ -827,6 +882,63 @@ impl NFS3State {
         }
 
         0
+    }
+
+    fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFS3RequestXidMap) -> u32 {
+        let status;
+
+        if xidmap.procedure == NFSPROC3_READ {
+            match parse_nfs2_reply_read(r.prog_data) {
+                IResult::Done(_, ref reply) => {
+                    SCLogDebug!("NFSv2 READ reply record");
+                    self.process_read_record(r, reply, Some(&xidmap));
+                    status = reply.status;
+                },
+                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
+            }
+        } else {
+            let stat = match nom::be_u32(&r.prog_data) {
+                nom::IResult::Done(_, stat) => {
+                    stat as u32
+                }
+                _ => 0 as u32
+            };
+            status = stat;
+        }
+        SCLogDebug!("REPLY {} to procedure {} blob size {}",
+                r.hdr.xid, xidmap.procedure, r.prog_data.len());
+
+        self.mark_response_tx_done(r.hdr.xid, status);
+
+        0
+    }
+
+    fn process_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>) -> u32 {
+        let mut xidmap;
+        match self.requestmap.remove(&r.hdr.xid) {
+            Some(p) => { xidmap = p; },
+            _ => {
+                SCLogNotice!("REPLY: xid {} NOT FOUND. GAPS? TS:{} TC:{}",
+                        r.hdr.xid, self.ts_ssn_gap, self.tc_ssn_gap);
+
+                // TODO we might be able to try to infer from the size + data
+                // that this is a READ reply and pass the data to the file API anyway?
+                return 0;
+            },
+        }
+
+        match xidmap.progver {
+            3 => {
+                SCLogDebug!("NFSv3 reply record");
+                return self.process_reply_record_v3(r, &mut xidmap);
+            },
+            2 => {
+                SCLogDebug!("NFSv2 reply record");
+                return self.process_reply_record_v2(r, &xidmap);
+            },
+            _ => { panic!("unsupported NFS version"); },
+        }
     }
 
     // update in progress chunks for file transfers
@@ -931,12 +1043,14 @@ impl NFS3State {
         let file_name;
         let file_handle;
         let chunk_offset;
+        let nfs_version;
 
         match xidmapr {
             Some(xidmap) => {
                 file_name = xidmap.file_name.to_vec();
                 file_handle = xidmap.file_handle.to_vec();
                 chunk_offset = xidmap.chunk_offset;
+                nfs_version = xidmap.progver;
             },
             None => {
                 match self.requestmap.get(&r.hdr.xid) {
@@ -944,17 +1058,34 @@ impl NFS3State {
                         file_name = xidmap.file_name.to_vec();
                         file_handle = xidmap.file_handle.to_vec();
                         chunk_offset = xidmap.chunk_offset;
+                        nfs_version = xidmap.progver;
                     },
                     _ => { panic!("REPLY: xid {} NOT FOUND", r.hdr.xid); },
                 }
             },
         }
 
-        let is_last = reply.eof;
+        let mut is_last = reply.eof;
         let mut fill_bytes = 0;
         let pad = reply.count % 4;
         if pad != 0 {
             fill_bytes = 4 - pad;
+        }
+
+        if nfs_version == 2 {
+            let size = match parse_nfs2_attribs(reply.attr_blob) {
+                IResult::Done(_, ref attr) => {
+                    attr.asize
+                },
+                _ => { 0 },
+            };
+            SCLogDebug!("NFSv2 READ reply record: File size {}. Offset {} data len {}: total {}",
+                    size, chunk_offset, reply.data_len, chunk_offset + reply.data_len as u64);
+
+            if size as u64 == chunk_offset + reply.data_len as u64 {
+                is_last = true;
+            }
+
         }
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
@@ -1336,7 +1467,15 @@ impl NFS3State {
             match parse_rpc_udp_request(input) {
                 IResult::Done(_, ref rpc_record) => {
                     self.is_udp = true;
-                    status |= self.process_request_record(rpc_record);
+                    match rpc_record.progver {
+                        3 => {
+                            status |= self.process_request_record(rpc_record);
+                        },
+                        2 => {
+                            status |= self.process_request_record_v2(rpc_record);
+                        },
+                        _ => { panic!("unsupported NFS version"); },
+                    }
                 },
                 IResult::Incomplete(_) => {
                 },
@@ -1748,6 +1887,9 @@ pub fn nfs3_probe_udp(i: &[u8], direction: u8) -> i8 {
         match parse_rpc_udp_request(i) {
             IResult::Done(_, ref rpc) => {
                 if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
+                    return 1;
+                } else if i.len() >= 48 && rpc.hdr.msgtype == 0 && rpc.progver == 2 && rpc.program == 100003 {
+                    SCLogDebug!("NFSv2!");
                     return 1;
                 } else {
                     return -1;
