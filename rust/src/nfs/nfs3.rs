@@ -1018,8 +1018,8 @@ impl NFS3State {
         if self.tcp_buffer_ts.len() > 0 {
             self.tcp_buffer_ts.clear();
         }
-        let v = Vec::new();
-        let consumed = self.filetracker_update(STREAM_TOSERVER, &v, gap_size);
+        let gap = vec![0; gap_size as usize];
+        let consumed = self.filetracker_update(STREAM_TOSERVER, &gap, gap_size);
         if consumed > gap_size {
             panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
         }
@@ -1031,8 +1031,8 @@ impl NFS3State {
         if self.tcp_buffer_tc.len() > 0 {
             self.tcp_buffer_tc.clear();
         }
-        let v = Vec::new();
-        let consumed = self.filetracker_update(STREAM_TOCLIENT, &v, gap_size);
+        let gap = vec![0; gap_size as usize];
+        let consumed = self.filetracker_update(STREAM_TOCLIENT, &gap, gap_size);
         if consumed > gap_size {
             panic!("consumed more than GAP size: {} > {}", consumed, gap_size);
         }

@@ -48,6 +48,7 @@
 #define FILE_NOTRACK    BIT_U16(12) /**< track size of file */
 #define FILE_USE_DETECT BIT_U16(13) /**< use content_inspected tracker */
 #define FILE_USE_TRACKID    BIT_U16(14) /**< File::file_track_id field is in use */
+#define FILE_HAS_GAPS   BIT_U16(15)
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -158,6 +159,8 @@ int FileCloseFileById(FileContainer *, uint32_t track_id,
  */
 int FileAppendData(FileContainer *, const uint8_t *data, uint32_t data_len);
 int FileAppendDataById(FileContainer *, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len);
+int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
         const uint8_t *data, uint32_t data_len);
 
 /**

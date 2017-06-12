@@ -63,7 +63,7 @@ impl FileContainer {
         }
     }
 
-    pub fn file_append(&mut self, track_id: &u32, data: &[u8]) -> i32 {
+    pub fn file_append(&mut self, track_id: &u32, data: &[u8], is_gap: bool) -> i32 {
         SCLogDebug!("FILECONTAINER: append {}", data.len());
         if data.len() == 0 {
             return 0
@@ -71,8 +71,20 @@ impl FileContainer {
         match unsafe {SC} {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
-                let res = (c.FileAppendData)(&self, *track_id,
-                        data.as_ptr(), data.len() as u32);
+                let res = match is_gap {
+                    false => {
+                        SCLogDebug!("appending file data");
+                        let r = (c.FileAppendData)(&self, *track_id,
+                                data.as_ptr(), data.len() as u32);
+                        r
+                    },
+                    true => {
+                        SCLogNotice!("appending GAP");
+                        let r = (c.FileAppendGAP)(&self, *track_id,
+                                data.as_ptr(), data.len() as u32);
+                        r
+                    },
+                };
                 if res != 0 {
                     panic!("c.fn_fileappenddata failed");
                 }

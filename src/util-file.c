@@ -689,6 +689,41 @@ int FileAppendDataById(FileContainer *ffc, uint32_t track_id,
     SCReturnInt(-1);
 }
 
+/**
+ *  \brief Store/handle a chunk of file data in the File structure
+ *         The file with 'track_id' in the FileContainer will be used.
+ *
+ *  \param ffc FileContainer used to append to
+ *  \param track_id id to lookup the file
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ *  \retval -2 no store for this file
+ */
+int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
+        const uint8_t *data, uint32_t data_len)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
+        SCReturnInt(-1);
+    }
+    File *ff = ffc->head;
+    for ( ; ff != NULL; ff = ff->next) {
+        if (track_id == ff->file_track_id) {
+            ff->flags |= FILE_HAS_GAPS;
+            ff->flags |= (FILE_NOMD5|FILE_NOSHA1|FILE_NOSHA256);
+            ff->flags &= ~(FILE_MD5|FILE_SHA1|FILE_SHA256);
+            SCLogDebug("FILE_HAS_GAPS set");
+
+            int r = FileAppendDataDo(ff, data, data_len);
+            SCReturnInt(r);
+        }
+    }
+    SCReturnInt(-1);
+}
 
 /**
  *  \brief Open a new File
@@ -837,7 +872,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
         }
     }
 
-    if (flags & FILE_TRUNCATED) {
+    if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
         ff->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
 
