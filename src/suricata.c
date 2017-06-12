@@ -1991,7 +1991,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
-                usage(argv[0]);
+                PrintUsage(argv[0]);
                 return TM_ECODE_FAILED;
             }
             if (ConfSetFinal("pcap-folder.folder", optarg) != 1) {

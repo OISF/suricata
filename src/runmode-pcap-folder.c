@@ -61,7 +61,7 @@ void RunModeFolderPcapRegister(void)
  */
 int RunModeFolderPcapSingle(void)
 {
-    char *folder = NULL;
+    const char *folder = NULL;
     char tname[TM_THREAD_NAME_MAX];
 
     if (ConfGet("pcap-folder.folder", &folder) == 0) {
