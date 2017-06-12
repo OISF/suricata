@@ -246,7 +246,6 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     json_t *ajs = json_object();
     if (ajs == NULL) {
-        json_decref(js);
         return;
     }
 
