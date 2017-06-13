@@ -183,6 +183,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
 /** Raw reassembly disabled completely */
 #define STREAMTCP_STREAM_FLAG_DISABLE_RAW 0x400
+/** Stream can be bypass */
+#define STREAMTCP_STREAM_FLAG_BYPASS 0x0800
 // vacancy 1x
 
 /** NOTE: flags field is 12 bits */

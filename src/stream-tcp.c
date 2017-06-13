@@ -4653,8 +4653,8 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
 
-        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-            (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_BYPASS) &&
+            (ssn->server.flags & STREAMTCP_STREAM_FLAG_BYPASS))
         {
             /* we can call bypass callback, if enabled */
             if (StreamTcpBypassEnabled()) {
@@ -5578,6 +5578,20 @@ void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction)
 {
     direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED) :
                 (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED);
+}
+
+/** \brief enable bypass
+ *
+ * \param ssn TCP Session to set the flag in
+ * \param direction direction to set the flag in: 0 toserver, 1 toclient
+ */
+void StreamTcpSetSessionBypassFlag (TcpSession *ssn, char direction)
+{
+    if (direction) {
+        ssn->server.flags |= STREAMTCP_STREAM_FLAG_BYPASS;
+    } else {
+        ssn->client.flags |= STREAMTCP_STREAM_FLAG_BYPASS;
+    }
 }
 
 #define PSEUDO_PKT_SET_IPV4HDR(nipv4h,ipv4h) do { \

@@ -1136,9 +1136,10 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                         (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
                     AppLayerParserStateSetFlag(pstate,
                             APP_LAYER_PARSER_NO_INSPECTION);
-                    if (ssl_config.no_reassemble == 1)
-                        AppLayerParserStateSetFlag(pstate,
-                                APP_LAYER_PARSER_NO_REASSEMBLY);
+                    if (ssl_config.no_reassemble == 1) {
+                        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+                        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
+                    }
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
             }
@@ -1257,6 +1258,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if (ssl_config.no_reassemble == 1) {
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
+                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
             }
 
             break;
