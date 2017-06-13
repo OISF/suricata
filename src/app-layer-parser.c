@@ -141,6 +141,7 @@ typedef struct AppLayerParserCtx_ {
 } AppLayerParserCtx;
 
 struct AppLayerParserState_ {
+    /* coccinelle: AppLayerParserState:flags:APP_LAYER_PARSER_ */
     uint8_t flags;
 
     /* Indicates the current transaction that is being inspected.
@@ -1074,6 +1075,14 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                             flags & STREAM_TOCLIENT ? 1 : 0);
                     StreamTcpSetSessionNoReassemblyFlag(ssn,
                             flags & STREAM_TOSERVER ? 1 : 0);
+                }
+            }
+            /* Set the bypass flag for both the stream in this TcpSession */
+            if (pstate->flags & APP_LAYER_PARSER_BYPASS_READY) {
+                /* Used only if it's TCP */
+                TcpSession *ssn = f->protoctx;
+                if (ssn != NULL) {
+                    StreamTcpSetSessionBypassFlag(ssn);
                 }
             }
         }

@@ -155,6 +155,8 @@ enum
 #define STREAMTCP_FLAG_3WHS_CONFIRMED               0x1000
 /** App Layer tracking/reassembly is disabled */
 #define STREAMTCP_FLAG_APP_LAYER_DISABLED           0x2000
+/** Stream can be bypass */
+#define STREAMTCP_FLAG_BYPASS                       0x4000
 
 /*
  * Per STREAM flags

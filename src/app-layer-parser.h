@@ -31,10 +31,11 @@
 #include "stream-tcp-private.h"
 
 /* Flags for AppLayerParserState. */
-#define APP_LAYER_PARSER_EOF                    0x01
-#define APP_LAYER_PARSER_NO_INSPECTION          0x02
-#define APP_LAYER_PARSER_NO_REASSEMBLY          0x04
-#define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  0x08
+#define APP_LAYER_PARSER_EOF                    BIT_U8(0)
+#define APP_LAYER_PARSER_NO_INSPECTION          BIT_U8(1)
+#define APP_LAYER_PARSER_NO_REASSEMBLY          BIT_U8(2)
+#define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  BIT_U8(3)
+#define APP_LAYER_PARSER_BYPASS_READY           BIT_U8(4)
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
