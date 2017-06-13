@@ -35,6 +35,7 @@
 #define APP_LAYER_PARSER_NO_INSPECTION          0x02
 #define APP_LAYER_PARSER_NO_REASSEMBLY          0x04
 #define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  0x08
+#define APP_LAYER_PARSER_BYPASS_READY           0x10
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
