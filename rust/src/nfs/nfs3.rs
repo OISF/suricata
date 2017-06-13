@@ -1071,6 +1071,7 @@ impl NFS3State {
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
+        SCLogDebug!("XID {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}", r.hdr.xid, fill_bytes, reply.count, reply.data_len, reply.data.len());
 
         if nfs_version == 2 {
             let size = match parse_nfs2_attribs(reply.attr_blob) {
@@ -1132,7 +1133,7 @@ impl NFS3State {
         //}
         if !self.is_udp {
             self.tc_chunk_xid = r.hdr.xid;
-            self.tc_chunk_left = reply.count as u32 - reply.data.len() as u32;
+            self.tc_chunk_left = (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
         }
 
         SCLogDebug!("REPLY {} to procedure {} blob size {} / {}: chunk_left {}",
