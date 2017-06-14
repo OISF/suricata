@@ -35,8 +35,10 @@ use filecontainer::*;
 //use storage::*;
 
 use nfs::types::*;
-use nfs::parser::*;
+use nfs::rpc_records::*;
+use nfs::nfs_records::*;
 use nfs::nfs2_records::*;
+use nfs::nfs3_records::*;
 
 /// nom bug leads to this wrappers being necessary
 /// TODO for some reason putting these in parser.rs and making them public
@@ -1038,7 +1040,7 @@ impl NFS3State {
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
     fn process_read_record<'b>(&mut self, r: &RpcReplyPacket<'b>,
-            reply: &Nfs3ReplyRead<'b>, xidmapr: Option<&NFS3RequestXidMap>) -> u32
+            reply: &NfsReplyRead<'b>, xidmapr: Option<&NFS3RequestXidMap>) -> u32
     {
         let file_name;
         let file_handle;
@@ -1141,7 +1143,7 @@ impl NFS3State {
         0
     }
 
-    fn process_partial_read_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>, reply: &Nfs3ReplyRead<'b>) -> u32 {
+    fn process_partial_read_reply_record<'b>(&mut self, r: &RpcReplyPacket<'b>, reply: &NfsReplyRead<'b>) -> u32 {
         SCLogDebug!("REPLY {} to procedure READ blob size {} / {}",
                 r.hdr.xid, r.prog_data.len(), reply.count);
 

@@ -17,7 +17,7 @@
 
 //! Nom parsers for NFSv2 records
 use nom::{be_u32, rest};
-use nfs::parser::*;
+use nfs::nfs_records::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Nfs2Handle<'a> {
@@ -73,14 +73,14 @@ named!(pub parse_nfs2_request_read<Nfs2RequestRead>,
         ))
 );
 
-named!(pub parse_nfs2_reply_read<Nfs3ReplyRead>,
+named!(pub parse_nfs2_reply_read<NfsReplyRead>,
     do_parse!(
             status: be_u32
         >>  attr_blob: take!(68)
         >>  data_len: be_u32
         >>  data_contents: rest
         >> (
-            Nfs3ReplyRead {
+            NfsReplyRead {
                 status:status,
                 attr_follows:1,
                 attr_blob:attr_blob,

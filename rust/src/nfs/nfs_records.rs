@@ -15,13 +15,15 @@
  * 02110-1301, USA.
  */
 
-pub mod types;
-pub mod rpc_records;
-pub mod nfs_records;
-pub mod nfs2_records;
-pub mod nfs3_records;
-pub mod nfs3;
-pub mod log;
+//! Nom parsers for NFS
 
-//#[cfg(feature = "lua")]
-//pub mod lua;
+#[derive(Debug,PartialEq)]
+pub struct NfsReplyRead<'a> {
+    pub status: u32,
+    pub attr_follows: u32,
+    pub attr_blob: &'a[u8],
+    pub count: u32,
+    pub eof: bool,
+    pub data_len: u32,
+    pub data: &'a[u8], // likely partial
+}
