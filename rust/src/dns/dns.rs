@@ -468,6 +468,8 @@ impl DNSState {
     ///
     /// Always buffer and read from the buffer. Should optimize to skip
     /// the buffer if not needed.
+    ///
+    /// Returns the number of messages parsed.
     pub fn parse_request_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
             if probe_tcp(input) {
@@ -479,27 +481,26 @@ impl DNSState {
 
         self.request_buffer.extend_from_slice(input);
 
+        let mut count = 0;
         while self.request_buffer.len() > 0 {
             let size = match nom::be_u16(&self.request_buffer) {
-                nom::IResult::Done(_, len) => {
-                    len as usize
-                }
-                _ => 0 as usize
-            };
+                nom::IResult::Done(_, len) => len,
+                _ => 0
+            } as usize;
             SCLogDebug!("Have {} bytes, need {} to parse",
                         self.request_buffer.len(), size);
-            if size > 0 && self.request_buffer.len() >= size {
+            if size > 0 && self.request_buffer.len() >= size + 2 {
                 let msg: Vec<u8> = self.request_buffer.drain(0..(size + 2))
                     .collect();
                 if self.parse_request(&msg[2..]) {
-                    continue;
+                    count += 1
                 }
-                return -1;
+            } else {
+                SCLogDebug!("Not enough DNS traffic to parse.");
+                break;
             }
-            SCLogDebug!("Not enough DNS traffic to parse.");
-            return 0;
         }
-        return 0;
+        return count;
     }
 
     /// TCP variation of the response parser to handle the length
@@ -507,6 +508,8 @@ impl DNSState {
     ///
     /// Always buffer and read from the buffer. Should optimize to skip
     /// the buffer if not needed.
+    ///
+    /// Returns the number of messages parsed.
     pub fn parse_response_tcp(&mut self, input: &[u8]) -> i8 {
         if self.gap {
             if probe_tcp(input) {
@@ -517,21 +520,24 @@ impl DNSState {
         }
 
         self.response_buffer.extend_from_slice(input);
-        let size = match nom::be_u16(&self.response_buffer) {
-            nom::IResult::Done(_, len) => {
-                len as usize
+
+        let mut count = 0;
+        while self.response_buffer.len() > 0 {
+            let size = match nom::be_u16(&self.response_buffer) {
+                nom::IResult::Done(_, len) => len,
+                _ => 0
+            } as usize;
+            if size > 0 && self.response_buffer.len() >= size + 2 {
+                let msg: Vec<u8> = self.response_buffer.drain(0..(size + 2))
+                    .collect();
+                if self.parse_response(&msg[2..]) {
+                    count += 1;
+                }
+            } else {
+                break;
             }
-            _ => 0 as usize
-        };
-        if size > 0 && self.response_buffer.len() + 2 >= size {
-            let msg: Vec<u8> = self.response_buffer.drain(0..(size + 2))
-                .collect();
-            if self.parse_response(&msg[2..]) {
-                return 1;
-            }
-            return -1;
         }
-        return 0
+        return count;
     }
 
     /// A gap has been seen in the request direction. Set the gap flag
@@ -896,27 +902,149 @@ pub extern "C" fn rs_dns_probe_tcp(input: *const libc::uint8_t,
 #[cfg(test)]
 mod tests {
 
-    // Playing with vector draining...
+    use dns::dns::DNSState;
+
     #[test]
-    fn test_drain() {
+    fn test_dns_parse_request_tcp_valid() {
+        // A UDP DNS request with the DNS payload starting at byte 42.
+        // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
         let buf: &[u8] = &[
-            0x09, 0x63,
-            0x6c, 0x69, 0x65, 0x6e, 0x74, 0x2d, 0x63, 0x66,
-            0x07, 0x64, 0x72, 0x6f, 0x70, 0x62, 0x6f, 0x78,
-            0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
+            0x00, 0x15, 0x17, 0x0d, 0x06, 0xf7, 0xd8, 0xcb, /* ........ */
+            0x8a, 0xed, 0xa1, 0x46, 0x08, 0x00, 0x45, 0x00, /* ...F..E. */
+            0x00, 0x4d, 0x23, 0x11, 0x00, 0x00, 0x40, 0x11, /* .M#...@. */
+            0x41, 0x64, 0x0a, 0x10, 0x01, 0x0b, 0x0a, 0x10, /* Ad...... */
+            0x01, 0x01, 0xa3, 0x4d, 0x00, 0x35, 0x00, 0x39, /* ...M.5.9 */
+            0xb2, 0xb3, 0x8d, 0x32, 0x01, 0x20, 0x00, 0x01, /* ...2. .. */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77, /* .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
+            0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
+            0x00, 0x00, 0x00                                /* ... */
         ];
-        let mut v: Vec<u8> = Vec::new();
-        v.extend_from_slice(buf);
-        assert_eq!(v.len(), buf.len());
 
-        // Drain one byte.
-        let drained: Vec<u8> = v.drain(0..1).collect();
-        assert_eq!(drained.len(), 1);
-        assert_eq!(v.len(), buf.len() - 1);
-        assert_eq!(buf[0], drained[0]);
+        // The DNS payload starts at offset 42.
+        let dns_payload = &buf[42..];
 
-        // Drain some more.
-        v.drain(0..8);
-        assert_eq!(v.len(), buf.len() - 9);
+        // Make a TCP DNS request payload.
+        let mut request = Vec::new();
+        request.push(((dns_payload.len() as u16) >> 8) as u8);
+        request.push(((dns_payload.len() as u16) & 0xff) as u8);
+        request.extend(dns_payload);
+
+        let mut state = DNSState::new();
+        assert_eq!(1, state.parse_request_tcp(&request));
+    }
+
+    #[test]
+    fn test_dns_parse_request_tcp_short_payload() {
+        // A UDP DNS request with the DNS payload starting at byte 42.
+        // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        let buf: &[u8] = &[
+            0x00, 0x15, 0x17, 0x0d, 0x06, 0xf7, 0xd8, 0xcb, /* ........ */
+            0x8a, 0xed, 0xa1, 0x46, 0x08, 0x00, 0x45, 0x00, /* ...F..E. */
+            0x00, 0x4d, 0x23, 0x11, 0x00, 0x00, 0x40, 0x11, /* .M#...@. */
+            0x41, 0x64, 0x0a, 0x10, 0x01, 0x0b, 0x0a, 0x10, /* Ad...... */
+            0x01, 0x01, 0xa3, 0x4d, 0x00, 0x35, 0x00, 0x39, /* ...M.5.9 */
+            0xb2, 0xb3, 0x8d, 0x32, 0x01, 0x20, 0x00, 0x01, /* ...2. .. */
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x77, /* .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
+            0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00, /* ..)..... */
+            0x00, 0x00, 0x00                                /* ... */
+        ];
+
+        // The DNS payload starts at offset 42.
+        let dns_payload = &buf[42..];
+
+        // Make a TCP DNS request payload but with the length 1 larger
+        // than the available data.
+        let mut request = Vec::new();
+        request.push(((dns_payload.len() as u16) >> 8) as u8);
+        request.push((((dns_payload.len() as u16) & 0xff) as u8 + 1));
+        request.extend(dns_payload);
+
+        let mut state = DNSState::new();
+        assert_eq!(0, state.parse_request_tcp(&request));
+    }
+
+    #[test]
+    fn test_dns_parse_response_tcp_valid() {
+        // A UDP DNS response with the DNS payload starting at byte 42.
+        // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        let buf: &[u8] = &[
+            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* .....F.. */
+            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* ......E. */
+            0x00, 0x80, 0x65, 0x4e, 0x40, 0x00, 0x40, 0x11, /* ..eN@.@. */
+            0xbe, 0xf3, 0x0a, 0x10, 0x01, 0x01, 0x0a, 0x10, /* ........ */
+            0x01, 0x0b, 0x00, 0x35, 0xa3, 0x4d, 0x00, 0x6c, /* ...5.M.l */
+            0x8d, 0x8c, 0x8d, 0x32, 0x81, 0xa0, 0x00, 0x01, /* ...2.... */
+            0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x77, /* .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
+            0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, /* ........ */
+            0x0d, 0xd8, 0x00, 0x12, 0x0c, 0x73, 0x75, 0x72, /* .....sur */
+            0x69, 0x63, 0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, /* icata-id */
+            0x73, 0x03, 0x6f, 0x72, 0x67, 0x00, 0xc0, 0x32, /* s.org..2 */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0xc0, 0x32, /* ....N..2 */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19              /* ....N. */
+        ];
+
+        // The DNS payload starts at offset 42.
+        let dns_payload = &buf[42..];
+
+        // Make a TCP DNS response payload.
+        let mut request = Vec::new();
+        request.push(((dns_payload.len() as u16) >> 8) as u8);
+        request.push(((dns_payload.len() as u16) & 0xff) as u8);
+        request.extend(dns_payload);
+
+        let mut state = DNSState::new();
+        assert_eq!(1, state.parse_response_tcp(&request));
+    }
+
+    // Test that a TCP DNS payload won't be parsed if there is not
+    // enough data.
+    #[test]
+    fn test_dns_parse_response_tcp_short_payload() {
+        // A UDP DNS response with the DNS payload starting at byte 42.
+        // From pcap: https://github.com/jasonish/suricata-verify/blob/7cc0e1bd0a5249b52e6e87d82d57c0b6aaf75fce/dns-udp-dig-a-www-suricata-ids-org/dig-a-www.suricata-ids.org.pcap
+        let buf: &[u8] = &[
+            0xd8, 0xcb, 0x8a, 0xed, 0xa1, 0x46, 0x00, 0x15, /* .....F.. */
+            0x17, 0x0d, 0x06, 0xf7, 0x08, 0x00, 0x45, 0x00, /* ......E. */
+            0x00, 0x80, 0x65, 0x4e, 0x40, 0x00, 0x40, 0x11, /* ..eN@.@. */
+            0xbe, 0xf3, 0x0a, 0x10, 0x01, 0x01, 0x0a, 0x10, /* ........ */
+            0x01, 0x0b, 0x00, 0x35, 0xa3, 0x4d, 0x00, 0x6c, /* ...5.M.l */
+            0x8d, 0x8c, 0x8d, 0x32, 0x81, 0xa0, 0x00, 0x01, /* ...2.... */
+            0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x77, /* .......w */
+            0x77, 0x77, 0x0c, 0x73, 0x75, 0x72, 0x69, 0x63, /* ww.suric */
+            0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, 0x73, 0x03, /* ata-ids. */
+            0x6f, 0x72, 0x67, 0x00, 0x00, 0x01, 0x00, 0x01, /* org..... */
+            0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, /* ........ */
+            0x0d, 0xd8, 0x00, 0x12, 0x0c, 0x73, 0x75, 0x72, /* .....sur */
+            0x69, 0x63, 0x61, 0x74, 0x61, 0x2d, 0x69, 0x64, /* icata-id */
+            0x73, 0x03, 0x6f, 0x72, 0x67, 0x00, 0xc0, 0x32, /* s.org..2 */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x18, 0xc0, 0x32, /* ....N..2 */
+            0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0xf4, /* ........ */
+            0x00, 0x04, 0xc0, 0x00, 0x4e, 0x19              /* ....N. */
+        ];
+
+        // The DNS payload starts at offset 42.
+        let dns_payload = &buf[42..];
+
+        // Make a TCP DNS response payload, but make the length 1 byte
+        // larger than the actual size.
+        let mut request = Vec::new();
+        request.push(((dns_payload.len() as u16) >> 8) as u8);
+        request.push((((dns_payload.len() as u16) & 0xff) + 1) as u8);
+        request.extend(dns_payload);
+
+        let mut state = DNSState::new();
+        assert_eq!(0, state.parse_response_tcp(&request));
     }
 }
