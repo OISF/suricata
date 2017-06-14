@@ -19,6 +19,7 @@ extern crate libc;
 
 use std;
 use std::string::String;
+use std::ascii::AsciiExt;
 
 use json::*;
 use dns::dns::*;
@@ -286,6 +287,28 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
     }.to_string()
 }
 
+fn safe_bytes_to_string(input: &[u8]) -> String {
+    // First attempt to convert from UTF8.
+    match std::str::from_utf8(input) {
+        Ok(value) => {
+            return String::from(value);
+        },
+        _ => {}
+    }
+
+    // If that fails create a string from the printabe characters with
+    // the non-printable characters as hex.
+    let mut output: String = "".to_owned();
+    for c in input {
+        if (*c as char).is_ascii() {
+            output.push(*c as char);
+        } else {
+            output.push_str(&format!("\\x{:x}", c));
+        }
+    }
+    return output;
+}
+
 fn dns_rcode_string(flags: u16) -> String {
     match flags & 0x000f {
         DNS_RCODE_NOERROR => "NOERROR",
@@ -420,7 +443,7 @@ fn dns_log_json_failure(r: &DNSResponse, index: usize, flags: u64)
     js.set_string("type", "answer");
     js.set_integer("id", r.header.tx_id as u64);
     js.set_string("rcode", &dns_rcode_string(r.header.flags));
-    js.set_string("rrname", std::str::from_utf8(&query.name[..]).unwrap());
+    js.set_string("rrname", &safe_bytes_to_string(&query.name));
 
     return js.unwrap();
 }
@@ -469,4 +492,20 @@ pub extern "C" fn rs_dns_log_json_authority(tx: &mut DNSTransaction,
         }
     }
     return std::ptr::null_mut();
+}
+
+#[cfg(test)]
+mod tests {
+
+    use dns::log::safe_bytes_to_string;
+
+    #[test]
+    fn test_safe_bytes_to_string() {
+        assert_eq!("suricata-ids.org",
+                   safe_bytes_to_string(
+                       &String::from("suricata-ids.org").into_bytes()));
+        assert_eq!("A\\xf0\\xf1\\xf2",
+                   safe_bytes_to_string(&[ 0x41, 0xf0, 0xf1, 0xf2 ]));
+    }
+
 }
