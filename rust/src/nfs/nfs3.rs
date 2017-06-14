@@ -601,6 +601,29 @@ impl NFS3State {
             SCLogDebug!("TX created: ID {} XID {} PROCEDURE {}",
                     tx.id, tx.xid, tx.procedure);
             self.transactions.push(tx);
+
+        } else if r.procedure == NFSPROC3_READ {
+
+            let found = match self.get_file_tx_by_handle(&xidmap.file_handle, STREAM_TOCLIENT) {
+                Some((_, _, _)) => true,
+                None => false,
+            };
+            if !found {
+                let (tx, _, _) = self.new_file_tx(&xidmap.file_handle, &xidmap.file_name, STREAM_TOCLIENT);
+                tx.procedure = NFSPROC3_READ;
+                tx.xid = r.hdr.xid;
+                tx.is_first = true;
+
+                tx.auth_type = r.creds_flavor;
+                match &r.creds_unix {
+                    &Some(ref u) => {
+                        tx.request_machine_name = u.machine_name_buf.to_vec();
+                        tx.request_uid = u.uid;
+                        tx.request_gid = u.gid;
+                    },
+                    _ => { },
+                }
+            }
         }
 
         self.requestmap.insert(r.hdr.xid, xidmap);
