@@ -473,6 +473,15 @@ impl NFS3State {
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
+        } else if r.procedure == NFSPROC3_READDIRPLUS {
+            match parse_nfs3_request_readdirplus(r.prog_data) {
+                IResult::Done(_, rdp) => {
+                    xidmap.file_handle = rdp.handle.value.to_vec();
+                    self.xidmap_handle2name(&mut xidmap);
+                },
+                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+            };
         } else if r.procedure == NFSPROC3_READ {
             match parse_nfs3_request_read(r.prog_data) {
                 IResult::Done(_, nfs3_read_record) => {
