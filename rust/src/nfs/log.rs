@@ -80,7 +80,6 @@ fn nfs3_file_object(tx: &NFS3Transaction) -> Json
 fn nfs3_common_header(tx: &NFS3Transaction) -> Json
 {
     let js = Json::object();
-    js.set_integer("xid", tx.xid as u64);
     js.set_string("procedure", &nfs3_procedure_string(tx.procedure));
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name);
@@ -103,12 +102,7 @@ pub extern "C" fn rs_nfs3_log_json_response(tx: &mut NFS3Transaction) -> *mut Js
     let js = nfs3_common_header(tx);
     js.set_string("type", "response");
 
-    js.set_string("status", &nfs3_status_string(tx.response_status));
-
-    if tx.has_creds {
-        let creds_js = nfs3_creds_object(tx);
-        js.set("creds", creds_js);
-    }
+    js.set_string("status", &nfs3_status_string(tx.nfs_response_status));
 
     if tx.procedure == NFSPROC3_READ {
         let read_js = nfs3_file_object(tx);
@@ -119,6 +113,22 @@ pub extern "C" fn rs_nfs3_log_json_response(tx: &mut NFS3Transaction) -> *mut Js
     } else if tx.procedure == NFSPROC3_RENAME {
         let rename_js = nfs3_rename_object(tx);
         js.set("rename", rename_js);
+    }
+
+    return js.unwrap();
+}
+
+
+#[no_mangle]
+pub extern "C" fn rs_rpc_log_json_response(tx: &mut NFS3Transaction) -> *mut JsonT
+{
+    let js = Json::object();
+    js.set_integer("xid", tx.xid as u64);
+    js.set_string("status", &rpc_status_string(tx.rpc_response_status));
+    js.set_string("auth_type", &rpc_auth_type_string(tx.auth_type));
+    if tx.auth_type == RPCAUTH_UNIX {
+        let creds_js = nfs3_creds_object(tx);
+        js.set("creds", creds_js);
     }
 
     return js.unwrap();

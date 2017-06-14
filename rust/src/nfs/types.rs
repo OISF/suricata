@@ -136,3 +136,91 @@ pub fn nfs3_status_string(status: u32) -> String {
         },
     }.to_string()
 }
+
+pub const RPCMSG_ACCEPTED:  u32 = 0;
+pub const RPCMSG_DENIED:    u32 = 1;
+
+pub fn rpc_status_string(status: u32) -> String {
+    match status {
+        RPCMSG_ACCEPTED => "ACCEPTED",
+        RPCMSG_DENIED   => "DENIED",
+        _ => {
+            return (status).to_string();
+        },
+    }.to_string()
+}
+
+/* http://www.iana.org/assignments/rpc-authentication-numbers/rpc-authentication-numbers.xhtml */
+/* RFC 1057 Section 7.2 */
+/* RFC 2203 Section 3 */
+
+pub const RPCAUTH_NULL:         u32 = 0;
+pub const RPCAUTH_UNIX:         u32 = 1;
+pub const RPCAUTH_SHORT:        u32 = 2;
+pub const RPCAUTH_DH:           u32 = 3;
+pub const RPCAUTH_KERB:         u32 = 4;
+pub const RPCAUTH_RSA:          u32 = 5;
+pub const RPCAUTH_GSS:          u32 = 6;
+
+pub fn rpc_auth_type_string(auth_type: u32) -> String {
+    match auth_type {
+        RPCAUTH_NULL    => "NULL",
+        RPCAUTH_UNIX    => "UNIX",
+        RPCAUTH_SHORT   => "SHORT",
+        RPCAUTH_DH      => "DH",
+        RPCAUTH_KERB    => "KERB",
+        RPCAUTH_RSA     => "RSA",
+        RPCAUTH_GSS     => "GSS",
+        _ => {
+            return (auth_type).to_string();
+        },
+    }.to_string()
+}
+
+/* http://www.iana.org/assignments/rpc-authentication-numbers/rpc-authentication-numbers.xhtml */
+pub const RPCAUTH_OK:                   u32 = 0;  // success/failed at remote end    [RFC5531]
+pub const RPCAUTH_BADCRED:              u32 = 1;  // bad credential (seal broken)    [RFC5531]
+pub const RPCAUTH_REJECTEDCRED:         u32 = 2;  // client must begin new session   [RFC5531]
+pub const RPCAUTH_BADVERF:              u32 = 3;  // bad verifier (seal broken)  [RFC5531]
+pub const RPCAUTH_REJECTEDVERF:         u32 = 4;  // verifier expired or replayed    [RFC5531]
+pub const RPCAUTH_TOOWEAK:              u32 = 5;  // rejected for security reasons/failed locally    [RFC5531]
+pub const RPCAUTH_INVALIDRESP:          u32 = 6;  // bogus response verifier     [RFC5531]
+pub const RPCAUTH_FAILED:               u32 = 7;  // reason unknown/AUTH_KERB errors; deprecated. See [RFC2695]  [RFC5531]
+pub const RPCAUTH_KERB_GENERIC:         u32 = 8;  // kerberos generic error  [RFC5531]
+pub const RPCAUTH_TIMEEXPIRE:           u32 = 9;  // time of credential expired  [RFC5531]
+pub const RPCAUTH_TKT_FILE:             u32 = 10; // problem with ticket file    [RFC5531]
+pub const RPCAUTH_DECODE:               u32 = 11; // can't decode authenticator  [RFC5531]
+pub const RPCAUTH_NET_ADDR:             u32 = 12; // wrong net address in ticket/RPCSEC_GSS GSS related errors   [RFC5531]
+pub const RPCSEC_GSS_CREDPROBLEM:       u32 = 13; // no credentials for user     [RFC5531]
+pub const RPCSEC_GSS_CTXPROBLEM:        u32 = 14; // problem with context    [RFC5531]
+pub const RPCSEC_GSS_INNER_CREDPROBLEM: u32 = 15; // No credentials for multi-principal assertion inner context user     [RFC7861]
+pub const RPCSEC_GSS_LABEL_PROBLEM:     u32 = 16; // Problem with label assertion    [RFC7861]
+pub const RPCSEC_GSS_PRIVILEGE_PROBLEM: u32 = 17; // Problem with structured privilege assertion     [RFC7861]
+pub const RPCSEC_GSS_UNKNOWN_MESSAGE:   u32 = 18; // Unknown structured privilege assertion  [RFC7861]
+
+pub fn rpc_auth_status_string(auth_status: u32) -> String {
+    match auth_status {
+        RPCAUTH_OK                      => "OK",
+        RPCAUTH_BADCRED                 => "BADCRED",
+        RPCAUTH_REJECTEDCRED            => "REJECTEDCRED",
+        RPCAUTH_BADVERF                 => "BADVERF",
+        RPCAUTH_REJECTEDVERF            => "REJECTEDVERF",
+        RPCAUTH_TOOWEAK                 => "TOOWEAK",
+        RPCAUTH_INVALIDRESP             => "NVALIDRESP",
+        RPCAUTH_FAILED                  => "FAILED",
+        RPCAUTH_KERB_GENERIC            => "KERB_GENERIC",
+        RPCAUTH_TIMEEXPIRE              => "TIMEEXPIRE",
+        RPCAUTH_TKT_FILE                => "TKT_FILE",
+        RPCAUTH_DECODE                  => "DECODE",
+        RPCAUTH_NET_ADDR                => "NET_ADDR",
+        RPCSEC_GSS_CREDPROBLEM          => "GSS_CREDPROBLEM",
+        RPCSEC_GSS_CTXPROBLEM           => "GSS_CTXPROBLEM",
+        RPCSEC_GSS_INNER_CREDPROBLEM    => "GSS_INNER_CREDPROBLEM",
+        RPCSEC_GSS_LABEL_PROBLEM        => "GSS_LABEL_PROBLEM",
+        RPCSEC_GSS_PRIVILEGE_PROBLEM    => "GSS_PRIVILEGE_PROBLEM",
+        RPCSEC_GSS_UNKNOWN_MESSAGE      => "GSS_UNKNOWN_MESSAGE",
+        _ => {
+            return (auth_status).to_string();
+        },
+    }.to_string()
+}

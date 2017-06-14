@@ -17,7 +17,7 @@
 
 //! Nom parsers for RPC & NFSv3
 
-use nom::{be_u32, be_u64, rest};
+use nom::{be_u32, rest};
 
 #[derive(Debug,PartialEq)]
 pub struct RpcRequestCredsUnix<'a> {

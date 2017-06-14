@@ -84,11 +84,16 @@ static int JsonNFS3Logger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
+    json_t *rpcjs = rs_rpc_log_json_response(tx);
+    if (unlikely(rpcjs == NULL)) {
+        goto error;
+    }
+    json_object_set_new(js, "rpc", rpcjs);
+
     nfs3js = rs_nfs3_log_json_response(tx);
     if (unlikely(nfs3js == NULL)) {
         goto error;
     }
-
     json_object_set_new(js, "nfs3", nfs3js);
 
     MemBufferReset(thread->buffer);

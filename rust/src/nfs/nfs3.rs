@@ -132,13 +132,14 @@ pub struct NFS3Transaction {
     /// this is the 'from' or original name.
     pub file_name: Vec<u8>,
 
+    pub auth_type: u32,
     pub request_machine_name: Vec<u8>,
     pub request_uid: u32,
     pub request_gid: u32,
 
-    pub response_status: u32,
+    pub rpc_response_status: u32,
+    pub nfs_response_status: u32,
 
-    pub has_creds: bool,
     pub is_first: bool,
     pub is_last: bool,
 
@@ -174,8 +175,9 @@ impl NFS3Transaction {
             request_machine_name:Vec::new(),
             request_uid:0,
             request_gid:0,
-            response_status:0,
-            has_creds: false,
+            rpc_response_status:0,
+            nfs_response_status:0,
+            auth_type: 0,
             is_first: false,
             is_last: false,
             request_done: false,
@@ -399,12 +401,13 @@ impl NFS3State {
     }
 
     // TODO maybe not enough users to justify a func
-    fn mark_response_tx_done(&mut self, xid: u32, status: u32)
+    fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32)
     {
         match self.get_tx_by_xid(xid) {
             Some(mut mytx) => {
                 mytx.response_done = true;
-                mytx.response_status = status;
+                mytx.rpc_response_status = rpc_status;
+                mytx.nfs_response_status = nfs_status;
 
                 SCLogDebug!("process_reply_record: tx ID {} XID {} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
@@ -577,12 +580,12 @@ impl NFS3State {
                 tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
             }
 
+            tx.auth_type = r.creds_flavor;
             match &r.creds_unix {
                 &Some(ref u) => {
                     tx.request_machine_name = u.machine_name_buf.to_vec();
                     tx.request_uid = u.uid;
                     tx.request_gid = u.gid;
-                    tx.has_creds = true;
                 },
                 _ => { },
             }
@@ -639,12 +642,12 @@ impl NFS3State {
                 tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
             }
 
+            tx.auth_type = r.creds_flavor;
             match &r.creds_unix {
                 &Some(ref u) => {
                     tx.request_machine_name = u.machine_name_buf.to_vec();
                     tx.request_uid = u.uid;
                     tx.request_gid = u.gid;
-                    tx.has_creds = true;
                 },
                 _ => { },
             }
@@ -781,7 +784,7 @@ impl NFS3State {
     }
 
     fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFS3RequestXidMap) -> u32 {
-        let status;
+        let nfs_status;
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
             match parse_nfs3_response_lookup(r.prog_data) {
@@ -789,7 +792,7 @@ impl NFS3State {
                     SCLogDebug!("LOOKUP: {:?}", lookup);
                     SCLogDebug!("RESPONSE LOOKUP file_name {:?}", xidmap.file_name);
 
-                    status = lookup.status;
+                    nfs_status = lookup.status;
 
                     SCLogDebug!("LOOKUP handle {:?}", lookup.handle);
                     self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name.to_vec());
@@ -803,7 +806,7 @@ impl NFS3State {
                     SCLogDebug!("nfs3_create_record: {:?}", nfs3_create_record);
 
                     SCLogDebug!("RESPONSE CREATE file_name {:?}", xidmap.file_name);
-                    status = nfs3_create_record.status;
+                    nfs_status = nfs3_create_record.status;
 
                     match nfs3_create_record.handle {
                         Some(h) => {
@@ -821,7 +824,7 @@ impl NFS3State {
             match parse_nfs3_reply_read(r.prog_data) {
                 IResult::Done(_, ref reply) => {
                     self.process_read_record(r, reply, Some(&xidmap));
-                    status = reply.status;
+                    nfs_status = reply.status;
                 },
                 IResult::Incomplete(_) => { panic!("Incomplete!"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
@@ -831,7 +834,7 @@ impl NFS3State {
                 IResult::Done(_, ref reply) => {
                     //SCLogDebug!("READDIRPLUS reply {:?}", reply);
 
-                    status = reply.status;
+                    nfs_status = reply.status;
 
                     // cut off final eof field
                     let d = &reply.data[..reply.data.len()-4 as usize];
@@ -874,27 +877,27 @@ impl NFS3State {
                 }
                 _ => 0 as u32
             };
-            status = stat;
+            nfs_status = stat;
         }
         SCLogDebug!("REPLY {} to procedure {} blob size {}",
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
         if xidmap.procedure != NFSPROC3_READ {
-            self.mark_response_tx_done(r.hdr.xid, status);
+            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
         }
 
         0
     }
 
     fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFS3RequestXidMap) -> u32 {
-        let status;
+        let nfs_status;
 
         if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs2_reply_read(r.prog_data) {
                 IResult::Done(_, ref reply) => {
                     SCLogDebug!("NFSv2 READ reply record");
                     self.process_read_record(r, reply, Some(&xidmap));
-                    status = reply.status;
+                    nfs_status = reply.status;
                 },
                 IResult::Incomplete(_) => { panic!("Incomplete!"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
@@ -906,12 +909,12 @@ impl NFS3State {
                 }
                 _ => 0 as u32
             };
-            status = stat;
+            nfs_status = stat;
         }
         SCLogDebug!("REPLY {} to procedure {} blob size {}",
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
-        self.mark_response_tx_done(r.hdr.xid, status);
+        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
 
         0
     }
@@ -1102,7 +1105,8 @@ impl NFS3State {
                         reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
-                    tx.response_status = reply.status;
+                    tx.rpc_response_status = r.reply_state;
+                    tx.nfs_response_status = reply.status;
                     tx.is_last = true;
                     tx.response_done = true;
                 }
@@ -1124,7 +1128,8 @@ impl NFS3State {
             tx.is_first = true;
             if is_last {
                 tdf.file_last_xid = r.hdr.xid;
-                tx.response_status = reply.status;
+                tx.rpc_response_status = r.reply_state;
+                tx.nfs_response_status = reply.status;
                 tx.is_last = true;
                 tx.response_done = true;
             }
