@@ -21,10 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __APP_LAYER_NFS3_UDP_H__
-#define __APP_LAYER_NFS3_UDP_H__
+#ifndef __OUTPUT_JSON_NFS_H__
+#define __OUTPUT_JSON_NFS_H__
 
-void RegisterNFS3UDPParsers(void);
-void NFS3UDPParserRegisterTests(void);
+void JsonNFSLogRegister(void);
 
-#endif /* __APP_LAYER_NFS3_H__ */
+#endif /* __OUTPUT_JSON_NFS_H__ */

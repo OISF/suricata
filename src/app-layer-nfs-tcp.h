@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,12 +18,13 @@
 /**
  * \file
  *
- * \author FirstName LastName <name@domain>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_JSON_NFS3_H__
-#define __OUTPUT_JSON_NFS3_H__
+#ifndef __APP_LAYER_NFS_TCP_H__
+#define __APP_LAYER_NFS_TCP_H__
 
-void JsonNFS3LogRegister(void);
+void RegisterNFSTCPParsers(void);
+void NFSTCPParserRegisterTests(void);
 
-#endif /* __OUTPUT_JSON_NFS3_H__ */
+#endif /* __APP_LAYER_NFS_TCP_H__ */

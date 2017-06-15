@@ -85,10 +85,10 @@ void DetectFilenameRegister(void)
             DetectFileInspectGeneric);
 
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_NFS3, SIG_FLAG_TOSERVER, 0,
+            ALPROTO_NFS, SIG_FLAG_TOSERVER, 0,
             DetectFileInspectGeneric);
     DetectAppLayerInspectEngineRegister("files",
-            ALPROTO_NFS3, SIG_FLAG_TOCLIENT, 0,
+            ALPROTO_NFS, SIG_FLAG_TOCLIENT, 0,
             DetectFileInspectGeneric);
 
     g_file_match_list_id = DetectBufferTypeGetByName("files");

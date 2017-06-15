@@ -63,7 +63,7 @@
 #include "detect-http-hh.h"
 #include "detect-http-hrh.h"
 
-#include "detect-nfs3-procedure.h"
+#include "detect-nfs-procedure.h"
 
 #include "detect-engine-event.h"
 #include "decode.h"
@@ -3912,7 +3912,7 @@ void SigTableSetup(void)
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();
-    DetectNfs3ProcedureRegister();
+    DetectNfsProcedureRegister();
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
     DetectAsn1Register();

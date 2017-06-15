@@ -21,10 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __APP_LAYER_NFS3_H__
-#define __APP_LAYER_NFS3_H__
+#ifndef __DETECT_NFS_PROCEDURE_H__
+#define __DETECT_NFS_PROCEDURE_H__
 
-void RegisterNFS3Parsers(void);
-void NFS3ParserRegisterTests(void);
+/* prototypes */
+void DetectNfsProcedureRegister (void);
 
-#endif /* __APP_LAYER_NFS3_H__ */
+#endif /* __DETECT_NFS_PROCEDURE_H__ */

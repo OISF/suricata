@@ -15,18 +15,12 @@
  * 02110-1301, USA.
  */
 
-/*
- * TODO: Update \author in this file and in output-json-nfs3.h.
- * TODO: Remove SCLogNotice statements, or convert to debug.
- * TODO: Implement your app-layers logging.
- */
-
 /**
  * \file
  *
- * \author FirstName LastName <yourname@domain>
+ * \author Victor Julien <victor@inliniac.net>
  *
- * Implement JSON/eve logging app-layer NFS3.
+ * Implement JSON/eve logging app-layer NFS.
  */
 
 #include "suricata-common.h"
@@ -50,36 +44,35 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 
-#include "app-layer-nfs3.h"
-#include "output-json-nfs3.h"
+#include "output-json-nfs.h"
 
 #ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 #include "rust.h"
 #include "rust-nfs-log-gen.h"
 
-typedef struct LogNFS3FileCtx_ {
+typedef struct LogNFSFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
-} LogNFS3FileCtx;
+} LogNFSFileCtx;
 
-typedef struct LogNFS3LogThread_ {
-    LogNFS3FileCtx *nfs3log_ctx;
+typedef struct LogNFSLogThread_ {
+    LogNFSFileCtx *nfslog_ctx;
     uint32_t            count;
     MemBuffer          *buffer;
-} LogNFS3LogThread;
+} LogNFSLogThread;
 
-static int JsonNFS3Logger(ThreadVars *tv, void *thread_data,
+static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
-    NFS3Transaction *nfs3tx = tx;
-    LogNFS3LogThread *thread = thread_data;
-    json_t *js, *nfs3js;
+    NFSTransaction *nfstx = tx;
+    LogNFSLogThread *thread = thread_data;
+    json_t *js, *nfsjs;
 
-    if (rs_nfs3_tx_logging_is_filtered(nfs3tx))
+    if (rs_nfs_tx_logging_is_filtered(nfstx))
         return TM_ECODE_OK;
 
-    js = CreateJSONHeader((Packet *)p, 0, "nfs3");
+    js = CreateJSONHeader((Packet *)p, 0, "nfs");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -90,14 +83,14 @@ static int JsonNFS3Logger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "rpc", rpcjs);
 
-    nfs3js = rs_nfs3_log_json_response(tx);
-    if (unlikely(nfs3js == NULL)) {
+    nfsjs = rs_nfs_log_json_response(tx);
+    if (unlikely(nfsjs == NULL)) {
         goto error;
     }
-    json_object_set_new(js, "nfs3", nfs3js);
+    json_object_set_new(js, "nfs", nfsjs);
 
     MemBufferReset(thread->buffer);
-    OutputJSONBuffer(js, thread->nfs3log_ctx->file_ctx, &thread->buffer);
+    OutputJSONBuffer(js, thread->nfslog_ctx->file_ctx, &thread->buffer);
 
     json_decref(js);
     return TM_ECODE_OK;
@@ -107,51 +100,51 @@ error:
     return TM_ECODE_FAILED;
 }
 
-static void OutputNFS3LogDeInitCtxSub(OutputCtx *output_ctx)
+static void OutputNFSLogDeInitCtxSub(OutputCtx *output_ctx)
 {
-    LogNFS3FileCtx *nfs3log_ctx = (LogNFS3FileCtx *)output_ctx->data;
-    SCFree(nfs3log_ctx);
+    LogNFSFileCtx *nfslog_ctx = (LogNFSFileCtx *)output_ctx->data;
+    SCFree(nfslog_ctx);
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputNFS3LogInitSub(ConfNode *conf,
+static OutputCtx *OutputNFSLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
 
-    LogNFS3FileCtx *nfs3log_ctx = SCCalloc(1, sizeof(*nfs3log_ctx));
-    if (unlikely(nfs3log_ctx == NULL)) {
+    LogNFSFileCtx *nfslog_ctx = SCCalloc(1, sizeof(*nfslog_ctx));
+    if (unlikely(nfslog_ctx == NULL)) {
         return NULL;
     }
-    nfs3log_ctx->file_ctx = ajt->file_ctx;
+    nfslog_ctx->file_ctx = ajt->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
-        SCFree(nfs3log_ctx);
+        SCFree(nfslog_ctx);
         return NULL;
     }
-    output_ctx->data = nfs3log_ctx;
-    output_ctx->DeInit = OutputNFS3LogDeInitCtxSub;
+    output_ctx->data = nfslog_ctx;
+    output_ctx->DeInit = OutputNFSLogDeInitCtxSub;
 
-    SCLogDebug("NFS3 log sub-module initialized.");
+    SCLogDebug("NFS log sub-module initialized.");
 
-    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS3);
-    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS3);
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);
 
     return output_ctx;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-static TmEcode JsonNFS3LogThreadInit(ThreadVars *t, const void *initdata, void **data)
+static TmEcode JsonNFSLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    LogNFS3LogThread *thread = SCCalloc(1, sizeof(*thread));
+    LogNFSLogThread *thread = SCCalloc(1, sizeof(*thread));
     if (unlikely(thread == NULL)) {
         return TM_ECODE_FAILED;
     }
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for EveLogNFS3.  \"initdata\" is NULL.");
+        SCLogDebug("Error getting context for EveLogNFS.  \"initdata\" is NULL.");
         SCFree(thread);
         return TM_ECODE_FAILED;
     }
@@ -162,15 +155,15 @@ static TmEcode JsonNFS3LogThreadInit(ThreadVars *t, const void *initdata, void *
         return TM_ECODE_FAILED;
     }
 
-    thread->nfs3log_ctx = ((OutputCtx *)initdata)->data;
+    thread->nfslog_ctx = ((OutputCtx *)initdata)->data;
     *data = (void *)thread;
 
     return TM_ECODE_OK;
 }
 
-static TmEcode JsonNFS3LogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode JsonNFSLogThreadDeinit(ThreadVars *t, void *data)
 {
-    LogNFS3LogThread *thread = (LogNFS3LogThread *)data;
+    LogNFSLogThread *thread = (LogNFSLogThread *)data;
     if (thread == NULL) {
         return TM_ECODE_OK;
     }
@@ -181,20 +174,20 @@ static TmEcode JsonNFS3LogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void JsonNFS3LogRegister(void)
+void JsonNFSLogRegister(void)
 {
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_NFS3, "eve-log", "JsonNFS3Log",
-        "eve-log.nfs3", OutputNFS3LogInitSub, ALPROTO_NFS3,
-        JsonNFS3Logger, JsonNFS3LogThreadInit,
-        JsonNFS3LogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_NFS, "eve-log", "JsonNFSLog",
+        "eve-log.nfs", OutputNFSLogInitSub, ALPROTO_NFS,
+        JsonNFSLogger, JsonNFSLogThreadInit,
+        JsonNFSLogThreadDeinit, NULL);
 
-    SCLogDebug("NFS3 JSON logger registered.");
+    SCLogDebug("NFS JSON logger registered.");
 }
 
 #else /* No JSON support. */
 
-void JsonNFS3LogRegister(void)
+void JsonNFSLogRegister(void)
 {
 }
 
@@ -202,7 +195,7 @@ void JsonNFS3LogRegister(void)
 
 #else /* no rust */
 
-void JsonNFS3LogRegister(void)
+void JsonNFSLogRegister(void)
 {
 }
 

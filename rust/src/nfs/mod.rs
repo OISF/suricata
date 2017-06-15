@@ -20,7 +20,7 @@ pub mod rpc_records;
 pub mod nfs_records;
 pub mod nfs2_records;
 pub mod nfs3_records;
-pub mod nfs3;
+pub mod nfs;
 pub mod log;
 
 //#[cfg(feature = "lua")]

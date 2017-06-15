@@ -65,7 +65,7 @@ pub static mut suricata_nfs3_file_config: Option<&'static SuricataFileContext> =
  * if a client did a file listing (e.g. READDIRPLUS) and would READ the
  * file afterwards, the name will only appear in the READDIRPLUS answer.
  * To be able to log the names we store a mapping between file handles
- * and file names in NFS3State::namemap.
+ * and file names in NFSState::namemap.
  *
  * Mapping NFS to Suricata's transaction model.
  *
@@ -89,18 +89,18 @@ pub static mut suricata_nfs3_file_config: Option<&'static SuricataFileContext> =
  * File tracking
  *
  * Files are tracked per 'FileTransferTracker' and are stored in the
- * NFS3Transaction where they can be looked up per handle as part of the
+ * NFSTransaction where they can be looked up per handle as part of the
  * Transaction lookup.
  */
 
 #[derive(Debug)]
-pub enum NFS3TransactionTypeData {
+pub enum NFSTransactionTypeData {
     RENAME(Vec<u8>),
-    FILE(NFS3TransactionFile),
+    FILE(NFSTransactionFile),
 }
 
 #[derive(Debug)]
-pub struct NFS3TransactionFile {
+pub struct NFSTransactionFile {
     /// additional procedures part of a single file transfer. Currently
     /// only COMMIT on WRITEs.
     pub file_additional_procs: Vec<u32>,
@@ -113,9 +113,9 @@ pub struct NFS3TransactionFile {
     pub file_tracker: FileTransferTracker,
 }
 
-impl NFS3TransactionFile {
-    pub fn new() -> NFS3TransactionFile {
-        return NFS3TransactionFile {
+impl NFSTransactionFile {
+    pub fn new() -> NFSTransactionFile {
+        return NFSTransactionFile {
             file_additional_procs: Vec::new(),
             file_last_xid: 0,
             file_tracker: FileTransferTracker::new(),
@@ -124,7 +124,7 @@ impl NFS3TransactionFile {
 }
 
 #[derive(Debug)]
-pub struct NFS3Transaction {
+pub struct NFSTransaction {
     pub id: u64,    /// internal id
     pub xid: u32,   /// nfs3 req/reply pair id
     pub procedure: u32,
@@ -156,18 +156,18 @@ pub struct NFS3Transaction {
     pub file_handle: Vec<u8>,
 
     /// Procedure type specific data
-    /// TODO see if this can be an Option<Box<NFS3TransactionTypeData>>. Initial
+    /// TODO see if this can be an Option<Box<NFSTransactionTypeData>>. Initial
     /// attempt failed.
-    pub type_data: Option<NFS3TransactionTypeData>,
+    pub type_data: Option<NFSTransactionTypeData>,
 
     pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
 }
 
-impl NFS3Transaction {
-    pub fn new() -> NFS3Transaction {
-        return NFS3Transaction{
+impl NFSTransaction {
+    pub fn new() -> NFSTransaction {
+        return NFSTransaction{
             id: 0,
             xid: 0,
             procedure: 0,
@@ -200,7 +200,7 @@ impl NFS3Transaction {
 }
 
 #[derive(Debug)]
-pub struct NFS3RequestXidMap {
+pub struct NFSRequestXidMap {
     progver: u32,
     procedure: u32,
     chunk_offset: u64,
@@ -210,9 +210,9 @@ pub struct NFS3RequestXidMap {
     file_handle:Vec<u8>,
 }
 
-impl NFS3RequestXidMap {
-    pub fn new(progver: u32, procedure: u32, chunk_offset: u64) -> NFS3RequestXidMap {
-        NFS3RequestXidMap {
+impl NFSRequestXidMap {
+    pub fn new(progver: u32, procedure: u32, chunk_offset: u64) -> NFSRequestXidMap {
+        NFSRequestXidMap {
             progver:progver,
             procedure:procedure,
             chunk_offset:chunk_offset,
@@ -223,16 +223,16 @@ impl NFS3RequestXidMap {
 }
 
 #[derive(Debug)]
-pub struct NFS3Files {
+pub struct NFSFiles {
     pub files_ts: FileContainer,
     pub files_tc: FileContainer,
     pub flags_ts: u16,
     pub flags_tc: u16,
 }
 
-impl NFS3Files {
-    pub fn new() -> NFS3Files {
-        NFS3Files {
+impl NFSFiles {
+    pub fn new() -> NFSFiles {
+        NFSFiles {
             files_ts:FileContainer::default(),
             files_tc:FileContainer::default(),
             flags_ts:0,
@@ -268,21 +268,21 @@ fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
 }
 
 #[derive(Debug)]
-pub struct NFS3State {
+pub struct NFSState {
     /// map xid to procedure so replies can lookup the procedure
-    pub requestmap: HashMap<u32, NFS3RequestXidMap>,
+    pub requestmap: HashMap<u32, NFSRequestXidMap>,
 
     /// map file handle (1) to name (2)
     pub namemap: HashMap<Vec<u8>, Vec<u8>>,
 
     /// transactions list
-    pub transactions: Vec<NFS3Transaction>,
+    pub transactions: Vec<NFSTransaction>,
 
     /// TCP segments defragmentation buffer
     pub tcp_buffer_ts: Vec<u8>,
     pub tcp_buffer_tc: Vec<u8>,
 
-    pub files: NFS3Files,
+    pub files: NFSFiles,
 
     /// partial record tracking
     ts_chunk_xid: u32,
@@ -310,16 +310,16 @@ pub struct NFS3State {
     //pub tc_txs_updated: bool,
 }
 
-impl NFS3State {
+impl NFSState {
     /// Allocation function for a new TLS parser instance
-    pub fn new() -> NFS3State {
-        NFS3State {
+    pub fn new() -> NFSState {
+        NFSState {
             requestmap:HashMap::new(),
             namemap:HashMap::new(),
             transactions: Vec::new(),
             tcp_buffer_ts:Vec::with_capacity(8192),
             tcp_buffer_tc:Vec::with_capacity(8192),
-            files:NFS3Files::new(),
+            files:NFSFiles::new(),
             ts_chunk_xid:0,
             tc_chunk_xid:0,
             ts_chunk_left:0,
@@ -339,8 +339,8 @@ impl NFS3State {
         self.files.free();
     }
 
-    pub fn new_tx(&mut self) -> NFS3Transaction {
-        let mut tx = NFS3Transaction::new();
+    pub fn new_tx(&mut self) -> NFSTransaction {
+        let mut tx = NFSTransaction::new();
         self.tx_id += 1;
         tx.id = self.tx_id;
         return tx;
@@ -376,27 +376,27 @@ impl NFS3State {
         }
     }
 
-    pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NFS3Transaction> {
+    pub fn get_tx_by_id(&mut self, tx_id: u64) -> Option<&NFSTransaction> {
         SCLogDebug!("get_tx_by_id: tx_id={}", tx_id);
         for tx in &mut self.transactions {
             if tx.id == tx_id + 1 {
-                SCLogDebug!("Found NFS3 TX with ID {}", tx_id);
+                SCLogDebug!("Found NFS TX with ID {}", tx_id);
                 return Some(tx);
             }
         }
-        SCLogDebug!("Failed to find NFS3 TX with ID {}", tx_id);
+        SCLogDebug!("Failed to find NFS TX with ID {}", tx_id);
         return None;
     }
 
-    pub fn get_tx_by_xid(&mut self, tx_xid: u32) -> Option<&mut NFS3Transaction> {
+    pub fn get_tx_by_xid(&mut self, tx_xid: u32) -> Option<&mut NFSTransaction> {
         SCLogDebug!("get_tx_by_xid: tx_xid={}", tx_xid);
         for tx in &mut self.transactions {
             if !tx.is_file_tx && tx.xid == tx_xid {
-                SCLogDebug!("Found NFS3 TX with ID {} XID {}", tx.id, tx.xid);
+                SCLogDebug!("Found NFS TX with ID {} XID {}", tx.id, tx.xid);
                 return Some(tx);
             }
         }
-        SCLogDebug!("Failed to find NFS3 TX with XID {}", tx_xid);
+        SCLogDebug!("Failed to find NFS TX with XID {}", tx_xid);
         return None;
     }
 
@@ -420,7 +420,7 @@ impl NFS3State {
         //self.tc_txs_updated = true;
     }
 
-    fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NFS3RequestXidMap) {
+    fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NFSRequestXidMap) {
         match parse_nfs3_request_lookup(r.prog_data) {
             IResult::Done(_, lookup) => {
                 SCLogDebug!("LOOKUP {:?}", lookup);
@@ -431,7 +431,7 @@ impl NFS3State {
         };
     }
 
-    fn xidmap_handle2name(&mut self, xidmap: &mut NFS3RequestXidMap) {
+    fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {
         match self.namemap.get(&xidmap.file_handle) {
             Some(n) => {
                 SCLogDebug!("xidmap_handle2name: name {:?}", n);
@@ -449,7 +449,7 @@ impl NFS3State {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
-        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
+        let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
 
         if r.procedure == NFSPROC3_LOOKUP {
@@ -557,7 +557,7 @@ impl NFS3State {
                     match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
                         Some((tx, files, flags)) => {
                             let tdf = match tx.type_data {
-                                Some(NFS3TransactionTypeData::FILE(ref mut d)) => d,
+                                Some(NFSTransactionTypeData::FILE(ref mut d)) => d,
                                 _ => panic!("BUG"),
                             };
                             tdf.file_additional_procs.push(NFSPROC3_COMMIT);
@@ -586,7 +586,7 @@ impl NFS3State {
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
-                tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
+                tx.type_data = Some(NFSTransactionTypeData::RENAME(aux_file_name));
             }
 
             tx.auth_type = r.creds_flavor;
@@ -635,7 +635,7 @@ impl NFS3State {
         SCLogDebug!("NFSv2 REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
-        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
+        let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let aux_file_name = Vec::new();
 
         if r.procedure == NFSPROC3_LOOKUP {
@@ -671,7 +671,7 @@ impl NFS3State {
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
-                tx.type_data = Some(NFS3TransactionTypeData::RENAME(aux_file_name));
+                tx.type_data = Some(NFSTransactionTypeData::RENAME(aux_file_name));
             }
 
             tx.auth_type = r.creds_flavor;
@@ -694,7 +694,7 @@ impl NFS3State {
     }
 
     fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
-        -> (&mut NFS3Transaction, &mut FileContainer, u16)
+        -> (&mut NFSTransaction, &mut FileContainer, u16)
     {
         let mut tx = self.new_tx();
         tx.file_name = file_name.to_vec();
@@ -702,9 +702,9 @@ impl NFS3State {
         tx.is_file_tx = true;
         tx.file_tx_direction = direction;
 
-        tx.type_data = Some(NFS3TransactionTypeData::FILE(NFS3TransactionFile::new()));
+        tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         match tx.type_data {
-            Some(NFS3TransactionTypeData::FILE(ref mut d)) => {
+            Some(NFSTransactionTypeData::FILE(ref mut d)) => {
                 d.file_tracker.tx_id = tx.id;
             },
             _ => { },
@@ -718,7 +718,7 @@ impl NFS3State {
     }
 
     fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: u8)
-        -> Option<(&mut NFS3Transaction, &mut FileContainer, u16)>
+        -> Option<(&mut NFSTransaction, &mut FileContainer, u16)>
     {
         let fh = file_handle.to_vec();
         for tx in &mut self.transactions {
@@ -726,12 +726,12 @@ impl NFS3State {
                 direction == tx.file_tx_direction &&
                 tx.file_handle == fh
             {
-                SCLogDebug!("Found NFS3 file TX with ID {} XID {}", tx.id, tx.xid);
+                SCLogDebug!("Found NFS file TX with ID {} XID {}", tx.id, tx.xid);
                 let (files, flags) = self.files.get(direction);
                 return Some((tx, files, flags));
             }
         }
-        SCLogDebug!("Failed to find NFS3 TX with handle {:?}", file_handle);
+        SCLogDebug!("Failed to find NFS TX with handle {:?}", file_handle);
         return None;
     }
 
@@ -760,7 +760,7 @@ impl NFS3State {
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
             Some((tx, files, flags)) => {
                 let ref mut tdf = match tx.type_data {
-                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
                 };
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -778,7 +778,7 @@ impl NFS3State {
         if !found {
             let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOSERVER);
             let ref mut tdf = match tx.type_data {
-                Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
             };
             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -808,14 +808,14 @@ impl NFS3State {
             panic!("call me for procedure WRITE *only*");
         }
 
-        let mut xidmap = NFS3RequestXidMap::new(r.progver, r.procedure, 0);
+        let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         xidmap.file_handle = w.handle.value.to_vec();
         self.requestmap.insert(r.hdr.xid, xidmap);
 
         return self.process_write_record(r, w);
     }
 
-    fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFS3RequestXidMap) -> u32 {
+    fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap) -> u32 {
         let nfs_status;
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
@@ -921,7 +921,7 @@ impl NFS3State {
         0
     }
 
-    fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFS3RequestXidMap) -> u32 {
+    fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) -> u32 {
         let nfs_status;
 
         if xidmap.procedure == NFSPROC3_READ {
@@ -1053,7 +1053,7 @@ impl NFS3State {
         let consumed = match self.get_file_tx_by_handle(&file_handle, direction) {
             Some((tx, files, flags)) => {
                 let ref mut tdf = match tx.type_data {
-                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
                 };
                 if ssn_gap {
@@ -1075,7 +1075,7 @@ impl NFS3State {
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
     fn process_read_record<'b>(&mut self, r: &RpcReplyPacket<'b>,
-            reply: &NfsReplyRead<'b>, xidmapr: Option<&NFS3RequestXidMap>) -> u32
+            reply: &NfsReplyRead<'b>, xidmapr: Option<&NFSRequestXidMap>) -> u32
     {
         let file_name;
         let file_handle;
@@ -1129,7 +1129,7 @@ impl NFS3State {
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
             Some((tx, files, flags)) => {
                 let ref mut tdf = match tx.type_data {
-                    Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                    Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
                 };
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -1149,7 +1149,7 @@ impl NFS3State {
         if !found {
             let (tx, files, flags) = self.new_file_tx(&file_handle, &file_name, STREAM_TOCLIENT);
             let ref mut tdf = match tx.type_data {
-                Some(NFS3TransactionTypeData::FILE(ref mut x)) => x,
+                Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                 _ => { panic!("BUG") },
             };
             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
@@ -1562,29 +1562,29 @@ impl NFS3State {
     }
 }
 
-/// Returns *mut NFS3State
+/// Returns *mut NFSState
 #[no_mangle]
 pub extern "C" fn rs_nfs3_state_new() -> *mut libc::c_void {
-    let state = NFS3State::new();
+    let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
     return unsafe{transmute(boxed)};
 }
 
 /// Params:
-/// - state: *mut NFS3State as void pointer
+/// - state: *mut NFSState as void pointer
 #[no_mangle]
 pub extern "C" fn rs_nfs3_state_free(state: *mut libc::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut nfs3_state: Box<NFS3State> = unsafe{transmute(state)};
+    let mut nfs3_state: Box<NFSState> = unsafe{transmute(state)};
     nfs3_state.free();
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
 pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
-                                       state: &mut NFS3State,
+                                       state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
                                        input_len: libc::uint32_t,
@@ -1610,7 +1610,7 @@ pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
-                                        state: &mut NFS3State,
+                                        state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
                                         input_len: libc::uint32_t,
@@ -1637,7 +1637,7 @@ pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
 pub extern "C" fn rs_nfs3_parse_request_udp(_flow: *mut Flow,
-                                       state: &mut NFS3State,
+                                       state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
                                        input_len: libc::uint32_t,
@@ -1656,7 +1656,7 @@ pub extern "C" fn rs_nfs3_parse_request_udp(_flow: *mut Flow,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_parse_response_udp(_flow: *mut Flow,
-                                        state: &mut NFS3State,
+                                        state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
                                         input_len: libc::uint32_t,
@@ -1674,7 +1674,7 @@ pub extern "C" fn rs_nfs3_parse_response_udp(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_get_tx_count(state: &mut NFS3State)
+pub extern "C" fn rs_nfs3_state_get_tx_count(state: &mut NFSState)
                                             -> libc::uint64_t
 {
     SCLogDebug!("rs_nfs3_state_get_tx_count: returning {}", state.tx_id);
@@ -1682,9 +1682,9 @@ pub extern "C" fn rs_nfs3_state_get_tx_count(state: &mut NFS3State)
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFS3State,
+pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFSState,
                                       tx_id: libc::uint64_t)
-                                      -> *mut NFS3Transaction
+                                      -> *mut NFSTransaction
 {
     match state.get_tx_by_id(tx_id) {
         Some(tx) => {
@@ -1697,7 +1697,7 @@ pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFS3State,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_tx_free(state: &mut NFS3State,
+pub extern "C" fn rs_nfs3_state_tx_free(state: &mut NFSState,
                                        tx_id: libc::uint64_t)
 {
     state.free_tx(tx_id);
@@ -1712,7 +1712,7 @@ pub extern "C" fn rs_nfs3_state_progress_completion_status(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFS3Transaction,
+pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFSTransaction,
                                                   direction: libc::uint8_t)
                                                   -> libc::uint8_t
 {
@@ -1730,7 +1730,7 @@ pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFS3Transaction,
 
 /*
 #[no_mangle]
-pub extern "C" fn rs_nfs3_get_txs_updated(state: &mut NFS3State,
+pub extern "C" fn rs_nfs3_get_txs_updated(state: &mut NFSState,
                                           direction: u8) -> bool
 {
     if direction == STREAM_TOSERVER {
@@ -1741,7 +1741,7 @@ pub extern "C" fn rs_nfs3_get_txs_updated(state: &mut NFS3State,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_reset_txs_updated(state: &mut NFS3State,
+pub extern "C" fn rs_nfs3_reset_txs_updated(state: &mut NFSState,
                                             direction: u8)
 {
     if direction == STREAM_TOSERVER {
@@ -1753,16 +1753,16 @@ pub extern "C" fn rs_nfs3_reset_txs_updated(state: &mut NFS3State,
 */
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFS3State,
-                                       tx: &mut NFS3Transaction,
+pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFSState,
+                                       tx: &mut NFSTransaction,
                                        logger: libc::uint32_t)
 {
     tx.logged.set_logged(logger);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFS3State,
-                                       tx: &mut NFS3Transaction,
+pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFSState,
+                                       tx: &mut NFSTransaction,
                                        logger: libc::uint32_t)
                                        -> i8
 {
@@ -1773,7 +1773,7 @@ pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFS3State,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_has_detect_state(state: &mut NFS3State) -> u8
+pub extern "C" fn rs_nfs3_state_has_detect_state(state: &mut NFSState) -> u8
 {
     if state.de_state_count > 0 {
         return 1;
@@ -1783,8 +1783,8 @@ pub extern "C" fn rs_nfs3_state_has_detect_state(state: &mut NFS3State) -> u8
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_state_set_tx_detect_state(
-    state: &mut NFS3State,
-    tx: &mut NFS3Transaction,
+    state: &mut NFSState,
+    tx: &mut NFSTransaction,
     de_state: &mut DetectEngineState)
 {
     state.de_state_count += 1;
@@ -1793,7 +1793,7 @@ pub extern "C" fn rs_nfs3_state_set_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
-    tx: &mut NFS3Transaction)
+    tx: &mut NFSTransaction)
     -> *mut DetectEngineState
 {
     match tx.de_state {
@@ -1810,7 +1810,7 @@ pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
 /// otherwise get procs from the 'file_additional_procs'.
 /// Keep calling until 0 is returned.
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFS3Transaction,
+pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFSTransaction,
                                        i: libc::uint16_t,
                                        procedure: *mut libc::uint32_t)
                                        -> libc::uint8_t
@@ -1829,7 +1829,7 @@ pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFS3Transaction,
     /* file tx handling follows */
 
     let ref tdf = match tx.type_data {
-        Some(NFS3TransactionTypeData::FILE(ref x)) => x,
+        Some(NFSTransactionTypeData::FILE(ref x)) => x,
         _ => { panic!("BUG") },
     };
 
@@ -1988,16 +1988,15 @@ pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::ui
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_getfiles(direction: u8, ptr: *mut NFS3State) -> * mut FileContainer {
+pub extern "C" fn rs_nfs3_getfiles(direction: u8, ptr: *mut NFSState) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *ptr };
     parser.getfiles(direction)
 }
 #[no_mangle]
-pub extern "C" fn rs_nfs3_setfileflags(direction: u8, ptr: *mut NFS3State, flags: u16) {
+pub extern "C" fn rs_nfs3_setfileflags(direction: u8, ptr: *mut NFSState, flags: u16) {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *ptr };
     SCLogDebug!("direction {} flags {}", direction, flags);
     parser.setfileflags(direction, flags)
 }
-

@@ -60,8 +60,8 @@
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
 #include "app-layer-dnp3.h"
-#include "app-layer-nfs3.h"
-#include "app-layer-nfs3-udp.h"
+#include "app-layer-nfs-tcp.h"
+#include "app-layer-nfs-udp.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1384,8 +1384,8 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterENIPUDPParsers();
     RegisterENIPTCPParsers();
     RegisterDNP3Parsers();
-    RegisterNFS3Parsers();
-    RegisterNFS3UDPParsers();
+    RegisterNFSTCPParsers();
+    RegisterNFSUDPParsers();
     RegisterTemplateParsers();
 
     /** IMAP */

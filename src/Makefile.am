@@ -39,8 +39,8 @@ app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
-app-layer-nfs3.c app-layer-nfs3.h \
-app-layer-nfs3-udp.c app-layer-nfs3-udp.h \
+app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
+app-layer-nfs-udp.c app-layer-nfs-udp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -209,7 +209,7 @@ detect-lua-extensions.c detect-lua-extensions.h \
 detect-mark.c detect-mark.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
-detect-nfs3-procedure.c detect-nfs3-procedure.h \
+detect-nfs-procedure.c detect-nfs-procedure.h \
 detect-noalert.c detect-noalert.h \
 detect-nocase.c detect-nocase.h \
 detect-offset.c detect-offset.h \
@@ -300,7 +300,7 @@ output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
-output-json-nfs3.c output-json-nfs3.h \
+output-json-nfs.c output-json-nfs.h \
 output-json-template.c output-json-template.h \
 output-json-vars.c output-json-vars.h \
 output-lua.c output-lua.h \

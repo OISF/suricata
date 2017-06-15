@@ -21,10 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_NFS3_PROCEDURE_H__
-#define __DETECT_NFS3_PROCEDURE_H__
+#ifndef __APP_LAYER_NFS_UDP_H__
+#define __APP_LAYER_NFS_UDP_H__
 
-/* prototypes */
-void DetectNfs3ProcedureRegister (void);
+void RegisterNFSUDPParsers(void);
+void NFSUDPParserRegisterTests(void);
 
-#endif /* __DETECT_NFS3_PROCEDURE_H__ */
+#endif /* __APP_LAYER_NFS_UDP_H__ */

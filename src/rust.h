@@ -51,7 +51,7 @@ struct _Store;
 typedef struct _Store Store;
 
 /** Opaque Rust types. */
-typedef struct NFS3tate_ NFS3State;
-typedef struct NFS3Transaction_ NFS3Transaction;
+typedef struct NFState_ NFSState;
+typedef struct NFSTransaction_ NFSTransaction;
 
 #endif /* !__RUST_H__ */

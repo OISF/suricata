@@ -236,7 +236,7 @@ outputs:
             #md5: [body, subject]
 
         #- dnp3
-        #- nfs3
+        #- nfs
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -683,7 +683,7 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
-    nfs3:
+    nfs:
       enabled: yes
     tls:
       enabled: yes
