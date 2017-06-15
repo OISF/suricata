@@ -240,35 +240,33 @@ void DetectEngineStateFree(DetectEngineState *state)
 
 static int HasStoredSigs(const Flow *f, const uint8_t flags)
 {
-    if (AppLayerParserProtocolSupportsTxs(f->proto, f->alproto)) {
-        AppProto alproto = f->alproto;
-        void *alstate = FlowGetAppState(f);
-        if (!StateIsValid(f->alproto, alstate)) {
-            return 0;
-        }
+    AppProto alproto = f->alproto;
+    void *alstate = FlowGetAppState(f);
+    if (!StateIsValid(f->alproto, alstate)) {
+        return 0;
+    }
 
-        int state = AppLayerParserHasTxDetectState(f->proto, alproto, f->alstate);
-        if (state == -ENOSYS) { /* proto doesn't support this API call */
-            /* fall through */
-        } else if (state == 0) {
-            return 0;
-        }
-        /* if state == 1 we also fall through */
+    int state = AppLayerParserHasTxDetectState(f->proto, alproto, f->alstate);
+    if (state == -ENOSYS) { /* proto doesn't support this API call */
+        /* fall through */
+    } else if (state == 0) {
+        return 0;
+    }
+    /* if state == 1 we also fall through */
 
-        uint64_t inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
+    uint64_t inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
 
-        for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
-            void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
-            if (inspect_tx != NULL) {
-                DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, alproto, inspect_tx);
-                if (tx_de_state == NULL) {
-                    continue;
-                }
-                if (tx_de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt != 0) {
-                    SCLogDebug("tx %u has sigs present", (uint)inspect_tx_id);
-                    return 1;
-                }
+    for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
+        void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
+        if (inspect_tx != NULL) {
+            DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, alproto, inspect_tx);
+            if (tx_de_state == NULL) {
+                continue;
+            }
+            if (tx_de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt != 0) {
+                SCLogDebug("tx %u has sigs present", (uint)inspect_tx_id);
+                return 1;
             }
         }
     }
@@ -311,20 +309,18 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint64_t tx_id, void *tx,
         const uint16_t file_no_match)
 {
-    if (AppLayerParserSupportsTxDetectState(f->proto, f->alproto)) {
-        DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
-        if (destate == NULL) {
-            destate = DetectEngineStateAlloc();
-            if (destate == NULL)
-                return;
-            if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
-                DetectEngineStateFree(destate);
-                return;
-            }
-            SCLogDebug("destate created for %"PRIu64, tx_id);
+    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
+    if (destate == NULL) {
+        destate = DetectEngineStateAlloc();
+        if (destate == NULL)
+            return;
+        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+            DetectEngineStateFree(destate);
+            return;
         }
-        StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
+        SCLogDebug("destate created for %"PRIu64, tx_id);
     }
+    StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
 }
 
 /**
@@ -336,26 +332,24 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
 {
-    if (AppLayerParserSupportsTxDetectState(f->proto, f->alproto)) {
-        DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
-        if (destate == NULL) {
-            destate = DetectEngineStateAlloc();
-            if (destate == NULL)
-                return;
-            if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
-                DetectEngineStateFree(destate);
-                return;
-            }
-            SCLogDebug("destate created for %"PRIu64, tx_id);
+    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
+    if (destate == NULL) {
+        destate = DetectEngineStateAlloc();
+        if (destate == NULL)
+            return;
+        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+            DetectEngineStateFree(destate);
+            return;
         }
-
-        SCLogDebug("file_no_match %u", file_no_match);
-
-        if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
-            DeStateSignatureAppend(destate, s, inspect_flags, flags);
-
-        StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
+        SCLogDebug("destate created for %"PRIu64, tx_id);
     }
+
+    SCLogDebug("file_no_match %u", file_no_match);
+
+    if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
+        DeStateSignatureAppend(destate, s, inspect_flags, flags);
+
+    StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
@@ -367,9 +361,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCLogDebug("rule %u/%u", s->id, s->num);
 
     /* TX based matches (inspect engines) */
-    if (unlikely(!AppLayerParserProtocolSupportsTxs(f->proto, alproto))) {
-        return 0;
-    }
     void *alstate = FlowGetAppState(f);
     if (unlikely(!StateIsValid(alproto, alstate))) {
         return 0;
@@ -746,80 +737,78 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     SCLogDebug("starting continue detection for packet %"PRIu64, p->pcap_cnt);
 
-    if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
-        void *alstate = FlowGetAppState(f);
-        if (!StateIsValid(alproto, alstate)) {
-            return;
+    void *alstate = FlowGetAppState(f);
+    if (!StateIsValid(alproto, alstate)) {
+        return;
+    }
+
+    inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+    total_txs = AppLayerParserGetTxCnt(f, alstate);
+
+    for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
+        int inspect_tx_inprogress = 0;
+        int next_tx_no_progress = 0;
+        void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
+        if (inspect_tx != NULL) {
+            int a = AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags);
+            int b = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
+            if (a < b) {
+                inspect_tx_inprogress = 1;
+            }
+            SCLogDebug("tx %"PRIu64" (%"PRIu64") => %s", inspect_tx_id, total_txs,
+                    inspect_tx_inprogress ? "in progress" : "done");
+
+            DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, alproto, inspect_tx);
+            if (tx_de_state == NULL) {
+                SCLogDebug("NO STATE tx %"PRIu64" (%"PRIu64")", inspect_tx_id, total_txs);
+                continue;
+            }
+            DetectEngineStateDirection *tx_dir_state = &tx_de_state->dir_state[direction];
+            DeStateStore *tx_store = tx_dir_state->head;
+
+            SCLogDebug("tx_dir_state->filestore_cnt %u", tx_dir_state->filestore_cnt);
+
+            /* see if we need to consider the next tx in our decision to add
+             * a sig to the 'no inspect array'. */
+            if (!TxIsLast(inspect_tx_id, total_txs)) {
+                void *next_inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id+1);
+                if (next_inspect_tx != NULL) {
+                    int c = AppLayerParserGetStateProgress(f->proto, alproto, next_inspect_tx, flags);
+                    if (c == 0) {
+                        next_tx_no_progress = 1;
+                    }
+                }
+            }
+
+            /* Loop through stored 'items' (stateful rules) and inspect them */
+            state_cnt = 0;
+            for (; tx_store != NULL; tx_store = tx_store->next) {
+                SCLogDebug("tx_store %p", tx_store);
+                for (store_cnt = 0;
+                        store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < tx_dir_state->cnt;
+                        store_cnt++, state_cnt++)
+                {
+                    DeStateStoreItem *item = &tx_store->store[store_cnt];
+                    int r = DoInspectItem(tv, de_ctx, det_ctx,
+                            item, tx_dir_state->flags,
+                            p, f, alproto, flags,
+                            inspect_tx_id, total_txs,
+                            &file_no_match, inspect_tx_inprogress, next_tx_no_progress);
+                    if (r < 0) {
+                        SCLogDebug("failed");
+                        goto end;
+                    }
+                }
+            }
+
+            tx_dir_state->flags &=
+                ~(DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW|DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW);
         }
-
-        inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-        total_txs = AppLayerParserGetTxCnt(f, alstate);
-
-        for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
-            int inspect_tx_inprogress = 0;
-            int next_tx_no_progress = 0;
-            void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
-            if (inspect_tx != NULL) {
-                int a = AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags);
-                int b = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-                if (a < b) {
-                    inspect_tx_inprogress = 1;
-                }
-                SCLogDebug("tx %"PRIu64" (%"PRIu64") => %s", inspect_tx_id, total_txs,
-                        inspect_tx_inprogress ? "in progress" : "done");
-
-                DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, alproto, inspect_tx);
-                if (tx_de_state == NULL) {
-                    SCLogDebug("NO STATE tx %"PRIu64" (%"PRIu64")", inspect_tx_id, total_txs);
-                    continue;
-                }
-                DetectEngineStateDirection *tx_dir_state = &tx_de_state->dir_state[direction];
-                DeStateStore *tx_store = tx_dir_state->head;
-
-                SCLogDebug("tx_dir_state->filestore_cnt %u", tx_dir_state->filestore_cnt);
-
-                /* see if we need to consider the next tx in our decision to add
-                 * a sig to the 'no inspect array'. */
-                if (!TxIsLast(inspect_tx_id, total_txs)) {
-                    void *next_inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id+1);
-                    if (next_inspect_tx != NULL) {
-                        int c = AppLayerParserGetStateProgress(f->proto, alproto, next_inspect_tx, flags);
-                        if (c == 0) {
-                            next_tx_no_progress = 1;
-                        }
-                    }
-                }
-
-                /* Loop through stored 'items' (stateful rules) and inspect them */
-                state_cnt = 0;
-                for (; tx_store != NULL; tx_store = tx_store->next) {
-                    SCLogDebug("tx_store %p", tx_store);
-                    for (store_cnt = 0;
-                            store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < tx_dir_state->cnt;
-                            store_cnt++, state_cnt++)
-                    {
-                        DeStateStoreItem *item = &tx_store->store[store_cnt];
-                        int r = DoInspectItem(tv, de_ctx, det_ctx,
-                                item, tx_dir_state->flags,
-                                p, f, alproto, flags,
-                                inspect_tx_id, total_txs,
-                                &file_no_match, inspect_tx_inprogress, next_tx_no_progress);
-                        if (r < 0) {
-                            SCLogDebug("failed");
-                            goto end;
-                        }
-                    }
-                }
-
-                tx_dir_state->flags &=
-                    ~(DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW|DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW);
-            }
-            /* if the current tx is in progress, we won't advance to any newer
-             * tx' just yet. */
-            if (inspect_tx_inprogress) {
-                SCLogDebug("break out");
-                break;
-            }
+        /* if the current tx is in progress, we won't advance to any newer
+         * tx' just yet. */
+        if (inspect_tx_inprogress) {
+            SCLogDebug("break out");
+            break;
         }
     }
 
@@ -850,35 +839,33 @@ void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
  */
 void DetectEngineStateResetTxs(Flow *f)
 {
-    if (AppLayerParserProtocolSupportsTxs(f->proto, f->alproto)) {
-        void *alstate = FlowGetAppState(f);
-        if (!StateIsValid(f->alproto, alstate)) {
-            return;
-        }
+    void *alstate = FlowGetAppState(f);
+    if (!StateIsValid(f->alproto, alstate)) {
+        return;
+    }
 
-        uint64_t inspect_ts = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOCLIENT);
-        uint64_t inspect_tc = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOSERVER);
+    uint64_t inspect_ts = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOCLIENT);
+    uint64_t inspect_tc = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOSERVER);
 
-        uint64_t inspect_tx_id = MIN(inspect_ts, inspect_tc);
+    uint64_t inspect_tx_id = MIN(inspect_ts, inspect_tc);
 
-        uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
 
-        for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
-            void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
-            if (inspect_tx != NULL) {
-                DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
-                if (tx_de_state == NULL) {
-                    continue;
-                }
-
-                tx_de_state->dir_state[0].cnt = 0;
-                tx_de_state->dir_state[0].filestore_cnt = 0;
-                tx_de_state->dir_state[0].flags = 0;
-
-                tx_de_state->dir_state[1].cnt = 0;
-                tx_de_state->dir_state[1].filestore_cnt = 0;
-                tx_de_state->dir_state[1].flags = 0;
+    for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
+        void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
+        if (inspect_tx != NULL) {
+            DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
+            if (tx_de_state == NULL) {
+                continue;
             }
+
+            tx_de_state->dir_state[0].cnt = 0;
+            tx_de_state->dir_state[0].filestore_cnt = 0;
+            tx_de_state->dir_state[0].flags = 0;
+
+            tx_de_state->dir_state[1].cnt = 0;
+            tx_de_state->dir_state[1].filestore_cnt = 0;
+            tx_de_state->dir_state[1].flags = 0;
         }
     }
 }
