@@ -314,9 +314,9 @@ impl DNSState {
 
     pub fn new_tx(&mut self) -> DNSTransaction {
         let mut tx = DNSTransaction::new();
-        self.tx_id += 1;
         tx.id = self.tx_id;
-        return tx;
+        self.tx_id += 1;
+        tx
     }
 
     pub fn free_tx(&mut self, tx_id: u64) {
