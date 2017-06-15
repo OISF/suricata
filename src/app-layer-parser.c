@@ -1271,6 +1271,96 @@ void AppLayerParserStateCleanup(const Flow *f, void *alstate,
     SCReturn;
 }
 
+static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
+{
+    uint8_t map = FlowGetProtoMapping(ipproto);
+    const AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[map][alproto];
+    const AppLayerParserProtoCtx *ctx_def = &alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto];
+    printf("ERROR: incomplete app-layer registration\n");
+    printf("AppLayer protocol %s ipproto %u\n", AppProtoToString(alproto), ipproto);
+    printf("- flags %"PRIx64"\n", ctx->flags);
+    printf("- first_data_dir %"PRIx8"\n", ctx->first_data_dir);
+    printf("Mandatory:\n");
+    printf("- Parser[0] %p Parser[1] %p\n", ctx->Parser[0], ctx->Parser[1]);
+    printf("- StateAlloc %p StateFree %p\n", ctx->StateAlloc, ctx->StateFree);
+    printf("- StateGetTx %p StateGetTxCnt %p StateTransactionFree %p\n",
+            ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree);
+    printf("- StateGetProgress %p StateGetProgressCompletionStatus %p\n", ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus);
+    printf("Optional:\n");
+    printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
+    printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
+    printf("- SetTxMpmIDs %p GetTxMpmIDs %p\n", ctx->SetTxMpmIDs, ctx->GetTxMpmIDs);
+    printf("- GetTxDetectState %p SetTxDetectState %p StateHasTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState, ctx->StateHasTxDetectState);
+    printf("- StateGetEvents %p StateHasEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateHasEvents, ctx->StateGetEventInfo);
+}
+
+#define BOTH_SET(a, b) ((a) != NULL && (b) != NULL)
+#define BOTH_SET_OR_BOTH_UNSET(a, b) (((a) == NULL && (b) == NULL) || ((a) != NULL && (b) != NULL))
+#define THREE_SET_OR_THREE_UNSET(a, b, c) (((a) == NULL && (b) == NULL && (c) == NULL) || ((a) != NULL && (b) != NULL && (c) != NULL))
+
+static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
+{
+    uint8_t map = FlowGetProtoMapping(ipproto);
+    const AppLayerParserProtoCtx *ctx = &alp_ctx.ctxs[map][alproto];
+    const AppLayerParserProtoCtx *ctx_def = &alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto];
+
+    if (ctx->Parser[0] == NULL && ctx->Parser[1] == NULL)
+        return;
+
+    if (!(BOTH_SET(ctx->Parser[0], ctx->Parser[1]))) {
+        goto bad;
+    }
+    if (!(BOTH_SET(ctx->StateFree, ctx->StateAlloc))) {
+        goto bad;
+    }
+    if (!(THREE_SET_OR_THREE_UNSET(ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree))) {
+        goto bad;
+    }
+    /* special case: StateGetProgressCompletionStatus is used from 'default'. */
+    if (!(BOTH_SET(ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus))) {
+        goto bad;
+    }
+    /* local storage is optional, but needs both set if used */
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->LocalStorageAlloc, ctx->LocalStorageFree))) {
+        goto bad;
+    }
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->StateGetTxLogged, ctx->StateSetTxLogged))) {
+        goto bad;
+    }
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->SetTxMpmIDs, ctx->GetTxMpmIDs))) {
+        goto bad;
+    }
+    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
+        goto bad;
+    }
+/*  TODO: not yet mandatory to use StateHasTxDetectState
+    if (!(THREE_SET_OR_THREE_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState, ctx->StateHasTxDetectState))) {
+        goto bad;
+    }
+*/
+
+    return;
+bad:
+    ValidateParserProtoDump(alproto, ipproto);
+    exit(EXIT_FAILURE);
+}
+#undef BOTH_SET
+#undef BOTH_SET_OR_BOTH_UNSET
+#undef THREE_SET_OR_THREE_UNSET
+
+static void ValidateParser(AppProto alproto)
+{
+    ValidateParserProto(alproto, IPPROTO_TCP);
+    ValidateParserProto(alproto, IPPROTO_UDP);
+}
+
+static void ValidateParsers(void)
+{
+    AppProto p = 0;
+    for ( ; p < ALPROTO_MAX; p++) {
+        ValidateParser(p);
+    }
+}
 
 void AppLayerParserRegisterProtocolParsers(void)
 {
@@ -1323,6 +1413,7 @@ void AppLayerParserRegisterProtocolParsers(void)
                   "msn");
     }
 
+    ValidateParsers();
     return;
 }
 
