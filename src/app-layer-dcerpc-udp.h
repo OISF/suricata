@@ -21,6 +21,7 @@ typedef struct DCERPCUDPState_ {
     uint8_t *frag_data;
     DCERPCUuidEntry *uuid_entry;
     TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
+    DetectEngineState *de_state;
 } DCERPCUDPState;
 
 void RegisterDCERPCUDPParsers(void);
