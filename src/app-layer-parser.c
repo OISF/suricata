@@ -1286,11 +1286,12 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateGetTx %p StateGetTxCnt %p StateTransactionFree %p\n",
             ctx->StateGetTx, ctx->StateGetTxCnt, ctx->StateTransactionFree);
     printf("- StateGetProgress %p StateGetProgressCompletionStatus %p\n", ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus);
+    printf("- GetTxDetectState %p SetTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState);
     printf("Optional:\n");
+    printf("- StateHasTxDetectState %p\n", ctx->StateHasTxDetectState);
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
     printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
     printf("- SetTxMpmIDs %p GetTxMpmIDs %p\n", ctx->SetTxMpmIDs, ctx->GetTxMpmIDs);
-    printf("- GetTxDetectState %p SetTxDetectState %p StateHasTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState, ctx->StateHasTxDetectState);
     printf("- StateGetEvents %p StateHasEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateHasEvents, ctx->StateGetEventInfo);
 }
 
@@ -1330,7 +1331,7 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (!(BOTH_SET_OR_BOTH_UNSET(ctx->SetTxMpmIDs, ctx->GetTxMpmIDs))) {
         goto bad;
     }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
+    if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
         goto bad;
     }
 /*  TODO: not yet mandatory to use StateHasTxDetectState
