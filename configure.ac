@@ -86,7 +86,7 @@
 
     AC_ARG_ENABLE(python,
            AS_HELP_STRING([--enable-python], [Enable python]),,[enable_python=yes])
-    AC_PATH_PROG(HAVE_PYTHON_CONFIG, python, "no")
+    AC_PATH_PROGS(HAVE_PYTHON, python python2 python2.7, "no")
     if test "x$enable_python" = "xno" ; then
         echo
         echo "   Warning! python disabled, you will not be      "
@@ -94,7 +94,7 @@
         echo
         enable_python="no"
     fi
-    if test "$HAVE_PYTHON_CONFIG" = "no"; then
+    if test "$HAVE_PYTHON" = "no"; then
         echo
         echo "   Warning! python not found, you will not be     "
         echo "   able to install suricatasc unix socket client   "

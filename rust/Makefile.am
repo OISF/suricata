@@ -28,7 +28,7 @@ endif
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		python ./gen-c-headers.py && \
+		$(HAVE_PYTHON) ./gen-c-headers.py && \
 		cargo build $(RELEASE) $(FROZEN) --features "$(FEATURES)"
 else
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
@@ -67,7 +67,7 @@ endif # HAVE_RUST
 if HAVE_PYTHON
 EXTRA_DIST +=	gen/c-headers
 gen/c-headers:
-	cd $(top_srcdir)/rust && python ./gen-c-headers.py
+	cd $(top_srcdir)/rust && $(HAVE_PYTHON) ./gen-c-headers.py
 else
 gen/c-headers:
 endif
