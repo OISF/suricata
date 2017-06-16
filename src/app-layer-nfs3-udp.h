@@ -15,12 +15,16 @@
  * 02110-1301, USA.
  */
 
-pub mod types;
-#[macro_use]
-pub mod parser;
-pub mod nfs2_records;
-pub mod nfs3;
-pub mod log;
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ */
 
-//#[cfg(feature = "lua")]
-//pub mod lua;
+#ifndef __APP_LAYER_NFS3_UDP_H__
+#define __APP_LAYER_NFS3_UDP_H__
+
+void RegisterNFS3UDPParsers(void);
+void NFS3UDPParserRegisterTests(void);
+
+#endif /* __APP_LAYER_NFS3_H__ */

@@ -55,6 +55,7 @@
 
 #ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
+#include "rust.h"
 #include "rust-nfs-log-gen.h"
 
 typedef struct LogNFS3FileCtx_ {
@@ -130,6 +131,7 @@ static OutputCtx *OutputNFS3LogInitSub(ConfNode *conf,
     SCLogDebug("NFS3 log sub-module initialized.");
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS3);
+    AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS3);
 
     return output_ctx;
 }

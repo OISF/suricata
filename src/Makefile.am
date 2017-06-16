@@ -40,6 +40,7 @@ app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
 app-layer-nfs3.c app-layer-nfs3.h \
+app-layer-nfs3-udp.c app-layer-nfs3-udp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \

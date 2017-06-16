@@ -2795,6 +2795,7 @@ int main(int argc, char **argv)
     context.FileOpenFileWithId = FileOpenFileWithId;
     context.FileCloseFileById = FileCloseFileById;
     context.FileAppendDataById = FileAppendDataById;
+    context.FileAppendGAPById = FileAppendGAPById;
     context.FileContainerRecycle = FileContainerRecycle;
     context.FilePrune = FilePrune;
     context.FileSetTx = FileContainerSetTx;
