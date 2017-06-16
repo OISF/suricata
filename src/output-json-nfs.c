@@ -83,7 +83,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "rpc", rpcjs);
 
-    nfsjs = rs_nfs_log_json_response(tx);
+    nfsjs = rs_nfs_log_json_response(state, tx);
     if (unlikely(nfsjs == NULL)) {
         goto error;
     }

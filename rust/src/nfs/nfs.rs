@@ -299,6 +299,8 @@ pub struct NFSState {
 
     is_udp: bool,
 
+    pub nfs_version: u16,
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -329,6 +331,7 @@ impl NFSState {
             ts_gap:false,
             tc_gap:false,
             is_udp:false,
+            nfs_version:0,
             tx_id:0,
             de_state_count:0,
             //ts_txs_updated:false,
@@ -451,6 +454,10 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
+
+        if self.nfs_version == 0 {
+            self.nfs_version = r.progver as u16;
+        }
 
         if r.procedure == NFSPROC3_LOOKUP {
             self.process_request_record_lookup(r, &mut xidmap);
@@ -963,6 +970,10 @@ impl NFSState {
                 // that this is a READ reply and pass the data to the file API anyway?
                 return 0;
             },
+        }
+
+        if self.nfs_version == 0 {
+            self.nfs_version = xidmap.progver as u16;
         }
 
         match xidmap.progver {

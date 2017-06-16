@@ -76,9 +76,10 @@ fn nfs_file_object(tx: &NFSTransaction) -> Json
     return js;
 }
 
-fn nfs_common_header(tx: &NFSTransaction) -> Json
+fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
 {
     let js = Json::object();
+    js.set_integer("version", state.nfs_version as u64);
     js.set_string("procedure", &nfs3_procedure_string(tx.procedure));
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name);
@@ -88,17 +89,17 @@ fn nfs_common_header(tx: &NFSTransaction) -> Json
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_request(tx: &mut NFSTransaction) -> *mut JsonT
+pub extern "C" fn rs_nfs_log_json_request(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
 {
-    let js = nfs_common_header(tx);
+    let js = nfs_common_header(state, tx);
     js.set_string("type", "request");
     return js.unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_log_json_response(tx: &mut NFSTransaction) -> *mut JsonT
+pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTransaction) -> *mut JsonT
 {
-    let js = nfs_common_header(tx);
+    let js = nfs_common_header(state, tx);
     js.set_string("type", "response");
 
     js.set_string("status", &nfs3_status_string(tx.nfs_response_status));
