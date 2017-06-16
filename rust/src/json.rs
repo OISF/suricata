@@ -68,11 +68,19 @@ impl Json {
         }
     }
 
-    pub fn set_string(&self, key: &str, val: &str) {
-        unsafe{
+    pub fn set_string_from_bytes(&self, key: &str, val: &[u8]) {
+        unsafe {
             json_object_set_new(self.js,
                                 CString::new(key).unwrap().as_ptr(),
-                                json_string(CString::new(val).unwrap().as_ptr()));
+                                json_string(to_cstring(val).as_ptr()));
+        }
+    }
+
+    pub fn set_string(&self, key: &str, val: &str) {
+        unsafe {
+            json_object_set_new(self.js,
+                                CString::new(key).unwrap().as_ptr(),
+                                json_string(to_cstring(val.as_bytes()).as_ptr()));
         }
     }
 
@@ -97,4 +105,44 @@ impl Json {
             json_array_append_new(self.js, val.js);
         }
     }
+}
+
+/// Convert an array of bytes into an ascii printable string replacing
+/// non-printable characters (including NULL) with hex value.
+///
+/// Newer versions of Jansson have a json_stringn that will allow us
+/// to create a string out of a byte array of unicode compliant bytes,
+/// but until we can use it across all platforms this is probably the
+/// best we can do.
+fn to_cstring(val: &[u8]) -> CString {
+    let mut safe = Vec::with_capacity(val.len());
+    for c in val {
+        if *c == 0 || *c > 0x7f {
+            safe.extend(format!("\\x{:02x}", *c).as_bytes());
+        } else {
+            safe.push(*c);
+        }
+    }
+    match CString::new(safe) {
+        Ok(cstr) => cstr,
+        _ => {
+            CString::new("<failed to encode string>").unwrap()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use json::to_cstring;
+
+    #[test]
+    fn test_to_string() {
+        assert_eq!("A\\x00A",
+                   to_cstring(&[0x41, 0x00, 0x41]).into_string().unwrap());
+        assert_eq!("", to_cstring(&[]).into_string().unwrap());
+        assert_eq!("\\x80\\xf1\\xf2\\xf3",
+                   to_cstring(&[0x80, 0xf1, 0xf2, 0xf3]).into_string().unwrap());
+    }
+
 }
