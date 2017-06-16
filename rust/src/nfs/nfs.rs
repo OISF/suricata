@@ -46,7 +46,7 @@ use nfs::nfs3_records::*;
 named!(many0_nfs3_response_readdirplus_entries<Vec<Nfs3ResponseReaddirplusEntry<'a>>>,
         many0!(parse_nfs3_response_readdirplus_entry_cond));
 
-pub static mut suricata_nfs3_file_config: Option<&'static SuricataFileContext> = None;
+pub static mut SURICATA_NFS3_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 /*
  * Record parsing.
@@ -260,7 +260,7 @@ fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
-    match unsafe {suricata_nfs3_file_config} {
+    match unsafe {SURICATA_NFS3_FILE_CONFIG} {
         Some(sfcm) => {
             ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
@@ -1873,7 +1873,7 @@ pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
 pub extern "C" fn rs_nfs3_init(context: &'static mut SuricataFileContext)
 {
     unsafe {
-        suricata_nfs3_file_config = Some(context);
+        SURICATA_NFS3_FILE_CONFIG = Some(context);
     }
 }
 
