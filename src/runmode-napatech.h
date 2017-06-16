@@ -22,28 +22,16 @@
  *  \author Matt Keeler <mk@npulsetech.com>
  */
 
-
 #ifndef __RUNMODE_NAPATECH_H__
 #define __RUNMODE_NAPATECH_H__
 
 #ifdef HAVE_NAPATECH
-#include "util-napatech.h"
 #include <nt.h>
-
-
-
-// Start a thread to process the statistics
-//void NapatechStartStats(void);
-
 #endif
 
 int RunModeNapatechAutoFp(void);
 int RunModeNapatechWorkers(void);
 void RunModeNapatechRegister(void);
 const char *RunModeNapatechGetDefaultMode(void);
-
-uint16_t getNumConfiguredStreams(void);
-
-
 
 #endif /* __RUNMODE_NAPATECH_H__ */
