@@ -721,7 +721,7 @@ impl NFSState {
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         match tx.type_data {
             Some(NFSTransactionTypeData::FILE(ref mut d)) => {
-                d.file_tracker.tx_id = tx.id;
+                d.file_tracker.tx_id = tx.id - 1;
             },
             _ => { },
         }
