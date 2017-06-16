@@ -43,14 +43,14 @@ pub extern "C" fn rs_dns_lua_get_rrname(clua: &mut CLuaState,
 
     for request in &tx.request {
         for query in &request.queries {
-            lua.pushstring(query.name());
+            lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
     }
 
     for response in &tx.response {
         for query in &response.queries {
-            lua.pushstring(query.name());
+            lua.pushstring(&String::from_utf8_lossy(&query.name));
             return 1;
         }
     }
@@ -88,7 +88,7 @@ pub extern "C" fn rs_dns_lua_get_query_table(clua: &mut CLuaState,
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(query.name());
+            lua.pushstring(&String::from_utf8_lossy(&query.name));
             lua.settable(-3);
 
             lua.settable(-3);
@@ -133,7 +133,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(answer.name());
+            lua.pushstring(&String::from_utf8_lossy(&answer.name));
             lua.settable(-3);
 
             if answer.data.len() > 0 {
@@ -143,7 +143,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
                         lua.pushstring(&dns_print_addr(&answer.data));
                     }
                     _ => {
-                        lua.pushstring(answer.data_to_string());
+                        lua.pushstring(&String::from_utf8_lossy(&answer.data));
                     }
                 }
                 lua.settable(-3);
@@ -190,7 +190,7 @@ pub extern "C" fn rs_dns_lua_get_authority_table(clua: &mut CLuaState,
             lua.settable(-3);
 
             lua.pushstring("rrname");
-            lua.pushstring(answer.name());
+            lua.pushstring(&String::from_utf8_lossy(&answer.name));
             lua.settable(-3);
 
             lua.settable(-3);

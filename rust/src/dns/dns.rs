@@ -143,18 +143,6 @@ pub struct DNSQueryEntry {
     pub rrclass: u16,
 }
 
-impl DNSQueryEntry {
-
-    pub fn name(&self) -> &str {
-        let r = std::str::from_utf8(&self.name);
-        if r.is_err() {
-            return "";
-        }
-        return r.unwrap();
-    }
-
-}
-
 #[derive(Debug,PartialEq)]
 pub struct DNSAnswerEntry {
     pub name: Vec<u8>,
@@ -163,26 +151,6 @@ pub struct DNSAnswerEntry {
     pub ttl: u32,
     pub data_len: u16,
     pub data: Vec<u8>,
-}
-
-impl DNSAnswerEntry {
-
-    pub fn name(&self) -> &str {
-        let r = std::str::from_utf8(&self.name);
-        if r.is_err() {
-            return "";
-        }
-        return r.unwrap();
-    }
-
-    pub fn data_to_string(&self) -> &str {
-        let r = std::str::from_utf8(&self.data);
-        if r.is_err() {
-            return "";
-        }
-        return r.unwrap();
-    }
-
 }
 
 #[derive(Debug)]
