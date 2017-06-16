@@ -14,3 +14,4 @@ lua = []
 [dependencies]
 nom = "~3.0"
 libc = "~0.2.0"
+crc = "~1.4.0"
