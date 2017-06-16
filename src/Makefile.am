@@ -210,6 +210,7 @@ detect-mark.c detect-mark.h \
 detect-metadata.c detect-metadata.h \
 detect-msg.c detect-msg.h \
 detect-nfs-procedure.c detect-nfs-procedure.h \
+detect-nfs-version.c detect-nfs-version.h \
 detect-noalert.c detect-noalert.h \
 detect-nocase.c detect-nocase.h \
 detect-offset.c detect-offset.h \

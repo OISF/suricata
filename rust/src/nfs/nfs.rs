@@ -21,18 +21,16 @@
 extern crate libc;
 use std;
 use std::mem::transmute;
-
-use nom::IResult;
-
 use std::collections::{HashMap};
 
 use nom;
+use nom::IResult;
+
 use log::*;
 use applayer::LoggerFlags;
 use core::*;
 use filetracker::*;
 use filecontainer::*;
-//use storage::*;
 
 use nfs::types::*;
 use nfs::rpc_records::*;
@@ -148,6 +146,8 @@ pub struct NFSTransaction {
     request_done: bool,
     response_done: bool,
 
+    pub nfs_version: u16,
+
     /// is a special file tx that we look up by file_handle instead of XID
     pub is_file_tx: bool,
     /// file transactions are unidirectional in the sense that they track
@@ -182,6 +182,7 @@ impl NFSTransaction {
             is_last: false,
             request_done: false,
             response_done: false,
+            nfs_version:0,
             is_file_tx: false,
             file_tx_direction: 0,
             file_handle:Vec::new(),
@@ -590,6 +591,7 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
+            tx.nfs_version = r.progver as u16;
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
@@ -620,6 +622,7 @@ impl NFSState {
                 tx.procedure = NFSPROC3_READ;
                 tx.xid = r.hdr.xid;
                 tx.is_first = true;
+                tx.nfs_version = r.progver as u16;
 
                 tx.auth_type = r.creds_flavor;
                 match &r.creds_unix {
@@ -675,6 +678,7 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
+            tx.nfs_version = r.progver as u16;
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
@@ -794,6 +798,7 @@ impl NFSState {
             tx.procedure = NFSPROC3_WRITE;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
+            tx.nfs_version = r.progver as u16;
             if is_last {
                 tdf.file_last_xid = r.hdr.xid;
                 tx.is_last = true;
@@ -1853,6 +1858,15 @@ pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFSTransaction,
         return 1;
     }
     return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
+                                       version: *mut libc::uint32_t)
+{
+    unsafe {
+        *version = tx.nfs_version as libc::uint32_t;
+    }
 }
 
 #[no_mangle]
