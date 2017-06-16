@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author nPulse Technologies, LLC
+ * \author Napatech
  * \author Matt Keeler <mk@npulsetech.com>
  */
 
@@ -29,15 +29,18 @@ void TmModuleNapatechStreamRegister (void);
 TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
 void TmModuleNapatechDecodeRegister (void);
 
-struct NapatechStreamDevConf
-{
-    int stream_id;
-    intmax_t hba;
-};
 
 #ifdef HAVE_NAPATECH
 
 #include <nt.h>
+
+
+struct NapatechStreamDevConf
+{
+    uint16_t stream_id;
+    intmax_t hba;
+};
+
 
 #endif
 
