@@ -60,6 +60,7 @@
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
+#include "output-json-nfs.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -73,16 +74,19 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD        0x001
-#define LOG_JSON_PACKET         0x002
-#define LOG_JSON_PAYLOAD_BASE64 0x004
-#define LOG_JSON_HTTP           0x008
-#define LOG_JSON_TLS            0x010
-#define LOG_JSON_SSH            0x020
-#define LOG_JSON_SMTP           0x040
-#define LOG_JSON_TAGGED_PACKETS 0x080
-#define LOG_JSON_DNP3           0x100
-#define LOG_JSON_VARS           0x200
+#define LOG_JSON_PAYLOAD        BIT_U16(0)
+#define LOG_JSON_PACKET         BIT_U16(1)
+#define LOG_JSON_PAYLOAD_BASE64 BIT_U16(2)
+#define LOG_JSON_HTTP           BIT_U16(3)
+#define LOG_JSON_TLS            BIT_U16(4)
+#define LOG_JSON_SSH            BIT_U16(5)
+#define LOG_JSON_SMTP           BIT_U16(6)
+#define LOG_JSON_TAGGED_PACKETS BIT_U16(7)
+#define LOG_JSON_DNP3           BIT_U16(8)
+#define LOG_JSON_VARS           BIT_U16(9)
+#define LOG_JSON_APP_LAYER      BIT_U16(10)
+
+#define LOG_JSON_APP_LAYER_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -389,7 +393,16 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
             }
         }
-
+#ifdef HAVE_RUST
+        if ((json_output_ctx->flags & LOG_JSON_APP_LAYER) && p->flow != NULL) {
+            hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
+            if (hjs)
+                json_object_set_new(js, "rpc", hjs);
+            hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
+            if (hjs)
+                json_object_set_new(js, "nfs", hjs);
+        }
+#endif
         if (json_output_ctx->flags & LOG_JSON_DNP3) {
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
@@ -724,11 +737,15 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        const char *applayer = ConfNodeLookupChildValue(conf, "applayer");
 
         if (vars != NULL) {
             if (ConfValIsTrue(vars)) {
                 json_output_ctx->flags |= LOG_JSON_VARS;
             }
+        }
+        if (applayer != NULL && ConfValIsTrue(applayer)) {
+            json_output_ctx->flags |= LOG_JSON_APP_LAYER_ALL;
         }
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
