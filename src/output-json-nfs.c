@@ -62,6 +62,34 @@ typedef struct LogNFSLogThread_ {
     MemBuffer          *buffer;
 } LogNFSLogThread;
 
+json_t *JsonNFSAddMetadataRPC(const Flow *f, uint64_t tx_id)
+{
+    NFSState *state = FlowGetAppState(f);
+    if (state) {
+        NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
+        if (tx) {
+            return rs_rpc_log_json_response(tx);
+        }
+        SCLogNotice("no tx at id %u", (uint)tx_id);
+    }
+
+    return NULL;
+}
+
+json_t *JsonNFSAddMetadata(const Flow *f, uint64_t tx_id)
+{
+    NFSState *state = FlowGetAppState(f);
+    if (state) {
+        NFSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_NFS, state, tx_id);
+        if (tx) {
+            return rs_nfs_log_json_response(state, tx);
+        }
+        SCLogNotice("no tx at id %u", (uint)tx_id);
+    }
+
+    return NULL;
+}
+
 static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {

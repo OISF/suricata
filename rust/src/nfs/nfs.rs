@@ -405,13 +405,16 @@ impl NFSState {
     }
 
     // TODO maybe not enough users to justify a func
-    fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32)
+    fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
         match self.get_tx_by_xid(xid) {
             Some(mut mytx) => {
                 mytx.response_done = true;
                 mytx.rpc_response_status = rpc_status;
                 mytx.nfs_response_status = nfs_status;
+                if mytx.file_handle.len() == 0 && resp_handle.len() > 0 {
+                    mytx.file_handle = resp_handle.to_vec();
+                }
 
                 SCLogDebug!("process_reply_record: tx ID {} XID {} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
@@ -592,6 +595,7 @@ impl NFSState {
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
             tx.nfs_version = r.progver as u16;
+            tx.file_handle = xidmap.file_handle.to_vec();
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
@@ -678,6 +682,7 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
+            tx.file_handle = xidmap.file_handle.to_vec();
             tx.nfs_version = r.progver as u16;
             //self.ts_txs_updated = true;
 
@@ -716,7 +721,7 @@ impl NFSState {
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         match tx.type_data {
             Some(NFSTransactionTypeData::FILE(ref mut d)) => {
-                d.file_tracker.tx_id = tx.id;
+                d.file_tracker.tx_id = tx.id - 1;
             },
             _ => { },
         }
@@ -829,6 +834,7 @@ impl NFSState {
 
     fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap) -> u32 {
         let nfs_status;
+        let mut resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
             match parse_nfs3_response_lookup(r.prog_data) {
@@ -840,6 +846,7 @@ impl NFSState {
 
                     SCLogDebug!("LOOKUP handle {:?}", lookup.handle);
                     self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name.to_vec());
+                    resp_handle = lookup.handle.value.to_vec();
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -856,6 +863,7 @@ impl NFSState {
                         Some(h) => {
                             SCLogDebug!("handle {:?}", h);
                             self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
+                            resp_handle = h.value.to_vec();
                         },
                         _ => { },
                     }
@@ -927,7 +935,7 @@ impl NFSState {
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
         if xidmap.procedure != NFSPROC3_READ {
-            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
+            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
         }
 
         0
@@ -935,6 +943,7 @@ impl NFSState {
 
     fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) -> u32 {
         let nfs_status;
+        let resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs2_reply_read(r.prog_data) {
@@ -958,7 +967,7 @@ impl NFSState {
         SCLogDebug!("REPLY {} to procedure {} blob size {}",
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
-        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
+        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
 
         0
     }
