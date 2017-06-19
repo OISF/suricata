@@ -103,6 +103,8 @@ pub struct NFSTransactionFile {
     /// only COMMIT on WRITEs.
     pub file_additional_procs: Vec<u32>,
 
+    pub chunk_count: u32,
+
     /// last xid of this file transfer. Last READ or COMMIT normally.
     pub file_last_xid: u32,
 
@@ -115,6 +117,7 @@ impl NFSTransactionFile {
     pub fn new() -> NFSTransactionFile {
         return NFSTransactionFile {
             file_additional_procs: Vec::new(),
+            chunk_count:0,
             file_last_xid: 0,
             file_tracker: FileTransferTracker::new(),
         }
@@ -571,9 +574,11 @@ impl NFSState {
                                 Some(NFSTransactionTypeData::FILE(ref mut d)) => d,
                                 _ => panic!("BUG"),
                             };
+                            tdf.chunk_count += 1;
                             tdf.file_additional_procs.push(NFSPROC3_COMMIT);
                             tdf.file_tracker.close(files, flags);
                             tdf.file_last_xid = r.hdr.xid;
+                            tx.is_last = true;
                             tx.request_done = true;
                         },
                         None => { },
@@ -782,6 +787,7 @@ impl NFSState {
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, w.file_data, w.offset,
                         w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
+                tdf.chunk_count += 1;
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
@@ -1089,6 +1095,7 @@ impl NFSState {
                     }
                 }
 
+                tdf.chunk_count += 1;
                 let cs = tdf.file_tracker.update(files, flags, data, gap_size);
                 cs
             },
@@ -1160,6 +1167,7 @@ impl NFSState {
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, reply.data, chunk_offset,
                         reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
+                tdf.chunk_count += 1;
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.rpc_response_status = r.reply_state;

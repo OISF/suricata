@@ -74,6 +74,7 @@ fn nfs_file_object(tx: &NFSTransaction) -> Json
     };
 
     js.set_integer("last_xid", tdf.file_last_xid as u64);
+    js.set_integer("chunks", tdf.chunk_count as u64);
     return js;
 }
 /*
