@@ -62,6 +62,7 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-nfs-tcp.h"
 #include "app-layer-nfs-udp.h"
+#include "app-layer-ntp.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1386,6 +1387,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDNP3Parsers();
     RegisterNFSTCPParsers();
     RegisterNFSUDPParsers();
+    RegisterNTPParsers();
     RegisterTemplateParsers();
 
     /** IMAP */

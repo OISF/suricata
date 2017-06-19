@@ -59,6 +59,7 @@ type_map = {
 
     "libc::c_void": "void",
 
+    "libc::c_char": "char",
     "libc::c_int": "int",
     "c_int": "int",
     "libc::int8_t": "int8_t",
@@ -77,10 +78,13 @@ type_map = {
     "DNSTransaction": "RSDNSTransaction",
     "NFSState": "NFSState",
     "NFSTransaction": "NFSTransaction",
+    "NTPState": "NTPState",
+    "NTPTransaction": "NTPTransaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",
     "core::AppLayerDecoderEvents": "AppLayerDecoderEvents",
+    "core::AppLayerEventType": "AppLayerEventType",
     "CLuaState": "lua_State",
     "Store": "Store",
 }
