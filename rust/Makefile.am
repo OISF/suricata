@@ -25,6 +25,10 @@ if HAVE_LUA
 FEATURES +=	lua
 endif
 
+if HAVE_RUST_EXTERNAL
+FEATURES +=	experimental
+endif
+
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
