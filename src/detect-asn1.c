@@ -277,9 +277,11 @@ static DetectAsn1Data *DetectAsn1Parse(const char *instr)
     fd->oversize_length = ov_len;    /* Length argument if needed */
     fd->absolute_offset = abs_off;   /* Length argument if needed */
     fd->relative_offset = rel_off;   /* Length argument if needed */
+    SCFree(asn1str);
     return fd;
 
 error:
+    SCFree(asn1str);
     return NULL;
 }
 
