@@ -227,6 +227,7 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
                         src_buf[ch] == '\n' ||
                         src_buf[ch] == '\r') ? (uint8_t)src_buf[ch] : '.');
     }
+    dst_buf[dst_buf_size - 1] = 0;
 
     return;
 }
