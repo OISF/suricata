@@ -84,6 +84,9 @@ impl NTPState {
 }
 
 impl NTPState {
+    /// Parse an NTP request message
+    ///
+    /// Returns The number of messages parsed, or -1 on error
     fn parse(&mut self, i: &[u8], _direction: u8) -> i8 {
         match parse_ntp(i) {
             IResult::Done(_,ref msg) => {
@@ -94,7 +97,7 @@ impl NTPState {
                     tx.xid = msg.ref_id;
                     self.transactions.push(tx);
                 }
-                0
+                1
             },
             IResult::Incomplete(_) => {
                 SCLogDebug!("Insufficient data while parsing NTP data");
@@ -366,4 +369,25 @@ pub extern "C" fn rs_ntp_state_get_event_info(event_name: *const libc::c_char,
         *event_id = event as libc::c_int;
     };
     0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::NTPState;
+
+    #[test]
+    fn test_ntp_parse_request_valid() {
+        // A UDP NTP v4 request, in client mode
+        const REQ : &[u8] = &[
+            0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x18, 0x57, 0xab, 0xc3, 0x4a, 0x5f, 0x2c, 0xfe
+        ];
+
+        let mut state = NTPState::new();
+        assert_eq!(1, state.parse(REQ, 0));
+    }
 }
