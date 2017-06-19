@@ -15,28 +15,20 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-#[macro_use]
-extern crate nom;
+#ifndef __APP_LAYER_NTP_H__
+#define __APP_LAYER_NTP_H__
 
-#[macro_use]
-pub mod log;
+void RegisterNTPParsers(void);
+void NTPParserRegisterTests(void);
 
-#[macro_use]
-pub mod core;
+/** Opaque Rust types. */
+typedef struct NTPState_ NTPState;
+typedef struct NTPTransaction_ NTPTransaction;
 
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-
-#[cfg(feature = "external")]
-pub mod external;
+#endif /* __APP_LAYER_NTP_H__ */

@@ -683,6 +683,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    ntp:
+      enabled: yes
     nfs:
       enabled: yes
     tls:
