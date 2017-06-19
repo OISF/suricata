@@ -10,8 +10,11 @@ debug = true
 
 [features]
 lua = []
+experimental = ["ntp-parser"]
 
 [dependencies]
 nom = "~3.0"
 libc = "~0.2.0"
 crc = "~1.4.0"
+
+ntp-parser = { version = "^0", optional = true }
