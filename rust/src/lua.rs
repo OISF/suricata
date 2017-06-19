@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-use std::ffi::CString;
 use std::os::raw::c_char;
 use std::os::raw::c_int;
 use std::os::raw::c_long;
@@ -26,7 +25,7 @@ pub enum CLuaState {}
 extern {
     fn lua_createtable(lua: *mut CLuaState, narr: c_int, nrec: c_int);
     fn lua_settable(lua: *mut CLuaState, idx: c_long);
-    fn lua_pushstring(lua: *mut CLuaState, s: *const c_char);
+    fn lua_pushlstring(lua: *mut CLuaState, s: *const c_char, len: usize);
     fn lua_pushinteger(lua: *mut CLuaState, n: c_long);
 }
 
@@ -50,7 +49,7 @@ impl LuaState {
 
     pub fn pushstring(&self, val: &str) {
         unsafe {
-            lua_pushstring(self.lua, CString::new(val).unwrap().as_ptr());
+            lua_pushlstring(self.lua, val.as_ptr() as *const c_char, val.len());
         }
     }
 

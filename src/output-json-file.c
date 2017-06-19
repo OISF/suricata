@@ -60,6 +60,7 @@
 #include "output-json-http.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
+#include "output-json-nfs.h"
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
@@ -105,6 +106,16 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             if (hjs)
                 json_object_set_new(js, "email", hjs);
             break;
+#ifdef HAVE_RUST
+        case ALPROTO_NFS:
+            hjs = JsonNFSAddMetadataRPC(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "rpc", hjs);
+            hjs = JsonNFSAddMetadata(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "nfs", hjs);
+            break;
+#endif
     }
 
     json_object_set_new(js, "app_proto",

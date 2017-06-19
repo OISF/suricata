@@ -21,6 +21,7 @@ use std::string::String;
 use json::*;
 use nfs::types::*;
 use nfs::nfs::*;
+use crc::crc32;
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_logging_is_filtered(tx: &mut NFSTransaction)
@@ -73,7 +74,20 @@ fn nfs_file_object(tx: &NFSTransaction) -> Json
     };
 
     js.set_integer("last_xid", tdf.file_last_xid as u64);
+    js.set_integer("chunks", tdf.chunk_count as u64);
     return js;
+}
+/*
+fn nfs_handle2hex(bytes: &Vec<u8>) -> String {
+    let strings: Vec<String> = bytes.iter()
+        .map(|b| format!("{:02x}", b))
+        .collect();
+    strings.join("")
+}
+*/
+fn nfs_handle2crc(bytes: &Vec<u8>) -> u32 {
+    let c = crc32::checksum_ieee(bytes);
+    c
 }
 
 fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
@@ -83,6 +97,13 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
     js.set_string("procedure", &nfs3_procedure_string(tx.procedure));
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name);
+
+    if tx.file_handle.len() > 0 {
+        //js.set_string("handle", &nfs_handle2hex(&tx.file_handle));
+        let c = nfs_handle2crc(&tx.file_handle);
+        let s = format!("{:x}", c);
+        js.set_string("hhash", &s);
+    }
     js.set_integer("id", tx.id as u64);
     js.set_boolean("file_tx", tx.is_file_tx);
     return js;

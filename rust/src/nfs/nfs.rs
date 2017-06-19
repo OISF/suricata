@@ -103,6 +103,8 @@ pub struct NFSTransactionFile {
     /// only COMMIT on WRITEs.
     pub file_additional_procs: Vec<u32>,
 
+    pub chunk_count: u32,
+
     /// last xid of this file transfer. Last READ or COMMIT normally.
     pub file_last_xid: u32,
 
@@ -115,6 +117,7 @@ impl NFSTransactionFile {
     pub fn new() -> NFSTransactionFile {
         return NFSTransactionFile {
             file_additional_procs: Vec::new(),
+            chunk_count:0,
             file_last_xid: 0,
             file_tracker: FileTransferTracker::new(),
         }
@@ -405,13 +408,16 @@ impl NFSState {
     }
 
     // TODO maybe not enough users to justify a func
-    fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32)
+    fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
         match self.get_tx_by_xid(xid) {
             Some(mut mytx) => {
                 mytx.response_done = true;
                 mytx.rpc_response_status = rpc_status;
                 mytx.nfs_response_status = nfs_status;
+                if mytx.file_handle.len() == 0 && resp_handle.len() > 0 {
+                    mytx.file_handle = resp_handle.to_vec();
+                }
 
                 SCLogDebug!("process_reply_record: tx ID {} XID {} REQUEST {} RESPONSE {}",
                         mytx.id, mytx.xid, mytx.request_done, mytx.response_done);
@@ -568,9 +574,11 @@ impl NFSState {
                                 Some(NFSTransactionTypeData::FILE(ref mut d)) => d,
                                 _ => panic!("BUG"),
                             };
+                            tdf.chunk_count += 1;
                             tdf.file_additional_procs.push(NFSPROC3_COMMIT);
                             tdf.file_tracker.close(files, flags);
                             tdf.file_last_xid = r.hdr.xid;
+                            tx.is_last = true;
                             tx.request_done = true;
                         },
                         None => { },
@@ -592,6 +600,7 @@ impl NFSState {
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
             tx.nfs_version = r.progver as u16;
+            tx.file_handle = xidmap.file_handle.to_vec();
             //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
@@ -678,6 +687,7 @@ impl NFSState {
             tx.procedure = r.procedure;
             tx.request_done = true;
             tx.file_name = xidmap.file_name.to_vec();
+            tx.file_handle = xidmap.file_handle.to_vec();
             tx.nfs_version = r.progver as u16;
             //self.ts_txs_updated = true;
 
@@ -716,7 +726,7 @@ impl NFSState {
         tx.type_data = Some(NFSTransactionTypeData::FILE(NFSTransactionFile::new()));
         match tx.type_data {
             Some(NFSTransactionTypeData::FILE(ref mut d)) => {
-                d.file_tracker.tx_id = tx.id;
+                d.file_tracker.tx_id = tx.id - 1;
             },
             _ => { },
         }
@@ -777,6 +787,7 @@ impl NFSState {
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, w.file_data, w.offset,
                         w.file_len, fill_bytes as u8, is_last, &r.hdr.xid);
+                tdf.chunk_count += 1;
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.is_last = true;
@@ -829,6 +840,7 @@ impl NFSState {
 
     fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap) -> u32 {
         let nfs_status;
+        let mut resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
             match parse_nfs3_response_lookup(r.prog_data) {
@@ -840,6 +852,7 @@ impl NFSState {
 
                     SCLogDebug!("LOOKUP handle {:?}", lookup.handle);
                     self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name.to_vec());
+                    resp_handle = lookup.handle.value.to_vec();
                 },
                 IResult::Incomplete(_) => { panic!("WEIRD"); },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
@@ -856,6 +869,7 @@ impl NFSState {
                         Some(h) => {
                             SCLogDebug!("handle {:?}", h);
                             self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
+                            resp_handle = h.value.to_vec();
                         },
                         _ => { },
                     }
@@ -927,7 +941,7 @@ impl NFSState {
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
         if xidmap.procedure != NFSPROC3_READ {
-            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
+            self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
         }
 
         0
@@ -935,6 +949,7 @@ impl NFSState {
 
     fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) -> u32 {
         let nfs_status;
+        let resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_READ {
             match parse_nfs2_reply_read(r.prog_data) {
@@ -958,7 +973,7 @@ impl NFSState {
         SCLogDebug!("REPLY {} to procedure {} blob size {}",
                 r.hdr.xid, xidmap.procedure, r.prog_data.len());
 
-        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status);
+        self.mark_response_tx_done(r.hdr.xid, r.reply_state, nfs_status, &resp_handle);
 
         0
     }
@@ -1080,6 +1095,7 @@ impl NFSState {
                     }
                 }
 
+                tdf.chunk_count += 1;
                 let cs = tdf.file_tracker.update(files, flags, data, gap_size);
                 cs
             },
@@ -1151,6 +1167,7 @@ impl NFSState {
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, reply.data, chunk_offset,
                         reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
+                tdf.chunk_count += 1;
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.rpc_response_status = r.reply_state;

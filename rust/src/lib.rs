@@ -20,6 +20,8 @@ extern crate libc;
 #[macro_use]
 extern crate nom;
 
+extern crate crc;
+
 #[macro_use]
 pub mod log;
 

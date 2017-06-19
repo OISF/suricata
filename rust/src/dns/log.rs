@@ -19,7 +19,6 @@ extern crate libc;
 
 use std;
 use std::string::String;
-use std::ascii::AsciiExt;
 
 use json::*;
 use dns::dns::*;
@@ -287,28 +286,6 @@ pub fn dns_rrtype_string(rrtype: u16) -> String {
     }.to_string()
 }
 
-fn safe_bytes_to_string(input: &[u8]) -> String {
-    // First attempt to convert from UTF8.
-    match std::str::from_utf8(input) {
-        Ok(value) => {
-            return String::from(value);
-        },
-        _ => {}
-    }
-
-    // If that fails create a string from the printabe characters with
-    // the non-printable characters as hex.
-    let mut output: String = "".to_owned();
-    for c in input {
-        if (*c as char).is_ascii() {
-            output.push(*c as char);
-        } else {
-            output.push_str(&format!("\\x{:x}", c));
-        }
-    }
-    return output;
-}
-
 fn dns_rcode_string(flags: u16) -> String {
     match flags & 0x000f {
         DNS_RCODE_NOERROR => "NOERROR",
@@ -384,7 +361,7 @@ pub extern "C" fn rs_dns_log_json_query(tx: &mut DNSTransaction,
                 let js = Json::object();
                 js.set_string("type", "query");
                 js.set_integer("id", request.header.tx_id as u64);
-                js.set_string("rrname", query.name());
+                js.set_string_from_bytes("rrname", &query.name);
                 js.set_string("rrtype", &dns_rrtype_string(query.rrtype));
                 js.set_integer("tx_id", tx.id - 1);
                 return js.unwrap();
@@ -403,7 +380,7 @@ fn dns_log_json_answer(header: &DNSHeader, answer: &DNSAnswerEntry)
     js.set_string("type", "answer");
     js.set_integer("id", header.tx_id as u64);
     js.set_string("rcode", &dns_rcode_string(header.flags));
-    js.set_string("rrname", answer.name());
+    js.set_string_from_bytes("rrname", &answer.name);
     js.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
     js.set_integer("ttl", answer.ttl as u64);
 
@@ -415,7 +392,7 @@ fn dns_log_json_answer(header: &DNSHeader, answer: &DNSAnswerEntry)
         DNS_RTYPE_MX |
         DNS_RTYPE_TXT |
         DNS_RTYPE_PTR => {
-            js.set_string("rdata", answer.data_to_string());
+            js.set_string_from_bytes("rdata", &answer.data);
         },
         DNS_RTYPE_SSHFP => {
             dns_log_sshfp(&js, &answer);
@@ -443,7 +420,7 @@ fn dns_log_json_failure(r: &DNSResponse, index: usize, flags: u64)
     js.set_string("type", "answer");
     js.set_integer("id", r.header.tx_id as u64);
     js.set_string("rcode", &dns_rcode_string(r.header.flags));
-    js.set_string("rrname", &safe_bytes_to_string(&query.name));
+    js.set_string_from_bytes("rrname", &query.name);
 
     return js.unwrap();
 }
@@ -492,20 +469,4 @@ pub extern "C" fn rs_dns_log_json_authority(tx: &mut DNSTransaction,
         }
     }
     return std::ptr::null_mut();
-}
-
-#[cfg(test)]
-mod tests {
-
-    use dns::log::safe_bytes_to_string;
-
-    #[test]
-    fn test_safe_bytes_to_string() {
-        assert_eq!("suricata-ids.org",
-                   safe_bytes_to_string(
-                       &String::from("suricata-ids.org").into_bytes()));
-        assert_eq!("A\\xf0\\xf1\\xf2",
-                   safe_bytes_to_string(&[ 0x41, 0xf0, 0xf1, 0xf2 ]));
-    }
-
 }
