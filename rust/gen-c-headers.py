@@ -99,12 +99,14 @@ def convert_type(rs_type):
             if mod in [
                     "*mut",
                     "* mut",
-                    "*const",
-                    "* const",
                     "&mut",
                     "&'static mut",
                     ]:
                 return "%s *" % (type_map[rtype])
+            elif mod in [
+                    "*const",
+                    "* const"]:
+                return "const %s *" % (type_map[rtype])
             elif mod in [
                     "*mut *const",
                     "*mut*const"]:
