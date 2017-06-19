@@ -26,6 +26,11 @@ pub enum Flow {}
 pub enum DetectEngineState {}
 pub enum AppLayerDecoderEvents {}
 
+// From app-layer-events.h
+pub type AppLayerEventType = libc::c_int;
+pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
+pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
+
 // From stream.h.
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
