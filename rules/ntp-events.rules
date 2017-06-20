@@ -1,0 +1,3 @@
+alert ntp any any -> any any (msg:"SURICATA NTP malformed request data"; flow:to_server; app-layer-event:ntp.malformed_data; classtype:protocol-command-decode; sid:2222001; rev:1;)
+alert ntp any any -> any any (msg:"SURICATA NTP malformed response data"; flow:to_client; app-layer-event:ntp.malformed_data; classtype:protocol-command-decode; sid:2222002; rev:1;)
+
