@@ -5844,6 +5844,7 @@ static void StreamTcpPseudoPacketCreateDetectLogFlush(ThreadVars *tv,
 #endif
     }
 
+    SCLogDebug("np %p", np);
     PacketEnqueue(pq, np);
 
     StatsIncr(tv, stt->counter_tcp_pseudo);
