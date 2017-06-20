@@ -105,7 +105,7 @@ pub type SCFileSetTx = extern "C" fn (
 #[allow(non_snake_case)]
 #[repr(C)]
 pub struct SuricataContext {
-    SCLogMessage: SCLogMessageFunc,
+    pub SCLogMessage: SCLogMessageFunc,
     DetectEngineStateFree: DetectEngineStateFreeFunc,
     AppLayerDecoderEventsSetEventRaw: AppLayerDecoderEventsSetEventRawFunc,
     AppLayerDecoderEventsFreeEvents: AppLayerDecoderEventsFreeEventsFunc,
@@ -133,23 +133,6 @@ pub extern "C" fn rs_init(context: &'static mut SuricataContext)
     unsafe {
         SC = Some(context);
     }
-}
-
-/// SCLogMessage wrapper.
-pub fn sc_log_message(level: libc::c_int,
-                      filename: *const libc::c_char,
-                      line: libc::c_uint,
-                      function: *const libc::c_char,
-                      code: libc::c_int,
-                      message: *const libc::c_char) -> libc::c_int
-{
-    unsafe {
-        if let Some(c) = SC {
-            return (c.SCLogMessage)(level, filename, line, function,
-                                  code, message);
-        }
-    }
-    return 0;
 }
 
 /// DetectEngineStateFree wrapper.

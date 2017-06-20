@@ -30,7 +30,9 @@
 #include "app-layer-dns-udp-rust.h"
 #include "rust-dns-dns-gen.h"
 
+#ifdef UNITTESTS
 static void RustDNSUDPParserRegisterTests(void);
+#endif
 
 static int RustDNSUDPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,

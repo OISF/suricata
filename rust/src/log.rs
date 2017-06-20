@@ -17,11 +17,12 @@
 
 extern crate libc;
 
-use std::ffi::{CString};
+use std::ffi::CString;
 use std::path::Path;
 
 use core::*;
 
+#[derive(Debug)]
 pub enum Level {
     NotSet = -1,
     None = 0,
@@ -59,12 +60,12 @@ pub fn sclog(level: Level, file: &str, line: u32, function: &str,
          code: i32, message: &str)
 {
     let filename = basename(file);
-    sc_log_message(level as i32,
-                   CString::new(filename).unwrap().as_ptr(),
+    sc_log_message(level,
+                   filename,
                    line,
-                   CString::new(function).unwrap().as_ptr(),
+                   function,
                    code,
-                   CString::new(message).unwrap().as_ptr());
+                   message);
 }
 
 /// Return the function name, but for now just return <rust> as Rust
@@ -125,4 +126,53 @@ pub extern "C" fn rs_log_set_level(level: i32) {
     unsafe {
         LEVEL = level;
     }
+}
+
+pub fn log_set_level(level: Level) {
+    rs_log_set_level(level as i32);
+}
+
+/// SCLogMessage wrapper. If the Suricata C context is not registered
+/// a more basic log format will be used (for example, when running
+/// Rust unit tests).
+pub fn sc_log_message(level: Level,
+                      filename: &str,
+                      line: libc::c_uint,
+                      function: &str,
+                      code: libc::c_int,
+                      message: &str) -> libc::c_int
+{
+    unsafe {
+        if let Some(c) = SC {
+            let filename = match CString::new(filename) {
+                Ok(filename) => filename,
+                Err(_) => CString::new("<filename not available>").unwrap()
+            };
+            let function = match CString::new(function) {
+                Ok(function) => function,
+                Err(_) => CString::new("<function not available>").unwrap()
+            };
+            let message = match CString::new(message) {
+                Ok(val) => val,
+                Err(_) => CString::new("<message not available>").unwrap()
+            };
+            return (c.SCLogMessage)(
+                level as i32,
+                filename.as_ptr(),
+                line,
+                function.as_ptr(),
+                code,
+                message.as_ptr());
+        }
+    }
+
+    // Fall back if the Suricata C context is not registered which is
+    // the case when Rust unit tests are running.
+    //
+    // We don't log the time right now as I don't think it can be done
+    // with Rust 1.7.0 without using an external crate. With Rust
+    // 1.8.0 and newer we can unix UNIX_EPOCH.elapsed() to get the
+    // unix time.
+    println!("{}:{} <{:?}> -- {}", filename, line, level, message);
+    return 0;
 }
