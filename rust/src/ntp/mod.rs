@@ -15,30 +15,6 @@
  * 02110-1301, USA.
  */
 
-extern crate libc;
+// written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-#[macro_use]
-extern crate nom;
-
-extern crate crc;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-
-#[cfg(feature = "external")]
 pub mod ntp;

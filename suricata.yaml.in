@@ -103,6 +103,7 @@ rule-files:
 # - modbus-events.rules  # available in suricata sources under rules dir
 # - app-layer-events.rules  # available in suricata sources under rules dir
 # - dnp3-events.rules       # available in suricata sources under rules dir
+# - ntp-events.rules       # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
@@ -679,6 +680,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    ntp:
+      enabled: yes
     nfs:
       enabled: yes
     tls:
