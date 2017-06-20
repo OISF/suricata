@@ -943,7 +943,8 @@ static void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv)
         NFQMutexUnlock(t);
 
         if (ret != 0) {
-            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
+            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %"PRId32" %s",
+                    ret, strerror(errno));
         }
     }
 }
@@ -1145,37 +1146,21 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
-        char verdict = 1;
-        //printf("VerdictNFQ: tunnel pkt: %p %s\n", p, p->root ? "upper layer" : "root");
-
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-        SCMutexLock(m);
-
-        /* if there are more tunnel packets than ready to verdict packets,
-         * we won't verdict this one */
-        if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            SCLogDebug("not ready to verdict yet: TUNNEL_PKT_TPR(p) > "
-                    "TUNNEL_PKT_RTV(p) = %" PRId32 " > %" PRId32,
-                    TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
-            verdict = 0;
-        }
-
-        SCMutexUnlock(m);
-
+        SCLogDebug("tunnel pkt: %p/%p %s", p, p->root, p->root ? "upper layer" : "root");
+        bool verdict = VerdictTunnelPacket(p);
         /* don't verdict if we are not ready */
-        if (verdict == 1) {
-            //printf("VerdictNFQ: setting verdict\n");
+        if (verdict == true) {
             ret = NFQSetVerdict(p->root ? p->root : p);
-            if (ret != TM_ECODE_OK)
+            if (ret != TM_ECODE_OK) {
                 return ret;
-        } else {
-            TUNNEL_INCR_PKT_RTV(p);
+            }
         }
     } else {
         /* no tunnel, verdict normally */
         ret = NFQSetVerdict(p);
-        if (ret != TM_ECODE_OK)
+        if (ret != TM_ECODE_OK) {
             return ret;
+        }
     }
     return TM_ECODE_OK;
 }
