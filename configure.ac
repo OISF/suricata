@@ -2007,9 +2007,15 @@
           CFLAGS="${CFLAGS} -I../rust/gen/c-headers"
           AC_SUBST(RUST_SURICATA_LIB)
           AC_SUBST(RUST_LDADD)
+	  AC_SUBST([CARGO], [$HAVE_CARGO])
+	  if test "x$CARGO_HOME" = "x"; then
+	    AC_SUBST([CARGO_HOME], [~/.cargo])
+	  else
+	    AC_SUBST([CARGO_HOME], [$CARGO_HOME])
+	  fi
           AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
           if test "x$have_rust_vendor" = "xyes"; then
-	        rust_vendor_comment=""
+	    rust_vendor_comment=""
           fi
         fi
       fi
