@@ -144,25 +144,13 @@ pub fn sc_log_message(level: Level,
 {
     unsafe {
         if let Some(c) = SC {
-            let filename = match CString::new(filename) {
-                Ok(filename) => filename,
-                Err(_) => CString::new("<filename not available>").unwrap()
-            };
-            let function = match CString::new(function) {
-                Ok(function) => function,
-                Err(_) => CString::new("<function not available>").unwrap()
-            };
-            let message = match CString::new(message) {
-                Ok(val) => val,
-                Err(_) => CString::new("<message not available>").unwrap()
-            };
             return (c.SCLogMessage)(
                 level as i32,
-                filename.as_ptr(),
+                to_safe_cstring(filename).as_ptr(),
                 line,
-                function.as_ptr(),
+                to_safe_cstring(function).as_ptr(),
                 code,
-                message.as_ptr());
+                to_safe_cstring(message).as_ptr());
         }
     }
 
@@ -175,4 +163,20 @@ pub fn sc_log_message(level: Level,
     // unix time.
     println!("{}:{} <{:?}> -- {}", filename, line, level, message);
     return 0;
+}
+
+// Convert a &str into a CString by first stripping NUL bytes.
+fn to_safe_cstring(val: &str) -> CString {
+    let mut safe = Vec::with_capacity(val.len());
+    for c in val.as_bytes() {
+        if *c != 0 {
+            safe.push(*c);
+        }
+    }
+    match CString::new(safe) {
+        Ok(cstr) => cstr,
+        _ => {
+            CString::new("<failed to encode string>").unwrap()
+        }
+    }
 }
