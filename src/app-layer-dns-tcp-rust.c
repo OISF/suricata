@@ -30,7 +30,9 @@
 #include "app-layer-dns-tcp-rust.h"
 #include "rust-dns-dns-gen.h"
 
+#ifdef UNITTESTS
 static void RustDNSTCPParserRegisterTests(void);
+#endif
 
 static int RustDNSTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,

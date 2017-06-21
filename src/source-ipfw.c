@@ -623,30 +623,12 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
      *  if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
-        char verdict = 1;
-
-        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
-        SCMutexLock(m);
-
-        /* if there are more tunnel packets than ready to verdict packets,
-         * we won't verdict this one
-         */
-        if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            SCLogDebug("VerdictIPFW: not ready to verdict yet: "
-                    "TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32
-                    " > %" PRId32 "", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
-            verdict = 0;
-        }
-
-        SCMutexUnlock(m);
+        bool verdict = VerdictTunnelPacket(p);
 
         /* don't verdict if we are not ready */
-        if (verdict == 1) {
+        if (verdict == true) {
             SCLogDebug("Setting verdict on tunnel");
             retval = IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
-
-        } else {
-            TUNNEL_INCR_PKT_RTV(p);
         }
     } else {
         /* no tunnel, verdict normally */
