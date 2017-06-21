@@ -5,4 +5,4 @@
 @rust_vendor_comment@replace-with = 'vendored-sources'
 @rust_vendor_comment@
 @rust_vendor_comment@[source.vendored-sources]
-@rust_vendor_comment@directory = './vendor'
+@rust_vendor_comment@directory = '@abs_top_srcdir@/rust/vendor'

@@ -27,8 +27,9 @@ endif
 
 all-local:
 if HAVE_PYTHON
-	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
+	cd $(top_srcdir)/rust && \
 		$(HAVE_PYTHON) ./gen-c-headers.py && \
+		CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
 			--features "$(FEATURES)"
 else
@@ -42,15 +43,14 @@ clean-local:
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) clean
 
 distclean-local:
-	rm -rf vendor
-	rm -rf gen
+	rm -rf vendor gen Cargo.lock
 
 check:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) test
 
 Cargo.lock: Cargo.toml
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) update
+	CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
 
 if HAVE_CARGO_VENDOR
 vendor:
