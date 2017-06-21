@@ -1965,9 +1965,6 @@
     AM_CONDITIONAL([HAVE_PDFLATEX], [test "x$enable_pdflatex" != "xno"])
 
 # Cargo/Rust.
-    dnl enable_rust="no"
-    dnl AC_ARG_ENABLE(rust, AS_HELP_STRING([--enable-rust], [Enable Rust]),
-    dnl     [enable_rust="$enableval"], [enable_rust=no])
     AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Experimental Rust support]))
 
     rust_vendor_comment="# "
@@ -2004,7 +2001,7 @@
             RUST_SURICATA_LIB="../rust/target/release/libsuricata.a"
           fi
           RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
-          CFLAGS="${CFLAGS} -I../rust/gen/c-headers"
+          CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
           AC_SUBST(RUST_SURICATA_LIB)
           AC_SUBST(RUST_LDADD)
 	  AC_SUBST([CARGO], [$HAVE_CARGO])
