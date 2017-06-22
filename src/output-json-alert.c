@@ -243,6 +243,10 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
         }
     }
 
+    if (p->flow) {
+        json_object_set_new(js, "app_proto",
+                json_string(AppProtoToString(p->flow->alproto)));
+    }
     /* Add tx_id to root element for correlation with other events. */
     json_object_del(js, "tx_id");
     if (pa->flags & PACKET_ALERT_FLAG_TX)
