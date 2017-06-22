@@ -163,6 +163,16 @@ Metadata::
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
+            app-layer: yes             # enable dumping of application layer information
+            vars: yes                  # enable dumping of flowbits and other vars
+
+The `vars` will enable dumping of a set of key/value based on flowbits and other vars
+such as named groups in regular expression.
+
+Alternatively to the `app-layer` key it is also possible to select the application
+layer metadata to output on a per application layer basis ::
+
+        - alert:
             http: yes                # enable dumping of http fields
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields
