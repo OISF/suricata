@@ -74,6 +74,7 @@ the signature.
      "gid": 1,
      "signature_id": 1,
      "rev": 1,
+     "app_proto": "http",
      "signature": "HTTP body talking about corruption",
      "severity": 3,
      "source": {
