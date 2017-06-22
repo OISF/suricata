@@ -314,6 +314,27 @@ static void AlertJsonPacket(const Packet *p, json_t *js)
     json_object_set_new(js, "packet_info", packetinfo_js);
 }
 
+static void AlertAddPayload(AlertJsonOutputCtx *json_output_ctx, json_t *js, const Packet *p)
+{
+    if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+        unsigned long len = p->payload_len * 2 + 1;
+        uint8_t encoded[len];
+        if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
+            json_object_set_new(js, "payload", json_string((char *)encoded));
+        }
+    }
+
+    if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
+        uint8_t printable_buf[p->payload_len + 1];
+        uint32_t offset = 0;
+        PrintStringsToBuffer(printable_buf, &offset,
+                p->payload_len + 1,
+                p->payload, p->payload_len);
+        printable_buf[p->payload_len] = '\0';
+        json_object_set_new(js, "payload_printable", json_string((char *)printable_buf));
+    }
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -442,42 +463,30 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 StreamSegmentForEach((const Packet *)p, flag,
                                     AlertJsonDumpStreamSegmentCallback,
                                     (void *)payload);
+                if (payload->offset) {
+                    if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
+                        unsigned long len = json_output_ctx->payload_buffer_size * 2;
+                        uint8_t encoded[len];
+                        Base64Encode(payload->buffer, payload->offset, encoded, &len);
+                        json_object_set_new(js, "payload", json_string((char *)encoded));
+                    }
 
-                if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                    unsigned long len = json_output_ctx->payload_buffer_size * 2;
-                    uint8_t encoded[len];
-                    Base64Encode(payload->buffer, payload->offset, encoded, &len);
-                    json_object_set_new(js, "payload", json_string((char *)encoded));
-                }
-
-                if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-                    uint8_t printable_buf[payload->offset + 1];
-                    uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset,
-                                     sizeof(printable_buf),
-                                     payload->buffer, payload->offset);
-                    json_object_set_new(js, "payload_printable",
-                                        json_string((char *)printable_buf));
+                    if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
+                        uint8_t printable_buf[payload->offset + 1];
+                        uint32_t offset = 0;
+                        PrintStringsToBuffer(printable_buf, &offset,
+                                sizeof(printable_buf),
+                                payload->buffer, payload->offset);
+                        json_object_set_new(js, "payload_printable",
+                                json_string((char *)printable_buf));
+                    }
+                } else if (p->payload_len) {
+                    /* Fallback on packet payload */
+                    AlertAddPayload(json_output_ctx, js, p);
                 }
             } else {
                 /* This is a single packet and not a stream */
-                if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                    unsigned long len = p->payload_len * 2 + 1;
-                    uint8_t encoded[len];
-                    if (Base64Encode(p->payload, p->payload_len, encoded, &len) == SC_BASE64_OK) {
-                        json_object_set_new(js, "payload", json_string((char *)encoded));
-                    }
-                }
-
-                if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-                    uint8_t printable_buf[p->payload_len + 1];
-                    uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset,
-                                     p->payload_len + 1,
-                                     p->payload, p->payload_len);
-                    printable_buf[p->payload_len] = '\0';
-                    json_object_set_new(js, "payload_printable", json_string((char *)printable_buf));
-                }
+                AlertAddPayload(json_output_ctx, js, p);
             }
 
             json_object_set_new(js, "stream", json_integer(stream));
