@@ -177,17 +177,8 @@ static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type)
     return js;
 }
 
-/* JSON format logging */
-static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
+void JsonAddFlow(Flow *f, json_t *js, json_t *hjs)
 {
-#if 0
-    LogJsonFileCtx *flow_ctx = aft->flowlog_ctx;
-#endif
-    json_t *hjs = json_object();
-    if (hjs == NULL) {
-        return;
-    }
-
     json_object_set_new(js, "app_proto",
             json_string(AppProtoToString(f->alproto)));
     if (f->alproto_ts != f->alproto) {
@@ -216,12 +207,26 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
     json_object_set_new(hjs, "bytes_toclient",
             json_integer(f->tosrcbytecnt));
 
-    char timebuf1[64], timebuf2[64];
-
+    char timebuf1[64];
     CreateIsoTimeString(&f->startts, timebuf1, sizeof(timebuf1));
-    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
-
     json_object_set_new(hjs, "start", json_string(timebuf1));
+}
+
+/* JSON format logging */
+static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
+{
+#if 0
+    LogJsonFileCtx *flow_ctx = aft->flowlog_ctx;
+#endif
+    json_t *hjs = json_object();
+    if (hjs == NULL) {
+        return;
+    }
+
+    JsonAddFlow(f, js, hjs);
+
+    char timebuf2[64];
+    CreateIsoTimeString(&f->lastts, timebuf2, sizeof(timebuf2));
     json_object_set_new(hjs, "end", json_string(timebuf2));
 
     int32_t age = f->lastts.tv_sec - f->startts.tv_sec;
