@@ -691,10 +691,10 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, const void *initdata, void 
 
     aft->payload_buffer = MemBufferCreateNew(json_output_ctx->payload_buffer_size);
     if (aft->payload_buffer == NULL) {
+        MemBufferFree(aft->json_buffer);
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
-    
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
