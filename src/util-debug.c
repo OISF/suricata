@@ -577,11 +577,13 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
+                    SCMutexLock(&op_iface_ctx->fp_mutex);
                     if (op_iface_ctx->rotation_flag) {
                         SCLogReopen(op_iface_ctx);
                         op_iface_ctx->rotation_flag = 0;
                     }
                     SCLogPrintToStream(op_iface_ctx->file_d, buffer);
+                    SCMutexUnlock(&op_iface_ctx->fp_mutex);
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
@@ -714,6 +716,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         goto error;
     }
 
+    SCMutexInit(&iface_ctx->fp_mutex, NULL);
     OutputRegisterFileRotationFlag(&iface_ctx->rotation_flag);
 
     iface_ctx->log_level = log_level;
