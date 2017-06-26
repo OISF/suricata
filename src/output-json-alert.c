@@ -88,7 +88,7 @@
 #define LOG_JSON_APP_LAYER      BIT_U16(10)
 #define LOG_JSON_FLOW           BIT_U16(11)
 
-#define LOG_JSON_APP_LAYER_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -765,7 +765,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
-        const char *applayer = ConfNodeLookupChildValue(conf, "applayer");
+        const char *metadata = ConfNodeLookupChildValue(conf, "metadata");
         const char *flow = ConfNodeLookupChildValue(conf, "flow");
 
         if (flow != NULL) {
@@ -778,8 +778,8 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
                 json_output_ctx->flags |= LOG_JSON_VARS;
             }
         }
-        if (applayer != NULL && ConfValIsTrue(applayer)) {
-            json_output_ctx->flags |= LOG_JSON_APP_LAYER_ALL;
+        if (metadata != NULL && ConfValIsTrue(metadata)) {
+            json_output_ctx->flags |= LOG_JSON_METADATA_ALL;
         }
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {

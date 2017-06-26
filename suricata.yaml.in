@@ -166,8 +166,7 @@ outputs:
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
-            applayer: yes            # add L7/applayer fields to the alert
-            vars: yes                # enable dumping of flowbits and other vars
+            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
