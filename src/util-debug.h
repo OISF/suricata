@@ -139,6 +139,9 @@ typedef struct SCLogOPIfaceCtx_ {
     /* override for the global_log_format(currently not used) */
     const char *log_format;
 
+    /* Mutex used for locking around rotate/write to a file. */
+    SCMutex fp_mutex;
+
     struct SCLogOPIfaceCtx_ *next;
 } SCLogOPIfaceCtx;
 
