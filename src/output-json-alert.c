@@ -76,18 +76,20 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD        BIT_U16(0)
-#define LOG_JSON_PACKET         BIT_U16(1)
-#define LOG_JSON_PAYLOAD_BASE64 BIT_U16(2)
-#define LOG_JSON_HTTP           BIT_U16(3)
-#define LOG_JSON_TLS            BIT_U16(4)
-#define LOG_JSON_SSH            BIT_U16(5)
-#define LOG_JSON_SMTP           BIT_U16(6)
-#define LOG_JSON_TAGGED_PACKETS BIT_U16(7)
-#define LOG_JSON_DNP3           BIT_U16(8)
-#define LOG_JSON_VARS           BIT_U16(9)
-#define LOG_JSON_APP_LAYER      BIT_U16(10)
-#define LOG_JSON_FLOW           BIT_U16(11)
+#define LOG_JSON_PAYLOAD           BIT_U16(0)
+#define LOG_JSON_PACKET            BIT_U16(1)
+#define LOG_JSON_PAYLOAD_BASE64    BIT_U16(2)
+#define LOG_JSON_HTTP              BIT_U16(3)
+#define LOG_JSON_TLS               BIT_U16(4)
+#define LOG_JSON_SSH               BIT_U16(5)
+#define LOG_JSON_SMTP              BIT_U16(6)
+#define LOG_JSON_TAGGED_PACKETS    BIT_U16(7)
+#define LOG_JSON_DNP3              BIT_U16(8)
+#define LOG_JSON_VARS              BIT_U16(9)
+#define LOG_JSON_APP_LAYER         BIT_U16(10)
+#define LOG_JSON_FLOW              BIT_U16(11)
+#define LOG_JSON_HTTP_BODY         BIT_U16(12)
+#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
 
 #define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
 
@@ -375,8 +377,15 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_HTTP) {
                     hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
-                    if (hjs)
+                    if (hjs) {
+                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
+                            JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
+                        }
+                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
+                            JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
+                        }
                         json_object_set_new(js, "http", hjs);
+                    }
                 }
             }
         }
@@ -782,8 +791,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "packet", LOG_JSON_PACKET, &json_output_ctx->flags);
         SetFlag(conf, "tagged-packets", LOG_JSON_TAGGED_PACKETS, &json_output_ctx->flags);
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
+        SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
+        SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
+
         if (payload_buffer_value != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {
