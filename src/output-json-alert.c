@@ -70,6 +70,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-crypt.h"
+#include "util-validate.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -737,6 +738,19 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint16_t *out_flags)
+{
+    DEBUG_VALIDATE_BUG_ON(conf == NULL);
+    const char *setting = ConfNodeLookupChildValue(conf, name);
+    if (setting != NULL) {
+        if (ConfValIsTrue(setting)) {
+            *out_flags |= flag;
+        } else {
+            *out_flags &= ~flag;
+        }
+    }
+}
+
 #define DEFAULT_LOG_FILENAME "alert.json"
 
 static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
@@ -754,63 +768,22 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
 
     if (conf != NULL) {
-        const char *payload = ConfNodeLookupChildValue(conf, "payload");
-        const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
-        const char *packet  = ConfNodeLookupChildValue(conf, "packet");
-        const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
-        const char *http = ConfNodeLookupChildValue(conf, "http");
-        const char *tls = ConfNodeLookupChildValue(conf, "tls");
-        const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
-        const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
-        const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
-        const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
-        const char *vars = ConfNodeLookupChildValue(conf, "vars");
-        const char *metadata = ConfNodeLookupChildValue(conf, "metadata");
-        const char *flow = ConfNodeLookupChildValue(conf, "flow");
+        SetFlag(conf, "metadata", LOG_JSON_METADATA_ALL, &json_output_ctx->flags);
+        SetFlag(conf, "flow", LOG_JSON_FLOW, &json_output_ctx->flags);
+        SetFlag(conf, "vars", LOG_JSON_VARS, &json_output_ctx->flags);
 
-        if (flow != NULL) {
-            if (ConfValIsTrue(flow)) {
-                json_output_ctx->flags |= LOG_JSON_FLOW;
-            }
-        }
-        if (vars != NULL) {
-            if (ConfValIsTrue(vars)) {
-                json_output_ctx->flags |= LOG_JSON_VARS;
-            }
-        }
-        if (metadata != NULL && ConfValIsTrue(metadata)) {
-            json_output_ctx->flags |= LOG_JSON_METADATA_ALL;
-        }
-        if (ssh != NULL) {
-            if (ConfValIsTrue(ssh)) {
-                json_output_ctx->flags |= LOG_JSON_SSH;
-            }
-        }
-        if (tls != NULL) {
-            if (ConfValIsTrue(tls)) {
-                json_output_ctx->flags |= LOG_JSON_TLS;
-            }
-        }
-        if (http != NULL) {
-            if (ConfValIsTrue(http)) {
-                json_output_ctx->flags |= LOG_JSON_HTTP;
-            }
-        }
-        if (smtp != NULL) {
-            if (ConfValIsTrue(smtp)) {
-                json_output_ctx->flags |= LOG_JSON_SMTP;
-            }
-        }
-        if (payload_printable != NULL) {
-            if (ConfValIsTrue(payload_printable)) {
-                json_output_ctx->flags |= LOG_JSON_PAYLOAD;
-            }
-        }
-        if (payload != NULL) {
-            if (ConfValIsTrue(payload)) {
-                json_output_ctx->flags |= LOG_JSON_PAYLOAD_BASE64;
-            }
-        }
+        SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
+        SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
+        SetFlag(conf, "ssh",  LOG_JSON_SSH,  &json_output_ctx->flags);
+        SetFlag(conf, "smtp", LOG_JSON_SMTP, &json_output_ctx->flags);
+        SetFlag(conf, "dnp3", LOG_JSON_DNP3, &json_output_ctx->flags);
+
+        SetFlag(conf, "payload", LOG_JSON_PAYLOAD_BASE64, &json_output_ctx->flags);
+        SetFlag(conf, "packet", LOG_JSON_PACKET, &json_output_ctx->flags);
+        SetFlag(conf, "tagged-packets", LOG_JSON_TAGGED_PACKETS, &json_output_ctx->flags);
+        SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
+
+        const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
         if (payload_buffer_value != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(payload_buffer_value, &value) < 0) {
@@ -822,23 +795,8 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
                 payload_buffer_size = value;
             }
         }
-        if (packet != NULL) {
-            if (ConfValIsTrue(packet)) {
-                json_output_ctx->flags |= LOG_JSON_PACKET;
-            }
-        }
-        if (tagged_packets != NULL) {
-            if (ConfValIsTrue(tagged_packets)) {
-                json_output_ctx->flags |= LOG_JSON_TAGGED_PACKETS;
-            }
-        }
-        if (dnp3 != NULL) {
-            if (ConfValIsTrue(dnp3)) {
-                json_output_ctx->flags |= LOG_JSON_DNP3;
-            }
-        }
 
-	json_output_ctx->payload_buffer_size = payload_buffer_size;
+        json_output_ctx->payload_buffer_size = payload_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
     }
 }
