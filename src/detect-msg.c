@@ -103,7 +103,12 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, const char *ms
         }
     }
 
-    s->msg = SCStrdup(str);
+    if (s->msg != NULL) {
+        SCLogWarning(SC_ERR_INVALID_RULE_ARGUMENT, "Duplicated 'msg:' keyword detected, using first one!");
+    }
+    else {
+        s->msg = SCStrdup(str);
+    }
     if (s->msg == NULL)
         goto error;
     return 0;
