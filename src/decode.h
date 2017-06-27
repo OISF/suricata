@@ -1070,6 +1070,9 @@ int DecoderParseDataFromFileSerie(char *fileprefix, DecoderFunc Decoder);
 #define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_PPP        9
 #define LINKTYPE_RAW        DLT_RAW
+/* http://www.tcpdump.org/linktypes.html defines DLT_RAW as 101, yet others don't.
+ * Libpcap on at least OpenBSD returns 101 as datalink type for RAW pcaps though. */
+#define LINKTYPE_RAW2       101
 #define PPP_OVER_GRE        11
 #define VLAN_OVER_GRE       13
 
