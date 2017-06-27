@@ -149,7 +149,6 @@ pub struct DNSAnswerEntry {
     pub rrtype: u16,
     pub rrclass: u16,
     pub ttl: u32,
-    pub data_len: u16,
     pub data: Vec<u8>,
 }
 
