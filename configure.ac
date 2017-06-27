@@ -1966,6 +1966,8 @@
 
 # Cargo/Rust.
     AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Experimental Rust support]))
+    AC_ARG_ENABLE([rust_experimental], AS_HELP_STRING([--enable-rust-experimental], [Enable support for experimental Rus parsers]))
+
 
     rust_vendor_comment="# "
     have_rust_vendor="no"
@@ -2019,6 +2021,7 @@
     fi
 
     AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes"])
+    AM_CONDITIONAL([HAVE_RUST_EXTERNAL], [test "x$enable_rust_experimental" = "xyes"])
     AC_SUBST(rust_vendor_comment)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
@@ -2028,6 +2031,10 @@
         echo "   Warning: cargo-vendor not found, but it is only required"
         echo "       for building the distribution"
         echo "   To install: cargo install cargo-vendor"
+      fi
+
+      if test "x$enable_rust_experimental" = "xyes"; then
+          AC_DEFINE([HAVE_RUST_EXTERNAL],[1],[Enable support for experimental Rust parsers])
       fi
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
@@ -2144,6 +2151,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Libnet support:                          ${enable_libnet}
 
   Rust support (experimental):             ${enable_rust}
+  Experimental Rust parsers:               ${enable_rust_experimental}
 
   Suricatasc install:                      ${enable_python}
 
