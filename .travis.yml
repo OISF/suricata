@@ -32,6 +32,8 @@ addons:
       - libjansson-dev
       - libevent-dev
       - libevent-pthreads-2.0-5
+      - python-yaml
+      - python3-yaml
     # Now define the default set of packages which is those above, and
     # libjansson.
     packages: &packages
@@ -153,9 +155,15 @@ script:
     else
         make ${j} check
     fi
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        cd qa/suripcap/
+        python suripcap.py
+    fi
 
 before_install:
   - export PATH=$HOME/.cargo/bin:$PATH
+  - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
   - |
     if [[ "$ENABLE_RUST" == "yes" ]]; then
         curl https://sh.rustup.rs -sSf | sh -s -- -y

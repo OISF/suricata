@@ -1,0 +1,76 @@
+%YAML 1.1
+---
+
+- test: TLS 1
+  filename: ../docker/pcaps/tls.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none
+  app-layer-events:
+    - name: tls
+      flow: 5
+      tx: 0
+  metadata:
+    - name: SELKS certificate
+      event_type: tls
+      count: 4
+      filter: "tls.serial='00:97:E6:47:09:8E:EA:C9:B4' tls.issuerdn='C=FR, ST=IDF, L=Paris, O=Stamus, CN=SELKS'"
+    - name: Session resumed
+      event_type: tls
+      count: 1
+      filter: "tls.session_resumed=true"
+
+- test: TLS alert
+  filename: ../docker/pcaps/tls.pcap
+  ruleset: tls.rules
+  config: ../../suricata.yaml
+  options: -k none
+  metadata:
+    - name: Stamus Issuer Alert
+      event_type: alert
+      count: 4
+      filter: "alert.signature_id=1"
+
+- test: TCP DNS 1
+  filename: ../docker/pcaps/tcp-dns.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none
+  app-layer-events:
+    - name: dns_tcp
+      flow: 0
+      tx: 0
+
+- test: TCP DNS 2
+  filename: ../docker/pcaps/tcp-dns.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none --set app-layer.protocols.dns.tcp.detection-ports.dp=5353 --runmode=single
+  app-layer-events:
+    - name: dns_tcp
+      flow: 1
+      tx: 1
+  metadata:
+    - name: DNS query
+      event_type: dns
+      count: 1
+      filter: "dns.rrname=www.stearns.org"
+
+- test: SMTP metadata
+  filename: ../docker/pcaps/smtp.pcap
+  ruleset: none
+  config: ../../suricata.yaml
+  options: -k none
+  app-layer-events:
+    - name: smtp
+      flow: 1
+      tx: 1
+  metadata:
+    - name: RCPT to
+      event_type: smtp
+      count: 1
+      filter: "smtp.rcpt_to.0='<eric@regit.org>' smtp.rcpt_to.2='<regit@regit.org>'"
+    - name: email params
+      event_type: smtp
+      count: 1
+      filter: "email.to.0='eric@regit.org' email.cc.0='eleblond@stamus-networks.com'"
