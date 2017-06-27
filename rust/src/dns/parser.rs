@@ -123,35 +123,110 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
 
 }
 
+/// Parse answer entries.
+///
+/// In keeping with the C implementation, answer values that can
+/// contain multiple answers get expanded into their own answer
+/// records. An example of this is a TXT record with multiple strings
+/// in it - each string will be expanded to its own answer record.
+///
+/// This function could be a made a whole lot simpler if we logged a
+/// multi-string TXT entry as a single quote string, similar to the
+/// output of dig. Something to consider for a future version.
+fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
+                        -> nom::IResult<&'a [u8], Vec<DNSAnswerEntry>> {
+
+    let mut answers = Vec::new();
+    let mut input = slice;
+
+    for _ in 0..count {
+        match closure!(&'a [u8], do_parse!(
+            name: apply!(dns_parse_name, message) >>
+                rrtype: be_u16 >>
+                rrclass: be_u16 >>
+                ttl: be_u32 >>
+                data_len: be_u16 >>
+                data: take!(data_len) >>
+                (
+                    name,
+                    rrtype,
+                    rrclass,
+                    ttl,
+                    data
+                )
+        ))(input) {
+            nom::IResult::Done(rem, val) => {
+                let name = val.0;
+                let rrtype = val.1;
+                let rrclass = val.2;
+                let ttl = val.3;
+                let data = val.4;
+                let n = match rrtype {
+                    DNS_RTYPE_TXT => {
+                        // For TXT records we need to run the parser
+                        // multiple times. Set n high, to the maximum
+                        // value based on a max txt side of 65535, but
+                        // taking into considering that strings need
+                        // to be quoted, so half that.
+                        32767
+                    }
+                    _ => {
+                        // For all other types we only want to run the
+                        // parser once, so set n to 1.
+                        1
+                    }
+                };
+                let result: nom::IResult<&'a [u8], Vec<Vec<u8>>> =
+                    closure!(&'a [u8], do_parse!(
+                        rdata: many_m_n!(1, n,
+                                         apply!(dns_parse_rdata, message, rrtype))
+                            >> (rdata)
+                    ))(data);
+                match result {
+                    nom::IResult::Done(_, rdatas) => {
+                        for rdata in rdatas {
+                            answers.push(DNSAnswerEntry{
+                                name: name.clone(),
+                                rrtype: rrtype,
+                                rrclass: rrclass,
+                                ttl: ttl,
+                                data: rdata,
+                            });
+                        }
+                    }
+                    nom::IResult::Error(err) => {
+                        return nom::IResult::Error(err);
+                    }
+                    nom::IResult::Incomplete(needed) => {
+                        return nom::IResult::Incomplete(needed);
+                    }
+                }
+                input = rem;
+            }
+            nom::IResult::Error(err) => {
+                return nom::IResult::Error(err);
+            }
+            nom::IResult::Incomplete(needed) => {
+                return nom::IResult::Incomplete(needed);
+            }
+        }
+    }
+
+    return nom::IResult::Done(input, answers);
+}
+
+
 /// Parse a DNS response.
 pub fn dns_parse_response<'a>(slice: &'a [u8])
                               -> nom::IResult<&[u8], DNSResponse> {
-    let answer_parser = closure!(&'a [u8], do_parse!(
-        name: apply!(dns_parse_name, slice) >>
-        rrtype: be_u16 >>
-        rrclass: be_u16 >>
-        ttl: be_u32 >>
-        data_len: be_u16 >>
-        data: flat_map!(take!(data_len),
-                        apply!(dns_parse_rdata, slice, rrtype)) >>
-            (
-                DNSAnswerEntry{
-                    name: name,
-                    rrtype: rrtype,
-                    rrclass: rrclass,
-                    ttl: ttl,
-                    data_len: data_len,
-                    data: data.to_vec(),
-                }
-            )
-    ));
-
     let response = closure!(&'a [u8], do_parse!(
         header: dns_parse_header
-            >> queries: count!(apply!(dns_parse_query, slice),
-                               header.questions as usize)
-            >> answers: count!(answer_parser, header.answer_rr as usize)
-            >> authorities: count!(answer_parser, header.authority_rr as usize)
+            >> queries: count!(
+                apply!(dns_parse_query, slice), header.questions as usize)
+            >> answers: apply!(
+                dns_parse_answer, slice, header.answer_rr as usize)
+            >> authorities: apply!(
+                dns_parse_answer, slice, header.authority_rr as usize)
             >> (
                 DNSResponse{
                     header: header,
@@ -187,14 +262,14 @@ pub fn dns_parse_query<'a>(input: &'a [u8],
     ))(input);
 }
 
-pub fn dns_parse_rdata<'a>(data: &'a [u8], message: &'a [u8], rrtype: u16)
+pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
     -> nom::IResult<&'a [u8], Vec<u8>>
 {
     match rrtype {
         DNS_RTYPE_CNAME |
         DNS_RTYPE_PTR |
         DNS_RTYPE_SOA => {
-            dns_parse_name(data, message)
+            dns_parse_name(input, message)
         },
         DNS_RTYPE_MX => {
             // For MX we we skip over the preference field before
@@ -203,16 +278,21 @@ pub fn dns_parse_rdata<'a>(data: &'a [u8], message: &'a [u8], rrtype: u16)
                 be_u16 >>
                 name: apply!(dns_parse_name, message) >>
                     (name)
-            ))(data)
+            ))(input)
         },
         DNS_RTYPE_TXT => {
             closure!(&'a [u8], do_parse!(
                 len: be_u8 >>
                 txt: take!(len) >>
                     (txt.to_vec())
-            ))(data)
+            ))(input)
         },
-        _ => nom::IResult::Done(data, data.to_vec())
+        _ => {
+            closure!(&'a [u8], do_parse!(
+                data: take!(input.len()) >>
+                    (data.to_vec())
+            ))(input)
+        }
     }
 }
 
@@ -440,7 +520,6 @@ mod tests {
                 assert_eq!(answer1.rrtype, 5);
                 assert_eq!(answer1.rrclass, 1);
                 assert_eq!(answer1.ttl, 3544);
-                assert_eq!(answer1.data_len, 18);
                 assert_eq!(answer1.data,
                            "suricata-ids.org".as_bytes().to_vec());
 
@@ -450,7 +529,6 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data_len: 4,
                     data: [192, 0, 78, 24].to_vec(),
                 });
 
@@ -460,7 +538,6 @@ mod tests {
                     rrtype: 1,
                     rrclass: 1,
                     ttl: 244,
-                    data_len: 4,
                     data: [192, 0, 78, 25].to_vec(),
                 })
 

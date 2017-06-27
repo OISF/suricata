@@ -330,7 +330,7 @@ pub fn dns_print_addr(addr: &Vec<u8>) -> std::string::String {
 fn dns_log_sshfp(js: &Json, answer: &DNSAnswerEntry)
 {
     // Need at least 3 bytes - TODO: log something if we don't?
-    if answer.data_len < 3 {
+    if answer.data.len() < 3 {
         return;
     }
 
