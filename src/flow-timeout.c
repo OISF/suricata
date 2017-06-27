@@ -251,9 +251,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                               (uint16_t *)p->tcph, 20, 0);
     }
 
-    memset(&p->ts, 0, sizeof(struct timeval));
-    TimeGet(&p->ts);
-
+    /*
+     * Set the timestamp of the pseudo-packet to the last packet we
+     * have seen. This is particularly important in pcap analysis,
+     * where otherwise the TimeGet function always returns the last
+     * timestamp of the packet
+     */
+    COPY_TIMESTAMP(&(f->lastts), &(p->ts));
+    
     AppLayerParserSetEOF(f->alparser);
 
     return p;
