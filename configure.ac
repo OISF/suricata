@@ -1968,7 +1968,9 @@
     AC_ARG_ENABLE([rust], AS_HELP_STRING([--enable-rust], [Enable Experimental Rust support]))
     AC_ARG_ENABLE([rust_experimental], AS_HELP_STRING([--enable-rust-experimental], [Enable support for experimental Rus parsers]))
 
-
+    rust_config_enabled="no"        # used in suricata.yaml.in to enable/disable app-layers
+    rust_config_comment="#"         # used in suricata.yaml.in to enable/disable eve loggers
+    rust_config_exp_enabled="no"    # used in suricata.yaml.in to enable/disable app-layers
     rust_vendor_comment="# "
     have_rust_vendor="no"
 
@@ -2006,23 +2008,37 @@
           CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
           AC_SUBST(RUST_SURICATA_LIB)
           AC_SUBST(RUST_LDADD)
-	  AC_SUBST([CARGO], [$HAVE_CARGO])
-	  if test "x$CARGO_HOME" = "x"; then
-	    AC_SUBST([CARGO_HOME], [~/.cargo])
-	  else
-	    AC_SUBST([CARGO_HOME], [$CARGO_HOME])
-	  fi
+          AC_SUBST([CARGO], [$HAVE_CARGO])
+          if test "x$CARGO_HOME" = "x"; then
+              AC_SUBST([CARGO_HOME], [~/.cargo])
+          else
+	          AC_SUBST([CARGO_HOME], [$CARGO_HOME])
+          fi
           AC_CHECK_FILES([$srcdir/rust/vendor], [have_rust_vendor="yes"])
           if test "x$have_rust_vendor" = "xyes"; then
-	    rust_vendor_comment=""
+	          rust_vendor_comment=""
           fi
+
+          rust_config_enabled="yes"
+          rust_config_comment=""
         fi
       fi
+    fi
+
+    if test "x$enable_rust_experimental" = "xyes"; then
+        rust_config_exp_enabled="yes"
+        rust_config_exp_comment=""
+    else
+        enable_rust_experimental="no"
     fi
 
     AM_CONDITIONAL([HAVE_RUST], [test "x$enable_rust" = "xyes"])
     AM_CONDITIONAL([HAVE_RUST_EXTERNAL], [test "x$enable_rust_experimental" = "xyes"])
     AC_SUBST(rust_vendor_comment)
+    AC_SUBST(rust_config_enabled)
+    AC_SUBST(rust_config_comment)
+    AC_SUBST(rust_config_exp_comment)
+    AC_SUBST(rust_config_exp_enabled)
     AM_CONDITIONAL([HAVE_RUST_VENDOR], [test "x$have_rust_vendor" = "xyes"])
 
     if test "x$enable_rust" = "xyes"; then
