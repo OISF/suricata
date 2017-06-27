@@ -281,6 +281,14 @@ int DetectEngineInspectStream(ThreadVars *tv,
 {
     Packet *p = det_ctx->p; /* TODO: get rid of this HACK */
 
+    /* in certain sigs, e.g. 'alert dns', which apply to both tcp and udp
+     * we can get called for UDP. */
+    if (p->proto != IPPROTO_TCP)
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    TcpSession *ssn = f->protoctx;
+    if (ssn == NULL)
+        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+
     if (det_ctx->stream_already_inspected)
         return det_ctx->stream_last_result;
 
@@ -291,7 +299,6 @@ int DetectEngineInspectStream(ThreadVars *tv,
             &unused);
 
     bool is_last = false;
-    TcpSession *ssn = f->protoctx;
     if (flags & STREAM_TOSERVER) {
         TcpStream *stream = &ssn->client;
         if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
