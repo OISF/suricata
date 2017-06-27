@@ -15,7 +15,7 @@ To check if you have NFQ enabled in your Suricata, enter the following command:
 ::
 
 
-  suricata --build-info
+  suricata --build-info | grep -i NFQ
 
 and examine if you have NFQ between the features.
 
@@ -116,6 +116,14 @@ There is also a way to use iptables with multiple networks (and interface cards)
 The options -i (input) -o (output) can be combined with all previous mentioned options
 
 If you would stop Suricata and use internet, the traffic will not come through. To make internet work correctly, you have to erase all iptable rules.
+
+To simply inspect all incoming traffic on the host, before routing decision that separates `INPUT` and `FORWARD`, you can use `PREROUTING` chain from `mangle` table:
+
+::
+
+
+  sudo iptables -t mangle -I PREROUTING -j NFQUEUE
+
 
 To erase all iptable rules, enter:
 
