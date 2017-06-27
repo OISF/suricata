@@ -44,6 +44,9 @@ addons:
 default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
+_install:
+  - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
+
 matrix:
   include:
     # Linux, gcc, coccinelle.
