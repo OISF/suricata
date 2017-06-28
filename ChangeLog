@@ -1,3 +1,27 @@
+4.0.0-rc1 -- 2017-06-28
+
+Feature #2095: eve: http body in alert event
+Feature #2131: nfs: implement GAP support
+Feature #2156: Add app_proto or partial flow entry to alerts
+Feature #2163: ntp parser
+Feature #2164: rust: external parser crate support
+Bug #1930: Segfault when event rule is invalid
+Bug #2038: validate app-layer API use
+Bug #2109: asn1: keyword memleak
+Bug #2141: 4.0.0-dev (rev 8ea9a5a) segfault
+Bug #2143: Bypass cause missing alert on packets only signatures
+Bug #2144: rust: panic in dns/tcp
+Bug #2148: rust/dns: panic on malformed rrnames
+Bug #2153: starttls 'tunnel' packet issue - nfq_handle_packet error -1
+Bug #2154: Dynamic stack overflow in payload printable output
+Bug #2155: AddressSanitizer double-free error
+Bug #2157: Compilation Issues Beta 4.0
+Bug #2158: Suricata v4.0.0-beta1 dns_query; segmentation fault
+Bug #2159: http: 2221028 triggers on underscore in hostname
+Bug #2160: openbsd: pcap with raw datalink not supported
+Bug #2161: libhtp 0.5.25
+Bug #2165: rust: releases should include crate dependencies (cargo-vendor)
+
 4.0.0-beta1 -- 2017-06-07
 
 Feature #805: Add support for applayer change
