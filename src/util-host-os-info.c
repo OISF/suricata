@@ -343,6 +343,11 @@ void SCHInfoLoadFromConfig(void)
             int is_ipv4 = 1;
             if (host->val != NULL && index(host->val, ':') != NULL)
                 is_ipv4 = 0;
+            if ((! strcmp(policy->name, "bsd-right")) ||
+                (! strcmp(policy->name, "old-solaris"))) {
+                SCLogWarning(SC_ERR_UNIMPLEMENTED, "bsd-right and old-solaris are unimplemented"
+                             " and default to bsd (resp. solaris)");
+            }
             if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to add host \"%s\" with policy \"%s\" to host "
