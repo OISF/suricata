@@ -853,8 +853,10 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
     while (iface_ctx != NULL) {
         temp = iface_ctx;
 
-        if (iface_ctx->file_d != NULL)
+        if (iface_ctx->file_d != NULL) {
             fclose(iface_ctx->file_d);
+            SCMutexDestroy(&iface_ctx->fp_mutex);
+        }
 
         if (iface_ctx->file != NULL)
             SCFree((void *)iface_ctx->file);
