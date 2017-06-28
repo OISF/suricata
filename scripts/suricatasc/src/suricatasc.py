@@ -335,7 +335,17 @@ class SuricataSC:
                 except SuricataCommandException as err:
                     print(err)
                     continue
-                cmdret = self.send_command(cmd, arguments)
+                try:
+                    cmdret = self.send_command(cmd, arguments)
+                except IOError, err:
+                    # try to reconnect and resend command
+                    print "Connection lost, trying to reconnect"
+                    try:
+                        self.connect()
+                    except SuricataNetException, err:
+                        print "Can't reconnect to suricata socket, discarding command"
+                        continue
+                    cmdret = self.send_command(cmd, arguments)
                 #decode json message
                 if cmdret["return"] == "NOK":
                     print("Error:")
