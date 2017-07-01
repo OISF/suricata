@@ -97,7 +97,7 @@ Id
 
 With the id keyword, you can match on a specific IP ID value.  The ID
 identifies each packet sent by a host and increments usually with one
-with each packet that is being send.  The IP ID is uses as a fragment
+with each packet that is being send.  The IP ID is used as a fragment
 identification number. Each packet has an IP ID, and when the packet
 becomes fragmented, all fragments of this packet have the same ID. In
 this way, the receiver of the packet knows which fragments belong to
