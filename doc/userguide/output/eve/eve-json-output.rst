@@ -25,7 +25,7 @@ The most common way to use this is through 'EVE', which is a firehose approach w
       #  server: 127.0.0.1
       #  port: 6379
       #  async: true ## if redis replies are read asynchronously
-      #  mode: list ## possible values: list (default), channel
+      #  mode: list ## possible values: list (default), rlist (uses RPUSH instead of LPUSH), channel
       #  key: suricata ## key or channel to use (default to suricata)
       # Redis pipelining set up. This will enable to only do a query every
       # 'batch-size' events. This should lower the latency induced by network
