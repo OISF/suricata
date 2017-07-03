@@ -235,7 +235,7 @@ uint64_t FileTrackedSize(const File *file);
 
 uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction);
 
-/* ALFREDO */
+/* for hashing truncated files... */
 void FileForceHashTruncatedCfg(ConfNode *);
 void FileForceHashTruncatedEnable(void);
 int FileForceHashTruncated(void);
