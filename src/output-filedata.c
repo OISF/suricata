@@ -124,6 +124,33 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     return file_logged;
 }
 
+
+/* for hashing truncated files... */
+#ifdef HAVE_NSS
+static void end_hash_truncated( File *ff )
+{
+    if ( ff != NULL )
+    {
+        if (ff->md5_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
+            ff->flags |= FILE_MD5;
+        }
+        if (ff->sha1_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->sha1_ctx, ff->sha1, &len, sizeof(ff->sha1));
+            ff->flags |= FILE_SHA1;
+        }
+        if (ff->sha256_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+            ff->flags |= FILE_SHA256;
+        }
+    }
+}
+#endif
+
+
 static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
@@ -186,6 +213,11 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
              * close the logger(s) */
             if (FileDataSize(ff) == ff->content_stored &&
                 (file_trunc || file_close)) {
+                /* for hashing truncated files... */
+#ifdef HAVE_NSS
+                if ( FileForceHashTruncated() )
+                    end_hash_truncated( ff );
+#endif
                 CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE);
                 ff->flags |= FILE_STORED;
                 continue;
@@ -206,6 +238,11 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
              * loggers */
             if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
                 ff->state = FILE_STATE_TRUNCATED;
+                /* for hashing truncated files... */
+#ifdef HAVE_NSS
+                if ( FileForceHashTruncated() )
+                    end_hash_truncated( ff );
+#endif
             }
 
             /* tell the logger we're closing up */
