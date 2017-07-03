@@ -67,7 +67,7 @@ static int g_file_force_sha256 = 0;
  */
 static int g_file_force_tracking = 0;
 
-/* ALFREDO */
+/* for hashing truncated files... */
 /** \brief switch to force hash calculation on
  *         truncated files.
  */
@@ -155,20 +155,20 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
-/* ALFREDO */
+/* for hashing truncated files... */
 int FileForceHashTruncated(void)
 {
     return g_file_force_hash_truncated;
 }
 
-/* ALFREDO */
+/* for hashing truncated files... */
 void FileForceHashTruncatedEnable(void)
 {
     g_file_force_hash_truncated = 1;
 }
 
 /**
- * ALFREDO
+ * for hashing truncated files...
  * \brief Function to parse forced truncated file hashing configuration.
  */
 void FileForceHashTruncatedCfg(ConfNode *conf)
@@ -917,7 +917,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
     if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
         ff->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
-        /* ALFREDO */
+        /* for hashing truncated files... */
 #ifdef HAVE_NSS
         if (ff->md5_ctx) {
             unsigned int len = 0;

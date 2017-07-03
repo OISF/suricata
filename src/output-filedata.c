@@ -125,13 +125,12 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 }
 
 
-/* ALFREDO*/
+/* for hashing truncated files... */
 #ifdef HAVE_NSS
 static void end_hash_truncated( File *ff )
 {
     if ( ff != NULL )
     {
-        SCLogInfo( "ALFREDO **** **** FHASH ff[%p] state[%d] store_id[%d] sha1[%p]", ff, ff->state, ff->file_store_id,ff->sha1_ctx );
         if (ff->md5_ctx) {
             unsigned int len = 0;
             HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
@@ -214,7 +213,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
              * close the logger(s) */
             if (FileDataSize(ff) == ff->content_stored &&
                 (file_trunc || file_close)) {
-                /* ALFREDO */
+                /* for hashing truncated files... */
 #ifdef HAVE_NSS
                 if ( FileForceHashTruncated() )
                     end_hash_truncated( ff );
@@ -239,7 +238,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
              * loggers */
             if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
                 ff->state = FILE_STATE_TRUNCATED;
-                /* ALFREDO */
+                /* for hashing truncated files... */
 #ifdef HAVE_NSS
                 if ( FileForceHashTruncated() )
                     end_hash_truncated( ff );

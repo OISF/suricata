@@ -78,7 +78,7 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
-/* ALFREDO */
+/* for hashing truncated files... */
 #ifdef HAVE_NSS
 static void FileWriteJsonHash( const File *ff, json_t *fjs )
 {
@@ -175,14 +175,14 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             json_object_set_new(fjs, "state", json_string("CLOSED"));
-            /* ALFREDO */
+            /* for hashing truncated files... */
 #ifdef HAVE_NSS
             FileWriteJsonHash( ff, fjs );
 #endif
             break;
         case FILE_STATE_TRUNCATED:
             json_object_set_new(fjs, "state", json_string("TRUNCATED"));
-            /* ALFREDO */
+            /* for hashing truncated files... */
 #ifdef HAVE_NSS
             if ( FileForceHashTruncated() )
                 FileWriteJsonHash( ff, fjs );
@@ -321,7 +321,7 @@ static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
         FileForceHashParseCfg(conf);
 
-        /* ALFREDO */
+        /* for hashing truncated files... */
         FileForceHashTruncatedCfg(conf);
     }
 
