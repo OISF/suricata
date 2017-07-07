@@ -471,7 +471,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 PacketAlertAppend(det_ctx, s, p, tx_id,
                         PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
             } else {
-                DetectSignatureApplyActions(p, s);
+                DetectSignatureApplyActions(p, s,
+                        PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
             }
             alert_cnt = 1;
             SCLogDebug("MATCH: tx %u packet %u", (uint)tx_id, (uint)p->pcap_cnt);
