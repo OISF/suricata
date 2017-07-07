@@ -37,8 +37,23 @@
 #include "decode-ipv6.h"
 #include "decode-teredo.h"
 #include "util-debug.h"
+#include "conf.h"
 
 #define TEREDO_ORIG_INDICATION_LENGTH    8
+
+static bool g_teredo_enabled = true;
+
+void DecodeTeredoConfig(void)
+{
+    int enabled = 0;
+    if (ConfGetBool("decoder.teredo.enabled", &enabled) == 1) {
+        if (enabled) {
+            g_teredo_enabled = true;
+        } else {
+            g_teredo_enabled = false;
+        }
+    }
+}
 
 /**
  * \brief Function to decode Teredo packets
@@ -47,6 +62,8 @@
  */
 int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    if (!g_teredo_enabled)
+        return TM_ECODE_FAILED;
 
     uint8_t *start = pkt;
 

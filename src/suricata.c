@@ -2726,6 +2726,8 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     CoredumpLoadConfig();
 
+    DecodeGlobalConfig();
+
     PreRunInit(suri->run_mode);
 
     SCReturnInt(TM_ECODE_OK);

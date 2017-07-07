@@ -51,6 +51,7 @@
 #include "suricata.h"
 #include "conf.h"
 #include "decode.h"
+#include "decode-teredo.h"
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-detect-proto.h"
@@ -606,6 +607,11 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
     s->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
     s->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
     s->counter_ips_replaced = StatsRegisterCounter("ips.replaced", tv);
+}
+
+void DecodeGlobalConfig(void)
+{
+    DecodeTeredoConfig();
 }
 
 /**

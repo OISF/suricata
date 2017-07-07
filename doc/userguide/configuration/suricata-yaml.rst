@@ -2235,6 +2235,23 @@ unlimited.
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
 
+Decoder
+-------
+
+Teredo
+~~~~~~
+
+The Teredo decoder can be disabled. It is enabled by default.
+
+::
+
+    decoder:
+      # Teredo decoder is known to not be completely accurate
+      # it will sometimes detect non-teredo as teredo.
+      teredo:
+        enabled: true
+
+
 Advanced Options
 ----------------
 

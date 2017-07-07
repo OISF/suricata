@@ -1261,6 +1261,14 @@ host:
 #  prealloc: 1000
 #  memcap: 32mb
 
+# Decoder settings
+
+decoder:
+  # Teredo decoder is known to not be completely accurate
+  # it will sometimes detect non-teredo as teredo.
+  teredo:
+    enabled: true
+
 
 ##
 ## Performance tuning and profiling
