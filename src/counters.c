@@ -802,6 +802,25 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
 }
 #endif /* BUILD_UNIX_SOCKET */
 
+static void StatsLogSummary(void)
+{
+    uint64_t alerts = 0;
+    SCMutexLock(&stats_table_mutex);
+    if (stats_table.start_time != 0) {
+        const StatsTable *st = &stats_table;
+        uint32_t u = 0;
+        for (u = 0; u < st->nstats; u++) {
+            const char *name = st->stats[u].name;
+            if (name == NULL || strcmp(name, "detect.alert") != 0)
+                continue;
+            alerts = st->stats[u].value;
+            break;
+        }
+    }
+    SCMutexUnlock(&stats_table_mutex);
+    SCLogInfo("Alerts: %"PRIu64, alerts);
+}
+
 /**
  * \brief Initializes the perf counter api.  Things are hard coded currently.
  *        More work to be done when we implement multiple interfaces
@@ -1208,6 +1227,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
  */
 void StatsReleaseResources()
 {
+    StatsLogSummary();
     StatsReleaseCtx();
 
     return;
