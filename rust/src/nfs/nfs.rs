@@ -1327,7 +1327,6 @@ impl NFSState {
                     //SCLogDebug!("rec_size {}/{}", rec_size, cur_i.len());
                     //SCLogDebug!("cur_i {:?}", cur_i);
 
-                    if rec_size > 40000 { panic!("invalid rec_size"); }
                     if rec_size > cur_i.len() {
                         // special case: avoid buffering file write blobs
                         // as these can be large.
