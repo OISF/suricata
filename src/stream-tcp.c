@@ -2444,10 +2444,6 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 
         SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent. "
                 "Likely due server not receiving final ACK in 3whs", ssn);
-
-        /* resetting state to TCP_SYN_RECV as we should get another ACK now */
-        StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
-        SCLogDebug("ssn %p: =~ ssn state is now reset to TCP_SYN_RECV", ssn);
         return 0;
 
     } else if (p->tcph->th_flags & TH_SYN) {
