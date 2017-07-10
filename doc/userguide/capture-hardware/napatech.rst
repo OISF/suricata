@@ -113,10 +113,19 @@ prepare for compilation::
 Now edit the suricata.yaml file to configure the maximum number of streams to use. If you plan on using the load distribution
 (RSS - like) feature in the Napatech accelerator, then the list should contain the same number of streams as host buffers defined in
 ntservice.ini::
+    
+Note: hba is useful only when a stream is shared with another application.  When hba is enabled packets will be dropped 
+(i.e. not delivered to suricata) when the host-buffer utilization reaches the high-water mark indicated by the hba value.  
+This insures that, should suricata get behind in it's packet processing, the other application will still receive all 
+of the packets.  If this is enabled without another application sharing the stream it will result in sub-optimal packet 
+buffering.
+    
 
 	Napatech:
 		# The Host Buffer Allowance for all streams
 		# (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
+                # This may be enabled when sharing streams with another application.  
+                # Otherwise, it should be turned off.
 		hba: -1
 
 		# use_all_streams set to "yes" will query the Napatech service for all configured
@@ -124,7 +133,10 @@ ntservice.ini::
 		# will be used.
 		use-all-streams: yes
 
-		# The streams to listen on
+                # The streams to listen on.  This can be either:
+                #   a list of individual streams (e.g. streams: [0,1,2,3])
+                # or 
+                #   a range of streams (e.g. streams: ["0-3"])
 		streams: [0, 1, 2, 3, 4, 5, 6, 7]
 
 
@@ -203,7 +215,21 @@ Now you are ready to start Suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
+------------------------------------
+Counters
 
+For each stream that is being processed the following counters will be output in stats.log:
+    nt<streamid>.pkts - The number of packets recieved by the stream.
+    nt<streamid>.bytes - The total bytes received by the stream.
+    nt<streamid>.drop - The number of packets that were dropped from this stream due to
+                        buffer overflow conditions.
+                        
+If hba is enabled the following counter will also be provided:
+    nt<streamid>.hba_drop - the number of packets dropped because the host buffer allowance
+                            high-water mark was reached.
+                            
+                            
+    
 Support
 -------
 
