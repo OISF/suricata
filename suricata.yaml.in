@@ -1647,6 +1647,8 @@ ipfw:
 napatech:
     # The Host Buffer Allowance for all streams
     # (-1 = OFF, 1 - 100 = percentage of the host buffer that can be held back)
+    # This may be enabled when sharing streams with another application.  
+    # Otherwise, it should be turned off.
     hba: -1
 
     # use_all_streams set to "yes" will query the Napatech service for all configured
@@ -1654,8 +1656,11 @@ napatech:
     # will be used.
     use-all-streams: yes
 
-    # The streams to listen on
-    streams: [1, 2, 3]
+    # The streams to listen on.  This can be either:
+    #   a list of individual streams (e.g. streams: [0,1,2,3])
+    # or 
+    #   a range of streams (e.g. streams: ["0-3"])
+    streams: ["0-3"]
 
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:
