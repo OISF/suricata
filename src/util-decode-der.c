@@ -139,6 +139,11 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
     Asn1Generic *child;
     uint8_t el_type;
 
+    /* refuse excessive recursion */
+    if (unlikely(depth == 255)) {
+        return NULL;
+    }
+
     el.cls = (d_ptr[0] & 0xc0) >> 6;
     el.pc = (d_ptr[0] & 0x20) >> 5;
     el.tag = (d_ptr[0] & 0x1f);
