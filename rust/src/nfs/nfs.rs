@@ -1930,7 +1930,10 @@ pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
     } else {
         match parse_rpc(i) {
             IResult::Done(_, ref rpc) => {
-                if rpc.hdr.frag_len >= 40 && rpc.hdr.frag_len <= 35000 && rpc.hdr.msgtype == 0 && rpc.progver == 3 && rpc.program == 100003 {
+                if rpc.hdr.frag_len >= 40 && rpc.hdr.msgtype == 0 &&
+                   rpc.rpcver == 2 && rpc.progver == 3 && rpc.program == 100003 &&
+                   rpc.procedure <= NFSPROC3_COMMIT
+                {
                     return 1;
                 } else {
                     return -1;
