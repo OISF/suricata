@@ -127,6 +127,13 @@ ntservice.ini::
 		# The streams to listen on
 		streams: [0, 1, 2, 3, 4, 5, 6, 7]
 
+Note: hba is useful only when a stream is shared with another application.  When hba is enabled packets will be dropped 
+(i.e. not delivered to suricata) when the host-buffer utilization reaches the high-water mark indicated by the hba value.  
+This insures that, should suricata get behind in it's packet processing, the other application will still receive all 
+of the packets.  If this is enabled without another application sharing the stream it will result in sub-optimal packet 
+buffering.
+    
+
 
 Basic Configuration
 -------------------
