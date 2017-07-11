@@ -486,25 +486,29 @@ static int TCPProtoDetect(ThreadVars *tv,
                 if (data_len > 0)
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
-                PACKET_PROFILING_APP_START(app_tctx, f->alproto);
-                int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
-                        f->alproto, flags,
-                        data, data_len);
-                PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+                if (*alproto_otherdir != ALPROTO_FAILED) {
+                    PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+                    int r = AppLayerParserParse(tv, app_tctx->alp_tctx, f,
+                            f->alproto, flags,
+                            data, data_len);
+                    PACKET_PROFILING_APP_END(app_tctx, f->alproto);
 
-                AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
-                        APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
-                StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-                TcpSessionSetReassemblyDepth(ssn,
-                        AppLayerParserGetStreamDepth(f));
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                            APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
+                    TcpSessionSetReassemblyDepth(ssn,
+                            AppLayerParserGetStreamDepth(f));
+
+                    *alproto = *alproto_otherdir;
+                    SCLogDebug("packet %u: pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
+                            (uint)p->pcap_cnt, *alproto, *alproto_otherdir, r);
+                    if (r < 0)
+                        goto failure;
+                }
                 *alproto = ALPROTO_FAILED;
+                StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                 AppLayerIncFlowCounter(tv, f);
                 FlagPacketFlow(p, f, flags);
 
-                SCLogDebug("packet %u: pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
-                        (uint)p->pcap_cnt, *alproto, *alproto_otherdir, r);
-                if (r < 0)
-                    goto failure;
             }
         } else {
             /* both sides unknown, let's see if we need to give up */
