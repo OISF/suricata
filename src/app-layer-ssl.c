@@ -1222,11 +1222,11 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             if (direction) {
                 ssl_state->flags |= SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC;
 
-		int server_cert_seen = ssl_state->server_connp.cert0_issuerdn != NULL && \
-				       ssl_state->server_connp.cert0_subject != NULL;
-		if (!server_cert_seen && (ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SESSION_ID) != 0) {
-		    ssl_state->flags |= SSL_AL_FLAG_SESSION_RESUMED;
-		}
+                int server_cert_seen = (ssl_state->server_connp.cert0_issuerdn != NULL &&
+                                        ssl_state->server_connp.cert0_subject != NULL);
+                if (!server_cert_seen && (ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SESSION_ID) != 0) {
+                    ssl_state->flags |= SSL_AL_FLAG_SESSION_RESUMED;
+                }
 
             } else {
                 ssl_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
