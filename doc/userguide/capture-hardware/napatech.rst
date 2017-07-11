@@ -203,6 +203,20 @@ Now you are ready to start Suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
 
+------------------------------------
+Counters
+
+For each stream that is being processed the following counters will be output in stats.log:
+    nt<streamid>.pkts - The number of packets recieved by the stream.
+    nt<streamid>.bytes - The total bytes received by the stream.
+    nt<streamid>.drop - The number of packets that were dropped from this stream due to
+                        buffer overflow conditions.
+                        
+If hba is enabled the following counter will also be provided:
+    nt<streamid>.hba_drop - the number of packets dropped because the host buffer allowance
+                            high-water mark was reached.
+                            
+
 
 Support
 -------
