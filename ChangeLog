@@ -1,3 +1,17 @@
+4.0.0-rc2 -- 2017-07-13
+
+Feature #744: Teredo configuration
+Feature #1748: lua: expose tx in alert lua scripts
+Bug #1855: alert number output
+Bug #1888: noalert in a pass rule disables the rule
+Bug #1957: PCRE lowercase enforcement in http_host buffer does not allow for upper case in hex-encoding
+Bug #1958: Possible confusion or bypass within the stream engine with retransmits.
+Bug #2110: isdataat: keyword memleak
+Bug #2162: rust/nfs: reachable asserting rust panic
+Bug #2175: rust/nfs: panic - 4.0.0-dev (rev 7c25a2d)
+Bug #2176: gcc 7.1.1 'format truncation' compiler warnings
+Bug #2177: asn1/der: stack overflow
+
 4.0.0-rc1 -- 2017-06-28
 
 Feature #2095: eve: http body in alert event
