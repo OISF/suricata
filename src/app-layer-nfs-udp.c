@@ -92,43 +92,21 @@ static void NFSStateTxFree(void *state, uint64_t tx_id)
     rs_nfs3_state_tx_free(state, tx_id);
 }
 
-#if 0
 static int NFSStateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, nfs_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "nfs enum map table.",  event_name);
-        /* This should be treated as fatal. */
-        return -1;
-    }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
-}
-
-static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t tx_id)
-{
-    NFSState *nfs_state = state;
-    NFSTransaction *tx;
-
-    TAILQ_FOREACH(tx, &nfs3_state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
-            return tx->decoder_events;
-        }
-    }
-
-    return NULL;
+    return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
 static int NFSHasEvents(void *state)
 {
-    NFSState *echo = state;
-    return echo->events;
+    return rs_nfs_state_has_events(state);
 }
-#endif
+
+static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
+{
+    return rs_nfs_state_get_events(state, id);
+}
 
 /**
  * \brief Probe the input to see if it looks like echo.
@@ -357,17 +335,17 @@ void RegisterNFSUDPParsers(void)
         AppLayerParserRegisterGetFilesFunc(IPPROTO_UDP, ALPROTO_NFS, NFSGetFiles);
 
         /* Application layer event handling. */
-//        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSHasEvents);
+        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
+            NFSHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_NFS,
             NULL, NFSGetTxDetectState, NFSSetTxDetectState);
 
-//        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSStateGetEventInfo);
-//        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
-//            NFSGetEvents);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_NFS,
+            NFSStateGetEventInfo);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
+            NFSGetEvents);
     }
     else {
         SCLogNotice("NFS protocol parsing disabled.");

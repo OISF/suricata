@@ -95,43 +95,21 @@ static void NFSTCPStateTxFree(void *state, uint64_t tx_id)
     rs_nfs3_state_tx_free(state, tx_id);
 }
 
-#if 0
 static int NFSTCPStateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type)
 {
-    *event_id = SCMapEnumNameToValue(event_name, nfs_decoder_event_table);
-    if (*event_id == -1) {
-        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
-                   "nfs enum map table.",  event_name);
-        /* This should be treated as fatal. */
-        return -1;
-    }
-
-    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
-    return 0;
-}
-
-static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t tx_id)
-{
-    NFSTCPState *nfs_state = state;
-    NFSTCPTransaction *tx;
-
-    TAILQ_FOREACH(tx, &nfs_state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
-            return tx->decoder_events;
-        }
-    }
-
-    return NULL;
+    return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
 static int NFSTCPHasEvents(void *state)
 {
-    NFSTCPState *echo = state;
-    return echo->events;
+    return rs_nfs_state_has_events(state);
 }
-#endif
+
+static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
+{
+    return rs_nfs_state_get_events(state, id);
+}
 
 /**
  * \brief Probe the input to see if it looks like echo.
@@ -352,17 +330,17 @@ void RegisterNFSTCPParsers(void)
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_NFS, NFSTCPGetFiles);
 
         /* Application layer event handling. */
-//        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
-//            NFSTCPHasEvents);
+        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
+                NFSTCPHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_NFS,
             NULL, NFSTCPGetTxDetectState, NFSTCPSetTxDetectState);
 
-//        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_NFS,
-//            NFSTCPStateGetEventInfo);
-//        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
-//            NFSTCPGetEvents);
+        AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_NFS,
+                NFSTCPStateGetEventInfo);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
+                NFSTCPGetEvents);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_NFS,

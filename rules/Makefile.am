@@ -9,4 +9,5 @@ modbus-events.rules \
 app-layer-events.rules \
 files.rules \
 dnp3-events.rules \
-ntp-events.rules
+ntp-events.rules \
+nfs-events.rules

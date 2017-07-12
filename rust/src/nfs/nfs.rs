@@ -22,6 +22,7 @@ extern crate libc;
 use std;
 use std::mem::transmute;
 use std::collections::{HashMap};
+use std::ffi::CStr;
 
 use nom;
 use nom::IResult;
@@ -90,6 +91,14 @@ pub static mut SURICATA_NFS3_FILE_CONFIG: Option<&'static SuricataFileContext> =
  * NFSTransaction where they can be looked up per handle as part of the
  * Transaction lookup.
  */
+
+#[repr(u32)]
+pub enum NFSEvent {
+    MalformedData = 0,
+    /* remove 'Padding' when more events are added. Rustc 1.7 won't
+     *   accept a single field enum with repr(u32) */
+    Padding,
+}
 
 #[derive(Debug)]
 pub enum NFSTransactionTypeData {
@@ -305,6 +314,8 @@ pub struct NFSState {
 
     pub nfs_version: u16,
 
+    pub events: u16,
+
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -336,6 +347,7 @@ impl NFSState {
             tc_gap:false,
             is_udp:false,
             nfs_version:0,
+            events:0,
             tx_id:0,
             de_state_count:0,
             //ts_txs_updated:false,
@@ -407,6 +419,18 @@ impl NFSState {
         return None;
     }
 
+    /// Set an event. The event is set on the most recent transaction.
+    pub fn set_event(&mut self, event: NFSEvent) {
+        let len = self.transactions.len();
+        if len == 0 {
+            return;
+        }
+
+        let mut tx = &mut self.transactions[len - 1];
+        sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
+        self.events += 1;
+    }
+
     // TODO maybe not enough users to justify a func
     fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
@@ -436,7 +460,9 @@ impl NFSState {
                 SCLogDebug!("LOOKUP {:?}", lookup);
                 xidmap.file_name = lookup.name_vec;
             },
-            IResult::Incomplete(_) => { panic!("WEIRD: parse_nfs3_request_lookup said: incomplete"); },
+            IResult::Incomplete(_) => {
+                self.set_event(NFSEvent::MalformedData);
+            },
             IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
         };
     }
@@ -475,7 +501,9 @@ impl NFSState {
                     xidmap.file_handle = ar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_GETATTR {
@@ -484,7 +512,9 @@ impl NFSState {
                     xidmap.file_handle = gar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_READDIRPLUS {
@@ -493,7 +523,9 @@ impl NFSState {
                     xidmap.file_handle = rdp.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_READ {
@@ -503,7 +535,9 @@ impl NFSState {
                     xidmap.file_handle = nfs3_read_record.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_WRITE {
@@ -511,7 +545,9 @@ impl NFSState {
                 IResult::Done(_, w) => {
                     self.process_write_record(r, &w);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             }
         } else if r.procedure == NFSPROC3_CREATE {
@@ -520,7 +556,9 @@ impl NFSState {
                     xidmap.file_handle = nfs3_create_record.handle.value.to_vec();
                     xidmap.file_name = nfs3_create_record.name_vec;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
 
@@ -530,7 +568,9 @@ impl NFSState {
                     xidmap.file_handle = rr.handle.value.to_vec();
                     xidmap.file_name = rr.name_vec;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
 
@@ -541,7 +581,9 @@ impl NFSState {
                     xidmap.file_name = rr.from_name_vec;
                     aux_file_name = rr.to_name_vec;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_MKDIR {
@@ -550,7 +592,9 @@ impl NFSState {
                     xidmap.file_handle = mr.handle.value.to_vec();
                     xidmap.file_name = mr.name_vec;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_RMDIR {
@@ -559,7 +603,9 @@ impl NFSState {
                     xidmap.file_handle = rr.handle.value.to_vec();
                     xidmap.file_name = rr.name_vec;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_COMMIT {
@@ -585,7 +631,9 @@ impl NFSState {
                     }
                     //self.ts_txs_updated = true;
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         }
@@ -663,7 +711,9 @@ impl NFSState {
                     xidmap.file_handle = ar.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if r.procedure == NFSPROC3_READ {
@@ -673,7 +723,9 @@ impl NFSState {
                     xidmap.file_handle = read_record.handle.value.to_vec();
                     self.xidmap_handle2name(&mut xidmap);
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         }
@@ -839,7 +891,7 @@ impl NFSState {
     }
 
     fn process_reply_record_v3<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &mut NFSRequestXidMap) -> u32 {
-        let nfs_status;
+        let mut nfs_status = 0;
         let mut resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_LOOKUP {
@@ -854,7 +906,9 @@ impl NFSState {
                     self.namemap.insert(lookup.handle.value.to_vec(), xidmap.file_name.to_vec());
                     resp_handle = lookup.handle.value.to_vec();
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if xidmap.procedure == NFSPROC3_CREATE {
@@ -875,7 +929,9 @@ impl NFSState {
                     }
 
                 },
-                IResult::Incomplete(_) => { panic!("WEIRD"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
             };
         } else if xidmap.procedure == NFSPROC3_READ {
@@ -884,7 +940,9 @@ impl NFSState {
                     self.process_read_record(r, reply, Some(&xidmap));
                     nfs_status = reply.status;
                 },
-                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
             }
         } else if xidmap.procedure == NFSPROC3_READDIRPLUS {
@@ -919,11 +977,15 @@ impl NFSState {
 
                             SCLogDebug!("READDIRPLUS ENTRIES reply {:?}", entries);
                         },
-                        IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                        IResult::Incomplete(_) => {
+                            self.set_event(NFSEvent::MalformedData);
+                        },
                         IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
                     }
                 },
-                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
             }
         }
@@ -948,7 +1010,7 @@ impl NFSState {
     }
 
     fn process_reply_record_v2<'b>(&mut self, r: &RpcReplyPacket<'b>, xidmap: &NFSRequestXidMap) -> u32 {
-        let nfs_status;
+        let mut nfs_status = 0;
         let resp_handle = Vec::new();
 
         if xidmap.procedure == NFSPROC3_READ {
@@ -958,7 +1020,9 @@ impl NFSState {
                     self.process_read_record(r, reply, Some(&xidmap));
                     nfs_status = reply.status;
                 },
-                IResult::Incomplete(_) => { panic!("Incomplete!"); },
+                IResult::Incomplete(_) => {
+                    self.set_event(NFSEvent::MalformedData);
+                },
                 IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
             }
         } else {
@@ -1348,7 +1412,7 @@ impl NFSState {
                                                 cur_i = remaining; // progress input past parsed record
                                             },
                                             IResult::Incomplete(_) => {
-                                                SCLogDebug!("TS WRITE record incomplete");
+                                                self.set_event(NFSEvent::MalformedData);
                                             },
                                             IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
                                         }
@@ -1375,11 +1439,15 @@ impl NFSState {
                             cur_i = &cur_i[rec_size..];
                             status |= self.process_request_record(rpc_record);
                         },
-                        IResult::Incomplete(x) => {
-                            // should be unreachable unless our rec_size calc is off
-                            panic!("TS data incomplete while we checked for rec_size? BUG {:?}", x);
-                            //self.tcp_buffer_ts.extend_from_slice(cur_i);
-                            //break;
+                        IResult::Incomplete(_) => {
+                            cur_i = &cur_i[rec_size..]; // progress input past parsed record
+
+                            // we shouldn't get incomplete as we have the full data
+                            // so if we got incomplete anyway it's the data that is
+                            // bad.
+                            self.set_event(NFSEvent::MalformedData);
+
+                            status = 1;
                         },
                         IResult::Error(e) => { panic!("Parsing failed: {:?}",e); //break
                         },
@@ -1487,7 +1555,7 @@ impl NFSState {
                                                 cur_i = remaining; // progress input past parsed record
                                             },
                                             IResult::Incomplete(_) => {
-                                                SCLogDebug!("TS WRITE record incomplete");
+                                                self.set_event(NFSEvent::MalformedData);
                                             },
                                             IResult::Error(e) => { panic!("Parsing failed: {:?}",e); },
                                         }
@@ -1512,10 +1580,14 @@ impl NFSState {
                             status |= self.process_reply_record(rpc_record);
                         },
                         IResult::Incomplete(_) => {
+                            cur_i = &cur_i[rec_size..]; // progress input past parsed record
+
                             // we shouldn't get incomplete as we have the full data
-                            panic!("TC data incomplete, BUG!");
-                            //self.tcp_buffer_tc.extend_from_slice(cur_i);
-                            //break;
+                            // so if we got incomplete anyway it's the data that is
+                            // bad.
+                            self.set_event(NFSEvent::MalformedData);
+
+                            status = 1;
                         },
                         IResult::Error(e) => { panic!("Parsing failed: {:?}",e); //break
                         },
@@ -1836,6 +1908,55 @@ pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
             return std::ptr::null_mut();
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_has_events(state: &mut NFSState) -> u8 {
+    if state.events > 0 {
+        return 1;
+    }
+    return 0;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
+                                          tx_id: libc::uint64_t)
+                                          -> *mut AppLayerDecoderEvents
+{
+    match state.get_tx_by_id(tx_id) {
+        Some(tx) => {
+            return tx.events;
+        }
+        _ => {
+            return std::ptr::null_mut();
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
+                                              event_id: *mut libc::c_int,
+                                              event_type: *mut AppLayerEventType)
+                                              -> i8
+{
+    if event_name == std::ptr::null() {
+        return -1;
+    }
+    let c_event_name: &CStr = unsafe { CStr::from_ptr(event_name) };
+    let event = match c_event_name.to_str() {
+        Ok(s) => {
+            match s {
+                "malformed_data" => NFSEvent::MalformedData as i32,
+                _ => -1, // unknown event
+            }
+        },
+        Err(_) => -1, // UTF-8 conversion failed
+    };
+    unsafe{
+        *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+        *event_id = event as libc::c_int;
+    };
+    0
 }
 
 /// return procedure(s) in the tx. At 0 return the main proc,

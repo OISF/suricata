@@ -84,7 +84,9 @@ type_map = {
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",
     "core::AppLayerDecoderEvents": "AppLayerDecoderEvents",
+    "AppLayerDecoderEvents": "AppLayerDecoderEvents",
     "core::AppLayerEventType": "AppLayerEventType",
+    "AppLayerEventType": "AppLayerEventType",
     "CLuaState": "lua_State",
     "Store": "Store",
 }

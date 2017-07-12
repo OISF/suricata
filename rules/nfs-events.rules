@@ -1,0 +1,8 @@
+# NFS app layer event rules
+#
+# SID's fall in the 2223000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+alert nfs any any -> any any (msg:"SURICATA NFS malformed request data"; flow:to_server; app-layer-event:nfs.malformed_data; classtype:protocol-command-decode; sid:2223000; rev:1;)
+alert nfs any any -> any any (msg:"SURICATA NFS malformed response data"; flow:to_client; app-layer-event:nfs.malformed_data; classtype:protocol-command-decode; sid:2223001; rev:1;)
