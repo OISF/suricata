@@ -1218,7 +1218,11 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                 tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday);
 
         /* create the filename to use */
-        snprintf(dirfull, PATH_MAX, "%s/%s", pl->dir, dirname);
+        int ret = snprintf(dirfull, sizeof(dirfull), "%s/%s", pl->dir, dirname);
+        if (ret < 0 || (size_t)ret >= sizeof(dirfull)) {
+            SCLogError(SC_ERR_SPRINTF,"failed to construct path");
+            goto error;
+        }
 
         /* if mkdir fails file open will fail, so deal with errors there */
 #ifndef OS_WIN32
@@ -1241,13 +1245,18 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         }
 
     } else if (pl->mode == LOGMODE_NORMAL) {
+        int ret;
         /* create the filename to use */
         if (pl->timestamp_format == TS_FORMAT_SEC) {
-            snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, pl->dir,
-                     pl->prefix, (uint32_t)ts.tv_sec);
+            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, pl->dir,
+                    pl->prefix, (uint32_t)ts.tv_sec);
         } else {
-            snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32, pl->dir,
-                     pl->prefix, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+            ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32, pl->dir,
+                    pl->prefix, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+        }
+        if (ret < 0 || (size_t)ret >= PATH_MAX) {
+            SCLogError(SC_ERR_SPRINTF,"failed to construct path");
+            goto error;
         }
     } else if (pl->mode == LOGMODE_MULTI) {
         if (pl->filename_part_cnt > 0) {
@@ -1294,13 +1303,18 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                 }
             }
         } else {
+            int ret;
             /* create the filename to use */
             if (pl->timestamp_format == TS_FORMAT_SEC) {
-                snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32, pl->dir,
+                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32, pl->dir,
                         pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec);
             } else {
-                snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32, pl->dir,
+                ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32, pl->dir,
                         pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
+            }
+            if (ret < 0 || (size_t)ret >= PATH_MAX) {
+                SCLogError(SC_ERR_SPRINTF,"failed to construct path");
+                goto error;
             }
         }
         SCLogDebug("multi-mode: filename %s", filename);
