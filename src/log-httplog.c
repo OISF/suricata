@@ -161,9 +161,9 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
                 break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
+                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                            aft->buffer->size, (uint8_t *)buf, MIN(strlen(buf),6));
                 break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */

@@ -342,7 +342,7 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
 {
     LogTlsFileCtx *tlslog_ctx = aft->tlslog_ctx;
     uint32_t i;
-    char buf[6];
+    char buf[64];
 
     for (i = 0; i < tlslog_ctx->cf->cf_n; i++) {
 
@@ -361,9 +361,9 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
                 break;
             case LOG_CF_TIMESTAMP_U:
             /* TIMESTAMP USECONDS */
-                snprintf(buf, 6, "%06u", (unsigned int) ts->tv_usec);
+                snprintf(buf, sizeof(buf), "%06u", (unsigned int) ts->tv_usec);
                 PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset,
-                            aft->buffer->size, (uint8_t *)buf,strlen(buf));
+                            aft->buffer->size, (uint8_t *)buf, MIN(strlen(buf),6));
                 break;
             case LOG_CF_CLIENT_IP:
             /* CLIENT IP ADDRESS */

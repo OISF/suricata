@@ -217,7 +217,9 @@ extern int sc_log_module_cleaned;
         {                                                                       \
             char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
-            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+            int _sc_log_ret = snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);   \
+            if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
+                _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
             SCLogMessage(x, file, line, func, SC_OK, _sc_log_msg);              \
         }                                                                       \
@@ -234,7 +236,9 @@ extern int sc_log_module_cleaned;
         {                                                                       \
             char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
-            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+            int _sc_log_ret = snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);   \
+            if (_sc_log_ret == SC_LOG_MAX_LOG_MSG_LEN)                          \
+                _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN - 1] = '\0';                 \
                                                                                 \
             SCLogMessage(x, file, line, func, err, _sc_log_msg);                \
         }                                                                       \
