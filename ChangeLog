@@ -1,3 +1,11 @@
+3.2.3 -- 2017-07-13
+
+Bug #2089: engine file logging race condition (3.2.x)
+Bug #2173: openbsd: pcap with raw datalink not supported (3.2.x)
+Bug #2178: asn1/der: stack overflow (3.2.x)
+Bug #2179: Possible confusion or bypass within the stream engine with retransmits. (3.2.x)
+Bug #2183: gcc 7.1.1 'format truncation' compiler warnings (3.2.x)
+
 3.2.2 -- 2017-06-07
 
 Feature #1675: Support additional runmodes for unix-socket
