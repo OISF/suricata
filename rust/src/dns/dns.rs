@@ -545,10 +545,8 @@ fn probe(input: &[u8]) -> bool {
 /// Probe TCP input to see if it looks like DNS.
 pub fn probe_tcp(input: &[u8]) -> bool {
     match nom::be_u16(input) {
-        nom::IResult::Done(rem, len) => {
-            if rem.len() >= len as usize {
-                return probe(rem);
-            }
+        nom::IResult::Done(rem, _) => {
+            return probe(rem);
         },
         _ => {}
     }
