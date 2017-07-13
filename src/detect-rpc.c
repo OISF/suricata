@@ -192,7 +192,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
     rd->procedure = 0;
 
     int i;
-    for (i = 0; i < (ret -1); i++) {
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i]) {
             switch (i) {
                 case 0:
@@ -201,7 +201,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
                         goto error;
                     }
                     rd->flags |= DETECT_RPC_CHECK_PROGRAM;
-                break;
+                    break;
                 case 1:
                     if (args[i][0] != '*') {
                         if (ByteExtractStringUint32(&rd->program_version, 10, strlen(args[i]), args[i]) <= 0) {
@@ -210,7 +210,7 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
                         }
                         rd->flags |= DETECT_RPC_CHECK_VERSION;
                     }
-                break;
+                    break;
                 case 2:
                     if (args[i][0] != '*') {
                         if (ByteExtractStringUint32(&rd->procedure, 10, strlen(args[i]), args[i]) <= 0) {
@@ -220,11 +220,11 @@ static DetectRpcData *DetectRpcParse (const char *rpcstr)
                         rd->flags |= DETECT_RPC_CHECK_PROCEDURE;
                     }
                 break;
-                }
-            } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "invalid rpc option %s",args[i]);
-                goto error;
             }
+        } else {
+            SCLogError(SC_ERR_INVALID_VALUE, "invalid rpc option %s",rpcstr);
+            goto error;
+        }
     }
     for (i = 0; i < (ret -1); i++){
         if (args[i] != NULL)
