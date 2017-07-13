@@ -118,7 +118,7 @@ int RunModeErfFileAutoFp(void)
     char qname[TM_QUEUE_NAME_MAX];
     uint16_t cpu = 0;
     char *queues = NULL;
-    int thread;
+    uint16_t thread;
 
     RunModeInitialize();
 
@@ -145,6 +145,8 @@ int RunModeErfFileAutoFp(void)
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
+    if (thread_max > 1024)
+        thread_max = 1024;
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -189,9 +191,9 @@ int RunModeErfFileAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
-    for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
+    for (thread = 0; thread < (uint16_t)thread_max; thread++) {
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
+        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 

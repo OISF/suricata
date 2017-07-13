@@ -95,7 +95,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
     char *queues = NULL;
-    int thread = 0;
+    uint16_t thread = 0;
+
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int nlive = LiveGetDeviceCount();
@@ -105,6 +106,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
+    if (thread_max > 1024)
+        thread_max = 1024;
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -224,9 +227,9 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         }
     }
 
-    for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
+    for (thread = 0; thread < (uint16_t)thread_max; thread++) {
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
+        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
@@ -429,7 +432,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     TmModule *tm_module ;
     const char *cur_queue = NULL;
     char *queues = NULL;
-    int thread;
+    uint16_t thread;
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -441,6 +444,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
+    if (thread_max > 1024)
+        thread_max = 1024;
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -488,9 +493,9 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         }
 
     }
-    for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
+    for (thread = 0; thread < (uint16_t)thread_max; thread++) {
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
+        snprintf(qname, sizeof(qname), "pickup%u", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
