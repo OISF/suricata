@@ -49,6 +49,8 @@
 
 #include "util-var-name.h"
 
+#include "app-layer-events.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -955,6 +957,9 @@ typedef struct DetectEngineThreadCtx_ {
     int base64_decoded_len;
     int base64_decoded_len_max;
 
+    AppLayerDecoderEvents *decoder_events;
+    uint16_t events;
+
 #ifdef DEBUG
     uint64_t pkt_stream_add_cnt;
     uint64_t payload_mpm_cnt;
@@ -1013,6 +1018,27 @@ typedef struct SigTableElmt_ {
     const char *url;
 
 } SigTableElmt;
+
+/* event code */
+enum {
+#ifdef UNITTESTS
+    DET_CTX_EVENT_TEST,
+#endif
+    FILE_DECODER_EVENT_NO_MEM,
+    FILE_DECODER_EVENT_INVALID_SWF_LENGTH,
+    FILE_DECODER_EVENT_INVALID_SWF_VERSION,
+    FILE_DECODER_EVENT_Z_DATA_ERROR,
+    FILE_DECODER_EVENT_Z_STREAM_ERROR,
+    FILE_DECODER_EVENT_Z_BUF_ERROR,
+    FILE_DECODER_EVENT_Z_UNKNOWN_ERROR,
+    FILE_DECODER_EVENT_LZMA_DECODER_ERROR,
+    FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR,
+    FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR,
+    FILE_DECODER_EVENT_LZMA_FORMAT_ERROR,
+    FILE_DECODER_EVENT_LZMA_DATA_ERROR,
+    FILE_DECODER_EVENT_LZMA_BUF_ERROR,
+    FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
+};
 
 #define SIG_GROUP_HEAD_HAVERAWSTREAM    (1 << 0)
 #ifdef HAVE_MAGIC
@@ -1257,6 +1283,12 @@ void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
 void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
+
+/* events */
+void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
+AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
+int DetectEngineGetEventInfo(const char *event_name, int *event_id,
+                             AppLayerEventType *event_type);
 
 #include "detect-engine-build.h"
 #include "detect-engine-register.h"
