@@ -546,9 +546,7 @@ fn probe(input: &[u8]) -> bool {
 pub fn probe_tcp(input: &[u8]) -> bool {
     match nom::be_u16(input) {
         nom::IResult::Done(rem, len) => {
-            if rem.len() >= len as usize {
-                return probe(rem);
-            }
+            return probe(rem);
         },
         _ => {}
     }
