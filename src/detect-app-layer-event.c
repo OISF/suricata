@@ -194,8 +194,13 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
         return -1;
     }
 
-    r = AppLayerParserGetEventInfo(ipproto, data->alproto,
-                        p_idx + 1, &event_id, event_type);
+    if (!data->needs_detctx) {
+        r = AppLayerParserGetEventInfo(ipproto, data->alproto,
+                            p_idx + 1, &event_id, event_type);
+    } else {
+        r = DetectEngineGetEventInfo(p_idx + 1, &event_id, event_type);
+    }
+
     if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
                    "protocol \"%s\" doesn't have event \"%s\" registered",
@@ -214,6 +219,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     AppProto alproto;
     const char *p_idx;
     char alproto_name[MAX_ALPROTO_NAME];
+    int needs_detctx = FALSE;
 
     p_idx = strchr(arg, '.');
     if (strlen(arg) > MAX_ALPROTO_NAME) {
@@ -225,10 +231,14 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 
     alproto = AppLayerGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
-                   "supplied with unknown protocol \"%s\"",
-                   alproto_name);
-        return NULL;
+        if (!strcmp(alproto_name, "file")) {
+            needs_detctx = TRUE;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
+                       "supplied with unknown protocol \"%s\"",
+                       alproto_name);
+            return NULL;
+        }
     }
 
     aled = SCMalloc(sizeof(*aled));
@@ -237,6 +247,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     memset(aled, 0x00, sizeof(*aled));
     aled->alproto = alproto;
     aled->arg = SCStrdup(arg);
+    aled->needs_detctx = needs_detctx;
     if (aled->arg == NULL) {
         SCFree(aled);
         return NULL;
@@ -791,6 +802,31 @@ static int DetectAppLayerEventTest05(void)
     PASS;
 }
 
+static int DetectAppLayerEventTest06(void)
+{
+    AppLayerEventType event_type;
+    uint8_t ipproto_bitarray[256 / 8];
+    memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
+    ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+
+    DetectAppLayerEventData *aled = DetectAppLayerEventParse("file.test",
+                                                             &event_type);
+
+    FAIL_IF_NULL(aled);
+
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0)
+        goto error;
+
+    if (aled->alproto != ALPROTO_UNKNOWN || aled->event_id != DET_CTX_EVENT_TEST)
+        goto error;
+
+    DetectAppLayerEventFree(aled);
+    PASS;
+
+error:
+    DetectAppLayerEventFree(aled);
+    FAIL;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -804,6 +840,7 @@ void DetectAppLayerEventRegisterTests(void)
     UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
     UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
     UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
+    UtRegisterTest("DetectAppLayerEventTest06", DetectAppLayerEventTest06);
 #endif /* UNITTESTS */
 
     return;
