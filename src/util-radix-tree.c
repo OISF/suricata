@@ -746,21 +746,18 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                     break;
             }
 
-            if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
-                                                sizeof(uint8_t))) == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
-                return NULL;
-            }
+            if (i < node->netmask_cnt) {
+                if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
+                                sizeof(uint8_t))) == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
+                    return NULL;
+                }
 
-            for (j = 0; j < (node->netmask_cnt - i); j++)
-                inter_node->netmasks[j] = node->netmasks[i + j];
+                for (j = 0; j < (node->netmask_cnt - i); j++)
+                    inter_node->netmasks[j] = node->netmasks[i + j];
 
-            inter_node->netmask_cnt = (node->netmask_cnt - i);
-            node->netmask_cnt = i;
-
-            if (node->netmask_cnt == 0) {
-                SCFree(node->netmasks);
-                node->netmasks = NULL;
+                inter_node->netmask_cnt = (node->netmask_cnt - i);
+                node->netmask_cnt = i;
             }
         }
 
