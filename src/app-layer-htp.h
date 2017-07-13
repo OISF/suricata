@@ -133,6 +133,13 @@ enum {
     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER,
 };
 
+typedef enum HtpSwfCompressType_ {
+    HTTP_SWF_COMPRESSION_NONE = 0,
+    HTTP_SWF_COMPRESSION_ZLIB,
+    HTTP_SWF_COMPRESSION_LZMA,
+    HTTP_SWF_COMPRESSION_BOTH,
+} HtpSwfCompressType;
+
 typedef struct HTPCfgDir_ {
     uint32_t body_limit;
     uint32_t inspect_min_size;
@@ -151,6 +158,11 @@ typedef struct HTPCfgRec_ {
     int                 randomize;
     int                 randomize_range;
     int                 http_body_inline;
+
+    int                 swf_decompression_enabled;
+    HtpSwfCompressType  swf_compression_type;
+    uint32_t            swf_decompress_depth;
+    uint32_t            swf_compress_depth;
 
     HTPCfgDir request;
     HTPCfgDir response;
