@@ -1254,7 +1254,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
             ret = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32, pl->dir,
                     pl->prefix, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
         }
-        if (ret < 0 || (size_t)ret >= sizeof(filename)) {
+        if (ret < 0 || (size_t)ret >= PATH_MAX) {
             SCLogError(SC_ERR_SPRINTF,"failed to construct path");
             goto error;
         }
@@ -1312,7 +1312,7 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
                 ret = snprintf(filename, PATH_MAX, "%s/%s.%u.%" PRIu32 ".%" PRIu32, pl->dir,
                         pl->prefix, pl->thread_number, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
             }
-            if (ret < 0 || (size_t)ret >= sizeof(filename)) {
+            if (ret < 0 || (size_t)ret >= PATH_MAX) {
                 SCLogError(SC_ERR_SPRINTF,"failed to construct path");
                 goto error;
             }
