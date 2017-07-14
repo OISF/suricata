@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2012-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author nPulse Technologies, LLC
+ * \author nPulse Technologies, LLC.
  * \author Matt Keeler <mk@npulsetech.com>
  */
 
@@ -29,15 +29,18 @@ void TmModuleNapatechStreamRegister (void);
 TmEcode NapatechStreamThreadDeinit(ThreadVars *tv, void *data);
 void TmModuleNapatechDecodeRegister (void);
 
-struct NapatechStreamDevConf
-{
-    int stream_id;
-    intmax_t hba;
-};
 
 #ifdef HAVE_NAPATECH
 
 #include <nt.h>
+
+
+struct NapatechStreamDevConf
+{
+    uint16_t stream_id;
+    intmax_t hba;
+};
+
 
 #endif
 

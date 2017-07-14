@@ -127,6 +127,13 @@ ntservice.ini::
 		# The streams to listen on
 		streams: [0, 1, 2, 3, 4, 5, 6, 7]
 
+Note: hba is useful only when a stream is shared with another application.  When hba is enabled packets will be dropped 
+(i.e. not delivered to suricata) when the host-buffer utilization reaches the high-water mark indicated by the hba value.  
+This insures that, should suricata get behind in it's packet processing, the other application will still receive all 
+of the packets.  If this is enabled without another application sharing the stream it will result in sub-optimal packet 
+buffering.
+    
+
 
 Basic Configuration
 -------------------
@@ -202,6 +209,20 @@ Next execute those command using the ntpl tool::
 Now you are ready to start Suricata::
 
 	$ suricata -c /usr/local/etc/suricata/suricata.yaml --napatech --runmode workers
+
+------------------------------------
+Counters
+
+For each stream that is being processed the following counters will be output in stats.log:
+    nt<streamid>.pkts - The number of packets recieved by the stream.
+    nt<streamid>.bytes - The total bytes received by the stream.
+    nt<streamid>.drop - The number of packets that were dropped from this stream due to
+                        buffer overflow conditions.
+                        
+If hba is enabled the following counter will also be provided:
+    nt<streamid>.hba_drop - the number of packets dropped because the host buffer allowance
+                            high-water mark was reached.
+                            
 
 
 Support
