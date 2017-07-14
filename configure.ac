@@ -138,13 +138,13 @@
         #endif
     ]])
 
-    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h wincrypt.h], [], [],
+    AC_CHECK_HEADERS([windows.h winsock2.h ws2tcpip.h w32api/wtypes.h], [], [],
                     [[
                         #ifndef _X86_
                         #define _X86_
                         #endif
                      ]])
-    AC_CHECK_HEADERS([w32api/winbase.h], [], [],
+    AC_CHECK_HEADERS([w32api/winbase.h wincrypt.h], [], [],
                     [[
                         #ifndef _X86_
                         #define _X86_

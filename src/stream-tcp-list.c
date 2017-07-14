@@ -89,8 +89,8 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
         uint64_t mydata_offset;
         StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &mydata_offset);
 
-        SCLogDebug("stream %p seg %p data in buffer %p of len %u and offset %u",
-                stream, seg, &stream->sb, mydata_len, (uint)mydata_offset);
+        SCLogDebug("stream %p seg %p data in buffer %p of len %u and offset %"PRIu64,
+                stream, seg, &stream->sb, mydata_len, mydata_offset);
         //PrintRawDataFp(stdout, mydata, mydata_len);
     }
 #endif

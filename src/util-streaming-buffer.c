@@ -231,12 +231,12 @@ static int SBBUpdateLookForward(StreamingBuffer *sb,
 
     while (sbb->offset + sbb->len == sbb->next->offset)
     {
-        SCLogDebug("EndsAfter: gobble up next: %u/%u", (uint)sbb->next->offset, sbb->next->len);
+        SCLogDebug("EndsAfter: gobble up next: %"PRIu64"/%u", sbb->next->offset, sbb->next->len);
         uint64_t right_edge = sbb->next->offset + sbb->next->len;
         uint32_t expand_by = right_edge - (sbb->offset + sbb->len);
         sbb->len += expand_by;
         SCLogDebug("EndsAfter: expand_by %u (part 2)", expand_by);
-        SCLogDebug("EndsAfter: (loop) sbb now %u/%u", (uint)sbb->offset, sbb->len);
+        SCLogDebug("EndsAfter: (loop) sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
 
         /* we can gobble up next */
         StreamingBufferBlock *to_free = sbb->next;
@@ -265,7 +265,7 @@ static int SBBUpdateLookForward(StreamingBuffer *sb,
             /* if next is not directly connected and we have some
              * block len left, expand sbb further */
             uint32_t gap = sbb->next->offset - (sbb->offset + sbb->len);
-            SCLogDebug("EndsAfter: we now have a gap of %u and a block of %u/%u", gap, (uint)my_block->offset, my_block->len);
+            SCLogDebug("EndsAfter: we now have a gap of %u and a block of %"PRIu64"/%u", gap, my_block->offset, my_block->len);
 
             if (my_block->len < gap) {
                 sbb->len += my_block->len;
@@ -276,8 +276,8 @@ static int SBBUpdateLookForward(StreamingBuffer *sb,
                 sbb->len += gap;
                 my_block->offset += gap;
                 my_block->len -= gap;
-                SCLogDebug("EndsAfter: (loop) block at %u/%u, sbb %u/%u", (uint)my_block->offset, my_block->len, (uint)sbb->offset, sbb->len);
-                SCLogDebug("EndsAfter: (loop) sbb->next %u/%u", (uint)sbb->next->offset, sbb->next->len);
+                SCLogDebug("EndsAfter: (loop) block at %"PRIu64"/%u, sbb %"PRIu64"/%u", my_block->offset, my_block->len, sbb->offset, sbb->len);
+                SCLogDebug("EndsAfter: (loop) sbb->next %"PRIu64"/%u", sbb->next->offset, sbb->next->len);
             }
         }
     }
@@ -304,7 +304,7 @@ static void SBBUpdate(StreamingBuffer *sb,
     else if (tail && IsAfter(&my_block, tail)) {
         StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, NULL);
         sb->block_list_tail = tail->next = new_sbb;
-        SCLogDebug("tail: new block at %u/%u", (uint)my_block.offset, my_block.len);
+        SCLogDebug("tail: new block at %"PRIu64"/%u", my_block.offset, my_block.len);
         goto done;
     }
 
@@ -312,7 +312,7 @@ static void SBBUpdate(StreamingBuffer *sb,
 #ifdef DEBUG
     SBBPrintList(sb);
 #endif
-    SCLogDebug("PreInsert: block at %u/%u", (uint)my_block.offset, my_block.len);
+    SCLogDebug("PreInsert: block at %"PRIu64"/%u", my_block.offset, my_block.len);
     StreamingBufferBlock *sbb = sb->block_list, *prev = NULL;
     while (sbb) {
         SCLogDebug("sbb %"PRIu64"/%u data %"PRIu64"/%u. Next %s", sbb->offset, sbb->len,
@@ -327,12 +327,12 @@ static void SBBUpdate(StreamingBuffer *sb,
             } else {
                 prev->next = new_sbb;
             }
-            SCLogDebug("IsBefore: new block at %u/%u", (uint)my_block.offset, my_block.len);
+            SCLogDebug("IsBefore: new block at %"PRIu64"/%u", my_block.offset, my_block.len);
             break;
 
         } else if (IsOverlappedBy(&my_block, sbb)) {
             /* nothing to do */
-            SCLogDebug("IsOverlappedBy: overlapped block at %u/%u", (uint)my_block.offset, my_block.len);
+            SCLogDebug("IsOverlappedBy: overlapped block at %"PRIu64"/%u", my_block.offset, my_block.len);
             break;
 
         } else if (IsAfter(&my_block, sbb)) {
@@ -342,10 +342,10 @@ static void SBBUpdate(StreamingBuffer *sb,
                 StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, NULL);
                 sbb->next = new_sbb;
                 sb->block_list_tail = new_sbb;
-                SCLogDebug("new block at %u/%u", (uint)my_block.offset, my_block.len);
+                SCLogDebug("new block at %"PRIu64"/%u", my_block.offset, my_block.len);
                 break;
             }
-            SCLogDebug("IsAfter: block at %u/%u, is after sbb", (uint)my_block.offset, my_block.len);
+            SCLogDebug("IsAfter: block at %"PRIu64"/%u, is after sbb", my_block.offset, my_block.len);
 
         } else {
 
@@ -364,7 +364,7 @@ static void SBBUpdate(StreamingBuffer *sb,
 
                 my_block.offset = sbb->offset + sbb->len;
                 my_block.len = my_block_right_edge - my_block.offset;
-                SCLogDebug("StartsBefore: block now %u/%u", (uint)my_block.offset, my_block.len);
+                SCLogDebug("StartsBefore: block now %"PRIu64"/%u", my_block.offset, my_block.len);
 
                 if (sbb->next == NULL) {
                     sbb->len += my_block.len;
@@ -379,11 +379,11 @@ static void SBBUpdate(StreamingBuffer *sb,
                 expand_by = right_edge - (sbb->offset + sbb->len);
                 SCLogDebug("EndsAfter: expand_by %u", expand_by);
                 sbb->len += expand_by;
-                SCLogDebug("EndsAfter: sbb now %u/%u", (uint)sbb->offset, sbb->len);
+                SCLogDebug("EndsAfter: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
 
                 my_block.offset = sbb->offset + sbb->len;
                 my_block.len = my_block_right_edge - my_block.offset;
-                SCLogDebug("StartsBefore: sbb now %u/%u", (uint)sbb->offset, sbb->len);
+                SCLogDebug("StartsBefore: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
 
             } else if (EndsAfter(&my_block, sbb)) {
                 /* expand sbb, but we need to mind "next" */
@@ -403,7 +403,7 @@ static void SBBUpdate(StreamingBuffer *sb,
                 uint32_t expand_by = right_edge - (sbb->offset + sbb->len);
                 SCLogDebug("EndsAfter: expand_by %u", expand_by);
                 sbb->len += expand_by;
-                SCLogDebug("EndsAfter: sbb now %u/%u", (uint)sbb->offset, sbb->len);
+                SCLogDebug("EndsAfter: sbb now %"PRIu64"/%u", sbb->offset, sbb->len);
 
                 my_block.offset = sbb->offset + sbb->len;
                 my_block.len = my_block_right_edge - my_block.offset;
@@ -416,7 +416,7 @@ static void SBBUpdate(StreamingBuffer *sb,
                     goto done;
             }
 
-            SCLogDebug("EndsAfter: block at %u/%u, is after sbb", (uint)my_block.offset, my_block.len);
+            SCLogDebug("EndsAfter: block at %"PRIu64"/%u, is after sbb", my_block.offset, my_block.len);
 
             if (my_block.len == 0)
                 break;
@@ -425,7 +425,7 @@ static void SBBUpdate(StreamingBuffer *sb,
         sbb = sbb->next;
     }
 done:
-    SCLogDebug("PostInsert: block at %u/%u", (uint)my_block.offset, my_block.len);
+    SCLogDebug("PostInsert: block at %"PRIu64"/%u", my_block.offset, my_block.len);
     SCLogDebug("PostInsert");
 #ifdef DEBUG
     SBBPrintList(sb);
@@ -945,7 +945,7 @@ int StreamingBufferCompareRawData(const StreamingBuffer *sb,
     {
         return 1;
     }
-    SCLogDebug("sbdata_len %u, offset %u", sbdata_len, (uint)offset);
+    SCLogDebug("sbdata_len %u, offset %"PRIu64, sbdata_len, offset);
     printf("got:\n");
     PrintRawDataFp(stdout, sbdata,sbdata_len);
     printf("wanted:\n");

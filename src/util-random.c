@@ -47,7 +47,7 @@ long int RandomGet(void)
         return -1;
     }
 
-    (void)CryptReleaseContext(prov, 0);
+    (void)CryptReleaseContext(p, 0);
 
     return value;
 }
