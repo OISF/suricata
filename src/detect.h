@@ -820,6 +820,8 @@ typedef struct DetectEngineThreadCtx_ {
     uint64_t hsbd_start_tx_id;
     uint16_t hsbd_buffers_size;
     uint16_t hsbd_buffers_list_len;
+    uint8_t *decompressed_hsbd_buffer;
+    uint32_t decompressed_hsbd_buffer_len;
 
     HttpReassembledBody *hcbd;
     uint64_t hcbd_start_tx_id;
