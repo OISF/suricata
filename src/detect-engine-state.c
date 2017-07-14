@@ -265,7 +265,7 @@ static int HasStoredSigs(const Flow *f, const uint8_t flags)
                 continue;
             }
             if (tx_de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt != 0) {
-                SCLogDebug("tx %u has sigs present", (uint)inspect_tx_id);
+                SCLogDebug("tx %"PRIu64" has sigs present", inspect_tx_id);
                 return 1;
             }
         }
@@ -298,7 +298,7 @@ static void StoreStateTxHandleFiles(DetectEngineThreadCtx *det_ctx, Flow *f,
                                     DetectEngineState *destate, const uint8_t flags,
                                     const uint64_t tx_id, const uint16_t file_no_match)
 {
-    SCLogDebug("tx %u, file_no_match %u", (uint)tx_id, file_no_match);
+    SCLogDebug("tx %"PRIu64", file_no_match %u", tx_id, file_no_match);
     DeStateStoreFileNoMatchCnt(destate, file_no_match, flags);
     if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, destate, flags) == 1) {
         FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT | STREAM_TOSERVER), tx_id);
@@ -378,7 +378,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0xef;
     uint64_t tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
     if (offset > 0) {
-        SCLogDebug("using stored_tx_id %u instead of %u", (uint)tx_id+offset, (uint)tx_id);
+        SCLogDebug("using stored_tx_id %"PRIu64" instead of %"PRIu64, tx_id+offset, tx_id);
         tx_id += offset;
     }
     if (offset == MAX_STORED_TXID_OFFSET) {
@@ -388,7 +388,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     SCLogDebug("total_txs %"PRIu64, total_txs);
 
-    SCLogDebug("starting: start tx %u, packet %u", (uint)tx_id, (uint)p->pcap_cnt);
+    SCLogDebug("starting: start tx %"PRIu64", packet %"PRIu64, tx_id, p->pcap_cnt);
 
     det_ctx->stream_already_inspected = false;
     for (; tx_id < total_txs; tx_id++) {
@@ -475,7 +475,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
             }
             alert_cnt = 1;
-            SCLogDebug("MATCH: tx %u packet %u", (uint)tx_id, (uint)p->pcap_cnt);
+            SCLogDebug("MATCH: tx %"PRIu64" packet %"PRIu64, tx_id, p->pcap_cnt);
         }
 
         /* if this is the last tx in our list, and it's incomplete: then
@@ -483,8 +483,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         int tx_is_done = (tx_progress >=
                 AppLayerParserGetStateProgressCompletionStatus(alproto, flags));
 
-        SCLogDebug("tx %u, packet %u, rule %u, alert_cnt %u, last tx %d, tx_is_done %d, next_tx_no_progress %d",
-                (uint)tx_id, (uint)p->pcap_cnt, s->num, alert_cnt,
+        SCLogDebug("tx %"PRIu64", packet %"PRIu64", rule %u, alert_cnt %u, last tx %d, tx_is_done %d, next_tx_no_progress %d",
+                tx_id, p->pcap_cnt, s->num, alert_cnt,
                 TxIsLast(tx_id, total_txs), tx_is_done, next_tx_no_progress);
 
         /* store our state */

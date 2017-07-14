@@ -120,7 +120,8 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         if (i + 1 == no_of_headers)
             size += 2;
 
-        SCLogDebug("size %u + buf->len %u vs buf->size %u", (uint)size, buf->len, buf->size);
+        SCLogDebug("size %"PRIuMAX" + buf->len %u vs buf->size %u",
+                (uintmax_t)size, buf->len, buf->size);
         if (size + buf->len > buf->size) {
             if (HttpHeaderExpandBuffer(hdr_td, buf, size) != 0) {
                 return NULL;
