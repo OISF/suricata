@@ -163,7 +163,8 @@ static const uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     /* updat inspected tracker */
     curr_file->content_inspected = FileDataSize(curr_file);
 
-    SCLogDebug("content_inspected %u, offset %u", (uint)curr_file->content_inspected, (uint)det_ctx->smtp[index].offset);
+    SCLogDebug("content_inspected %"PRIu64", offset %"PRIu64,
+            curr_file->content_inspected, det_ctx->smtp[index].offset);
 
     buffer = det_ctx->smtp[index].buffer;
     *buffer_len = det_ctx->smtp[index].buffer_len;

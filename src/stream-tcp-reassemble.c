@@ -1274,9 +1274,9 @@ void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t prog
         stream->flags &= ~STREAMTCP_STREAM_FLAG_TRIGGER_RAW;
 
     } else {
-        SCLogDebug("p->pcap_cnt %u: progress %u app %u raw %u tcp win %u",
-                (uint)p->pcap_cnt, (uint)progress, (uint)STREAM_APP_PROGRESS(stream),
-                (uint)STREAM_RAW_PROGRESS(stream), (uint)stream->window);
+        SCLogDebug("p->pcap_cnt %"PRIu64": progress %"PRIu64" app %"PRIu64" raw %"PRIu64" tcp win %"PRIu32,
+                p->pcap_cnt, progress, STREAM_APP_PROGRESS(stream),
+                STREAM_RAW_PROGRESS(stream), stream->window);
     }
 
     /* if we were told to accept no more raw data, we can mark raw as
@@ -1534,8 +1534,8 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
         //PrintRawDataFp(stdout, mydata, mydata_len);
 
         SCLogDebug("raw progress %"PRIu64, progress);
-        SCLogDebug("stream %p data in buffer %p of len %u and offset %u",
-                stream, &stream->sb, mydata_len, (uint)progress);
+        SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
+                stream, &stream->sb, mydata_len, progress);
 
         if (eof) {
             // inspect all remaining data, ack'd or not

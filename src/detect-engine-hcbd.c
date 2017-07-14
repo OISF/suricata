@@ -185,7 +185,7 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
     if (htud->request_body.body_inspected > htp_state->cfg->request.inspect_min_size) {
         BUG_ON(htud->request_body.content_len_so_far < htud->request_body.body_inspected);
         uint64_t inspect_win = htud->request_body.content_len_so_far - htud->request_body.body_inspected;
-        SCLogDebug("inspect_win %u", (uint)inspect_win);
+        SCLogDebug("inspect_win %"PRIu64, inspect_win);
         if (inspect_win < htp_state->cfg->request.inspect_window) {
             uint64_t inspect_short = htp_state->cfg->request.inspect_window - inspect_win;
             if (htud->request_body.body_inspected < inspect_short)
@@ -210,7 +210,7 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
     *buffer_len = det_ctx->hcbd[index].buffer_len;
     *stream_start_offset = det_ctx->hcbd[index].offset;
 
-    SCLogDebug("buffer_len %u (%u)", *buffer_len, (uint)htud->request_body.content_len_so_far);
+    SCLogDebug("buffer_len %u (%"PRIu64")", *buffer_len, htud->request_body.content_len_so_far);
  end:
     return buffer;
 }
