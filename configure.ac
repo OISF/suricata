@@ -1977,6 +1977,14 @@
     if test "x$enable_rust" != "xyes"; then
       enable_rust="no"
     else
+      # Rust require jansson (json support).
+      if test "x$enable_jansson" = "xno"; then
+        echo ""
+        echo "   ERROR! Rust support requires jansson."
+        echo ""
+        exit 1
+      fi
+
       AC_PATH_PROG(HAVE_CARGO, cargo, "no")
       AC_PATH_PROG(HAVE_RUSTC, rustc, "no")
 
