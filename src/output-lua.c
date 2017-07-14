@@ -689,7 +689,11 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     char path[PATH_MAX] = "";
-    snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    int ret = snprintf(path, sizeof(path),"%s%s%s", dir, strlen(dir) ? "/" : "", conf->val);
+    if (ret < 0 || ret == sizeof(path)) {
+        SCLogError(SC_ERR_SPRINTF,"failed to construct lua script path");
+        goto error;
+    }
     SCLogDebug("script full path %s", path);
 
     SCMutexLock(&lua_ctx->m);
