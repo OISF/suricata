@@ -15,6 +15,8 @@
  * 02110-1301, USA.
  */
 
+#![cfg_attr(feature = "strict", deny(warnings))]
+
 extern crate libc;
 
 #[macro_use]

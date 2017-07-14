@@ -2055,6 +2055,13 @@
     fi
     AM_CONDITIONAL([HAVE_CARGO_VENDOR], [test "x$HAVE_CARGO_VENDOR" != "xno"])
 
+    AC_ARG_ENABLE(rust_strict,
+           AS_HELP_STRING([--enable-rust-strict], [Rust warnings as errors]),,[enable_rust_strict=no])
+    AS_IF([test "x$enable_rust_strict" = "xyes"], [
+        RUST_FEATURES="strict"
+    ])
+    AC_SUBST(RUST_FEATURES)
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -2168,6 +2175,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
 
   Rust support (experimental):             ${enable_rust}
   Experimental Rust parsers:               ${enable_rust_experimental}
+  Rust strict mode:                        ${enable_rust_strict}
 
   Suricatasc install:                      ${enable_python}
 
