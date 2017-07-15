@@ -265,7 +265,7 @@ static int SCLogCreateDirectoryTree(const char *filepath)
             /* Truncate, while creating directory */
             *p = '\0';
 
-            if (mkdir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+            if (SCMkDir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
                 if (errno != EEXIST) {
                     return -1;
                 }

@@ -311,7 +311,7 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, const void *initdata, voi
     if (stat(tls_logfile_base_dir, &stat_buf) != 0) {
         int ret;
         /* coverity[toctou] */
-        ret = mkdir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        ret = SCMkDir(tls_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
         if (ret != 0) {
             int err = errno;
             if (err != EEXIST) {

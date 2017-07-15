@@ -229,6 +229,7 @@
             LDFLAGS="${LDFLAGS} -lws2_32"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
+            AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
             ;;
         *-*-cygwin)
             LUA_PC_NAME="lua"

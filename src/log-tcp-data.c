@@ -295,11 +295,7 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
         SCLogInfo("using directory %s", dirfull);
 
         /* if mkdir fails file open will fail, so deal with errors there */
-#ifndef OS_WIN32
-        (void)mkdir(dirfull, 0700);
-#else
-        (void)mkdir(dirfull);
-#endif
+        (void)SCMkDir(dirfull, 0700);
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
