@@ -129,7 +129,7 @@
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
     AC_CHECK_HEADER(glob.h,,[AC_ERROR(glob.h not found ...)])
     AC_CHECK_HEADERS([dirent.h fnmatch.h])
-    AC_CHECK_HEADERS([sys/resource.h])
+    AC_CHECK_HEADERS([sys/resource.h sys/types.h sys/un.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
