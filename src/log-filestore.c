@@ -507,7 +507,7 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, const void *initdata, vo
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
         int ret;
-        ret = mkdir(g_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
+        ret = SCMkDir(g_logfile_base_dir, S_IRWXU|S_IXGRP|S_IRGRP);
         if (ret != 0) {
             int err = errno;
             if (err != EEXIST) {

@@ -1234,11 +1234,8 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
         }
 
         /* if mkdir fails file open will fail, so deal with errors there */
-#ifndef OS_WIN32
-        (void)mkdir(dirfull, 0700);
-#else
-        (void)mkdir(dirfull);
-#endif
+        (void)SCMkDir(dirfull, 0700);
+
         if ((pf->dirname = SCStrdup(dirfull)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for "
                        "directory name");

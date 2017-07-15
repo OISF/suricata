@@ -132,7 +132,7 @@ static int UnixNew(UnixCommand * this)
         /* coverity[toctou] */
         if (stat(SOCKET_PATH, &stat_buf) != 0) {
             /* coverity[toctou] */
-            ret = mkdir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
+            ret = SCMkDir(SOCKET_PATH, S_IRWXU|S_IXGRP|S_IRGRP);
             if (ret != 0) {
                 int err = errno;
                 if (err != EEXIST) {
