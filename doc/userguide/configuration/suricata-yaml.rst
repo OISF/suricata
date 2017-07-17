@@ -209,6 +209,8 @@ with the -l command line parameter, enter the following:
 
   suricata -c suricata.yaml -i eth0 -l /var/log/suricata-logs/
 
+.. _suricata_yaml_outputs:
+
 Outputs
 ~~~~~~~
 
@@ -363,6 +365,8 @@ For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-out
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
+.. _suricata_yaml_unified2:
+
 Alert output for use with Barnyard2 (unified2.alert)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -502,6 +506,8 @@ Configuration options:
       filename: dns.log           # Name of this file this log is written to in the default logging directory
       append: yes                 # If this option is set to yes, the (if any exists) dns.log file wil not be overwritten while restarting Suricata.
       filetype: regular / unix_stream / unix_dgram
+
+.. _suricata_yaml_pcap_log:
 
 Packet log (pcap-log)
 ~~~~~~~~~~~~~~~~~~~~~
