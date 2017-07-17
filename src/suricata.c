@@ -286,7 +286,7 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
 }
-
+#ifndef OS_WIN32
 /**
  * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on
  * it.
@@ -305,6 +305,7 @@ static void SignalHandlerSigHup(/*@unused@*/ int sig)
 {
     sighup_count = 1;
 }
+#endif
 
 #ifdef DBG_MEM_ALLOC
 #ifndef _GLOBAL_MEM_
@@ -2143,7 +2144,6 @@ static int WindowsInitService(int argc, char **argv)
             return -1;
         }
         SCLogInfo("Current directory is set to: %s", path);
-        daemon = 1;
         SCServiceInit(argc, argv);
     }
 
@@ -2196,14 +2196,12 @@ static int InitSignalHandler(SCInstance *suri)
 {
     /* registering signals we use */
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+#ifndef OS_WIN32
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
     UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
     UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
-
-#ifndef OS_WIN32
-    /* SIGHUP is not implemented on WIN32 */
-    UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
 
     /* Try to get user/group to run suricata as if
        command line as not decide of that */
@@ -2512,13 +2510,14 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
 static void PostRunStartedDetectSetup(SCInstance *suri)
 {
+#ifndef OS_WIN32
     /* registering signal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
     if (DetectEngineEnabled() && suri->sig_file == NULL &&
             suri->delayed_detect == 0)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-
+#endif
     if (suri->delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
         DetectEngineReload(suri);
@@ -2848,7 +2847,7 @@ int main(int argc, char **argv)
 
 #ifdef OS_WIN32
     /* service initialization */
-    if (WindowsInit(argc, argv) != 0) {
+    if (WindowsInitService(argc, argv) != 0) {
         exit(EXIT_FAILURE);
     }
 #endif /* OS_WIN32 */
