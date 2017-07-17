@@ -230,7 +230,9 @@
 #include "util-mpm-ac.h"
 #include "runmodes.h"
 
+#ifdef HAVE_GLOB_H
 #include <glob.h>
+#endif
 
 extern int rule_reload;
 
@@ -389,13 +391,16 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
 static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
         SigFileLoaderStat *st, int *good_sigs, int *bad_sigs)
 {
+    int r = 0;
+
     if (pattern == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule file null");
         return -1;
     }
 
+#ifdef HAVE_GLOB_H
     glob_t files;
-    int r = glob(pattern, 0, NULL, &files);
+    r = glob(pattern, 0, NULL, &files);
 
     if (r == GLOB_NOMATCH) {
         SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
@@ -412,6 +417,11 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
         char *fname = files.gl_pathv[i];
         if (strcmp("/dev/null", fname) == 0)
             continue;
+#else
+        char *fname = pattern;
+        if (strcmp("/dev/null", fname) == 0)
+            return 0;
+#endif
 
         SCLogConfig("Loading rule file: %s", fname);
         r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
@@ -423,9 +433,10 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
 
         st->good_sigs_total += *good_sigs;
         st->bad_sigs_total += *bad_sigs;
+#ifdef HAVE_GLOB_H
     }
-
     globfree(&files);
+#endif
     return r;
 }
 
