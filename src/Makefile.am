@@ -426,6 +426,7 @@ util-mpm-ac-tile.c util-mpm-ac-tile.h \
 util-mpm-ac-tile-small.c \
 util-mpm-hs.c util-mpm-hs.h \
 util-mpm.c util-mpm.h \
+util-napatech.c util-napatech.h \
 util-optimize.h \
 util-pages.c util-pages.h \
 util-path.c util-path.h \
