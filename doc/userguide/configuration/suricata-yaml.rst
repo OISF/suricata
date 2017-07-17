@@ -66,6 +66,24 @@ It is possible to set the user and group to run Suricata as:
     group: suri
 
 
+PID File
+--------
+
+This option sets the name of the PID file when Suricata is run in
+daemon mode. This file records the Suricata process ID.
+
+::
+
+   pid-file: /var/run/suricata.pid
+
+.. note:: This configuration file option only sets the PID file when
+          running in daemon mode. To force creation of a PID file when
+          not running in daemon mode, use the :option:`--pidfile`
+          command line option.
+
+	  Also, if running more than one Suricata process, each
+	  process will need to specify a different pid-file location.
+
 .. _suricata-yaml-action-order:
 
 Action-order
