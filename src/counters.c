@@ -323,9 +323,10 @@ static void StatsReleaseCtx(void)
  */
 static void *StatsMgmtThread(void *arg)
 {
+#ifndef OS_WIN32
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
-
+#endif
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
     struct timespec cond_time;
@@ -410,9 +411,10 @@ static void *StatsMgmtThread(void *arg)
  */
 static void *StatsWakeupThread(void *arg)
 {
+#ifndef OS_WIN32
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
-
+#endif
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
     ThreadVars *tv = NULL;

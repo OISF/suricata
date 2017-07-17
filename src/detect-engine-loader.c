@@ -564,9 +564,10 @@ static TmEcode DetectLoaderThreadDeinit(ThreadVars *t, void *data)
 
 static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 {
+#ifndef OS_WIN32
     /* block usr2. usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
-
+#endif
     DetectLoaderThreadData *ftd = (DetectLoaderThreadData *)thread_data;
     BUG_ON(ftd == NULL);
 

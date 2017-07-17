@@ -658,9 +658,10 @@ static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
  */
 static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 {
+#ifndef OS_WIN32
     /* block usr2.  usr1 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
-
+#endif
     FlowManagerThreadData *ftd = thread_data;
     struct timeval ts;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
@@ -886,9 +887,10 @@ static TmEcode FlowRecyclerThreadDeinit(ThreadVars *t, void *data)
  */
 static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
 {
+#ifndef OS_WIN32
     /* block usr2. usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
-
+#endif
     struct timeval ts;
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
