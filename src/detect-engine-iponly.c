@@ -211,11 +211,11 @@ static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, const char *str)
             tmp_ip2[0] = in.s_addr;
 
             /* a > b is illegal, a = b is ok */
-            if (ntohl(tmp_ip[0]) > ntohl(tmp_ip2[0]))
+            if (SCNtohl(tmp_ip[0]) > SCNtohl(tmp_ip2[0]))
                 goto error;
 
-            first = ntohl(tmp_ip[0]);
-            last = ntohl(tmp_ip2[0]);
+            first = SCNtohl(tmp_ip[0]);
+            last = SCNtohl(tmp_ip2[0]);
 
             dd->netmask = 32;
             dd->ip[0] =htonl(first);

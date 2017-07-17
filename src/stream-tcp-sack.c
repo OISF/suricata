@@ -264,26 +264,26 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 
     for (record = 0; record < records; record++) {
         SCLogDebug("%p last_ack %u, left edge %u, right edge %u", sack_rec,
-            stream->last_ack, ntohl(sack_rec->le), ntohl(sack_rec->re));
+            stream->last_ack, SCNtohl(sack_rec->le), SCNtohl(sack_rec->re));
 
-        if (SEQ_LEQ(ntohl(sack_rec->re), stream->last_ack)) {
+        if (SEQ_LEQ(SCNtohl(sack_rec->re), stream->last_ack)) {
             SCLogDebug("record before last_ack");
             goto next;
         }
 
-        if (SEQ_GT(ntohl(sack_rec->re), stream->next_win)) {
+        if (SEQ_GT(SCNtohl(sack_rec->re), stream->next_win)) {
             SCLogDebug("record %u:%u beyond next_win %u",
-                    ntohl(sack_rec->le), ntohl(sack_rec->re), stream->next_win);
+                    SCNtohl(sack_rec->le), SCNtohl(sack_rec->re), stream->next_win);
             goto next;
         }
 
-        if (SEQ_GEQ(ntohl(sack_rec->le), ntohl(sack_rec->re))) {
+        if (SEQ_GEQ(SCNtohl(sack_rec->le), SCNtohl(sack_rec->re))) {
             SCLogDebug("invalid record: le >= re");
             goto next;
         }
 
-        if (StreamTcpSackInsertRange(stream, ntohl(sack_rec->le),
-                    ntohl(sack_rec->re)) == -1)
+        if (StreamTcpSackInsertRange(stream, SCNtohl(sack_rec->le),
+                    SCNtohl(sack_rec->re)) == -1)
         {
             SCReturnInt(-1);
         }

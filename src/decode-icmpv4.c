@@ -80,8 +80,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         case IPPROTO_TCP:
             if (len >= IPV4_HEADER_LEN + TCP_HEADER_LEN ) {
                 p->icmpv4vars.emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_tcph->th_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_tcph->th_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP header sport: "
@@ -92,8 +92,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
                 TCPHdr *emb_tcph = (TCPHdr*)(partial_packet + IPV4_HEADER_LEN);
 
                 p->icmpv4vars.emb_tcph = NULL;
-                p->icmpv4vars.emb_sport = ntohs(emb_tcph->th_sport);
-                p->icmpv4vars.emb_dport = ntohs(emb_tcph->th_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(emb_tcph->th_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(emb_tcph->th_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_TCP;
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->TCP partial header sport: "
                            "%"PRIu8" dport %"PRIu8"", p->icmpv4vars.emb_sport,
@@ -109,8 +109,8 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
         case IPPROTO_UDP:
             if (len >= IPV4_HEADER_LEN + UDP_HEADER_LEN ) {
                 p->icmpv4vars.emb_udph = (UDPHdr*)(partial_packet + IPV4_HEADER_LEN);
-                p->icmpv4vars.emb_sport = ntohs(p->icmpv4vars.emb_udph->uh_sport);
-                p->icmpv4vars.emb_dport = ntohs(p->icmpv4vars.emb_udph->uh_dport);
+                p->icmpv4vars.emb_sport = SCNtohs(p->icmpv4vars.emb_udph->uh_sport);
+                p->icmpv4vars.emb_dport = SCNtohs(p->icmpv4vars.emb_udph->uh_dport);
                 p->icmpv4vars.emb_ip4_proto = IPPROTO_UDP;
 
                 SCLogDebug("DecodePartialIPV4: ICMPV4->IPV4->UDP header sport: "

@@ -129,8 +129,8 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                         } else {
                             uint32_t values[2];
                             memcpy(&values, tcp_opts[tcp_opt_cnt].data, sizeof(values));
-                            p->tcpvars.ts_val = ntohl(values[0]);
-                            p->tcpvars.ts_ecr = ntohl(values[1]);
+                            p->tcpvars.ts_val = SCNtohl(values[0]);
+                            p->tcpvars.ts_ecr = SCNtohl(values[1]);
                             p->tcpvars.ts_set = TRUE;
                         }
                     }

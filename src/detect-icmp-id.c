@@ -88,7 +88,7 @@ static inline _Bool GetIcmpId(Packet *p, uint16_t *id)
             case ICMP_ADDRESSREPLY:
                 SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
-                        ntohs(ICMPV4_GET_ID(p)));
+                        SCNtohs(ICMPV4_GET_ID(p)));
 
                 pid = ICMPV4_GET_ID(p);
                 break;
@@ -102,7 +102,7 @@ static inline _Bool GetIcmpId(Packet *p, uint16_t *id)
             case ICMP6_ECHO_REPLY:
                 SCLogDebug("ICMPV6_GET_ID(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV6_GET_ID(p),
-                        ntohs(ICMPV6_GET_ID(p)));
+                        SCNtohs(ICMPV6_GET_ID(p)));
 
                 pid = ICMPV6_GET_ID(p);
                 break;

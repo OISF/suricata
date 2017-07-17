@@ -64,18 +64,18 @@
 
 #define TCP_GET_RAW_OFFSET(tcph)             (((tcph)->th_offx2 & 0xf0) >> 4)
 #define TCP_GET_RAW_X2(tcph)                 (unsigned char)((tcph)->th_offx2 & 0x0f)
-#define TCP_GET_RAW_SRC_PORT(tcph)           ntohs((tcph)->th_sport)
-#define TCP_GET_RAW_DST_PORT(tcph)           ntohs((tcph)->th_dport)
+#define TCP_GET_RAW_SRC_PORT(tcph)           SCNtohs((tcph)->th_sport)
+#define TCP_GET_RAW_DST_PORT(tcph)           SCNtohs((tcph)->th_dport)
 
 #define TCP_SET_RAW_TCP_OFFSET(tcph, value)  ((tcph)->th_offx2 = (unsigned char)(((tcph)->th_offx2 & 0x0f) | (value << 4)))
 #define TCP_SET_RAW_TCP_X2(tcph, value)      ((tcph)->th_offx2 = (unsigned char)(((tcph)->th_offx2 & 0xf0) | (value & 0x0f)))
 
-#define TCP_GET_RAW_SEQ(tcph)                ntohl((tcph)->th_seq)
-#define TCP_GET_RAW_ACK(tcph)                ntohl((tcph)->th_ack)
+#define TCP_GET_RAW_SEQ(tcph)                SCNtohl((tcph)->th_seq)
+#define TCP_GET_RAW_ACK(tcph)                SCNtohl((tcph)->th_ack)
 
-#define TCP_GET_RAW_WINDOW(tcph)             ntohs((tcph)->th_win)
-#define TCP_GET_RAW_URG_POINTER(tcph)        ntohs((tcph)->th_urp)
-#define TCP_GET_RAW_SUM(tcph)                ntohs((tcph)->th_sum)
+#define TCP_GET_RAW_WINDOW(tcph)             SCNtohs((tcph)->th_win)
+#define TCP_GET_RAW_URG_POINTER(tcph)        SCNtohs((tcph)->th_urp)
+#define TCP_GET_RAW_SUM(tcph)                SCNtohs((tcph)->th_sum)
 
 /** macro for getting the first timestamp from the packet in host order */
 #define TCP_GET_TSVAL(p)                    ((p)->tcpvars.ts_val)

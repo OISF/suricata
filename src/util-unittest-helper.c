@@ -968,9 +968,9 @@ static int CheckUTHTestPacket(Packet *p, uint8_t ipproto)
         case IPPROTO_TCP:
             if (p->tcph == NULL)
                 return 0;
-            if (ntohs(p->tcph->th_sport) != sport)
+            if (SCNtohs(p->tcph->th_sport) != sport)
                 return 0;
-            if (ntohs(p->tcph->th_dport) != dport)
+            if (SCNtohs(p->tcph->th_dport) != dport)
                 return 0;
         break;
     }
