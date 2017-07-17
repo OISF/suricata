@@ -37,6 +37,11 @@
 #include "util-cuda-vars.h"
 #endif /* __SC_CUDA_SUPPORT__ */
 
+#ifdef HAVE_NAPATECH
+#include "util-napatech.h"
+#endif /* HAVE_NAPATECH */
+
+
 typedef enum {
     CHECKSUM_VALIDATION_DISABLE,
     CHECKSUM_VALIDATION_ENABLE,
@@ -585,6 +590,9 @@ typedef struct Packet_
 #endif
 #ifdef __SC_CUDA_SUPPORT__
     CudaPacketVars cuda_pkt_vars;
+#endif
+#ifdef HAVE_NAPATECH
+    NapatechPacketVars ntpv;
 #endif
 }
 #ifdef HAVE_MPIPE
