@@ -373,6 +373,9 @@
     #define SCMkDir(a, b) mkdir(a)
 #endif
 
+#define SCNtohl(x) (uint32_t)ntohl((x))
+#define SCNtohs(x) (uint16_t)ntohs((x))
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_IPONLY,
     PROF_DETECT_RULES,

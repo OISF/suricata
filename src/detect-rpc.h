@@ -42,7 +42,7 @@ typedef struct RpcMsg_ {
 } RpcMsg;
 
 /* Extract uint32_t */
-#define EXT_GET_UINT32T(buf)      ((long)ntohl((long)*(buf)++))
+#define EXT_GET_UINT32T(buf)      ((long)SCNtohl((long)*(buf)++))
 
 typedef struct DetectRpcData_ {
     uint32_t program;

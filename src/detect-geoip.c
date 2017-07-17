@@ -104,7 +104,7 @@ static GeoIP *InitGeolocationEngine(void)
 static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
 {
     if (geoengine != NULL)
-        return GeoIP_country_code_by_ipnum(geoengine,  ntohl(ip));
+        return GeoIP_country_code_by_ipnum(geoengine,  SCNtohl(ip));
     return NULL;
 }
 

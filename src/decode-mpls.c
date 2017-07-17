@@ -36,8 +36,8 @@
 #define MPLS_LABEL_IPV6         2
 #define MPLS_LABEL_NULL         3
 
-#define MPLS_LABEL(shim)        ntohl(shim) >> 12
-#define MPLS_BOTTOM(shim)       ((ntohl(shim) >> 8) & 0x1)
+#define MPLS_LABEL(shim)        SCNtohl(shim) >> 12
+#define MPLS_BOTTOM(shim)       ((SCNtohl(shim) >> 8) & 0x1)
 
 /* Inner protocol guessing values. */
 #define MPLS_PROTO_ETHERNET_PW  0

@@ -89,7 +89,7 @@ static inline _Bool GetIcmpSeq(Packet *p, uint16_t *seq)
             case ICMP_ADDRESSREPLY:
                 SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
-                        ntohs(ICMPV4_GET_SEQ(p)));
+                        SCNtohs(ICMPV4_GET_SEQ(p)));
 
                 seqn = ICMPV4_GET_SEQ(p);
                 break;
@@ -104,7 +104,7 @@ static inline _Bool GetIcmpSeq(Packet *p, uint16_t *seq)
             case ICMP6_ECHO_REPLY:
                 SCLogDebug("ICMPV6_GET_SEQ(p) %"PRIu16" (network byte order), "
                         "%"PRIu16" (host byte order)", ICMPV6_GET_SEQ(p),
-                        ntohs(ICMPV6_GET_SEQ(p)));
+                        SCNtohs(ICMPV6_GET_SEQ(p)));
 
                 seqn = ICMPV6_GET_SEQ(p);
                 break;

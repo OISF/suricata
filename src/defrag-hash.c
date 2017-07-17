@@ -294,7 +294,7 @@ void DefragHashShutdown(void)
  *
  *  \note we don't care about the real ipv6 ip's, this is just
  *        to consistently fill the DefragHashKey6 struct, without all
- *        the ntohl calls.
+ *        the SCNtohl calls.
  *
  *  \warning do not use elsewhere unless you know what you're doing.
  *           detect-engine-address-ipv6.c's AddressIPv6GtU32 is likely

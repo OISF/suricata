@@ -726,7 +726,7 @@ static int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     if (p->level4_comp_csum == -1)
         p->level4_comp_csum = ICMPV4CalculateChecksum((uint16_t *)p->icmpv4h,
-                                                      ntohs(IPV4_GET_RAW_IPLEN(p->ip4h)) -
+                                                      SCNtohs(IPV4_GET_RAW_IPLEN(p->ip4h)) -
                                                       IPV4_GET_RAW_HLEN(p->ip4h) * 4);
 
     if (p->level4_comp_csum == p->icmpv4h->checksum && cd->valid == 1)

@@ -54,9 +54,9 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         return TM_ECODE_FAILED;
 
     SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRId32 "",
-        p, pkt, ntohs(p->ppph->protocol), len);
+        p, pkt, SCNtohs(p->ppph->protocol), len);
 
-    switch (ntohs(p->ppph->protocol))
+    switch (SCNtohs(p->ppph->protocol))
     {
         case PPP_VJ_UCOMP:
             if (unlikely(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))) {
@@ -122,7 +122,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
             return TM_ECODE_OK;
 
         default:
-            SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
+            SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->ppph->protocol));
             ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
             return TM_ECODE_OK;
     }

@@ -429,8 +429,8 @@ static int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 
     ph = nfq_get_msg_packet_hdr(tb);
     if (ph != NULL) {
-        p->nfq_v.id = ntohl(ph->packet_id);
-        //p->nfq_v.hw_protocol = ntohs(p->nfq_v.ph->hw_protocol);
+        p->nfq_v.id = SCNtohl(ph->packet_id);
+        //p->nfq_v.hw_protocol = SCNtohs(p->nfq_v.ph->hw_protocol);
         p->nfq_v.hw_protocol = ph->hw_protocol;
     }
     /* coverity[missing_lock] */

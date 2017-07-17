@@ -76,10 +76,10 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
     SCLogDebug("starting %u", input_len);
 
     DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
-    if (ntohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
+    if (SCNtohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
         goto bad_data;
     }
-    if (ntohs(dns_tcp_header->len) >= input_len) {
+    if (SCNtohs(dns_tcp_header->len) >= input_len) {
         goto insufficient_data;
     }
 
@@ -90,7 +90,7 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
 
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
+    for (q = 0; q < SCNtohs(dns_header->questions); q++) {
         uint16_t fqdn_offset = 0;
 
         if (input + input_len < data + 1) {
@@ -143,7 +143,7 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
         }
 #ifdef DEBUG
         DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
+        SCLogDebug("trailer type %04x class %04x", SCNtohs(trailer->type), SCNtohs(trailer->class));
 #endif
         data += sizeof(DNSQueryTrailer);
     }
@@ -196,7 +196,7 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
     if (DNSValidateRequestHeader(dns_state, dns_header) < 0)
         goto bad_data;
 
-    //SCLogInfo("ID %04x", ntohs(dns_header->tx_id));
+    //SCLogInfo("ID %04x", SCNtohs(dns_header->tx_id));
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
@@ -211,7 +211,7 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
+    for (q = 0; q < SCNtohs(dns_header->questions); q++) {
         uint8_t fqdn[DNS_MAX_SIZE];
         uint16_t fqdn_offset = 0;
 
@@ -266,14 +266,14 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
             goto insufficient_data;
         }
         DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
+        SCLogDebug("trailer type %04x class %04x", SCNtohs(trailer->type), SCNtohs(trailer->class));
         data += sizeof(DNSQueryTrailer);
 
         /* store our data */
         if (dns_state != NULL) {
             DNSStoreQueryInState(dns_state, fqdn, fqdn_offset,
-                    ntohs(trailer->type), ntohs(trailer->class),
-                    ntohs(dns_header->tx_id));
+                    SCNtohs(trailer->type), SCNtohs(trailer->class),
+                    SCNtohs(dns_header->tx_id));
         }
     }
 
@@ -341,26 +341,26 @@ next_record:
         DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
         SCLogDebug("DNS %p", dns_tcp_header);
 
-        if (ntohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
+        if (SCNtohs(dns_tcp_header->len) < sizeof(DNSHeader)) {
             /* bogus len, doesn't fit even basic dns header */
             goto bad_data;
-        } else if (ntohs(dns_tcp_header->len) == (input_len-2)) {
+        } else if (SCNtohs(dns_tcp_header->len) == (input_len-2)) {
             /* we have all data, so process w/o buffering */
             if (DNSRequestParseData(f, dns_state, input+2, input_len-2) < 0)
                 goto bad_data;
 
-        } else if ((input_len-2) > ntohs(dns_tcp_header->len)) {
+        } else if ((input_len-2) > SCNtohs(dns_tcp_header->len)) {
             /* we have all data, so process w/o buffering */
-            if (DNSRequestParseData(f, dns_state, input+2, ntohs(dns_tcp_header->len)) < 0)
+            if (DNSRequestParseData(f, dns_state, input+2, SCNtohs(dns_tcp_header->len)) < 0)
                 goto bad_data;
 
             /* treat the rest of the data as a (potential) new record */
-            input += (2 + ntohs(dns_tcp_header->len));
-            input_len -= (2 + ntohs(dns_tcp_header->len));
+            input += (2 + SCNtohs(dns_tcp_header->len));
+            input_len -= (2 + SCNtohs(dns_tcp_header->len));
             goto next_record;
         } else {
             /* not enough data, store record length and buffer */
-            dns_state->record_len = ntohs(dns_tcp_header->len);
+            dns_state->record_len = SCNtohs(dns_tcp_header->len);
             BufferData(dns_state, input+2, input_len-2);
         }
     } else if (input_len + dns_state->offset < dns_state->record_len) {
@@ -409,7 +409,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     DNSTransaction *tx = NULL;
     int found = 0;
-    if ((tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id))) != NULL)
+    if ((tx = DNSTransactionFindByTxId(dns_state, SCNtohs(dns_header->tx_id))) != NULL)
         found = 1;
 
     if (!found) {
@@ -421,7 +421,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
-    for (q = 0; q < ntohs(dns_header->questions); q++) {
+    for (q = 0; q < SCNtohs(dns_header->questions); q++) {
         uint8_t fqdn[DNS_MAX_SIZE];
         uint16_t fqdn_offset = 0;
 
@@ -469,12 +469,12 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
 #if DEBUG
         DNSQueryTrailer *trailer = (DNSQueryTrailer *)data;
-        SCLogDebug("trailer type %04x class %04x", ntohs(trailer->type), ntohs(trailer->class));
+        SCLogDebug("trailer type %04x class %04x", SCNtohs(trailer->type), SCNtohs(trailer->class));
 #endif
         data += sizeof(DNSQueryTrailer);
     }
 
-    for (q = 0; q < ntohs(dns_header->answer_rr); q++) {
+    for (q = 0; q < SCNtohs(dns_header->answer_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_ANSWER,
                 input, input_len, data);
         if (data == NULL) {
@@ -483,7 +483,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
     }
 
     //PrintRawDataFp(stdout, (uint8_t *)data, input_len - (data - input));
-    for (q = 0; q < ntohs(dns_header->authority_rr); q++) {
+    for (q = 0; q < SCNtohs(dns_header->authority_rr); q++) {
         data = DNSReponseParse(dns_state, dns_header, q, DNS_LIST_AUTHORITY,
                 input, input_len, data);
         if (data == NULL) {
@@ -492,7 +492,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
     }
 
     /* parse rcode, e.g. "noerror" or "nxdomain" */
-    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+    uint8_t rcode = SCNtohs(dns_header->flags) & 0x0F;
     if (rcode <= DNS_RCODE_NOTZONE) {
         SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
@@ -502,7 +502,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         SCLogDebug("unexpected DNS rcode %u", rcode);
     }
 
-    if (ntohs(dns_header->flags) & 0x0080) {
+    if (SCNtohs(dns_header->flags) & 0x0080) {
         SCLogDebug("recursion desired");
         if (tx != NULL)
             tx->recursion_desired = 1;
@@ -581,25 +581,25 @@ next_record:
         DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
         SCLogDebug("DNS %p", dns_tcp_header);
 
-        if (ntohs(dns_tcp_header->len) == 0) {
+        if (SCNtohs(dns_tcp_header->len) == 0) {
             goto bad_data;
-        } else if (ntohs(dns_tcp_header->len) == (input_len-2)) {
+        } else if (SCNtohs(dns_tcp_header->len) == (input_len-2)) {
             /* we have all data, so process w/o buffering */
             if (DNSReponseParseData(f, dns_state, input+2, input_len-2) < 0)
                 goto bad_data;
 
-        } else if ((input_len-2) > ntohs(dns_tcp_header->len)) {
+        } else if ((input_len-2) > SCNtohs(dns_tcp_header->len)) {
             /* we have all data, so process w/o buffering */
-            if (DNSReponseParseData(f, dns_state, input+2, ntohs(dns_tcp_header->len)) < 0)
+            if (DNSReponseParseData(f, dns_state, input+2, SCNtohs(dns_tcp_header->len)) < 0)
                 goto bad_data;
 
             /* treat the rest of the data as a (potential) new record */
-            input += (2 + ntohs(dns_tcp_header->len));
-            input_len -= (2 + ntohs(dns_tcp_header->len));
+            input += (2 + SCNtohs(dns_tcp_header->len));
+            input_len -= (2 + SCNtohs(dns_tcp_header->len));
             goto next_record;
         } else {
             /* not enough data, store record length and buffer */
-            dns_state->record_len = ntohs(dns_tcp_header->len);
+            dns_state->record_len = SCNtohs(dns_tcp_header->len);
             BufferData(dns_state, input+2, input_len-2);
         }
     } else if (input_len + dns_state->offset < dns_state->record_len) {
@@ -647,10 +647,10 @@ static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
     }
 
     DNSTcpHeader *dns_header = (DNSTcpHeader *)input;
-    if (ntohs(dns_header->len) < sizeof(DNSHeader)) {
+    if (SCNtohs(dns_header->len) < sizeof(DNSHeader)) {
         /* length field bogus, won't even fit a minimal DNS header. */
         return ALPROTO_FAILED;
-    } else if (ntohs(dns_header->len) > ilen) {
+    } else if (SCNtohs(dns_header->len) > ilen) {
         int r = DNSTCPRequestParseProbe(input, ilen);
         if (r == -1) {
             /* probing parser told us "bad data", so it's not
@@ -661,7 +661,7 @@ static uint16_t DNSTcpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
             return ALPROTO_DNS;
         }
 
-        SCLogDebug("not yet enough info %u > %u", ntohs(dns_header->len), ilen);
+        SCLogDebug("not yet enough info %u > %u", SCNtohs(dns_header->len), ilen);
         return ALPROTO_UNKNOWN;
     }
 
@@ -688,7 +688,7 @@ static uint16_t DNSTcpProbeResponse(uint8_t *input, uint32_t len,
 
     DNSTcpHeader *dns_header = (DNSTcpHeader *)input;
 
-    if (ntohs(dns_header->len) < sizeof(DNSHeader)) {
+    if (SCNtohs(dns_header->len) < sizeof(DNSHeader)) {
         return ALPROTO_FAILED;
     }
 

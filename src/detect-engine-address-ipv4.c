@@ -58,10 +58,10 @@
  */
 int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b)
 {
-    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
-    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
-    uint32_t b_ip1 = ntohl(b->ip.addr_data32[0]);
-    uint32_t b_ip2 = ntohl(b->ip2.addr_data32[0]);
+    uint32_t a_ip1 = SCNtohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = SCNtohl(a->ip2.addr_data32[0]);
+    uint32_t b_ip1 = SCNtohl(b->ip.addr_data32[0]);
+    uint32_t b_ip2 = SCNtohl(b->ip2.addr_data32[0]);
 
     if (a_ip1 == b_ip1 && a_ip2 == b_ip2) {
         SCLogDebug("ADDRESS_EQ");
@@ -113,10 +113,10 @@ int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b)
 int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                          DetectAddress *b, DetectAddress **c)
 {
-    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
-    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
-    uint32_t b_ip1 = ntohl(b->ip.addr_data32[0]);
-    uint32_t b_ip2 = ntohl(b->ip2.addr_data32[0]);
+    uint32_t a_ip1 = SCNtohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = SCNtohl(a->ip2.addr_data32[0]);
+    uint32_t b_ip1 = SCNtohl(b->ip.addr_data32[0]);
+    uint32_t b_ip2 = SCNtohl(b->ip2.addr_data32[0]);
     DetectAddress *tmp = NULL;
     DetectAddress *tmp_c = NULL;
     int r = 0;
@@ -319,15 +319,15 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
         return 0;
 
     /* if we don't start with 0.0.0.0 we know we're good */
-    if (ntohl(ag->ip.addr_data32[0]) != 0x00000000)
+    if (SCNtohl(ag->ip.addr_data32[0]) != 0x00000000)
         return 0;
 
     /* if we're ending with 255.255.255.255 while we know we started with
      * 0.0.0.0 it's the complete space */
-    if (ntohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
+    if (SCNtohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
         return 1;
 
-    next_ip = htonl(ntohl(ag->ip2.addr_data32[0]) + 1);
+    next_ip = htonl(SCNtohl(ag->ip2.addr_data32[0]) + 1);
     ag = ag->next;
 
     for ( ; ag != NULL; ag = ag->next) {
@@ -335,10 +335,10 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
         if (ag->ip.addr_data32[0] != next_ip)
             return 0;
 
-        if (ntohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
+        if (SCNtohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
             return 1;
 
-        next_ip = htonl(ntohl(ag->ip2.addr_data32[0]) + 1);
+        next_ip = htonl(SCNtohl(ag->ip2.addr_data32[0]) + 1);
     }
 
     return 0;
@@ -367,8 +367,8 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
  */
 int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b)
 {
-    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
-    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
+    uint32_t a_ip1 = SCNtohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = SCNtohl(a->ip2.addr_data32[0]);
     DetectAddress *tmp_b = NULL;
 
     /* default to NULL */
@@ -432,10 +432,10 @@ int DetectAddressJoinIPv4(DetectEngineCtx *de_ctx, DetectAddress *target,
     if (source == NULL || target == NULL)
         return -1;
 
-    if (ntohl(source->ip.addr_data32[0]) < ntohl(target->ip.addr_data32[0]))
+    if (SCNtohl(source->ip.addr_data32[0]) < SCNtohl(target->ip.addr_data32[0]))
         target->ip.addr_data32[0] = source->ip.addr_data32[0];
 
-    if (ntohl(source->ip2.addr_data32[0]) > ntohl(target->ip2.addr_data32[0]))
+    if (SCNtohl(source->ip2.addr_data32[0]) > SCNtohl(target->ip2.addr_data32[0]))
         target->ip2.addr_data32[0] = source->ip2.addr_data32[0];
 
     return 0;

@@ -54,9 +54,9 @@ int AddressIPv6Lt(Address *a, Address *b)
     int i = 0;
 
     for (i = 0; i < 4; i++) {
-        if (ntohl(a->addr_data32[i]) < ntohl(b->addr_data32[i]))
+        if (SCNtohl(a->addr_data32[i]) < SCNtohl(b->addr_data32[i]))
             return 1;
-        if (ntohl(a->addr_data32[i]) > ntohl(b->addr_data32[i]))
+        if (SCNtohl(a->addr_data32[i]) > SCNtohl(b->addr_data32[i]))
             break;
     }
 
@@ -68,9 +68,9 @@ int AddressIPv6LtU32(uint32_t *a, uint32_t *b)
     int i = 0;
 
     for (i = 0; i < 4; i++) {
-        if (ntohl(a[i]) < ntohl(b[i]))
+        if (SCNtohl(a[i]) < SCNtohl(b[i]))
             return 1;
-        if (ntohl(a[i]) > ntohl(b[i]))
+        if (SCNtohl(a[i]) > SCNtohl(b[i]))
             break;
     }
 
@@ -92,9 +92,9 @@ int AddressIPv6Gt(Address *a, Address *b)
     int i = 0;
 
     for (i = 0; i < 4; i++) {
-        if (ntohl(a->addr_data32[i]) > ntohl(b->addr_data32[i]))
+        if (SCNtohl(a->addr_data32[i]) > SCNtohl(b->addr_data32[i]))
             return 1;
-        if (ntohl(a->addr_data32[i]) < ntohl(b->addr_data32[i]))
+        if (SCNtohl(a->addr_data32[i]) < SCNtohl(b->addr_data32[i]))
             break;
     }
 
@@ -106,9 +106,9 @@ int AddressIPv6GtU32(uint32_t *a, uint32_t *b)
     int i = 0;
 
     for (i = 0; i < 4; i++) {
-        if (ntohl(a[i]) > ntohl(b[i]))
+        if (SCNtohl(a[i]) > SCNtohl(b[i]))
             return 1;
-        if (ntohl(a[i]) < ntohl(b[i]))
+        if (SCNtohl(a[i]) < SCNtohl(b[i]))
             break;
     }
 
@@ -359,14 +359,14 @@ static void AddressCutIPv6Copy(uint32_t *a, uint32_t *b)
 int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
                          DetectAddress *b, DetectAddress **c)
 {
-    uint32_t a_ip1[4] = { ntohl(a->ip.addr_data32[0]), ntohl(a->ip.addr_data32[1]),
-                          ntohl(a->ip.addr_data32[2]), ntohl(a->ip.addr_data32[3]) };
-    uint32_t a_ip2[4] = { ntohl(a->ip2.addr_data32[0]), ntohl(a->ip2.addr_data32[1]),
-                          ntohl(a->ip2.addr_data32[2]), ntohl(a->ip2.addr_data32[3]) };
-    uint32_t b_ip1[4] = { ntohl(b->ip.addr_data32[0]), ntohl(b->ip.addr_data32[1]),
-                          ntohl(b->ip.addr_data32[2]), ntohl(b->ip.addr_data32[3]) };
-    uint32_t b_ip2[4] = { ntohl(b->ip2.addr_data32[0]), ntohl(b->ip2.addr_data32[1]),
-                          ntohl(b->ip2.addr_data32[2]), ntohl(b->ip2.addr_data32[3]) };
+    uint32_t a_ip1[4] = { SCNtohl(a->ip.addr_data32[0]), SCNtohl(a->ip.addr_data32[1]),
+                          SCNtohl(a->ip.addr_data32[2]), SCNtohl(a->ip.addr_data32[3]) };
+    uint32_t a_ip2[4] = { SCNtohl(a->ip2.addr_data32[0]), SCNtohl(a->ip2.addr_data32[1]),
+                          SCNtohl(a->ip2.addr_data32[2]), SCNtohl(a->ip2.addr_data32[3]) };
+    uint32_t b_ip1[4] = { SCNtohl(b->ip.addr_data32[0]), SCNtohl(b->ip.addr_data32[1]),
+                          SCNtohl(b->ip.addr_data32[2]), SCNtohl(b->ip.addr_data32[3]) };
+    uint32_t b_ip2[4] = { SCNtohl(b->ip2.addr_data32[0]), SCNtohl(b->ip2.addr_data32[1]),
+                          SCNtohl(b->ip2.addr_data32[2]), SCNtohl(b->ip2.addr_data32[3]) };
 
     DetectAddress *tmp = NULL;
 
@@ -537,14 +537,14 @@ error:
 int DetectAddressCutIPv6(DetectAddressData *a, DetectAddressData *b,
                          DetectAddressData **c)
 {
-    uint32_t a_ip1[4] = { ntohl(a->ip[0]), ntohl(a->ip[1]),
-                          ntohl(a->ip[2]), ntohl(a->ip[3]) };
-    uint32_t a_ip2[4] = { ntohl(a->ip2[0]), ntohl(a->ip2[1]),
-                          ntohl(a->ip2[2]), ntohl(a->ip2[3]) };
-    uint32_t b_ip1[4] = { ntohl(b->ip[0]), ntohl(b->ip[1]),
-                          ntohl(b->ip[2]), ntohl(b->ip[3]) };
-    uint32_t b_ip2[4] = { ntohl(b->ip2[0]), ntohl(b->ip2[1]),
-                          ntohl(b->ip2[2]), ntohl(b->ip2[3]) };
+    uint32_t a_ip1[4] = { SCNtohl(a->ip[0]), SCNtohl(a->ip[1]),
+                          SCNtohl(a->ip[2]), SCNtohl(a->ip[3]) };
+    uint32_t a_ip2[4] = { SCNtohl(a->ip2[0]), SCNtohl(a->ip2[1]),
+                          SCNtohl(a->ip2[2]), SCNtohl(a->ip2[3]) };
+    uint32_t b_ip1[4] = { SCNtohl(b->ip[0]), SCNtohl(b->ip[1]),
+                          SCNtohl(b->ip[2]), SCNtohl(b->ip[3]) };
+    uint32_t b_ip2[4] = { SCNtohl(b->ip2[0]), SCNtohl(b->ip2[1]),
+                          SCNtohl(b->ip2[2]), SCNtohl(b->ip2[3]) };
 
     /* default to NULL */
     *c = NULL;
@@ -722,10 +722,10 @@ error:
  */
 int DetectAddressCutNotIPv6(DetectAddress *a, DetectAddress **b)
 {
-    uint32_t a_ip1[4] = { ntohl(a->ip.addr_data32[0]), ntohl(a->ip.addr_data32[1]),
-                          ntohl(a->ip.addr_data32[2]), ntohl(a->ip.addr_data32[3]) };
-    uint32_t a_ip2[4] = { ntohl(a->ip2.addr_data32[0]), ntohl(a->ip2.addr_data32[1]),
-                          ntohl(a->ip2.addr_data32[2]), ntohl(a->ip2.addr_data32[3]) };
+    uint32_t a_ip1[4] = { SCNtohl(a->ip.addr_data32[0]), SCNtohl(a->ip.addr_data32[1]),
+                          SCNtohl(a->ip.addr_data32[2]), SCNtohl(a->ip.addr_data32[3]) };
+    uint32_t a_ip2[4] = { SCNtohl(a->ip2.addr_data32[0]), SCNtohl(a->ip2.addr_data32[1]),
+                          SCNtohl(a->ip2.addr_data32[2]), SCNtohl(a->ip2.addr_data32[3]) };
     uint32_t ip_nul[4] = { 0x00000000, 0x00000000, 0x00000000, 0x00000000 };
     uint32_t ip_max[4] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
@@ -1127,10 +1127,10 @@ static int AddressTestIPv6SubOne01(void)
         return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
-    a[0] = ntohl(a[0]);
-    a[1] = ntohl(a[1]);
-    a[2] = ntohl(a[2]);
-    a[3] = ntohl(a[3]);
+    a[0] = SCNtohl(a[0]);
+    a[1] = SCNtohl(a[1]);
+    a[2] = SCNtohl(a[2]);
+    a[3] = SCNtohl(a[3]);
 
     AddressCutIPv6CopySubOne(a, b);
 
@@ -1156,10 +1156,10 @@ static int AddressTestIPv6SubOne02(void)
         return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
-    a[0] = ntohl(a[0]);
-    a[1] = ntohl(a[1]);
-    a[2] = ntohl(a[2]);
-    a[3] = ntohl(a[3]);
+    a[0] = SCNtohl(a[0]);
+    a[1] = SCNtohl(a[1]);
+    a[2] = SCNtohl(a[2]);
+    a[3] = SCNtohl(a[3]);
 
     AddressCutIPv6CopySubOne(a, b);
 
@@ -1185,10 +1185,10 @@ static int AddressTestIPv6AddOne01(void)
         return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
-    a[0] = ntohl(a[0]);
-    a[1] = ntohl(a[1]);
-    a[2] = ntohl(a[2]);
-    a[3] = ntohl(a[3]);
+    a[0] = SCNtohl(a[0]);
+    a[1] = SCNtohl(a[1]);
+    a[2] = SCNtohl(a[2]);
+    a[3] = SCNtohl(a[3]);
 
     AddressCutIPv6CopyAddOne(a, b);
 
@@ -1214,10 +1214,10 @@ static int AddressTestIPv6AddOne02(void)
         return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
-    a[0] = ntohl(a[0]);
-    a[1] = ntohl(a[1]);
-    a[2] = ntohl(a[2]);
-    a[3] = ntohl(a[3]);
+    a[0] = SCNtohl(a[0]);
+    a[1] = SCNtohl(a[1]);
+    a[2] = SCNtohl(a[2]);
+    a[3] = SCNtohl(a[3]);
 
     AddressCutIPv6CopyAddOne(a, b);
 

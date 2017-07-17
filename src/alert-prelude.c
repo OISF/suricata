@@ -475,16 +475,16 @@ static int PacketToDataV4(const Packet *p, const PacketAlert *pa, idmef_alert_t 
     AddIntData(alert, "ip_ver", IPV4_GET_RAW_VER(p->ip4h));
     AddIntData(alert, "ip_hlen", IPV4_GET_RAW_HLEN(p->ip4h));
     AddIntData(alert, "ip_tos", IPV4_GET_RAW_IPTOS(p->ip4h));
-    AddIntData(alert, "ip_len", ntohs(IPV4_GET_RAW_IPLEN(p->ip4h)));
+    AddIntData(alert, "ip_len", SCNtohs(IPV4_GET_RAW_IPLEN(p->ip4h)));
 
-    AddIntData(alert, "ip_id", ntohs(IPV4_GET_RAW_IPID(p->ip4h)));
+    AddIntData(alert, "ip_id", SCNtohs(IPV4_GET_RAW_IPID(p->ip4h)));
 
-    AddIntData(alert, "ip_off", ntohs(IPV4_GET_RAW_IPOFFSET(p->ip4h)));
+    AddIntData(alert, "ip_off", SCNtohs(IPV4_GET_RAW_IPOFFSET(p->ip4h)));
 
     AddIntData(alert, "ip_ttl", IPV4_GET_RAW_IPTTL(p->ip4h));
     AddIntData(alert, "ip_proto", IPV4_GET_RAW_IPPROTO(p->ip4h));
 
-    AddIntData(alert, "ip_sum", ntohs(p->ip4h->ip_csum));
+    AddIntData(alert, "ip_sum", SCNtohs(p->ip4h->ip_csum));
 
     SCReturnInt(0);
 }

@@ -814,10 +814,10 @@ static int ICMPV6EchoReqTest01(void)
     SCLogDebug("ID: %u seq: %u", ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
     if (ICMPV6_GET_TYPE(p) != 128 || ICMPV6_GET_CODE(p) != 0 ||
-        ntohs(ICMPV6_GET_ID(p)) != 9712 || ntohs(ICMPV6_GET_SEQ(p)) != 29987) {
+        SCNtohs(ICMPV6_GET_ID(p)) != 9712 || SCNtohs(ICMPV6_GET_SEQ(p)) != 29987) {
         printf("ICMPv6 Echo reply decode failed TYPE %u CODE %u ID %04x(%u) SEQ %04x(%u): ",
-                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), ntohs(ICMPV6_GET_ID(p)),
-                ICMPV6_GET_SEQ(p), ntohs(ICMPV6_GET_SEQ(p)));
+                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)),
+                ICMPV6_GET_SEQ(p), SCNtohs(ICMPV6_GET_SEQ(p)));
         FAIL;
     }
 
@@ -861,10 +861,10 @@ static int ICMPV6EchoRepTest01(void)
                ICMPV6_GET_CODE(p),ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
 
     if (ICMPV6_GET_TYPE(p) != 129 || ICMPV6_GET_CODE(p) != 0 ||
-        ntohs(ICMPV6_GET_ID(p)) != 9712 || ntohs(ICMPV6_GET_SEQ(p)) != 29987) {
+        SCNtohs(ICMPV6_GET_ID(p)) != 9712 || SCNtohs(ICMPV6_GET_SEQ(p)) != 29987) {
         printf("ICMPv6 Echo reply decode failed TYPE %u CODE %u ID %04x(%u) SEQ %04x(%u): ",
-                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), ntohs(ICMPV6_GET_ID(p)),
-                ICMPV6_GET_SEQ(p), ntohs(ICMPV6_GET_SEQ(p)));
+                ICMPV6_GET_TYPE(p), ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), SCNtohs(ICMPV6_GET_ID(p)),
+                ICMPV6_GET_SEQ(p), SCNtohs(ICMPV6_GET_SEQ(p)));
         FAIL;
     }
 

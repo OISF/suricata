@@ -165,7 +165,7 @@ static int DecodeIEEE8021ah(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, ui
     }
 
     IEEE8021ahHdr *hdr = (IEEE8021ahHdr *)pkt;
-    uint16_t next_proto = ntohs(hdr->type);
+    uint16_t next_proto = SCNtohs(hdr->type);
 
     switch (next_proto) {
         case ETHERNET_TYPE_VLAN:

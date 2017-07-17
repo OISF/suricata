@@ -84,7 +84,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
     uint16_t tag_length = 0;
     PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
 
-    uint16_t pppoe_length = ntohs(p->pppoedh->pppoe_length);
+    uint16_t pppoe_length = SCNtohs(p->pppoedh->pppoe_length);
     uint16_t packet_length = len - PPPOE_DISCOVERY_HEADER_MIN_LEN ;
 
     SCLogDebug("pppoe_length %"PRIu16", packet_length %"PRIu16"",
@@ -99,9 +99,9 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
     while (pppoedt < (PPPOEDiscoveryTag*) (pkt + (len - sizeof(PPPOEDiscoveryTag))) && pppoe_length >=4 && packet_length >=4)
     {
 #ifdef DEBUG
-        uint16_t tag_type = ntohs(pppoedt->pppoe_tag_type);
+        uint16_t tag_type = SCNtohs(pppoedt->pppoe_tag_type);
 #endif
-        tag_length = ntohs(pppoedt->pppoe_tag_length);
+        tag_length = SCNtohs(pppoedt->pppoe_tag_length);
 
         SCLogDebug ("PPPoE Tag type %x, length %u", tag_type, tag_length);
 
@@ -140,14 +140,14 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
         return TM_ECODE_FAILED;
 
     SCLogDebug("PPPOE VERSION %" PRIu32 " TYPE %" PRIu32 " CODE %" PRIu32 " SESSIONID %" PRIu32 " LENGTH %" PRIu32 "",
-           PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  ntohs(p->pppoesh->session_id),  ntohs(p->pppoesh->pppoe_length));
+           PPPOE_SESSION_GET_VERSION(p->pppoesh),  PPPOE_SESSION_GET_TYPE(p->pppoesh),  p->pppoesh->pppoe_code,  SCNtohs(p->pppoesh->session_id),  SCNtohs(p->pppoesh->pppoe_length));
 
     /* can't use DecodePPP() here because we only get a single 2-byte word to indicate protocol instead of the full PPP header */
 
-    if (ntohs(p->pppoesh->pppoe_length) > 0) {
+    if (SCNtohs(p->pppoesh->pppoe_length) > 0) {
         /* decode contained PPP packet */
 
-        switch (ntohs(p->pppoesh->protocol))
+        switch (SCNtohs(p->pppoesh->protocol))
         {
             case PPP_VJ_COMP:
             case PPP_IPX:
@@ -212,7 +212,7 @@ int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t
                 break;
 
             default:
-                SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
+                SCLogDebug("unknown PPP protocol: %" PRIx32 "",SCNtohs(p->ppph->protocol));
                 ENGINE_SET_INVALID_EVENT(p, PPP_WRONG_TYPE);
                 return TM_ECODE_OK;
         }
