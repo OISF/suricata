@@ -8,3 +8,4 @@ Output
    syslog-alerting-comp
    custom-http-logging
    custom-tls-logging
+   log-rotation
