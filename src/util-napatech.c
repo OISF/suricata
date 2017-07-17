@@ -247,7 +247,7 @@ static void *NapatechStatsLoop(void *arg)
 
     StreamCounters streamCounters[MAX_STREAMS];
     for (int i = 0; i < stream_cnt; ++i) {
-        char *pkts_buf = SCMalloc(32);
+        char *pkts_buf = SCCalloc(1, 32);
         if (unlikely(pkts_buf == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
@@ -256,7 +256,7 @@ static void *NapatechStatsLoop(void *arg)
         snprintf(pkts_buf, 32, "nt%d.pkts", stream_config[i].stream_id);
         streamCounters[i].pkts = StatsRegisterCounter(pkts_buf, tv);
 
-        char *byte_buf = SCMalloc(32);
+        char *byte_buf = SCCalloc(1, 32);
         if (unlikely(byte_buf == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
@@ -264,7 +264,7 @@ static void *NapatechStatsLoop(void *arg)
         snprintf(byte_buf, 32, "nt%d.bytes", stream_config[i].stream_id);
         streamCounters[i].byte = StatsRegisterCounter(byte_buf, tv);
 
-        char *drop_buf = SCMalloc(32);
+        char *drop_buf = SCCalloc(1, 32);
         if (unlikely(drop_buf == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for NAPATECH stream counter.");
             exit(EXIT_FAILURE);
