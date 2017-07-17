@@ -468,6 +468,7 @@ util-storage.c util-storage.h \
 util-streaming-buffer.c util-streaming-buffer.h \
 util-strlcatu.c \
 util-strlcpyu.c \
+util-strptime.c \
 util-syslog.c util-syslog.h \
 util-threshold-config.c util-threshold-config.h \
 util-time.c util-time.h \

@@ -455,6 +455,9 @@ size_t strlcat(char *, const char *src, size_t siz);
 #ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
+#ifndef HAVE_STRPTIME
+char *strptime(const char * __restrict, const char * __restrict, struct tm * __restrict);
+#endif
 
 extern int coverage_unittests;
 extern int g_ut_modules;
