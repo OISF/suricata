@@ -167,8 +167,9 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
  *  \brief initialize mpm contexts for applayer buffers that are in
  *         "single or "shared" mode.
  */
-void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
+int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
 {
+    int r = 0;
     DetectMpmAppLayerKeyword *am = de_ctx->app_mpms;
     while (am->reg != NULL) {
         int dir = (am->reg->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
@@ -178,12 +179,13 @@ void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
             MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
             if (mpm_ctx != NULL) {
                 if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                    mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                    r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
                 }
             }
         }
         am++;
     }
+    return r;
 }
 
 static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
@@ -223,49 +225,52 @@ void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx)
  *  \brief initialize mpm contexts for builtin buffers that are in
  *         "single or "shared" mode.
  */
-void DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
+int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
 {
+    int r = 0;
     MpmCtx *mpm_ctx = NULL;
 
     if (de_ctx->sgh_mpm_context_proto_tcp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_udp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_proto_other_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
 
     if (de_ctx->sgh_mpm_context_stream != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            r |= mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
     }
+
+    return r;
 }
 
 /**
@@ -402,12 +407,6 @@ void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
 {
     SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
     mpm_table[mpm_matcher].DestroyCtx(mpm_ctx);
-}
-
-void PatternMatchPrepare(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
-{
-    SCLogDebug("mpm_ctx %p, mpm_matcher %"PRIu16"", mpm_ctx, mpm_matcher);
-    MpmInitCtx(mpm_ctx, mpm_matcher);
 }
 
 void PatternMatchThreadPrint(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)

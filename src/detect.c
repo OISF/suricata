@@ -3574,8 +3574,12 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     }
 #endif
 
-    DetectMpmPrepareBuiltinMpms(de_ctx);
-    DetectMpmPrepareAppMpms(de_ctx);
+    int r = DetectMpmPrepareBuiltinMpms(de_ctx);
+    r |= DetectMpmPrepareAppMpms(de_ctx);
+    if (r != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
 
     if (SigMatchPrepare(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
