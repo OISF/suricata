@@ -116,5 +116,6 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 void DetectContentPrint(DetectContentData *);
 
 void DetectContentFree(void *);
+_Bool DetectContentPMATCHValidateCallback(const Signature *s);
 
 #endif /* __DETECT_CONTENT_H__ */
