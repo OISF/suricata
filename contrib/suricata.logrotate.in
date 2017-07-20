@@ -1,0 +1,13 @@
+# Sample /etc/logrotate.d/suricata configuration file.
+@e_logdir@*.log @e_logdir@*.json {
+        daily
+        missingok
+        rotate 5
+        compress
+        delaycompress
+        minsize 500k
+	sharedscripts
+	postrotate
+	    /bin/kill -HUP `cat @e_rundir@suricata.pid 2> /dev/null` 2> /dev/null || true
+	endscript
+}

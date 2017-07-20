@@ -66,6 +66,24 @@ It is possible to set the user and group to run Suricata as:
     group: suri
 
 
+PID File
+--------
+
+This option sets the name of the PID file when Suricata is run in
+daemon mode. This file records the Suricata process ID.
+
+::
+
+   pid-file: /var/run/suricata.pid
+
+.. note:: This configuration file option only sets the PID file when
+          running in daemon mode. To force creation of a PID file when
+          not running in daemon mode, use the :option:`--pidfile`
+          command line option.
+
+	  Also, if running more than one Suricata process, each
+	  process will need to specify a different pid-file location.
+
 .. _suricata-yaml-action-order:
 
 Action-order
@@ -208,6 +226,8 @@ with the -l command line parameter, enter the following:
 ::
 
   suricata -c suricata.yaml -i eth0 -l /var/log/suricata-logs/
+
+.. _suricata_yaml_outputs:
 
 Outputs
 ~~~~~~~
@@ -363,6 +383,8 @@ For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-out
 
 The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
+.. _suricata_yaml_unified2:
+
 Alert output for use with Barnyard2 (unified2.alert)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -502,6 +524,8 @@ Configuration options:
       filename: dns.log           # Name of this file this log is written to in the default logging directory
       append: yes                 # If this option is set to yes, the (if any exists) dns.log file wil not be overwritten while restarting Suricata.
       filetype: regular / unix_stream / unix_dgram
+
+.. _suricata_yaml_pcap_log:
 
 Packet log (pcap-log)
 ~~~~~~~~~~~~~~~~~~~~~
