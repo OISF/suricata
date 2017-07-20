@@ -1,3 +1,4 @@
 SUBDIRS = file_processor tile_pcie_logd
 
-EXTRA_DIST = suri-graphite
+EXTRA_DIST = suri-graphite \
+             suricata.logrotate.in
