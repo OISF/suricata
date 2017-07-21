@@ -1341,7 +1341,28 @@ static void ParseCommandLineAFL(const char *opt_name, char *opt_arg)
         AppLayerParserSetup();
         RegisterSMBParsers();
         exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_SMB, opt_arg));
-
+    } else if(strstr(opt_name, "afl-dcerpc-request") != NULL) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterDCERPCParsers();
+        if (strcmp(opt_name, "afl-dcerpc-request") == 0)
+            exit(AppLayerParserRequestFromFile(IPPROTO_TCP, ALPROTO_DCERPC, opt_arg));
+        else
+            exit(AppLayerParserRequestFromFileSerie(IPPROTO_TCP, ALPROTO_DCERPC, opt_arg));
+    } else if(strstr(opt_name, "afl-dcerpc") != NULL) {
+        //printf("arg: //%s\n", opt_arg);
+        MpmTableSetup();
+        SpmTableSetup();
+        AppLayerProtoDetectSetup();
+        AppLayerParserSetup();
+        RegisterDCERPCParsers();
+        if (strcmp(opt_name, "afl-dcerpc") == 0)
+            exit(AppLayerParserFromFile(IPPROTO_TCP, ALPROTO_DCERPC, opt_arg));
+        else
+            exit(AppLayerParserFromFileSerie(IPPROTO_TCP, ALPROTO_DCERPC, opt_arg));
     } else if(strcmp(opt_name, "afl-modbus-request") == 0) {
         //printf("arg: //%s\n", opt_arg);
         AppLayerParserSetup();
@@ -1496,6 +1517,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-mime", required_argument, 0 , 0},
         {"afl-dnp3-request", required_argument, 0, 0},
         {"afl-dnp3", required_argument, 0, 0},
+        {"afl-dcerpc", required_argument, 0, 0},
+        {"afl-dcerpc-serie", required_argument, 0, 0},
+        {"afl-dcerpc-request", required_argument, 0, 0},
+        {"afl-dcerpc-request-serie", required_argument, 0, 0},
 
         /* Other AFL options. */
         {"afl-rules", required_argument, 0 , 0},

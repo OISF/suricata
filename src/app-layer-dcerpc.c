@@ -1170,13 +1170,13 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
 
 /** \internal
  *  \retval stub_len or 0 in case of error */
-static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+static uint32_t StubDataParser(DCERPC *dcerpc, const uint8_t *input, uint32_t input_len)
 {
     SCEnter();
     uint8_t **stub_data_buffer = NULL;
     uint32_t *stub_data_buffer_len = NULL;
     uint8_t *stub_data_fresh = NULL;
-    uint16_t stub_len = 0;
+    uint32_t stub_len = 0;
     void *ptmp;
 
     /* request PDU.  Retrieve the request stub buffer */
@@ -1192,7 +1192,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
         stub_data_fresh = &dcerpc->dcerpcresponse.stub_data_fresh;
     }
 
-    stub_len = (dcerpc->padleft < input_len) ? dcerpc->padleft : input_len;
+    stub_len = MIN(dcerpc->padleft, input_len);
     if (stub_len == 0) {
         SCLogError(SC_ERR_DCERPC, "stub_len is NULL.  We shouldn't be seeing "
                    "this.  In case you are, there is something gravely wrong "
@@ -1246,7 +1246,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
-        int i = 0;
+        uint32_t i = 0;
         for (i = 0; i < stub_len; i++) {
             SCLogDebug("0x%02x ", input[i]);
         }
