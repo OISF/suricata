@@ -172,8 +172,6 @@ typedef struct DCERPCRequest_ {
     uint8_t *stub_data_buffer;
     /* length of the above buffer */
     uint32_t stub_data_buffer_len;
-    /* used by the dce preproc to indicate fresh entry in the stub data buffer */
-    uint8_t stub_data_fresh;
     uint8_t first_request_seen;
 } DCERPCRequest;
 
@@ -182,8 +180,6 @@ typedef struct DCERPCResponse_ {
     uint8_t *stub_data_buffer;
     /* length of the above buffer */
     uint32_t stub_data_buffer_len;
-    /* used by the dce preproc to indicate fresh entry in the stub data buffer */
-    uint8_t stub_data_fresh;
 } DCERPCResponse;
 
 typedef struct DCERPC_ {

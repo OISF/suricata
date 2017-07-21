@@ -71,7 +71,6 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
     DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpcudp_state;
     uint8_t **stub_data_buffer = NULL;
     uint32_t *stub_data_buffer_len = NULL;
-    uint8_t *stub_data_fresh = NULL;
     uint16_t stub_len = 0;
     void *ptmp;
 
@@ -79,13 +78,11 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
     if (sstate->dcerpc.dcerpchdrudp.type == REQUEST) {
         stub_data_buffer = &sstate->dcerpc.dcerpcrequest.stub_data_buffer;
         stub_data_buffer_len = &sstate->dcerpc.dcerpcrequest.stub_data_buffer_len;
-        stub_data_fresh = &sstate->dcerpc.dcerpcrequest.stub_data_fresh;
 
     /* response PDU.  Retrieve the response stub buffer */
     } else {
         stub_data_buffer = &sstate->dcerpc.dcerpcresponse.stub_data_buffer;
         stub_data_buffer_len = &sstate->dcerpc.dcerpcresponse.stub_data_buffer_len;
-        stub_data_fresh = &sstate->dcerpc.dcerpcresponse.stub_data_fresh;
     }
 
     stub_len = (sstate->dcerpc.fraglenleft < input_len) ? sstate->dcerpc.fraglenleft : input_len;
@@ -112,7 +109,6 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
     *stub_data_buffer = ptmp;
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);
 
-    *stub_data_fresh = 1;
     /* length of the buffered stub */
     *stub_data_buffer_len += stub_len;
 
