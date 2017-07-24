@@ -19,8 +19,6 @@ if !DEBUG
 RELEASE = --release
 endif
 
-RUST_FEATURES =
-
 if HAVE_LUA
 RUST_FEATURES +=	lua
 endif
