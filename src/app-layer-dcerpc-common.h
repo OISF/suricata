@@ -173,6 +173,7 @@ typedef struct DCERPCRequest_ {
     /* length of the above buffer */
     uint32_t stub_data_buffer_len;
     uint8_t first_request_seen;
+    bool stub_data_buffer_reset;
 } DCERPCRequest;
 
 typedef struct DCERPCResponse_ {
@@ -180,6 +181,7 @@ typedef struct DCERPCResponse_ {
     uint8_t *stub_data_buffer;
     /* length of the above buffer */
     uint32_t stub_data_buffer_len;
+    bool stub_data_buffer_reset;
 } DCERPCResponse;
 
 typedef struct DCERPC_ {
@@ -191,9 +193,6 @@ typedef struct DCERPC_ {
     uint8_t pad;
     uint16_t padleft;
     uint16_t transaction_id;
-    /* indicates if the dcerpc pdu state is in the middle of processing
-     * a fragmented pdu */
-    uint8_t pdu_fragged;
 } DCERPC;
 
 typedef struct DCERPCUDP_ {
