@@ -38,7 +38,7 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
     if (size == 0) {
         goto error;
     }
-    if (size & (size - 1) == 0) {
+    if ((size & (size - 1)) != 0) {
         //printf("ERROR: Size must be a power of 2\n"); 
         goto error;
     }
