@@ -16,8 +16,8 @@ Installing from the source distribution files gives the most control over the Su
 
 Basic steps::
 
-    tar xzvf suricata-3.2beta1.tar.gz
-    cd suricata-3.2beta1
+    tar xzvf suricata-4.0.0.tar.gz
+    cd suricata-4.0.0
     ./configure
     make
     make install
@@ -55,6 +55,9 @@ Common configure options
 
     Enables GeoIP support for detection.
 
+.. option:: --enable-rust
+
+    Enables experimental Rust support
 
 Dependencies
 ^^^^^^^^^^^^
@@ -70,6 +73,10 @@ The following tools are required:
 For full features, also add:
 
   libjansson, libnss, libgeoip, liblua5.1, libhiredis, libevent
+
+Rust support (experimental):
+
+  rustc, cargo
 
 Ubuntu/Debian
 """""""""""""
@@ -93,6 +100,10 @@ Extra for iptables/nftables IPS integration::
                     libnetfilter-log-dev libnetfilter-log1      \
                     libnfnetlink-dev libnfnetlink0
 
+For Rust support (Ubuntu only)::
+
+    apt-get install rustc cargo
+
 .. _install-binary-packages:
 
 Binary packages
@@ -111,6 +122,10 @@ To use it::
 
 Debian
 ^^^^^^
+
+In Debian 9 (Stretch) do::
+
+    apt-get install suricata
 
 In Debian Jessie Suricata is out of date, but an updated version is in Debian Backports.
 
