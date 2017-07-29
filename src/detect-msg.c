@@ -124,6 +124,11 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
         }
     }
 
+    if (s->msg != NULL) {
+        SCLogError(SC_ERR_INVALID_RULE_ARGUMENT, "Duplicated 'msg:' keyword detected!");
+        goto error;
+    }
+
     s->msg = SCMalloc(len + 1);
     if (s->msg == NULL)
         goto error;
