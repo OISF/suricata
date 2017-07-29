@@ -64,16 +64,16 @@ matrix:
         - NAME="linux,gcc,rust"
         - *default-cflags
         - ENABLE_RUST="yes"
-        - ARGS="--enable-rust"
-    # Linux, gcc, Rust (1.7.0 - oldest supported).
+        - ARGS="--enable-rust --enable-rust-strict"
+    # Linux, gcc, Rust (1.15.0 - oldest supported).
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust-1.7.0"
+        - NAME="linux,gcc,rust-1.15.0"
         - *default-cflags
         - ENABLE_RUST="yes"
-        - RUST_VERSION="1.7.0"
-        - ARGS="--enable-rust"
+        - RUST_VERSION="1.15.0"
+        - ARGS="--enable-rust --enable-rust-strict"
     # Linux, gcc, -DNDEBUG.
     - os: linux
       compiler: gcc

@@ -57,7 +57,7 @@ int SCRunningAsService(void)
 /**
  * \brief Detect if running as service or console app
  */
-void SCAtExitHandler(void)
+static void SCAtExitHandler(void)
 {
     SERVICE_STATUS status = {
         SERVICE_WIN32,
@@ -129,7 +129,7 @@ static void WINAPI SCServiceMain(uint32_t argc, char** argv)
         0
     };
 
-    if ((service_status_handle = RegisterServiceCtrlHandlerEx(PROG_NAME, SCServiceCtrlHandlerEx, NULL)) == (SERVICE_STATUS_HANDLE)0) {
+    if ((service_status_handle = RegisterServiceCtrlHandlerEx((char *)PROG_NAME, SCServiceCtrlHandlerEx, NULL)) == (SERVICE_STATUS_HANDLE)0) {
         SCLogError(SC_ERR_SVC, "Can't register service control handler: %d", (int)GetLastError());
         return;
     }

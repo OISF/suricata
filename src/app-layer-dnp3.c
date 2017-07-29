@@ -258,7 +258,7 @@ static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
  */
 static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
 {
-    return memmem(input, len, banner, strlen(banner)) != NULL;
+    return BasicSearch(input, len, (uint8_t *)banner, strlen(banner)) != NULL;
 }
 
 /**

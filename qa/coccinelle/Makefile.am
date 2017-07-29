@@ -7,6 +7,7 @@ EXTRA_DIST= access-pkt-packet.cocci \
     size_t.cocci \
     struct-flags.cocci \
     sz3.cocci \
+    uint.cocci \
     run_check.sh struct-flags.py
 
 if HAVE_COCCINELLE

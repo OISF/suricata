@@ -2085,7 +2085,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
                 ptv->datalink,    /* linktype_arg */
                 &filter,       /* program */
                 ptv->bpf_filter, /* const char *buf */
-                0,             /* optimize */
+                1,             /* optimize */
                 0              /* mask */
                 ) == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Filter compilation failed.");

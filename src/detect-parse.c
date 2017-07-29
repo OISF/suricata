@@ -1440,6 +1440,11 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     SCEnter();
 
     /* run buffer type validation callbacks if any */
+    if (s->init_data->smlists[DETECT_SM_LIST_PMATCH]) {
+        if (DetectContentPMATCHValidateCallback(s) == FALSE)
+            SCReturnInt(0);
+    }
+
     int x;
     for (x = 0; x < nlists; x++) {
         if (s->init_data->smlists[x]) {
@@ -3668,6 +3673,36 @@ static int SigParseTestUnblanacedQuotes01(void)
     PASS;
 }
 
+static int SigParseTestContentGtDsize01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = SigInit(de_ctx,
+            "alert http any any -> any any ("
+            "dsize:21; content:\"0123456789001234567890|00 00|\"; "
+            "sid:1; rev:1;)");
+    FAIL_IF_NOT_NULL(s);
+
+    PASS;
+}
+
+static int SigParseTestContentGtDsize02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = SigInit(de_ctx,
+            "alert http any any -> any any ("
+            "dsize:21; content:\"0123456789|00 00|\"; offset:10; "
+            "sid:1; rev:1;)");
+    FAIL_IF_NOT_NULL(s);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void)
@@ -3724,5 +3759,10 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03);
     UtRegisterTest("SigParseTestUnblanacedQuotes01",
         SigParseTestUnblanacedQuotes01);
+
+    UtRegisterTest("SigParseTestContentGtDsize01",
+            SigParseTestContentGtDsize01);
+    UtRegisterTest("SigParseTestContentGtDsize02",
+            SigParseTestContentGtDsize02);
 #endif /* UNITTESTS */
 }

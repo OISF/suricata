@@ -19,14 +19,12 @@ if !DEBUG
 RELEASE = --release
 endif
 
-FEATURES =
-
 if HAVE_LUA
-FEATURES +=	lua
+RUST_FEATURES +=	lua
 endif
 
 if HAVE_RUST_EXTERNAL
-FEATURES +=	experimental
+RUST_FEATURES +=	experimental
 endif
 
 all-local:
@@ -35,11 +33,11 @@ if HAVE_PYTHON
 		$(HAVE_PYTHON) ./gen-c-headers.py && \
 		CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(FEATURES)"
+			--features "$(RUST_FEATURES)"
 else
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(FEATURES)"
+			--features "$(RUST_FEATURES)"
 endif
 
 clean-local:

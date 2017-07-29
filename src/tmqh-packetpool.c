@@ -589,5 +589,5 @@ void PacketPoolPostRunmodes(void)
         max_pending_return_packets = packets;
 
     SCLogDebug("detect threads %u, max packets %u, max_pending_return_packets %u",
-            threads, (uint)threads, max_pending_return_packets);
+            threads, threads, max_pending_return_packets);
 }

@@ -35,11 +35,11 @@
 #include "util-signal.h"
 #include "util-buffer.h"
 
+#if (defined BUILD_UNIX_SOCKET) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
 
 #include "output-json.h"
@@ -1056,7 +1056,7 @@ void UnixManagerThreadSpawnNonRunmode(void)
 
 void TmModuleUnixManagerRegister (void)
 {
-#ifdef BUILD_UNIX_SOCKET
+#if defined(BUILD_UNIX_SOCKET) && defined(HAVE_SYS_UN_H) && defined(HAVE_SYS_STAT_H) && defined(HAVE_SYS_TYPES_H)
     tmm_modules[TMM_UNIXMANAGER].name = "UnixManager";
     tmm_modules[TMM_UNIXMANAGER].ThreadInit = UnixManagerThreadInit;
     tmm_modules[TMM_UNIXMANAGER].ThreadDeinit = UnixManagerThreadDeinit;

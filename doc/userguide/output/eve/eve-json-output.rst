@@ -234,6 +234,8 @@ The example above adds epoch time to the filename. All the date modifiers from t
 C library should be supported. See the man page for ``strftime`` for all supported
 modifiers.
 
+.. _output_eve_rotate:
+
 Rotate log file
 ~~~~~~~~~~~~~~~
 

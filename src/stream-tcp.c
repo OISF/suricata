@@ -106,6 +106,8 @@ static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
 static int StreamTcpValidateRst(TcpSession * , Packet *);
 static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
 
+extern int g_detect_disabled;
+
 static PoolThread *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect initializing and growing pool */
 #ifdef DEBUG
@@ -4654,6 +4656,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             if (StreamTcpBypassEnabled()) {
                 PacketBypassCallback(p);
             }
+
+        /* if stream is dead and we have no detect engine at all, bypass. */
+        } else if (g_detect_disabled &&
+                (ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+                (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+                StreamTcpBypassEnabled())
+        {
+            SCLogDebug("bypass as stream is dead and we have no rules");
+            PacketBypassCallback(p);
         }
     }
 

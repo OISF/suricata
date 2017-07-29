@@ -926,8 +926,9 @@ asn1-max-frames: 256
 # value is the hostname
 #sensor-name: suricata
 
-# Default pid file.
-# Will use this file if no --pidfile in command options.
+# Default location of the pid file. The pid file is only used in
+# daemon mode (start Suricata with -D). If not running in daemon mode
+# the --pidfile command line option must be used to create a pid file.
 #pid-file: @e_rundir@suricata.pid
 
 # Daemon working directory

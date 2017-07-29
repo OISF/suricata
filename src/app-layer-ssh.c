@@ -434,6 +434,7 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
         ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
     }
 
     SCReturnInt(r);
@@ -458,6 +459,7 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
         ssh_state->srv_hdr.flags & SSH_FLAG_PARSER_DONE) {
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
+        AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
     }
 
     SCReturnInt(r);

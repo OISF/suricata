@@ -2391,7 +2391,7 @@ void TmreadsGetMinimalTimestamp(struct timeval *ts)
     }
     SCMutexUnlock(&thread_store_lock);
     COPY_TIMESTAMP(&local, ts);
-    SCLogDebug("ts->tv_sec %u", (uint)ts->tv_sec);
+    SCLogDebug("ts->tv_sec %"PRIuMAX, (uintmax_t)ts->tv_sec);
 }
 #undef COPY_TIMESTAMP
 

@@ -1,3 +1,13 @@
+4.0.0 -- 2017-07-27
+
+Feature #2138: Create a sample systemd service file.
+Feature #2184: rust: increase minimally supported rustc version to 1.15
+Bug #2169: dns/tcp: reponse traffic leads to 'app_proto_tc: failed'
+Bug #2170: Suricata fails on large BPFs with AF_PACKET
+Bug #2185: rust: build failure if libjansson is missing
+Bug #2186: smb dcerpc segfaults in StubDataParser
+Bug #2187: hyperscan: mpm setup error leads to crash
+
 4.0.0-rc2 -- 2017-07-13
 
 Feature #744: Teredo configuration
@@ -21,7 +31,9 @@ Feature #2163: ntp parser
 Feature #2164: rust: external parser crate support
 Bug #1930: Segfault when event rule is invalid
 Bug #2038: validate app-layer API use
+Bug #2101: unix socket: stalling due to being unable to disable detect thread
 Bug #2109: asn1: keyword memleak
+Bug #2117: byte_extract and byte_test collaboration doesnt work on 3.2.1
 Bug #2141: 4.0.0-dev (rev 8ea9a5a) segfault
 Bug #2143: Bypass cause missing alert on packets only signatures
 Bug #2144: rust: panic in dns/tcp
@@ -50,9 +62,9 @@ Feature #2011: eve.alert: print outside IP addresses on alerts on traffic inside
 Feature #2046: Support custom file permissions per logger
 Feature #2061: lua: get timestamps from flow
 Feature #2077: Additional HTTP Header Contents and Negation
+Feature #2123: unix-socket: additional runmodes
 Feature #2129: nfs: parser, logger and detection
 Feature #2130: dns: rust parser with stateless behaviour
-Feature #2132: eve: flowbit and other vars logging
 Feature #2132: eve: flowbit and other vars logging
 Feature #2133: unix socket: add/remove hostbits
 Bug #1335: suricata option --pidfile overwrites any file
