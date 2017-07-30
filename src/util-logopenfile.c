@@ -34,7 +34,8 @@
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
 
-const char * redis_push_cmd = "LPUSH";
+const char * redis_lpush_cmd = "LPUSH";
+const char * redis_rpush_cmd = "RPUSH";
 const char * redis_publish_cmd = "PUBLISH";
 
 /** \brief connect to the indicated local stream socket, logging any errors
@@ -410,19 +411,17 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
         }
     }
 
-    if (!strcmp(redis_mode, "list")) {
-        log_ctx->redis_setup.command = redis_push_cmd;
-        if (!log_ctx->redis_setup.command) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
-            exit(EXIT_FAILURE);
-        }
-    } else {
+    if (!strcmp(redis_mode, "list") || !strcmp(redis_mode,"lpush")) {
+        log_ctx->redis_setup.command = redis_lpush_cmd;
+    } else if(!strcmp(redis_mode, "rpush")){
+        log_ctx->redis_setup.command = redis_rpush_cmd;
+    } else if(!strcmp(redis_mode,"channel") || !strcmp(redis_mode,"publish")) {
         log_ctx->redis_setup.command = redis_publish_cmd;
-        if (!log_ctx->redis_setup.command) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
-            exit(EXIT_FAILURE);
-        }
+    } else {
+        SCLogError(SC_ERR_REDIS_CONFIG,"Invalid redis mode");
+        exit(EXIT_FAILURE);
     }
+
     redisContext *c = redisConnect(redis_server, atoi(redis_port));
     if (c != NULL && c->err) {
         SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: %s", c->errstr);
