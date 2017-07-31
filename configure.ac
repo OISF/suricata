@@ -1916,8 +1916,8 @@
                         echo "  To enable it install libevent"
                         echo
                         echo "   Ubuntu: apt-get install libevent-dev"
-                        echo "   Fedora: dnf install event-devel"
-                        echo "   RHEL/CentOS: yum install event-devel"
+                        echo "   Fedora: dnf install libevent-devel"
+                        echo "   RHEL/CentOS: yum install libevent-devel"
                         echo
                    fi
                    if test "$HAVE_LIBEVENT_PTHREADS" = "no"; then
