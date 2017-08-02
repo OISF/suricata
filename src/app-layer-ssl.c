@@ -406,7 +406,7 @@ invalid_length:
 }
 
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
-                                   uint32_t input_len)
+                                   uint32_t input_len, uint8_t direction)
 {
     void *ptmp;
     uint8_t *initial_input = input;
@@ -441,6 +441,12 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             break;
 
         case SSLV3_HS_CERTIFICATE:
+            /* For now, only decode the server certificate */
+            if (direction == 0) {
+                SCLogDebug("Incorrect SSL Record type sent in the toserver "
+                           "direction!");
+                break;
+            }
             if (ssl_state->curr_connp->trec == NULL) {
                 ssl_state->curr_connp->trec_len =
                         2 * ssl_state->curr_connp->record_length +
@@ -584,7 +590,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 }
 
 static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
-                                       uint32_t input_len)
+                                       uint32_t input_len, uint8_t direction)
 {
     uint8_t *initial_input = input;
     int retval;
@@ -637,7 +643,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
             /* fall through */
     }
 
-    retval = SSLv3ParseHandshakeType(ssl_state, input, input_len);
+    retval = SSLv3ParseHandshakeType(ssl_state, input, input_len, direction);
     if (retval < 0) {
         return retval;
     }
@@ -1280,7 +1286,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 return -1;
             }
 
-            retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed, input_len);
+            retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed,
+                                                 input_len, direction);
             if (retval < 0) {
                 SSLSetEvent(ssl_state,
                         TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
