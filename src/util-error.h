@@ -330,7 +330,8 @@ typedef enum {
     SC_WARN_CHMOD,
     SC_WARN_LOG_CF_TOO_MANY_NODES,
     SC_WARN_EVENT_DROPPED,
-    SC_ERR_NO_REDIS_ASYNC
+    SC_ERR_NO_REDIS_ASYNC,
+    SC_ERR_REDIS_CONFIG
 } SCError;
 
 const char *SCErrorToString(SCError);
