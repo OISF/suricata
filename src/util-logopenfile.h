@@ -137,6 +137,7 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_HEADER_WRITTEN  0x01
 #define LOGFILE_ALERTS_PRINTED  0x02
 #define LOGFILE_ROTATE_INTERVAL 0x04
+#define LOGFILE_ROTATE_SIZE     0x08
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
