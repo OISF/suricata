@@ -6,4 +6,4 @@ Rule Management
   oinkmaster
   adding-your-own-rules
   rule-reload
-  testing-rules
+  test-rules
