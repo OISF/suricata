@@ -29,6 +29,7 @@
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
 #include "util-byte.h"
+#include "util-misc.h"
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
 
@@ -195,14 +196,26 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
     } else
 #endif
     {
-
         /* Check for rotation. */
         if (log_ctx->rotation_flag) {
             log_ctx->rotation_flag = 0;
             SCConfLogReopen(log_ctx);
         }
 
-        if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+        /* Rotate on size, if specified */
+        if ((log_ctx->flags & LOGFILE_ROTATE_SIZE) &&
+                (log_ctx->size_current + buffer_len > log_ctx->size_limit)) {
+            SCConfLogReopen(log_ctx);
+
+            /* Reset time-based rotation, if used */
+            if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
+                time_t now = time(NULL);
+                log_ctx->rotate_time = now + log_ctx->rotate_interval;
+            }
+        }
+
+        /* Rotate on time, if specified */
+        else if (log_ctx->flags & LOGFILE_ROTATE_INTERVAL) {
             time_t now = time(NULL);
             if (now >= log_ctx->rotate_time) {
                 SCConfLogReopen(log_ctx);
@@ -214,6 +227,7 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
             clearerr(log_ctx->fp);
             ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
             fflush(log_ctx->fp);
+            log_ctx->size_current += buffer_len;
         }
     }
 
@@ -424,6 +438,18 @@ SCConfLogOpenGeneric(ConfNode *conf,
         }
     }
 
+    /* Rotate log file based on size */
+    const char *rotate_size = ConfNodeLookupChildValue(conf, "rotate-size");
+    if (rotate_size != NULL) {
+        log_ctx->flags |= LOGFILE_ROTATE_SIZE;
+
+        if (ParseSizeStringU64(rotate_size, &log_ctx->size_limit) < 0) {
+            SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
+                       "invalid rotate-size value");
+            exit(EXIT_FAILURE);
+        }
+    }
+
     filetype = ConfNodeLookupChildValue(conf, "filetype");
     if (filetype == NULL)
         filetype = DEFAULT_LOG_FILETYPE;
@@ -566,6 +592,8 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     if (log_ctx->fp == NULL) {
         return -1; // Already logged by Open..Fp routine.
     }
+
+    log_ctx->size_current = 0;
 
     return 0;
 }
