@@ -124,12 +124,14 @@ Syntax::
 
   filesize:<value>;
 
+Possible units are KB, MB and GB, without any unit the default is bytes.
+
 Examples::
 
   filesize:100; # exactly 100 bytes
   filesize:100<>200; # greater than 100 and smaller than 200
-  filesize:>100; # greater than 100
-  filesize:<100; # smaller than 100
+  filesize:>100MB; # greater than 100 megabytes
+  filesize:<100MB; # smaller than 100 megabytes
 
 **Note**: For files that are not completely tracked because of packet
 loss or stream.depth being reached on the "greater than" is
