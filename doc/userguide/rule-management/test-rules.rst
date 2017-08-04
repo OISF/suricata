@@ -31,7 +31,7 @@ first we define a source/destination IP addresses, then source/destination ports
 
 by now there should an alert in /var/log/suricata/fast.log that looks kind of like this:
 :: 
-  08/01/2017-16:15:52.731917  [**] [1:1] A Testing rule fired [**] ... {UDP} 192.168.2.1:1542 -> 172.16.23.1:8415
+  08/04/2017-04:34:32.668027  [**] [1:1:1] A Testing rule fired [**] [Classification: (null)] [Priority: 3] {UDP} 192.168.2.1:8415 -> 172.16.23.1:1542
 
 
 
