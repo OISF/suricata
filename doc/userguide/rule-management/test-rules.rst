@@ -35,4 +35,30 @@ by now there should an alert in /var/log/suricata/fast.log that looks kind of li
 
 
 
+Testing existing Rules
+======================
+
+by now we should try to test an already existing rule, like for example the ones that come in Emerging Threat Rules.
+lets look inside /etc/suricata/rules/emerging-netbios.rules  for example, this rule:
+::
+  alert udp any any -> $HOME_NET 139 (msg:"ET NETBIOS Microsoft Windows NETAPI Stack Overflow Inbound - MS08-067 (8)"; content:"|20 00|"; content:"|C8 4F 32 4B 70 16 D3 01 12 78 5A 47 BF 6E E1 88|"; content:"../../"; reference:url,www.microsoft.com/technet/security/Bulletin/MS08-067.mspx; reference:cve,2008-4250; reference:url,www.kb.cert.org/vuls/id/827267; reference:url,doc.emergingthreats.net/bin/view/Main/2008697; classtype:attempted-admin; sid:2008697; rev:5;)
+   
+this rule would trigger if a udp packet coming from any host to a host inside our network on port 139, containing the following data in the payload:
+::
+  20 00 C8 4F 32 4B 70 16 D3 01 12 78 5A 47 BF 6E E1 88 ../../
  
+to trigger that rule with scapy:
+::
+  >>> ip=IP(src="123.23.23.22", dst="192.168.2.100")
+  >>> udp=UDP(dport=139, sport=51339)
+  >>> payload="\x20\x00\xC8\x4F\x32\x4B\x70\x16\xD3\x01\x12\x78\x5A\x47\xBF\x6E\xE1\x88../../"
+  >>> send(ip/udp/payload)
+  .
+  Sent 1 packets.
+  >>> 
+
+and in the /var/log/suricata/fast.log we should see the following:
+::
+  08/04/2017-05:02:08.587897  [**] [1:2008697:5] ET NETBIOS Microsoft Windows NETAPI Stack Overflow Inbound - MS08-067 (8) [**] [Classification: Attempted Administrator Privilege Gain] [Priority: 1] {UDP} 123.23.23.22:51339 -> 192.168.2.100:139
+
+
