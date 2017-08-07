@@ -46,6 +46,7 @@
 #include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
+#include "app-layer-dns-common.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "app-layer-ftp.h"
@@ -57,6 +58,7 @@
 #include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-dnp3.h"
+#include "output-json-dns.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
@@ -182,6 +184,35 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
         }
     }
 
+    return;
+}
+
+static void AlertJsonDns(const Flow *f, json_t *js)
+{
+#ifndef HAVE_RUST
+    DNSState *dns_state = (DNSState *)FlowGetAppState(f);
+    if (dns_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        DNSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
+                                                 dns_state, tx_id);
+        if (tx) {
+            json_t *dnsjs = json_object();
+            if (unlikely(dnsjs == NULL)) {
+                return;
+            }
+
+            json_t *qjs = JsonDNSLogQuery(tx, tx_id);
+            if (qjs != NULL) {
+                json_object_set_new(dnsjs, "query", qjs);
+            }
+            json_t *ajs = JsonDNSLogAnswer(tx, tx_id);
+            if (ajs != NULL) {
+                json_object_set_new(dnsjs, "answer", ajs);
+            }
+            json_object_set_new(js, "dns", dnsjs);
+        }
+    }
+#endif
     return;
 }
 
@@ -478,6 +509,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 AlertJsonDnp3(p->flow, js);
             }
 
+            if (proto == ALPROTO_DNS) {
+                AlertJsonDns(p->flow, js);
+            }
         }
 
         if (p->flow) {
@@ -492,7 +526,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                         json_string(AppProtoToString(p->flow->alproto)));
             }
         }
-
 
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
