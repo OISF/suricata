@@ -45,6 +45,7 @@
 #include "detect-reference.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
+#include "app-layer-dns-common.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
@@ -55,6 +56,7 @@
 #include "output-json.h"
 #include "output-json-alert.h"
 #include "output-json-dnp3.h"
+#include "output-json-dns.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
@@ -90,8 +92,9 @@
 #define LOG_JSON_FLOW              BIT_U16(11)
 #define LOG_JSON_HTTP_BODY         BIT_U16(12)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_DNS               BIT_U16(14)
 
-#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW|LOG_JSON_DNS)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -100,6 +103,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
+    EveVersion version;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -180,6 +184,35 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
         }
     }
 
+    return;
+}
+
+static void AlertJsonDns(const Flow *f, json_t *js)
+{
+#ifndef HAVE_RUST
+    DNSState *dns_state = (DNSState *)FlowGetAppState(f);
+    if (dns_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        DNSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
+                                                 dns_state, tx_id);
+        if (tx) {
+            json_t *dnsjs = json_object();
+            if (unlikely(dnsjs == NULL)) {
+                return;
+            }
+
+            json_t *qjs = JsonDNSLogQuery(tx, tx_id);
+            if (qjs != NULL) {
+                json_object_set_new(dnsjs, "query", qjs);
+            }
+            json_t *ajs = JsonDNSLogAnswer(tx, tx_id);
+            if (ajs != NULL) {
+                json_object_set_new(dnsjs, "answer", ajs);
+            }
+            json_object_set_new(js, "dns", dnsjs);
+        }
+    }
+#endif
     return;
 }
 
@@ -465,8 +498,16 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 json_object_set_new(js, "app_proto",
                         json_string(AppProtoToString(p->flow->alproto)));
             }
-        }
 
+            if (json_output_ctx->version == EVE_VERSION_2) {
+                if (json_output_ctx->flags & LOG_JSON_DNS) {
+                    uint16_t proto = FlowGetAppProtocol(p->flow);
+                    if (proto == ALPROTO_DNS) {
+                        AlertJsonDns(p->flow, js);
+                    } 
+                }
+            }
+        }
 
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -794,6 +835,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
+        SetFlag(conf, "dns", LOG_JSON_DNS, &json_output_ctx->flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
@@ -849,6 +891,8 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
 
     json_output_ctx->file_ctx = logfile_ctx;
 
+    json_output_ctx->version = OutputJsonGetVersion(conf);
+
     XffSetup(json_output_ctx, conf);
 
     output_ctx->data = json_output_ctx;
@@ -878,6 +922,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->version = ajt->version;
 
     XffSetup(json_output_ctx, conf);
 
