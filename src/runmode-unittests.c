@@ -122,6 +122,11 @@
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
 
+#ifdef HAVE_NSS
+#include <prinit.h>
+#include <nss.h>
+#endif
+
 #endif /* UNITTESTS */
 
 void TmqhSetup (void);
@@ -282,6 +287,13 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         regex_arg = ".*";
         UtRunSelftest(regex_arg); /* inits and cleans up again */
     }
+
+#ifdef HAVE_NSS
+    /* init NSS for hashing */
+    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    NSS_NoDB_Init(NULL);
+#endif
+
 
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpNeedFileInspection();
