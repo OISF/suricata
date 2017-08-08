@@ -62,6 +62,7 @@
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
 #include "output-json-flow.h"
+#include "output-json-modbus.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -90,8 +91,9 @@
 #define LOG_JSON_FLOW              BIT_U16(11)
 #define LOG_JSON_HTTP_BODY         BIT_U16(12)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_MODBUS            BIT_U16(14)
 
-#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW|LOG_JSON_MODBUS)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -467,6 +469,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
+        if (json_output_ctx->flags & LOG_JSON_MODBUS) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                if (proto == ALPROTO_MODBUS) {
+                    hjs = JsonModbusAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "modbus", hjs);
+                }
+            }
+        }
 
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -787,6 +800,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "ssh",  LOG_JSON_SSH,  &json_output_ctx->flags);
         SetFlag(conf, "smtp", LOG_JSON_SMTP, &json_output_ctx->flags);
         SetFlag(conf, "dnp3", LOG_JSON_DNP3, &json_output_ctx->flags);
+        SetFlag(conf, "modbus", LOG_JSON_MODBUS, &json_output_ctx->flags);
 
         SetFlag(conf, "payload", LOG_JSON_PAYLOAD_BASE64, &json_output_ctx->flags);
         SetFlag(conf, "packet", LOG_JSON_PACKET, &json_output_ctx->flags);
