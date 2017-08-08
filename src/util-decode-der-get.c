@@ -42,36 +42,108 @@ static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
 
+typedef struct {
+    const char *oid_str;
+    size_t oid_str_len;
+    const char *short_str;
+    const char *long_str;
+} OidLookupTable;
+
+#define LARGEST_OID_STR_LEN 26
+
+/* The OID's are borrowed from openssl/crypto/objects/objects.txt" */
+OidLookupTable oid_lookup_table[] = {
+    { "2.5.4.3",                    7,  "CN",             "commonName" },
+    { "2.5.4.6",                    7,  "C",              "countryName" },
+    { "2.5.4.10",                   8,  "O",              "organizationName" },
+    { "2.5.4.7",                    7,  "L",              "localityName" },
+    { "2.5.4.8",                    7,  "ST",             "stateOrProvinceName" },
+    { "2.5.4.11",                   8,  "OU",             "organizationalUnitName" },
+    { "2.5.4.17",                   8,  NULL,             "postalCode" },
+    { "2.5.4.9",                    7,  "street",         "streetAddress" },
+    { "2.5.4.15",                   8,  NULL,             "businessCategory" },
+    { "2.5.4.5",                    7,  NULL,             "serialNumber" },
+    { "1.3.6.1.4.1.311.60.2.1.3",   24, "jurisdictionC",  "jurisdictionCountryName" },
+    { "1.3.6.1.4.1.311.60.2.1.2",   24, "jurisdictionST", "jurisdictionStateOrProvinceName" },
+    { "0.9.2342.19200300.100.1.25", 26, "DC",             "domainComponent" },
+    { "1.3.6.1.4.1.311.60.2.1.1",   24, "jurisdictionL",  "jurisdictionLocalityName" },
+    { "2.5.4.4",                    7,  "SN",             "surname" },
+    { "2.5.4.12",                   8,  "title",          "title" },
+    { "1.2.840.113549.1.9.1",       20, NULL,             "emailAddress" },
+    { "2.5.4.13",                   8,  NULL,             "description" },
+    { "2.5.4.14",                   8,  NULL,             "searchGuide" },
+    { "2.5.4.16",                   8,  NULL,             "postalAddress" },
+    { "2.5.4.18",                   8,  NULL,             "postOfficeBox" },
+    { "2.5.4.19",                   8,  NULL,             "physicalDeliveryOfficeName" },
+    { "2.5.4.20",                   8,  NULL,             "telephoneNumber" },
+    { "2.5.4.21",                   8,  NULL,             "telexNumber" },
+    { "2.5.4.22",                   8,  NULL,             "teletexTerminalIdentifier" },
+    { "2.5.4.23",                   8,  NULL,             "facsimileTelephoneNumber" },
+    { "2.5.4.24",                   8,  NULL,             "x121Address" },
+    { "2.5.4.25",                   8,  NULL,             "internationaliSDNNumber" },
+    { "2.5.4.26",                   8,  NULL,             "registeredAddress" },
+    { "2.5.4.27",                   8,  NULL,             "destinationIndicator" },
+    { "2.5.4.28",                   8,  NULL,             "preferredDeliveryMethod" },
+    { "2.5.4.29",                   8,  NULL,             "presentationAddress" },
+    { "2.5.4.30",                   8,  NULL,             "supportedApplicationContext" },
+    { "2.5.4.31",                   8,  "member",         NULL },
+    { "2.5.4.32",                   8,  "owner",          NULL },
+    { "2.5.4.33",                   8,  NULL,             "roleOccupant" },
+    { "2.5.4.34",                   8,  "seeAlso",        NULL },
+    { "2.5.4.35",                   8,  NULL,             "userPassword" },
+    { "2.5.4.36",                   8,  NULL,             "userCertificate" },
+    { "2.5.4.37",                   8,  NULL,             "cACertificate" },
+    { "2.5.4.38",                   8,  NULL,             "authorityRevocationList" },
+    { "2.5.4.39",                   8,  NULL,             "certificateRevocationList" },
+    { "2.5.4.40",                   8,  NULL,             "crossCertificatePair" },
+    { "2.5.4.41",                   8,  "name",           "name" },
+    { "2.5.4.42",                   8,  "GN",             "givenName" },
+    { "2.5.4.43",                   8,  "initials",       "initials" },
+    { "2.5.4.44",                   8,  NULL,             "generationQualifier" },
+    { "2.5.4.45",                   8,  NULL,             "x500UniqueIdentifier" },
+    { "2.5.4.46",                   8,  "dnQualifier",    "dnQualifier" },
+    { "2.5.4.47",                   8,  NULL,             "enhancedSearchGuide" },
+    { "2.5.4.48",                   8,  NULL,             "protocolInformation" },
+    { "2.5.4.49",                   8,  NULL,             "distinguishedName" },
+    { "2.5.4.50",                   8,  NULL,             "uniqueMember" },
+    { "2.5.4.51",                   8,  NULL,             "houseIdentifier" },
+    { "2.5.4.52",                   8,  NULL,             "supportedAlgorithms" },
+    { "2.5.4.53",                   8,  NULL,             "deltaRevocationList" },
+    { "2.5.4.54",                   8,  "dmdName",        NULL },
+    { "2.5.4.65",                   8,  NULL,             "pseudonym" },
+    { "2.5.4.72",                   8,  "role",           "role" },
+    { "2.5.4.97",                   8,  NULL,             "organizationIdentifier" },
+    { "2.5.4.98",                   8,  "c3",             "countryCode3c" },
+    { "2.5.4.99",                   8,  "n3",             "countryCode3n" },
+    { "2.5.4.100",                  8,  NULL,             "dnsName" },
+    { NULL,                         0,  NULL,             NULL }
+};
+
 static const char *Oid2ShortStr(const char *oid)
 {
-    if (strcmp(oid, "1.2.840.113549.1.9.1") == 0)
-        return "emailAddress";
+    /* Don't waste cycles looking further into the string than the largest
+       string in the OID lookup table above. */
+    size_t oid_len = strnlen(oid, LARGEST_OID_STR_LEN + 1);
 
-    if (strcmp(oid, "2.5.4.3") == 0)
-        return "CN";
+    if (oid_len == LARGEST_OID_STR_LEN + 1)
+        return oid;
 
-    if (strcmp(oid, "2.5.4.5") == 0)
-        return "serialNumber";
+    for (OidLookupTable *p = oid_lookup_table; p->oid_str != NULL; p++)
+    {
+        if (oid_len != p->oid_str_len)
+            continue;
 
-    if (strcmp(oid, "2.5.4.6") == 0)
-        return "C";
+        if (memcmp(p->oid_str, oid, oid_len) == 0) {
+            if (p->short_str != NULL)
+                return p->short_str;
 
-    if (strcmp(oid, "2.5.4.7") == 0)
-        return "L";
+            /* Return long string if there is no short string */
+            return p->long_str;
+        }
+    }
 
-    if (strcmp(oid, "2.5.4.8") == 0)
-        return "ST";
-
-    if (strcmp(oid, "2.5.4.10") == 0)
-        return "O";
-
-    if (strcmp(oid, "2.5.4.11") == 0)
-        return "OU";
-
-    if (strcmp(oid, "0.9.2342.19200300.100.1.25") == 0)
-        return "DC";
-
-    return "unknown";
+    /* Return oid if no string were found */
+    return oid;
 }
 
 static time_t GentimeToTime(char *gentime)
