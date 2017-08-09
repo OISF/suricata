@@ -142,6 +142,7 @@ outputs:
       enabled: @e_enable_evelog@
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      version: 2 #1|2, 2 will enable new logging format (actually used only for dns logging)
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"

@@ -37,8 +37,14 @@ typedef struct OutputJSONMemBufferWrapper_ {
     size_t expand_by;   /**< expand by this size */
 } OutputJSONMemBufferWrapper;
 
+typedef enum EveVersion {
+    EVE_VERSION_1,
+    EVE_VERSION_2
+} EveVersion;
+
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
+EveVersion OutputJsonGetVersion(ConfNode *conf);
 void JsonAddVars(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
@@ -57,6 +63,7 @@ typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
     enum JsonFormat format;
+    EveVersion version;
 } OutputJsonCtx;
 
 typedef struct AlertJsonThread_ {
