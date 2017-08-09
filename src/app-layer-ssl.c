@@ -132,7 +132,7 @@ SslConfig ssl_config;
 #define TLS_HB_REQUEST                  1
 #define TLS_HB_RESPONSE                 2
 
-#define SSL_PACKET_MAX_RECORDS        255
+#define SSL_RECORD_MINIMUM_LENGTH       6
 
 #define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
@@ -1392,7 +1392,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 {
     SSLState *ssl_state = (SSLState *)alstate;
     int retval = 0;
-    uint8_t counter = 0;
+    uint32_t counter = 0;
 
     int32_t input_len = (int32_t)ilen;
 
@@ -1418,8 +1418,9 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
     }
 
     /* if we have more than one record */
+    uint32_t max_records = input_len / SSL_RECORD_MINIMUM_LENGTH;
     while (input_len > 0) {
-        if (counter++ == SSL_PACKET_MAX_RECORDS) {
+        if (counter > max_records) {
             SCLogDebug("Looks like we have looped quite a bit. Reset state "
                        "and get out of here");
             SSLParserReset(ssl_state);
@@ -1522,6 +1523,8 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 
                 break;
         } /* switch (ssl_state->curr_connp->bytes_processed) */
+
+        counter++;
     } /* while (input_len) */
 
     /* mark handshake as done if we have subject and issuer */
