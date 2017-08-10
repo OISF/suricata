@@ -437,6 +437,23 @@ static json_t *OutputQuery(DNSTransaction *tx, uint64_t tx_id, DNSQueryEntry *en
     return djs;
 }
 
+json_t *JsonDNSLogQuery(DNSTransaction *tx, uint64_t tx_id)
+{
+    DNSQueryEntry *entry = NULL;
+    json_t *queryjs = json_array();
+    if (queryjs == NULL)
+        return NULL;
+
+    TAILQ_FOREACH(entry, &tx->query_list, next) {
+        json_t *qjs = OutputQuery(tx, tx_id, entry);
+        if (qjs != NULL) {
+            json_array_append(queryjs, qjs);
+        }
+    }
+
+    return queryjs;
+}
+
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry)
 {
@@ -779,16 +796,12 @@ static void OutputAnswerV1(LogDnsLogThread *aft, json_t *djs,
     return;
 }
 
-static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSAnswerEntry *entry)
+static json_t *BuildAnswer(DNSTransaction *tx, DNSAnswerEntry *entry,
+                           uint64_t tx_id, uint64_t flags)
 {
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
     json_t *js = json_object();
     if (js == NULL)
-        return;
+        return NULL;
 
     /* type */
     json_object_set_new(js, "type", json_string("answer"));
@@ -801,27 +814,50 @@ static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
 
-    if (aft->dnslog_ctx->flags & LOG_FORMAT_DETAILED) {
+    if (flags & LOG_FORMAT_DETAILED) {
         json_t *jarray = json_array();
         if (jarray == NULL)
-            return;
+            return NULL;
 
         OutputAnswerDetailed(entry, jarray);
         json_object_set_new(js, "answers", jarray);
     }
 
-    if (aft->dnslog_ctx->flags & LOG_FORMAT_GROUPED) {
+    if (flags & LOG_FORMAT_GROUPED) {
         OutputAnswerGrouped(entry, js);
     }
 
-    /* reset */
-    MemBufferReset(aft->buffer);
-    json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    json_object_del(djs, "dns");
-
-    return;
+    return js;
 }
+
+static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
+        DNSTransaction *tx, DNSAnswerEntry *entry)
+{
+    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
+        return;
+    }
+
+    json_t *dnsjs = BuildAnswer(tx, entry, tx->tx_id, aft->dnslog_ctx->flags);
+    if (dnsjs != NULL) {
+        /* reset */
+        MemBufferReset(aft->buffer);
+        json_object_set_new(djs, "dns", dnsjs);
+        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    }
+}
+
+json_t *JsonDNSLogAnswer(DNSTransaction *tx, uint64_t tx_id)
+{
+    DNSAnswerEntry *entry = TAILQ_FIRST(&tx->answer_list);
+    json_t *js = NULL;
+
+    if (entry) {
+        js = BuildAnswer(tx, entry, tx_id, LOG_FORMAT_DETAILED);
+    }
+
+    return js;
+}
+
 #endif
 
 #ifndef HAVE_RUST
