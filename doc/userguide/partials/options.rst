@@ -18,8 +18,9 @@
 
 .. option:: -v
 
-   The -v option enables more verbosity of Suricata's output. Supply
-   multiple times for more verbosity.
+   The -v option enables more verbosity of Suricata's output to include "Info"
+   output. Supply multiple times for more verbosity to add "Perf" (-vv) and
+   "Config" (-vvv) output.
 
 .. Basic input options.
 
