@@ -438,6 +438,23 @@ static json_t *OutputQuery(DNSTransaction *tx, uint64_t tx_id, DNSQueryEntry *en
     return djs;
 }
 
+json_t *JsonDNSLogQuery(DNSTransaction *tx, uint64_t tx_id)
+{
+    DNSQueryEntry *entry = NULL;
+    json_t *queryjs = json_array();
+    if (queryjs == NULL)
+        return NULL;
+
+    TAILQ_FOREACH(entry, &tx->query_list, next) {
+        json_t *qjs = OutputQuery(tx, tx_id, entry);
+        if (qjs != NULL) {
+            json_array_append_new(queryjs, qjs);
+        }
+    }
+
+    return queryjs;
+}
+
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry)
 {
@@ -797,16 +814,20 @@ static void OutputAnswerV1(LogDnsLogThread *aft, json_t *djs,
     return;
 }
 
-static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSAnswerEntry *entry)
+static json_t *BuildAnswer(DNSTransaction *tx, DNSAnswerEntry *entry,
+                           uint64_t tx_id, uint64_t flags,
+                           DnsVersion version)
 {
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
     json_t *js = json_object();
     if (js == NULL)
-        return;
+        return NULL;
+
+    /* version */
+    if (version == DNS_VERSION_2) {
+        json_object_set_new(js, "version", json_integer(DNS_VERSION_2));
+    } else {
+        json_object_set_new(js, "version", json_integer(DNS_VERSION_1));
+    }
 
     /* type */
     json_object_set_new(js, "type", json_string("answer"));
@@ -814,32 +835,73 @@ static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
     /* id */
     json_object_set_new(js, "id", json_integer(tx->tx_id));
 
+    /* flags */
+    char dns_flags[7] = "";
+    snprintf(dns_flags, sizeof(dns_flags), "%4x", tx->flags);
+    json_object_set_new(js, "flags", json_string(dns_flags));
+    if (tx->flags & 0x8000)
+        json_object_set_new(js, "qr", json_true());
+    if (tx->flags & 0x0400)
+        json_object_set_new(js, "aa", json_true());
+    if (tx->flags & 0x0200)
+        json_object_set_new(js, "tc", json_true());
+    if (tx->flags & 0x0100)
+        json_object_set_new(js, "rd", json_true());
+    if (tx->flags & 0x0080)
+        json_object_set_new(js, "ra", json_true());
+
     /* rcode */
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
 
-    if (aft->dnslog_ctx->flags & LOG_FORMAT_DETAILED) {
+    if (flags & LOG_FORMAT_DETAILED) {
         json_t *jarray = json_array();
-        if (jarray == NULL)
-            return;
+        if (jarray == NULL) {
+            json_decref(js);
+            return NULL;
+        }
 
         OutputAnswerDetailed(entry, jarray);
         json_object_set_new(js, "answers", jarray);
     }
 
-    if (aft->dnslog_ctx->flags & LOG_FORMAT_GROUPED) {
+    if (flags & LOG_FORMAT_GROUPED) {
         OutputAnswerGrouped(entry, js);
     }
 
-    /* reset */
-    MemBufferReset(aft->buffer);
-    json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    json_object_del(djs, "dns");
-
-    return;
+    return js;
 }
+
+static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
+        DNSTransaction *tx, DNSAnswerEntry *entry)
+{
+    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
+        return;
+    }
+
+    json_t *dnsjs = BuildAnswer(tx, entry, tx->tx_id, aft->dnslog_ctx->flags,
+                                aft->dnslog_ctx->version);
+    if (dnsjs != NULL) {
+        /* reset */
+        MemBufferReset(aft->buffer);
+        json_object_set_new(djs, "dns", dnsjs);
+        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    }
+}
+
+json_t *JsonDNSLogAnswer(DNSTransaction *tx, uint64_t tx_id)
+{
+    DNSAnswerEntry *entry = TAILQ_FIRST(&tx->answer_list);
+    json_t *js = NULL;
+
+    if (entry) {
+        js = BuildAnswer(tx, entry, tx_id, LOG_FORMAT_DETAILED, DNS_VERSION_2);
+    }
+
+    return js;
+}
+
 #endif
 
 #ifndef HAVE_RUST
