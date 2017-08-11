@@ -59,6 +59,7 @@ Metadata::
             # packet: yes              # enable dumping of packet (without stream segments)
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
+            # rule: yes                # enable dumping of signature definition
             metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
 
 Alternatively to the `metadata` key it is also possible to select the application

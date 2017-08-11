@@ -461,9 +461,7 @@ typedef struct Signature_ {
     /** Metadata */
     DetectMetadata *metadata;
 
-    /* Be careful, this pointer is only valid while parsing the sig,
-     * to warn the user about any possible problem */
-    const char *sig_str;
+    char *sig_str;
 
     SignatureInitData *init_data;
 
