@@ -38,6 +38,8 @@ outputs:
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
 
+            # rule: yes                # enable dumping of signature definition
+
             # Include extra data in alert records like the app-layer
             # information and flow records. Default: yes.
             #metadata: yes

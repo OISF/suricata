@@ -87,6 +87,7 @@
 #define LOG_JSON_HTTP_BODY         BIT_U16(6)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
+#define LOG_JSON_RULE              BIT_U16(9)
 
 #define LOG_JSON_METADATA (LOG_JSON_APP_LAYER | LOG_JSON_FLOW)
 
@@ -533,6 +534,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             AlertJsonPacket(p, js);
         }
 
+        /* signature text */
+        if (json_output_ctx->flags & LOG_JSON_RULE) {
+            hjs = json_object_get(js, "alert");
+            if (json_is_object(hjs))
+                json_object_set_new(hjs, "rule", json_string(pa->s->sig_str));
+        }
+
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
 
         /* xff header */
@@ -806,6 +814,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
+        SetFlag(conf, "rule", LOG_JSON_RULE, &flags);
 
         ConfNode *rmetadata = ConfNodeLookupChild(conf, "rule-metadata");
         if (rmetadata != NULL) {
