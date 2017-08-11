@@ -809,21 +809,12 @@ static int SigGroupHeadTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                               "content:\"test2\"; content:\"test3\"; sid:0;)");
+                               "content:\"test2\"; content:\"test3\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
     prev_sig = de_ctx->sig_list;
-
-    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                             "content:\"test2\"; content:\"test3\"; sid:1;)");
-    if (prev_sig->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    prev_sig = prev_sig->next;
 
     prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
                              "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
@@ -852,6 +843,15 @@ static int SigGroupHeadTest06(void)
     }
     prev_sig = prev_sig->next;
 
+    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
+                             "content:\"test2\"; content:\"test3\"; sid:5;)");
+    if (prev_sig->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    prev_sig = prev_sig->next;
+
     SigAddressPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list);
@@ -861,11 +861,11 @@ static int SigGroupHeadTest06(void)
     SigGroupHeadSetSigCnt(sh, 4);
 
     result &= (sh->sig_cnt == 3);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 0) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 4) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 4) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 5) == 1);
 
     SigGroupHeadFree(sh);
 
@@ -893,21 +893,12 @@ static int SigGroupHeadTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                               "content:\"test2\"; content:\"test3\"; sid:0;)");
+                               "content:\"test2\"; content:\"test3\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
     prev_sig = de_ctx->sig_list;
-
-    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                             "content:\"test2\"; content:\"test3\"; sid:1;)");
-    if (prev_sig->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    prev_sig = prev_sig->next;
 
     prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
                              "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
@@ -936,6 +927,15 @@ static int SigGroupHeadTest07(void)
     }
     prev_sig = prev_sig->next;
 
+    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
+                             "content:\"test2\"; content:\"test3\"; sid:5;)");
+    if (prev_sig->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    prev_sig = prev_sig->next;
+
     SigAddressPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &sh, de_ctx->sig_list);
@@ -945,20 +945,20 @@ static int SigGroupHeadTest07(void)
     SigGroupHeadSetSigCnt(sh, 4);
 
     result &= (sh->sig_cnt == 3);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 0) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 4) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 4) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 5) == 1);
 
     SigGroupHeadClearSigs(sh);
 
     result &= (sh->sig_cnt == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 0) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 1) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 2) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 3) == 0);
     result &= (SigGroupHeadContainsSigId(de_ctx, sh, 4) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, sh, 5) == 0);
 
     SigGroupHeadFree(sh);
 
@@ -985,21 +985,12 @@ static int SigGroupHeadTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                               "content:\"test2\"; content:\"test3\"; sid:0;)");
+                               "content:\"test2\"; content:\"test3\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
     prev_sig = de_ctx->sig_list;
-
-    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                             "content:\"test2\"; content:\"test3\"; sid:1;)");
-    if (prev_sig->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    prev_sig = prev_sig->next;
 
     prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
                              "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
@@ -1028,6 +1019,15 @@ static int SigGroupHeadTest08(void)
     }
     prev_sig = prev_sig->next;
 
+    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
+                             "content:\"test2\"; content:\"test3\"; sid:5;)");
+    if (prev_sig->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    prev_sig = prev_sig->next;
+
     SigAddressPrepareStage1(de_ctx);
 
     SigGroupHeadAppendSig(de_ctx, &src_sh, de_ctx->sig_list);
@@ -1037,22 +1037,22 @@ static int SigGroupHeadTest08(void)
     SigGroupHeadSetSigCnt(src_sh, 4);
 
     result &= (src_sh->sig_cnt == 3);
-    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 0) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 1) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 2) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 3) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 4) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 1) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 2) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 3) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 4) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, src_sh, 5) == 1);
 
     SigGroupHeadCopySigs(de_ctx, src_sh, &dst_sh);
 
     SigGroupHeadSetSigCnt(dst_sh, 4);
 
     result &= (dst_sh->sig_cnt == 3);
-    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 0) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 1) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 2) == 1);
-    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 3) == 0);
-    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 4) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 1) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 2) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 3) == 1);
+    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 4) == 0);
+    result &= (SigGroupHeadContainsSigId(de_ctx, dst_sh, 5) == 1);
 
     SigGroupHeadFree(src_sh);
     SigGroupHeadFree(dst_sh);
@@ -1079,21 +1079,12 @@ static int SigGroupHeadTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                               "content:\"test2\"; content:\"test3\"; sid:0;)");
+                               "content:\"test2\"; content:\"test3\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
     prev_sig = de_ctx->sig_list;
-
-    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
-                             "content:\"test2\"; content:\"test3\"; sid:1;)");
-    if (prev_sig->next == NULL) {
-        result = 0;
-        goto end;
-    }
-    prev_sig = prev_sig->next;
 
     prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
                              "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
@@ -1116,6 +1107,15 @@ static int SigGroupHeadTest09(void)
     prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
                              "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
                              "content:\"test2\"; content:\"test3\"; sid:4;)");
+    if (prev_sig->next == NULL) {
+        result = 0;
+        goto end;
+    }
+    prev_sig = prev_sig->next;
+
+    prev_sig->next = SigInit(de_ctx, "alert tcp any any -> any any "
+                             "(msg:\"SigGroupHead tests\"; content:\"test1\"; "
+                             "content:\"test2\"; content:\"test3\"; sid:5;)");
     if (prev_sig->next == NULL) {
         result = 0;
         goto end;
