@@ -42,6 +42,7 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
+            # signature-text: yes      # enable dumping of signature definition
             http: yes                # enable dumping of http fields
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields
@@ -169,6 +170,7 @@ Metadata::
             # packet: yes              # enable dumping of packet (without stream segments)
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
+            # signature-text: yes      # enable dumping of signature definition
             metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
 
 Alternatively to the `metadata` key it is also possible to select the application

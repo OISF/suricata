@@ -305,6 +305,7 @@ integration with 3rd party tools like logstash.
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
+            # signature-text: yes      # enable dumping of signature definition
             http: yes                # enable dumping of http fields
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields

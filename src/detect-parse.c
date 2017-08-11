@@ -1071,7 +1071,10 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t 
     SignatureParser parser;
     memset(&parser, 0x00, sizeof(parser));
 
-    s->sig_str = sigstr;
+    s->sig_str = SCStrdup(sigstr);
+    if (unlikely(s->sig_str == NULL)) {
+        SCReturnInt(-1);
+    }
 
     int ret = SigParseBasics(de_ctx, s, sigstr, &parser, addrs_direction);
     if (ret < 0) {
@@ -1099,8 +1102,6 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t 
 
         } while (ret == 1);
     }
-
-    s->sig_str = NULL;
 
     DetectIPProtoRemoveAllSMs(s);
 
@@ -1252,6 +1253,9 @@ void SigFree(Signature *s)
     }
     if (s->addr_dst_match6 != NULL) {
         SCFree(s->addr_dst_match6);
+    }
+    if (s->sig_str != NULL) {
+        SCFree(s->sig_str);
     }
 
     SigRefFree(s);
