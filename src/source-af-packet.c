@@ -2041,8 +2041,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             break;
     }
 
-    TmEcode rc;
-    rc = AFPSetBPFFilter(ptv);
+    TmEcode rc = AFPSetBPFFilter(ptv);
     if (rc == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_AFP_CREATE, "Set AF_PACKET bpf filter \"%s\" failed.", ptv->bpf_filter);
         ret = AFP_FATAL_ERROR;
@@ -2056,6 +2055,18 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 socket_err:
     close(ptv->socket);
     ptv->socket = -1;
+    if (ptv->flags & AFP_TPACKET_V3) {
+        if (ptv->ring_v3) {
+            SCFree(ptv->ring_v3);
+            ptv->ring_v3 = NULL;
+        }
+    } else {
+        if (ptv->ring_v2) {
+            SCFree(ptv->ring_v2);
+            ptv->ring_v2 = NULL;
+        }
+    }
+
 error:
     return -ret;
 }
