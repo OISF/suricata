@@ -1957,6 +1957,9 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 
     /* HSBD */
     if (det_ctx->hsbd != NULL) {
+        if (det_ctx->hsbd->decompressed_buffer != NULL) {
+            SCFree(det_ctx->hsbd->decompressed_buffer);
+        }
         SCLogDebug("det_ctx hsbd %u", det_ctx->hsbd_buffers_size);
         SCFree(det_ctx->hsbd);
     }
