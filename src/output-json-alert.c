@@ -90,6 +90,7 @@
 #define LOG_JSON_FLOW              BIT_U16(11)
 #define LOG_JSON_HTTP_BODY         BIT_U16(12)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_RULE              BIT_U16(14)
 
 #define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
 
@@ -523,6 +524,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             AlertJsonPacket(p, js);
         }
 
+        /* signature text */
+        if (json_output_ctx->flags & LOG_JSON_RULE) {
+            hjs = json_object_get(js, "alert");
+            BUG_ON(!json_is_object(hjs));
+            json_object_set_new(hjs, "rule", json_string(pa->s->sig_str));
+        }
+
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
 
         /* xff header */
@@ -794,6 +802,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
+        SetFlag(conf, "rule", LOG_JSON_RULE, &json_output_ctx->flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
