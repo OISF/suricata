@@ -59,10 +59,12 @@ In case of the host situation, these are the two most simple iptable rules;
 ::
 
 
-  sudo iptables -I INPUT -j NFQUEUE
-  sudo iptables -I OUTPUT -j NFQUEUE
+  sudo iptables -I INPUT -j NFQUEUE --queue-bypass
+  sudo iptables -I OUTPUT -j NFQUEUE --queue-bypass
 
 It is possible to set a queue number. If you do not, the queue number will be 0 by default.
+In the above example and the ones that follow `--queue-bypass` is required as if nothing is listening to `NFQUEUE` the packets will not be released from the queue.  Even with --queue-bypass enabled, Suricata has plenty of time to inspect them before they are passed along.  
+You can also set `delayed-detect: yes` in `suricata.yaml` to treat packets before the detection engine is started.   
 
 Imagine you want Suricata to check for example just TCP-traffic, or all incoming traffic on port 80, or all traffic on destination-port 80, you can do so like this:
 
@@ -70,8 +72,8 @@ Imagine you want Suricata to check for example just TCP-traffic, or all incoming
 ::
 
 
-  sudo iptables -I INPUT -p tcp  -j NFQUEUE
-  sudo iptables -I OUTPUT -p tcp -j NFQUEUE
+  sudo iptables -I INPUT -p tcp  -j NFQUEUE --queue-bypass
+  sudo iptables -I OUTPUT -p tcp -j NFQUEUE --queue-bypass
 
 In this case, Suricata checks just TCP traffic.
 
@@ -79,8 +81,8 @@ In this case, Suricata checks just TCP traffic.
 ::
 
 
-  sudo iptables -I INPUT -p tcp --sport 80  -j NFQUEUE
-  sudo iptables -I OUTPUT -p tcp --dport 80 -j NFQUEUE
+  sudo iptables -I INPUT -p tcp --sport 80  -j NFQUEUE --queue-bypass
+  sudo iptables -I OUTPUT -p tcp --dport 80 -j NFQUEUE --queue-bypass
 
 In this example, Suricata checks all input and output on port 80.
 
@@ -110,8 +112,8 @@ There is also a way to use iptables with multiple networks (and interface cards)
 ::
 
 
-  sudo iptables -I FORWARD -i eth0 -o eth1 -j NFQUEUE
-  sudo iptables -I FORWARD -i eth1 -o eth0 -j NFQUEUE
+  sudo iptables -I FORWARD -i eth0 -o eth1 -j NFQUEUE --queue-bypass
+  sudo iptables -I FORWARD -i eth1 -o eth0 -j NFQUEUE --queue-bypass
 
 The options -i (input) -o (output) can be combined with all previous mentioned options
 
