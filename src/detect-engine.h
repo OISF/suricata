@@ -44,8 +44,8 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(Signature *));
 void DetectBufferRunSetupCallback(const int id, Signature *s);
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        _Bool (*ValidateCallback)(const Signature *));
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s);
+        _Bool (*ValidateCallback)(const Signature *, char **sigerror));
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, char **sigerror);
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
@@ -83,8 +83,8 @@ int DetectEngineMultiTenantSetup(void);
 
 int DetectEngineReloadStart(void);
 int DetectEngineReloadIsStart(void);
-void DetectEngineReloadSetDone(void);
-int DetectEngineReloadIsDone(void);
+void DetectEngineReloadSetIdle(void);
+int DetectEngineReloadIsIdle(void);
 
 int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml);
 int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt);

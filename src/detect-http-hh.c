@@ -63,7 +63,7 @@ static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHHRegisterTests(void);
 static void DetectHttpHHFree(void *);
 static void DetectHttpHostSetupCallback(Signature *s);
-static _Bool DetectHttpHostValidateCallback(const Signature *s);
+static _Bool DetectHttpHostValidateCallback(const Signature *s, char **sigerror);
 static int g_http_host_buffer_id = 0;
 
 /**
@@ -126,18 +126,24 @@ static void DetectHttpHostSetupCallback(Signature *s)
     s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
-static _Bool DetectHttpHostValidateCallback(const Signature *s)
+static _Bool DetectHttpHostValidateCallback(const Signature *s, char **sigerror)
 {
     const SigMatch *sm = s->init_data->smlists[g_http_host_buffer_id];
     for ( ; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd->flags & DETECT_CONTENT_NOCASE) {
-                SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_host keyword "
+                *sigerror = SCStrdup("http_host keyword "
                         "specified along with \"nocase\". "
                         "Since the hostname buffer we match against "
                         "is actually lowercase.  So having a "
                         "nocase is redundant.");
+                if (*sigerror == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    return FALSE;
+                }
+                SCLogWarning(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
+                return FALSE;
             } else {
                 uint32_t u;
                 for (u = 0; u < cd->content_len; u++) {
@@ -145,11 +151,16 @@ static _Bool DetectHttpHostValidateCallback(const Signature *s)
                         break;
                 }
                 if (u != cd->content_len) {
-                    SCLogWarning(SC_ERR_INVALID_SIGNATURE, "A pattern with "
+                    *sigerror = SCStrdup("A pattern with "
                             "uppercase chars detected for http_host.  "
                             "Since the hostname buffer we match against "
                             "is lowercase only, please specify a "
                             "lowercase pattern.");
+                    if (*sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        return FALSE;
+                    }
+                    SCLogWarning(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                     return FALSE;
                 }
             }
