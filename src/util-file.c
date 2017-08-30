@@ -67,6 +67,12 @@ static int g_file_force_sha256 = 0;
  */
 static int g_file_force_tracking = 0;
 
+/* for hashing truncated files... */
+/** \brief switch to force hash calculation on
+ *         truncated files.
+ */
+static int g_file_force_hash_truncated = 0;
+
 /** \brief switch to use g_file_store_reassembly_depth
  *         to reassembly files
  */
@@ -147,6 +153,40 @@ int FileForceSha256(void)
 void FileForceTrackingEnable(void)
 {
     g_file_force_tracking = 1;
+}
+
+/* for hashing truncated files... */
+int FileForceHashTruncated(void)
+{
+    return g_file_force_hash_truncated;
+}
+
+/* for hashing truncated files... */
+void FileForceHashTruncatedEnable(void)
+{
+    g_file_force_hash_truncated = 1;
+}
+
+/**
+ * for hashing truncated files...
+ * \brief Function to parse forced truncated file hashing configuration.
+ */
+void FileForceHashTruncatedCfg(ConfNode *conf)
+{
+    BUG_ON(conf == NULL);
+
+    const char *forcehash_truncated = ConfNodeLookupChildValue( conf, "force-hash-truncated" );
+
+    if ( forcehash_truncated != NULL ) {
+        if ( ConfValIsTrue( forcehash_truncated ) ) {
+#ifdef HAVE_NSS
+        FileForceHashTruncatedEnable();
+        SCLogConfig("forcing hash calculation for truncated files");
+#else
+        SCLogInfo("hash calculation for truncated files requires linking against libnss");
+#endif
+        }
+    }
 }
 
 /**
@@ -875,7 +915,24 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
     if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
         ff->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
-
+        /* for hashing truncated files... */
+#ifdef HAVE_NSS
+        if (ff->md5_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
+            ff->flags |= FILE_MD5;
+        }
+        if (ff->sha1_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->sha1_ctx, ff->sha1, &len, sizeof(ff->sha1));
+            ff->flags |= FILE_SHA1;
+        }
+        if (ff->sha256_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+            ff->flags |= FILE_SHA256;
+        }
+#endif
         if (flags & FILE_NOSTORE) {
             SCLogDebug("not storing this file");
             ff->flags |= FILE_NOSTORE;
