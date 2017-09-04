@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,12 +33,17 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-content-inspection.h"
 #include "app-layer-template.h"
-#include "detect-engine-template.h"
 #include "detect-template-buffer.h"
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, const char *);
+static int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
+    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+    const Signature *s, const SigMatchData *smd,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 static void DetectTemplateBufferRegisterTests(void);
 static int g_template_buffer_id = 0;
 
@@ -75,8 +80,34 @@ static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
     const char *str)
 {
     s->init_data->list = g_template_buffer_id;
-    s->alproto = ALPROTO_TEMPLATE;
+
+    if (DetectSignatureSetAppProto(s, ALPROTO_TEMPLATE) != 0)
+        return -1;
+
     return 0;
+}
+
+static int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
+    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+    const Signature *s, const SigMatchData *smd,
+    Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    TemplateTransaction *tx = (TemplateTransaction *)txv;
+    int ret = 0;
+
+    if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
+        ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
+            f, tx->request_buffer, tx->request_buffer_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    }
+    else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
+        ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
+            f, tx->response_buffer, tx->response_buffer_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    }
+
+    SCLogNotice("Returning %d.", ret);
+    return ret;
 }
 
 #ifdef UNITTESTS
