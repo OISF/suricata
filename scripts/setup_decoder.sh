@@ -81,5 +81,13 @@ sed -i "s/template/${LC}/g" $FILE_C
 sed -i "s/template/${LC}/g" $FILE_H
 sed -i "s/decode-template.c decode-template.h \\\/decode-template.c decode-template.h \\\\\n${FILE_C} ${FILE_H} \\\/g" Makefile.am
 
+    ed -s decode.h > /dev/null <<EOF
+/^int DecodeTEMPLATE
+t-
+s/DecodeTEMPLATE/Decode${UC}/g
+w
+EOF
+
+
 Done
 exit 0
