@@ -628,7 +628,7 @@ next_record:
     }
 
     if (f != NULL) {
-        dns_state->last_req = f->lastts;
+        dns_state->last_resp = f->lastts;
     }
 
     SCReturnInt(1);
