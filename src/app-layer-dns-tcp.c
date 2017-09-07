@@ -627,6 +627,8 @@ next_record:
             goto bad_data;
     }
 
+	// BUG FIX
+	// Was setting the last_req field, not last_resp field. Now consistent with UDP DNS response parsing.
     if (f != NULL) {
         dns_state->last_resp = f->lastts;
     }
