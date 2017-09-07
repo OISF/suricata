@@ -79,6 +79,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CHAIN             (1 << 9)
 #define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
 #define LOG_TLS_FIELD_CIPHER_SUITE      (1 << 11)
+#define LOG_TLS_FIELD_SUBJECT_PK_ALGO   (1 << 12)
 
 typedef struct {
     const char *name;
@@ -98,6 +99,7 @@ TlsFields tls_fields[] = {
     { "chain",           LOG_TLS_FIELD_CHAIN },
     { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
     { "cipher_suite",    LOG_TLS_FIELD_CIPHER_SUITE },
+    { "subject_pk_algo", LOG_TLS_FIELD_SUBJECT_PK_ALGO },
     { NULL,              -1 }
 };
 
@@ -289,6 +291,14 @@ static void JsonTlsLogCipherSuite(json_t *js, SSLState *ssl_state)
     json_object_set_new(js, "cipher_suite", cipher_suite_js);
 }
 
+static void JsonTlsLogSubjectPublicKeyAlgo(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_subject_pk_algo) {
+        json_object_set_new(js, "subject_public_key_algorithm",
+                            json_string(ssl_state->server_connp.cert0_subject_pk_algo));
+    }
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -351,6 +361,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls cipher suite */
     if (tls_ctx->fields & LOG_TLS_FIELD_CIPHER_SUITE)
         JsonTlsLogCipherSuite(js, ssl_state);
+
+    /* tls subject public key algorithm */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT_PK_ALGO)
+        JsonTlsLogSubjectPublicKeyAlgo(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -374,6 +388,9 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 
     /* tls notafter */
     JsonTlsLogNotAfter(tjs, state);
+
+    /* tls subject public key algorithm */
+    JsonTlsLogSubjectPublicKeyAlgo(tjs, state);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,

@@ -162,6 +162,11 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
         LogTlsLogDate(aft->buffer, "NOTAFTER", &state->server_connp.cert0_not_after);
     }
+    if (state->server_connp.cert0_subject_pk_algo != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SUBJECT_PUBLIC_KEY_ALGORITHM",
+                        state->server_connp.cert0_subject_pk_algo);
+    }
 }
 
 int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,

@@ -41,6 +41,7 @@ static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
+static const uint8_t SEQ_IDX_SUBJECT_PK[] = { 0, 5 };
 
 static const char *Oid2ShortStr(const char *oid)
 {
@@ -436,6 +437,49 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length,
 
     rc = 0;
 subject_dn_error:
+    return rc;
+}
+
+int Asn1DerGetSubjectPublicKeyAlgo(const Asn1Generic *cert, char *buffer,
+                                   uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_SUBJECT_PK, sizeof(SEQ_IDX_SUBJECT_PK), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto subject_pk_error;
+
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto subject_pk_error;
+
+    /* we're looking for the OID, but actually 'node'
+     * points to a SEQUENCE, so we need to access
+     * and get the first element which is the OID. */
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto subject_pk_error;
+
+    if (node->length > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        goto subject_pk_error;
+    }
+
+    strlcat(buffer, node->str, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+subject_pk_error:
     return rc;
 }
 
