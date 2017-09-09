@@ -974,13 +974,13 @@ There is an option within threading:
   set-cpu-affinity: no
 
 With this option you can cause Suricata setting fixed cores for every
-thread.  In that case 1, 2 and 4 are at core 0 (zero).  Each core has
+thread. In that case 1, 2 and 4 are at core 0 (zero). Each core has
 its own detect thread. The detect thread running on core 0 has a lower
 priority than the other threads running on core 0. If these other
 cores are to occupied, the detect thread on core 0 has not much
-packets to process. De detect threads running on other cores will
-process more packets.  This is only the case after setting the option
-at 'yes'.
+packets to process. The detect threads running on other cores will
+process more packets. This is only the case after setting the option
+to 'yes'.
 
 *Example 7	Balancing workload*
 
@@ -1001,23 +1001,21 @@ waited for a detection thread. The remaining detection thread can
 become active.
 
 
-In the option 'cpu affinity' you can set which CPU's/cores work on
-which thread. In this option there are several sets of threads. The
-management-, receive-, decode-, stream-, detect-, verdict-, reject-
-and outputs-set. These are fixed names and can not be changed. For
-each set there are several options: cpu, mode, and prio.  In the
-option 'cpu' you can set the numbers of the CPU's/cores which will run
-the threads from that set. You can set this option to 'all', use a
-range (0-3) or a comma separated list (0,1).  The option 'mode' can be
-set to 'balanced' or 'exclusive'. When set to 'balanced', the
-individual threads can be processed by all cores set in the option
-'cpu'. If the option 'mode' is set to 'exclusive', there will be fixed
-cores for each thread.  As mentioned before, threads can have
-different priority's. In the option 'prio' you can set a priority for
-each thread. This priority can be low, medium, high or you can set the
-priority to 'default'. If you do not set a priority for a CPU, than
-the settings in 'default' will count.  By default Suricata creates one
-'detect' thread per available CPU/CPU core.
+In the option 'cpu affinity' you can set which CPU's/cores work on which
+thread. In this option there are several sets of threads. The management-,
+receive-, worker- and verdict-set. These are fixed names and can not be
+changed. For each set there are several options: cpu, mode, and prio.  In the
+option 'cpu' you can set the numbers of the CPU's/cores which will run the
+threads from that set. You can set this option to 'all', use a range (0-3) or a
+comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
+'exclusive'. When set to 'balanced', the individual threads can be processed by
+all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
+there will be fixed cores for each thread.  As mentioned before, threads can
+have different priority's. In the option 'prio' you can set a priority for each
+thread. This priority can be low, medium, high or you can set the priority to
+'default'. If you do not set a priority for a CPU, than the settings in
+'default' will count. By default Suricata creates one 'detect' (worker) thread
+per available CPU/CPU core.
 
 ::
 
@@ -1026,14 +1024,9 @@ the settings in 'default' will count.  By default Suricata creates one
           cpu: [ 0 ]  # include only these cpus in affinity settings
       - receive-cpu-set:
           cpu: [ 0 ]  # include only these cpus in affinity settings
-      - decode-cpu-set:
-          cpu: [ 0, 1 ]
-          mode: "balanced"
-      - stream-cpu-set:
-          cpu: [ "0-1" ]
-      - detect-cpu-set:
+      - worker-cpu-set:
           cpu: [ "all" ]
-          mode: "exclusive" # run detect threads in these cpus
+          mode: "exclusive"
           # Use explicitely 3 threads and don't compute number by using
           # detect-thread-ratio variable:
           # threads: 3
@@ -1046,14 +1039,6 @@ the settings in 'default' will count.  By default Suricata creates one
           cpu: [ 0 ]
           prio:
             default: "high"
-      - reject-cpu-set:
-          cpu: [ 0 ]
-          prio:
-            default: "low"
-      - output-cpu-set:
-          cpu: [ "all" ]
-          prio:
-             default: "medium"
 
 Relevant cpu-affinity settings for IDS/IPS modes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1064,13 +1049,13 @@ IDS mode
 Runmode AutoFp::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	recive-cpu-set - used for receive and decode
-	detect-cpu-set - used for streamtcp,detect,output(logging),reject
+	receive-cpu-set - used for receive and decode
+	worker-cpu-set - used for streamtcp,detect,output(logging),reject
 
 Rumode Workers::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
+	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
 
 
 IPS mode
@@ -1079,14 +1064,14 @@ IPS mode
 Runmode AutoFp::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	recive-cpu-set - used for receive and decode
-	detect-cpu-set - used for streamtcp,detect,output(logging)
+	receive-cpu-set - used for receive and decode
+	worker-cpu-set - used for streamtcp,detect,output(logging)
 	verdict-cpu-set - used for verdict and respond/reject
 
 Runmode Workers::
 
 	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
-	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
+	worker-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
 
 
 
