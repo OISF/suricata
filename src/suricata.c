@@ -2687,10 +2687,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     /* hardcoded initialization code */
+    StorageInit();
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    StorageInit();
     CIDRInit();
     SigParsePrepare();
     SCProtoNameInit();
