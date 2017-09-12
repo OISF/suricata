@@ -25,31 +25,56 @@
 #include "debug.h"
 
 #include "ippair-storage.h"
+#include "flow-storage.h"
 
 #include "app-layer-expectation.h"
 
-static int g_expectation_id = -1;
+#include "util-print.h"
 
-/* FIXME we need a list here */
+static int g_expectation_id = -1;
+static int g_expectation_data_id = -1;
+
+#define EXPECTATION_TIMEOUT 30
+
 typedef struct Expectation_ {
     struct timeval ts;
     Port sp;
     Port dp;
     AppProto alproto;
+    int direction;
+    void *data;
+    struct Expectation_ *next;
 } Expectation;
 
-static void ExpectationFree(void *e)
+static void ExpectationListFree(void *e)
 {
-    SCFree(e);
+    Expectation *exp = (Expectation *)e;
+    Expectation *lexp;
+    while (exp) {
+        lexp = exp->next;
+        if (exp->data)
+            SCFree(exp->data);
+        SCFree(exp);
+        exp = lexp;
+    }
+}
+
+static void ExpectationDataFree(void *e)
+{
+    if (e)
+        SCFree(e);
 }
 
 void AppLayerExpectationSetup(void)
 {
-    g_expectation_id = IPPairStorageRegister("ttl", sizeof(void *), NULL, ExpectationFree);
+    g_expectation_id = IPPairStorageRegister("expectation", sizeof(void *), NULL, ExpectationListFree);
+    g_expectation_data_id = FlowStorageRegister("expectation", sizeof(void *), NULL, ExpectationDataFree);
 }
 
 static inline int GetFlowAddresses(Flow *f, Address *ip_src, Address *ip_dst)
 {
+    memset(ip_src, 0, sizeof(*ip_src));
+    memset(ip_dst, 0, sizeof(*ip_dst));
     if (FLOW_IS_IPV4(f)) {
         FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, ip_src);
         FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, ip_dst);
@@ -62,9 +87,11 @@ static inline int GetFlowAddresses(Flow *f, Address *ip_src, Address *ip_dst)
     return 0;
 }
 
-int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppProto alproto)
+int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppProto alproto, void *data)
 {
+    Expectation *iexp = NULL;
     IPPair *ipp;
+    Address ip_src, ip_dst;
 
     Expectation *exp = SCCalloc(1, sizeof(*exp));
     if (exp == NULL)
@@ -74,23 +101,26 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppPro
     exp->dp = dst;
     exp->alproto = alproto;
     exp->ts = f->lastts;
+    exp->data = data;
+    exp->direction = direction;
 
-    Address ip_src, ip_dst;
     if (GetFlowAddresses(f, &ip_src, &ip_dst) == -1)
-        return -1;
-    if (direction & STREAM_TOSERVER) {
-        ipp = IPPairGetIPPairFromHash(&ip_src, &ip_dst);
-    } else {
-        ipp = IPPairGetIPPairFromHash(&ip_dst, &ip_src);
-    }
+        goto error;
+    ipp = IPPairGetIPPairFromHash(&ip_src, &ip_dst);
     if (ipp == NULL)
-        return -1;
+        goto error;
 
-    /* FIXME check if existing and use linked list */
+    iexp = IPPairGetStorageById(ipp, g_expectation_id);
+    exp->next = iexp;
     IPPairSetStorageById(ipp, g_expectation_id, exp);
 
     IPPairUnlock(ipp);
     return 0;
+
+error:
+    if (exp != NULL)
+        SCFree(exp);
+    return -1;
 }
 
 static Expectation *AppLayerExpectationGet(Flow *f, int direction, IPPair **ipp)
@@ -98,37 +128,72 @@ static Expectation *AppLayerExpectationGet(Flow *f, int direction, IPPair **ipp)
     Address ip_src, ip_dst;
     if (GetFlowAddresses(f, &ip_src, &ip_dst) == -1)
         return NULL;
-    if (direction & STREAM_TOSERVER) {
-        *ipp = IPPairLookupIPPairFromHash(&ip_src, &ip_dst);
-    } else {
-        *ipp = IPPairLookupIPPairFromHash(&ip_dst, &ip_src);
-    }
-    if (*ipp == NULL)
+    *ipp = IPPairLookupIPPairFromHash(&ip_src, &ip_dst);
+    if (*ipp == NULL) {
         return NULL;
+    }
 
     return IPPairGetStorageById(*ipp, g_expectation_id);
 }
 
-AppProto AppLayerExpectationLookup(Flow *f, int direction)
+int AppLayerExpectationGetDataId(void)
+{
+    return g_expectation_data_id;
+}
+
+static Expectation * RemoveExpectationAndGetNext(IPPair *ipp,
+                                Expectation *pexp, Expectation *exp,
+                                Expectation *lexp)
+{
+    (void) IPPairDecrUsecnt(ipp);
+    if (pexp == NULL) {
+        IPPairSetStorageById(ipp, g_expectation_id, lexp);
+    } else {
+        pexp->next = lexp;
+    }
+    if (exp->data)
+        SCFree(exp->data);
+    SCFree(exp);
+    return lexp;
+}
+
+AppProto AppLayerExpectationHandle(Flow *f, int direction)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
     IPPair *ipp = NULL;
-
+    Expectation *lexp = NULL;
+    Expectation *pexp = NULL;
     Expectation *exp = AppLayerExpectationGet(f, direction, &ipp);
+    time_t ctime = time(NULL);
 
     if (exp == NULL)
         goto out;
 
-    /* FIXME direction */
-    if ((exp->sp == 0) || (exp->sp == f->sp)) {
-        if ((exp->dp == 0) || (exp->dp == f->dp)) {
-            /* FIXME timestamp and cleaning */
+    pexp = NULL;
+    while (exp) {
+        lexp = exp->next;
+        if ( (exp->direction & direction) &&
+             ((exp->sp == 0) || (exp->sp == f->sp)) &&
+             ((exp->dp == 0) || (exp->dp == f->dp))) {
             alproto = exp->alproto;
+            if (FlowSetStorageById(f, g_expectation_data_id, exp->data) != 0) {
+                SCLogDebug("Unable to set flow storage");
+            }
+            exp->data = NULL;
+            exp = RemoveExpectationAndGetNext(ipp, pexp, exp, lexp);
+            continue;
         }
+        /* Cleaning remove old entries */
+        if (exp && (ctime > exp->ts.tv_sec + EXPECTATION_TIMEOUT)) {
+            exp = RemoveExpectationAndGetNext(ipp, pexp, exp, lexp);
+            continue;
+        }
+        pexp = exp;
+        exp = lexp;
     }
 
 out:
     if (ipp)
-        IPPairUnlock(ipp);
+        IPPairRelease(ipp);
     return alproto;
 }

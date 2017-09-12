@@ -171,6 +171,9 @@ struct AppLayerProtoDetectThreadCtx_ {
 /* The global app layer proto detection context. */
 static AppLayerProtoDetectCtx alpd_ctx;
 
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos);
+
 /***** Static Internal Calls: Protocol Retrieval *****/
 
 /** \internal
@@ -324,6 +327,8 @@ static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
                                               uint8_t direction)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
+
+    alproto = AppLayerExpectationHandle(f, direction);
 
     return alproto;
 }
@@ -1851,6 +1856,7 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 
     AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
+    AppLayerProtoDetectPEGetIpprotos(alproto, ipprotos);
 
     SCReturn;
 }
@@ -1891,6 +1897,30 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
     }
 
     SCReturn;
+}
+
+uint8_t expectation_proto[ALPROTO_MAX];
+
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos)
+{
+    if (expectation_proto[alproto] == IPPROTO_TCP) {
+        ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+    }
+    if (expectation_proto[alproto] == IPPROTO_UDP) {
+        ipprotos[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
+    }
+}
+
+void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
+{
+    if (expectation_proto[alproto]) {
+        if (proto != expectation_proto[alproto]) {
+            SCLogError(SC_ERR_NOT_SUPPORTED,
+                       "Expectation on 2 IP protocols are not supported");
+        }
+    }
+    expectation_proto[alproto] = proto;
 }
 
 /***** Unittests *****/

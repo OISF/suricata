@@ -25,8 +25,10 @@
 #define __APP_LAYER_EXPECTATION__H__
 
 void AppLayerExpectationSetup(void);
-int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppProto alproto);
-AppProto AppLayerExpectationLookup(Flow *f, int direction);
+int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
+                              AppProto alproto, void *data);
+AppProto AppLayerExpectationHandle(Flow *f, int direction);
+int AppLayerExpectationGetDataId(void);
 
 #endif /* __APP_LAYER_EXPECTATION__H__ */
 
