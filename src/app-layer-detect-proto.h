@@ -181,6 +181,8 @@ AppProto AppLayerProtoDetectGetProtoByName(const char *alproto_name);
 const char *AppLayerProtoDetectGetProtoName(AppProto alproto);
 void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos);
 
+void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto);
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
