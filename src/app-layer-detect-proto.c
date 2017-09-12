@@ -55,6 +55,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-expectation.h"
 
 #include "conf.h"
 #include "util-memcmp.h"
@@ -312,6 +313,19 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
 
  end:
     SCReturnPtr(pp_port, "AppLayerProtoDetectProbingParserPort *");
+}
+
+
+/**
+ * \brief Call the probing expectation to see if there is some for this flow.
+ *
+ */
+static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
+                                              uint8_t direction)
+{
+    AppProto alproto = ALPROTO_UNKNOWN;
+
+    return alproto;
 }
 
 /**
@@ -1329,8 +1343,15 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         }
     }
 
-    if (!FLOW_IS_PP_DONE(f, direction))
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, direction);
+    if (!FLOW_IS_PP_DONE(f, direction)) {
+        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen,
+                                                ipproto, direction);
+        if (alproto != ALPROTO_UNKNOWN)
+            goto end;
+    }
+
+    /* Look for potential connection in expectation */
+    alproto = AppLayerProtoDetectPEGetProto(f, ipproto, direction);
 
  end:
     SCReturnUInt(alproto);
@@ -1573,6 +1594,9 @@ int AppLayerProtoDetectSetup(void)
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, mpm_matcher);
         }
     }
+
+    AppLayerExpectationSetup();
+
     SCReturnInt(0);
 }
 
