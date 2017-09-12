@@ -399,9 +399,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -420,9 +420,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -3034,7 +3034,8 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
     return result;
 }
 
-static uint16_t ProbingParserDummyForTesting(uint8_t *input,
+static uint16_t ProbingParserDummyForTesting(Flow *f,
+                                             uint8_t *input,
                                              uint32_t input_len,
                                              uint32_t *offset)
 {
