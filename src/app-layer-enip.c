@@ -360,7 +360,7 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 
 
 
-static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
+static uint16_t ENIPProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
         uint32_t *offset)
 {
     // SCLogDebug("ENIPProbingParser %d", input_len);
