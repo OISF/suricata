@@ -2631,6 +2631,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         ConfSet("runmode", suri->runmode_custom_mode);
     }
 
+    StorageInit();
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
@@ -2698,7 +2699,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    StorageInit();
     CIDRInit();
     SCProtoNameInit();
 
