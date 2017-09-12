@@ -35,6 +35,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "ippair.h"
 
 #ifdef UNITTESTS
 
@@ -43,6 +44,7 @@
 void StreamTcpUTInit(TcpReassemblyThreadCtx **ra_ctx)
 {
     StreamTcpInitConfig(TRUE);
+    IPPairInitConfig(TRUE);
     *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
 }
 

@@ -37,6 +37,7 @@
 #include "flow.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "ippair.h"
 
 #include "util-debug.h"
 #include "util-print.h"
@@ -942,6 +943,7 @@ void AppLayerDeSetupCounters()
     p->tcph = &tcph;\
 \
     StreamTcpInitConfig(TRUE);\
+    IPPairInitConfig(TRUE); \
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);\
 \
     /* handshake */\
