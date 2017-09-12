@@ -1432,7 +1432,8 @@ static void ModbusStateFree(void *state)
     SCReturn;
 }
 
-static uint16_t ModbusProbingParser(uint8_t     *input,
+static uint16_t ModbusProbingParser(Flow *f,
+                                    uint8_t     *input,
                                     uint32_t    input_len,
                                     uint32_t    *offset)
 {
