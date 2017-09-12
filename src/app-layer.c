@@ -29,6 +29,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
+#include "app-layer-expectation.h"
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
@@ -37,6 +38,7 @@
 #include "flow.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "ippair.h"
 
 #include "util-debug.h"
 #include "util-print.h"
@@ -415,6 +417,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                 StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream);
                 FLOW_RESET_PP_DONE(f, flags);
                 FLOW_RESET_PM_DONE(f, flags);
+                FLOW_RESET_PE_DONE(f, flags);
                 goto failure;
             }
         }
@@ -830,6 +833,7 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("dns.memcap_global", DNSMemcapGetMemcapGlobalCounter);
     StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
+    StatsRegisterGlobalCounter("app_layer.expectations", ExpectationGetCounter);
 }
 
 #define IPPROTOS_MAX 2
@@ -948,6 +952,7 @@ void AppLayerDeSetupCounters()
     p->tcph = &tcph;\
 \
     StreamTcpInitConfig(TRUE);\
+    IPPairInitConfig(TRUE); \
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);\
 \
     /* handshake */\
