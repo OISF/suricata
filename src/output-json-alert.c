@@ -47,6 +47,7 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
+#include "app-layer-ftp.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
@@ -426,9 +427,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
             }
         }
-#ifdef HAVE_RUST
         if ((json_output_ctx->flags & LOG_JSON_APP_LAYER) && p->flow != NULL) {
             uint16_t alproto = FlowGetAppProtocol(p->flow);
+#ifdef HAVE_RUST
             if (alproto == ALPROTO_NFS) {
                 hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
                 if (hjs)
@@ -437,8 +438,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 if (hjs)
                     json_object_set_new(js, "nfs", hjs);
             }
-        }
 #endif
+            if (alproto == ALPROTO_FTPDATA) {
+                hjs = JsonFTPDataAddMetadata(p->flow);
+                if (hjs)
+                    json_object_set_new(js, "ftp-data", hjs);
+            }
+        }
         if (json_output_ctx->flags & LOG_JSON_DNP3) {
             if (p->flow != NULL) {
                 uint16_t proto = FlowGetAppProtocol(p->flow);
