@@ -46,6 +46,7 @@ enum AppProtoEnum {
     ALPROTO_DNP3,
     ALPROTO_NFS,
     ALPROTO_NTP,
+    ALPROTO_FTPDATA,
     ALPROTO_TEMPLATE,
 
     /* used by the probing parser when alproto detection fails
