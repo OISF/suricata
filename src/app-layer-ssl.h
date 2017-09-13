@@ -167,6 +167,7 @@ typedef struct SSLStateConnp_ {
     char *cert0_fingerprint;
     char *cert0_subject_pk_algo;
     char *cert0_signature_algo;
+    char *signature_algo;
 
     /* ssl server name indication extension */
     char *sni;
