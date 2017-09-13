@@ -42,5 +42,6 @@ int Asn1DerGetSerial(const Asn1Generic *cert, char *buffer, uint32_t length, uin
 int Asn1DerGetValidity(const Asn1Generic *cert, time_t *not_before, time_t *not_after, uint32_t *errcode);
 int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 int Asn1DerGetSubjectPublicKeyAlgo(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetCertSignatureAlgo(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 
 #endif /* __UTIL_DECODE_DER_GET_H__ */
