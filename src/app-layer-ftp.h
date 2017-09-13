@@ -131,11 +131,28 @@ typedef struct FtpState_ {
     uint32_t port_line_size;
     uint8_t *port_line;
 
+    uint16_t dyn_port;
     /* specifies which loggers are done logging */
     uint32_t logged;
 
     DetectEngineState *de_state;
 } FtpState;
+
+enum {
+    FTPDATA_STATE_IN_PROGRESS,
+    FTPDATA_STATE_FINISHED,
+};
+
+/** FTP Data State for app layer parser */
+typedef struct FtpDataState_ {
+    uint8_t *input;
+    int32_t input_len;
+    uint8_t direction;
+
+    FileContainer *files_ts;
+
+    DetectEngineState *de_state;
+} FtpDataState;
 
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
