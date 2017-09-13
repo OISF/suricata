@@ -43,6 +43,7 @@ static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
 static const uint8_t SEQ_IDX_SUBJECT_PK[] = { 0, 5 };
+static const uint8_t SEQ_IDX_SIGNATURE_ALGO[] = { 1, 0 };
 
 static const char *Oid2ShortStr(const char *oid)
 {
@@ -558,5 +559,39 @@ int Asn1DerGetCertSignatureAlgo(const Asn1Generic *cert, char *buffer,
     rc = 0;
 
 cert_signature_error:
+    return rc;
+}
+
+int Asn1DerGetSignatureAlgo(const Asn1Generic *cert, char *buffer,
+                            uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    const char *signature_algorithm;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_SIGNATURE_ALGO, sizeof(SEQ_IDX_SIGNATURE_ALGO), errcode);
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto signature_error;
+
+    signature_algorithm = Oid2SignatureAlgoStr(node->str);
+    if (strlen(signature_algorithm) > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+
+         goto signature_error;
+    }
+    strlcat(buffer, signature_algorithm, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+signature_error:
     return rc;
 }
