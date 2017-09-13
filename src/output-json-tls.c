@@ -81,6 +81,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CIPHER_SUITE          (1 << 11)
 #define LOG_TLS_FIELD_SUBJECT_PK_ALGO       (1 << 12)
 #define LOG_TLS_FIELD_CERT_SIGNATURE_ALGO   (1 << 13)
+#define LOG_TLS_FIELD_SIGNATURE_ALGO        (1 << 14)
 
 typedef struct {
     const char *name;
@@ -102,6 +103,7 @@ TlsFields tls_fields[] = {
     { "cipher_suite",        LOG_TLS_FIELD_CIPHER_SUITE },
     { "subject_pk_algo",     LOG_TLS_FIELD_SUBJECT_PK_ALGO },
     { "cert_signature_algo", LOG_TLS_FIELD_CERT_SIGNATURE_ALGO },
+    { "signature_algo",      LOG_TLS_FIELD_SIGNATURE_ALGO },
     { NULL,                  -1 }
 };
 
@@ -310,6 +312,14 @@ static void JsonTlsLogCertificateSignatureAlgo(json_t *js, SSLState *ssl_state)
     }
 }
 
+static void JsonTlsLogSignatureAlgo(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_subject_pk_algo) {
+        json_object_set_new(js, "signature_algorithm",
+                            json_string(ssl_state->server_connp.signature_algo));
+    }
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -380,6 +390,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls certificate signature algorithm */
     if (tls_ctx->fields & LOG_TLS_FIELD_CERT_SIGNATURE_ALGO)
         JsonTlsLogCertificateSignatureAlgo(js, ssl_state);
+
+    /* tls signature algorithm */
+    if (tls_ctx->fields & LOG_TLS_FIELD_SIGNATURE_ALGO)
+        JsonTlsLogSignatureAlgo(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -409,6 +423,9 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 
     /* tls certificate signature algorithm */
     JsonTlsLogCertificateSignatureAlgo(tjs, state);
+
+    /* tls signature algorithm */
+    JsonTlsLogSignatureAlgo(tjs, state);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,

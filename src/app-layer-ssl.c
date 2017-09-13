@@ -1605,6 +1605,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_subject_pk_algo);
     if (ssl_state->server_connp.cert0_signature_algo)
         SCFree(ssl_state->server_connp.cert0_signature_algo);
+    if (ssl_state->server_connp.signature_algo)
+        SCFree(ssl_state->server_connp.signature_algo);
 
     AppLayerDecoderEventsFreeEvents(&ssl_state->decoder_events);
 
