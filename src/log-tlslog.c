@@ -167,6 +167,11 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
         LogTlsLogString(aft->buffer, "SUBJECT_PUBLIC_KEY_ALGORITHM",
                         state->server_connp.cert0_subject_pk_algo);
     }
+    if (state->server_connp.cert0_signature_algo != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "CERTIFICATE_SIGNATURE_ALGORITHM",
+                        state->server_connp.cert0_signature_algo);
+    }
 }
 
 int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,

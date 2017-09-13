@@ -67,19 +67,20 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_CUSTOM                  (1 << 1)
 #define LOG_TLS_SESSION_RESUMPTION      (1 << 2)
 
-#define LOG_TLS_FIELD_VERSION           (1 << 0)
-#define LOG_TLS_FIELD_SUBJECT           (1 << 1)
-#define LOG_TLS_FIELD_ISSUER            (1 << 2)
-#define LOG_TLS_FIELD_SERIAL            (1 << 3)
-#define LOG_TLS_FIELD_FINGERPRINT       (1 << 4)
-#define LOG_TLS_FIELD_NOTBEFORE         (1 << 5)
-#define LOG_TLS_FIELD_NOTAFTER          (1 << 6)
-#define LOG_TLS_FIELD_SNI               (1 << 7)
-#define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
-#define LOG_TLS_FIELD_CHAIN             (1 << 9)
-#define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
-#define LOG_TLS_FIELD_CIPHER_SUITE      (1 << 11)
-#define LOG_TLS_FIELD_SUBJECT_PK_ALGO   (1 << 12)
+#define LOG_TLS_FIELD_VERSION               (1 << 0)
+#define LOG_TLS_FIELD_SUBJECT               (1 << 1)
+#define LOG_TLS_FIELD_ISSUER                (1 << 2)
+#define LOG_TLS_FIELD_SERIAL                (1 << 3)
+#define LOG_TLS_FIELD_FINGERPRINT           (1 << 4)
+#define LOG_TLS_FIELD_NOTBEFORE             (1 << 5)
+#define LOG_TLS_FIELD_NOTAFTER              (1 << 6)
+#define LOG_TLS_FIELD_SNI                   (1 << 7)
+#define LOG_TLS_FIELD_CERTIFICATE           (1 << 8)
+#define LOG_TLS_FIELD_CHAIN                 (1 << 9)
+#define LOG_TLS_FIELD_SESSION_RESUMED       (1 << 10)
+#define LOG_TLS_FIELD_CIPHER_SUITE          (1 << 11)
+#define LOG_TLS_FIELD_SUBJECT_PK_ALGO       (1 << 12)
+#define LOG_TLS_FIELD_CERT_SIGNATURE_ALGO   (1 << 13)
 
 typedef struct {
     const char *name;
@@ -87,20 +88,21 @@ typedef struct {
 } TlsFields;
 
 TlsFields tls_fields[] = {
-    { "version",         LOG_TLS_FIELD_VERSION },
-    { "subject",         LOG_TLS_FIELD_SUBJECT },
-    { "issuer",          LOG_TLS_FIELD_ISSUER },
-    { "serial",          LOG_TLS_FIELD_SERIAL },
-    { "fingerprint",     LOG_TLS_FIELD_FINGERPRINT },
-    { "not_before",      LOG_TLS_FIELD_NOTBEFORE },
-    { "not_after",       LOG_TLS_FIELD_NOTAFTER },
-    { "sni",             LOG_TLS_FIELD_SNI },
-    { "certificate",     LOG_TLS_FIELD_CERTIFICATE },
-    { "chain",           LOG_TLS_FIELD_CHAIN },
-    { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
-    { "cipher_suite",    LOG_TLS_FIELD_CIPHER_SUITE },
-    { "subject_pk_algo", LOG_TLS_FIELD_SUBJECT_PK_ALGO },
-    { NULL,              -1 }
+    { "version",             LOG_TLS_FIELD_VERSION },
+    { "subject",             LOG_TLS_FIELD_SUBJECT },
+    { "issuer",              LOG_TLS_FIELD_ISSUER },
+    { "serial",              LOG_TLS_FIELD_SERIAL },
+    { "fingerprint",         LOG_TLS_FIELD_FINGERPRINT },
+    { "not_before",          LOG_TLS_FIELD_NOTBEFORE },
+    { "not_after",           LOG_TLS_FIELD_NOTAFTER },
+    { "sni",                 LOG_TLS_FIELD_SNI },
+    { "certificate",         LOG_TLS_FIELD_CERTIFICATE },
+    { "chain",               LOG_TLS_FIELD_CHAIN },
+    { "session_resumed",     LOG_TLS_FIELD_SESSION_RESUMED },
+    { "cipher_suite",        LOG_TLS_FIELD_CIPHER_SUITE },
+    { "subject_pk_algo",     LOG_TLS_FIELD_SUBJECT_PK_ALGO },
+    { "cert_signature_algo", LOG_TLS_FIELD_CERT_SIGNATURE_ALGO },
+    { NULL,                  -1 }
 };
 
 typedef struct OutputTlsCtx_ {
@@ -299,6 +301,14 @@ static void JsonTlsLogSubjectPublicKeyAlgo(json_t *js, SSLState *ssl_state)
     }
 }
 
+static void JsonTlsLogCertificateSignatureAlgo(json_t *js, SSLState *ssl_state)
+{
+    if (ssl_state->server_connp.cert0_subject_pk_algo) {
+        json_object_set_new(js, "certificate_signature_algorithm",
+                            json_string(ssl_state->server_connp.cert0_signature_algo));
+    }
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -365,6 +375,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls subject public key algorithm */
     if (tls_ctx->fields & LOG_TLS_FIELD_SUBJECT_PK_ALGO)
         JsonTlsLogSubjectPublicKeyAlgo(js, ssl_state);
+
+    /* tls certificate signature algorithm */
+    if (tls_ctx->fields & LOG_TLS_FIELD_CERT_SIGNATURE_ALGO)
+        JsonTlsLogCertificateSignatureAlgo(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -391,6 +405,9 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 
     /* tls subject public key algorithm */
     JsonTlsLogSubjectPublicKeyAlgo(tjs, state);
+
+    /* tls certificate signature algorithm */
+    JsonTlsLogCertificateSignatureAlgo(tjs, state);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
