@@ -2003,6 +2003,10 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
                     SCLogDebug("packet/flow has ftp state");
                     (*mask) |= SIG_MASK_REQUIRE_FTP_STATE;
                     break;
+                case ALPROTO_FTPDATA:
+                    SCLogDebug("packet/flow has ftpdata state");
+                    (*mask) |= SIG_MASK_REQUIRE_FTPDATA_STATE;
+                    break;
                 case ALPROTO_SMTP:
                     SCLogDebug("packet/flow has smtp state");
                     (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
@@ -2144,6 +2148,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
         SCLogDebug("sig requires ftp state");
     }
+    if (s->alproto == ALPROTO_FTPDATA) {
+        s->mask |= SIG_MASK_REQUIRE_FTPDATA_STATE;
+        SCLogDebug("sig requires ftp data state");
+    }
     if (s->alproto == ALPROTO_SMTP) {
         s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
         SCLogDebug("sig requires smtp state");
@@ -2163,6 +2171,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_DNP3_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_FTPDATA_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_ENIP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
