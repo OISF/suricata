@@ -692,6 +692,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_HTTP\n");
                     else if (pp_pe->alproto == ALPROTO_FTP)
                         printf("            alproto: ALPROTO_FTP\n");
+                    else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                        printf("            alproto: ALPROTO_FTPDATA\n");
                     else if (pp_pe->alproto == ALPROTO_SMTP)
                         printf("            alproto: ALPROTO_SMTP\n");
                     else if (pp_pe->alproto == ALPROTO_TLS)
@@ -753,6 +755,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_HTTP\n");
                 else if (pp_pe->alproto == ALPROTO_FTP)
                     printf("            alproto: ALPROTO_FTP\n");
+                else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                    printf("            alproto: ALPROTO_FTPDATA\n");
                 else if (pp_pe->alproto == ALPROTO_SMTP)
                     printf("            alproto: ALPROTO_SMTP\n");
                 else if (pp_pe->alproto == ALPROTO_TLS)
