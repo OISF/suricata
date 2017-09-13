@@ -38,6 +38,7 @@
 #include "util-decode-der-get.h"
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
+static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
@@ -71,6 +72,44 @@ static const char *Oid2ShortStr(const char *oid)
 
     if (strcmp(oid, "0.9.2342.19200300.100.1.25") == 0)
         return "DC";
+
+    return "unknown";
+}
+
+static const char *Oid2SignatureAlgoStr(const char *oid)
+{
+    if (strcmp(oid, "1.2.840.113549.1.1.11") == 0)
+        return "PKCS #1 SHA-256 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.12") == 0)
+        return "PKCS #1 SHA-348 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.13") == 0)
+        return "PKCS #1 SHA-512 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.10040.4.3") == 0)
+        return "PKCS #1 DSA With SHA-1";
+
+    if (strcmp(oid, "2.16.840.1.101.3.4.3.2") == 0)
+        return "PKCS #1 DSA With SHA-256";
+
+    if (strcmp(oid, "1.2.840.10045.4.1") == 0)
+        return "PKCS #1 ECDSA With SHA-1";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.2") == 0)
+        return "PKCS #1 ECDSA With SHA-256";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.3") == 0)
+        return "PKCS #1 ECDSA With SHA-384";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.4") == 0)
+        return "PKCS #1 ECDSA With SHA-512";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.10") == 0)
+        return "PKCS #1 RSASSA-PSS With default parameters";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.10") == 0)
+        return "PKCS #1 RSASSA-PSS With SHA-256";
 
     return "unknown";
 }
@@ -483,3 +522,41 @@ subject_pk_error:
     return rc;
 }
 
+int Asn1DerGetCertSignatureAlgo(const Asn1Generic *cert, char *buffer,
+                                uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    const char *signature_algorithm;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_CERT_SIGNATURE_ALGO,
+                     sizeof(SEQ_IDX_CERT_SIGNATURE_ALGO), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto cert_signature_error;
+
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto cert_signature_error;
+
+    signature_algorithm = Oid2SignatureAlgoStr(node->str);
+    if (strlen(signature_algorithm) > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+
+        goto cert_signature_error;
+    }
+    strlcat(buffer, signature_algorithm, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+cert_signature_error:
+    return rc;
+}

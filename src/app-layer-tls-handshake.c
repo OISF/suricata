@@ -266,6 +266,20 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 }
             }
 
+            rc = Asn1DerGetCertSignatureAlgo(cert, buffer, sizeof(buffer), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    if (ssl_state->server_connp.cert0_signature_algo == NULL)
+                        ssl_state->server_connp.cert0_signature_algo = SCStrdup(buffer);
+                    if (ssl_state->server_connp.cert0_signature_algo == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
+                }
+            }
+
             DerFree(cert);
 
             if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
