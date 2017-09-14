@@ -205,6 +205,10 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
         fstate->command = FTP_COMMAND_RETR;
     }
 
+    if (input_len >= 4 && SCMemcmpLowercase("epsv", input, 4) == 0) {
+        fstate->command = FTP_COMMAND_EPSV;
+    }
+
     return 1;
 }
 
@@ -299,6 +303,26 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
     return 0;
 }
 
+static int FTPParsePassiveResponseV6(Flow *f, void *ftp_state, uint8_t *input, uint32_t input_len)
+{
+    FtpState *state = (FtpState *)ftp_state;
+    uint8_t *ptr;
+
+    ptr = memrchr(input, '|', input_len);
+    if (ptr == NULL) {
+        return -1;
+    } else {
+        int n_length =  ptr - input - 1;
+        if (n_length < 4)
+            return -1;
+        ptr = memrchr(input, '|', n_length);
+        if (ptr == NULL)
+            return -1;
+    }
+    state->dyn_port = atoi((char *)ptr + 1);
+    return 0;
+}
+
 /**
  * \brief This function is called to retrieve a ftp response
  * \param ftp_state the ftp state structure for the parser
@@ -323,6 +347,12 @@ static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstat
     if (state->command == FTP_COMMAND_PASV) {
         if (input_len >= 4 && SCMemcmp("227 ", input, 4) == 0) {
             FTPParsePassiveResponse(f, ftp_state, input, input_len);
+        }
+    }
+
+    if (state->command == FTP_COMMAND_EPSV) {
+        if (input_len >= 4 && SCMemcmp("229 ", input, 4) == 0) {
+            FTPParsePassiveResponseV6(f, ftp_state, input, input_len);
         }
     }
 
