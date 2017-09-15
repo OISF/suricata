@@ -52,6 +52,10 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 
+#ifdef HAVE_RUST
+#include "rust-ftp-mod-gen.h"
+#endif
+
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 {
     void *ptmp;
@@ -283,9 +287,15 @@ static int FTPParsePassiveResponse(Flow *f, void *ftp_state, uint8_t *input, uin
 {
     FtpState *state = (FtpState *)ftp_state;
     uint16_t dyn_port;
+
+#ifdef HAVE_RUST
+    dyn_port = rs_ftp_pasv_response(input, input_len);
+    if (dyn_port == 0) {
+        return -1;
+    }
+#else
     uint16_t part1, part2;
     uint8_t *ptr;
-
     ptr = memrchr(input, ',', input_len);
     if (ptr == NULL)
         return -1;
@@ -297,6 +307,7 @@ static int FTPParsePassiveResponse(Flow *f, void *ftp_state, uint8_t *input, uin
     part1 = atoi((char *)ptr + 1);
 
     dyn_port = 256 * part1 + part2;
+#endif
     state->dyn_port = dyn_port;
 
 
