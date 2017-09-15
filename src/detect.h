@@ -273,7 +273,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_DNP3_STATE         (1<<15)
 
 /* for now a uint8_t is enough */
-#define SignatureMask uint16_t
+#define SignatureMask uint32_t
 
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
