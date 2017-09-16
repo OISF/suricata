@@ -43,6 +43,7 @@
         SC_ATOMIC_INIT((f)->flow_state); \
         SC_ATOMIC_INIT((f)->use_cnt); \
         (f)->tenant_id = 0; \
+        (f)->parent_id = 0; \
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
@@ -85,6 +86,7 @@
         SC_ATOMIC_RESET((f)->flow_state); \
         SC_ATOMIC_RESET((f)->use_cnt); \
         (f)->tenant_id = 0; \
+        (f)->parent_id = 0; \
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
         (f)->flags = 0; \
