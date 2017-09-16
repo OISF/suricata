@@ -151,7 +151,7 @@ typedef struct FtpDataState_ {
     uint8_t direction;
     FtpRequestCommand command; 
 
-    FileContainer *files_ts;
+    FileContainer *files;
 
     DetectEngineState *de_state;
 } FtpDataState;

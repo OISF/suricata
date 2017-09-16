@@ -553,9 +553,9 @@ static int FTPDataParse(Flow *f, void *ftp_state,
     int ret = 0;
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
-    if (ftpdata_state->files_ts == NULL) {
-        ftpdata_state->files_ts = FileContainerAlloc();
-        if (ftpdata_state->files_ts == NULL) {
+    if (ftpdata_state->files == NULL) {
+        ftpdata_state->files = FileContainerAlloc();
+        if (ftpdata_state->files == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
             SCReturnInt(-1);
         }
@@ -573,7 +573,7 @@ static int FTPDataParse(Flow *f, void *ftp_state,
             ftpdata_state->command = FTP_COMMAND_STOR;
         }
 
-        if (FileOpenFile(ftpdata_state->files_ts, &sbcfg, (uint8_t *) filename, strlen(filename),
+        if (FileOpenFile(ftpdata_state->files, &sbcfg, (uint8_t *) filename, strlen(filename),
                          input, input_len, flags) == NULL) {
             SCLogError(SC_ERR_FOPEN, "Can't open file");
             ret = -1;
@@ -581,7 +581,7 @@ static int FTPDataParse(Flow *f, void *ftp_state,
         FlowFreeStorageById(f, AppLayerExpectationGetDataId());
     } else {
         if (input_len != 0) {
-            ret = FileAppendData(ftpdata_state->files_ts, input, input_len);
+            ret = FileAppendData(ftpdata_state->files, input, input_len);
             if (ret == -2) {
                 ret = 0;
                 SCLogDebug("FileAppendData() - file no longer being extracted");
@@ -590,15 +590,15 @@ static int FTPDataParse(Flow *f, void *ftp_state,
                 ret = -2;
             }
         } else {
-            ret = FileCloseFile(ftpdata_state->files_ts, NULL, 0, flags);
+            ret = FileCloseFile(ftpdata_state->files, NULL, 0, flags);
         }
     }
 
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-        ret = FileCloseFile(ftpdata_state->files_ts, (uint8_t *) NULL, 0, flags);
+        ret = FileCloseFile(ftpdata_state->files, (uint8_t *) NULL, 0, flags);
     }
-    if (ftpdata_state->files_ts) {
-        FilePrune(ftpdata_state->files_ts);
+    if (ftpdata_state->files) {
+        FilePrune(ftpdata_state->files);
     }
     return ret;
 }
@@ -652,7 +652,7 @@ static void FTPDataStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
 
-    FileContainerFree(fstate->files_ts);
+    FileContainerFree(fstate->files);
 
     SCFree(s);
 #ifdef DEBUG
@@ -719,7 +719,7 @@ static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)state;
 
-    SCReturnPtr(ftpdata_state->files_ts, "FileContainer");
+    SCReturnPtr(ftpdata_state->files, "FileContainer");
 }
 
 void RegisterFTPParsers(void)
