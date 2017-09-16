@@ -57,6 +57,7 @@ struct TmSlot_;
 typedef struct ThreadVars_ {
     pthread_t t;
     char name[16];
+    char *printable_name;
     char *thread_group_name;
 
     SC_ATOMIC_DECLARE(unsigned int, flags);
@@ -117,4 +118,3 @@ typedef struct ThreadVars_ {
 #define THREAD_SET_AFFTYPE      0x04 /** Priority and affinity */
 
 #endif /* __THREADVARS_H__ */
-
