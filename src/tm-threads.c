@@ -1833,6 +1833,10 @@ static void TmThreadFree(ThreadVars *tv)
         SCFree(tv->thread_group_name);
     }
 
+    if (tv->printable_name) {
+        SCFree(tv->printable_name);
+    }
+
     s = (TmSlot *)tv->tm_slots;
     while (s) {
         ps = s;

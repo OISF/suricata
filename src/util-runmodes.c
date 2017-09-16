@@ -174,6 +174,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         for (lthread = 0; lthread < nlive; lthread++) {
             const char *dev = LiveGetDeviceName(lthread);
             const char *visual_devname = LiveGetShortName(dev);
+            char *printable_threadname = SCMalloc(sizeof(char) * (16+strlen(live_dev)));
             void *aconf;
             int threads_count;
 
@@ -194,6 +195,9 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             for (thread = 0; thread < threads_count; thread++) {
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
+                snprintf(printable_threadname, 16+strlen(live_dev),
+                         "%s#%02d-%s", thread_name, thread+1,
+                         dev);
 
                 ThreadVars *tv_receive =
                     TmThreadCreatePacketHandler(tname,
@@ -203,6 +207,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                     SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
                     exit(EXIT_FAILURE);
                 }
+                tv_receive->printable_name = printable_threadname;
                 TmModule *tm_module = TmModuleGetByName(recv_mod_name);
                 if (tm_module == NULL) {
                     SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
@@ -294,12 +299,18 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
         const char *visual_devname = LiveGetShortName(live_dev);
+        char *printable_threadname = SCMalloc(sizeof(char) * (16+strlen(live_dev)));
 
         if (single_mode) {
-            snprintf(tname, sizeof(tname), "%s#01-%s", thread_name, visual_devname);
+            snprintf(tname, sizeof(tname), "%s#01-%s", thread_name,
+                     visual_devname);
+            snprintf(printable_threadname, 16+strlen(live_dev), "%s#01-%s",
+                     thread_name, live_dev);
         } else {
             snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                      thread+1, visual_devname);
+            snprintf(printable_threadname, 16+strlen(live_dev), "%s#%02d-%s",
+                     thread_name, thread+1, live_dev);
         }
         tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
@@ -309,6 +320,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
+        tv->printable_name = printable_threadname;
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
