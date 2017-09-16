@@ -149,6 +149,7 @@ typedef struct FtpDataState_ {
     uint8_t *input;
     int32_t input_len;
     uint8_t direction;
+    FtpRequestCommand command; 
 
     FileContainer *files_ts;
 
