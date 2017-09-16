@@ -361,6 +361,9 @@ typedef struct Flow_
 
     uint32_t flags;         /**< generic flags */
 
+    /* Parent flow id for protocol like ftp */
+    int64_t parent_id;
+
     uint16_t file_flags;    /**< file tracking/extraction flags */
     /* coccinelle: Flow:file_flags:FLOWFILE_ */
 
