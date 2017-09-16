@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Pablo Rincon Crespo <pablo.rincon.crespo@gmail.com>
+ * \author Eric Leblond <eric@regit.org>
  *
  * App Layer Parser for FTP
  */
@@ -213,6 +214,10 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
         fstate->command = FTP_COMMAND_EPSV;
     }
 
+    if (input_len >= 4 && SCMemcmpLowercase("stor", input, 4) == 0) {
+        fstate->command = FTP_COMMAND_STOR;
+    }
+
     return 1;
 }
 
@@ -247,37 +252,48 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     /* toserver stream */
     state->direction = 0;
 
+    int direction = STREAM_TOSERVER;
     while (FTPGetLine(state) >= 0) {
         FTPParseRequestCommand(state,
                                state->current_line, state->current_line_len);
-        if (state->command == FTP_COMMAND_PORT) {
-            if (state->current_line_len > state->port_line_size) {
-                ptmp = SCRealloc(state->port_line, state->current_line_len);
-                if (ptmp == NULL) {
-                    SCFree(state->port_line);
-                    state->port_line = NULL;
-                    state->port_line_size = 0;
-                    return 0;
-                }
-                state->port_line = ptmp;
+        switch (state->command) {
+            case FTP_COMMAND_PORT:
+                if (state->current_line_len > state->port_line_size) {
+                    ptmp = SCRealloc(state->port_line, state->current_line_len);
+                    if (ptmp == NULL) {
+                        SCFree(state->port_line);
+                        state->port_line = NULL;
+                        state->port_line_size = 0;
+                        return 0;
+                    }
+                    state->port_line = ptmp;
 
-                state->port_line_size = state->current_line_len;
-            }
-            memcpy(state->port_line, state->current_line,
-                   state->current_line_len);
-            state->port_line_len = state->current_line_len;
-        } else if (state->command == FTP_COMMAND_RETR) {
-            char *data = SCCalloc(state->current_line_len - 4, sizeof(*data));
-            if (data == NULL) 
-                SCReturnInt(-1);
-            data = memcpy(data, state->current_line + 5, state->current_line_len - 5); 
-            int ret  = AppLayerExpectationCreate(f, STREAM_TOSERVER, 0,
-                                                 state->dyn_port, ALPROTO_FTPDATA, data);
-            if (ret == -1) {
-                SCLogError(SC_ERR_INVALID_VALUE, "No expectation created.");
-            } else {
-                SCLogDebug("Expectation created.");
-            }
+                    state->port_line_size = state->current_line_len;
+                }
+                memcpy(state->port_line, state->current_line,
+                        state->current_line_len);
+                state->port_line_len = state->current_line_len;
+                break;
+            case FTP_COMMAND_RETR:
+                direction = STREAM_TOCLIENT;
+            case FTP_COMMAND_STOR:
+                {
+                    char *data = SCCalloc(state->current_line_len + sizeof(int64_t) + 1, sizeof(*data));
+                    if (data == NULL)
+                        SCReturnInt(-1);
+                    memcpy(data + sizeof(int64_t), state->current_line, state->current_line_len);
+                    *(int64_t *) data = FlowGetId(f);
+                    int ret  = AppLayerExpectationCreate(f, direction, 0,
+                            state->dyn_port, ALPROTO_FTPDATA, data);
+                    if (ret == -1) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "No expectation created.");
+                    } else {
+                        SCLogDebug("Expectation created.");
+                    }
+                }
+                break;
+            default:
+                break;
         }
     }
 
@@ -544,9 +560,19 @@ static int FTPDataParse(Flow *f, void *ftp_state,
             SCReturnInt(-1);
         }
 
-        const char *filename = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
-        if (filename == NULL)
+        const char *data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
+        const char *filename;
+        if (data == NULL)
             filename = "default";
+        filename = data + sizeof(int64_t) + 5;
+        f->parent_id = *(int64_t *)data;
+        if (input_len >= 4 && SCMemcmpLowercase("retr", data + sizeof(int64_t), 4) == 0) {
+            ftpdata_state->command = FTP_COMMAND_RETR;
+        }
+        if (input_len >= 4 && SCMemcmpLowercase("stor", data + sizeof(int64_t), 4) == 0) {
+            ftpdata_state->command = FTP_COMMAND_STOR;
+        }
+
         if (FileOpenFile(ftpdata_state->files_ts, &sbcfg, (uint8_t *) filename, strlen(filename),
                          input, input_len, flags) == NULL) {
             SCLogError(SC_ERR_FOPEN, "Can't open file");
