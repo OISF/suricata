@@ -294,7 +294,7 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].PktAcqLoop = ReceiveAFPLoop;
     tmm_modules[TMM_RECEIVEAFP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadExitPrintStats = ReceiveAFPThreadExitStats;
-    tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = ReceiveAFPThreadDeinit;
     tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEAFP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
@@ -2275,6 +2275,7 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 
     ptv->bpf_filter = NULL;
 
+    SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
 }
 
