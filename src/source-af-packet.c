@@ -2100,6 +2100,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     if (filter.bf_insns == NULL) {
         SCLogError(SC_ERR_AFP_CREATE, "Filter badly setup.");
+        pcap_freecode(&filter);
         return TM_ECODE_FAILED;
     }
 
@@ -2108,6 +2109,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 
     rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
 
+    pcap_freecode(&filter);
     if(rc == -1) {
         SCLogError(SC_ERR_AFP_CREATE, "Failed to attach filter: %s", strerror(errno));
         return TM_ECODE_FAILED;
