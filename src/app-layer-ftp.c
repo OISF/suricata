@@ -562,9 +562,12 @@ static int FTPDataParse(Flow *f, void *ftp_state,
 
         const char *data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
         const char *filename;
-        if (data == NULL)
+        if (data == NULL) {
             filename = "default";
-        filename = data + sizeof(int64_t) + 5;
+        } else {
+            filename = data + sizeof(int64_t) + 5;
+            ftpdata_state->filename = SCStrdup(filename);
+        }
         f->parent_id = *(int64_t *)data;
         if (input_len >= 4 && SCMemcmpLowercase("retr", data + sizeof(int64_t), 4) == 0) {
             ftpdata_state->command = FTP_COMMAND_RETR;
@@ -650,6 +653,9 @@ static void FTPDataStateFree(void *s)
 
     if (fstate->de_state != NULL) {
         DetectEngineStateFree(fstate->de_state);
+    }
+    if (fstate->filename != NULL) {
+        SCFree(fstate->filename);
     }
 
     FileContainerFree(fstate->files);
@@ -800,6 +806,32 @@ void FTPAtExitPrintStats(void)
     SCMutexUnlock(&ftp_state_mem_lock);
 #endif
 }
+
+
+#ifdef HAVE_LIBJANSSON
+json_t *JsonFTPDataAddMetadata(const Flow *f)
+{
+    FtpDataState *ftp_state = NULL;
+    if (f->alstate == NULL)
+        return NULL;
+    ftp_state = (FtpDataState *)f->alstate;
+    json_t *ftpd = json_object();
+    if (ftpd == NULL)
+        return NULL;
+    json_object_set_new(ftpd, "filename", json_string(ftp_state->filename));
+    switch (ftp_state->command) {
+        case FTP_COMMAND_STOR:
+            json_object_set_new(ftpd, "command", json_string("STOR"));
+            break;
+        case FTP_COMMAND_RETR:
+            json_object_set_new(ftpd, "command", json_string("RETR"));
+            break;
+        default:
+            break;
+    }
+    return ftpd;
+}
+#endif /* HAVE_LIBJANSSON */
 
 /* UNITTESTS */
 #ifdef UNITTESTS
