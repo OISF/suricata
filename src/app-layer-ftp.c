@@ -276,9 +276,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
             case FTP_COMMAND_STOR:
                 {
                     char *data = SCCalloc(state->current_line_len + sizeof(int64_t) + 1, sizeof(*data));
-                    if (data == NULL) 
+                    if (data == NULL)
                         SCReturnInt(-1);
-                    memcpy(data + sizeof(int64_t), state->current_line, state->current_line_len); 
+                    memcpy(data + sizeof(int64_t), state->current_line, state->current_line_len);
                     *(int64_t *) data = FlowGetId(f);
                     int ret  = AppLayerExpectationCreate(f, STREAM_TOSERVER, 0,
                             state->dyn_port, ALPROTO_FTPDATA, data);
