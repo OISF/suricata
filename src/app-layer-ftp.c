@@ -554,19 +554,22 @@ static int FTPDataParse(Flow *f, void *ftp_state,
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
     if (ftpdata_state->files == NULL) {
+        const char *data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
+        const char *filename;
+        if (data == NULL) {
+            SCReturnInt(-1);
+        }
+
         ftpdata_state->files = FileContainerAlloc();
         if (ftpdata_state->files == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
             SCReturnInt(-1);
         }
 
-        const char *data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
-        const char *filename;
-        if (data == NULL) {
-            filename = "default";
-        } else {
-            filename = data + sizeof(int64_t) + 5;
-            ftpdata_state->filename = SCStrdup(filename);
+        filename = data + sizeof(int64_t) + 5;
+        ftpdata_state->filename = SCStrdup(filename);
+        if (ftpdata_state->filename == NULL) {
+            SCLogInfo("Unable to allocate filename");
         }
         f->parent_id = *(int64_t *)data;
         if (input_len >= 4 && SCMemcmpLowercase("retr", data + sizeof(int64_t), 4) == 0) {
@@ -818,7 +821,9 @@ json_t *JsonFTPDataAddMetadata(const Flow *f)
     json_t *ftpd = json_object();
     if (ftpd == NULL)
         return NULL;
-    json_object_set_new(ftpd, "filename", json_string(ftp_state->filename));
+    if (ftp_state->filename) {
+        json_object_set_new(ftpd, "filename", json_string(ftp_state->filename));
+    }
     switch (ftp_state->command) {
         case FTP_COMMAND_STOR:
             json_object_set_new(ftpd, "command", json_string("STOR"));
