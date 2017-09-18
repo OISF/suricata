@@ -444,23 +444,23 @@ static void FTPStateFree(void *s)
 
 static int FTPStateHasTxDetectState(void *state)
 {
-    FtpState *ssh_state = (FtpState *)state;
-    if (ssh_state->de_state)
+    FtpState *ftp_state = (FtpState *)state;
+    if (ftp_state->de_state)
         return 1;
     return 0;
 }
 
 static int FTPSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
 {
-    FtpState *ssh_state = (FtpState *)state;
-    ssh_state->de_state = de_state;
+    FtpState *ftp_state = (FtpState *)state;
+    ftp_state->de_state = de_state;
     return 0;
 }
 
 static DetectEngineState *FTPGetTxDetectState(void *vtx)
 {
-    FtpState *ssh_state = (FtpState *)vtx;
-    return ssh_state->de_state;
+    FtpState *ftp_state = (FtpState *)vtx;
+    return ftp_state->de_state;
 }
 
 static void FTPStateTransactionFree(void *state, uint64_t tx_id)
@@ -470,8 +470,8 @@ static void FTPStateTransactionFree(void *state, uint64_t tx_id)
 
 static void *FTPGetTx(void *state, uint64_t tx_id)
 {
-    FtpState *ssh_state = (FtpState *)state;
-    return ssh_state;
+    FtpState *ftp_state = (FtpState *)state;
+    return ftp_state;
 }
 
 static uint64_t FTPGetTxCnt(void *state)
