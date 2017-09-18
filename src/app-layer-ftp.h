@@ -150,6 +150,7 @@ typedef struct FtpDataState_ {
     int32_t input_len;
     uint8_t direction;
     FtpRequestCommand command; 
+    char *filename;
 
     FileContainer *files;
 
@@ -159,6 +160,10 @@ typedef struct FtpDataState_ {
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
 void FTPAtExitPrintStats(void);
+
+#ifdef HAVE_LIBJANSSON
+json_t *JsonFTPDataAddMetadata(const Flow *f);
+#endif
 
 #endif /* __APP_LAYER_FTP_H__ */
 
