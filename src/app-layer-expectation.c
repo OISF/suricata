@@ -34,6 +34,8 @@
 static int expectation_id = -1;
 static int expectation_data_id = -1;
 
+SC_ATOMIC_DECLARE(uint32_t, expectation_count);
+
 #define EXPECTATION_TIMEOUT 30
 
 typedef struct _Expectation {
@@ -65,10 +67,17 @@ static void ExpectationDataFree(void *e)
         SCFree(e);
 }
 
+uint64_t ExpectationGetCounter(void)
+{
+    uint64_t x = SC_ATOMIC_GET(expectation_count);
+    return x;
+}
+
 void AppLayerExpectationSetup(void)
 {
     expectation_id = IPPairStorageRegister("expectation", sizeof(void *), NULL, ExpectationListFree);
     expectation_data_id = FlowStorageRegister("expectation", sizeof(void *), NULL, ExpectationDataFree);
+    SC_ATOMIC_INIT(expectation_count);
 }
 
 static inline int GetFlowAddresses(Flow *f, Address *ip_src, Address *ip_dst)
@@ -118,6 +127,7 @@ int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppPro
     exp->next = iexp;
     IPPairSetStorageById(ipp, expectation_id, exp);
 
+    SC_ATOMIC_ADD(expectation_count, 1);
     IPPairUnlock(ipp);
     return 0;
 
@@ -153,6 +163,7 @@ static Expectation * RemoveExpectationAndGetNext(IPPair *ipp,
                                 Expectation *pexp, Expectation *exp,
                                 Expectation *lexp)
 {
+    SC_ATOMIC_SUB(expectation_count, 1);
     if (pexp == NULL) {
         IPPairSetStorageById(ipp, expectation_id, lexp);
     } else {
@@ -170,6 +181,12 @@ AppProto AppLayerExpectationLookup(Flow *f, int direction)
     IPPair *ipp = NULL;
     Expectation *lexp = NULL;
     Expectation *pexp = NULL;
+
+    int x = SC_ATOMIC_GET(expectation_count);
+    if (x == 0) {
+        return ALPROTO_UNKNOWN;
+    }
+
     Expectation *exp = AppLayerExpectationGet(f, direction, &ipp);
     time_t ctime = time(NULL);
 
