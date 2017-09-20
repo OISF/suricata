@@ -163,19 +163,6 @@ static int UnixNew(UnixCommand * this)
     }
     this->select_max = this->socket + 1;
 
-#if !(defined OS_FREEBSD || defined __OpenBSD__)
-    /* Set file mode: will not fully work on most system, the group
-     * permission is not changed on some Linux. *BSD won't do the
-     * chmod: it returns EINVAL when calling fchmod on sockets. */
-    ret = fchmod(this->socket, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-    if (ret == -1) {
-        int err = errno;
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Unable to change permission on socket: %s (%d)",
-                     strerror(err),
-                     err);
-    }
-#endif
     /* set reuse option */
     ret = setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR,
                      (char *) &on, sizeof(on));
@@ -192,6 +179,20 @@ static int UnixNew(UnixCommand * this)
                      sockettarget, strerror(errno));
         return 0;
     }
+
+#if !(defined OS_FREEBSD || defined __OpenBSD__)
+    /* Set file mode: will not fully work on most system, the group
+     * permission is not changed on some Linux. *BSD won't do the
+     * chmod: it returns EINVAL when calling fchmod on sockets. */
+    ret = chmod(sockettarget, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+    if (ret == -1) {
+        int err = errno;
+        SCLogWarning(SC_ERR_INITIALIZATION,
+                     "Unable to change permission on socket: %s (%d)",
+                     strerror(err),
+                     err);
+    }
+#endif
 
     /* listen */
     if (listen(this->socket, 1) == -1) {
