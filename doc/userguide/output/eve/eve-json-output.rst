@@ -15,6 +15,9 @@ The most common way to use this is through 'EVE', which is a firehose approach w
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      # usecs to wait before retrying a write to a blocked unix stream socket
+      # default value is 0 (won't wait)
+      #unix-retry-wait: 12830
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
