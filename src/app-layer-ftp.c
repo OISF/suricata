@@ -52,6 +52,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
+#include "util-memrchr.h"
 
 #ifdef HAVE_RUST
 #include "rust-ftp-mod-gen.h"
