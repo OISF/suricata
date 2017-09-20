@@ -61,6 +61,7 @@
 #define LOG_EMAIL_COMMA         (1<<2) /* require array handling */
 #define LOG_EMAIL_BODY_MD5      (1<<3)
 #define LOG_EMAIL_SUBJECT_MD5   (1<<4)
+#define LOG_EMAIL_ATTACHMENT_MD5 (1<<5)
 
 struct {
     const char *config_field;
@@ -131,7 +132,8 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
 
 
 #ifdef HAVE_NSS
-static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPTransaction *tx)
+static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js,
+                                SMTPState *smtp_state, SMTPTransaction *tx)
 {
     if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
         MimeDecField *field;
@@ -168,6 +170,39 @@ static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPT
                 }
                 json_object_set_new(js, "body_md5", json_string(s));
             }
+        }
+    }
+
+    if (email_ctx->flags & LOG_EMAIL_ATTACHMENT_MD5) {
+        FileContainer *ffc = smtp_state->files_ts;
+        if (ffc != NULL) {
+            File *ff = NULL;
+            json_t *jarray = json_array();
+            if (jarray == NULL)
+                return;
+
+            json_t *jdata = NULL;
+            for (ff = ffc->head; ff != NULL; ff = ff->next) {
+                if (ff->state == FILE_STATE_CLOSED && ff->flags & FILE_MD5) {
+                    jdata = json_object();
+                    if (jdata == NULL)
+                        return;
+
+                    size_t x;
+                    int i;
+                    char s[256];
+                    for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
+                        i += snprintf(&s[i], 255-i, "%02x", ff->md5[x]);
+                    }
+                    char *sname = BytesToString(ff->name, ff->name_len);
+                    json_object_set_new(jdata, "filename", json_string(sname));
+                    if (sname)
+                        SCFree(sname);
+                    json_object_set_new(jdata, "md5", json_string(s));
+                    json_array_append_new(jarray, jdata);
+                }
+            }
+            json_object_set_new(js, "attachments_md5", jarray);
         }
     }
 }
@@ -387,7 +422,8 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
         JsonEmailLogJSONCustom(email_ctx, sjs, tx);
 
 #ifdef HAVE_NSS
-    JsonEmailLogJSONMd5(email_ctx, sjs, tx);
+    SMTPState *smtp_state = (SMTPState *) state;
+    JsonEmailLogJSONMd5(email_ctx, sjs, smtp_state, tx);
 #endif
 
     if (sjs) {
@@ -458,6 +494,10 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
                     if (strcmp("subject", field->val) == 0) {
                         SCLogInfo("Going to log the md5 sum of email subject");
                         email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
+                    }
+                    if (strcmp("attachments", field->val) == 0) {
+                        SCLogInfo("Going to log the md5 sum of email attachments");
+                        email_ctx->flags |= LOG_EMAIL_ATTACHMENT_MD5;
                     }
                 }
             }
