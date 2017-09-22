@@ -65,9 +65,7 @@ void DetectFtpcommandRegister(void) {
     sigmatch_table[DETECT_FTPCOMMAND].name = "ftpcommand";
     /* description: listed in "suricata --list-keywords=all" */
     sigmatch_table[DETECT_FTPCOMMAND].desc = "match FTP command triggering a FTP data channel";
-    /* link to further documentation of the keyword. Normally on the Suricata redmine/wiki */
-    sigmatch_table[DETECT_FTPCOMMAND].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Developers_Guide";
-    /* match function is called when the signature is inspected on a packet */
+    sigmatch_table[DETECT_FTPCOMMAND].url = DOC_URL DOC_VERSION "/rules/ftp-keywords#ftpcommand";
     sigmatch_table[DETECT_FTPCOMMAND].AppLayerTxMatch = DetectFtpcommandMatch;
     /* setup function is called during signature parsing, when the ftpcommand
      * keyword is encountered in the rule */
