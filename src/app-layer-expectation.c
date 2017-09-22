@@ -16,6 +16,34 @@
  */
 
 /**
+ * \defgroup applayerexpectation Application Layer Expectation
+ *
+ * Handling of dynamic parallel connection for application layer similar
+ * to FTP.
+ *
+ * @{
+ *
+ * Some protocols like FTP create dynamic parallel flow (called expectation). In
+ * order to assign a application layer protocol to these expectation, Suricata
+ * needs to parse message of the initial protocol and create and maintain a list
+ * of expected flow.
+ *
+ * Application layers must use the here described API to implement this mechanism.
+ *
+ * When parsing a application layer message describing a parallel flow, the
+ * application layer can call AppLayerExpectationCreate() to declared an
+ * expectation. By doing that the next flow coming with corresponding IP parameters
+ * will be assigned the specified application layer. The resulting Flow will
+ * also have a Flow storage set that can be retrieved at index
+ * AppLayerExpectationGetDataId():
+ *
+ * ```
+ * data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
+ * ```
+ *
+ */
+
+/**
  * \file
  *
  * \author Eric Leblond <eric@regit.org>
@@ -96,6 +124,23 @@ static inline int GetFlowAddresses(Flow *f, Address *ip_src, Address *ip_dst)
     return 0;
 }
 
+/**
+ * Create an entry in expectation list
+ *
+ * Create a expectation from an existing Flow. Currently, only Flow between
+ * the two original IP addresses are supported.
+ *
+ * \param f a pointer to the original Flow
+ * \param direction the direction of the expectation flow with respect to original flow
+ * \param src source port of the expected flow, use 0 for any
+ * \param dst destination port of the expected flow, use 0 for any
+ * \param alproto the protocol that need to be set on the expected flow
+ * \param data pointer to data that will be attached to the expected flow
+ *
+ * \return -1 if error
+ * \return 0 if success
+ */
+
 int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst, AppProto alproto, void *data)
 {
     Expectation *exp = SCCalloc(1, sizeof(*exp));
@@ -154,6 +199,11 @@ static Expectation *AppLayerExpectationGet(Flow *f, int direction, IPPair **ipp)
     return IPPairGetStorageById(*ipp, expectation_id);
 }
 
+/**
+ * Return Flow storage identifier corresponding to expectation data
+ *
+ * \return expectation data identifier
+ */
 int AppLayerExpectationGetDataId(void)
 {
     return expectation_data_id;
@@ -175,6 +225,12 @@ static Expectation * RemoveExpectationAndGetNext(IPPair *ipp,
     return lexp;
 }
 
+/**
+ * Function doing a lookup in expectation list
+ *
+ * \return an AppProto value if found
+ * \return ALPROTO_UNKNOWN if not found
+ */
 AppProto AppLayerExpectationLookup(Flow *f, int direction)
 {
     AppProto alproto = ALPROTO_UNKNOWN;
@@ -225,3 +281,7 @@ out:
         IPPairUnlock(ipp);
     return alproto;
 }
+
+/**
+ * @}
+ */
