@@ -1182,9 +1182,6 @@ void SCProfilingAddPacket(Packet *p)
     pthread_mutex_lock(&packet_profile_lock);
     {
 
-        if (profiling_packets_csv_enabled)
-            SCProfilingPrintPacketProfile(p);
-
         if (PKT_IS_IPV4(p)) {
             SCProfilePacketData *pd = &packet_profile_data4[p->proto];
 
@@ -1259,6 +1256,9 @@ void SCProfilingAddPacket(Packet *p)
         }
 
         SCProfilingUpdatePrefilterRecords(p);
+        if (profiling_packets_csv_enabled)
+            SCProfilingPrintPacketProfile(p);
+
     }
     pthread_mutex_unlock(&packet_profile_lock);
 }

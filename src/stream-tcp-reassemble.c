@@ -1030,6 +1030,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
             (uint8_t *)mydata, mydata_len,
             StreamGetAppLayerFlags(ssn, stream, p, dir));
+    AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
     /* see if we can update the progress */
     if (r == 0 && mydata_len > 0 &&
