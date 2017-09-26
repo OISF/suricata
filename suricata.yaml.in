@@ -575,6 +575,7 @@ af-packet:
     # eBPF file containing a 'filter' function that will be inserted into the
     # kernel and used as packet filter function
     #ebpf-filter-file:  @e_sysconfdir@filter.bpf
+    #xdp-filter-file:  @e_sysconfdir@xdp_filter.bpf
     # if the ebpf filter implements a bypass function, you can set 'bypass' to
     # yes and benefit from these feature
     #bypass: yes

@@ -378,7 +378,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
         int ret = EBPFLoadFile(aconf->ebpf_lb_file, "loadbalancer",
-                               &aconf->ebpf_lb_fd);
+                               &aconf->ebpf_lb_fd, EBPF_SOCKET_FILTER);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
         }
@@ -407,13 +407,48 @@ static void *ParseAFPConfig(const char *iface)
     if (aconf->ebpf_filter_file) {
 #ifdef HAVE_PACKET_EBPF
         int ret = EBPFLoadFile(aconf->ebpf_filter_file, "filter",
-                               &aconf->ebpf_filter_fd);
+                               &aconf->ebpf_filter_fd, EBPF_SOCKET_FILTER);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE,
                        "Error when loading eBPF filter file");
         }
 #else
         SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+#endif
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
+        aconf->xdp_filter_file = NULL;
+    } else {
+        SCLogInfo("af-packet will use '%s' as XDP filter file",
+                  ebpf_file);
+        aconf->xdp_filter_file = ebpf_file;
+        ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
+        if (conf_val) {
+            SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
+                    aconf->iface);
+            aconf->flags |= AFP_BYPASS;
+        }
+    }
+
+    /* One shot loading of the eBPF file */
+    if (aconf->xdp_filter_file) {
+#ifdef HAVE_PACKET_EBPF
+        int ret = EBPFLoadFile(aconf->xdp_filter_file, "xdp",
+                               &aconf->xdp_filter_fd, EBPF_XDP_CODE);
+        if (ret != 0) {
+            SCLogError(SC_ERR_INVALID_VALUE,
+                       "Error when loading XDP filter file");
+        } else {
+            ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd);
+            if (ret != 0) {
+                SCLogError(SC_ERR_INVALID_VALUE,
+                        "Error when setting up XDP");
+                /* FIXME error handling */
+            }
+        }
+#else
+        SCLogError(SC_ERR_UNIMPLEMENTED, "XDP support is not build-in");
 #endif
     }
 

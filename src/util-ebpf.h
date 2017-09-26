@@ -56,8 +56,12 @@ struct flows_stats {
     uint64_t bytes;
 };
 
+#define EBPF_SOCKET_FILTER  (1<<0)
+#define EBPF_XDP_CODE       (1<<1)
+
 int EBPFGetMapFDByName(const char *name);
-int EBPFLoadFile(const char *path, const char * section, int *val);
+int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags);
+int EBPFSetupXDP(const char *iface, int fd);
 
 int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
