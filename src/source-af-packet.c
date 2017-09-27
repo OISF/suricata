@@ -2273,18 +2273,19 @@ static int AFPBypassCallback(Packet *p)
         }
         /* FIXME error handling */
         struct flowv4_keys key = {};
-        key.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
-        key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
-        key.port16[0] = GET_TCP_SRC_PORT(p);
-        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.src = GET_IPV4_SRC_ADDR_U32(p);
+        key.dst = GET_IPV4_DST_ADDR_U32(p);
+        /* FIXME htons or not depending of XDP and af_packet eBPF */
+        key.port16[0] = htons(GET_TCP_SRC_PORT(p));
+        key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV4_GET_IPPROTO(p);
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }
-        key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
-        key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
-        key.port16[0] = GET_TCP_DST_PORT(p);
-        key.port16[1] = GET_TCP_SRC_PORT(p);
+        key.src = GET_IPV4_DST_ADDR_U32(p);
+        key.dst = GET_IPV4_SRC_ADDR_U32(p);
+        key.port16[0] = htons(GET_TCP_DST_PORT(p));
+        key.port16[1] = htons(GET_TCP_SRC_PORT(p));
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }
@@ -2305,21 +2306,21 @@ static int AFPBypassCallback(Packet *p)
         /* FIXME filter out next hdr IPV6 packets */
         struct flowv6_keys key = {};
         for (i = 0; i < 4; i++) {
-            key.src[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
-            key.dst[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
+            key.src[i] = GET_IPV6_SRC_ADDR(p)[i];
+            key.dst[i] = GET_IPV6_DST_ADDR(p)[i];
         }
-        key.port16[0] = GET_TCP_SRC_PORT(p);
-        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.port16[0] = htons(GET_TCP_SRC_PORT(p));
+        key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV6_GET_NH(p);
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }
         for (i = 0; i < 4; i++) {
-            key.src[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
-            key.dst[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
+            key.src[i] = GET_IPV6_DST_ADDR(p)[i];
+            key.dst[i] = GET_IPV6_SRC_ADDR(p)[i];
         }
-        key.port16[0] = GET_TCP_DST_PORT(p);
-        key.port16[1] = GET_TCP_SRC_PORT(p);
+        key.port16[0] = htons(GET_TCP_DST_PORT(p));
+        key.port16[1] = htons(GET_TCP_SRC_PORT(p));
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
             return 0;
         }

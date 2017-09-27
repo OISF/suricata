@@ -41,9 +41,9 @@ typedef struct BypassedFlowManagerThreadData_ {
 static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
 {
     struct timespec *curtime = (struct timespec *)data;
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
                curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1]
+               key->port16[0], key->port16[1], key->ip_proto
               );
 
     if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
