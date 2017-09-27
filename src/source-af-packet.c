@@ -2482,6 +2482,9 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 
     AFPSwitchState(ptv, AFP_STATE_DOWN);
 
+#ifdef HAVE_PACKET_EBPF
+    EBPFSetupXDP(ptv->iface, -1);
+#endif
     if (ptv->data != NULL) {
         SCFree(ptv->data);
         ptv->data = NULL;
