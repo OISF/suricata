@@ -22,6 +22,9 @@
  *
  */
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
@@ -63,6 +66,7 @@
 #define MODULE_NAME "LogFilestoreLog"
 
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
+static char working_file_prefix[PATH_MAX] = ".";
 
 SC_ATOMIC_DECLARE(uint32_t, filestore_open_file_cnt);  /**< Atomic counter of simultaneously open files */
 
@@ -282,12 +286,20 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     if (!FileWriteMeta())
         return;
 
-    char filename[PATH_MAX] = "";
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
-    char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-    FILE *fp = fopen(metafilename, "a");
+    char working_filename[PATH_MAX] = "";
+    snprintf(working_filename, sizeof(working_filename), "%s/%sfile.%d.%u",
+            g_logfile_base_dir, working_file_prefix, getpid(),
+            ff->file_store_id);
+    char working_metafilename[PATH_MAX] = "";
+    snprintf(working_metafilename, sizeof(working_metafilename),
+            "%s.meta", working_filename);
+    char final_filename[PATH_MAX] = "";
+    snprintf(final_filename, sizeof(final_filename), "%s/file.%d.%u",
+            g_logfile_base_dir, getpid(), ff->file_store_id);
+    char final_metafilename[PATH_MAX] = "";
+    snprintf(final_metafilename, sizeof(final_metafilename),
+            "%s.meta", final_filename);
+    FILE *fp = fopen(working_metafilename, "a");
     if (fp != NULL) {
 #ifdef HAVE_MAGIC
         fprintf(fp, "MAGIC:             %s\n",
@@ -336,8 +348,19 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
         fprintf(fp, "SIZE:              %"PRIu64"\n", FileTrackedSize(ff));
 
         fclose(fp);
+        /* Move working files to their final location now that we are done
+         * writing them.*/
+        if (rename(working_filename, final_filename) != 0) {
+            SCLogInfo("renaming file %s to %s failed", working_filename,
+                    final_filename);
+            return;
+        }
+        if (rename(working_metafilename, final_metafilename) != 0 ) {
+            SCLogInfo("renaming metafile %s to %s failed", working_metafilename,
+                    final_metafilename);
+        }
     } else {
-        SCLogInfo("opening %s failed: %s", metafilename, strerror(errno));
+        SCLogInfo("opening %s failed: %s", working_metafilename, strerror(errno));
     }
 }
 
@@ -365,8 +388,9 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
+    snprintf(filename, sizeof(filename), "%s/%sfile.%d.%u",
+            g_logfile_base_dir, working_file_prefix, getpid(),
+            ff->file_store_id);
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
