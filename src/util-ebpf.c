@@ -170,7 +170,10 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
         return -1;
     } else {
         /* Fix me use option to set XDP_FLAGS_SKB_MODE  or XDP_FLAGS_DRV_MODE */
-        bpf_set_link_xdp_fd(ifindex, fd, flags);
+        if (bpf_set_link_xdp_fd(ifindex, fd, flags) != 0) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Unable to set XDP on '%s'", iface);
+            return -1;
+        }
     }
     return 0;
 }
