@@ -24,6 +24,13 @@
 #ifndef __UTIL_EBPF_H__
 #define __UTIL_EBPF_H__
 
+#define XDP_FLAGS_UPDATE_IF_NOEXIST	(1U << 0)
+#define XDP_FLAGS_SKB_MODE		(1U << 1)
+#define XDP_FLAGS_DRV_MODE		(1U << 2)
+#define XDP_FLAGS_HW_MODE		(1U << 3)
+
+
+
 struct flowv4_keys {
 	__be32 src;
 	__be32 dst;
@@ -61,7 +68,7 @@ struct flows_stats {
 
 int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags);
-int EBPFSetupXDP(const char *iface, int fd);
+int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
 int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),

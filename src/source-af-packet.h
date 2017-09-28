@@ -95,6 +95,7 @@ typedef struct AFPIfaceConfig_
     int ebpf_filter_fd;
     char *xdp_filter_file;
     int xdp_filter_fd;
+    uint8_t xdp_mode;
     const char *out_iface;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);

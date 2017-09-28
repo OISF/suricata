@@ -420,6 +420,7 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
         aconf->xdp_filter_file = NULL;
     } else {
+        char *xdp_mode;
         SCLogInfo("af-packet will use '%s' as XDP filter file",
                   ebpf_file);
         aconf->xdp_filter_file = ebpf_file;
@@ -428,6 +429,21 @@ static void *ParseAFPConfig(const char *iface)
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
+        }
+
+        if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
+            aconf->xdp_mode = XDP_FLAGS_SKB_MODE;
+        } else {
+            if (!strcmp(xdp_mode, "soft")) {
+                aconf->xdp_mode = XDP_FLAGS_SKB_MODE;
+            } else if (!strcmp(xdp_mode, "driver")) {
+                aconf->xdp_mode = XDP_FLAGS_DRV_MODE;
+            } else if (!strcmp(xdp_mode, "hw")) {
+                aconf->xdp_mode = XDP_FLAGS_HW_MODE;
+            } else {
+                SCLogError(SC_ERR_INVALID_VALUE,
+                           "Invalid xdp-mode value: '%s'", xdp_mode);
+            }
         }
     }
 
@@ -440,7 +456,7 @@ static void *ParseAFPConfig(const char *iface)
             SCLogError(SC_ERR_INVALID_VALUE,
                        "Error when loading XDP filter file");
         } else {
-            ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd);
+            ret = EBPFSetupXDP(aconf->iface, aconf->xdp_filter_fd, aconf->xdp_mode);
             if (ret != 0) {
                 SCLogError(SC_ERR_INVALID_VALUE,
                         "Error when setting up XDP");

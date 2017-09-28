@@ -161,7 +161,7 @@ int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags
     return 0;
 }
 
-int EBPFSetupXDP(const char *iface, int fd)
+int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 {
     unsigned int ifindex = if_nametoindex(iface);
     if (ifindex == 0) {
@@ -170,7 +170,7 @@ int EBPFSetupXDP(const char *iface, int fd)
         return -1;
     } else {
         /* Fix me use option to set XDP_FLAGS_SKB_MODE  or XDP_FLAGS_DRV_MODE */
-        bpf_set_link_xdp_fd(ifindex, fd, 2);
+        bpf_set_link_xdp_fd(ifindex, fd, flags);
     }
     return 0;
 }

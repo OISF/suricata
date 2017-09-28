@@ -293,6 +293,8 @@ typedef struct AFPThreadVars_
     /* IPS output iface */
     char out_iface[AFP_IFACE_NAME_LENGTH];
 
+    uint8_t xdp_mode;
+
     int map_fd[MAX_MAPS];
 
 } AFPThreadVars;
@@ -2395,6 +2397,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     }
     ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
     ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
+    ptv->xdp_mode = afpconfig->xdp_mode;
 
 #ifdef PACKET_STATISTICS
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
@@ -2484,7 +2487,7 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
     AFPSwitchState(ptv, AFP_STATE_DOWN);
 
 #ifdef HAVE_PACKET_EBPF
-    EBPFSetupXDP(ptv->iface, -1);
+    EBPFSetupXDP(ptv->iface, -1, ptv->xdp_mode);
 #endif
     if (ptv->data != NULL) {
         SCFree(ptv->data);
