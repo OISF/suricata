@@ -18,26 +18,26 @@
 #define LINUX_VERSION_CODE 263682
 
 struct vlan_hdr {
-    __be16	h_vlan_TCI;
-    __be16	h_vlan_encapsulated_proto;
+    __u16	h_vlan_TCI;
+    __u16	h_vlan_encapsulated_proto;
 };
 
 struct flowv4_keys {
-    __be32 src;
-    __be32 dst;
+    __u32 src;
+    __u32 dst;
     union {
-        __be32 ports;
-        __be16 port16[2];
+        __u32 ports;
+        __u16 port16[2];
     };
     __u32 ip_proto;
 };
 
 struct flowv6_keys {
-    __be32 src[4];
-    __be32 dst[4];
+    __u32 src[4];
+    __u32 dst[4];
     union {
-        __be32 ports;
-        __be16 port16[2];
+        __u32 ports;
+        __u16 port16[2];
     };
     __u32 ip_proto;
 };
@@ -142,7 +142,7 @@ static int filter_ipv4(void *data, __u64 nh_off, void *data_end)
 #endif
     if (value) {
 #if 0
-        char fmt[] = "Found flow: %u %d -> %d\n";
+        char fmt[] = "Found flow v4: %u %d -> %d\n";
         bpf_trace_printk(fmt, sizeof(fmt), tuple.src, sport, dport);
 #endif
         __sync_fetch_and_add(&value->packets, 1);
@@ -175,13 +175,17 @@ static int filter_ipv6(void *data, __u64 nh_off, void *data_end)
         return XDP_PASS;
 
     tuple.ip_proto = ip6h->nexthdr;
-    memcpy(&tuple.src, ip6h->saddr.s6_addr32, sizeof(tuple.src));
-    memcpy(&tuple.dst, ip6h->daddr.s6_addr32, sizeof(tuple.dst));
+    __builtin_memcpy(tuple.src, ip6h->saddr.s6_addr32, sizeof(tuple.src));
+    __builtin_memcpy(tuple.dst, ip6h->daddr.s6_addr32, sizeof(tuple.dst));
     tuple.port16[0] = sport;
     tuple.port16[1] = dport;
 
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
+#if 0
+        char fmt6[] = "Found IPv6 flow: %d -> %d\n";
+        bpf_trace_printk(fmt6, sizeof(fmt6), sport, dport);
+#endif
         __sync_fetch_and_add(&value->packets, 1);
         __sync_fetch_and_add(&value->bytes, data_end - data);
         value->time = bpf_ktime_get_ns();
