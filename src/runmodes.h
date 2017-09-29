@@ -90,6 +90,9 @@ int RunModeOutputFiledataEnabled(void);
 /** bool indicating if run mode is offline */
 bool IsRunModeOffline(int run_mode_to_check);
 
+void RunModeEnablesBypassManager(void);
+int RunModeNeedsBypassManager(void);
+
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
