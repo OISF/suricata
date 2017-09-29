@@ -89,6 +89,9 @@ int RunModeOutputFileEnabled(void);
 /* bool indicating if filedata logger is enabled */
 int RunModeOutputFiledataEnabled(void);
 
+void RunModeAsksBypassManager(void);
+int RunModeNeedsBypassManager(void);
+
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"

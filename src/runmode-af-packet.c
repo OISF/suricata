@@ -468,6 +468,10 @@ static void *ParseAFPConfig(const char *iface)
 #endif
     }
 
+    if (aconf->flags & AFP_BYPASS) {
+        RunModeAsksBypassManager();
+    }
+
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
         aconf->buffer_size = value;
     } else {
