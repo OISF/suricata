@@ -33,10 +33,12 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
-
-#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-filedata.h"
 #include "detect-engine-hsbd.h"
 #include "detect-file-data.h"
+
+#include "app-layer-smtp.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -51,6 +53,8 @@ static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFiledataRegisterTests(void);
 static void DetectFiledataSetupCallback(Signature *s);
 static int g_file_data_buffer_id = 0;
+
+static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 /**
  * \brief Registration function for keyword: file_data
@@ -76,7 +80,7 @@ void DetectFiledataRegister(void)
             DetectEngineInspectHttpServerBody);
     DetectAppLayerInspectEngineRegister("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectSMTPFiledata);
+            DetectEngineInspectFiledata);
 
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
@@ -85,6 +89,40 @@ void DetectFiledataRegister(void)
             "http response body or smtp attachments data");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
+}
+
+static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxFiledata,
+        ALPROTO_SMTP, 0,
+        mpm_ctx, NULL, "file_data (smtp)");
+}
+
+#define FILEDATA_CONTENT_LIMIT 100000
+#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 32768
+#define FILEDATA_CONTENT_INSPECT_WINDOW 4096
+
+static void SetupDetectEngineConfig(DetectEngineCtx *de_ctx) {
+    if (de_ctx->filedata_config_initialized)
+        return;
+
+    /* initialize default */
+    for (int i = 0; i < (int)ALPROTO_MAX; i++) {
+        de_ctx->filedata_config[i].content_limit = FILEDATA_CONTENT_LIMIT;
+        de_ctx->filedata_config[i].content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+        de_ctx->filedata_config[i].content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
+    }
+
+    /* add protocol specific settings here */
+
+    /* SMTP */
+    de_ctx->filedata_config[ALPROTO_SMTP].content_limit = smtp_config.content_limit;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_min_size = smtp_config.content_inspect_min_size;
+    de_ctx->filedata_config[ALPROTO_SMTP].content_inspect_window = smtp_config.content_inspect_window;
+
+    de_ctx->filedata_config_initialized = true;
 }
 
 /**
@@ -124,6 +162,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     }
 
     s->init_data->list = DetectBufferTypeGetByName("file_data");
+
+    SetupDetectEngineConfig(de_ctx);
     return 0;
 }
 

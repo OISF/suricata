@@ -48,9 +48,10 @@
 #include "detect-engine-prefilter.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
+#include "detect-engine-filedata.h"
+
 
 #include "detect-engine-payload.h"
-#include "detect-engine-filedata-smtp.h"
 #include "detect-engine-event.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
@@ -947,7 +948,7 @@ end:
 
             DetectEngineCleanHCBDBuffers(det_ctx);
             DetectEngineCleanHSBDBuffers(det_ctx);
-            DetectEngineCleanSMTPBuffers(det_ctx);
+            DetectEngineCleanFiledataBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);

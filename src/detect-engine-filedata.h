@@ -20,20 +20,20 @@
  * \author Giuseppe Longo <giuseppelng@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_FILEDATA_SMTP_H__
-#define __DETECT_ENGINE_FILEDATA_SMTP_H__
+#ifndef __DETECT_ENGINE_FILEDATA_H__
+#define __DETECT_ENGINE_FILEDATA_H__
 
-#include "app-layer-smtp.h"
-
-int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
+void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags);
+int DetectEngineInspectFiledata(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 
-void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx);
+void DetectEngineCleanFiledataBuffers(DetectEngineThreadCtx *det_ctx);
 
 void DetectEngineSMTPFiledataRegisterTests(void);
 
-#endif /* __DETECT_ENGINE_FILEDATA_SMTP_H__ */
+#endif /* __DETECT_ENGINE_FILEDATA_H__ */

@@ -54,7 +54,7 @@
 #include "detect-tls-cert-serial.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
-#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-filedata.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"

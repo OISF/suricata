@@ -717,6 +717,13 @@ typedef struct DetectEngineCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 
+    struct {
+        uint32_t content_limit;
+        uint32_t content_inspect_min_size;
+        uint32_t content_inspect_window;
+    } filedata_config[ALPROTO_MAX];
+    bool filedata_config_initialized;
+
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
@@ -850,10 +857,10 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t hcbd_buffers_size;
     uint16_t hcbd_buffers_list_len;
 
-    FiledataReassembledBody *smtp;
-    uint64_t smtp_start_tx_id;
-    uint16_t smtp_buffers_size;
-    uint16_t smtp_buffers_list_len;
+    FiledataReassembledBody *file_data;
+    uint64_t file_data_start_tx_id;
+    uint16_t file_data_buffers_size;
+    uint16_t file_data_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;

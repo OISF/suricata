@@ -1990,10 +1990,10 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->hcbd);
     }
 
-    /* SMTP */
-    if (det_ctx->smtp != NULL) {
-        SCLogDebug("det_ctx smtp %u", det_ctx->smtp_buffers_size);
-        SCFree(det_ctx->smtp);
+    /* file data */
+    if (det_ctx->file_data != NULL) {
+        SCLogDebug("det_ctx file_data %u", det_ctx->file_data_buffers_size);
+        SCFree(det_ctx->file_data);
     }
 
     /* Decoded base64 data. */
