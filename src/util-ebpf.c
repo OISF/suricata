@@ -142,6 +142,10 @@ int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags
         SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_array[bpf_map_last].fd = bpf_map__fd(map);
         bpf_map_array[bpf_map_last].name = SCStrdup(bpf_map__name(map));
+        if (!bpf_map_array[bpf_map_last].name) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unalbe to duplicate map name");
+            return -1;
+        }
         bpf_map_last++;
         if (bpf_map_last == BPF_MAP_MAX_COUNT) {
             SCLogError(SC_ERR_NOT_SUPPORTED, "Too much BPF map in eBPF files");
