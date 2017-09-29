@@ -404,6 +404,7 @@ static void *ParseAFPConfig(const char *iface)
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
+            RunModeEnablesBypassManager();
         }
     }
 
