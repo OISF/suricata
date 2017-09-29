@@ -1390,7 +1390,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
     }
 
     /* if we have more than one record */
-    uint32_t max_records = input_len / SSL_RECORD_MINIMUM_LENGTH;
+    uint32_t max_records = MAX((input_len / SSL_RECORD_MINIMUM_LENGTH),1);
     while (input_len > 0) {
         if (counter > max_records) {
             SCLogDebug("Looks like we have looped quite a bit. Reset state "
