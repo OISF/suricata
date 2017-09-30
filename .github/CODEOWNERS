@@ -3,19 +3,25 @@
 # last match wins, so put more specific matches towards the end
 
 *                   @OISF/core-team
-rust/*              @victorjulien @jasonish
-src/source-*        @regit
-doc/*               @norg
-src/detect-engine*  @victorjulien
-*ssl*               @thus @OISF/core-team
-*tls*               @thus @OISF/core-team
-*nfs*               @victorjulien
-*dns*               @jasonish
-*ntp*               @chifflier
+/rust/              @victorjulien @jasonish
+/src/source-*       @regit
+/doc/               @norg
+/src/detect-engine* @victorjulien
+/src/*ssl*          @thus @OISF/core-team
+/src/*tls*          @thus @OISF/core-team
 
-*prelude*           @ToToL
+/src/*nfs*          @victorjulien
+/rust/src/nfs/      @victorjulien
 
-*napatech*          @psanders240
+/src/*dns*          @jasonish
+/rust/src/dns/      @jasonish
 
-.github/            @victorjulien
+/src/*ntp*          @chifflier
+/rust/src/ntp/      @jasonish
+
+/src/*prelude*      @ToToL
+
+/src/*napatech*     @psanders240
+
+/.github/           @victorjulien
 
