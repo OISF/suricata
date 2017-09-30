@@ -266,6 +266,29 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
+static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
+{
+    if (FlowGetPacketDirection(f, p) == TOSERVER) {
+        if (ttl < f->min_ttl_toserver) {
+            f->min_ttl_toserver = ttl;
+        } else if (f->min_ttl_toserver == 0) {
+            f->min_ttl_toserver = ttl;
+        }
+        if (ttl > f->max_ttl_toserver) {
+            f->max_ttl_toserver = ttl;
+        }
+    } else {
+        if (ttl < f->min_ttl_toclient) {
+            f->min_ttl_toclient = ttl;
+        } else if (f->min_ttl_toclient == 0) {
+            f->min_ttl_toclient = ttl;
+        }
+        if (ttl > f->max_ttl_toclient) {
+            f->max_ttl_toclient = ttl;
+        }
+    }
+}
+
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
@@ -343,6 +366,16 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
     if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
+    }
+
+
+    /* update flow's ttl fields if needed */
+    if (PKT_IS_IPV4(p)) {
+        uint8_t ttl = IPV4_GET_IPTTL(p);
+        FlowUpdateTTL(f, p, ttl);
+    } else if (PKT_IS_IPV6(p)) {
+        uint8_t ttl = IPV6_GET_HLIM(p);
+        FlowUpdateTTL(f, p, ttl);
     }
 }
 

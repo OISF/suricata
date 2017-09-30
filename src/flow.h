@@ -183,6 +183,16 @@ typedef struct AppLayerParserState_ AppLayerParserState;
         (a)->addr_data32[3] = (p)->ip6h->s_ip6_dst[3];  \
     } while (0)
 
+#define FLOW_SET_IPV4_TTL_FROM_PACKET(p, f) do {    \
+        (f)->min_ttl_toserver = IPV4_GET_IPTTL((p));         \
+        (f)->max_ttl_toserver = IPV4_GET_IPTTL((p));         \
+    } while (0)
+
+#define FLOW_SET_IPV6_HLIM_FROM_PACKET(p, f) do {   \
+        (f)->min_ttl_toserver = IPV6_GET_HLIM((p));          \
+        (f)->max_ttl_toserver = IPV6_GET_HLIM((p));          \
+    } while (0)
+
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02
@@ -330,6 +340,10 @@ typedef struct Flow_
     };
     uint8_t proto;
     uint8_t recursion_level;
+    uint8_t min_ttl_toserver;
+    uint8_t max_ttl_toserver;
+    uint8_t min_ttl_toclient;
+    uint8_t max_ttl_toclient;
     uint16_t vlan_id[2];
 
     /** flow hash - the flow hash before hash table size mod. */
