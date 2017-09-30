@@ -61,7 +61,7 @@ except ImportError:
 
 BASE_URI="https://buildbot.openinfosecfoundation.org/"
 GITHUB_BASE_URI = "https://api.github.com/repos/"
-GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
+GITHUB_MASTER_URI = "https://api.github.com/repos/OISF/suricata/commits?sha=master"
 
 if GOT_DOCKER:
     parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
