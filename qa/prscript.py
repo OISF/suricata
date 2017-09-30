@@ -61,7 +61,7 @@ except ImportError:
 
 BASE_URI="https://buildbot.openinfosecfoundation.org/"
 GITHUB_BASE_URI = "https://api.github.com/repos/"
-GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
+GITHUB_MASTER_URI = "https://api.github.com/repos/OISF/suricata/commits?sha=master"
 
 if GOT_DOCKER:
     parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
@@ -249,7 +249,7 @@ def WaitForBuildResult(builder, buildid, extension="", builder_name = None):
         print "Build failure for " + builder_name + ": " + BUILDERS_URI + builder_name + '/builds/' + str(buildid)
     return res
 
-    # check that github branch and inliniac master branch are sync
+    # check that github branch and OISF master branch are sync
 if not args.local:
     ret = TestGithubSync(args.branch)
     if ret != 0:
@@ -263,9 +263,9 @@ if not args.local:
             sys.exit(-1)
     if TestRepoSync(args.branch) != 0:
         if args.norebase:
-            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
+            print "Branch " + args.branch + " is not in sync with OISF's master branch. Continuing due to --norebase option."
         else:
-            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+            print "Branch " + args.branch + " is not in sync with OISF's master branch. Rebase needed."
             sys.exit(-1)
 
 def CreateContainer():
