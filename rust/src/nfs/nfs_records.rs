@@ -24,6 +24,7 @@ pub struct NfsReplyRead<'a> {
     pub attr_blob: &'a[u8],
     pub count: u32,
     pub eof: bool,
+
     pub data_len: u32,
     pub data: &'a[u8], // likely partial
 }
