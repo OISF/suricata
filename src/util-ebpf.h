@@ -24,6 +24,8 @@
 #ifndef __UTIL_EBPF_H__
 #define __UTIL_EBPF_H__
 
+#ifdef HAVE_PACKET_EBPF
+
 #define XDP_FLAGS_UPDATE_IF_NOEXIST	(1U << 0)
 #define XDP_FLAGS_SKB_MODE		(1U << 1)
 #define XDP_FLAGS_DRV_MODE		(1U << 2)
@@ -79,5 +81,7 @@ int EBPFForEachFlowV6Table(const char *name,
                               struct flows_stats *flowstats,
                               void *data);
 void EBPFDeleteKey(int fd, void *key);
+
+#endif
 
 #endif

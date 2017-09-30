@@ -420,7 +420,6 @@ static void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-filter-file", &ebpf_file) != 1) {
         aconf->xdp_filter_file = NULL;
     } else {
-        const char *xdp_mode;
         SCLogInfo("af-packet will use '%s' as XDP filter file",
                   ebpf_file);
         aconf->xdp_filter_file = ebpf_file;
@@ -430,7 +429,8 @@ static void *ParseAFPConfig(const char *iface)
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
         }
-
+#ifdef HAVE_PACKET_EBPF
+        const char *xdp_mode;
         if (ConfGetChildValueWithDefault(if_root, if_default, "xdp-mode", &xdp_mode) != 1) {
             aconf->xdp_mode = XDP_FLAGS_SKB_MODE;
         } else {
@@ -445,6 +445,7 @@ static void *ParseAFPConfig(const char *iface)
                            "Invalid xdp-mode value: '%s'", xdp_mode);
             }
         }
+#endif
     }
 
     /* One shot loading of the eBPF file */
