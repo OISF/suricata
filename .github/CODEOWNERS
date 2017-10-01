@@ -1,0 +1,15 @@
+# https://help.github.com/articles/about-codeowners/
+#
+# last match wins, so put more specific matches towards the end
+#
+# only ppl with push rights in the repo can be owners
+# https://github.com/isaacs/github/issues/989#issuecomment-320475904
+#
+# additionally, it seems only the directoy syntax works.
+# e.g. '/src/source-*.[ch]  @regit' seems to have no effect.
+
+*                   @OISF/core-team
+/doc/               @norg
+/rust/              @victorjulien @jasonish
+/.github/           @victorjulien
+
