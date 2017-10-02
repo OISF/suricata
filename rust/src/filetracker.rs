@@ -199,7 +199,13 @@ impl FileTransferTracker {
 
                 if self.chunk_is_ooo == false {
                     let res = files.file_append(&self.track_id, d, is_gap);
-                    if res != 0 { panic!("append failed"); }
+                    match res {
+                        0   => { },
+                        -2  => {
+                            self.file_is_truncated = true;
+                        },
+                        _ => { panic!("append failed with code {}", res); },
+                    }
 
                     self.tracked += self.chunk_left as u64;
                 } else {
@@ -238,7 +244,15 @@ impl FileTransferTracker {
                             match self.chunks.remove(&self.tracked) {
                                 Some(c) => {
                                     let res = files.file_append(&self.track_id, &c.chunk, c.contains_gap);
-                                    if res != 0 { panic!("append failed: files.file_append() returned {}", res); }
+                                    match res {
+                                        0   => { },
+                                        -2  => {
+                                            self.file_is_truncated = true;
+                                        },
+                                        _ => {
+                                            panic!("append failed: files.file_append() returned {}", res);
+                                        },
+                                    }
 
                                     self.tracked += c.chunk.len() as u64;
                                     self.cur_ooo -= c.chunk.len() as u64;
@@ -269,7 +283,13 @@ impl FileTransferTracker {
             } else {
                 if self.chunk_is_ooo == false {
                     let res = files.file_append(&self.track_id, data, is_gap);
-                    if res != 0 { panic!("append failed"); }
+                    match res {
+                        0   => { },
+                        -2  => {
+                            self.file_is_truncated = true;
+                        },
+                        _ => { panic!("append failed with code {}", res); },
+                    }
                     self.tracked += data.len() as u64;
                 } else {
                     let c = match self.chunks.entry(self.cur_ooo_chunk_offset) {
