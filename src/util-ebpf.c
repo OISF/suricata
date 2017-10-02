@@ -37,12 +37,13 @@
 
 #ifdef HAVE_PACKET_EBPF
 
+#include "util-ebpf.h"
+#include "util-cpu.h"
+
 #include <linux/bpf.h>
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include "config.h"
-
-#include "util-ebpf.h"
 
 #define BPF_MAP_MAX_COUNT 16
 
@@ -169,30 +170,37 @@ int EBPFForEachFlowV4Table(const char *name,
 {
     int mapfd = EBPFGetMapFDByName(name);
     struct flowv4_keys key = {}, next_key;
-    struct pair value = {0, 0, 0};
     int ret, found = 0;
+    unsigned int i;
+    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
+    struct pair values_array[nr_cpus];
+
     if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
         return found;
     }
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        bpf_map_lookup_elem(mapfd, &key, &value);
-        ret = FlowCallback(mapfd, &key, &value, data);
-        if (ret) {
+        int iret = 1;
+        int pkts_cnt = 0;
+        int bytes_cnt = 0;
+        bpf_map_lookup_elem(mapfd, &key, values_array);
+        for (i = 0; i < nr_cpus; i++) {
+            ret = FlowCallback(mapfd, &key, &values_array[i], data);
+            if (ret) {
+                pkts_cnt += values_array[i].packets;
+                bytes_cnt += values_array[i].bytes;
+            } else {
+                iret = 0;
+                break;
+            }
+        }
+        if (iret) {
             flowstats->count++;
-            flowstats->packets += value.packets;
-            flowstats->bytes += value.bytes;
+            flowstats->packets += pkts_cnt;
+            flowstats->bytes += bytes_cnt;
             found = 1;
+            EBPFDeleteKey(mapfd, &key);
         }
         key = next_key;
-    }
-
-    bpf_map_lookup_elem(mapfd, &key, &value);
-    ret = FlowCallback(mapfd, &key, &value, data);
-    if (ret) {
-        flowstats->count++;
-        flowstats->packets += value.packets;
-        flowstats->bytes += value.bytes;
-        found = 1;
     }
 
     return found;
@@ -207,17 +215,34 @@ int EBPFForEachFlowV6Table(const char *name,
     struct flowv6_keys key = {}, next_key;
     struct pair value = {0, 0, 0};
     int ret, found = 0;
+    unsigned int i;
+    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
+    struct pair values_array[nr_cpus];
+
     if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
         return found;
     }
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        bpf_map_lookup_elem(mapfd, &key, &value);
-        ret = FlowCallback(mapfd, &key, &value, data);
-        if (ret) {
+        int iret = 1;
+        int pkts_cnt = 0;
+        int bytes_cnt = 0;
+        bpf_map_lookup_elem(mapfd, &key, values_array);
+        for (i = 0; i < nr_cpus; i++) {
+            ret = FlowCallback(mapfd, &key, &values_array[i], data);
+            if (ret) {
+                pkts_cnt += values_array[i].packets;
+                bytes_cnt += values_array[i].bytes;
+            } else {
+                iret = 0;
+                break;
+            }
+        }
+        if (iret) {
             flowstats->count++;
-            flowstats->packets += value.packets;
-            flowstats->bytes += value.bytes;
+            flowstats->packets += pkts_cnt;
+            flowstats->bytes += bytes_cnt;
             found = 1;
+            EBPFDeleteKey(mapfd, &key);
         }
         key = next_key;
     }

@@ -246,7 +246,7 @@ typedef struct AFPThreadVars_
     /* handle state */
     uint8_t afp_state;
     uint8_t copy_mode;
-    uint8_t flags;
+    int flags;
 
     /* IPS peer */
     AFPPeer *mpeer;
