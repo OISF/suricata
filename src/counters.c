@@ -905,7 +905,7 @@ void StatsSpawnThreads(void)
 uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_NORMAL, NULL);
 
@@ -926,7 +926,7 @@ uint16_t StatsRegisterCounter(const char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_AVERAGE, NULL);
 
@@ -947,7 +947,7 @@ uint16_t StatsRegisterAvgCounter(const char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterMaxCounter(const char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->printable_name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_MAXIMUM, NULL);
 
@@ -1168,7 +1168,8 @@ int StatsSetupPrivate(ThreadVars *tv)
 {
     StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
 
-    StatsThreadRegister(tv->name, &(tv)->perf_public_ctx);
+    StatsThreadRegister(tv->printable_name ? tv->printable_name : tv->name,
+        &(tv)->perf_public_ctx);
     return 0;
 }
 
