@@ -4,6 +4,12 @@
 
 set -e
 
+# Fail if "ed" is not available.
+if ! which ed > /dev/null 2>&1; then
+    echo "error: the program \"ed\" is required for this script"
+    exit 1
+fi
+
 function usage() {
     cat <<EOF
 
@@ -19,6 +25,19 @@ Examples:
     $0 Http Etag
 
 EOF
+}
+
+# Make sure we are running from the correct directory.
+set_dir() {
+    if [ -e ./suricata.c ]; then
+	cd ..
+    elif [ -e ./src/suricata.c ]; then
+	# Do nothing.
+	true
+    else
+	echo "error: this does not appear to be a suricata source directory."
+	exit 1
+    fi
 }
 
 fail_if_exists() {
@@ -119,6 +138,8 @@ w
 EOF
 }
 
+set_dir
+
 protoname="$1"
 buffername="$2"
 
@@ -126,6 +147,26 @@ if [ "${protoname}" = "" ] || [ "${buffername}" = "" ]; then
     usage
     exit 1
 fi
+
+# Make sure the protocol name looks like a proper name (starts with a
+# capital letter).
+case "${protoname}" in
+
+    [[:upper:]]*)
+	# OK.
+	;;
+
+    "")
+	usage
+	exit 1
+	;;
+
+    *)
+	echo "error: protocol name must beging with an upper case letter"
+	exit 1
+	;;
+
+esac
 
 protoname_lower=$(printf ${protoname} | tr '[:upper:]' '[:lower:]')
 protoname_upper=$(printf ${protoname} | tr '[:lower:]' '[:upper:]')

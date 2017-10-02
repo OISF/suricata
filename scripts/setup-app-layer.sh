@@ -29,6 +29,19 @@ Examples:
 EOF
 }
 
+# Make sure we are running from the correct directory.
+set_dir() {
+    if [ -e ./suricata.c ]; then
+	cd ..
+    elif [ -e ./src/suricata.c ]; then
+	# Do nothing.
+	true
+    else
+	echo "error: this does not appear to be a suricata source directory."
+	exit 1
+    fi
+}
+
 fail_if_exists() {
     path="$1"
     if test -e "${path}"; then
@@ -142,6 +155,10 @@ a
 w
 EOF
 }
+
+# Main...
+
+set_dir
 
 protoname="$1"
 

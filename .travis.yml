@@ -65,6 +65,7 @@ matrix:
         - *default-cflags
         - ENABLE_RUST="yes"
         - ARGS="--enable-rust --enable-rust-strict"
+        - DO_CHECK_SETUP_SCRIPTS="yes"
     # Linux, gcc, Rust (1.15.0 - oldest supported).
     - os: linux
       compiler: gcc
@@ -152,6 +153,10 @@ script:
         make ${j} check 2> stderr.log
     else
         make ${j} check
+    fi
+  - |
+    if [[ "$DO_CHECK_SETUP_SCRIPTS" == "yes" ]]; then
+        (cd scripts && ./check-setup.sh)
     fi
 
 before_install:

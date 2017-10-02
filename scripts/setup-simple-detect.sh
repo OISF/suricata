@@ -32,6 +32,19 @@ function Done {
     echo
 }
 
+# Make sure we are running from the correct directory.
+set_dir() {
+    if [ -e ./suricata.c ]; then
+	# Do nothing.
+	true
+    elif [ -e ./src/suricata.c ]; then
+	cd src
+    else
+	echo "error: this does not appear to be a suricata source directory."
+	exit 1
+    fi
+}
+
 if [ $# -ne "1" ]; then
     Usage
     echo "ERROR: call with one argument"
@@ -54,11 +67,8 @@ FILE_H="detect-${LC}.h"
 #echo $FILE_C
 #echo $FILE_H
 
-if [ ! -e ../configure.ac ] || [ ! -e Makefile.am ]; then
-    Usage
-    echo "ERROR: call from src/ directory"
-    exit 1
-fi
+set_dir
+
 if [ ! -e detect-template.c ] || [ ! -e detect-template.h ]; then
     Usage
     echo "ERROR: input files detect-template.c and/or detect-template.h are missing"
