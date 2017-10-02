@@ -54,10 +54,6 @@ impl FileContainer {
                 (c.FileOpenFile)(&self, cfg.files_sbcfg, *track_id,
                         name.as_ptr(), name.len() as u16,
                         ptr::null(), 0u32, flags);
-
-                //if !res {
-                //    panic!("c.fn_fileopenfile failed");
-                //}
                 0
             }
         }
@@ -85,9 +81,6 @@ impl FileContainer {
                         r
                     },
                 };
-                if res != 0 {
-                    panic!("c.fn_fileappenddata failed");
-                }
                 res
             }
         }
@@ -100,9 +93,6 @@ impl FileContainer {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 let res = (c.FileCloseFile)(&self, *track_id, ptr::null(), 0u32, flags);
-                if res != 0 {
-                    panic!("c.fn_fileclosefile failed");
-                }
                 res
             }
         }
