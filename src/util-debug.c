@@ -1137,6 +1137,11 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
         if (sc_lc->op_filter != NULL)
             SCFree(sc_lc->op_filter);
 
+        if (sc_lc->op_filter_regex != NULL)
+            pcre_free(sc_lc->op_filter_regex);
+        if (sc_lc->op_filter_regex_study)
+            pcre_free_study(sc_lc->op_filter_regex_study);
+
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
         SCFree(sc_lc);
     }
