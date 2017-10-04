@@ -314,10 +314,8 @@ static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uin
     return 0;
 }
 
-static int FTPParsePassiveResponseV6(Flow *f, void *ftp_state, uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
-    FtpState *state = (FtpState *)ftp_state;
-
 #ifdef HAVE_RUST
     uint16_t dyn_port = rs_ftp_epsv_response(input, input_len);
     if (dyn_port == 0) {
