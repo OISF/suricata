@@ -286,7 +286,9 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                     int ret  = AppLayerExpectationCreate(f, direction, 0,
                             state->dyn_port, ALPROTO_FTPDATA, data);
                     if (ret == -1) {
-                        SCLogError(SC_ERR_INVALID_VALUE, "No expectation created.");
+                        SCFree(data);
+                        SCLogDebug("No expectation created.");
+                        SCReturnInt(-1);
                     } else {
                         SCLogDebug("Expectation created.");
                     }
