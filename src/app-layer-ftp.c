@@ -545,12 +545,11 @@ static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPDataParse(Flow *f, void *ftp_state,
+static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len,
         void *local_data, int direction)
 {
-    FtpDataState *ftpdata_state = (FtpDataState *)ftp_state;
     uint16_t flags = FileFlowToFlags(f, direction);
     int ret = 0;
     /* we depend on detection engine for file pruning */
