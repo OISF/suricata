@@ -221,6 +221,12 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
     return 1;
 }
 
+struct ftp_transfer_cmd {
+    uint64_t flow_id;
+    char *filename;
+    FtpRequestCommand cmd;
+};
+
 /**
  * \brief This function is called to retrieve a ftp request
  * \param ftp_state the ftp state structure for the parser
@@ -278,11 +284,17 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 direction = STREAM_TOCLIENT;
             case FTP_COMMAND_STOR:
                 {
-                    char *data = SCCalloc(state->current_line_len + sizeof(int64_t) + 1, sizeof(*data));
+                    struct ftp_transfer_cmd *data = SCCalloc(1, sizeof(struct ftp_transfer_cmd));
                     if (data == NULL)
                         SCReturnInt(-1);
-                    memcpy(data + sizeof(int64_t), state->current_line, state->current_line_len);
-                    *(int64_t *) data = FlowGetId(f);
+                    data->filename = SCCalloc(state->current_line_len - 4, sizeof(char));
+                    if (data->filename == NULL) {
+                        SCFree(data);
+                        SCReturnInt(-1);
+                    }
+                    memcpy(data->filename, state->current_line + 5, state->current_line_len - 5);
+                    data->cmd = state->command;
+                    data->flow_id = FlowGetId(f);
                     int ret  = AppLayerExpectationCreate(f, direction, 0,
                             state->dyn_port, ALPROTO_FTPDATA, data);
                     if (ret == -1) {
@@ -555,8 +567,7 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
     /* we depend on detection engine for file pruning */
     flags |= FILE_USE_DETECT;
     if (ftpdata_state->files == NULL) {
-        const char *data = (char *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
-        const char *filename;
+        struct ftp_transfer_cmd *data = (struct ftp_transfer_cmd *)FlowGetStorageById(f, AppLayerExpectationGetDataId());
         if (data == NULL) {
             SCReturnInt(-1);
         }
@@ -564,25 +575,20 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         ftpdata_state->files = FileContainerAlloc();
         if (ftpdata_state->files == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
+            FlowFreeStorageById(f, AppLayerExpectationGetDataId());
             SCReturnInt(-1);
         }
 
-        filename = data + sizeof(int64_t) + 5;
-        ftpdata_state->filename = SCStrdup(filename);
-        if (ftpdata_state->filename == NULL) {
-            SCLogInfo("Unable to allocate filename");
-        }
-        f->parent_id = *(int64_t *)data;
-        if (input_len >= 4 && SCMemcmpLowercase("retr", data + sizeof(int64_t), 4) == 0) {
-            ftpdata_state->command = FTP_COMMAND_RETR;
-        }
-        if (input_len >= 4 && SCMemcmpLowercase("stor", data + sizeof(int64_t), 4) == 0) {
-            ftpdata_state->command = FTP_COMMAND_STOR;
-        }
+        ftpdata_state->filename = data->filename;
+        data->filename = NULL;
+        f->parent_id = data->flow_id;
+        ftpdata_state->command = data->cmd;
 
-        if (FileOpenFile(ftpdata_state->files, &sbcfg, (uint8_t *) filename, strlen(filename),
+        if (FileOpenFile(ftpdata_state->files, &sbcfg,
+                         (uint8_t *) ftpdata_state->filename,
+                         strlen(ftpdata_state->filename),
                          input, input_len, flags) == NULL) {
-            SCLogError(SC_ERR_FOPEN, "Can't open file");
+            SCLogDebug(SC_ERR_FOPEN, "Can't open file");
             ret = -1;
         }
         FlowFreeStorageById(f, AppLayerExpectationGetDataId());
