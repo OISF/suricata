@@ -276,9 +276,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     return 1;
 }
 
-static int FTPParsePassiveResponse(Flow *f, void *ftp_state, uint8_t *input, uint32_t input_len)
+static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
-    FtpState *state = (FtpState *)ftp_state;
     uint16_t dyn_port;
     uint16_t part1, part2;
     uint8_t *ptr;
