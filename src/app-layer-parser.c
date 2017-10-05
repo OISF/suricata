@@ -657,18 +657,16 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
 {
     SCEnter();
 
-    int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    const int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
     const int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
-    void *tx;
-    int state_progress;
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, idx);
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
+        int state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -731,7 +729,7 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
  *  \retval tx_id lowest tx_id that still needs work */
 uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
 {
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
     uint64_t log_id = f->alparser->log_id;
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
     if (p->logger == TRUE) {
@@ -760,17 +758,15 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     }
 
     /* logger is disabled, return highest 'complete' tx id */
-    uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
+    const uint64_t total_txs = AppLayerParserGetTxCnt(f, f->alstate);
     uint64_t idx = f->alparser->min_id;
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
-    void *tx;
-    int state_progress;
+    const int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
+        const int state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -810,12 +806,12 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
 {
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
-    if (p->StateTransactionFree == NULL)
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
+    if (unlikely(p->StateTransactionFree == NULL))
         return;
 
-    uint64_t tx_id_ts = AppLayerTransactionGetActive(f, STREAM_TOSERVER);
-    uint64_t tx_id_tc = AppLayerTransactionGetActive(f, STREAM_TOCLIENT);
+    const uint64_t tx_id_ts = AppLayerTransactionGetActive(f, STREAM_TOSERVER);
+    const uint64_t tx_id_tc = AppLayerTransactionGetActive(f, STREAM_TOCLIENT);
 
     uint64_t min = MIN(tx_id_ts, tx_id_tc);
     if (min > 0) {
