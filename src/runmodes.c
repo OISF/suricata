@@ -26,6 +26,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "app-layer-parser.h"
 #include "tm-threads.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -473,6 +474,7 @@ static void RunOutputFreeList(void)
 
 static int file_logger_count = 0;
 static int filedata_logger_count = 0;
+static LoggerId logger_bits[ALPROTO_MAX];
 
 int RunModeOutputFileEnabled(void)
 {
@@ -567,6 +569,7 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
                 module->ts_log_progress, module->TxLogCondition,
                 module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
+        logger_bits[module->alproto] |= (1<<module->logger_id);
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
         OutputRegisterFiledataLogger(module->logger_id, module->name,
@@ -699,6 +702,8 @@ void RunModeInitializeOutputs(void)
     const char *enabled;
     char tls_log_enabled = 0;
     char tls_store_present = 0;
+
+    memset(&logger_bits, 0, sizeof(logger_bits));
 
     TAILQ_FOREACH(output, &outputs->head, next) {
 
@@ -840,6 +845,25 @@ void RunModeInitializeOutputs(void)
         }
     }
 
+    /* register the logger bits to the app-layer */
+    int a;
+    for (a = 0; a < ALPROTO_MAX; a++) {
+        if (logger_bits[a] == 0)
+            continue;
+
+        const int tcp = AppLayerParserProtocolHasLogger(IPPROTO_TCP, a);
+        const int udp = AppLayerParserProtocolHasLogger(IPPROTO_UDP, a);
+
+        SCLogDebug("logger for %s: %s %s", AppProtoToString(a),
+                tcp ? "true" : "false", udp ? "true" : "false");
+
+        SCLogDebug("logger bits for %s: %08x", AppProtoToString(a), logger_bits[a]);
+        if (tcp)
+            AppLayerParserRegisterLoggerBits(IPPROTO_TCP, a, logger_bits[a]);
+        if (udp)
+            AppLayerParserRegisterLoggerBits(IPPROTO_UDP, a, logger_bits[a]);
+
+    }
 }
 
 float threading_detect_ratio = 1;

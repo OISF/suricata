@@ -141,6 +141,7 @@ void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
                          int (*StateGetTxLogged)(void *, void *, uint32_t),
                          void (*StateSetTxLogged)(void *, void *, uint32_t));
 void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto);
+void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits);
 void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
                              void (*Truncate)(void *, uint8_t));
 void AppLayerParserRegisterGetStateProgressFunc(uint8_t ipproto, AppProto alproto,
