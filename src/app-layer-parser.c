@@ -89,7 +89,7 @@ typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
     AppLayerParserFPtr Parser[2];
-    char logger;
+    bool logger;
 
     void *(*StateAlloc)(void);
     void (*StateFree)(void *);
@@ -457,7 +457,7 @@ void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
 
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger = TRUE;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger = true;
 
     SCReturn;
 }
@@ -732,7 +732,7 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
     uint64_t log_id = f->alparser->log_id;
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
-    if (p->logger == TRUE) {
+    if (p->logger == true) {
         return (log_id < inspect_id) ? log_id : inspect_id;
     } else {
         return inspect_id;
@@ -751,7 +751,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
 {
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
 
-    if (p->logger == TRUE) {
+    if (p->logger == true) {
         uint64_t log_id = f->alparser->log_id;
         SCLogDebug("returning %"PRIu64, log_id);
         return log_id;
@@ -913,7 +913,7 @@ uint64_t AppLayerParserGetTransactionActive(const Flow *f,
 
     uint64_t log_id = pstate->log_id;
     uint64_t inspect_id = pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
-    if (alp_ctx.ctxs[f->protomap][f->alproto].logger == TRUE) {
+    if (alp_ctx.ctxs[f->protomap][f->alproto].logger == true) {
         active_id = (log_id < inspect_id) ? log_id : inspect_id;
     } else {
         active_id = inspect_id;
@@ -1215,7 +1215,7 @@ int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
     int ipproto_map = FlowGetProtoMapping(ipproto);
-    int r = (alp_ctx.ctxs[ipproto_map][alproto].logger == 0) ? 0 : 1;
+    int r = (alp_ctx.ctxs[ipproto_map][alproto].logger == false) ? 0 : 1;
     SCReturnInt(r);
 }
 
