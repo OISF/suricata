@@ -110,8 +110,8 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
-    int (*StateGetTxLogged)(void *alstate, void *tx, uint32_t logger);
-    void (*StateSetTxLogged)(void *alstate, void *tx, uint32_t logger);
+    LoggerId (*StateGetTxLogged)(void *alstate, void *tx);
+    void (*StateSetTxLogged)(void *alstate, void *tx, LoggerId logger);
 
     int (*StateHasTxDetectState)(void *alstate);
     DetectEngineState *(*GetTxDetectState)(void *tx);
@@ -440,8 +440,8 @@ void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
 }
 
 void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
-                           int (*StateGetTxLogged)(void *, void *, uint32_t),
-                           void (*StateSetTxLogged)(void *, void *, uint32_t))
+                           LoggerId (*StateGetTxLogged)(void *, void *),
+                           void (*StateSetTxLogged)(void *, void *, LoggerId))
 {
     SCEnter();
 
@@ -608,7 +608,7 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
 }
 
 void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto,
-                               void *alstate, void *tx, uint32_t logger)
+                               void *alstate, void *tx, LoggerId logger)
 {
     SCEnter();
 
@@ -621,18 +621,18 @@ void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-int AppLayerParserGetTxLogged(const Flow *f,
-                              void *alstate, void *tx, uint32_t logger)
+LoggerId AppLayerParserGetTxLogged(const Flow *f,
+                              void *alstate, void *tx)
 {
     SCEnter();
 
-    uint8_t r = 0;
+    LoggerId r = 0;
     if (alp_ctx.ctxs[f->protomap][f->alproto].StateGetTxLogged != NULL) {
         r = alp_ctx.ctxs[f->protomap][f->alproto].
-            StateGetTxLogged(alstate, tx, logger);
+            StateGetTxLogged(alstate, tx);
     }
 
-    SCReturnInt(r);
+    SCReturnUInt(r);
 }
 
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
@@ -1223,6 +1223,14 @@ int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto)
     int ipproto_map = FlowGetProtoMapping(ipproto);
     int r = (alp_ctx.ctxs[ipproto_map][alproto].logger == false) ? 0 : 1;
     SCReturnInt(r);
+}
+
+LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto)
+{
+    SCEnter();
+    const int ipproto_map = FlowGetProtoMapping(ipproto);
+    LoggerId r = alp_ctx.ctxs[ipproto_map][alproto].logger_bits;
+    SCReturnUInt(r);
 }
 
 void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction)

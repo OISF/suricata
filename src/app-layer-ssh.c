@@ -543,18 +543,18 @@ static uint64_t SSHGetTxCnt(void *state)
     return 1;
 }
 
-static void SSHSetTxLogged(void *state, void *tx, uint32_t logger)
+static void SSHSetTxLogged(void *state, void *tx, LoggerId logged)
 {
     SshState *ssh_state = (SshState *)state;
     if (ssh_state)
-        ssh_state->logged |= logger;
+        ssh_state->logged = logged;
 }
 
-static int SSHGetTxLogged(void *state, void *tx, uint32_t logger)
+static LoggerId SSHGetTxLogged(void *state, void *tx)
 {
     SshState *ssh_state = (SshState *)state;
-    if (ssh_state && (ssh_state->logged & logger)) {
-        return 1;
+    if (ssh_state) {
+        return ssh_state->logged;
     }
     return 0;
 }

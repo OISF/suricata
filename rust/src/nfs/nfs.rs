@@ -1869,21 +1869,17 @@ pub extern "C" fn rs_nfs3_reset_txs_updated(state: &mut NFSState,
 #[no_mangle]
 pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFSState,
                                        tx: &mut NFSTransaction,
-                                       logger: libc::uint32_t)
+                                       logged: libc::uint32_t)
 {
-    tx.logged.set_logged(logger);
+    tx.logged.set(logged);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFSState,
-                                       tx: &mut NFSTransaction,
-                                       logger: libc::uint32_t)
-                                       -> i8
+                                       tx: &mut NFSTransaction)
+                                       -> u32
 {
-    if tx.logged.is_logged(logger) {
-        return 1;
-    }
-    return 0;
+    return tx.logged.get();
 }
 
 #[no_mangle]

@@ -138,8 +138,8 @@ void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
 void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
                               int (*StateHasEvents)(void *));
 void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
-                         int (*StateGetTxLogged)(void *, void *, uint32_t),
-                         void (*StateSetTxLogged)(void *, void *, uint32_t));
+                         LoggerId (*StateGetTxLogged)(void *, void *),
+                         void (*StateSetTxLogged)(void *, void *, LoggerId));
 void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits);
 void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
@@ -179,9 +179,8 @@ uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate);
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint64_t tx_id);
 
 void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
-                               void *tx, uint32_t logger);
-int AppLayerParserGetTxLogged(const Flow *f, void *alstate,
-                              void *tx, uint32_t logger);
+                               void *tx, LoggerId logged);
+LoggerId AppLayerParserGetTxLogged(const Flow *f, void *alstate, void *tx);
 
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
@@ -226,6 +225,7 @@ int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
+LoggerId AppLayerParserProtocolGetLoggerBits(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f, int direction);
 void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth);
 uint32_t AppLayerParserGetStreamDepth(const Flow *f);

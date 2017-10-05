@@ -267,8 +267,8 @@ void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 
 void *DNSGetTx(void *alstate, uint64_t tx_id);
 uint64_t DNSGetTxCnt(void *alstate);
-void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger);
-int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger);
+void DNSSetTxLogged(void *alstate, void *tx, LoggerId logged);
+LoggerId DNSGetTxLogged(void *alstate, void *tx);
 int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 

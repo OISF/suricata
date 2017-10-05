@@ -1542,20 +1542,16 @@ static int DNP3SetTxDetectState(void *state, void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static void DNP3SetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static void DNP3SetTxLogged(void *alstate, void *vtx, LoggerId logged)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int DNP3GetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static LoggerId DNP3GetTxLogged(void *alstate, void *vtx)
 {
     DNP3Transaction *tx = (DNP3Transaction *)vtx;
-    if (tx->logged & logger) {
-        return 1;
-    }
-
-    return 0;
+    return tx->logged;
 }
 
 /**

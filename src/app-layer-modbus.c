@@ -262,19 +262,16 @@ static void *ModbusGetTx(void *alstate, uint64_t tx_id)
     return NULL;
 }
 
-static void ModbusSetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static void ModbusSetTxLogged(void *alstate, void *vtx, LoggerId logged)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int ModbusGetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static LoggerId ModbusGetTxLogged(void *alstate, void *vtx)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
-    if (tx->logged & logger)
-        return 1;
-
-    return 0;
+    return tx->logged;
 }
 
 static uint64_t ModbusGetTxCnt(void *alstate)

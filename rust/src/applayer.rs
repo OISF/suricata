@@ -29,6 +29,14 @@ impl LoggerFlags {
         }
     }
 
+    pub fn get(&self) -> u32 {
+        self.flags
+    }
+
+    pub fn set(&mut self, bits: u32) {
+        self.flags = bits;
+    }
+
     pub fn set_logged(&mut self, logger: u32) {
         self.flags |= logger;
     }

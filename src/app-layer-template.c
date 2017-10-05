@@ -377,19 +377,16 @@ static void *TemplateGetTx(void *state, uint64_t tx_id)
     return NULL;
 }
 
-static void TemplateSetTxLogged(void *state, void *vtx, uint32_t logger)
+static void TemplateSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
     TemplateTransaction *tx = (TemplateTransaction *)vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int TemplateGetTxLogged(void *state, void *vtx, uint32_t logger)
+static LoggerId TemplateGetTxLogged(void *state, void *vtx)
 {
     TemplateTransaction *tx = (TemplateTransaction *)vtx;
-    if (tx->logged & logger)
-        return 1;
-
-    return 0;
+    return tx->logged;
 }
 
 /**
