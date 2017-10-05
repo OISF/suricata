@@ -377,6 +377,25 @@ in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
 
+Notes
+~~~~~
+
+-  Using ``http_server_body`` is similar to having content matches
+   that come after ``file_data`` except that it doesn't permanently
+   (unless reset) set the detection pointer to the beginning of the
+   server response body. i.e. it is not a sticky buffer.
+
+-  ``http_server_body`` will match on gzip decoded data just like
+   ``file_data`` does.
+
+-  Since ``http_server_body`` matches on a server response, it
+   can't be used with the ``to_server`` or ``from_client`` flow
+   directives.
+
+-  Corresponding PCRE modifier: ``Q``
+
+-  further notes at the ``file_data`` section below.
+
 http_host and http_raw_host
 ---------------------------
 
@@ -411,10 +430,29 @@ rule. This makes it a useful shortcut for applying many content
 matches to the HTTP response body, eliminating the need to modify each
 content match individually.
 
-Note: how much of the response/server body is inspected is controlled
+As the body of a HTTP response can be very large, it is inspected in
+smaller chunks.
+
+How much of the response/server body is inspected is controlled
 in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
+
+Notes
+~~~~~
+
+-  If a HTTP body is using gzip or deflate, ``file_data`` will match
+   on the decompressed data.
+
+-  Negated matching is affected by the chunked inspection. E.g.
+   'content:!"<html";' could not match on the first chunk, but would
+   then possibly match on the 2nd. To avoid this, use a depth setting.
+   The depth setting takes the body size into account.
+   Assuming that the ``response-body-minimal-inspect-size`` is bigger
+   than 1k, 'content:!"<html"; depth:1024;' can only match if the
+   pattern '<html' is absent from the first inspected chunk.
+
+-  ``file_data`` can also be used with SMTP
 
 pcre
 ----
