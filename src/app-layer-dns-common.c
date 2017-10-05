@@ -236,19 +236,16 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
     }
 }
 
-void DNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
+void DNSSetTxLogged(void *alstate, void *tx, LoggerId logged)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    dns_tx->logged |= logger;
+    dns_tx->logged = logged;
 }
 
-int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
+LoggerId DNSGetTxLogged(void *alstate, void *tx)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    if (dns_tx->logged & logger)
-        return 1;
-
-    return 0;
+    return dns_tx->logged;
 }
 
 /** \brief get value for 'complete' status in DNS
