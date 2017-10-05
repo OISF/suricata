@@ -90,6 +90,7 @@ typedef struct AppLayerParserProtoCtx_
     /* 0 - to_server, 1 - to_client. */
     AppLayerParserFPtr Parser[2];
     bool logger;
+    uint32_t logger_bits;   /**< registered loggers for this proto */
 
     void *(*StateAlloc)(void);
     void (*StateFree)(void *);
@@ -449,6 +450,15 @@ void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateSetTxLogged =
         StateSetTxLogged;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterLoggerBits(uint8_t ipproto, AppProto alproto, LoggerId bits)
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger_bits = bits;
 
     SCReturn;
 }
