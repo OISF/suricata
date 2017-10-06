@@ -47,6 +47,7 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
+#include "app-layer-ftp.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
@@ -436,6 +437,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
                 if (hjs)
                     json_object_set_new(js, "nfs", hjs);
+            }
+            if (alproto == ALPROTO_FTPDATA) {
+                hjs = JsonFTPDataAddMetadata(p->flow);
+                if (hjs)
+                    json_object_set_new(js, "ftp-data", hjs);
             }
         }
 #endif

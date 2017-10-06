@@ -15,33 +15,22 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Eric Leblond <eric@regit.org>
+ */
 
-extern crate libc;
+#ifndef __APP_LAYER_EXPECTATION__H__
+#define __APP_LAYER_EXPECTATION__H__
 
-#[macro_use]
-extern crate nom;
+void AppLayerExpectationSetup(void);
+int AppLayerExpectationCreate(Flow *f, int direction, Port src, Port dst,
+                              AppProto alproto, void *data);
+AppProto AppLayerExpectationLookup(Flow *f, int direction);
+int AppLayerExpectationGetDataId(void);
 
-extern crate crc;
+uint64_t ExpectationGetCounter(void);
 
-#[macro_use]
-pub mod log;
+#endif /* __APP_LAYER_EXPECTATION__H__ */
 
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
