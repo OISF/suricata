@@ -101,6 +101,7 @@ typedef struct DetectEngineStateDirection_ {
     SigIntId cnt;
     uint16_t filestore_cnt;
     uint8_t flags;
+    /* coccinelle: DetectEngineStateDirection:flags:DETECT_ENGINE_STATE_FLAG_ */
 } DetectEngineStateDirection;
 
 typedef struct DetectEngineState_ {
@@ -149,7 +150,7 @@ int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags);
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 const Signature *s, Packet *p, Flow *f,
-                                uint8_t flags, AppProto alproto);
+                                const uint8_t flags, const AppProto alproto);
 
 /**
  * \brief Continue DeState detection of the signatures stored in the state.
