@@ -398,7 +398,7 @@ uint16_t PatternMatchDefaultMatcher(void)
 }
 
 /** \brief cleans up the mpm instance after a match */
-void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
+void PacketPatternCleanup(DetectEngineThreadCtx *det_ctx)
 {
     PmqReset(&det_ctx->pmq);
 }

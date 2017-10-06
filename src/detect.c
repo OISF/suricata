@@ -1409,7 +1409,7 @@ end:
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
     /* cleanup pkt specific part of the patternmatcher */
-    PacketPatternCleanup(th_v, det_ctx);
+    PacketPatternCleanup(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
