@@ -650,6 +650,25 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     exit(EXIT_FAILURE);
                 }
             }
+
+            /* Check for usecs wait using unix stream socket...*/
+            if ( json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM ) {
+                const char *unix_retry_wait_s = ConfNodeLookupChildValue( conf,
+                                                                         "unix-retry-wait" );
+                if ( unix_retry_wait_s != NULL ) {
+                    uint32_t unix_retry_wait = 0;
+                    if ( ByteExtractStringUint32( &unix_retry_wait, 10,
+                                     strlen( unix_retry_wait_s ), unix_retry_wait_s ) > 0 ) {
+                        json_ctx->file_ctx->unix_retry_wait = unix_retry_wait ;
+                        SCLogInfo( "Will wait %d usecs before retry writing to blocked unix"
+                                    " stream socket", unix_retry_wait );
+                    } else {
+                        SCLogWarning( SC_ERR_INVALID_ARGUMENT, "Invalid usecs for unix stream"
+                                      "wait before retry: \"%s\", won't use wait before retry",
+                                      unix_retry_wait_s );
+                    }
+                }
+            }
         } else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {

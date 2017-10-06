@@ -128,6 +128,10 @@ typedef struct LogFileCtx_ {
     /* Socket types may need to drop events to keep from blocking
      * Suricata. */
     uint64_t dropped;
+
+    /* usecs to wait before retrying a write to a blocked unix_socket_stream,
+     * will never wait if 0 */
+    useconds_t unix_retry_wait ;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */

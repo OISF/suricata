@@ -149,6 +149,11 @@ tryagain:
             ret = 0;
         } else {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                if ( ctx->unix_retry_wait && ( tries < 4 ) ) {
+                    usleep( ctx->unix_retry_wait );
+                    tries++;
+                    goto tryagain;
+                }
                 SCLogDebug("Socket would block, dropping event.");
             } else if (errno == EINTR) {
                 if (tries++ == 0) {
