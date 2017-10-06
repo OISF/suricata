@@ -604,11 +604,13 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
             }
         } else {
             ret = FileCloseFile(ftpdata_state->files, NULL, 0, flags);
+            ftpdata_state->state = FTPDATA_STATE_FINISHED;
         }
     }
 
     if (input_len && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         ret = FileCloseFile(ftpdata_state->files, (uint8_t *) NULL, 0, flags);
+        ftpdata_state->state = FTPDATA_STATE_FINISHED;
     }
     if (ftpdata_state->files) {
         FilePrune(ftpdata_state->files);
@@ -647,6 +649,7 @@ static void *FTPDataStateAlloc(void)
         return NULL;
 
     memset(s, 0, sizeof(FtpDataState));
+    ((FtpDataState *)s)->state = FTPDATA_STATE_IN_PROGRESS;
 
 #ifdef DEBUG
     SCMutexLock(&ftpdata_state_mem_lock);
@@ -713,7 +716,10 @@ static void *FTPDataGetTx(void *state, uint64_t tx_id)
 
 static uint64_t FTPDataGetTxCnt(void *state)
 {
-    /* single tx */
+    FtpDataState *ftpdata_state = (FtpDataState *)state;
+    if (ftpdata_state->state == FTPDATA_STATE_FINISHED) {
+        return 2;
+    }
     return 1;
 }
 
@@ -724,11 +730,8 @@ static int FTPDataGetAlstateProgressCompletionStatus(uint8_t direction)
 
 static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
 {
-    //FtpDataState *ftpdata_state = (FtpDataState *)tx;
-
-    /* FIXME */
-
-    return FTPDATA_STATE_IN_PROGRESS;
+    FtpDataState *ftpdata_state = (FtpDataState *)tx;
+    return ftpdata_state->state;
 }
 
 static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
