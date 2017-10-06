@@ -306,7 +306,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (h_referer != NULL) {
         c = bstr_util_strdup_to_c(h_referer->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_refer", json_string(c));
+            json_object_set_new(js, "http_referer", json_string(c));
             SCFree(c);
         }
     }
