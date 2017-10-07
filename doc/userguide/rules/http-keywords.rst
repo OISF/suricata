@@ -1,5 +1,3 @@
-:tocdepth: 2
-
 HTTP Keywords
 =============
 
@@ -12,23 +10,19 @@ the request URI, cookies, or the HTTP request or response body, etc.
 Types of modifiers
 ------------------
 
-There are 2 types of modifiers. The older style 'content modifiers' look back in the rule.
-
-Example::
+There are 2 types of modifiers. The older style 'content modifiers' look back in the rule, e.g.::
 
     alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
 
 In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
 
-The more recent type is called the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer.
-
-Example::
+The more recent type is called the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer, for instance::
 
     alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
 In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
 
-The following request keywords are available:
+The following **request** keywords are available:
 
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
@@ -56,7 +50,7 @@ http_protocol                  Sticky Buffer            Both
 http_header_names              Sticky Buffer            Both
 ============================== ======================== ==================
 
-The following response keywords are available:
+The following **response** keywords are available:
 
 ============================== ======================== ==================
 Keyword                        Sticky or Modifier       Direction
@@ -76,11 +70,12 @@ http_protocol                  Sticky Buffer            Both
 http_header_names              Sticky Buffer            Both
 ============================== ======================== ==================
 
+HTTP Primer
+-----------
 It is important to understand the structure of HTTP requests and
 responses. A simple example of a HTTP request and response follows:
 
-HTTP request
-------------
+**HTTP request**
 
 ::
 
@@ -92,8 +87,7 @@ HEAD, etc. The URI path is ``/index.html`` and the HTTP version is
 the versions 0.9, 1.0 and 1.1, 1.0 and 1.1 are the most commonly used
 today.
 
-HTTP response
--------------
+**HTTP response**
 
 ::
 
@@ -698,14 +692,3 @@ Notes
    pattern '<html' is absent from the first inspected chunk.
 
 -  ``file_data`` can also be used with SMTP
-
-pcre
-----
-
-For information about the ``pcre`` keyword, check the :doc:`pcre` page.
-
-fast_pattern
-------------
-
-For information about the ``fast_pattern`` keyword, check the
-:doc:`fast-pattern` page.

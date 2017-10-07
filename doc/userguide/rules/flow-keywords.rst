@@ -1,8 +1,8 @@
 Flow Keywords
 =============
 
-Flowbits
-~~~~~~~~
+flowbits
+--------
 
 Flowbits consists of two parts. The first part describes the action it
 is going to perform, the second part is the name of the flowbit.
@@ -49,8 +49,8 @@ will be generated.
 It is possible to use flowbits several times in a rule and combine the
 different functions.
 
-Flow
-~~~~
+flow
+----
 
 The flow keyword can be used to match on direction of the flow, so to/from
 client or to/from server. It can also match if the flow is established or not.
@@ -102,13 +102,10 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
-Flowint
-~~~~~~~
-
-For information, read the information on the :doc:`flowint` page.
+.. include:: flowint.rst
 
 stream_size
-~~~~~~~~~~~
+-----------
 
 The stream size option matches on traffic according to the registered
 amount of bytes by the sequence numbers.  There are several modifiers

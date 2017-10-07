@@ -1,16 +1,10 @@
 Payload Keywords
 ================
 
-.. toctree::
-   :maxdepth: 2
-
-   pcre
-   fast-pattern
-
 Payload keywords inspect the content of the payload of a packet or
 stream.
 
-Content
+content
 -------
 
 The content keyword is very important in signatures. Between the
@@ -96,7 +90,7 @@ generated if the the used version of Firefox is not 3.6.13.
 .. note:: The following characters must be escaped inside the content:
              ``;`` ``\`` ``"``
 
-Nocase
+nocase
 ------
 
 If you do not want to make a distinction between uppercase and
@@ -117,7 +111,7 @@ Example nocase:
 
 It has no influence on other contents in the signature.
 
-Depth
+depth
 -----
 
 The depth keyword is a absolute content modifier. It comes after the
@@ -133,7 +127,7 @@ Example:
 
 .. image:: payload-keywords/content4.png
 
-Offset
+offset
 ------
 
 The offset keyword designates from which byte in the payload will be
@@ -154,7 +148,7 @@ third byte till the sixth byte.
 .. image:: payload-keywords/content6.png
 
 
-Distance
+distance
 --------
 
 The keyword distance is a relative content modifier. This means it
@@ -185,7 +179,7 @@ possible to attain the same results with other keywords.
 
 .. image:: payload-keywords/distance3.png
 
-Within
+within
 ------
 
 The keyword within is relative to the preceding match. The keyword
@@ -211,7 +205,7 @@ payload for a match, use within.
 
 .. image:: payload-keywords/within_distance2.png
 
-Isdataat
+isdataat
 --------
 
 The purpose of the isdataat keyword is to look if there is still data
@@ -235,7 +229,7 @@ You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
-Dsize
+dsize
 -----
 
 With the dsize keyword, you can match on the size of the packet
@@ -273,7 +267,7 @@ Example of the rpc keyword in a rule:
 
 .. image:: payload-keywords/rpc.png
 
-Replace
+replace
 -------
 
 The replace content modifier can only be used in ips. It adjusts
@@ -292,12 +286,6 @@ the reassembled stream.
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
-pcre
-----
+.. include:: pcre.rst
 
-For information about pcre check the :doc:`pcre` page.
-
-fast_pattern
-------------
-
-For information about fast_pattern check the :doc:`fast-pattern` page.
+.. include:: fast-pattern.rst

@@ -1,6 +1,5 @@
 pcre (Perl Compatible Regular Expressions)
-==========================================
-
+------------------------------------------
 The keyword pcre matches specific on regular expressions. More
 information about regular expressions can be found here
 http://en.wikipedia.org/wiki/Regular_expression.

@@ -1,19 +1,11 @@
 ======================
 Differences From Snort
 ======================
-
-Overview
---------
 This document is intended to highlight the major differences between Suricata
 and Snort that apply to rules and rule writing.
 
 Where not specified, the statements below apply to Suricata.  In general,
 references to Snort refer to the version 2.9 branch.
-
-Contents
---------
-
-.. contents::
 
 Automatic Protocol Detection
 ----------------------------

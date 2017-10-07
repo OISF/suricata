@@ -1,6 +1,5 @@
-Fast Pattern
-============
-
+fast_pattern
+------------
 .. toctree::
 
    fast-pattern-explained
@@ -41,7 +40,7 @@ Fast-pattern can also be combined with all previous mentioned
 keywords, and all mentioned HTTP-modifiers.
 
 fast_pattern:only
------------------
+~~~~~~~~~~~~~~~~~
 
 Sometimes a signature contains only one content. In that case it is
 not necessary Suricata will check it any further after a match has
@@ -50,8 +49,8 @@ matches. Suricata notices this automatically. In some signatures this
 is still indicated with 'fast_pattern:only;'. Although Suricata does
 not need fast_pattern:only, it does support it.
 
-Fast_pattern: 'chop'
---------------------
+fast_pattern:'chop'
+~~~~~~~~~~~~~~~~~~~~
 
 If you do not want the MPM to use the whole content, you can use
 fast_pattern 'chop'.

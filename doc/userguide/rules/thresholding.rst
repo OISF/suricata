@@ -1,5 +1,5 @@
-Rule Thresholding
-=================
+Thresholding Keywords
+=====================
 
 Thresholding can be configured per rule and also globally, see
 :doc:`../configuration/global-thresholds`.
