@@ -1684,7 +1684,8 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
  *
  *  \todo array should be ordered, so we can break out of the loop
  */
-int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Address *a)
+int DetectAddressMatchIPv4(const DetectMatchAddressIPv4 *addrs,
+        uint16_t addrs_cnt, const Address *a)
 {
     SCEnter();
 
@@ -1718,7 +1719,8 @@ int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Ad
  *
  *  \todo array should be ordered, so we can break out of the loop
  */
-int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Address *a)
+int DetectAddressMatchIPv6(const DetectMatchAddressIPv6 *addrs,
+        uint16_t addrs_cnt, const Address *a)
 {
     SCEnter();
 
