@@ -72,6 +72,9 @@
 #include "util-validate.h"
 #include "util-detect.h"
 
+static void SigMatchSignaturesCleanup(DetectEngineThreadCtx *det_ctx,
+    Packet *p, Flow *pflow, const bool use_flow_sgh);
+
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    const Signature *s)
@@ -935,6 +938,14 @@ end:
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 
+    SigMatchSignaturesCleanup(det_ctx, p, pflow, use_flow_sgh);
+    SCReturn;
+}
+
+/* TODO move use_flow_sgh into det_ctx */
+static void SigMatchSignaturesCleanup(DetectEngineThreadCtx *det_ctx,
+    Packet *p, Flow * const pflow, const bool use_flow_sgh)
+{
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_CLEANUP);
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(det_ctx);
@@ -942,7 +953,7 @@ end:
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
-    if (p->flags & PKT_HAS_FLOW) {
+    if (pflow != NULL) {
         /* HACK: prevent the wrong sgh (or NULL) from being stored in the
          * flow's sgh pointers */
         if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
