@@ -1478,15 +1478,16 @@ static void DetectFlow(ThreadVars *tv,
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
-        int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
-        uint8_t flags = FlowGetDisruptionFlags(p->flow, 0);
-        AppProto alproto = FlowGetAppProtocol(p->flow);
+        const int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
+        const AppProto alproto = FlowGetAppProtocol(p->flow);
         if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+            uint8_t flags;
             if (p->flowflags & FLOW_PKT_TOSERVER) {
-                flags |= STREAM_TOSERVER;
+                flags = STREAM_TOSERVER;
             } else {
-                flags |= STREAM_TOCLIENT;
+                flags = STREAM_TOCLIENT;
             }
+            flags = FlowGetDisruptionFlags(p->flow, flags);
             DeStateUpdateInspectTransactionId(p->flow, flags);
         }
         return;
