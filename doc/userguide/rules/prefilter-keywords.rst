@@ -1,6 +1,6 @@
-============
-MPM Keywords
-============
+=====================
+Prefiltering Keywords
+=====================
 
 .. _rules-keyword-fast_pattern:
 
