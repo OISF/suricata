@@ -168,6 +168,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     }
     new_engine->alproto = ALPROTO_UNKNOWN; /* all */
     new_engine->dir = direction;
+    new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
     new_engine->Callback = DetectEngineInspectStream;
@@ -1738,14 +1739,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
-        det_ctx->de_state_sig_array_len = de_ctx->sig_array_len;
-        det_ctx->de_state_sig_array = SCMalloc(det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-        if (det_ctx->de_state_sig_array == NULL) {
-            return TM_ECODE_FAILED;
-        }
-        memset(det_ctx->de_state_sig_array, 0,
-               det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-
         det_ctx->match_array_len = de_ctx->sig_array_len;
         det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
@@ -1753,6 +1746,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         }
         memset(det_ctx->match_array, 0,
                det_ctx->match_array_len * sizeof(Signature *));
+
+        RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
 
     /* byte_extract storage */
@@ -1957,10 +1952,10 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->non_pf_id_array != NULL)
         SCFree(det_ctx->non_pf_id_array);
 
-    if (det_ctx->de_state_sig_array != NULL)
-        SCFree(det_ctx->de_state_sig_array);
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
+
+    RuleMatchCandidateTxArrayFree(det_ctx);
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);

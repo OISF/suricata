@@ -403,7 +403,7 @@ deonly:
  */
 void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
-        bool has_state, bool app_decoder_events)
+        bool app_decoder_events)
 {
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0) {
         SCLogDebug("packet has payload");
@@ -433,62 +433,6 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
     if (p->flags & PKT_HAS_FLOW) {
         SCLogDebug("packet has flow");
         (*mask) |= SIG_MASK_REQUIRE_FLOW;
-
-        if (has_state) {
-            switch(alproto) {
-                case ALPROTO_HTTP:
-                    SCLogDebug("packet/flow has http state");
-                    (*mask) |= SIG_MASK_REQUIRE_HTTP_STATE;
-                    break;
-                case ALPROTO_SMB:
-                case ALPROTO_SMB2:
-                case ALPROTO_DCERPC:
-                    SCLogDebug("packet/flow has dce state");
-                    (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
-                    break;
-                case ALPROTO_SSH:
-                    SCLogDebug("packet/flow has ssh state");
-                    (*mask) |= SIG_MASK_REQUIRE_SSH_STATE;
-                    break;
-                case ALPROTO_TLS:
-                    SCLogDebug("packet/flow has tls state");
-                    (*mask) |= SIG_MASK_REQUIRE_TLS_STATE;
-                    break;
-                case ALPROTO_DNS:
-                    SCLogDebug("packet/flow has dns state");
-                    (*mask) |= SIG_MASK_REQUIRE_DNS_STATE;
-                    break;
-                case ALPROTO_FTP:
-                    SCLogDebug("packet/flow has ftp state");
-                    (*mask) |= SIG_MASK_REQUIRE_FTP_STATE;
-                    break;
-                case ALPROTO_FTPDATA:
-                    SCLogDebug("packet/flow has ftpdata state");
-                    (*mask) |= SIG_MASK_REQUIRE_FTPDATA_STATE;
-                    break;
-                case ALPROTO_SMTP:
-                    SCLogDebug("packet/flow has smtp state");
-                    (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
-                    break;
-                case ALPROTO_ENIP:
-                    SCLogDebug("packet/flow has enip state");
-                    (*mask) |= SIG_MASK_REQUIRE_ENIP_STATE;
-                    break;
-                case ALPROTO_DNP3:
-                    SCLogDebug("packet/flow has dnp3 state");
-                    (*mask) |= SIG_MASK_REQUIRE_DNP3_STATE;
-                    break;
-                case ALPROTO_TEMPLATE:
-                    SCLogDebug("packet/flow has template state");
-                    (*mask) |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
-                    break;
-                default:
-                    SCLogDebug("packet/flow has other state");
-                    break;
-            }
-        } else {
-            SCLogDebug("no alstate");
-        }
     }
 }
 
@@ -591,59 +535,6 @@ static int SignatureCreateMask(Signature *s)
                 s->mask |= SIG_MASK_REQUIRE_ENGINE_EVENT;
                 break;
         }
-    }
-
-    if (s->alproto == ALPROTO_SSH) {
-        s->mask |= SIG_MASK_REQUIRE_SSH_STATE;
-        SCLogDebug("sig requires ssh state");
-    }
-    if (s->alproto == ALPROTO_TLS) {
-        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
-        SCLogDebug("sig requires tls state");
-    }
-    if (s->alproto == ALPROTO_DNS) {
-        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
-        SCLogDebug("sig requires dns state");
-    }
-    if (s->alproto == ALPROTO_DNP3) {
-        s->mask |= SIG_MASK_REQUIRE_DNP3_STATE;
-        SCLogDebug("sig requires dnp3 state");
-    }
-    if (s->alproto == ALPROTO_FTP) {
-        s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
-        SCLogDebug("sig requires ftp state");
-    }
-    if (s->alproto == ALPROTO_FTPDATA) {
-        s->mask |= SIG_MASK_REQUIRE_FTPDATA_STATE;
-        SCLogDebug("sig requires ftp data state");
-    }
-    if (s->alproto == ALPROTO_SMTP) {
-        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-        SCLogDebug("sig requires smtp state");
-    }
-    if (s->alproto == ALPROTO_ENIP) {
-        s->mask |= SIG_MASK_REQUIRE_ENIP_STATE;
-        SCLogDebug("sig requires enip state");
-    }
-    if (s->alproto == ALPROTO_TEMPLATE) {
-        s->mask |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
-        SCLogDebug("sig requires template state");
-    }
-
-    if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_DNP3_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_FTPDATA_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_ENIP_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
-    {
-        s->mask |= SIG_MASK_REQUIRE_FLOW;
-        SCLogDebug("sig requires flow");
     }
 
     if (s->init_data->init_flags & SIG_FLAG_INIT_FLOW) {

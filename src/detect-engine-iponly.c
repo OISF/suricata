@@ -974,9 +974,9 @@ int IPOnlyMatchCompatSMs(ThreadVars *tv,
  * \param p Pointer to the Packet to match against
  */
 void IPOnlyMatchPacket(ThreadVars *tv,
-                       DetectEngineCtx *de_ctx,
+                       const DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx,
-                       DetectEngineIPOnlyCtx *io_ctx,
+                       const DetectEngineIPOnlyCtx *io_ctx,
                        DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
 {
     SigNumArray *src = NULL;

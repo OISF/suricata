@@ -678,7 +678,8 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
 }
 
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
-                                           void *alstate, const uint8_t flags)
+                                           void *alstate, const uint8_t flags,
+                                           bool tag_txs_as_inspected)
 {
     SCEnter();
 
@@ -686,18 +687,48 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     const uint64_t total_txs = AppLayerParserGetTxCnt(f, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
     const int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
+    const uint8_t ipproto = f->proto;
+    const AppProto alproto = f->alproto;
 
     for (; idx < total_txs; idx++) {
-        void *tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, idx);
+        void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        int state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
-        if (state_progress >= state_done_progress)
+        int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
+        if (state_progress >= state_done_progress) {
+            if (tag_txs_as_inspected) {
+                uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
+                if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
+                    detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
+                    AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
+                    SCLogDebug("%p/%"PRIu64" in-order tx is done for direction %s. Flag %016"PRIx64,
+                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+                }
+            }
             continue;
-        else
+        } else
             break;
     }
     pstate->inspect_id[direction] = idx;
+
+    /* if necessary we flag all txs that are complete as 'inspected' */
+    if (tag_txs_as_inspected) {
+        for (; idx < total_txs; idx++) {
+            void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
+            if (tx == NULL)
+                continue;
+            int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
+            if (state_progress >= state_done_progress) {
+                uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
+                if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
+                    detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
+                    AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
+                    SCLogDebug("%p/%"PRIu64" out of order tx is done for direction %s. Flag %016"PRIx64,
+                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+                }
+            }
+        }
+    }
 
     SCReturn;
 }
@@ -1174,48 +1205,21 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
     SCReturn;
 }
 
-bool AppLayerParserHasDecoderEvents(const Flow *f,
-        void *alstate, AppLayerParserState *pstate,
-        const uint8_t flags)
+/* return true if there are app parser decoder events. These are
+ * only the ones that are set during protocol detection. */
+bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate)
 {
     SCEnter();
 
-    if (alstate == NULL || pstate == NULL)
-        goto not_present;
+    if (pstate == NULL)
+        return false;
 
-    AppLayerDecoderEvents *decoder_events;
-    uint64_t tx_id;
-    uint64_t max_id;
-
-    if (AppLayerParserProtocolIsTxEventAware(f->proto, f->alproto)) {
-        /* fast path if supported by alproto */
-        if (alp_ctx.ctxs[f->protomap][f->alproto].StateHasEvents != NULL) {
-            if (alp_ctx.ctxs[f->protomap][f->alproto].
-                StateHasEvents(alstate) == 1)
-            {
-                goto present;
-            }
-        } else {
-            /* check each tx */
-            tx_id = AppLayerParserGetTransactionInspectId(pstate, flags);
-            max_id = AppLayerParserGetTxCnt(f, alstate);
-            for ( ; tx_id < max_id; tx_id++) {
-                decoder_events = AppLayerParserGetEventsByTx(f->proto, f->alproto, alstate, tx_id);
-                if (decoder_events && decoder_events->cnt)
-                    goto present;
-            }
-        }
-    }
-
-    decoder_events = AppLayerParserGetDecoderEvents(pstate);
+    const AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(pstate);
     if (decoder_events && decoder_events->cnt)
-        goto present;
+        return true;
 
     /* if we have reached here, we don't have events */
- not_present:
     return false;
- present:
-    return true;
 }
 
 /** \brief simpler way to globally test if a alproto is registered

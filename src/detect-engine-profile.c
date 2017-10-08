@@ -57,7 +57,8 @@ static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, cha
 #endif
 
 SCMutex g_rule_dump_write_m = SCMUTEX_INITIALIZER;
-void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh, const Packet *p)
 {
     json_t *js = CreateJSONHeader(p, 0, "inspectedrules");
     if (js == NULL)
@@ -66,7 +67,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
     if (ir == NULL)
         return;
 
-    json_object_set_new(ir, "rule_group_id", json_integer(det_ctx->sgh->id));
+    json_object_set_new(ir, "rule_group_id", json_integer(sgh->id));
     json_object_set_new(ir, "rule_cnt", json_integer(det_ctx->match_array_cnt));
 
     json_t *js_array = json_array();

@@ -64,7 +64,6 @@ static int g_http_method_buffer_id = 0;
 static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
-static void DetectHttpMethodSetupCallback(Signature *s);
 static _Bool DetectHttpMethodValidateCallback(const Signature *s, const char **sigerror);
 
 /**
@@ -91,8 +90,6 @@ void DetectHttpMethodRegister(void)
     DetectBufferTypeSetDescriptionByName("http_method",
             "http request method");
 
-    DetectBufferTypeRegisterSetupCallback("http_method",
-            DetectHttpMethodSetupCallback);
     DetectBufferTypeRegisterValidateCallback("http_method",
             DetectHttpMethodValidateCallback);
 
@@ -132,12 +129,6 @@ void DetectHttpMethodFree(void *ptr)
     if (data->content != NULL)
         SCFree(data->content);
     SCFree(data);
-}
-
-static void DetectHttpMethodSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**

@@ -696,6 +696,7 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
                 BUG_ON(sgh->non_pf_other_store_array == NULL);
                 sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].id = s->num;
                 sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].mask = s->mask;
+                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].alproto = s->alproto;
                 sgh->non_pf_other_store_cnt++;
             }
 
@@ -703,6 +704,7 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
             BUG_ON(sgh->non_pf_syn_store_array == NULL);
             sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].id = s->num;
             sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].mask = s->mask;
+            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].alproto = s->alproto;
             sgh->non_pf_syn_store_cnt++;
         }
     }

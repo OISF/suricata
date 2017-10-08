@@ -64,7 +64,6 @@ static int DetectHttpRawHeaderSetup(DetectEngineCtx *, Signature *, const char *
 static void DetectHttpRawHeaderRegisterTests(void);
 static void DetectHttpRawHeaderFree(void *);
 static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char **sigerror);
-static void DetectHttpRawHeaderSetupCallback(Signature *s);
 static int g_http_raw_header_buffer_id = 0;
 
 /**
@@ -97,8 +96,6 @@ void DetectHttpRawHeaderRegister(void)
 
     DetectBufferTypeRegisterValidateCallback("http_raw_header",
             DetectHttpRawHeaderValidateCallback);
-    DetectBufferTypeRegisterSetupCallback("http_raw_header",
-            DetectHttpRawHeaderSetupCallback);
 
     g_http_raw_header_buffer_id = DetectBufferTypeGetByName("http_raw_header");
 }
@@ -155,12 +152,6 @@ static _Bool DetectHttpRawHeaderValidateCallback(const Signature *s, const char 
         SCReturnInt(FALSE);
     }
     return TRUE;
-}
-
-static void DetectHttpRawHeaderSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /************************************Unittests*********************************/

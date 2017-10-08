@@ -260,21 +260,11 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   (1<<2)    /* SYN, FIN, RST */
 #define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      (1<<3)    /* URG, ECN, CWR */
 #define SIG_MASK_REQUIRE_NO_PAYLOAD         (1<<4)
-#define SIG_MASK_REQUIRE_HTTP_STATE         (1<<5)
-#define SIG_MASK_REQUIRE_DCE_STATE          (1<<6)
+//
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       (1<<7)
-#define SIG_MASK_REQUIRE_SSH_STATE          (1<<8)
-#define SIG_MASK_REQUIRE_TLS_STATE          (1<<9)
-#define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
-#define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
-#define SIG_MASK_REQUIRE_FTPDATA_STATE      (1<<12)
-#define SIG_MASK_REQUIRE_SMTP_STATE         (1<<13)
-#define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<14)
-#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<15)
-#define SIG_MASK_REQUIRE_DNP3_STATE         (1<<16)
 
 /* for now a uint8_t is enough */
-#define SignatureMask uint32_t
+#define SignatureMask uint8_t
 
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
@@ -342,7 +332,8 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint8_t dir;
     uint8_t id;     /**< per sig id used in state keeping */
     uint16_t mpm:1;
-    uint16_t sm_list:15;
+    uint16_t stream:1;
+    uint16_t sm_list:14;
     int16_t progress;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
@@ -809,7 +800,23 @@ typedef struct FiledataReassembledBody_ {
 typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
+    uint8_t alproto;
 } SignatureNonPrefilterStore;
+
+/** array of TX inspect rule candidates */
+typedef struct RuleMatchCandidateTx {
+    SigIntId id;            /**< internal signature id */
+    uint32_t *flags;        /**< inspect flags ptr */
+    union {
+        struct {
+            bool stream_stored;
+            uint8_t stream_result;
+        };
+        uint32_t stream_reset;
+    };
+
+    const Signature *s;     /**< ptr to sig */
+} RuleMatchCandidateTx;
 
 /**
   * Detection engine thread data.
@@ -883,8 +890,6 @@ typedef struct DetectEngineThreadCtx_ {
     /** ID of the transaction currently being inspected. */
     uint64_t tx_id;
     Packet *p;
-    bool stream_already_inspected;
-    int stream_last_result;
 
     SC_ATOMIC_DECLARE(int, so_far_used_by_detect);
 
@@ -900,11 +905,8 @@ typedef struct DetectEngineThreadCtx_ {
     /** size in use */
     SigIntId match_array_cnt;
 
-    /** Array of sigs that had a state change */
-    SigIntId de_state_sig_array_len;
-    uint8_t *de_state_sig_array;
-
-    const struct SigGroupHead_ *sgh;
+    RuleMatchCandidateTx *tx_candidates;
+    uint32_t tx_candidates_size;
 
     SignatureNonPrefilterStore *non_pf_store_ptr;
     uint32_t non_pf_store_cnt;
@@ -1245,10 +1247,10 @@ Signature *DetectGetTagSignature(void);
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
 
-int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
-                                   DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                   const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
+
+void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size);
+void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
 void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 
