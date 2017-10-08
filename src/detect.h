@@ -1216,7 +1216,6 @@ void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
 void SigMatchFree(SigMatch *sm);
 
 void SigRegisterTests(void);
-void DetectSimdRegisterTests(void);
 void TmModuleDetectRegister (void);
 
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);

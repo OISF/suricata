@@ -5450,8 +5450,5 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTestBug01", SigTestBug01);
 
     DetectEngineContentInspectionRegisterTests();
-#if 0
-    DetectSimdRegisterTests();
-#endif
 }
 #endif /* UNITTESTS */
