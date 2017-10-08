@@ -142,6 +142,7 @@ detect-engine-prefilter.c detect-engine-prefilter.h \
 detect-engine-prefilter-common.c detect-engine-prefilter-common.h \
 detect-engine-proto.c detect-engine-proto.h \
 detect-engine-profile.c detect-engine-profile.h \
+detect-engine-register.c detect-engine-register.h \
 detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
