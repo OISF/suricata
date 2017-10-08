@@ -1,5 +1,7 @@
 pcre (Perl Compatible Regular Expressions)
 ------------------------------------------
+.. role:: example-rule-emphasis
+
 The keyword pcre matches specific on regular expressions. More
 information about regular expressions can be found here
 http://en.wikipedia.org/wiki/Regular_expression.
@@ -12,18 +14,18 @@ checked.
 
 Format of pcre::
 
-  “/<regex>/opts”;
+  pcre:"/<regex>/opts";
 
-Example of pcre::
+Example of pcre. In this example there will be a match if the payload contains six
+numbers following::
 
-  pcre:”/[0-9]{6}/”;
-
-In this example there will be a match if the payload contains six
-numbers following.
+  pcre:"/[0-9]{6}/";
 
 Example of pcre in a signature:
 
-.. image:: pcre/pcre.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; :example-rule-emphasis:`pcre:"/NICK .*USA.*[0-9]{3,}/i";` reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 There are a few qualities of pcre which can be modified:
 
