@@ -159,11 +159,8 @@ direction you would like to match::
 The keyword only supports IPv4. As it uses the GeoIP API of Maxmind,
 libgeoip must be compiled in.
 
-Fragments
----------
-
-fragbits
-^^^^^^^^
+fragbits (IP fragmentation)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With the fragbits keyword, you can check if the fragmentation and
 reserved bits are set in the IP header. The fragbits keyword should be

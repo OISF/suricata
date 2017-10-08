@@ -1,5 +1,5 @@
 fast_pattern
-------------
+============
 .. toctree::
 
    fast-pattern-explained

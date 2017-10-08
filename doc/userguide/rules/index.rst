@@ -7,6 +7,7 @@ Suricata Rules
    meta
    header-keywords
    payload-keywords
+   mpm-keywords
    flow-keywords
    http-keywords
    file-keywords
@@ -16,7 +17,6 @@ Suricata Rules
    dnp3-keywords
    enip-keyword
    app-layer
-   prefilter
    xbits
    thresholding
    rule-lua-scripting

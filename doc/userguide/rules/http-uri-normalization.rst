@@ -1,5 +1,5 @@
 HTTP-uri normalization
-======================
+----------------------
 
 The uri has two appearances in Suricata: the raw_uri and the
 normalized uri. The space for example can be indicated with the

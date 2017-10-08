@@ -1,5 +1,5 @@
-Prefilter Keyword
-=================
+prefilter
+=========
 
 The prefilter engines for other non-MPM keywords can be enabled in specific rules by using the 'prefilter' keyword.
 

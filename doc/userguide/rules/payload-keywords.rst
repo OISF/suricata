@@ -287,5 +287,3 @@ The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
 .. include:: pcre.rst
-
-.. include:: fast-pattern.rst
