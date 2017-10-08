@@ -20,5 +20,4 @@ Suricata Rules
    xbits
    thresholding
    rule-lua-scripting
-   normalized-buffers
    differences-from-snort

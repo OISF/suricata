@@ -224,12 +224,45 @@ meaning of the rule.
 
 	    msg:"Message with semicolon\;";
 
-For more information about these settings, you can click on the
-following links:
+    As a consequence, you must also escape the backslash, as it functions
+    as an escape character.
 
-* :doc:`meta`
-* :doc:`payload-keywords`
-* :doc:`http-keywords`
-* :doc:`dns-keywords`
-* :doc:`flow-keywords`
-* :doc:`../reputation/ipreputation/ip-reputation-rules`
+The rest of this chapter in the documentation documents the use of the various keywords.
+
+Some generic details about keywords follow.
+
+.. _rules-modifiers:
+
+Modifier Keywords
+~~~~~~~~~~~~~~~~~
+
+Some keywords function act as modifiers. There are two types of modifiers.
+
+* The older style **'content modifiers'** look back in the rule, e.g.::
+
+      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+
+  In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
+
+* The more recent type is called the **'sticky buffer'**. It places the buffer name first and all keywords following it apply to that buffer, for instance::
+
+      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
+
+  In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+
+.. _rules-normalized-buffers:
+
+Normalized Buffers
+~~~~~~~~~~~~~~~~~~
+A packet consists of raw data. HTTP and reassembly make a copy of
+those kinds of packets data. They erase anomalous content, combine
+packets etcetera. What remains is a called the 'normalized buffer':
+
+.. image:: normalized-buffers/normalization1.png
+
+Because the data is being normalized, it is not what it used to be; it
+is an interpretation.  Normalized buffers are: all HTTP-keywords,
+reassembled streams, TLS-, SSL-, SSH-, FTP- and dcerpc-buffers.
+
+Note that there is one exception, that is the ``http_raw_uri`` keyword.
+See :ref:`rules-http-uri-normalization` for more information.

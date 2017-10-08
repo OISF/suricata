@@ -8,20 +8,17 @@ capabilities at the application layer. More information can be found at
 specific parts of the network traffic. For instance, to check specifically on
 the request URI, cookies, or the HTTP request or response body, etc.
 
-Types of modifiers
-------------------
+All HTTP keywords are modifiers. Note the difference between content modifiers
+and sticky buffers. See :ref:`rules-modifiers` for more information. As a
+refresher:
 
-There are 2 types of modifiers. The older style 'content modifiers' look back in the rule, e.g.::
+* **'content modifiers'** look back in the rule, e.g.::
 
-    alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
 
-In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
+* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
 
-The more recent type is called the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer, for instance::
-
-    alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
-
-In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
 The following **request** keywords are available:
 
@@ -152,6 +149,7 @@ Example of the purpose of method:
 
 .. image:: http-keywords/method1.png
 
+.. _rules-http-uri-normalization:
 
 http_uri and http_raw_uri
 -------------------------
@@ -162,9 +160,13 @@ buffer. The keyword can be used in combination with all previously
 mentioned content modifiers like ``depth``, ``distance``, ``offset``,
 ``nocase`` and ``within``.
 
-To learn more about the difference between ``http_uri`` and
-``http_raw_uri``, please read the information about
-:doc:`http-uri-normalization`.
+The uri has two appearances in Suricata: the raw_uri and the
+normalized uri. The space for example can be indicated with the
+heximal notation %20. To convert this notation in a space, means
+normalizing it. It is possible though to match specific on the
+characters %20 in a uri. This means matching on the raw_uri.  The
+raw_uri and the normalized uri are separate buffers. So, the raw_uri
+inspects the raw_uri buffer and can not inspect the normalized buffer.
 
 Example of the URI in a HTTP request:
 
@@ -173,10 +175,6 @@ Example of the URI in a HTTP request:
 Example of the purpose of ``http_uri``:
 
 .. image:: http-keywords/uri.png
-
-Example of the purpose of ``http_raw_uri``:
-
-#.. image:: http-keywords/raw_uri.png
 
 uricontent
 ----------
