@@ -418,7 +418,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     const Signature *s = NULL;
     const Signature *next_s = NULL;
     int state_alert = 0;
-    int app_decoder_events = 0;
+    bool app_decoder_events = false;
     bool has_state = false;     /* do we have an alstate to work with? */
 
     SCEnter();

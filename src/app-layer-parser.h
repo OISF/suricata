@@ -218,8 +218,8 @@ int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint6
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
-int AppLayerParserHasDecoderEvents(const Flow *f, void *alstate, AppLayerParserState *pstate,
-                        uint8_t flags);
+bool AppLayerParserHasDecoderEvents(const Flow *f, void *alstate, AppLayerParserState *pstate,
+                        const uint8_t flags);
 int AppLayerParserIsTxAware(AppProto alproto);
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);

@@ -403,7 +403,7 @@ deonly:
  */
 void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
-        bool has_state, int app_decoder_events)
+        bool has_state, bool app_decoder_events)
 {
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0) {
         SCLogDebug("packet has payload");

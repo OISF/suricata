@@ -1130,9 +1130,9 @@ void AppLayerParserSetEOF(AppLayerParserState *pstate)
     SCReturn;
 }
 
-int AppLayerParserHasDecoderEvents(const Flow *f,
-                                   void *alstate, AppLayerParserState *pstate,
-                                   uint8_t flags)
+bool AppLayerParserHasDecoderEvents(const Flow *f,
+        void *alstate, AppLayerParserState *pstate,
+        const uint8_t flags)
 {
     SCEnter();
 
@@ -1169,9 +1169,9 @@ int AppLayerParserHasDecoderEvents(const Flow *f,
 
     /* if we have reached here, we don't have events */
  not_present:
-    SCReturnInt(0);
+    return false;
  present:
-    SCReturnInt(1);
+    return true;
 }
 
 /** \brief simpler way to globally test if a alproto is registered
