@@ -256,6 +256,8 @@ AppProto AppLayerExpectationHandle(Flow *f, int direction)
              ((exp->sp == 0) || (exp->sp == f->sp)) &&
              ((exp->dp == 0) || (exp->dp == f->dp))) {
             alproto = exp->alproto;
+            f->alproto_ts = alproto;
+            f->alproto_tc = alproto;
             if (FlowSetStorageById(f, g_expectation_data_id, exp->data) != 0) {
                 SCLogDebug("Unable to set flow storage");
             }
