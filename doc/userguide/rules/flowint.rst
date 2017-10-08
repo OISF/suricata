@@ -1,5 +1,5 @@
-Flowint
-=======
+flowint
+-------
 
 Flowint is a precursor to the Global Variables task we will be adding
 to the engine very soon, which will allow the capture, storage and

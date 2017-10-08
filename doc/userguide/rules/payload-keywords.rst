@@ -1,16 +1,11 @@
 Payload Keywords
 ================
-
-.. toctree::
-   :maxdepth: 2
-
-   pcre
-   fast-pattern
+.. role:: example-rule-emphasis
 
 Payload keywords inspect the content of the payload of a packet or
 stream.
 
-Content
+content
 -------
 
 The content keyword is very important in signatures. Between the
@@ -65,11 +60,9 @@ A few examples::
 It is possible to let a signature check the whole payload for a match with the content or to let it check specific parts of the payload. We come to that later.
 If you add nothing special to the signature, it will try to find a match in all the bytes of the payload.
 
-Example:
+.. container:: example-rule
 
-.. image:: payload-keywords/content.png
-
-In this example, the red, bold-faced part is the content.
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; :example-rule-emphasis:`content:"NICK ";` pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 
 By default the pattern-matching is case sensitive. The content has to
@@ -96,7 +89,7 @@ generated if the the used version of Firefox is not 3.6.13.
 .. note:: The following characters must be escaped inside the content:
              ``;`` ``\`` ``"``
 
-Nocase
+nocase
 ------
 
 If you do not want to make a distinction between uppercase and
@@ -117,7 +110,7 @@ Example nocase:
 
 It has no influence on other contents in the signature.
 
-Depth
+depth
 -----
 
 The depth keyword is a absolute content modifier. It comes after the
@@ -133,7 +126,7 @@ Example:
 
 .. image:: payload-keywords/content4.png
 
-Offset
+offset
 ------
 
 The offset keyword designates from which byte in the payload will be
@@ -154,7 +147,7 @@ third byte till the sixth byte.
 .. image:: payload-keywords/content6.png
 
 
-Distance
+distance
 --------
 
 The keyword distance is a relative content modifier. This means it
@@ -185,7 +178,7 @@ possible to attain the same results with other keywords.
 
 .. image:: payload-keywords/distance3.png
 
-Within
+within
 ------
 
 The keyword within is relative to the preceding match. The keyword
@@ -211,7 +204,7 @@ payload for a match, use within.
 
 .. image:: payload-keywords/within_distance2.png
 
-Isdataat
+isdataat
 --------
 
 The purpose of the isdataat keyword is to look if there is still data
@@ -235,7 +228,7 @@ You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
-Dsize
+dsize
 -----
 
 With the dsize keyword, you can match on the size of the packet
@@ -249,10 +242,12 @@ Format::
 
 example of dsize in a rule:
 
-.. image:: payload-keywords/dsize.png
+.. container:: example-rule
+
+    alert udp $EXTERNAL_NET any -> $HOME_NET 65535 (msg:"GPL DELETED EXPLOIT LANDesk Management Suite Alerting Service buffer overflow"; :example-rule-emphasis:`dsize:>268;` reference: bugtraq,23483; reference: cve,2007-1674; classtype: attempted-admin; sid:100000928; rev:1;)
 
 rpc
-----
+---
 
 The rpc keyword can be used to match in the SUNRPC CALL on the RPC
 procedure numbers and the RPC version.
@@ -271,9 +266,12 @@ Format::
 
 Example of the rpc keyword in a rule:
 
-.. image:: payload-keywords/rpc.png
+.. container:: example-rule
 
-Replace
+    alert udp $EXTERNAL_NET any -> $HOME_NET 111 (msg:"RPC portmap request yppasswdd"; :example-rule-emphasis:`rpc:100009,*,*;` reference:bugtraq,2763; classtype:rpc-portmap-decode; sid:1296; rev:4;)
+
+
+replace
 -------
 
 The replace content modifier can only be used in ips. It adjusts
@@ -286,18 +284,10 @@ another ('def'), see example:
 
 The replace modifier has to contain as many characters as the content
 it replaces.  It can only be used with individual packets. It will not
-work for :doc:`normalized-buffers` like HTTP uri or a content match in
+work for :ref:`rules-normalized-buffers` like HTTP uri or a content match in
 the reassembled stream.
 
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
-pcre
-----
-
-For information about pcre check the :doc:`pcre` page.
-
-fast_pattern
-------------
-
-For information about fast_pattern check the :doc:`fast-pattern` page.
+.. include:: pcre.rst

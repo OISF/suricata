@@ -1,5 +1,5 @@
-Xbits
-=====
+Xbits Keyword
+=============
 
 Set, unset, toggle and check for bits stored per host or ip_pair.
 
