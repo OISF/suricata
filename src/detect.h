@@ -24,7 +24,7 @@
 #ifndef __DETECT_H__
 #define __DETECT_H__
 
-#include <stdint.h>
+#include "suricata-common.h"
 
 #include "flow.h"
 
@@ -1383,11 +1383,6 @@ enum {
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /* detection api */
-int SigAddressPrepareStage1(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage2(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage3(DetectEngineCtx *de_ctx);
-int SigAddressPrepareStage4(DetectEngineCtx *de_ctx);
-int SigAddressCleanupStage1(DetectEngineCtx *de_ctx);
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq);
 
 SigMatch *SigMatchAlloc(void);
@@ -1396,15 +1391,12 @@ void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
                                        Packet *, SignatureMask,
                                        uint16_t);
 void SigMatchFree(SigMatch *sm);
-void SigCleanSignatures(DetectEngineCtx *);
 
 void SigTableRegisterTests(void);
 void SigRegisterTests(void);
 void DetectSimdRegisterTests(void);
 void TmModuleDetectRegister (void);
 
-int SigGroupBuild(DetectEngineCtx *);
-int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 void DisableDetectFlowFileFlags(Flow *f);
@@ -1420,12 +1412,6 @@ const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, cons
 
 Signature *DetectGetTagSignature(void);
 
-int SignatureIsFilestoring(const Signature *);
-int SignatureIsFilemagicInspecting(const Signature *);
-int SignatureIsFileMd5Inspecting(const Signature *);
-int SignatureIsFileSha1Inspecting(const Signature *s);
-int SignatureIsFileSha256Inspecting(const Signature *s);
-int SignatureIsFilesizeInspecting(const Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
 void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *, int);
@@ -1434,6 +1420,8 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
+
+#include "detect-engine-build.h"
 
 #endif /* __DETECT_H__ */
 

@@ -106,12 +106,13 @@ detect-tls-cert-subject.c detect-tls-cert-subject.h \
 detect-tls-cert-serial.c detect-tls-cert-serial.h \
 detect-tls-cert-fingerprint.c detect-tls-cert-fingerprint.h \
 detect-dsize.c detect-dsize.h \
+detect-engine.c detect-engine.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
 detect-engine-alert.c detect-engine-alert.h \
 detect-engine-analyzer.c detect-engine-analyzer.h \
-detect-engine.c detect-engine.h \
+detect-engine-build.c detect-engine-build.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
