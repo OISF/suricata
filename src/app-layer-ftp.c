@@ -594,7 +594,7 @@ static int FTPDataParse(Flow *f, void *ftp_state,
         }
     }
 
-    if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+    if (input_len && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         ret = FileCloseFile(ftpdata_state->files, (uint8_t *) NULL, 0, flags);
     }
     if (ftpdata_state->files) {
