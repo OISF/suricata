@@ -894,9 +894,6 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     bool use_flow_sgh = false;
     uint8_t alert_flags = 0;
     AppProto alproto = ALPROTO_UNKNOWN;
-#ifdef PROFILING
-    int smatch = 0; /* signature match: 1, no match: 0 */
-#endif
     uint8_t flow_flags = 0; /* flow/state flags */
     const Signature *s = NULL;
     const Signature *next_s = NULL;
@@ -1147,7 +1144,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
         RULE_PROFILING_START(p);
         state_alert = 0;
 #ifdef PROFILING
-        smatch = 0;
+        bool smatch = false; /* signature match */
 #endif
         s = next_s;
         sflags = next_sflags;
@@ -1361,7 +1358,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
         }
 
 #ifdef PROFILING
-        smatch = 1;
+        smatch = true;
 #endif
 
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
