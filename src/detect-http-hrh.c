@@ -62,7 +62,6 @@
 static int DetectHttpHRHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHRHRegisterTests(void);
 static void DetectHttpHRHFree(void *);
-static void DetectHttpHostRawSetupCallback(Signature *);
 static int g_http_raw_host_buffer_id = 0;
 
 /**
@@ -89,9 +88,6 @@ void DetectHttpHRHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_raw_host",
             "http raw host header");
 
-    DetectBufferTypeRegisterSetupCallback("http_raw_host",
-            DetectHttpHostRawSetupCallback);
-
     g_http_raw_host_buffer_id = DetectBufferTypeGetByName("http_raw_host");
 }
 
@@ -114,12 +110,6 @@ int DetectHttpHRHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   DETECT_AL_HTTP_RAW_HOST,
                                                   g_http_raw_host_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpHostRawSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**

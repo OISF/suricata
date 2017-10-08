@@ -88,75 +88,60 @@ static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
     QuickSortSigIntId(l, sids + n - l);
 }
 
-static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh, Packet *p, const uint8_t flags)
+/**
+ * \brief run prefilter engines on a transaction
+ */
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh,
+        Packet *p,
+        const uint8_t ipproto,
+        const uint8_t flow_flags,
+        const AppProto alproto,
+        void *alstate,
+        DetectTransaction *tx)
 {
-    SCEnter();
+    /* reset rule store */
+    det_ctx->pmq.rule_id_array_cnt = 0;
 
-    const AppProto alproto = p->flow->alproto;
-    const uint8_t ipproto = p->proto;
+    SCLogDebug("tx %p progress %d", tx->tx_ptr, tx->tx_progress);
 
-    if (!(AppLayerParserProtocolIsTxAware(ipproto, alproto)))
-        SCReturn;
-
-    void *alstate = p->flow->alstate;
-    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-    const uint64_t total_txs = AppLayerParserGetTxCnt(p->flow, alstate);
-
-    /* HACK test HTTP state here instead of in each engine */
-    if (alproto == ALPROTO_HTTP) {
-        HtpState *htp_state = (HtpState *)alstate;
-        if (unlikely(htp_state->connp == NULL)) {
-            SCLogDebug("no HTTP connp");
-            SCReturn;
-        }
-    }
-
-    /* run our engines against each tx */
-    for (; idx < total_txs; idx++) {
-        void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
-        if (tx == NULL)
-            continue;
-
-        uint64_t mpm_ids = AppLayerParserGetTxMpmIDs(ipproto, alproto, tx);
-        const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-        SCLogDebug("tx %p progress %d", tx, tx_progress);
-
-        PrefilterEngine *engine = sgh->tx_engines;
-        do {
-            if (engine->alproto != alproto)
+    PrefilterEngine *engine = sgh->tx_engines;
+    do {
+        if (engine->alproto != alproto)
+            goto next;
+        if (engine->tx_min_progress > tx->tx_progress)
+            goto next;
+        if (tx->tx_progress > engine->tx_min_progress) {
+            if (tx->prefilter_flags & (1<<(engine->id))) {
                 goto next;
-            if (engine->tx_min_progress > tx_progress)
-                goto next;
-            if (tx_progress > engine->tx_min_progress) {
-                if (mpm_ids & (1<<(engine->gid))) {
-                    goto next;
-                }
             }
-
-            PROFILING_PREFILTER_START(p);
-            engine->cb.PrefilterTx(det_ctx, engine->pectx,
-                    p, p->flow, tx, idx, flags);
-            PROFILING_PREFILTER_END(p, engine->gid);
-
-            if (tx_progress > engine->tx_min_progress) {
-                mpm_ids |= (1<<(engine->gid));
-            }
-        next:
-            if (engine->is_last)
-                break;
-            engine++;
-        } while (1);
-
-        if (mpm_ids != 0) {
-            //SCLogNotice("tx %p Mpm IDs: %"PRIx64, tx, mpm_ids);
-            AppLayerParserSetTxMpmIDs(ipproto, alproto, tx, mpm_ids);
         }
+
+        PROFILING_PREFILTER_START(p);
+        engine->cb.PrefilterTx(det_ctx, engine->pectx,
+                p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
+        PROFILING_PREFILTER_END(p, engine->gid);
+
+        if (tx->tx_progress > engine->tx_min_progress) {
+            tx->prefilter_flags |= (1<<(engine->id));
+        }
+    next:
+        if (engine->is_last)
+            break;
+        engine++;
+    } while (1);
+
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (likely(det_ctx->pmq.rule_id_array_cnt > 1)) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
 }
 
 void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
-        Packet *p, const uint8_t flags, const bool has_state)
+        Packet *p, const uint8_t flags)
 {
     SCEnter();
 
@@ -195,17 +180,6 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
             engine++;
         }
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PAYLOAD);
-    }
-
-    /* run tx engines */
-    if (((p->proto == IPPROTO_TCP && p->flowflags & FLOW_PKT_ESTABLISHED) || p->proto != IPPROTO_TCP) && has_state) {
-        if (sgh->tx_engines != NULL && p->flow != NULL &&
-                p->flow->alproto != ALPROTO_UNKNOWN && p->flow->alstate != NULL)
-        {
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
-            PrefilterTx(det_ctx, sgh, p, flags);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
-        }
     }
 
     /* Sort the rule list to lets look at pmq.

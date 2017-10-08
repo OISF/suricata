@@ -99,7 +99,6 @@ static void DetectHttpClientBodySetupCallback(Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     AppLayerHtpEnableRequestBodyCallback();
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**

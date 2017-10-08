@@ -125,7 +125,6 @@ static bool DetectHttpUriValidateCallback(const Signature *s, const char **siger
 static void DetectHttpUriSetupCallback(Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
     DetectUrilenApplyToContent(s, g_http_uri_buffer_id);
 }
 

@@ -58,6 +58,7 @@ enum AppProtoEnum {
     /* keep last */
     ALPROTO_MAX,
 };
+// NOTE: if ALPROTO's get >= 256, update SignatureNonPrefilterStore
 
 /* not using the enum as that is a unsigned int, so 4 bytes */
 typedef uint16_t AppProto;

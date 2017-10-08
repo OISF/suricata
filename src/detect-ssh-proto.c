@@ -176,12 +176,6 @@ static int DetectSshProtocolSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     return 0;
 }
 
-static void DetectSshProtocolSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_SSH_STATE;
-}
-
 void DetectSshProtocolRegister(void)
 {
     sigmatch_table[DETECT_AL_SSH_PROTOCOL].name = KEYWORD_NAME;
@@ -204,9 +198,6 @@ void DetectSshProtocolRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectSshProtocolSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
