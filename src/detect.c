@@ -417,7 +417,6 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     uint8_t flow_flags = 0; /* flow/state flags */
     const Signature *s = NULL;
     const Signature *next_s = NULL;
-    int state_alert = 0;
     bool app_decoder_events = false;
     bool has_state = false;     /* do we have an alstate to work with? */
 
@@ -662,7 +661,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
     }
     while (match_cnt--) {
         RULE_PROFILING_START(p);
-        state_alert = 0;
+        bool state_alert = false;
 #ifdef PROFILING
         bool smatch = false; /* signature match */
 #endif
@@ -867,7 +866,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
                                                       p, pflow, flow_flags, alproto);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL_START);
-            if (state_alert == 0)
+            if (state_alert == false)
                 goto next;
 
             /* match */

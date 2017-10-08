@@ -145,9 +145,9 @@ int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags);
  * \param flags Flags.
  * \param alproto App protocol.
  *
- * \retval >= 0 An integer value indicating the no of matches.
+ * \retval bool true is sig matched, false if it didn't
  */
-int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
+bool DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 const Signature *s, Packet *p, Flow *f,
                                 const uint8_t flags, const AppProto alproto);

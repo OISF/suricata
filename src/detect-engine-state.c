@@ -353,7 +353,8 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
     SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
-int DeStateDetectStartDetection(ThreadVars *tv,
+/* returns: true match, false no match */
+bool DeStateDetectStartDetection(ThreadVars *tv,
                                 DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 const Signature *s, Packet *p, Flow *f,
@@ -365,7 +366,7 @@ int DeStateDetectStartDetection(ThreadVars *tv,
     /* TX based matches (inspect engines) */
     void *alstate = FlowGetAppState(f);
     if (unlikely(!StateIsValid(alproto, alstate))) {
-        return 0;
+        return false;
     }
 
     SigMatchData *smd = NULL;
@@ -511,7 +512,7 @@ int DeStateDetectStartDetection(ThreadVars *tv,
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
     det_ctx->p = NULL;
-    return alert_cnt ? 1:0;
+    return (alert_cnt > 0);
 }
 
 static int DoInspectItem(ThreadVars *tv,
