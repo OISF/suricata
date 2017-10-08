@@ -24,6 +24,7 @@
 #ifndef _DETECT_ENGINE_PROFILE_H
 #define	_DETECT_ENGINE_PROFILE_H
 
-void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p);
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh, const Packet *p);
 
 #endif	/* _DETECT_ENGINE_PROFILE_H */

@@ -172,11 +172,6 @@ static void DetectFiledataSetupCallback(Signature *s)
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
         AppLayerHtpEnableRequestBodyCallback();
     }
-    if (s->alproto == ALPROTO_HTTP) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-    } else if (s->alproto == ALPROTO_SMTP) {
-        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-    }
 
     SCLogDebug("callback invoked by %u", s->id);
 }

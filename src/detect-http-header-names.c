@@ -365,12 +365,6 @@ static int DetectHttpHeaderNamesSetup(DetectEngineCtx *de_ctx, Signature *s, con
     return 0;
 }
 
-static void DetectHttpHeaderNamesSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -397,9 +391,6 @@ void DetectHttpHeaderNamesRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpHeaderNamesSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

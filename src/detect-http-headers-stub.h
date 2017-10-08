@@ -322,12 +322,6 @@ static int DetectHttpHeadersSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     return 0;
 }
 
-static void DetectHttpHeadersSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 static void DetectHttpHeadersRegisterStub(void)
 {
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
@@ -355,9 +349,6 @@ static void DetectHttpHeadersRegisterStub(void)
 #endif
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME, BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpHeadersSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }

@@ -195,7 +195,7 @@ LoggerId AppLayerParserGetTxLogged(const Flow *f, void *alstate, void *tx);
 
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
 void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *pstate,
-                                void *alstate, const uint8_t flags);
+                                void *alstate, const uint8_t flags, bool tag_txs_as_inspected);
 
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);
 void AppLayerParserSetDecoderEvents(AppLayerParserState *pstate, AppLayerDecoderEvents *devents);
@@ -232,8 +232,7 @@ int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint6
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
-bool AppLayerParserHasDecoderEvents(const Flow *f, void *alstate, AppLayerParserState *pstate,
-                        const uint8_t flags);
+bool AppLayerParserHasDecoderEvents(AppLayerParserState *pstate);
 int AppLayerParserIsTxAware(AppProto alproto);
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);

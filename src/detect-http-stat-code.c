@@ -65,7 +65,6 @@
 
 static int DetectHttpStatCodeSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpStatCodeRegisterTests(void);
-static void DetectHttpStatCodeSetupCallback(Signature *);
 static int g_http_stat_code_buffer_id = 0;
 
 /**
@@ -93,9 +92,6 @@ void DetectHttpStatCodeRegister (void)
     DetectBufferTypeSetDescriptionByName("http_stat_code",
             "http response status code");
 
-    DetectBufferTypeRegisterSetupCallback("http_stat_code",
-            DetectHttpStatCodeSetupCallback);
-
     g_http_stat_code_buffer_id = DetectBufferTypeGetByName("http_stat_code");
 }
 
@@ -116,12 +112,6 @@ static int DetectHttpStatCodeSetup(DetectEngineCtx *de_ctx, Signature *s, const 
                                                   DETECT_AL_HTTP_STAT_CODE,
                                                   g_http_stat_code_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpStatCodeSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 #ifdef UNITTESTS

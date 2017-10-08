@@ -81,6 +81,7 @@
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 
+#if 0
 /** The DetectEngineThreadCtx::de_state_sig_array contains 2 separate values:
  *  1. the first bit tells the prefilter engine to bypass the rule (or not)
  *  2. the other bits allow 'ContinueDetect' to specify an offset again the
@@ -94,6 +95,7 @@
 #define MAX_STORED_TXID_OFFSET 127
 
 /******** static internal helpers *********/
+#endif
 
 static inline int StateIsValid(uint16_t alproto, void *alstate)
 {
@@ -110,12 +112,14 @@ static inline int StateIsValid(uint16_t alproto, void *alstate)
     return 0;
 }
 
+#if 0
 static inline int TxIsLast(uint64_t tx_id, uint64_t total_txs)
 {
     if (total_txs - tx_id <= 1)
         return 1;
     return 0;
 }
+#endif
 
 static DeStateStore *DeStateStoreAlloc(void)
 {
@@ -127,6 +131,7 @@ static DeStateStore *DeStateStoreAlloc(void)
     return d;
 }
 
+#ifdef DEBUG_VALIDATION
 static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
 {
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
@@ -151,6 +156,7 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
     }
     return 0;
 }
+#endif
 
 static void DeStateSignatureAppend(DetectEngineState *state,
         const Signature *s, uint32_t inspect_flags, uint8_t direction)
@@ -194,21 +200,6 @@ static void DeStateSignatureAppend(DetectEngineState *state,
     return;
 }
 
-static void DeStateStoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
-{
-    de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt += file_no_match;
-
-    return;
-}
-
-static int DeStateStoreFilestoreSigsCantMatch(const SigGroupHead *sgh, DetectEngineState *de_state, uint8_t direction)
-{
-    if (de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt == sgh->filestore_cnt)
-        return 1;
-    else
-        return 0;
-}
-
 DetectEngineState *DetectEngineStateAlloc(void)
 {
     DetectEngineState *d = SCMalloc(sizeof(DetectEngineState));
@@ -236,6 +227,107 @@ void DetectEngineStateFree(DetectEngineState *state)
     SCFree(state);
 
     return;
+}
+
+static void StoreFileNoMatchCnt(DetectEngineState *de_state, uint16_t file_no_match, uint8_t direction)
+{
+    de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt += file_no_match;
+
+    return;
+}
+
+static bool StoreFilestoreSigsCantMatch(const SigGroupHead *sgh, const DetectEngineState *de_state, uint8_t direction)
+{
+    if (de_state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].filestore_cnt == sgh->filestore_cnt)
+        return true;
+    else
+        return false;
+}
+
+static void StoreStateTxHandleFiles(const SigGroupHead *sgh, Flow *f,
+                                    DetectEngineState *destate, const uint8_t flow_flags,
+                                    const uint64_t tx_id, const uint16_t file_no_match)
+{
+    SCLogDebug("tx %"PRIu64", file_no_match %u", tx_id, file_no_match);
+    StoreFileNoMatchCnt(destate, file_no_match, flow_flags);
+    if (StoreFilestoreSigsCantMatch(sgh, destate, flow_flags)) {
+        FileDisableStoringForTransaction(f, flow_flags & (STREAM_TOCLIENT | STREAM_TOSERVER), tx_id);
+    }
+}
+
+void DetectRunStoreStateTx(
+        const SigGroupHead *sgh,
+        Flow *f, void *tx, uint64_t tx_id,
+        const Signature *s,
+        uint32_t inspect_flags, uint8_t flow_flags,
+        const uint16_t file_no_match)
+{
+    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
+    if (destate == NULL) {
+        destate = DetectEngineStateAlloc();
+        if (destate == NULL)
+            return;
+        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+            DetectEngineStateFree(destate);
+            return;
+        }
+        SCLogDebug("destate created for %"PRIu64, tx_id);
+    }
+    DeStateSignatureAppend(destate, s, inspect_flags, flow_flags);
+    StoreStateTxHandleFiles(sgh, f, destate, flow_flags, tx_id, file_no_match);
+
+    SCLogDebug("Stored for TX %"PRIu64, tx_id);
+}
+
+void DetectRunStoreStateTxFileOnly(
+        const SigGroupHead *sgh,
+        Flow *f, void *tx, uint64_t tx_id,
+        const uint8_t flow_flags,
+        const uint16_t file_no_match)
+{
+    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
+    if (destate == NULL) {
+        destate = DetectEngineStateAlloc();
+        if (destate == NULL)
+            return;
+        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+            DetectEngineStateFree(destate);
+            return;
+        }
+        SCLogDebug("destate created for %"PRIu64, tx_id);
+    }
+    StoreStateTxHandleFiles(sgh, f, destate, flow_flags, tx_id, file_no_match);
+}
+
+#if 0
+/**
+ *  \param check_before_add check for duplicates before adding the sig
+ */
+static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
+        Flow *f, const uint8_t flags,
+        const uint64_t tx_id, void *tx,
+        const Signature *s, const SigMatchData *smd,
+        const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
+{
+    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
+    if (destate == NULL) {
+        destate = DetectEngineStateAlloc();
+        if (destate == NULL)
+            return;
+        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+            DetectEngineStateFree(destate);
+            return;
+        }
+        SCLogDebug("destate created for %"PRIu64, tx_id);
+    }
+
+    SCLogDebug("file_no_match %u", file_no_match);
+
+    if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
+        DeStateSignatureAppend(destate, s, inspect_flags, flags);
+
+    StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
+    SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
 static int HasStoredSigs(const Flow *f, const uint8_t flags)
@@ -292,65 +384,6 @@ int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags)
         r = 0;
     }
     return r;
-}
-
-static void StoreStateTxHandleFiles(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    DetectEngineState *destate, const uint8_t flags,
-                                    const uint64_t tx_id, const uint16_t file_no_match)
-{
-    SCLogDebug("tx %"PRIu64", file_no_match %u", tx_id, file_no_match);
-    DeStateStoreFileNoMatchCnt(destate, file_no_match, flags);
-    if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, destate, flags) == 1) {
-        FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT | STREAM_TOSERVER), tx_id);
-    }
-}
-
-static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags, const uint64_t tx_id, void *tx,
-        const uint16_t file_no_match)
-{
-    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
-    if (destate == NULL) {
-        destate = DetectEngineStateAlloc();
-        if (destate == NULL)
-            return;
-        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
-            DetectEngineStateFree(destate);
-            return;
-        }
-        SCLogDebug("destate created for %"PRIu64, tx_id);
-    }
-    StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
-}
-
-/**
- *  \param check_before_add check for duplicates before adding the sig
- */
-static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags,
-        const uint64_t tx_id, void *tx,
-        const Signature *s, const SigMatchData *smd,
-        const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
-{
-    DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
-    if (destate == NULL) {
-        destate = DetectEngineStateAlloc();
-        if (destate == NULL)
-            return;
-        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
-            DetectEngineStateFree(destate);
-            return;
-        }
-        SCLogDebug("destate created for %"PRIu64, tx_id);
-    }
-
-    SCLogDebug("file_no_match %u", file_no_match);
-
-    if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
-        DeStateSignatureAppend(destate, s, inspect_flags, flags);
-
-    StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
-    SCLogDebug("Stored for TX %"PRIu64, tx_id);
 }
 
 /* returns: true match, false no match */
@@ -822,17 +855,23 @@ end:
     det_ctx->tx_id_set = 0;
     return;
 }
+#endif
+
 /** \brief update flow's inspection id's
  *
  *  \param f unlocked flow
  *  \param flags direction and disruption flags
+ *  \param tag_txs_as_inspected if true all 'complete' txs will be marked
+ *                              'inspected'
  *
  *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
+void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags,
+        const bool tag_txs_as_inspected)
 {
     if (f->alparser && f->alstate) {
         AppLayerParserSetTransactionInspectId(f, f->alparser,
-                                              f->alstate, flags);
+                                              f->alstate, flags,
+                                              tag_txs_as_inspected);
     }
     return;
 }
