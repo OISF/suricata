@@ -238,11 +238,6 @@ extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
 static int rule_engine_analysis_set = 0;
 
-SigMatch *SigMatchAlloc(void);
-void DetectExitPrintStats(ThreadVars *tv, void *data);
-
-void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
-void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
 static void PacketCreateMask(Packet *, SignatureMask *, AppProto, bool, int);
 
 /**
@@ -1468,8 +1463,6 @@ void DetectSignatureApplyActions(Packet *p,
 
     }
 }
-
-/* tm module api functions */
 
 static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
 {
@@ -3349,36 +3342,6 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         SCLogInfo("cleaning up signature grouping structure... complete");
     }
     return 0;
-}
-
-void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    if (sgh == NULL) {
-        printf("\n");
-        return;
-    }
-
-    uint32_t sig;
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        printf("%" PRIu32 " ", sgh->match_array[sig]->id);
-    }
-    printf("\n");
-}
-
-void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    if (sgh == NULL || sgh->init == NULL) {
-        printf("\n");
-        return;
-    }
-
-    uint32_t sig;
-    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (sgh->init->sig_array[(sig/8)] & (1<<(sig%8))) {
-            printf("%" PRIu32 " ", de_ctx->sig_array[sig]->id);
-        }
-    }
-    printf("\n");
 }
 
 /** \brief finalize preparing sgh's */
