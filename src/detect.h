@@ -1399,7 +1399,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s);
-SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx, const Packet *p);
 
 Signature *DetectGetTagSignature(void);
 

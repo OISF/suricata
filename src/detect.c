@@ -584,12 +584,12 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
  *  \brief Get the SigGroupHead for a packet.
  *
  *  \param de_ctx detection engine context
- *  \param det_ctx thread detection engine content
  *  \param p packet
  *
  *  \retval sgh the SigGroupHead or NULL if non applies to the packet
  */
-SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
+const SigGroupHead *SigMatchSignaturesGetSgh(const DetectEngineCtx *de_ctx,
+        const Packet *p)
 {
     SCEnter();
 
@@ -1043,7 +1043,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
 
         if (!(use_flow_sgh)) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
-            det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+            det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
         }
 
@@ -1057,7 +1057,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_IPONLY);
 
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
-        det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+        det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, p);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
     }
 

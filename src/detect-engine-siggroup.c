@@ -1183,7 +1183,7 @@ static int SigGroupHeadTest10(void)
 
     AddressDebugPrint(&p->dst);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    const SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, p);
     if (sgh == NULL) {
         goto end;
     }
