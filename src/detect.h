@@ -574,6 +574,23 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
+typedef struct SigString_ {
+    char *filename;
+    char *sig_str;
+    char *sig_error;
+    int line;
+    TAILQ_ENTRY(SigString_) next;
+} SigString;
+
+/** \brief Signature loader statistics */
+typedef struct SigFileLoaderStat_ {
+    TAILQ_HEAD(, SigString_) failed_sigs;
+    int bad_files;
+    int total_files;
+    int good_sigs_total;
+    int bad_sigs_total;
+} SigFileLoaderStat;
+
 typedef struct DetectEngineThreadKeywordCtxItem_ {
     void *(*InitFunc)(void *);
     void (*FreeFunc)(void *);
@@ -693,6 +710,7 @@ typedef struct DetectEngineCtx_ {
     /** Store rule file and line so that parsers can use them in errors. */
     char *rule_file;
     int rule_line;
+    const char *sigerror;
 
     /** list of keywords that need thread local ctxs */
     DetectEngineThreadKeywordCtxItem *keyword_list;
@@ -735,6 +753,13 @@ typedef struct DetectEngineCtx_ {
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */
     DetectMpmAppLayerKeyword *app_mpms;
+
+    /** time of last ruleset reload */
+    struct timeval last_reload;
+
+    /** signatures stats */
+    SigFileLoaderStat sig_stat;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1176,14 +1201,6 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 } DetectEngineMasterCtx;
-
-/** \brief Signature loader statistics */
-typedef struct SigFileLoaderStat_ {
-    int bad_files;
-    int total_files;
-    int good_sigs_total;
-    int bad_sigs_total;
-} SigFileLoaderStat;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
