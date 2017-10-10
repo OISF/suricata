@@ -117,6 +117,9 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
+    void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
+
     uint64_t (*GetTxMpmIDs)(void *tx);
     int (*SetTxMpmIDs)(void *tx, uint64_t);
 
@@ -563,6 +566,18 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
+        uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
+        void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags = GetTxDetectFlags;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags = SetTxDetectFlags;
+
+    SCReturn;
+}
+
 void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
         uint64_t(*GetTxMpmIDs)(void *tx),
         int (*SetTxMpmIDs)(void *tx, uint64_t))
@@ -969,6 +984,25 @@ int AppLayerParserSetTxDetectState(const Flow *f,
         SCReturnInt(-EBUSY);
     r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(alstate, tx, s);
     SCReturnInt(r);
+}
+
+uint64_t AppLayerParserGetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir)
+{
+    SCEnter();
+    uint64_t flags = 0;
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags != NULL) {
+        flags = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectFlags(tx, dir);
+    }
+    SCReturnUInt(flags);
+}
+
+void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir, uint64_t flags)
+{
+    SCEnter();
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags != NULL) {
+        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectFlags(tx, dir, flags);
+    }
+    SCReturn;
 }
 
 uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx)
