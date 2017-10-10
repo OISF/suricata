@@ -112,7 +112,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         if (engine->tx_min_progress > tx->tx_progress)
             goto next;
         if (tx->tx_progress > engine->tx_min_progress) {
-            if (tx->prefilter_flags & (1<<(engine->id))) {
+            if (tx->prefilter_flags & (1<<(engine->local_id))) {
                 goto next;
             }
         }
@@ -123,7 +123,7 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
         PROFILING_PREFILTER_END(p, engine->gid);
 
         if (tx->tx_progress > engine->tx_min_progress) {
-            tx->prefilter_flags |= (1<<(engine->id));
+            tx->prefilter_flags |= (1<<(engine->local_id));
         }
     next:
         if (engine->is_last)
@@ -381,7 +381,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         PrefilterEngine *e = sgh->pkt_engines;
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -406,7 +406,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         PrefilterEngine *e = sgh->payload_engines;
         for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -429,9 +429,10 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
+        uint32_t local_id = 0;
         PrefilterEngine *e = sgh->tx_engines;
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = local_id++;
             e->alproto = el->alproto;
             e->tx_min_progress = el->tx_min_progress;
             e->cb.PrefilterTx = el->PrefilterTx;
@@ -443,6 +444,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             }
             e++;
         }
+        SCLogDebug("sgh %p max local_id %u", sgh, local_id);
     }
 }
 

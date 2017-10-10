@@ -1072,7 +1072,7 @@ typedef struct PrefilterEngineList_ {
 } PrefilterEngineList;
 
 typedef struct PrefilterEngine_ {
-    uint16_t id;
+    uint16_t local_id;
 
     /** App Proto this engine applies to: only used with Tx Engines */
     AppProto alproto;
