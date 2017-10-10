@@ -40,6 +40,14 @@
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
 
+/* applies to DetectFlags uint64_t field */
+
+/** is tx fully inspected? */
+#define APP_LAYER_TX_INSPECTED_FLAG             BIT_U64(63)
+/** other 63 bits are for tracking which prefilter engine is already
+ *  completely inspected */
+#define APP_LAYER_TX_PREFILTER_MASK             ~APP_LAYER_TX_INSPECTED_FLAG
+
 int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
 /***** transaction handling *****/
@@ -167,6 +175,9 @@ void AppLayerParserRegisterGetStreamDepth(uint8_t ipproto,
 void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
         uint64_t (*GetTxMpmIDs)(void *tx),
         int (*SetTxMpmIDs)(void *tx, uint64_t));
+void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
+        uint64_t(*GetTxDetectFlags)(void *tx, uint8_t dir),
+        void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t));
 
 /***** Get and transaction functions *****/
 
@@ -209,6 +220,9 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(const Flow *f, void *alstate, void *tx, DetectEngineState *s);
+
+uint64_t AppLayerParserGetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir);
+void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx, uint8_t dir, uint64_t);
 
 uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint64_t);
