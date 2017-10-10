@@ -120,9 +120,6 @@ typedef struct AppLayerParserProtoCtx_
     uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
     void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
 
-    uint64_t (*GetTxMpmIDs)(void *tx);
-    int (*SetTxMpmIDs)(void *tx, uint64_t);
-
     /* each app-layer has its own value */
     uint32_t stream_depth;
 
@@ -583,10 +580,8 @@ void AppLayerParserRegisterMpmIDsFuncs(uint8_t ipproto, AppProto alproto,
         int (*SetTxMpmIDs)(void *tx, uint64_t))
 {
     SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs = GetTxMpmIDs;
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs = SetTxMpmIDs;
-
+    SCLogWarning(SC_WARN_DEPRECATED, "%u/%s: GetTxMpmIDs/SetTxMpmIDs is no longer used",
+            ipproto, AppProtoToString(alproto));
     SCReturn;
 }
 
@@ -1036,24 +1031,6 @@ void AppLayerParserSetTxDetectFlags(uint8_t ipproto, AppProto alproto, void *tx,
     SCReturn;
 }
 
-uint64_t AppLayerParserGetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx)
-{
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs != NULL) {
-        return alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxMpmIDs(tx);
-    }
-
-    return 0ULL;
-}
-
-int AppLayerParserSetTxMpmIDs(uint8_t ipproto, AppProto alproto, void *tx, uint64_t mpm_ids)
-{
-    int r = 0;
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs != NULL) {
-        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxMpmIDs(tx, mpm_ids);
-    }
-    SCReturnInt(r);
-}
-
 /***** General *****/
 
 int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
@@ -1335,7 +1312,6 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateHasTxDetectState %p\n", ctx->StateHasTxDetectState);
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
     printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
-    printf("- SetTxMpmIDs %p GetTxMpmIDs %p\n", ctx->SetTxMpmIDs, ctx->GetTxMpmIDs);
     printf("- StateGetEvents %p StateHasEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateHasEvents, ctx->StateGetEventInfo);
 }
 
@@ -1370,9 +1346,6 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
         goto bad;
     }
     if (!(BOTH_SET_OR_BOTH_UNSET(ctx->StateGetTxLogged, ctx->StateSetTxLogged))) {
-        goto bad;
-    }
-    if (!(BOTH_SET_OR_BOTH_UNSET(ctx->SetTxMpmIDs, ctx->GetTxMpmIDs))) {
         goto bad;
     }
     if (!(BOTH_SET(ctx->GetTxDetectState, ctx->SetTxDetectState))) {
