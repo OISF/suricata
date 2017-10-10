@@ -188,8 +188,9 @@ typedef struct HtpBody_ {
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
 typedef struct HtpTxUserData_ {
-    /** flags to track which mpm has run */
-    uint64_t mpm_ids;
+    /** detection engine flags */
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
 
     /* Body of the request (if any) */
     uint8_t request_body_init;
