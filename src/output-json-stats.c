@@ -68,6 +68,10 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     const char *dot = index(key, '.');
     if (dot == NULL)
         return NULL;
+    if (strlen(dot) > 2) {
+        if (*(dot + 1) == '.' && *(dot + 2) != '\0')
+            dot = index(dot + 2, '.');
+    }
 
     size_t predot_len = (dot - key) + 1;
     char s[predot_len];
