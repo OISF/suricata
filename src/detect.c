@@ -947,77 +947,75 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
             SCLogDebug("STREAM_EOF set");
         }
 
-        {
-            /* store tenant_id in the flow so that we can use it
-             * for creating pseudo packets */
-            if (p->tenant_id > 0 && pflow->tenant_id == 0) {
-                pflow->tenant_id = p->tenant_id;
+        /* store tenant_id in the flow so that we can use it
+         * for creating pseudo packets */
+        if (p->tenant_id > 0 && pflow->tenant_id == 0) {
+            pflow->tenant_id = p->tenant_id;
+        }
+
+        /* live ruleswap check for flow updates */
+        if (pflow->de_ctx_version == 0) {
+            /* first time this flow is inspected, set id */
+            pflow->de_ctx_version = de_ctx->version;
+        } else if (pflow->de_ctx_version != de_ctx->version) {
+            /* first time we inspect flow with this de_ctx, reset */
+            pflow->flags &= ~FLOW_SGH_TOSERVER;
+            pflow->flags &= ~FLOW_SGH_TOCLIENT;
+            pflow->sgh_toserver = NULL;
+            pflow->sgh_toclient = NULL;
+
+            pflow->de_ctx_version = de_ctx->version;
+            GenericVarFree(pflow->flowvar);
+            pflow->flowvar = NULL;
+
+            DetectEngineStateResetTxs(pflow);
+        }
+
+        /* set the iponly stuff */
+        if (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)
+            p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
+        if (pflow->flags & FLOW_TOSERVER_IPONLY_SET)
+            p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
+
+        /* Get the stored sgh from the flow (if any). Make sure we're not using
+         * the sgh for icmp error packets part of the same stream. */
+        if (IP_GET_IPPROTO(p) == pflow->proto) { /* filter out icmp */
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
+            if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
+                det_ctx->sgh = pflow->sgh_toserver;
+                SCLogDebug("det_ctx->sgh = pflow->sgh_toserver; => %p", det_ctx->sgh);
+                use_flow_sgh = true;
+            } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (pflow->flags & FLOW_SGH_TOCLIENT)) {
+                det_ctx->sgh = pflow->sgh_toclient;
+                SCLogDebug("det_ctx->sgh = pflow->sgh_toclient; => %p", det_ctx->sgh);
+                use_flow_sgh = true;
             }
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
+        }
 
-            /* live ruleswap check for flow updates */
-            if (pflow->de_ctx_version == 0) {
-                /* first time this flow is inspected, set id */
-                pflow->de_ctx_version = de_ctx->version;
-            } else if (pflow->de_ctx_version != de_ctx->version) {
-                /* first time we inspect flow with this de_ctx, reset */
-                pflow->flags &= ~FLOW_SGH_TOSERVER;
-                pflow->flags &= ~FLOW_SGH_TOCLIENT;
-                pflow->sgh_toserver = NULL;
-                pflow->sgh_toclient = NULL;
-
-                pflow->de_ctx_version = de_ctx->version;
-                GenericVarFree(pflow->flowvar);
-                pflow->flowvar = NULL;
-
-                DetectEngineStateResetTxs(pflow);
-            }
-
-            /* set the iponly stuff */
-            if (pflow->flags & FLOW_TOCLIENT_IPONLY_SET)
-                p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
-            if (pflow->flags & FLOW_TOSERVER_IPONLY_SET)
-                p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
-
-            /* Get the stored sgh from the flow (if any). Make sure we're not using
-             * the sgh for icmp error packets part of the same stream. */
-            if (IP_GET_IPPROTO(p) == pflow->proto) { /* filter out icmp */
-                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
-                if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
-                    det_ctx->sgh = pflow->sgh_toserver;
-                    SCLogDebug("det_ctx->sgh = pflow->sgh_toserver; => %p", det_ctx->sgh);
-                    use_flow_sgh = true;
-                } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (pflow->flags & FLOW_SGH_TOCLIENT)) {
-                    det_ctx->sgh = pflow->sgh_toclient;
-                    SCLogDebug("det_ctx->sgh = pflow->sgh_toclient; => %p", det_ctx->sgh);
-                    use_flow_sgh = true;
-                }
-                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
-            }
-
-            /* Retrieve the app layer state and protocol and the tcp reassembled
-             * stream chunks. */
-            if ((p->proto == IPPROTO_TCP && (p->flags & PKT_STREAM_EST)) ||
+        /* Retrieve the app layer state and protocol and the tcp reassembled
+         * stream chunks. */
+        if ((p->proto == IPPROTO_TCP && (p->flags & PKT_STREAM_EST)) ||
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
-            {
-                /* update flow flags with knowledge on disruptions */
-                flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
-                has_state = (FlowGetAppState(pflow) != NULL);
-                alproto = FlowGetAppProtocol(pflow);
-                if (p->proto == IPPROTO_TCP && pflow->protoctx &&
+        {
+            /* update flow flags with knowledge on disruptions */
+            flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
+            has_state = (FlowGetAppState(pflow) != NULL);
+            alproto = FlowGetAppProtocol(pflow);
+            if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
-                    p->flags |= PKT_DETECT_HAS_STREAMDATA;
-                }
-                SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
-            } else {
-                SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
+                p->flags |= PKT_DETECT_HAS_STREAMDATA;
             }
-
-            app_decoder_events = AppLayerParserHasDecoderEvents(pflow,
-                                                                pflow->alstate,
-                                                                pflow->alparser,
-                                                                flow_flags);
+            SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
+        } else {
+            SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
         }
+
+        app_decoder_events = AppLayerParserHasDecoderEvents(pflow,
+                pflow->alstate,
+                pflow->alparser,
+                flow_flags);
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
             ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
