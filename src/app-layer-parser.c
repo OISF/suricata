@@ -795,10 +795,6 @@ static uint64_t AppLayerTransactionGetActive(Flow *f, uint8_t flags)
     return AppLayerGetActiveTxIdFuncPtr(f, flags);
 }
 
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 /**
  * \brief remove obsolete (inspected and logged) transactions
  */
