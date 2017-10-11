@@ -52,31 +52,6 @@ int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
 /***** transaction handling *****/
 
-/** \brief Function ptr type for getting active TxId from a flow
- *  Used by AppLayerTransactionGetActive.
- */
-typedef uint64_t (*GetActiveTxIdFunc)(Flow *f, uint8_t flags);
-
-/** \brief Register GetActiveTxId Function
- *
- */
-void RegisterAppLayerGetActiveTxIdFunc(GetActiveTxIdFunc FuncPtr);
-
-/** \brief active TX retrieval for normal ops: so with detection and logging
- *
- *  \retval tx_id lowest tx_id that still needs work
- *
- *  This is the default function.
- */
-uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags);
-
-/** \brief active TX retrieval for logging only ops
- *
- *  \retval tx_id lowest tx_id that still needs work
- */
-uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags);
-
-
 int AppLayerParserSetup(void);
 void AppLayerParserPostStreamSetup(void);
 int AppLayerParserDeSetup(void);
@@ -258,7 +233,7 @@ void AppLayerParserStreamTruncated(uint8_t ipproto, AppProto alproto, void *alst
 AppLayerParserState *AppLayerParserStateAlloc(void);
 void AppLayerParserStateFree(AppLayerParserState *pstate);
 
-
+void AppLayerParserTransactionsCleanup(Flow *f);
 
 #ifdef DEBUG
 void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);

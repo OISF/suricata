@@ -2509,9 +2509,6 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
         gettimeofday(&de_ctx->last_reload, NULL);
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
-    } else {
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 }
 

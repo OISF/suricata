@@ -39,6 +39,7 @@
 #include "app-layer.h"
 #include "detect-engine.h"
 #include "output.h"
+#include "app-layer-parser.h"
 
 #include "util-validate.h"
 
@@ -271,6 +272,9 @@ static TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *pr
 
     if (p->flow) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
+
+        /* run tx cleanup last */
+        AppLayerParserTransactionsCleanup(p->flow);
         FLOWLOCK_UNLOCK(p->flow);
     }
 
