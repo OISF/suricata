@@ -77,7 +77,7 @@ void DetectFiledataRegister(void)
 
     DetectAppLayerInspectEngineRegister("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectEngineInspectHttpServerBody);
+            DetectEngineInspectFiledata);
     DetectAppLayerInspectEngineRegister("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
             DetectEngineInspectFiledata);

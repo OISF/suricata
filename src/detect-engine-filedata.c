@@ -35,6 +35,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-engine-prefilter.h"
 #include "detect-engine-filedata.h"
+#include "detect-engine-hsbd.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -190,6 +191,11 @@ int DetectEngineInspectFiledata(ThreadVars *tv,
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
     const uint8_t *buffer = 0;
+
+    if (f->alproto == ALPROTO_HTTP) {
+        return DetectEngineInspectHttpServerBody(tv, de_ctx, det_ctx, s,
+                smd, f, flags, alstate, tx, tx_id);
+    }
 
     FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto,
                                                 f->alstate, flags);
