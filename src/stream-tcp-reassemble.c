@@ -1533,8 +1533,10 @@ static int StreamReassembleRawDo(TcpSession *ssn, TcpStream *stream,
         uint64_t mydata_offset = 0;
 
         GetRawBuffer(stream, &mydata, &mydata_len, &iter, progress, &mydata_offset);
-        if (mydata_len == 0)
+        if (mydata_len == 0) {
+            SCLogDebug("no data");
             break;
+        }
         //PrintRawDataFp(stdout, mydata, mydata_len);
 
         SCLogDebug("raw progress %"PRIu64, progress);
