@@ -138,7 +138,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         if (strcmp(threadsstr, "auto") == 0) {
             ns->threads = 0;
         } else {
-            ns->threads = (uint8_t)atoi(threadsstr);
+            ns->threads = atoi(threadsstr);
         }
     }
 
