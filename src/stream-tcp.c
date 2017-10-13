@@ -4984,8 +4984,10 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCLogDebug("pool size %d, thread ssn_pool_id %d", PoolThreadSize(ssn_pool), stt->ssn_pool_id);
     }
     SCMutexUnlock(&ssn_pool_mutex);
-    if (stt->ssn_pool_id < 0 || ssn_pool == NULL)
+    if (stt->ssn_pool_id < 0 || ssn_pool == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "failed to setup/expand stream session pool. Expand stream.memcap?");
         SCReturnInt(TM_ECODE_FAILED);
+    }
 
     SCReturnInt(TM_ECODE_OK);
 }
