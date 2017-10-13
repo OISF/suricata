@@ -188,7 +188,7 @@ static void *ParseAFPConfig(const char *iface)
             if (strcmp(threadsstr, "auto") == 0) {
                 aconf->threads = 0;
             } else {
-                aconf->threads = (uint8_t)atoi(threadsstr);
+                aconf->threads = atoi(threadsstr);
             }
         }
     }
