@@ -125,7 +125,7 @@ void *OldParsePfringConfig(const char *iface)
         pfconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            pfconf->threads = (uint8_t)atoi(threadsstr);
+            pfconf->threads = atoi(threadsstr);
         }
     }
     if (pfconf->threads == 0) {
@@ -252,7 +252,7 @@ void *ParsePfringConfig(const char *iface)
         pfconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            pfconf->threads = (uint8_t)atoi(threadsstr);
+            pfconf->threads = atoi(threadsstr);
         }
     }
     if (pfconf->threads == 0) {
