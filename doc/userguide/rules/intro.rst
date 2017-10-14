@@ -1,7 +1,5 @@
-Rules Introduction
-==================
-
-.. contents::
+Rules Format
+============
 
 Signatures play a very important role in Suricata. In most occasions
 people are using existing rulesets. The most used are `Emerging
@@ -9,18 +7,22 @@ Threats <http://www.emergingthreats.net/>`_, `Emerging Threats Pro
 <http://www.emergingthreatspro.com/>`_ and Sourcefire's `VRT
 <http://www.snort.org/vrt/>`_. A way to install rules is described in
 :doc:`../rule-management/oinkmaster`.  This Suricata Rules document explains all about
-signatures; how to read-, adjust-and create them.
+signatures; how to read, adjust and create them.
 
 A rule/signature consists of the following:
 
-  The action, header and rule-options.
+* The **action**, that determines what happens when the signature matches
+* The **header**, defining the protocol, IP addresses, ports and direction of
+  the rule.
+* The **rule options**, defining the specifics of the rule.
+
 
 .. role:: example-rule-action
 .. role:: example-rule-header
 .. role:: example-rule-options
 .. role:: example-rule-emphasis
 
-Example of a signature:
+An example of a rule is as follows:
 
 .. container:: example-rule
 
@@ -30,172 +32,197 @@ In this example, :example-rule-action:`red` is the action,
 :example-rule-header:`green` is the header and :example-rule-options:`blue`
 are the options.
 
+We will be using the above signature as an example throughout
+this section, highlighting the different parts of the signature. It is a
+signature taken from the database of Emerging Threats, an open database
+featuring lots of rules that you can freely download and use in your
+Suricata instance.
+
 Action
 ------
-
-For more information read 'Action Order' see
-:ref:`suricata-yaml-action-order`.
-
 .. container:: example-rule
 
     :example-rule-emphasis:`drop` tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
+For more information see :ref:`suricata-yaml-action-order`.
+
+
 Protocol
 --------
-
-This keyword in a signature tells Suricata which protocol it
-concerns. You can choose between four settings.  tcp (for
-tcp-traffic), udp, icmp and ip. ip stands for 'all' or 'any'.
-Suricata adds a few protocols : http, ftp, tls (this includes ssl),
-smb and dns (from v2.0). These are the so-called application layer
-protocols or layer 7 protocols.  If you have a signature with for
-instance a http-protocol, Suricata makes sure the signature can only
-match if it concerns http-traffic.
-
-Example:
-
 .. container:: example-rule
 
     drop :example-rule-emphasis:`tcp` $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
-In this example the red, bold-faced part is the protocol.
+This keyword in a signature tells Suricata which protocol it
+concerns. You can choose between four basic protocols:
+
+* tcp (for tcp-traffic)
+* udp
+* icmp
+* ip (ip stands for 'all' or 'any')
+
+There are also a few so-called application layer protocols, or layer 7 protocols
+you can pick from. These are:
+
+* http
+* ftp
+* tls (this includes ssl)
+* smb
+* dns (from v2.0)
+
+If you have a signature with for
+instance a http protocol, Suricata makes sure the signature can only
+match if it concerns http-traffic.
 
 Source and destination
 ----------------------
-
-In source you can assign IP-addresses; IPv4 and IPv6 combined as well
-as separated. You can also set variables such as HOME_NET. (For more
-information see :ref:`suricata-yaml-rule-vars`. In the Yaml-file you
-can set IP-addresses for variables such as EXTERNAL_NET and
-HOME_NET. These settings will be used when you use these variables in
-a rule.  In source and destination you can make use of signs like !
-And [ ].
-
-For example::
-
-  ! 1.1.1.1                       (Every IP address but 1.1.1.1)
-  ![1.1.1.1, 1.1.1.2]             (Every IP address but 1.1.1.1 and 1.1.1.2)
-  $HOME_NET                       (Your setting of HOME_NET in yaml)
-  [$EXTERNAL_NET, !$HOME_NET]     (EXTERNAL_NET and not HOME_NET)
-  [10.0.0.0/24, !10.0.0.5]        (10.0.0.0/24 except for 10.0.0.5)
-  […..,[....]]
-  […. ,![.....]]
-
-
-Pay attention to the following:
-
-If your settings in Yaml are::
-
-  HOME_NET: any
-  EXTERNAL_NET: ! $HOME_NET
-
-You can not write a signature using EXTERNAL_NET because it stands for
-'not any'. This is a invalid setting.
-
-Example of source and destination in a signature:
-
 .. container:: example-rule
 
     drop tcp :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 *The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
-Ports (source-and destination-port)
------------------------------------
+With source and destination, you specify the source of the traffic and the
+destination of the traffic, respectively. You can assign IP addresses,
+(both IPv4 and IPv6 are supported) and IP ranges. These can be combined with
+operators:
 
-Traffic comes in and goes out through ports. Different ports have
-different port-numbers. The HTTP-port for example is 80 while 443 is
-the port for HTTPS and MSN makes use of port 1863. Commonly the Source
-port will be set as 'any'.  This will be influenced by the
-protocol. The source port is designated at random by the operating
-system. Sometimes it is possible to filter/screen on the source In
-setting ports you can make use of special signs as well, like
-described above at 'source'. Signs like::
+==============  =========================
+Operator        Description
+==============  =========================
+../..           IP ranges (CIDR notation)
+!               exception/negation
+[.., ..]        grouping
+==============  =========================
 
-  !       exception/negation
-  :       range
-  []      signs to make clear which parts belong together
-  ,       separation
+Normally, you would also make use of variables, such as ``$HOME_NET`` and
+``$EXTERNAL_NET``. The configuration file specifies the IP addresses these
+concern, and these settings will be used in place of the variables in you rules.
+See :ref:`suricata-yaml-rule-vars` for more information.
 
-Example::
+For example:
 
-  [80, 81, 82]    (port 80, 81 and 82)
-  [80: 82]        (Range from 80 till 82)
-  [1024: ]        (From 1024 till the highest port-number)
-  !80             (Every port but 80)
-  [80:100,!99]    (Range from 80 till 100 but 99 excluded)
-  [1:80,![2,4]]
-  [….[.....]]
+==================================  ==========================================
+Example                             Meaning
+==================================  ==========================================
+! 1.1.1.1                           Every IP address but 1.1.1.1
+![1.1.1.1, 1.1.1.2]                 Every IP address but 1.1.1.1 and 1.1.1.2
+$HOME_NET                           Your setting of HOME_NET in yaml
+[$EXTERNAL_NET, !$HOME_NET]         EXTERNAL_NET and not HOME_NET
+[10.0.0.0/24, !10.0.0.5]            10.0.0.0/24 except for 10.0.0.5
+[..., [....]]
+[..., ![.....]]
+==================================  ==========================================
 
-Example of ports in a signature:
+.. warning::
 
+   If you set your configuration to something like this::
+
+       HOME_NET: any
+       EXTERNAL_NET: ! $HOME_NET
+
+   You can not write a signature using ``$EXTERNAL_NET`` because it stands for
+   'not any'. This is an invalid setting.
+
+Ports (source and destination)
+------------------------------
 .. container:: example-rule
 
     drop tcp $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 *The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
-In this example, the red, bold-faced part is the port.
+Traffic comes in and goes out through ports. Different ports have
+different port numbers. For example, the default port for HTTP is 80 while 443 is
+typically the port for HTTPS. Note, however, that the port does not
+dictate which protocol is used in the communication. Rather, it determines which
+application is receiving the data.
+
+The ports mentioned above are typically the destination ports. Source ports,
+i.e. the application that sent the packet, typically get assigned a random
+port by the operating system. When writing a rule for your own HTTP service,
+you would typically write ``any -> 80``, since that would mean any packet from
+any source port to your HTTP application (running on port 80) is matched.
+
+In setting ports you can make use of special operators as well, like
+described above. Signs like:
+
+==============  ==================
+Operator        Description
+==============  ==================
+:               port ranges
+!               exception/negation
+[.., ..]        grouping
+==============  ==================
+
+For example:
+
+==============  ==========================================
+Example                             Meaning
+==============  ==========================================
+[80, 81, 82]    port 80, 81 and 82
+[80: 82]        Range from 80 till 82
+[1024: ]        From 1024 till the highest port-number
+!80             Every port but 80
+[80:100,!99]    Range from 80 till 100 but 99 excluded
+[1:80,![2,4]]   Range from 1-80, except ports 2 and 4
+[.., [..,..]]
+==============  ==========================================
+
 
 Direction
 ---------
-
-The direction tells in which way the signature has to match. Nearly
-every signature has an arrow to the right. This means that only
-packets with the same direction can match.
-
-::
-
-  source -> destination
-  source <> destination  (both directions)
-
-Example::
-
-  alert tcp 1.2.3.4 1024 - > 5.6.7.8 80
-
-Example 1     tcp-session
-
-.. image:: intro/TCP-session.png
-
-In this example there will only be a match if the signature has the
-same order/direction as the payload.
-
-Example of direction in a signature:
-
 .. container:: example-rule
 
     drop tcp $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
-In this example the red, bold-faced part is the direction.
+The direction tells in which way the signature has to match. Nearly
+every signature has an arrow to the right (``->``). This means that only
+packets with the same direction can match. However, it is also possible to
+have a rule match both ways (``<>``)::
+
+  source -> destination
+  source <> destination  (both directions)
+
+.. warning::
+
+   There is no 'reverse' style direction, i.e. there is no ``<-``.
+
+The following example illustrates this. Say, there is a client with IP address
+1.2.3.4 and port 1024, and a server with IP address 5.6.7.8, listening on port
+80 (typically HTTP). The client sends a message to the server, and the server
+replies with its answer.
+
+.. image:: intro/TCP-session.png
+
+Now, let's say we have a rule with the following header::
+
+    alert tcp 1.2.3.4 1024 -> 5.6.7.8 80
+
+Only the first packet will be matched by this rule, as the direction specifies
+that we do not match on the response packet.
 
 Rule options
 ------------
+The rest of the rule consists of options. These are enclosed by parenthesis
+and separated by semicolons. Some options have settings (such as ``msg``),
+which are specified by the keyword of the option, followed by a colon,
+followed by the settings. Others have no settings, and are simply the
+keyword (such as ``nocase``)::
 
-Keywords have a set format::
+  <keyword>: <settings>;
+  <keyword>;
 
-  name: settings;
+Rule options have a specific ordering and changing their order would change the
+meaning of the rule.
 
-Sometimes it is just the name of the setting followed by ; . Like nocase;
+.. note::
 
-There are specific settings for:
-
-* meta-information.
-* headers
-* payloads
-* flows
-
-.. note:: The characters ``;`` and ``"`` have special meaning in the
-          Suricata rule language and must be escaped when used in a
-          rule option value. For example::
+    The characters ``;`` and ``"`` have special meaning in the
+    Suricata rule language and must be escaped when used in a
+    rule option value. For example::
 
 	    msg:"Message with semicolon\;";
 
-For more information about these settings, you can click on the
-following headlines:
-
-* :doc:`meta`
-* :doc:`payload-keywords`
-* :doc:`http-keywords`
-* :doc:`dns-keywords`
-* :doc:`flow-keywords`
-* :doc:`../reputation/ipreputation/ip-reputation-rules`
+    As a consequence, you must also escape the backslash, as it functions
+    as an escape character.
