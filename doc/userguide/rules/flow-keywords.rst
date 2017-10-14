@@ -1,7 +1,7 @@
 Flow Keywords
 =============
 
-Flowbits
+flowbits
 ~~~~~~~~
 
 Flowbits consists of two parts. The first part describes the action it
@@ -49,7 +49,7 @@ will be generated.
 It is possible to use flowbits several times in a rule and combine the
 different functions.
 
-Flow
+flow
 ~~~~
 
 The flow keyword can be used to match on direction of the flow, so to/from
@@ -102,7 +102,7 @@ The determination of *established* depends on the protocol:
 
   .. image:: flow-keywords/Flow2.png
 
-Flowint
+flowint
 ~~~~~~~
 
 For information, read the information on the :doc:`flowint` page.
