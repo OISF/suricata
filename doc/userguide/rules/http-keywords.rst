@@ -10,24 +10,17 @@ capabilities at the application layer. More information can be found at
 specific parts of the network traffic. For instance, to check specifically on
 the request URI, cookies, or the HTTP request or response body, etc.
 
-Types of modifiers
-------------------
+All HTTP keywords are modifiers. Note the difference between content modifiers
+and sticky buffers. See :ref:`rules-modifiers` for more information. As a
+refresher:
 
-There are 2 types of modifiers. The older style 'content modifiers' look back in the rule.
+* **'content modifiers'** look back in the rule, e.g.::
 
-Example::
+      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
 
-    alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+* **'sticky buffers'** are placed first and all keywords following it apply to that buffer, for instance::
 
-In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
-
-The more recent type is called the 'sticky buffer'. It places the buffer name first and all keywords following it apply to that buffer.
-
-Example::
-
-    alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
-
-In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
 The following request keywords are available:
 
