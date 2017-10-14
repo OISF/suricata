@@ -1,8 +1,7 @@
-Header Keywords
-===============
+
 .. role:: example-rule-emphasis
 
-IP-keywords
+IP Keywords
 -----------
 
 ttl
@@ -34,8 +33,7 @@ Example of the ttl keyword in a rule:
 
 ipopts
 ^^^^^^
-
-With the ipopts keyword you can check if a specific ip option is
+With the ipopts keyword you can check if a specific IP option is
 set. Ipopts has to be used at the beginning of a rule. You can only
 match on one option per rule. There are several options on which can
 be matched. These are:
@@ -88,7 +86,6 @@ Example of sameip in a rule:
 
 ip_proto
 ^^^^^^^^
-
 With the ip_proto keyword you can match on the IP protocol in the
 packet-header. You can use the name or the number of the protocol.
 You can match for example on the following protocols::
@@ -110,7 +107,7 @@ Example of ip_proto in a rule:
 
     alert ip any any -> any any (msg:"GPL MISC IP Proto 103 PIM"; :example-rule-emphasis:`ip_proto:103;` reference:bugtraq,8211; reference:cve,2003-0567; classtype:non-standard-protocol; sid:2102189; rev:4;)
 
-The named variante of that example would be::
+The named variant of that example would be::
 
     ip_proto:PIM
 
@@ -138,7 +135,6 @@ Example of id in a rule:
 
 geoip
 ^^^^^
-
 The geoip keyword enables (you) to match on the source, destination or
 source and destination IP addresses of network traffic, and to see to
 which country it belongs. To be able to do this, Suricata uses GeoIP
@@ -163,12 +159,8 @@ direction you would like to match::
 The keyword only supports IPv4. As it uses the GeoIP API of Maxmind,
 libgeoip must be compiled in.
 
-
-Fragments
----------
-
-fragbits
-^^^^^^^^
+fragbits (IP fragmentation)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With the fragbits keyword, you can check if the fragmentation and
 reserved bits are set in the IP header. The fragbits keyword should be
@@ -234,7 +226,6 @@ TCP keywords
 
 seq
 ^^^
-
 The seq keyword can be used in a signature to check for a specific TCP
 sequence number.  A sequence number is a number that is generated
 practically at random by both endpoints of a TCP-connection. The
@@ -454,6 +445,7 @@ ICMP Code   ICMP Type   Description
             - 4         - Need Authentication
             - 5         - Need Authorization
 ==========  ==========  ==========================================================
+
 
 icmp_id
 ^^^^^^^
