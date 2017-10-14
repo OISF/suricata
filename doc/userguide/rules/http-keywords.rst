@@ -2,6 +2,7 @@
 
 HTTP Keywords
 =============
+.. role:: example-rule-emphasis
 
 There are additional content modifiers that can provide protocol-specific
 capabilities at the application layer. More information can be found at
@@ -193,7 +194,9 @@ request URI buffer.
 
 Example of ``uricontent``:
 
-.. image:: http-keywords/uricontent.png
+.. container:: example-rule
+
+    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; :example-rule-emphasis:`uricontent:"/frame.html?";` urilen: > 80; classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
 
 The difference between ``http_uri`` and ``uricontent`` is the syntax:
 
@@ -229,7 +232,9 @@ Example:
 
 Example of ``urilen`` in a signature:
 
-.. image:: http-keywords/urilen1.png
+.. container:: example-rule
+
+    alert tcp $HOME_NET any -> $EXTERNAL_NET $HTTP_PORTS (msg:"ET TROJAN Possible Vundo Trojan Variant reporting to Controller"; flow:established,to_server; content:"POST "; depth:5; uricontent:"/frame.html?"; :example-rule-emphasis:`urilen: > 80;` classtype:trojan-activity; reference:url,doc.emergingthreats.net/2009173; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Vundo; sid:2009173; rev:2;)
 
 You can also append ``norm`` or ``raw`` to define what sort of buffer you want
 to use (normalized or raw buffer).

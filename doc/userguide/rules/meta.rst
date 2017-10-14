@@ -1,6 +1,8 @@
 Meta-settings
 =============
 
+.. role:: example-rule-emphasis
+
 Meta-settings have no effect on Suricata's inspection; they do have an effect on the way Suricata reports events.
 
 msg (message)
@@ -26,6 +28,10 @@ It is a convention that msg is always the first keyword of a signature.
 
 Another example of msg in a signature:
 
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (:example-rule-emphasis:`msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)";` flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
+
 In this example the red, bold-faced part is the msg.
 
 .. note:: The following characters must be escaped inside the msg:
@@ -44,7 +50,9 @@ The format of sid is:
 
 Example of sid in a signature:
 
-.. image:: meta/sid.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; :example-rule-emphasis:`sid:2008124;` rev:2;)
 
 In this example the red, bold-faced part is the sid.
 
@@ -65,7 +73,9 @@ of all keywords.*
 
 Example of rev in a signature:
 
-.. image:: meta/rev.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; :example-rule-emphasis:`rev:2;`)
 
 In this example the red, bold-faced part is the rev.
 
@@ -80,7 +90,10 @@ the alert.
 
 Example of gid in a signature:
 
-.. image:: meta/gid.png
+.. container:: example-rule
+
+    10/15/09-03:30:10.219671  [**] [:example-rule-emphasis:`1`:2008124:2] ET TROJAN Likely Bot Nick in IRC (USA +..) [**] [Classification: A Network Trojan was Detected]
+    [Priority: 3] {TCP} 192.168.1.42:1028 -> 72.184.196.31:6667
 
 This is an example from the fast.log.
 In the part [1:2008124:2], 1 is the gid (2008124 is the the sid and 2 the rev).
@@ -102,14 +115,21 @@ Example classtype::
   config classification: web-application-attack,Web Application Attack,1
   config classification: not-suspicious,Not Suspicious Traffic,3
 
-.. image:: meta/classification.png
+=======================  ======================  ===========
+classtype                Alert                   Priority
+=======================  ======================  ===========
+web-application-attack   Web Application Attack  1
+not-suspicious           Not Suspicious Traffic  3
+=======================  ======================  ===========
 
 In this example you see how classtype appears in signatures, the
 classification.config and the alert.
 
 Another example of classtype in a signature:
 
-.. image:: meta/classtype.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; :example-rule-emphasis:`classtype:trojan-activity;` sid:2008124; rev:2;)
 
 In this example the red, bold-faced part is the classtype.
 
@@ -152,7 +172,9 @@ For example bugtraq will be replaced by the full url:
 
 Example of reference in a signature:
 
-.. image:: meta/reference.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; :example-rule-emphasis:`reference:url,doc.emergingthreats.net/2008124;` classtype:trojan-activity; sid:2008124; rev:2;)
 
 In this example the red, bold-faced part is the action.
 
