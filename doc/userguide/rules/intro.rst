@@ -249,3 +249,20 @@ Some keywords function act as modifiers. There are two types of modifiers.
       alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
 
   In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
+
+.. _rules-normalized-buffers:
+
+Normalized Buffers
+~~~~~~~~~~~~~~~~~~
+A packet consists of raw data. HTTP and reassembly make a copy of
+those kinds of packets data. They erase anomalous content, combine
+packets etcetera. What remains is a called the 'normalized buffer':
+
+.. image:: normalized-buffers/normalization1.png
+
+Because the data is being normalized, it is not what it used to be; it
+is an interpretation.  Normalized buffers are: all HTTP-keywords,
+reassembled streams, TLS-, SSL-, SSH-, FTP- and dcerpc-buffers.
+
+Note that there are some exceptions, e.g. the ``http_raw_uri`` keyword.
+See :ref:`rules-http-uri-normalization` for more information.

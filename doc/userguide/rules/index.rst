@@ -21,5 +21,4 @@ Suricata Rules
    enip-keyword
    app-layer
    rule-lua-scripting
-   normalized-buffers
    differences-from-snort
