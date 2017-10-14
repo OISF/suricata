@@ -706,9 +706,3 @@ pcre
 ----
 
 For information about the ``pcre`` keyword, check the :doc:`pcre` page.
-
-fast_pattern
-------------
-
-For information about the ``fast_pattern`` keyword, check the
-:doc:`fast-pattern` page.
