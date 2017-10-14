@@ -19,5 +19,6 @@ Suricata Rules
    app-layer
    xbits
    thresholding
+   ip-reputation-rules
    rule-lua-scripting
    differences-from-snort

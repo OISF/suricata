@@ -1,7 +1,7 @@
 IP Reputation Format
 ====================
 
-Description of IP Reputation file formats. For the configuration see :doc:`ip-reputation-config` and :doc:`ip-reputation-rules` for the rule format.
+Description of IP Reputation file formats. For the configuration see :doc:`ip-reputation-config` and :doc:`/rules/ip-reputation-rules` for the rule format.
 
 Categories file
 ~~~~~~~~~~~~~~~

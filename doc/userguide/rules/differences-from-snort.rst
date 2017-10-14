@@ -385,7 +385,7 @@ IP Reputation and ``iprep`` Keyword
 
 -  :doc:`../reputation/index`
 -  :doc:`../reputation/ipreputation/ip-reputation-config`
--  :doc:`../reputation/ipreputation/ip-reputation-rules`
+-  :doc:`ip-reputation-rules`
 -  :doc:`../reputation/ipreputation/ip-reputation-format`
 -  `http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/ <http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/>`_
 
