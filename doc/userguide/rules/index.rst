@@ -8,16 +8,16 @@ Suricata Rules
    header-keywords
    payload-keywords
    prefilter-keywords
-   http-keywords
    flow-keywords
-   xbits
+   http-keywords
    file-keywords
-   thresholding
    dns-keywords
    tls-keywords
    modbus-keyword
    dnp3-keywords
    enip-keyword
    app-layer
+   xbits
+   thresholding
    rule-lua-scripting
    differences-from-snort
