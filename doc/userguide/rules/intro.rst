@@ -226,3 +226,26 @@ meaning of the rule.
 
     As a consequence, you must also escape the backslash, as it functions
     as an escape character.
+
+The rest of this chapter in the documentation documents the use of the various keywords.
+
+Some generic details about keywords follow.
+
+.. _rules-modifiers:
+
+Modifier Keywords
+~~~~~~~~~~~~~~~~~
+
+Some keywords function act as modifiers. There are two types of modifiers.
+
+* The older style **'content modifiers'** look back in the rule, e.g.::
+
+      alert http any any -> any any (content:"index.php"; http_uri; sid:1;)
+
+  In the above example the pattern 'index.php' is modified to inspect the HTTP uri buffer.
+
+* The more recent type is called the **'sticky buffer'**. It places the buffer name first and all keywords following it apply to that buffer, for instance::
+
+      alert http any any -> any any (http_response_line; content:"403 Forbidden"; sid:1;)
+
+  In the above example the pattern '403 Forbidden' is inspected against the HTTP response line because it follows the ``http_response_line`` keyword.
