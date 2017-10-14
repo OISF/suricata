@@ -1072,6 +1072,7 @@ static int HostBitsTestSig07(void)
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
+    p->flowflags = FLOW_PKT_TOSERVER;
 
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
