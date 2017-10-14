@@ -561,7 +561,7 @@ Fast Pattern
    when doing fast pattern matching, something the other algorithims and
    Snort do not do.
 
--  :doc:`fast-pattern`
+-  :ref:`rules-keyword-fast_pattern`
 
 Don't Cross The Streams
 -----------------------

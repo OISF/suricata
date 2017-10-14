@@ -6,8 +6,8 @@ Suricata Rules
    intro
    meta
    header-keywords
-   prefilter
    payload-keywords
+   prefilter-keywords
    http-keywords
    flow-keywords
    flowint

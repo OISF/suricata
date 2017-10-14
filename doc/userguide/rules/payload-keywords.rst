@@ -6,7 +6,6 @@ Payload Keywords
    :maxdepth: 2
 
    pcre
-   fast-pattern
 
 Payload keywords inspect the content of the payload of a packet or
 stream.
@@ -303,8 +302,3 @@ pcre
 ----
 
 For information about pcre check the :doc:`pcre` page.
-
-fast_pattern
-------------
-
-For information about fast_pattern check the :doc:`fast-pattern` page.
