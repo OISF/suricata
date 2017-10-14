@@ -15,9 +15,20 @@ A rule/signature consists of the following:
 
   The action, header and rule-options.
 
+.. role:: example-rule-action
+.. role:: example-rule-header
+.. role:: example-rule-options
+.. role:: example-rule-emphasis
+
 Example of a signature:
 
-.. image:: intro/intro_sig.png
+.. container:: example-rule
+
+    :example-rule-action:`drop` :example-rule-header:`tcp $HOME_NET any -> $EXTERNAL_NET any` :example-rule-options:`(msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)`
+
+In this example, :example-rule-action:`red` is the action,
+:example-rule-header:`green` is the header and :example-rule-options:`blue`
+are the options.
 
 Action
 ------
@@ -25,11 +36,9 @@ Action
 For more information read 'Action Order' see
 :ref:`suricata-yaml-action-order`.
 
-Example:
+.. container:: example-rule
 
-.. image:: intro/action.png
-
-In this example the red, bold-faced part is the action.
+    :example-rule-emphasis:`drop` tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 Protocol
 --------
@@ -45,7 +54,9 @@ match if it concerns http-traffic.
 
 Example:
 
-.. image:: intro/protocol.png
+.. container:: example-rule
+
+    drop :example-rule-emphasis:`tcp` $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 In this example the red, bold-faced part is the protocol.
 
@@ -83,13 +94,11 @@ You can not write a signature using EXTERNAL_NET because it stands for
 
 Example of source and destination in a signature:
 
-.. image:: intro/Source.png
+.. container:: example-rule
 
-The red, bold-faced part is the source.
+    drop tcp :example-rule-emphasis:`$HOME_NET` any -> :example-rule-emphasis:`$EXTERNAL_NET` any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
-.. image:: intro/destination.png
-
-The red, bold-faced part is the destination.
+*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
 Ports (source-and destination-port)
 -----------------------------------
@@ -120,10 +129,11 @@ Example::
 
 Example of ports in a signature:
 
-.. image:: intro/Source-port.png
+.. container:: example-rule
 
+    drop tcp $HOME_NET :example-rule-emphasis:`any` -> $EXTERNAL_NET :example-rule-emphasis:`any` (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
-.. image:: intro/Dest_port.png
+*The first emphasized part is the source, the second is the destination (note the direction of the directional arrow).*
 
 In this example, the red, bold-faced part is the port.
 
@@ -152,7 +162,9 @@ same order/direction as the payload.
 
 Example of direction in a signature:
 
-.. image:: intro/Direction.png
+.. container:: example-rule
+
+    drop tcp $HOME_NET any :example-rule-emphasis:`->` $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; content:"NICK "; pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
 
 In this example the red, bold-faced part is the direction.
 
