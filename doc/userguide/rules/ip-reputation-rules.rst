@@ -1,10 +1,12 @@
-IP Reputation Rules
-===================
+IP Reputation Keyword
+=====================
 
-IP Reputation can be used in rules through a new rule directive "iprep".
+IP Reputation can be used in rules through a new rule keyword "iprep".
+
+For more information about IP Reputation see :doc:`/reputation/ipreputation/ip-reputation-config` and :doc:`/reputation/ipreputation/ip-reputation-format`.
 
 iprep
-~~~~~
+-----
 
 The iprep directive matches on the IP reputation information for a host.
 
@@ -41,5 +43,3 @@ The "iprep" keyword is compatible to "IP-only" rules. This means that a rule lik
   alert ip any any -> any any (msg:"IPREP High Value CnC"; iprep:src,CnC,>,100; sid:1; rev:1;)
 
 will only be checked once per flow-direction.
-
-For more information about IP Reputation see :doc:`ip-reputation-config` and :doc:`ip-reputation-format`.
