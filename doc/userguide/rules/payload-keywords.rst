@@ -60,13 +60,9 @@ A few examples::
 It is possible to let a signature check the whole payload for a match with the content or to let it check specific parts of the payload. We come to that later.
 If you add nothing special to the signature, it will try to find a match in all the bytes of the payload.
 
-Example:
-
 .. container:: example-rule
 
     drop tcp $HOME_NET any -> $EXTERNAL_NET any (msg:"ET TROJAN Likely Bot Nick in IRC (USA +..)"; flow:established,to_server; flowbits:isset,is_proto_irc; :example-rule-emphasis:`content:"NICK ";` pcre:"/NICK .*USA.*[0-9]{3,}/i"; reference:url,doc.emergingthreats.net/2008124; classtype:trojan-activity; sid:2008124; rev:2;)
-
-In this example, the red, bold-faced part is the content.
 
 
 By default the pattern-matching is case sensitive. The content has to
@@ -251,7 +247,7 @@ example of dsize in a rule:
     alert udp $EXTERNAL_NET any -> $HOME_NET 65535 (msg:"GPL DELETED EXPLOIT LANDesk Management Suite Alerting Service buffer overflow"; :example-rule-emphasis:`dsize:>268;` reference: bugtraq,23483; reference: cve,2007-1674; classtype: attempted-admin; sid:100000928; rev:1;)
 
 rpc
-----
+---
 
 The rpc keyword can be used to match in the SUNRPC CALL on the RPC
 procedure numbers and the RPC version.
