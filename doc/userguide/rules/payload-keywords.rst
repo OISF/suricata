@@ -2,11 +2,6 @@ Payload Keywords
 ================
 .. role:: example-rule-emphasis
 
-.. toctree::
-   :maxdepth: 2
-
-   pcre
-
 Payload keywords inspect the content of the payload of a packet or
 stream.
 
@@ -298,7 +293,4 @@ the reassembled stream.
 The checksums will be recalculated by Suricata and changed after the
 replace keyword is being used.
 
-pcre
-----
-
-For information about pcre check the :doc:`pcre` page.
+.. include:: pcre.rst
