@@ -293,7 +293,7 @@ another ('def'), see example:
 
 The replace modifier has to contain as many characters as the content
 it replaces.  It can only be used with individual packets. It will not
-work for :doc:`normalized-buffers` like HTTP uri or a content match in
+work for :ref:`rules-normalized-buffers` like HTTP uri or a content match in
 the reassembled stream.
 
 The checksums will be recalculated by Suricata and changed after the
