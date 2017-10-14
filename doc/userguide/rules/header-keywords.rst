@@ -32,7 +32,7 @@ Example of the ttl keyword in a rule:
 
     alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC 0 ttl"; :example-rule-emphasis:`ttl:0;` reference:url,support.microsoft.com/default.aspx?scid=kb#-#-EN-US#-#-q138268; reference:url,www.isi.edu/in-notes/rfc1122.txt; classtype:misc-activity; sid:2101321; rev:9;)
 
-Ipopts
+ipopts
 ^^^^^^
 
 With the ipopts keyword you can check if a specific ip option is
@@ -114,7 +114,7 @@ The named variante of that example would be::
 
     ip_proto:PIM
 
-Id
+id
 ^^
 
 With the id keyword, you can match on a specific IP ID value.  The ID
@@ -136,7 +136,7 @@ Example of id in a rule:
 
     alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET DELETED F5 BIG-IP 3DNS TCP Probe 1"; :example-rule-emphasis:`id: 1;` dsize: 24; flags: S,12; content:"\|00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\|"; window: 2048; reference:url,www.f5.com/f5products/v9intro/index.html; reference:url,doc.emergingthreats.net/2001609; classtype:misc-activity; sid:2001609; rev:13;)
 
-Geoip
+geoip
 ^^^^^
 
 The geoip keyword enables (you) to match on the source, destination or
@@ -167,7 +167,7 @@ libgeoip must be compiled in.
 Fragments
 ---------
 
-Fragbits
+fragbits
 ^^^^^^^^
 
 With the fragbits keyword, you can check if the fragmentation and
@@ -202,7 +202,7 @@ Example of fragbits in a rule:
 
    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; :example-rule-emphasis:`fragbits: M;` fragoffset: >0; reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
 
-Fragoffset
+fragoffset
 ^^^^^^^^^^
 
 With the fragoffset keyword you can match on specific decimal values

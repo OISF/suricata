@@ -37,7 +37,7 @@ In this example the red, bold-faced part is the msg.
 .. note:: The following characters must be escaped inside the msg:
 	      ``;`` ``\`` ``"``
 
-Sid (signature id)
+sid (signature ID)
 ------------------
 
 The keyword sid gives every signature its own id. This id is stated with a number.
@@ -56,7 +56,7 @@ Example of sid in a signature:
 
 In this example the red, bold-faced part is the sid.
 
-Rev (Revision)
+rev (Revision)
 --------------
 
 The sid keyword is almost every time accompanied by rev. Rev
@@ -79,7 +79,7 @@ Example of rev in a signature:
 
 In this example the red, bold-faced part is the rev.
 
-Gid (group id)
+gid (group ID)
 --------------
 
 The gid keyword can be used to give different groups of signatures
@@ -98,7 +98,7 @@ Example of gid in a signature:
 This is an example from the fast.log.
 In the part [1:2008124:2], 1 is the gid (2008124 is the the sid and 2 the rev).
 
-Classtype
+classtype
 ---------
 
 The classtype keyword gives information about the classification of
@@ -133,7 +133,7 @@ Another example of classtype in a signature:
 
 In this example the red, bold-faced part is the classtype.
 
-Reference
+reference
 ---------
 
 The reference keywords direct to places where information about the
@@ -178,7 +178,7 @@ Example of reference in a signature:
 
 In this example the red, bold-faced part is the action.
 
-Priority
+priority
 --------
 
 The priority keyword comes with a mandatory numeric value which can
@@ -192,7 +192,7 @@ format of priority is:
 
   priority:1;
 
-Metadata
+metadata
 --------
 
 Suricata ignores the words behind meta data.  Suricata supports this
@@ -202,7 +202,7 @@ keyword because it is part of the signature language.  The format is:
 
   metadata:......;
 
-Target
+target
 ------
 
 The target keyword allows the rules writer to specify which side of the

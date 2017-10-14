@@ -1,4 +1,4 @@
-Flowint
+flowint
 =======
 
 Flowint is a precursor to the Global Variables task we will be adding
