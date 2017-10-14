@@ -10,7 +10,6 @@ Suricata Rules
    prefilter-keywords
    http-keywords
    flow-keywords
-   flowint
    xbits
    file-keywords
    thresholding
