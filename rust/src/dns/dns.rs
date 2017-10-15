@@ -352,7 +352,7 @@ impl DNSState {
             return;
         }
 
-        let mut tx = &mut self.transactions[len - 1];
+        let tx = &mut self.transactions[len - 1];
         core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
                                                         event as u8);
         self.events += 1;
