@@ -247,6 +247,16 @@ static FileContainer *NFSGetFiles(void *state, uint8_t direction)
     return rs_nfs3_getfiles(direction, state);
 }
 
+static void NFSSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
+{
+    rs_nfs_tx_set_detect_flags(tx, dir, flags);
+}
+
+static uint64_t NFSGetDetectFlags(void *tx, uint8_t dir)
+{
+    return rs_nfs_tx_get_detect_flags(tx, dir);
+}
+
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
@@ -346,6 +356,10 @@ void RegisterNFSUDPParsers(void)
             NFSStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
             NFSGetEvents);
+
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_NFS,
+                                               NFSGetDetectFlags, NFSSetDetectFlags);
+
     }
     else {
         SCLogNotice("NFS protocol parsing disabled.");
