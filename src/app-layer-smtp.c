@@ -1631,6 +1631,26 @@ static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
     return 0;
 }
 
+static uint64_t SMTPGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_tc = flags;
+    }
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1660,6 +1680,9 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, NULL,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
+                                               SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);
+
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
