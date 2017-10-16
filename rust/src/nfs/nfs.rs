@@ -171,6 +171,9 @@ pub struct NFSTransaction {
     /// attempt failed.
     pub type_data: Option<NFSTransactionTypeData>,
 
+    detect_flags_ts: u64,
+    detect_flags_tc: u64,
+
     pub logged: LoggerFlags,
     pub de_state: Option<*mut DetectEngineState>,
     pub events: *mut AppLayerDecoderEvents,
@@ -198,6 +201,8 @@ impl NFSTransaction {
             file_tx_direction: 0,
             file_handle:Vec::new(),
             type_data: None,
+            detect_flags_ts: 0,
+            detect_flags_tc: 0,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -1913,6 +1918,32 @@ pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
         None => {
             return std::ptr::null_mut();
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_tx_set_detect_flags(
+                                       tx: &mut NFSTransaction,
+                                       direction: libc::uint8_t,
+                                       flags: libc::uint64_t)
+{
+    if (direction & STREAM_TOSERVER) != 0 {
+        tx.detect_flags_ts = flags as u64;
+    } else {
+        tx.detect_flags_tc = flags as u64;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_tx_get_detect_flags(
+                                       tx: &mut NFSTransaction,
+                                       direction: libc::uint8_t)
+                                       -> libc::uint64_t
+{
+    if (direction & STREAM_TOSERVER) != 0 {
+        return tx.detect_flags_ts as libc::uint64_t;
+    } else {
+        return tx.detect_flags_tc as libc::uint64_t;
     }
 }
 
