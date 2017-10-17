@@ -499,7 +499,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
         /* if continue detection already inspected this rule for this tx,
          * continue with the first not-inspected tx */
-        uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0xef;
+        uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0x7f;
         tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         if (offset > 0) {
             SCLogDebug("using stored_tx_id %u instead of %u", (uint)tx_id+offset, (uint)tx_id);
