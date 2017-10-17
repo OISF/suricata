@@ -425,7 +425,11 @@ outputs:
   #
   # The files are stored to the log-dir in a format "file.<id>" where <id> is
   # an incrementing number starting at 1. For each file "file.<id>" a meta
-  # file "file.<id>.meta" is created.
+  # file "file.<id>.meta" is created. Before they are finalized, they will
+  # have a ".tmp" suffix to indicate that they are still being processed.
+  #
+  # If include-pid is yes, then the files are instead "file.<pid>.<id>", with
+  # meta files named as "file.<pid>.<id>.meta"
   #
   # File extraction depends on a lot of things to be fully done:
   # - file-store stream-depth. For optimal results, set this to 0 (unlimited)
@@ -449,6 +453,7 @@ outputs:
       # remain open for filestore by Suricata. Default value is 0 which
       # means files get closed after each write
       #max-open-files: 1000
+      include-pid: no # set to yes to include pid in file names
 
   # output module to log files tracked in a easily parsable json format
   - file-log:
