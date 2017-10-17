@@ -141,7 +141,7 @@ static void *ParsePcapConfig(const char *iface)
         aconf->threads = 1;
     } else {
         if (threadsstr != NULL) {
-            aconf->threads = (uint8_t)atoi(threadsstr);
+            aconf->threads = atoi(threadsstr);
         }
     }
     if (aconf->threads == 0) {

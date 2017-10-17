@@ -953,6 +953,9 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, const void *initdata, void **data
 
 TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 {
+    if (thread_data == NULL)
+        return TM_ECODE_FAILED;
+
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
     RootLogger *logger = TAILQ_FIRST(&RootLoggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);

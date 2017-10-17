@@ -426,7 +426,7 @@ impl NFSState {
             return;
         }
 
-        let mut tx = &mut self.transactions[len - 1];
+        let tx = &mut self.transactions[len - 1];
         sc_app_layer_decoder_events_set_event_raw(&mut tx.events, event as u8);
         self.events += 1;
     }
@@ -435,7 +435,7 @@ impl NFSState {
     fn mark_response_tx_done(&mut self, xid: u32, rpc_status: u32, nfs_status: u32, resp_handle: &Vec<u8>)
     {
         match self.get_tx_by_xid(xid) {
-            Some(mut mytx) => {
+            Some(mytx) => {
                 mytx.response_done = true;
                 mytx.rpc_response_status = rpc_status;
                 mytx.nfs_response_status = nfs_status;
