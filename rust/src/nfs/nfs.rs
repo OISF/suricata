@@ -1238,13 +1238,14 @@ impl NFSState {
                 };
                 filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                         &file_name, reply.data, chunk_offset,
-                        reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
+                        reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
                 tdf.chunk_count += 1;
                 if is_last {
                     tdf.file_last_xid = r.hdr.xid;
                     tx.rpc_response_status = r.reply_state;
                     tx.nfs_response_status = reply.status;
                     tx.is_last = true;
+                    tx.request_done = true;
                     tx.response_done = true;
                 }
                 true
@@ -1259,7 +1260,7 @@ impl NFSState {
             };
             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                     &file_name, reply.data, chunk_offset,
-                    reply.count, fill_bytes as u8, reply.eof, &r.hdr.xid);
+                    reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
             tx.procedure = NFSPROC3_READ;
             tx.xid = r.hdr.xid;
             tx.is_first = true;
@@ -1268,6 +1269,7 @@ impl NFSState {
                 tx.rpc_response_status = r.reply_state;
                 tx.nfs_response_status = reply.status;
                 tx.is_last = true;
+                tx.request_done = true;
                 tx.response_done = true;
             }
         }
