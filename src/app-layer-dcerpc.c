@@ -1191,10 +1191,15 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
         stub_data_buffer_len = &dcerpc->dcerpcresponse.stub_data_buffer_len;
         stub_data_fresh = &dcerpc->dcerpcresponse.stub_data_fresh;
     }
+    if (*stub_data_buffer_len > (1024 * 1024)) {
+        SCFree(*stub_data_buffer);
+        *stub_data_buffer = NULL;
+        SCReturnUInt(0);
+    }
 
     stub_len = (dcerpc->padleft < input_len) ? dcerpc->padleft : input_len;
     if (stub_len == 0) {
-        SCLogError(SC_ERR_DCERPC, "stub_len is NULL.  We shouldn't be seeing "
+        SCLogDebug("stub_len is NULL.  We shouldn't be seeing "
                    "this.  In case you are, there is something gravely wrong "
                    "with the dcerpc parser");
         SCReturnInt(0);
