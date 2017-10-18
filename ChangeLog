@@ -1,3 +1,22 @@
+4.0.1 -- 2017-10-18
+
+Bug #2050: TLS rule mixes up server and client certificates
+Bug #2064: Rules with dual classtype do not error
+Bug #2074: detect msg: memory leak
+Bug #2102: Rules with dual sid do not error
+Bug #2103: Rules with dual rev do not error
+Bug #2151: The documentation does not reflect current suricata.yaml regarding cpu-affinity
+Bug #2194: rust/nfs: sigabrt/rust panic - 4.0.0-dev (rev fc22943)
+Bug #2197: rust build with lua enabled fails on x86
+Bug #2201: af_packet: suricata leaks memory with use-mmap enabled and incorrect BPF filter
+Bug #2207: DNS UDP "Response" parsing recording an incorrect value
+Bug #2208: mis-structured JSON stats output if interface name is shortened
+Bug #2226: improve error message if stream memcaps too low
+Bug #2228: enforcing specific number of threads with autofp does not seem to work
+Bug #2244: detect state uses broken offset logic (4.0.x)
+Feature #2114: Redis output: add RPUSH support
+Feature #2152: Packet and Drop Counters for Napatech
+
 4.0.0 -- 2017-07-27
 
 Feature #2138: Create a sample systemd service file.
