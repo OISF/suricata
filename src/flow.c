@@ -269,23 +269,19 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
 static inline void FlowUpdateTTL(Flow *f, Packet *p, uint8_t ttl)
 {
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
-        if (ttl < f->min_ttl_toserver) {
+        if (f->min_ttl_toserver == 0) {
             f->min_ttl_toserver = ttl;
-        } else if (f->min_ttl_toserver == 0) {
-            f->min_ttl_toserver = ttl;
+        } else {
+            f->min_ttl_toserver = MIN(f->min_ttl_toserver, ttl);
         }
-        if (ttl > f->max_ttl_toserver) {
-            f->max_ttl_toserver = ttl;
-        }
+        f->max_ttl_toserver = MAX(f->max_ttl_toserver, ttl);
     } else {
-        if (ttl < f->min_ttl_toclient) {
+        if (f->min_ttl_toclient == 0) {
             f->min_ttl_toclient = ttl;
-        } else if (f->min_ttl_toclient == 0) {
-            f->min_ttl_toclient = ttl;
+        } else {
+            f->min_ttl_toclient = MIN(f->min_ttl_toclient, ttl);
         }
-        if (ttl > f->max_ttl_toclient) {
-            f->max_ttl_toclient = ttl;
-        }
+        f->max_ttl_toclient = MAX(f->max_ttl_toclient, ttl);
     }
 }
 
@@ -371,11 +367,9 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 
     /* update flow's ttl fields if needed */
     if (PKT_IS_IPV4(p)) {
-        uint8_t ttl = IPV4_GET_IPTTL(p);
-        FlowUpdateTTL(f, p, ttl);
+        FlowUpdateTTL(f, p, IPV4_GET_IPTTL(p));
     } else if (PKT_IS_IPV6(p)) {
-        uint8_t ttl = IPV6_GET_HLIM(p);
-        FlowUpdateTTL(f, p, ttl);
+        FlowUpdateTTL(f, p, IPV6_GET_HLIM(p));
     }
 }
 
