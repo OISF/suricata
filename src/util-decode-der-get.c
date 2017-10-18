@@ -49,6 +49,8 @@ typedef struct AsnExtension_ {
 #endif
 } AsnExtension;
 
+static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
+
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
@@ -75,7 +77,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.15", .extn_name = "key_usage",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1KeyUsageToJSON
 #endif
     },
     { .extn_id = "2.5.29.37", .extn_name = "extended_key_usage",
@@ -824,5 +826,55 @@ json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn)
 
     return json_string("unknown");
 }
+
+/* TLS KeyUsage flags */
+#define ASN1_X509_KU_DIGITAL_SIGNATURE            (0x80)  /* bit 0 */
+#define ASN1_X509_KU_NON_REPUDIATION              (0x40)  /* bit 1 */
+#define ASN1_X509_KU_KEY_ENCIPHERMENT             (0x20)  /* bit 2 */
+#define ASN1_X509_KU_DATA_ENCIPHERMENT            (0x10)  /* bit 3 */
+#define ASN1_X509_KU_KEY_AGREEMENT                (0x08)  /* bit 4 */
+#define ASN1_X509_KU_KEY_CERT_SIGN                (0x04)  /* bit 5 */
+#define ASN1_X509_KU_CRL_SIGN                     (0x02)  /* bit 6 */
+#define ASN1_X509_KU_ENCIPHER_ONLY                (0x01)  /* bit 7 */
+#define ASN1_X509_KU_DECIPHER_ONLY              (0x8000)  /* bit 8 */
+
+static json_t *Asn1KeyUsageToJSON(SSLCertExtension *extn)
+{
+    json_t *val = json_array();
+    if (val == NULL)
+        return NULL;
+
+    uint32_t kusage = 0;
+    uint32_t i;
+
+    for (i = 0; i < extn->extn_length && i < sizeof(unsigned int); i++)
+    {
+        kusage |= (unsigned int) extn->extn_value[i] << (8*i);
+    }
+    kusage = ntohl(kusage);
+
+    if (kusage & ASN1_X509_KU_DIGITAL_SIGNATURE) {
+        json_array_append_new(val, json_string("Digital Signature"));
+    }
+    if (kusage & ASN1_X509_KU_NON_REPUDIATION)
+        json_array_append_new(val, json_string("Non Repudation"));
+    if (kusage & ASN1_X509_KU_KEY_ENCIPHERMENT)
+        json_array_append_new(val, json_string("Key Encipherment"));
+    if (kusage & ASN1_X509_KU_DATA_ENCIPHERMENT)
+        json_array_append_new(val, json_string("Data Encipherment"));
+    if (kusage & ASN1_X509_KU_KEY_AGREEMENT)
+        json_array_append_new(val, json_string("Key Agreement"));
+    if (kusage & ASN1_X509_KU_KEY_CERT_SIGN)
+        json_array_append_new(val, json_string("Key Cert Sign"));
+    if (kusage & ASN1_X509_KU_CRL_SIGN)
+        json_array_append_new(val, json_string("CRL Sign"));
+    if (kusage & ASN1_X509_KU_ENCIPHER_ONLY)
+        json_array_append_new(val, json_string("Encipher Only"));
+    if (kusage & ASN1_X509_KU_DECIPHER_ONLY)
+        json_array_append_new(val, json_string("Decipher Only"));
+
+    return val;
+}
+
 #endif
 
