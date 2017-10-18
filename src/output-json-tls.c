@@ -47,6 +47,8 @@
 #include "util-logopenfile.h"
 #include "util-crypt.h"
 #include "util-tls.h"
+#include "util-decode-der.h"
+#include "util-decode-der-get.h"
 
 #include "output-json.h"
 #include "output-json-tls.h"
@@ -82,6 +84,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_SUBJECT_PK_ALGO       (1 << 12)
 #define LOG_TLS_FIELD_CERT_SIGNATURE_ALGO   (1 << 13)
 #define LOG_TLS_FIELD_SIGNATURE_ALGO        (1 << 14)
+#define LOG_TLS_FIELD_EXTENSIONS            (1 << 15)
 
 typedef struct {
     const char *name;
@@ -104,6 +107,7 @@ TlsFields tls_fields[] = {
     { "subject_pk_algo",     LOG_TLS_FIELD_SUBJECT_PK_ALGO },
     { "cert_signature_algo", LOG_TLS_FIELD_CERT_SIGNATURE_ALGO },
     { "signature_algo",      LOG_TLS_FIELD_SIGNATURE_ALGO },
+    { "extensions",          LOG_TLS_FIELD_EXTENSIONS },
     { NULL,                  -1 }
 };
 
@@ -319,6 +323,36 @@ static void JsonTlsLogSignatureAlgo(json_t *js, SSLState *ssl_state)
     }
 }
 
+static void JsonTlsLogExtensions(json_t *js, SSLState *ssl_state)
+{
+    json_t *extnsjs = json_object();
+    if (extnsjs == NULL)
+        return;
+
+    json_t *extnjs;
+    SSLCertExtension *extn = NULL;
+    int ecnt = 0;
+    TAILQ_FOREACH(extn, &ssl_state->server_connp.extns, next) {
+        extnjs = json_object();
+        json_t *value = NULL;
+        if (extnjs == NULL) {
+            json_decref(extnsjs);
+            return;
+        }
+        json_object_set_new(extnjs, "id", json_string(extn->extn_id));
+        json_object_set_new(extnjs, "critical", json_integer(extn->critical));
+        value = Asn1DerGetExtensionValueAsJSON(extn);
+        if (value) {
+            json_object_set_new(extnjs, "value", value);
+        }
+        json_object_set_new(extnsjs, extn->extn_name, extnjs);
+        ecnt++;
+    }
+    if (ecnt > 0) {
+        json_object_set_new(js, "extensions", extnsjs);
+    }
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -393,6 +427,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls signature algorithm */
     if (tls_ctx->fields & LOG_TLS_FIELD_SIGNATURE_ALGO)
         JsonTlsLogSignatureAlgo(js, ssl_state);
+
+    /* tls extensions */
+    if (tls_ctx->fields & LOG_TLS_FIELD_EXTENSIONS)
+        JsonTlsLogExtensions(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -425,6 +463,9 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 
     /* tls signature algorithm */
     JsonTlsLogSignatureAlgo(tjs, state);
+
+    /* tls extensions */
+    JsonTlsLogExtensions(tjs, state);
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
