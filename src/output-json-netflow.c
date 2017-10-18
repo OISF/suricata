@@ -267,7 +267,7 @@ static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Fl
             json_integer(age));
 
     /* To client is zero if we did not see any packet */
-    if (f->max_ttl_toclient) {
+    if (f->tosrcpktcnt) {
         json_object_set_new(hjs, "min_ttl", json_integer(f->min_ttl_toclient));
         json_object_set_new(hjs, "max_ttl", json_integer(f->max_ttl_toclient));
     }
