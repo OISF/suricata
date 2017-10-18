@@ -1,3 +1,17 @@
+3.2.4 -- 2017-10-18
+
+Bug #2241: smb dcerpc segfaults in StubDataParser (3.2.x)
+Bug #2231: Redundant content checks may cause Suricata DoS condition on a insignificant traffic rate
+Bug #2214: detect state uses broken offset logic
+Bug #2234: TLS rule mixes up server and client certificates (3.2.x)
+Bug #2235: DNS UDP "Response" parsing recording an incorrect timestamp (3.2.x)
+Bug #2236: af_packet: suricata leaks memory with use-mmap enabled and incorrect BPF filter (3.2.x)
+Bug #2237: Redis output: add RPUSH support (3.2.x)
+Bug #2238: detect duplicate 'meta' keywords (3.2.x)
+Bug #2239: documentation does not reflect current suricata.yaml regarding cpu-affinity (3.2.x)
+Bug #2242: improve error message if stream memcap too low (3.2.x)
+Bug #2243: enforcing specific number of threads with autofp does not seem to work (3.2.x)
+
 3.2.3 -- 2017-07-13
 
 Bug #2089: engine file logging race condition (3.2.x)
