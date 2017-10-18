@@ -52,7 +52,8 @@ check:
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) test
 
 Cargo.lock: Cargo.toml
-	CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
+	cd $(top_srcdir)/rust && \
+		CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
 
 if HAVE_CARGO_VENDOR
 vendor:
