@@ -33,9 +33,21 @@
  */
 
 #include "suricata-common.h"
+#include "app-layer-ssl.h"
 
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
+
+/* number of extensions supported */
+#define EXTN_MAX 15
+
+typedef struct AsnExtension_ {
+    const char *extn_id;
+    const char *extn_name;
+#ifdef HAVE_LIBJANSSON
+    json_t *(*ExtnGetValueAsJson)(SSLCertExtension *);
+#endif
+} AsnExtension;
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -44,6 +56,113 @@ static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
 static const uint8_t SEQ_IDX_SUBJECT_PK[] = { 0, 5 };
 static const uint8_t SEQ_IDX_SIGNATURE_ALGO[] = { 1, 0 };
+
+static AsnExtension asn_extns[EXTN_MAX] = {
+    { .extn_id = "2.5.29.19", .extn_name = "basic_contraints",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.30", .extn_name = "name_contraints",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.36", .extn_name = "policy_contraints",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.15", .extn_name = "key_usage",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.37", .extn_name = "extended_key_usage",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.14", .extn_name = "subject_key_identifier",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.35", .extn_name = "authority_key_identifier",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.17", .extn_name = "subject_alternative_name",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.18", .extn_name = "issuer_alternative_name",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.9", .extn_name = "subject_directory_attributes",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.31", .extn_name = "crl_distribution_points",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.16", .extn_name = "private_key_usage_period",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.32", .extn_name = "certificate_policies",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.33", .extn_name = "policy_mappings",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.54", .extn_name = "inhibit_any_policy",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+};
+
+static int GetAsnExtension(SSLCertExtension *extn)
+{
+    int i;
+
+    if (extn->extn_id == NULL) {
+        return -1;
+    }
+
+    for (i = 0; i < EXTN_MAX; i++) {
+        if (!strcmp(extn->extn_id, asn_extns[i].extn_id))
+            return i;
+    }
+
+    return -1;
+}
+
+static const char *Oid2ExtensionName(const char *oid)
+{
+    int i;
+
+    for (i = 0; i < EXTN_MAX; i++) {
+        if (strcmp(oid, asn_extns[i].extn_id) == 0) {
+            return asn_extns[i].extn_name;
+        }
+    }
+
+    return "unknown";
+}
 
 static const char *Oid2ShortStr(const char *oid)
 {
@@ -594,4 +713,99 @@ int Asn1DerGetSignatureAlgo(const Asn1Generic *cert, char *buffer,
 
 signature_error:
     return rc;
+}
+
+int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp,
+                         uint32_t *errcode)
+{
+    const Asn1Generic *node = cert->data->next;
+    const Asn1Generic *it;
+    const Asn1Generic *extns_node;
+    const Asn1Generic *extn;
+    const Asn1Generic *extn_node;
+    int rc = -1;
+
+    if (node == NULL || node->data == NULL)
+        return rc;
+
+    /* get the sequence of extensions */
+    while (node->data->header.cls != ASN1_CLASS_CONTEXTSPEC) {
+        node = node->next;
+        if (node == NULL || node->data == NULL) {
+            SCLogInfo("node == NULL || node->data == NULL");
+            return rc;
+        }
+    }
+
+    /* extensions field */
+    extns_node = node->data;
+    if (extns_node == NULL || extns_node->header.cls != ASN1_CLASS_CONTEXTSPEC)
+        return rc;
+
+    if (extns_node->type != ASN1_SEQUENCE)
+        return rc;
+
+    /* list of extension */
+    it = extns_node->data;
+    if (it == NULL)
+        return rc;
+
+    if (it->type != ASN1_SEQUENCE)
+        return rc;
+
+    while (it != NULL) {
+        extn = it->data;
+        SSLCertExtension *nextn;
+        nextn = (SSLCertExtension *)SCMalloc(sizeof(SSLCertExtension));
+        if (nextn == NULL)
+            return rc;
+        memset(nextn, 0, sizeof(*nextn));
+
+        /* iterate extension's field */
+        while (extn != NULL) {
+            extn_node = extn->data;
+
+            if (extn_node == NULL) {
+                goto next;
+            }
+
+            switch (extn_node->type) {
+                case ASN1_OID:
+                    nextn->extn_id = SCStrdup(extn_node->str);
+                    if (nextn->extn_id == NULL) {
+                        SCFree(nextn);
+                        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate extension");
+                        return rc;
+                    }
+                    nextn->extn_name = Oid2ExtensionName(extn_node->str);
+                    break;
+                case ASN1_INTEGER:
+                    nextn->critical = extn_node->value;
+                    break;
+                case ASN1_OCTETSTRING:
+                    nextn->extn_value = SCMalloc(extn_node->strlen);
+                    nextn->extn_length = (size_t)extn_node->strlen;
+                    if (nextn->extn_value == NULL) {
+                        SCFree(nextn);
+                        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate extension");
+                        return rc;
+                    }
+                    memcpy(nextn->extn_value, extn_node->str, extn_node->strlen);
+                    break;
+                default: /* Unsupported type */
+                    break;
+            }
+        next:
+            extn = extn->next;
+        }
+        if (strcmp(nextn->extn_name, "unknown") != 0 && nextn->extn_id && nextn->extn_value) {
+            TAILQ_INSERT_TAIL(&server_connp->extns, nextn, next);
+        } else {
+            SCFree(nextn);
+        }
+
+        it = it->next;
+    }
+
+    return 0;
 }
