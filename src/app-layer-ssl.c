@@ -1565,6 +1565,7 @@ static void *SSLStateAlloc(void)
     ssl_state->client_connp.cert_log_flag = 0;
     ssl_state->server_connp.cert_log_flag = 0;
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    TAILQ_INIT(&ssl_state->server_connp.extns);
 
     return (void *)ssl_state;
 }
@@ -1577,6 +1578,7 @@ static void SSLStateFree(void *p)
 {
     SSLState *ssl_state = (SSLState *)p;
     SSLCertsChain *item;
+    SSLCertExtension *extn;
 
     if (ssl_state->client_connp.trec)
         SCFree(ssl_state->client_connp.trec);
@@ -1620,6 +1622,17 @@ static void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->server_connp.certs);
+
+    /* Free extensions list */
+    while ((extn = TAILQ_FIRST(&ssl_state->server_connp.extns))) {
+        TAILQ_REMOVE(&ssl_state->server_connp.extns, extn, next);
+        if (extn->extn_value)
+            SCFree(extn->extn_value);
+        if (extn->extn_id)
+            SCFree(extn->extn_id);
+        SCFree(extn);
+    }
+    TAILQ_INIT(&ssl_state->server_connp.extns);
 
     SCFree(ssl_state);
 

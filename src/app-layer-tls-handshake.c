@@ -294,6 +294,13 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 }
             }
 
+            if (i == 0) {
+                rc = Asn1DerGetExtensions(cert, &ssl_state->server_connp, &errcode);
+                if (rc != 0) {
+                    TLSCertificateErrCodeToWarning(ssl_state, errcode);
+                }
+            }
+
             DerFree(cert);
 
             if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
