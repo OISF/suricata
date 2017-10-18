@@ -1,11 +1,11 @@
-    AC_INIT(suricata, 4.0.0-dev)
+    AC_INIT([suricata],[4.0.0-dev])
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
     AM_INIT_AUTOMAKE
 
-    AC_LANG_C
+    AC_LANG([C])
     AC_PROG_CC_C99
     AC_PROG_LIBTOOL
     PKG_PROG_PKG_CONFIG
@@ -33,15 +33,12 @@
         clang)
             CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
             AC_MSG_CHECKING([clang __sync_bool_compare_and_swap support])
-            AC_TRY_COMPILE([#include <stdio.h>],
-                [ unsigned int i = 0; (void)__sync_bool_compare_and_swap(&i, 1, 1);],
-                [
+            AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdio.h>]], [[ unsigned int i = 0; (void)__sync_bool_compare_and_swap(&i, 1, 1);]])],[
                     AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1], [1], [Fake GCC atomic support])
                     AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2], [1], [Fake GCC atomic support])
                     AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4], [1], [Fake GCC atomic support])
                     AC_DEFINE([__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8], [1], [Fake GCC atomic support])
-                    AC_MSG_RESULT([yes]) ],
-                [AC_MSG_RESULT([no])])
+                    AC_MSG_RESULT([yes]) ],[AC_MSG_RESULT([no])])
             AC_SUBST(CLANG_CFLAGS)
             ;;
         gcc)
@@ -127,7 +124,7 @@
     AC_CHECK_HEADERS([sys/time.h time.h unistd.h])
     AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
-    AC_CHECK_HEADER(glob.h,,[AC_ERROR(glob.h not found ...)])
+    AC_CHECK_HEADER(glob.h,,[AC_MSG_ERROR(glob.h not found ...)])
     AC_CHECK_HEADERS([dirent.h fnmatch.h])
     AC_CHECK_HEADERS([sys/resource.h sys/types.h sys/un.h])
 
@@ -269,11 +266,8 @@
     AS_IF([test "x$enable_tls" = "xyes"], [
         # check if our target supports thread local storage
         AC_MSG_CHECKING(for thread local storage __thread support)
-        AC_TRY_COMPILE([#include <stdlib.h>],
-            [ static __thread int i; i = 1; i++; ],
-            [AC_DEFINE([TLS], [1], [Thread local storage])
-             AC_MSG_RESULT([yes]) ],
-            [AC_MSG_RESULT([no])])
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdlib.h>]], [[ static __thread int i; i = 1; i++; ]])],[AC_DEFINE([TLS], [1], [Thread local storage])
+             AC_MSG_RESULT([yes]) ],[AC_MSG_RESULT([no])])
     ])
 
     #Enable support for gcc compile time security options. There is no great way to do detection of valid cflags that I have found
@@ -288,45 +282,40 @@
         AC_MSG_CHECKING(for -fstack-protector)
         TMPCFLAGS="${CFLAGS}"
         CFLAGS="${CFLAGS} -fstack-protector"
-        AC_TRY_LINK(,,SECCFLAGS="-fstack-protector"
-            AC_MSG_RESULT(yes),
-            AC_MSG_RESULT(no))
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[SECCFLAGS="-fstack-protector"
+            AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
         CFLAGS="${TMPCFLAGS}"
 
         #compile-time best-practices errors for certain libc functions, provides checks of buffer lengths and memory regions
         AC_MSG_CHECKING(for -D_FORTIFY_SOURCE=2)
         TMPCFLAGS="${CFLAGS}"
         CFLAGS="${CFLAGS} -D_FORTIFY_SOURCE=2"
-        AC_TRY_COMPILE(,,SECCFLAGS="${SECCFLAGS} -D_FORTIFY_SOURCE=2"
-            AC_MSG_RESULT(yes),
-            AC_MSG_RESULT(no))
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[SECCFLAGS="${SECCFLAGS} -D_FORTIFY_SOURCE=2"
+            AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
         CFLAGS="${TMPCFLAGS}"
 
         #compile-time warnings about misuse of format strings
         AC_MSG_CHECKING(for -Wformat -Wformat-security)
         TMPCFLAGS="${CFLAGS}"
         CFLAGS="${CFLAGS} -Wformat -Wformat-security"
-        AC_TRY_COMPILE(,,SECCFLAGS="${SECCFLAGS} -Wformat -Wformat-security"
-            AC_MSG_RESULT(yes),
-            AC_MSG_RESULT(no))
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[SECCFLAGS="${SECCFLAGS} -Wformat -Wformat-security"
+            AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
         CFLAGS="${TMPCFLAGS}"
 
         #provides a read-only relocation table area in the final ELF
         AC_MSG_CHECKING(for -z relro)
         TMPLDFLAGS="${LDFLAGS}"
         LDFLAGS="${LDFLAGS} -z relro"
-        AC_TRY_LINK(,,SECLDFLAGS="${SECLDFLAGS} -z relro"
-            AC_MSG_RESULT(yes),
-            AC_MSG_RESULT(no))
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[SECLDFLAGS="${SECLDFLAGS} -z relro"
+            AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
         LDFLAGS="${TMPLDFLAGS}"
 
         #forces all relocations to be resolved at run-time
         AC_MSG_CHECKING(for -z now)
         TMPLDFLAGS="${LDFLAGS}"
         LDFLAGS="${LDFLAGS} -z now"
-        AC_TRY_LINK(,,SECLDFLAGS="${SECLDFLAGS} -z now"
-            AC_MSG_RESULT(yes),
-            AC_MSG_RESULT(no))
+        AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[SECLDFLAGS="${SECLDFLAGS} -z now"
+            AC_MSG_RESULT(yes)],[AC_MSG_RESULT(no)])
         LDFLAGS="${TMPLDFLAGS}"
 
         AC_SUBST(SECCFLAGS)
@@ -475,7 +464,7 @@
     if test "$with_libpcre_includes" != "no"; then
         CPPFLAGS="${CPPFLAGS} -I${with_libpcre_includes}"
     fi
-    AC_CHECK_HEADER(pcre.h,,[AC_ERROR(pcre.h not found ...)])
+    AC_CHECK_HEADER(pcre.h,,[AC_MSG_ERROR(pcre.h not found ...)])
 
     if test "$with_libpcre_libraries" != "no"; then
         LDFLAGS="${LDFLAGS} -L${with_libpcre_libraries}"
@@ -521,10 +510,8 @@
     fi
     LIBS="${TMPLIBS}"
 
-    AC_TRY_COMPILE([ #include <pcre.h> ],
-        [ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ],
-        [ pcre_match_limit_recursion_available=yes ], [:]
-    )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]], [[ int eo = 0; eo |= PCRE_EXTRA_MATCH_LIMIT_RECURSION; ]])],[ pcre_match_limit_recursion_available=yes ],[:
+    ])
     if test "$pcre_match_limit_recursion_available" != "yes"; then
         echo
         echo "   Warning! pcre extra opt PCRE_EXTRA_MATCH_LIMIT_RECURSION not found"
@@ -537,21 +524,17 @@
 
     TMPCFLAGS="${CFLAGS}"
     CFLAGS="-O0 -g -Werror -Wall"
-    AC_TRY_COMPILE([ #include <pcre.h> ],
-        [ pcre_extra *extra = NULL; pcre_free_study(extra); ],
-        [ AC_DEFINE([HAVE_PCRE_FREE_STUDY], [1], [Pcre pcre_free_study supported])], [:]
-    )
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]], [[ pcre_extra *extra = NULL; pcre_free_study(extra); ]])],[ AC_DEFINE([HAVE_PCRE_FREE_STUDY], [1], [Pcre pcre_free_study supported])],[:
+    ])
     CFLAGS="${TMPCFLAGS}"
 
     #enable support for PCRE-jit available since pcre-8.20
     AC_MSG_CHECKING(for PCRE JIT support)
-    AC_TRY_COMPILE([ #include <pcre.h> ],
-        [
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]], [[
         int jit = 0;
         pcre_config(PCRE_CONFIG_JIT, &jit);
-        ],
-        [ pcre_jit_available=yes ], [ pcre_jit_available=no ]
-        )
+        ]])],[ pcre_jit_available=yes ],[ pcre_jit_available=no
+        ])
 
     case $host in
         *powerpc64*)
@@ -577,8 +560,7 @@
        AC_DEFINE([PCRE_HAVE_JIT], [1], [Pcre with JIT compiler support enabled])
 
        AC_MSG_CHECKING(for PCRE JIT support usability)
-       AC_TRY_COMPILE([ #include <pcre.h> ],
-           [
+       AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ #include <pcre.h> ]], [[
            const char* regexstr = "(a|b|c|d)";
            pcre *re;
            const char *error;
@@ -593,9 +575,8 @@
            if (ret != 0 || jit != 1)
                exit(EXIT_FAILURE);
            exit(EXIT_SUCCESS);
-           ],
-           [ pcre_jit_works=yes ], [:]
-       )
+           ]])],[ pcre_jit_works=yes ],[:
+       ])
        if test "x$pcre_jit_works" != "xyes"; then
            AC_MSG_RESULT(no)
            echo
@@ -694,7 +675,7 @@
         CPPFLAGS="${CPPFLAGS} -I${with_libpthread_includes}"
     fi
 
-    dnl AC_CHECK_HEADER(pthread.h,,[AC_ERROR(pthread.h not found ...)])
+    dnl AC_CHECK_HEADER(pthread.h,,[AC_MSG_ERROR(pthread.h not found ...)])
 
     if test "$with_libpthread_libraries" != "no"; then
         LDFLAGS="${LDFLAGS}  -L${with_libpthread_libraries}"
@@ -840,7 +821,7 @@
             CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_queue_includes}"
         fi
 
-        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
+        AC_CHECK_HEADER(libnetfilter_queue/libnetfilter_queue.h,,[AC_MSG_ERROR(libnetfilter_queue/libnetfilter_queue.h not found ...)])
 
         if test "$with_libnetfilter_queue_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_queue_libraries}"
@@ -904,7 +885,7 @@
             CPPFLAGS="${CPPFLAGS} -I${with_libnetfilter_log_includes}"
         fi
 
-        AC_CHECK_HEADER(libnetfilter_log/libnetfilter_log.h,,[AC_ERROR(libnetfilter_log.h not found ...)])
+        AC_CHECK_HEADER(libnetfilter_log/libnetfilter_log.h,,[AC_MSG_ERROR(libnetfilter_log.h not found ...)])
 
         if test "$with_libnetfilter_log_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_libnetfilter_log_libraries}"
@@ -1073,7 +1054,7 @@
         CPPFLAGS="${CPPFLAGS} -I${with_libpcap_includes}"
     fi
 
-    AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
+    AC_CHECK_HEADER(pcap.h,,[AC_MSG_ERROR(pcap.h not found ...)])
 
     if test "$with_libpcap_libraries" != "no"; then
         LDFLAGS="${LDFLAGS}  -L${with_libpcap_libraries}"
@@ -1137,7 +1118,7 @@
     AS_IF([test "x$enable_pfring" = "xyes"], [
         AC_DEFINE([HAVE_PFRING],[1],(PF_RING support enabled))
 
-        #We have to set CFLAGS for AC_TRY_COMPILE as it doesn't pay attention to CPPFLAGS
+        #We have to set CFLAGS for AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[],[]) as it doesn't pay attention to CPPFLAGS
         AC_ARG_WITH(libpfring_includes,
                 [  --with-libpfring-includes=DIR  libpfring include directory],
                 [with_libpfring_includes="$withval"],[with_libpfring_includes=no])
@@ -1228,7 +1209,7 @@
             CPPFLAGS="${CPPFLAGS} -I${with_netmap_includes}"
         fi
 
-        AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
+        AC_CHECK_HEADER(net/netmap_user.h,,[AC_MSG_ERROR(net/netmap_user.h not found ...)],)
   ])
 
   # libhtp
@@ -1256,7 +1237,7 @@
             LDFLAGS="${LDFLAGS} -L${with_libhtp_libraries}"
         fi
 
-        AC_CHECK_HEADER(htp/htp.h,,[AC_ERROR(htp/htp.h not found ...)])
+        AC_CHECK_HEADER(htp/htp.h,,[AC_MSG_ERROR(htp/htp.h not found ...)])
 
         LIBHTP=""
         AC_CHECK_LIB(htp, htp_conn_create,, LIBHTP="no")
@@ -1296,7 +1277,7 @@
             # make sure libhtp is added to the includes
             CPPFLAGS="-I\${srcdir}/../libhtp/ ${CPPFLAGS}"
 
-            AC_CHECK_HEADER(iconv.h,,[AC_ERROR(iconv.h not found ...)])
+            AC_CHECK_HEADER(iconv.h,,[AC_MSG_ERROR(iconv.h not found ...)])
             AC_CHECK_LIB(iconv, libiconv_close)
             AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
             AC_DEFINE_UNQUOTED([HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW],[1],[Assuming htp_tx_get_response_headers_raw function in bundled libhtp])
@@ -1350,7 +1331,7 @@
             NVCC_DIR="/usr/local/cuda/bin"
         fi
 
-        AC_CHECK_HEADER(cuda.h,,[AC_ERROR(cuda.h not found ...)])
+        AC_CHECK_HEADER(cuda.h,,[AC_MSG_ERROR(cuda.h not found ...)])
 
         LIBCUDA=""
         AC_CHECK_LIB(cuda, cuArray3DCreate,, LIBCUDA="no")
@@ -2152,7 +2133,8 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service)
+AC_CONFIG_FILES([Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service])
+AC_OUTPUT
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
