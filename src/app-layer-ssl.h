@@ -128,6 +128,14 @@ typedef struct SSLCertsChain_ {
     TAILQ_ENTRY(SSLCertsChain_) next;
 } SSLCertsChain;
 
+typedef struct SSLCertExtension_ {
+    char *extn_id;
+    const char *extn_name;
+    int critical;
+    char *extn_value;
+    size_t extn_length;
+    TAILQ_ENTRY(SSLCertExtension_) next;
+} SSLCertExtension;
 
 typedef struct SSLStateConnp_ {
     /* record length */
@@ -168,6 +176,7 @@ typedef struct SSLStateConnp_ {
     char *cert0_subject_pk_algo;
     char *cert0_signature_algo;
     char *signature_algo;
+    TAILQ_HEAD(, SSLCertExtension_) extns;
 
     /* ssl server name indication extension */
     char *sni;
