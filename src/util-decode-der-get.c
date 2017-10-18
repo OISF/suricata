@@ -809,3 +809,16 @@ int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp,
 
     return 0;
 }
+
+#ifdef HAVE_LIBJANSSON
+json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn)
+{
+    int id = GetAsnExtension(extn);
+    if (id != -1 && asn_extns[id].ExtnGetValueAsJson) {
+        return asn_extns[id].ExtnGetValueAsJson(extn);
+    }
+
+    return json_string("unknown");
+}
+#endif
+
