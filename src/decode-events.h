@@ -145,6 +145,8 @@ enum {
     VLAN_UNKNOWN_TYPE,              /**< vlan unknown type */
     VLAN_HEADER_TOO_MANY_LAYERS,
 
+    IEEE8021AH_HEADER_TOO_SMALL,
+
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
 

@@ -97,6 +97,7 @@ alert pkthdr any any -> any any (msg:"SURICATA VLAN header too small "; decode-e
 alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:vlan.unknown_type; classtype:protocol-command-decode; sid:2200067; rev:2;)
 # more than 2 vlan layers in the packet
 alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-event:vlan.too_many_layers; classtype:protocol-command-decode; sid:2200091; rev:2;)
+alert pkthdr any any -> any any (msg:"SURICATA IEEE802.1AH header too small"; decode-event:ieee8021ah.header_too_small; classtype:protocol-command-decode; sid:2200112; rev:1;)
 
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; classtype:protocol-command-decode; sid:2200068; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_pkt_too_large; classtype:protocol-command-decode; sid:2200069; rev:3;)
@@ -141,5 +142,5 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; dec
 # Cisco Fabric Path/DCE
 alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; classtype:protocol-command-decode; sid:2200110; rev:2;)
 
-# next sid is 2200112
+# next sid is 2200113
 
