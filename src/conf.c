@@ -388,10 +388,16 @@ int ConfGetInt(const char *name, intmax_t *val)
 
     errno = 0;
     tmpint = strtoimax(strval, &endptr, 0);
-    if (strval[0] == '\0' || *endptr != '\0')
+    if (strval[0] == '\0' || *endptr != '\0') {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
+                "for %s: '%s'", name, strval);
         return 0;
-    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN))
+    }
+    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN)) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "integer value for %s out "
+                "of range: '%s'", name, strval);
         return 0;
+    }
 
     *val = tmpint;
     return 1;
@@ -407,10 +413,16 @@ int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
         return 0;
     errno = 0;
     tmpint = strtoimax(strval, &endptr, 0);
-    if (strval[0] == '\0' || *endptr != '\0')
+    if (strval[0] == '\0' || *endptr != '\0') {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
+                "for %s with base %s: '%s'", name, base->name, strval);
         return 0;
-    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN))
+    }
+    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN)) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "integer value for %s with "
+                " base %s out of range: '%s'", name, base->name, strval);
         return 0;
+    }
 
     *val = tmpint;
     return 1;
