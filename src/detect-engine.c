@@ -1029,7 +1029,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
     }
 
-    DetectEngineCtxLoadConf(de_ctx);
+    if (DetectEngineCtxLoadConf(de_ctx) == -1) {
+        goto error;
+    }
 
     SigGroupHeadHashInit(de_ctx);
     MpmStoreInit(de_ctx);
@@ -1181,7 +1183,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
  */
 static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 {
-    uint8_t profile = ENGINE_PROFILE_UNKNOWN;
+    uint8_t profile = ENGINE_PROFILE_MEDIUM;
     const char *max_uniq_toclient_groups_str = NULL;
     const char *max_uniq_toserver_groups_str = NULL;
     const char *sgh_mpm_context = NULL;
@@ -1210,14 +1212,22 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     if (de_ctx_profile != NULL) {
-        if (strcmp(de_ctx_profile, "low") == 0) {
+        if (strcmp(de_ctx_profile, "low") == 0 ||
+            strcmp(de_ctx_profile, "lowest") == 0) {        // legacy
             profile = ENGINE_PROFILE_LOW;
         } else if (strcmp(de_ctx_profile, "medium") == 0) {
             profile = ENGINE_PROFILE_MEDIUM;
-        } else if (strcmp(de_ctx_profile, "high") == 0) {
+        } else if (strcmp(de_ctx_profile, "high") == 0 ||
+                   strcmp(de_ctx_profile, "highest") == 0) { // legacy
             profile = ENGINE_PROFILE_HIGH;
         } else if (strcmp(de_ctx_profile, "custom") == 0) {
             profile = ENGINE_PROFILE_CUSTOM;
+        } else {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                    "invalid value for detect.profile: '%s'. "
+                    "Valid options: low, medium, high and custom.",
+                    de_ctx_profile);
+            return -1;
         }
 
         SCLogDebug("Profile for detection engine groups is \"%s\"", de_ctx_profile);
@@ -1354,10 +1364,6 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             break;
     }
 
-    if (profile == ENGINE_PROFILE_UNKNOWN) {
-        goto error;
-    }
-
     intmax_t value = 0;
     if (ConfGetInt("detect.inspection-recursion-limit", &value) == 1)
     {
@@ -1471,8 +1477,6 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     }
 
     return 0;
-error:
-    return -1;
 }
 
 /*
