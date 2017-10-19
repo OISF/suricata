@@ -51,6 +51,21 @@ long int RandomGet(void)
 
     return value;
 }
+#elif defined(HAVE_GETRANDOM)
+long int RandomGet(void)
+{
+    if (g_disable_randomness)
+        return 0;
+
+    long int value = 0;
+    int ret = getrandom(&value, sizeof(value), 0);
+    /* ret should be sizeof(value), but if it is > 0 and < sizeof(value)
+     * it's still better than nothing so we return what we have */
+    if (ret <= 0) {
+        return -1;
+    }
+    return value;
+}
 #elif defined(HAVE_CLOCK_GETTIME)
 long int RandomGet(void)
 {

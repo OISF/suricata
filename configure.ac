@@ -130,6 +130,7 @@
     AC_CHECK_HEADER(glob.h,,[AC_ERROR(glob.h not found ...)])
     AC_CHECK_HEADERS([dirent.h fnmatch.h])
     AC_CHECK_HEADERS([sys/resource.h sys/types.h sys/un.h])
+    AC_CHECK_HEADERS([sys/random.h])
 
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h linux/if_arp.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
@@ -167,6 +168,12 @@
     AC_FUNC_MALLOC
     AC_FUNC_REALLOC
     AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strerror strncasecmp strtol strtoul memchr memrchr clock_gettime])
+
+    AC_CHECK_DECL([getrandom],
+        AC_DEFINE([HAVE_GETRANDOM], [1], [Use getrandom]),
+        [], [
+            #include <sys/random.h> 
+            ])
 
     OCFLAGS=$CFLAGS
     CFLAGS=""

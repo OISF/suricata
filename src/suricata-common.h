@@ -168,6 +168,10 @@
 #include <sys/mman.h>
 #endif
 
+#if HAVE_SYS_RANDOM_H
+#include <sys/random.h>
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
