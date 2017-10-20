@@ -15,36 +15,24 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Clément Galland <clement.galland@epita.fr>
+ */
 
-extern crate libc;
+#ifndef __APP_LAYER_TFTP_H__
+#define __APP_LAYER_TFTP_H__
 
-#[macro_use]
-extern crate nom;
+#include "detect-engine-state.h"
 
-extern crate crc;
+#include "queue.h"
 
-#[macro_use]
-pub mod log;
+void RegisterTFTPParsers(void);
+void TFTPParserRegisterTests(void);
 
-#[macro_use]
-pub mod core;
+/** Opaque Rust types. */
+typedef struct TFTPState_ TFTPState;
+typedef struct TFTPTransaction_  TFTPTransaction;
 
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
-pub mod tftp;
+#endif /* __APP_LAYER_TFTP_H__ */
