@@ -455,7 +455,7 @@ int SCConfLogOpenRedis(ConfNode *redis_node, void *lf_ctx)
         redis_port =  ConfNodeLookupChildValue(redis_node, "port");
         redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
 
-        ConfGetChildValueBool(redis_node, "async", &is_async);
+        (void)ConfGetChildValueBool(redis_node, "async", &is_async);
     }
     if (!log_ctx->redis_setup.server) {
         log_ctx->redis_setup.server = redis_default_server;
