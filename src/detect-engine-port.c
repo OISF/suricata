@@ -977,9 +977,10 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 temp_rule_var_port = alloc_rule_var_port;
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2, var_list);//negate? negate: n_set);
-                if (r == -1)
+                if (r == -1) {
+                    SCFree(alloc_rule_var_port);
                     goto error;
-
+                }
                 d_set = 0;
                 n_set = 0;
                 SCFree(alloc_rule_var_port);
