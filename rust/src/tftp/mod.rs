@@ -15,33 +15,7 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+// written by Clément Galland <clement.galland@epita.fr>
 
-extern crate libc;
-
-#[macro_use]
-extern crate nom;
-
-extern crate crc;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
 pub mod tftp;
+pub mod log;
