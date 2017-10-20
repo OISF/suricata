@@ -723,6 +723,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_NFS\n");
                     else if (pp_pe->alproto == ALPROTO_NTP)
                         printf("            alproto: ALPROTO_NTP\n");
+                    else if (pp_pe->alproto == ALPROTO_TFTP)
+                        printf("            alproto: ALPROTO_TFTP\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -786,6 +788,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_NFS\n");
                 else if (pp_pe->alproto == ALPROTO_NTP)
                     printf("            alproto: ALPROTO_NTP\n");
+                else if (pp_pe->alproto == ALPROTO_TFTP)
+                    printf("            alproto: ALPROTO_TFTP\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
