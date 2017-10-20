@@ -15,36 +15,15 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Clément Galland <clement.galland@epita.fr>
+ */
 
-extern crate libc;
+#ifndef __OUTPUT_JSON_TFTP_H__
+#define __OUTPUT_JSON_TFTP_H__
 
-#[macro_use]
-extern crate nom;
+void JsonTFTPLogRegister(void);
 
-extern crate crc;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
-pub mod tftp;
+#endif /* __OUTPUT_JSON_TFTP_H__ */
