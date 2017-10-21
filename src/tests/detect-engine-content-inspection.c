@@ -209,6 +209,19 @@ static int DetectEngineContentInspectionTest09(void) {
     TEST_FOOTER;
 }
 
+/** \test mix in byte_extract */
+static int DetectEngineContentInspectionTest10(void) {
+    TEST_HEADER;
+    /* extract first byte as lenght field and check with isdataat */
+    TEST_RUN("9abcdefghi", 10, "byte_extract:1,0,data_size,string; isdataat:data_size;", true, 2);
+    TEST_RUN("9abcdefgh", 9, "byte_extract:1,0,data_size,string; isdataat:!data_size;", true, 2);
+    /* anchor len field to pattern 'x' to test recursion */
+    TEST_RUN("x9x9abcdefghi", 13, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:data_size,relative;", true, 3);
+    TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", true, 5);
+    TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; depth:1; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", false, 3);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -229,6 +242,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest08);
     UtRegisterTest("DetectEngineContentInspectionTest09",
                    DetectEngineContentInspectionTest09);
+    UtRegisterTest("DetectEngineContentInspectionTest10",
+                   DetectEngineContentInspectionTest10);
 }
 
 #undef TEST_HEADER
