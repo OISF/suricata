@@ -193,7 +193,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, const SigMatchData 
     det_ctx->buffer_offset = ptr - payload;
 
     *value = val;
-
+    SCLogDebug("extracted value is %"PRIu64, val);
     return 1;
 }
 
