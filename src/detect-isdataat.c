@@ -333,6 +333,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         }
         idad->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
         idad->flags |= ISDATAAT_OFFSET_BE;
+        SCLogDebug("isdataat uses byte_extract with local id %u", idad->dataat);
         SCFree(offset);
     }
 
