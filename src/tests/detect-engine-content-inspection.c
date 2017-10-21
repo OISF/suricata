@@ -219,6 +219,9 @@ static int DetectEngineContentInspectionTest10(void) {
     TEST_RUN("x9x9abcdefghi", 13, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:data_size,relative;", true, 3);
     TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", true, 5);
     TEST_RUN("x9x9abcdefgh", 12, "content:\"x\"; depth:1; byte_extract:1,0,data_size,string,relative; isdataat:!data_size,relative;", false, 3);
+    /* check for super high extracted values */
+    TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:data_size;", false, 2);
+    TEST_RUN("100000000abcdefghi", 18, "byte_extract:0,0,data_size,string; isdataat:!data_size;", true, 2);
     TEST_FOOTER;
 }
 
