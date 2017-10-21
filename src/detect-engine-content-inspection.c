@@ -360,7 +360,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         const DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
         uint32_t dataat = id->dataat;
         if (id->flags & ISDATAAT_OFFSET_BE) {
-            dataat = det_ctx->bj_values[dataat];
+            uint64_t be_value = det_ctx->bj_values[dataat];
+            if (be_value >= 100000000) {
+                if ((id->flags & ISDATAAT_NEGATED) == 0) {
+                    SCLogDebug("extracted value %"PRIu64" very big: no match", be_value);
+                    goto no_match;
+                }
+                SCLogDebug("extracted value way %"PRIu64" very big: match", be_value);
+                goto match;
+            }
+            dataat = (uint32_t)be_value;
             SCLogDebug("isdataat: using value %u from byte_extract local_id %u", dataat, id->dataat);
         }
 
