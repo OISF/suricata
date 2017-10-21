@@ -357,10 +357,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     } else if (sm->type == DETECT_ISDATAAT) {
         SCLogDebug("inspecting isdataat");
 
-        DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
+        const DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
+        uint32_t dataat = id->dataat;
+        if (id->flags & ISDATAAT_OFFSET_BE) {
+            dataat = det_ctx->bj_values[dataat];
+            SCLogDebug("isdataat: using value %u from byte_extract local_id %u", dataat, id->dataat);
+        }
+
         if (id->flags & ISDATAAT_RELATIVE) {
-            if (det_ctx->buffer_offset + id->dataat > buffer_len) {
-                SCLogDebug("det_ctx->buffer_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + id->dataat, buffer_len);
+            if (det_ctx->buffer_offset + dataat > buffer_len) {
+                SCLogDebug("det_ctx->buffer_offset + dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
                 goto no_match;
@@ -371,13 +377,13 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                 goto match;
             }
         } else {
-            if (id->dataat < buffer_len) {
+            if (dataat < buffer_len) {
                 SCLogDebug("absolute isdataat match");
                 if (id->flags & ISDATAAT_NEGATED)
                     goto no_match;
                 goto match;
             } else {
-                SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", buffer_len %"PRIu32"", id->dataat, buffer_len);
+                SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", buffer_len %"PRIu32"", dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
                 goto no_match;
