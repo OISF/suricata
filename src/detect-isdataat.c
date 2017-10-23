@@ -217,6 +217,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, const char *isda
 
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (DetectBufferGetActiveList(de_ctx, s) == -1)
+            return -1;
         sm_list = s->init_data->list;
 
         if (idad->flags & ISDATAAT_RELATIVE) {
