@@ -390,6 +390,7 @@ typedef struct SignatureInitData_ {
 
     int prefilter_list;
 
+    uint32_t smlists_array_size;
     /* holds all sm lists */
     struct SigMatch_ **smlists;
     /* holds all sm lists' tails */
