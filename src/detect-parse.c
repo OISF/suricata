@@ -280,6 +280,25 @@ static SigTableElmt *SigTableGet(char *name)
  */
 void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
 {
+    if (list > 0 && (uint32_t)list >= s->init_data->smlists_array_size)
+    {
+        uint32_t old_size = s->init_data->smlists_array_size;
+        uint32_t new_size = (uint32_t)list + 1;
+        void *ptr = SCRealloc(s->init_data->smlists, (new_size * sizeof(SigMatch *)));
+        if (ptr == NULL)
+            abort();
+        s->init_data->smlists = ptr;
+        ptr = SCRealloc(s->init_data->smlists_tail, (new_size * sizeof(SigMatch *)));
+        if (ptr == NULL)
+            abort();
+        s->init_data->smlists_tail = ptr;
+        for (uint32_t i = old_size; i < new_size; i++) {
+            s->init_data->smlists[i] = NULL;
+            s->init_data->smlists_tail[i] = NULL;
+        }
+        s->init_data->smlists_array_size = new_size;
+    }
+
     if (s->init_data->smlists[list] == NULL) {
         s->init_data->smlists[list] = new;
         s->init_data->smlists_tail[list] = new;
@@ -1159,16 +1178,17 @@ Signature *SigAlloc (void)
         SCFree(sig);
         return NULL;
     }
-    int lists = DetectBufferTypeMaxId();
-    SCLogDebug("smlists size %d", lists);
-    sig->init_data->smlists = SCCalloc(lists, sizeof(SigMatch *));
+
+    sig->init_data->smlists_array_size = DetectBufferTypeMaxId();
+    SCLogDebug("smlists size %u", sig->init_data->smlists_array_size);
+    sig->init_data->smlists = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
     if (sig->init_data->smlists == NULL) {
         SCFree(sig->init_data);
         SCFree(sig);
         return NULL;
     }
 
-    sig->init_data->smlists_tail = SCCalloc(lists, sizeof(SigMatch *));
+    sig->init_data->smlists_tail = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
     if (sig->init_data->smlists_tail == NULL) {
         SCFree(sig->init_data->smlists_tail);
         SCFree(sig->init_data);
