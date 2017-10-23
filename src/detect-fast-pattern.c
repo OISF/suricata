@@ -50,6 +50,37 @@ void DetectFastPatternRegisterTests(void);
 SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
 
 /**
+ * \brief Checks if a particular list(Signature->sm_lists[]) is in the list
+ *        of lists that need to be searched for a keyword that has fp support.
+ *
+ * \param list_id The list id.
+ *
+ * \retval 1 If supported.
+ * \retval 0 If not.
+ */
+int FastPatternSupportEnabledForSigMatchList(int list_id)
+{
+    if (sm_fp_support_smlist_list == NULL)
+        return 0;
+
+    if (list_id == DETECT_SM_LIST_PMATCH)
+        return 1;
+
+    return DetectBufferTypeSupportsMpmGetById(list_id);
+
+#if 0
+    SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
+    while (tmp_smlist_fp != NULL) {
+        if (tmp_smlist_fp->list_id == list_id)
+            return 1;
+
+        tmp_smlist_fp = tmp_smlist_fp->next;
+    }
+#endif
+    return 0;
+}
+
+/**
  * \brief Lets one add a sm list id to be searched for potential fp supported
  *        keywords later.
  *
