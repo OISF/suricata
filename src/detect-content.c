@@ -329,6 +329,9 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, const char *conten
 
     DetectContentPrint(cd);
 
+    if (DetectBufferGetActiveList(de_ctx, s) == -1)
+        goto error;
+
     int sm_list = s->init_data->list;
     if (sm_list == DETECT_SM_LIST_NOTSET) {
         sm_list = DETECT_SM_LIST_PMATCH;

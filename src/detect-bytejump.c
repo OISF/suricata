@@ -517,6 +517,9 @@ static int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
     int sm_list;
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
+        if (DetectBufferGetActiveList(de_ctx, s) == -1)
+            goto error;
+
         sm_list = s->init_data->list;
 
         if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
