@@ -79,10 +79,6 @@ struct SCSigSignatureWrapper_;
 
 */
 
-/*
- * DETECT ADDRESS
- */
-
 /* holds the values for different possible lists in struct Signature.
  * These codes are access points to particular lists in the array
  * Signature->sm_lists[DETECT_SM_LIST_MAX]. */
@@ -114,6 +110,10 @@ enum DetectSigmatchListEnum {
  * we're adding keywords to in cases of sticky buffers like
  * file_data */
 #define DETECT_SM_LIST_NOTSET INT_MAX
+
+/*
+ * DETECT ADDRESS
+ */
 
 /* a is ... than b */
 enum {
