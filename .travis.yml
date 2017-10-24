@@ -75,6 +75,7 @@ matrix:
         - ENABLE_RUST="yes"
         - RUST_VERSION="1.15.0"
         - ARGS="--enable-rust --enable-rust-strict"
+        - DO_DISTCHECK="yes"
     # Linux, gcc, -DNDEBUG.
     - os: linux
       compiler: gcc
@@ -153,6 +154,10 @@ script:
         make ${j} check 2> stderr.log
     else
         make ${j} check
+    fi
+  - |
+    if [[ "$DO_DISTCHECK" == "yes" ]]; then
+        make distcheck DISTCHECK_CONFIGURE_FLAGS="${ARGS}"
     fi
   - |
     if [[ "$DO_CHECK_SETUP_SCRIPTS" == "yes" ]]; then
