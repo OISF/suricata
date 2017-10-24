@@ -43,6 +43,17 @@ default-cflags: &default-cflags
   CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 
 matrix:
+  allow_failures:
+    # Allow the rust-stable build to fail. These entries must match
+    # the env entry in the build matrix exactly.
+    - env:
+        - NAME="linux,gcc,rust-stable"
+        - *default-cflags
+        - ENABLE_RUST="yes"
+        - RUST_VERSION="stable"
+        - ARGS="--enable-rust --enable-rust-strict"
+        - DO_CHECK_SETUP_SCRIPTS="yes"
+        - DO_DISTCHECK="yes"
   include:
     # Linux, gcc, coccinelle.
     - os: linux
@@ -58,14 +69,17 @@ matrix:
             - *packages
             - coccinelle
     # Linux, gcc, Rust (latest stable).
+    # This is allowed to fail, update allow_failures if the env changes.
     - os: linux
       compiler: gcc
       env:
-        - NAME="linux,gcc,rust"
+        - NAME="linux,gcc,rust-stable"
         - *default-cflags
         - ENABLE_RUST="yes"
+        - RUST_VERSION="stable"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
+        - DO_DISTCHECK="yes"
     # Linux, gcc, Rust.
     # - Rust 1.21.0, the latest known working version.
     - os: linux
