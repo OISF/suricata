@@ -3853,8 +3853,6 @@ void SigTableSetup(void)
     DetectTargetRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
-    DetectHttpRequestLineRegister();
-    DetectHttpResponseLineRegister();
 
     /* close keyword registration */
     DetectBufferTypeFinalizeRegistration();
