@@ -312,6 +312,16 @@ int StreamTcpInlineDropInvalid(void)
             && (stream_config.flags & STREAMTCP_INIT_FLAG_DROP_INVALID));
 }
 
+/* hack: stream random range code expects random values in range of 0-RAND_MAX,
+ * but we can get both <0 and >RAND_MAX values from RandomGet
+ */
+static int RandomGetWrap(void)
+{
+    long int r = RandomGet();
+    int r_int = r % (long int)RAND_MAX;
+    return abs(r_int);
+}
+
 /** \brief          To initialize the stream global configuration data
  *
  *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
@@ -540,7 +550,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (randomize) {
-        long int r = RandomGet();
+        long int r = RandomGetWrap();
         stream_config.reassembly_toserver_chunk_size +=
             (int) (stream_config.reassembly_toserver_chunk_size *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
@@ -562,7 +572,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (randomize) {
-        long int r = RandomGet();
+        long int r = RandomGetWrap();
         stream_config.reassembly_toclient_chunk_size +=
             (int) (stream_config.reassembly_toclient_chunk_size *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);

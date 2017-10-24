@@ -2208,6 +2208,16 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     return;
 }
 
+/* hack: htp random range code expects random values in range of 0-RAND_MAX,
+ * but we can get both <0 and >RAND_MAX values from RandomGet
+ */
+static int RandomGetWrap(void)
+{
+    long int r = RandomGet();
+    int r_int = r % (long int)RAND_MAX;
+    return abs(r_int);
+}
+
 /*
  * We have this splitup so that in case double decoding has been enabled
  * for query and path, they would be called first on the callback queue,
@@ -2220,12 +2230,12 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
     if (cfg_prec->randomize) {
         int rdrange = cfg_prec->randomize_range;
 
-        long int r = RandomGet();
+        long int r = RandomGetWrap();
         cfg_prec->request.inspect_min_size +=
             (int) (cfg_prec->request.inspect_min_size *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
 
-        r = RandomGet();
+        r = RandomGetWrap();
         cfg_prec->request.inspect_window +=
             (int) (cfg_prec->request.inspect_window *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
@@ -2237,12 +2247,12 @@ static void HTPConfigSetDefaultsPhase2(const char *name, HTPCfgRec *cfg_prec)
                   cfg_prec->request.inspect_window);
 
 
-        r = RandomGet();
+        r = RandomGetWrap();
         cfg_prec->response.inspect_min_size +=
             (int) (cfg_prec->response.inspect_min_size *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
 
-        r = RandomGet();
+        r = RandomGetWrap();
         cfg_prec->response.inspect_window +=
             (int) (cfg_prec->response.inspect_window *
                    (r * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
