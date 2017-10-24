@@ -66,6 +66,17 @@ matrix:
         - ENABLE_RUST="yes"
         - ARGS="--enable-rust --enable-rust-strict"
         - DO_CHECK_SETUP_SCRIPTS="yes"
+    # Linux, gcc, Rust.
+    # - Rust 1.21.0, the latest known working version.
+    - os: linux
+      compiler: gcc
+      env:
+        - NAME="linux,gcc,rust-1.21.0"
+        - *default-cflags
+        - ENABLE_RUST="yes"
+        - RUST_VERSION="1.21.0"
+        - ARGS="--enable-rust --enable-rust-strict"
+        - DO_DISTCHECK="yes"
     # Linux, gcc, Rust (1.15.0 - oldest supported).
     - os: linux
       compiler: gcc
