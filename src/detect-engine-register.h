@@ -199,6 +199,7 @@ enum {
 
     DETECT_PREFILTER,
 
+    DETECT_TRANSFORM_COMPRESS_WHITESPACE,
     DETECT_TRANSFORM_STRIP_WHITESPACE,
 
     /* make sure this stays last */
