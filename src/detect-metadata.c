@@ -29,7 +29,10 @@
 #include "suricata-common.h"
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
 #include "detect-metadata.h"
+
+#include "util-unittest.h"
 
 #define PARSE_REGEX "^\\s*([^\\s]+)\\s+([^\\s]+)(?:,\\s*([^\\s]+)\\s+([^\\s]+))*$"
 #define PARSE_TAG_REGEX "\\s*([^\\s]+)\\s+([^,]+)\\s*"
@@ -40,6 +43,7 @@ static pcre *parse_tag_regex;
 static pcre_extra *parse_tag_regex_study;
 
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
+static void DetectMetadataRegisterTests(void);
 
 void DetectMetadataRegister (void)
 {
@@ -49,7 +53,7 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].Match = NULL;
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;
-    sigmatch_table[DETECT_METADATA].RegisterTests = NULL;
+    sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
     DetectSetupParseRegexes(PARSE_TAG_REGEX, &parse_tag_regex, &parse_tag_regex_study);
@@ -157,5 +161,42 @@ static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     DetectMetadataParse(s, rawstr);
 
     return 0;
+}
+
+#ifdef UNITTESTS
+
+static int DetectMetadataParseTest01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectMetadata *dm;
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (metadata: toto 1; metadata: titi 2, jaivu gros_minet; sid:1; rev:1;)");
+    FAIL_IF_NULL(sig);
+    FAIL_IF_NULL(sig->metadata); 
+    FAIL_IF_NULL(sig->metadata->key); 
+    FAIL_IF(strcmp("jaivu", sig->metadata->key));
+    FAIL_IF(strcmp("gros_minet", sig->metadata->value));
+    FAIL_IF_NULL(sig->metadata->next); 
+    dm = sig->metadata->next;
+    FAIL_IF(strcmp("titi", dm->key));
+    dm = dm->next;
+    FAIL_IF_NULL(dm);
+    FAIL_IF(strcmp("toto", dm->key));
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+#endif /* UNITTESTS */
+
+/**
+ * \brief this function registers unit tests for DetectCipService
+ */
+static void DetectMetadataRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("DetectMetadataParseTest01", DetectMetadataParseTest01);
+#endif /* UNITTESTS */
 }
 
