@@ -153,7 +153,7 @@ pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContai
 // Defined in app-layer-register.h
 extern {
     pub fn AppLayerRegisterProtocolDetection(parser: *const RustParser, enable_default: c_int) -> AppProto;
-    pub fn AppLayerRegisterParser(parser: *const RustParser) -> AppProto;
+    pub fn AppLayerRegisterParser(parser: *const RustParser, alproto: AppProto) -> c_int;
 }
 
 // Defined in app-layer-detect-proto.h
