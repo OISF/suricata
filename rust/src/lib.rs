@@ -35,6 +35,7 @@ pub mod json;
 pub mod applayer;
 pub mod filecontainer;
 pub mod filetracker;
+#[macro_use] pub mod parser;
 
 #[cfg(feature = "lua")]
 pub mod lua;
