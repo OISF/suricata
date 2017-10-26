@@ -168,10 +168,14 @@ format of priority is::
 
 metadata
 --------
-Suricata ignores the words behind meta data.  Suricata supports this
-keyword because it is part of the signature language.  The format is::
 
-  metadata:......;
+The meatadata keyword allows additional, non-functional information to
+be added to the signature. While the format is free-form, it is
+recommended to stick to key, value pairs as Suricata can include these
+in eve alerts. The format is::
+
+  metadata: key value;
+  metadata: key value, key value;
 
 target
 ------

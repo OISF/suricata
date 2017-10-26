@@ -76,6 +76,18 @@ layer metadata to output on a per application layer basis ::
 The `vars` will enable dumping of a set of key/value based on flowbits and other vars
 such as named groups in regular expression.
 
+It is also possible to log key/value pairs defined by the metadata keyword on rule. To
+do so you need to set `enabled` to yes under `rule-metadata` ::
+
+        - alert:
+            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
+            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
+              enabled: yes              # set to yes to enable
+              output-array: no         # output value of key as an array
+              array-keys: [tag]        # comma separated array of keys to output as array
+
+This will add a `alert.metadata` object in the alert event.
+
 DNS
 ~~~
 
