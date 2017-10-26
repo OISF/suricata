@@ -199,6 +199,8 @@ enum {
 
     DETECT_PREFILTER,
 
+    DETECT_TRANSFORM_STRIP_WHITESPACE,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

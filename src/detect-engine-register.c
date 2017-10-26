@@ -179,6 +179,8 @@
 #include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
 
+#include "detect-transform-strip-whitespace.h"
+
 #include "util-rule-vars.h"
 
 #include "app-layer.h"
@@ -478,6 +480,8 @@ void SigTableSetup(void)
     DetectTargetRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
+
+    DetectTransformStripWhitespaceRegister();
 
     /* close keyword registration */
     DetectBufferTypeCloseRegistration();
