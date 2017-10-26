@@ -89,6 +89,7 @@ type_map = {
     "AppLayerEventType": "AppLayerEventType",
     "CLuaState": "lua_State",
     "Store": "Store",
+    "AppProto": "AppProto",
 }
 
 def convert_type(rs_type):
