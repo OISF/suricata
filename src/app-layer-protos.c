@@ -103,3 +103,31 @@ const char *AppProtoToString(AppProto alproto)
 
     return proto_name;
 }
+
+AppProto StringToAppProto(const char *proto_name)
+{
+    if (proto_name == NULL) return ALPROTO_UNKNOWN;
+
+    if (strcmp(proto_name,"http")==0) return ALPROTO_HTTP;
+    if (strcmp(proto_name,"ftp")==0) return ALPROTO_FTP;
+    if (strcmp(proto_name,"smtp")==0) return ALPROTO_SMTP;
+    if (strcmp(proto_name,"tls")==0) return ALPROTO_TLS;
+    if (strcmp(proto_name,"ssh")==0) return ALPROTO_SSH;
+    if (strcmp(proto_name,"imap")==0) return ALPROTO_IMAP;
+    if (strcmp(proto_name,"msn")==0) return ALPROTO_MSN;
+    if (strcmp(proto_name,"jabber")==0) return ALPROTO_JABBER;
+    if (strcmp(proto_name,"smb")==0) return ALPROTO_SMB;
+    if (strcmp(proto_name,"smb2")==0) return ALPROTO_SMB2;
+    if (strcmp(proto_name,"dcerpc")==0) return ALPROTO_DCERPC;
+    if (strcmp(proto_name,"irc")==0) return ALPROTO_IRC;
+    if (strcmp(proto_name,"dns")==0) return ALPROTO_DNS;
+    if (strcmp(proto_name,"modbus")==0) return ALPROTO_MODBUS;
+    if (strcmp(proto_name,"enip")==0) return ALPROTO_ENIP;
+    if (strcmp(proto_name,"dnp3")==0) return ALPROTO_DNP3;
+    if (strcmp(proto_name,"nfs")==0) return ALPROTO_NFS;
+    if (strcmp(proto_name,"ntp")==0) return ALPROTO_NTP;
+    if (strcmp(proto_name,"template")==0) return ALPROTO_TEMPLATE;
+    if (strcmp(proto_name,"failed")==0) return ALPROTO_FAILED;
+
+    return ALPROTO_UNKNOWN;
+}
