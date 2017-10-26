@@ -170,6 +170,7 @@ Metadata::
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
             metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
+            alert-metadata: yes        # add alert metadata in the alert event
 
 Alternatively to the `metadata` key it is also possible to select the application
 layer metadata to output on a per application layer basis ::
