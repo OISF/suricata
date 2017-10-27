@@ -103,6 +103,12 @@ void AppLayerParserThreadCtxFree(AppLayerParserThreadCtx *tctx);
 int AppLayerParserConfParserEnabled(const char *ipproto,
                                     const char *alproto_name);
 
+/** \brief Prototype for parsing functions */
+typedef int (*ParserFPtr)(Flow *f, void *protocol_state,
+        AppLayerParserState *pstate,
+        uint8_t *buf, uint32_t buf_len,
+        void *local_storage);
+
 /***** Parser related registration *****/
 
 /**
@@ -113,10 +119,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
  */
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
-                      int (*Parser)(Flow *f, void *protocol_state,
-                                    AppLayerParserState *pstate,
-                                    uint8_t *buf, uint32_t buf_len,
-                                    void *local_storage));
+                      ParserFPtr Parser);
 void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
                                               AppProto alproto,
                                               uint8_t direction);
