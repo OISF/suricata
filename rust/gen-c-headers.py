@@ -89,6 +89,7 @@ type_map = {
     "AppLayerEventType": "AppLayerEventType",
     "CLuaState": "lua_State",
     "Store": "Store",
+    "AppProto": "AppProto",
 }
 
 def convert_type(rs_type):
@@ -160,16 +161,16 @@ def gen_headers(filename):
     writer = StringIO()
 
     for fn in re.findall(
-            r"^pub extern \"C\" fn ([A_Za-z0-9_]+)\(([^{]+)?\)"
+            r"^pub (unsafe )?extern \"C\" fn ([A_Za-z0-9_]+)\(([^{]+)?\)"
             r"(\s+-> ([^{]+))?",
             buf,
             re.M | re.DOTALL):
 
         args = []
 
-        fnName = fn[0]
+        fnName = fn[1]
 
-        for arg in fn[1].split(","):
+        for arg in fn[2].split(","):
             if not arg:
                 continue
             arg_name, rs_type = arg.split(":", 1)
@@ -185,7 +186,7 @@ def gen_headers(filename):
         if not args:
             args.append("void")
 
-        retType = fn[3].strip()
+        retType = fn[4].strip()
         if retType == "":
             returns = "void"
         else:

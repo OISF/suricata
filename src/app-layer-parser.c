@@ -88,10 +88,7 @@ struct AppLayerParserThreadCtx_ {
 typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
-    int (*Parser[2])(Flow *f, void *protocol_state,
-                     AppLayerParserState *pstate,
-                     uint8_t *input, uint32_t input_len,
-                     void *local_storage);
+    ParserFPtr Parser[2];
     char logger;
 
     void *(*StateAlloc)(void);
@@ -349,10 +346,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
-                      int (*Parser)(Flow *f, void *protocol_state,
-                                    AppLayerParserState *pstate,
-                                    uint8_t *buf, uint32_t buf_len,
-                                    void *local_storage))
+                      ParserFPtr Parser)
 {
     SCEnter();
 
