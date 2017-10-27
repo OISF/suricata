@@ -65,5 +65,103 @@
    fun:DetectIPProtoParse
    fun:DetectIPProtoTestParse02
 }
-
+{
+   AFP - NIC GET offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:GetEthtoolValue
+   fun:DisableIfaceOffloadingLinux
+   fun:DisableIfaceOffloading
+   fun:ParseAFPConfig
+   fun:RunModeSetLiveCaptureWorkers
+   fun:RunModeIdsAFPWorkers
+   fun:RunModeDispatch
+   fun:main
+}
+{
+   AFP - NIC SET offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:SetEthtoolValue
+   fun:DisableIfaceOffloadingLinux
+   fun:DisableIfaceOffloading
+   fun:ParseAFPConfig
+   fun:RunModeSetLiveCaptureWorkers
+   fun:RunModeIdsAFPWorkers
+   fun:RunModeDispatch
+   fun:main
+}
+{
+   NIC Set restore offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:SetEthtoolValue
+   fun:RestoreIfaceOffloadingLinux
+   fun:RestoreIfaceOffloading
+   fun:LiveDeviceListClean
+   fun:GlobalsDestroy
+   fun:main
+}
+{
+   Autofp - NIC Get offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:GetEthtoolValue
+   fun:GetIfaceOffloadingLinux
+   fun:GetIfaceOffloading
+   fun:ReceivePcapThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+{
+   Autofp - NIC Get disable offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:GetEthtoolValue
+   fun:DisableIfaceOffloadingLinux
+   fun:DisableIfaceOffloading
+   fun:ReceivePcapThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+{
+   Autofp - NIC Set disable offloading
+   Memcheck:Param
+   ioctl(SIOCETHTOOL)
+   fun:ioctl
+   fun:SetEthtoolValue
+   fun:DisableIfaceOffloadingLinux
+   fun:DisableIfaceOffloading
+   fun:ReceivePcapThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+{
+   Autofp - NIC GetIfaceOffloading
+   Memcheck:Cond
+   fun:GetIfaceOffloadingLinux
+   fun:GetIfaceOffloading
+   fun:ReceivePcapThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
+{
+   Autofp - NIC DisableIfaceOffloading
+   Memcheck:Cond
+   fun:DisableIfaceOffloadingLinux
+   fun:DisableIfaceOffloading
+   fun:ReceivePcapThreadInit
+   fun:TmThreadsSlotPktAcqLoop
+   fun:start_thread
+   fun:clone
+}
 
