@@ -25,6 +25,7 @@
 #include "ippair.h"
 #include "ippair-bit.h"
 #include "ippair-timeout.h"
+#include "detect-engine-threshold.h"
 
 uint32_t IPPairGetSpareCount(void)
 {
@@ -48,6 +49,7 @@ uint32_t IPPairGetActiveCount(void)
 static int IPPairTimedOut(IPPair *h, struct timeval *ts)
 {
     int vars = 0;
+    int thresholds = 0;
 
     /** never prune a ippair that is used by a packet
      *  we are currently processing in one of the threads */
@@ -59,7 +61,11 @@ static int IPPairTimedOut(IPPair *h, struct timeval *ts)
         vars = 1;
     }
 
-    if (vars) {
+    if (ThresholdIPPairHasThreshold(h) && ThresholdIPPairTimeoutCheck(h, ts) == 0) {
+        thresholds = 1;
+    }
+
+    if (vars || thresholds) {
         return 0;
     }
 
