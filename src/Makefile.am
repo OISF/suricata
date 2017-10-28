@@ -6,6 +6,8 @@ noinst_HEADERS = action-globals.h \
     util-validate.h
 bin_PROGRAMS = suricata
 
+SUBDIRS = ebpf
+
 suricata_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
@@ -254,6 +256,7 @@ detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
+flow-bypass.c flow-bypass.h \
 flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
@@ -388,6 +391,7 @@ util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
 util-device.c util-device.h \
+util-ebpf.c util-ebpf.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
 util-file.c util-file.h \

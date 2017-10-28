@@ -32,6 +32,8 @@
  *       interface
  */
 
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "config.h"
 #include "suricata.h"
@@ -72,6 +74,28 @@
 
 #if HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
+
+#include <sys/syscall.h>
+#include <linux/types.h>
+#ifdef HAVE_PACKET_EBPF
+#include <linux/bpf.h>
+#include "util-ebpf.h"
+#include <bpf/libbpf.h>
+#include <bpf/bpf.h>
+#endif
+
+struct bpf_program {
+	u_int bf_len;
+	struct bpf_insn *bf_insns;
+};
+
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
 #endif
 
 #if HAVE_LINUX_IF_ETHER_H
@@ -189,6 +213,9 @@ union thdr {
     void *raw;
 };
 
+static int AFPBypassCallback(Packet *p);
+
+#define MAX_MAPS 32
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -243,6 +270,8 @@ typedef struct AFPThreadVars_
     int buffer_size;
     /* Filter */
     const char *bpf_filter;
+    int ebpf_lb_fd;
+    int ebpf_filter_fd;
 
     int promisc;
 
@@ -263,6 +292,10 @@ typedef struct AFPThreadVars_
     char iface[AFP_IFACE_NAME_LENGTH];
     /* IPS output iface */
     char out_iface[AFP_IFACE_NAME_LENGTH];
+
+    uint8_t xdp_mode;
+
+    int map_fd[MAX_MAPS];
 
 } AFPThreadVars;
 
@@ -594,6 +627,9 @@ static int AFPRead(AFPThreadVars *ptv)
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     /* get timestamp of packet via ioctl */
     if (ioctl(ptv->socket, SIOCGSTAMP, &p->ts) == -1) {
@@ -863,6 +899,9 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+        if (ptv->flags & AFP_BYPASS) {
+            p->BypassPacketsFlow = AFPBypassCallback;
+        }
 
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
@@ -975,6 +1014,9 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     ptv->pkts++;
     p->livedev = ptv->livedev;
@@ -1905,6 +1947,51 @@ int AFPIsFanoutSupported(void)
 #endif
 }
 
+#ifdef HAVE_PACKET_EBPF
+
+static int SockFanoutSeteBPF(AFPThreadVars *ptv)
+{
+    int pfd;
+
+    pfd = ptv->ebpf_lb_fd;
+
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Fanout file descriptor is invalid");
+        return -1;
+    }
+
+    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT_DATA, &pfd, sizeof(pfd))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf");
+        return -1;
+    }
+    SCLogInfo("Activated eBPF on socket");
+
+    return 0;
+}
+
+static int SetEbpfFilter(AFPThreadVars *ptv)
+{
+    int pfd;
+
+    pfd = ptv->ebpf_filter_fd;
+
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Filter file descriptor is invalid");
+        return -1;
+    }
+
+    if (setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_BPF, &pfd, sizeof(pfd))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf: %s", strerror(errno));
+        return -1;
+    }
+    SCLogInfo("Activated eBPF filter on socket");
+
+    return 0;
+}
+#endif
+
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 {
     int r;
@@ -1989,6 +2076,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         goto socket_err;
     }
 
+
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
     if (ptv->threads > 1) {
@@ -1999,6 +2087,18 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         if (r < 0) {
             SCLogError(SC_ERR_AFP_CREATE,
                        "Couldn't set fanout mode, error %s",
+                       strerror(errno));
+            goto socket_err;
+        }
+    }
+#endif
+
+#ifdef HAVE_PACKET_EBPF
+    if (ptv->cluster_type == PACKET_FANOUT_EBPF) {
+        r = SockFanoutSeteBPF(ptv);
+        if (r < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                       "Coudn't set EBPF, error %s",
                        strerror(errno));
             goto socket_err;
         }
@@ -2077,6 +2177,12 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     struct sock_fprog  fcode;
     int rc;
 
+#ifdef HAVE_PACKET_EBPF
+    if (ptv->ebpf_filter_fd != -1) {
+        return SetEbpfFilter(ptv);
+    }
+#endif
+
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;
 
@@ -2116,6 +2222,114 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     }
 
     return TM_ECODE_OK;
+}
+
+#ifdef HAVE_PACKET_EBPF
+static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
+{
+        /* FIXME error handling */
+        struct pair value = {inittime, 0, 0};
+        SCLogDebug("Inserting element in eBPF mapping");
+        if (bpf_map_update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
+            switch (errno) {
+                case E2BIG:
+                case EEXIST:
+                    return 0;
+                default:
+                    SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
+                               strerror(errno),
+                               errno);
+                    return 0;
+            }
+        }
+        return 1;
+}
+#endif
+
+static int AFPBypassCallback(Packet *p)
+{
+#ifdef HAVE_PACKET_EBPF
+    SCLogDebug("Calling af_packet callback function");
+    /* Only bypass TCP and UDP */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+        return 0;
+    }
+
+    /* Bypassing tunneled packets is currently not supported
+     * because we can't discard the inner packet only due to
+     * primitive parsing in eBPF */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
+    struct timespec curtime;
+    uint64_t inittime = 0;
+    if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
+        inittime = curtime.tv_sec * 1000000000;
+    }
+    if (PKT_IS_IPV4(p)) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v4");
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v4");
+            return 0;
+        }
+        /* FIXME error handling */
+        struct flowv4_keys key = {};
+        key.src = GET_IPV4_SRC_ADDR_U32(p);
+        key.dst = GET_IPV4_DST_ADDR_U32(p);
+        /* FIXME htons or not depending of XDP and af_packet eBPF */
+        key.port16[0] = htons(GET_TCP_SRC_PORT(p));
+        key.port16[1] = htons(GET_TCP_DST_PORT(p));
+        key.ip_proto = IPV4_GET_IPPROTO(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        key.src = GET_IPV4_DST_ADDR_U32(p);
+        key.dst = GET_IPV4_SRC_ADDR_U32(p);
+        key.port16[0] = htons(GET_TCP_DST_PORT(p));
+        key.port16[1] = htons(GET_TCP_SRC_PORT(p));
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        return 1;
+    }
+    /* For IPv6 case we don't handle extended header in eBPF */
+    if (PKT_IS_IPV6(p) && 
+        ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v6");
+        int i = 0;
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v6");
+            return 0;
+        }
+        SCLogDebug("add an IPv6");
+        /* FIXME error handling */
+        /* FIXME filter out next hdr IPV6 packets */
+        struct flowv6_keys key = {};
+        for (i = 0; i < 4; i++) {
+            key.src[i] = GET_IPV6_SRC_ADDR(p)[i];
+            key.dst[i] = GET_IPV6_DST_ADDR(p)[i];
+        }
+        key.port16[0] = htons(GET_TCP_SRC_PORT(p));
+        key.port16[1] = htons(GET_TCP_DST_PORT(p));
+        key.ip_proto = IPV6_GET_NH(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        for (i = 0; i < 4; i++) {
+            key.src[i] = GET_IPV6_DST_ADDR(p)[i];
+            key.dst[i] = GET_IPV6_SRC_ADDR(p)[i];
+        }
+        key.port16[0] = htons(GET_TCP_DST_PORT(p));
+        key.port16[1] = htons(GET_TCP_SRC_PORT(p));
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        return 1;
+    }
+#endif
+    return 0;
 }
 
 /**
@@ -2181,6 +2395,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (afpconfig->bpf_filter) {
         ptv->bpf_filter = afpconfig->bpf_filter;
     }
+    ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
+    ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
+    ptv->xdp_mode = afpconfig->xdp_mode;
 
 #ifdef PACKET_STATISTICS
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
@@ -2269,6 +2486,9 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
 
     AFPSwitchState(ptv, AFP_STATE_DOWN);
 
+#ifdef HAVE_PACKET_EBPF
+    EBPFSetupXDP(ptv->iface, -1, ptv->xdp_mode);
+#endif
     if (ptv->data != NULL) {
         SCFree(ptv->data);
         ptv->data = NULL;
