@@ -35,8 +35,19 @@ pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
 
+// Application layer protocol identifiers (app-layer-protos.h)
+pub type AppProto = libc::c_int;
+
+pub const ALPROTO_UNKNOWN : AppProto = 0;
+pub static mut ALPROTO_FAILED : AppProto = 0; // updated during init
+
 macro_rules!BIT_U64 {
     ($x:expr) => (1 << $x);
+}
+
+// Defined in app-layer-protos.h
+extern {
+    pub fn StringToAppProto(proto_name: *const u8) -> AppProto;
 }
 
 //
@@ -137,6 +148,7 @@ pub extern "C" fn rs_init(context: &'static mut SuricataContext)
 {
     unsafe {
         SC = Some(context);
+        ALPROTO_FAILED = StringToAppProto("failed\0".as_ptr());
     }
 }
 
