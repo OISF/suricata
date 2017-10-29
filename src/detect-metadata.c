@@ -172,7 +172,9 @@ error:
 
 static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectMetadataParse(s, rawstr);
+    if (DetectEngineMustParseMetadata()) {
+        DetectMetadataParse(s, rawstr);
+    }
 
     return 0;
 }
@@ -182,10 +184,41 @@ static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 static int DetectMetadataParseTest01(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    DetectMetadata *dm;
     FAIL_IF_NULL(de_ctx);
+    int prev_state = 0;
 
+    if (DetectEngineMustParseMetadata()) {
+        prev_state = 1;
+        DetectEngineUnsetParseMetadata();
+    }
+    Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (metadata: toto 1; sid:1; rev:1;)");
+    if (prev_state == 1) {
+        DetectEngineSetParseMetadata();
+    }
+    FAIL_IF_NULL(sig);
+    FAIL_IF(sig->metadata); 
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
+}
+
+static int DetectMetadataParseTest02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectMetadata *dm;
+    int prev_state = 1;
+
+    if (! DetectEngineMustParseMetadata()) {
+        prev_state = 0;
+        DetectEngineSetParseMetadata();
+    }
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     Signature *sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (metadata: toto 1; metadata: titi 2, jaivu gros_minet; sid:1; rev:1;)");
+    if (prev_state == 0) {
+        DetectEngineUnsetParseMetadata();
+    }
     FAIL_IF_NULL(sig);
     FAIL_IF_NULL(sig->metadata); 
     FAIL_IF_NULL(sig->metadata->key); 
@@ -211,6 +244,7 @@ static void DetectMetadataRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectMetadataParseTest01", DetectMetadataParseTest01);
+    UtRegisterTest("DetectMetadataParseTest02", DetectMetadataParseTest02);
 #endif /* UNITTESTS */
 }
 
