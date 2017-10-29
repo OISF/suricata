@@ -3038,6 +3038,18 @@ int DetectEngineMTApply(void)
     return 0;
 }
 
+static int g_parse_metadata = 0;
+
+void DetectEngineSetParseMetadata(void)
+{
+    g_parse_metadata = 1;
+}
+
+int DetectEngineMustParseMetadata(void)
+{
+    return g_parse_metadata;
+}
+
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 {
     switch (type) {
