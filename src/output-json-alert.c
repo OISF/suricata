@@ -816,6 +816,10 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
         SetFlag(conf, "rule-metadata", LOG_JSON_RULE_METADATA, &json_output_ctx->flags);
 
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+            DetectEngineSetParseMetadata();
+        }
+
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
         if (payload_buffer_value != NULL) {
