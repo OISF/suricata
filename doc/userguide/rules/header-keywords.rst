@@ -408,9 +408,9 @@ The following lists the meaning of all ICMP types. When a code is not listed,
 only type 0 is defined and has the meaning of the ICMP code, in the table above.
 A recent table can be found `at the website of IANA <https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml>`_
 
-==========  ==========  ==========================================================
+==========  ==========  =========================================================================
 ICMP Code   ICMP Type   Description
-==========  ==========  ==========================================================
+==========  ==========  =========================================================================
 3           - 0         - Net Unreachable
             - 1         - Host Unreachable
             - 2         - Protocol Unreachable
@@ -433,7 +433,7 @@ ICMP Code   ICMP Type   Description
             - 3         - Redirect Datagram for the Type of Service and Host
 9           - 0         - Normal router advertisement
             - 16        - Doest not route common traffic
-11          - 0         - Time to Live exceeeded in Transit
+11          - 0         - Time to Live exceeded in Transit
             - 1         - Fragment Reassembly Time Exceeded
 12          - 0         - Pointer indicates the error
             - 1         - Missing a Required Option
@@ -444,7 +444,7 @@ ICMP Code   ICMP Type   Description
             - 3         - Decryption Failed
             - 4         - Need Authentication
             - 5         - Need Authorization
-==========  ==========  ==========================================================
+==========  ==========  =========================================================================
 
 
 icmp_id
