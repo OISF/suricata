@@ -33,6 +33,7 @@
 #include "stream.h"
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
+void DetectMpmSetupAppMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
@@ -95,7 +96,9 @@ void DetectAppLayerMpmRegister2(const char *name,
             const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
         InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress);
-void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
+void DetectAppLayerMpmRegisterByParentId(
+        DetectEngineCtx *de_ctx,
+        const int id, const int parent_id,
         DetectEngineTransforms *transforms);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */

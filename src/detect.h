@@ -861,6 +861,8 @@ typedef struct DetectEngineCtx_ {
     /* list with app inspect engines. Both the start-time registered ones and
      * the rule-time registered ones. */
     DetectEngineAppInspectionEngine *app_inspect_engines;
+    DetectMpmAppLayerRegistery *app_mpms_list;
+    uint32_t app_mpms_list_cnt;
 
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
