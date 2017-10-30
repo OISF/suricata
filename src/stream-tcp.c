@@ -344,9 +344,13 @@ int StreamTcpInlineDropInvalid(void)
  */
 static int RandomGetWrap(void)
 {
-    long int r = RandomGet();
-    int r_int = r % (long int)RAND_MAX;
-    return abs(r_int);
+    unsigned long r;
+
+    do {
+        r = RandomGet();
+    } while(r >= ULONG_MAX - (ULONG_MAX % RAND_MAX));
+
+    return r % RAND_MAX;
 }
 
 /** \brief          To initialize the stream global configuration data
