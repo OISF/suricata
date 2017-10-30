@@ -554,7 +554,7 @@ static int SignatureCreateMask(Signature *s)
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
     DetectMpmInitializeBuiltinMpms(de_ctx);
-    DetectMpmInitializeAppMpms(de_ctx);
+    DetectMpmSetupAppMpms(de_ctx);
 
     return;
 }

@@ -183,12 +183,14 @@ void DetectAppLayerMpmRegister(const char *name,
     SupportFastPatternForSigMatchList(sm_list, priority);
 }
 
-void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
+/** \brief copy a mpm engine from parent_id, add in transforms */
+void DetectAppLayerMpmRegisterByParentId(DetectEngineCtx *de_ctx,
+        const int id, const int parent_id,
         DetectEngineTransforms *transforms)
 {
     SCLogDebug("registering %d/%d", id, parent_id);
 
-    DetectMpmAppLayerRegistery *t = g_app_mpms_list;
+    DetectMpmAppLayerRegistery *t = de_ctx->app_mpms_list;
     while (t) {
         if (t->sm_list == parent_id) {
             DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
@@ -196,7 +198,7 @@ void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
             am->name = t->name;
             snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
             am->direction = t->direction;
-            am->sm_list = id;           // use new id
+            am->sm_list = id; // use new id
             am->PrefilterRegister = t->PrefilterRegister;
             am->v2.PrefilterRegisterWithListId = t->v2.PrefilterRegisterWithListId;
             am->v2.GetData = t->v2.GetData;
@@ -207,11 +209,12 @@ void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
             if (transforms) {
                 memcpy(&am->v2.transforms, transforms, sizeof(*transforms));
             }
-            am->id = g_app_mpms_list_cnt++;
+            am->id = de_ctx->app_mpms_list_cnt++;
 
             SupportFastPatternForSigMatchList(am->sm_list, am->priority);
             t->next = am;
-            SCLogDebug("copied mpm registration for %s id %u with parent %u and GetData %p",
+            SCLogDebug("copied mpm registration for %s id %u "
+                    "with parent %u and GetData %p",
                     t->name, id, parent_id, am->v2.GetData);
             t = am;
         }
@@ -221,12 +224,40 @@ void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 {
-    BUG_ON(g_app_mpms_list_cnt == 0);
+    const DetectMpmAppLayerRegistery *list = g_app_mpms_list;
+    while (list != NULL) {
+        DetectMpmAppLayerRegistery *n = SCCalloc(1, sizeof(*n));
+        BUG_ON(n == NULL);
 
-    de_ctx->app_mpms = SCCalloc(g_app_mpms_list_cnt + 1, sizeof(DetectMpmAppLayerKeyword));
+        *n = *list;
+        n->next = NULL;
+
+        if (de_ctx->app_mpms_list == NULL) {
+            de_ctx->app_mpms_list = n;
+        } else {
+            DetectMpmAppLayerRegistery *t = de_ctx->app_mpms_list;
+            while (t->next != NULL) {
+                t = t->next;
+            }
+
+            t->next = n;
+        }
+
+        list = list->next;
+    }
+    de_ctx->app_mpms_list_cnt = g_app_mpms_list_cnt;
+    SCLogDebug("mpm: de_ctx app_mpms_list %p %u",
+            de_ctx->app_mpms_list, de_ctx->app_mpms_list_cnt);
+}
+
+void DetectMpmSetupAppMpms(DetectEngineCtx *de_ctx)
+{
+    BUG_ON(de_ctx->app_mpms_list_cnt == 0);
+
+    de_ctx->app_mpms = SCCalloc(de_ctx->app_mpms_list_cnt + 1, sizeof(DetectMpmAppLayerKeyword));
     BUG_ON(de_ctx->app_mpms == NULL);
 
-    DetectMpmAppLayerRegistery *list = g_app_mpms_list;
+    DetectMpmAppLayerRegistery *list = de_ctx->app_mpms_list;
     while (list != NULL) {
         DetectMpmAppLayerKeyword *am = &de_ctx->app_mpms[list->id];
         am->reg = list;
