@@ -197,7 +197,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
@@ -266,7 +266,7 @@ static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
@@ -353,7 +353,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     }
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
@@ -1255,7 +1255,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
-    const int nlists = DetectBufferTypeMaxId();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
@@ -1351,7 +1350,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < nlists; i++) {
+            for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
                 SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
@@ -1365,7 +1364,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < nlists; i++) {
+                for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
                     SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
@@ -1382,7 +1381,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         /* run buffer type callbacks if any */
         int x;
-        for (x = 0; x < nlists; x++) {
+        for (x = 0; x < (int)tmp_s->init_data->smlists_array_size; x++) {
             if (tmp_s->init_data->smlists[x])
                 DetectBufferRunSetupCallback(de_ctx, x, tmp_s);
         }
@@ -1809,7 +1808,6 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
-    const int nlists = DetectBufferTypeMaxId();
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
         /* set up inspect engines */
@@ -1823,8 +1821,8 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         }
 
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
-        int i;
-        for (i = 0; i < nlists; i++) {
+        uint32_t i;
+        for (i = 0; i < s->init_data->smlists_array_size; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;

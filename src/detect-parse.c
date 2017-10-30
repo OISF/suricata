@@ -362,7 +362,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
 {
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
-    int sm_type;
+    uint32_t sm_type;
 
     /* if we have a sticky buffer, use that */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
@@ -377,8 +377,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signa
     }
 
     /* otherwise brute force it */
-    const int nlists = DetectBufferTypeMaxId();
-    for (sm_type = 0; sm_type < nlists; sm_type++) {
+    for (sm_type = 0; sm_type < s->init_data->smlists_array_size; sm_type++) {
         if (!DetectBufferTypeSupportsMpmGetById(de_ctx, sm_type))
             continue;
         SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
@@ -404,8 +403,7 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...)
     SigMatch *sm_new;
 
     /* otherwise brute force it */
-    const int nlists = DetectBufferTypeMaxId();
-    for (int buf_type = 0; buf_type < nlists; buf_type++) {
+    for (int buf_type = 0; buf_type < (int)s->init_data->smlists_array_size; buf_type++) {
         if (s->init_data->smlists[buf_type] == NULL)
             continue;
         if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
@@ -505,7 +503,7 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
  */
 SigMatch *DetectGetLastSM(const Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
     int i;
@@ -555,7 +553,7 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 
 int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     int list = 0;
 
     for (list = 0; list < nlists; list++) {
@@ -1291,8 +1289,6 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
 
 void SigFree(Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
-
     if (s == NULL)
         return;
 
@@ -1304,6 +1300,7 @@ void SigFree(Signature *s)
 
     int i;
     if (s->init_data) {
+        const int nlists = s->init_data->smlists_array_size;
         for (i = 0; i < nlists; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
@@ -1546,7 +1543,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
 
     SCEnter();
 
@@ -1812,9 +1809,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     /* run buffer type callbacks if any */
-    const int nlists = DetectBufferTypeMaxId();
-    int x;
-    for (x = 0; x < nlists; x++) {
+    for (uint32_t x = 0; x < sig->init_data->smlists_array_size; x++) {
         if (sig->init_data->smlists[x])
             DetectBufferRunSetupCallback(de_ctx, x, sig);
     }

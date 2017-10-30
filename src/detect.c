@@ -1034,7 +1034,7 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
 
     if (pflow != NULL) {
         // TODO clean this up
-        const int nlists = DetectBufferTypeMaxId();
+        const int nlists = det_ctx->de_ctx->buffer_type_id;
         for (int i = 0; i < nlists; i++) {
             InspectionBuffer *buffer = &det_ctx->inspect_buffers[i];
             buffer->inspect = NULL;
