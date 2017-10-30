@@ -152,7 +152,9 @@ You can add multiple files without waiting the result: they will be
 sequentially processed and the generated log/alert files will be put
 into the directory specified as second arguments of the pcap-file
 command. You need to provide absolute path to the files and directory
-as suricata don’t know from where the script has been run.
+as suricata don’t know from where the script has been run. If you pass
+in a directory instead of a file, all files in the directory will be processed
+until you use the interrupt command or delete the directory.
 
 To know how much files are waiting to get processed, you can do:
   
