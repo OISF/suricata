@@ -426,9 +426,8 @@ void DetectContentPropagateLimits(Signature *s)
 {
     BUG_ON(s == NULL || s->init_data == NULL);
 
-    int nlists = DetectBufferTypeMaxId();
-    int list = 0;
-    for (list = 0; list < nlists; list++) {
+    uint32_t list = 0;
+    for (list = 0; list < s->init_data->smlists_array_size; list++) {
         uint16_t offset = 0;
         uint16_t offset_plus_pat = 0;
         uint16_t depth = 0;

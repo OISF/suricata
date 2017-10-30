@@ -535,7 +535,7 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
     uint32_t warn_no_direction = 0;
     uint32_t warn_both_direction = 0;
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = de_ctx->buffer_type_id;
     const int filedata_id = DetectBufferTypeGetByName("file_data");
     const int httpmethod_id = DetectBufferTypeGetByName("http_method");
     const int httpuri_id = DetectBufferTypeGetByName("http_uri");

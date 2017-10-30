@@ -316,7 +316,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
  */
 int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
@@ -341,6 +341,9 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t != NULL) {
         bool prepend = false;
+
+        if (t->sm_list >= nlists)
+            goto next;
 
         if (ptrs[t->sm_list] == NULL)
             goto next;
@@ -466,12 +469,22 @@ next:
  */
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    int nlists = 0;
+
+    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    while (ie) {
+        nlists = MAX(ie->sm_list, nlists);
+        ie = ie->next;
+    }
+    if (nlists == 0)
+        return;
+    nlists++;
+
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
     /* free engines and put smd in the array */
-    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
         BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->smd);
@@ -876,11 +889,25 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
                 map->description, map->SetupCallback, map->ValidateCallback);
         b = HashListTableGetListNext(b);
     }
+
+    de_ctx->buffer_type_hash = HashListTableInit(256,
+            DetectBufferTypeHashFunc,
+            DetectBufferTypeCompareFunc,
+            DetectBufferTypeFreeFunc);
+    if (de_ctx->buffer_type_hash == NULL) {
+        BUG_ON(1);
+    }
+    de_ctx->buffer_type_id = g_buffer_type_id;
 }
+
 static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx && de_ctx->buffer_type_map)
-        SCFree(de_ctx->buffer_type_map);
+    if (de_ctx) {
+        if (de_ctx->buffer_type_map)
+            SCFree(de_ctx->buffer_type_map);
+        if (de_ctx->buffer_type_hash)
+            HashListTableFree(de_ctx->buffer_type_hash);
+    }
 }
 
 void DetectBufferTypeCloseRegistration(void)
@@ -911,7 +938,7 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     t.cnt = transform_cnt;
 
     DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
-    DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &lookup_map, 0);
+    DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash, &lookup_map, 0);
 
     SCLogDebug("res %p", res);
     if (res != NULL) {
@@ -923,7 +950,7 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
         return -1;
 
     map->string = base_map->string;
-    map->id = g_buffer_type_id++;
+    map->id = de_ctx->buffer_type_id++;
     map->parent_id = base_map->id;
     map->transforms = t;
     map->mpm = base_map->mpm;
@@ -931,7 +958,7 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     map->ValidateCallback = base_map->ValidateCallback;
     DetectAppLayerMpmRegisterByParentId(map->id, map->parent_id, &map->transforms);
 
-    BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
+    BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash, (void *)map, 0) != 0);
     SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
 
     if (map->id >= 0 && (uint32_t)map->id >= de_ctx->buffer_type_map_elements) {
@@ -2156,12 +2183,12 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         det_ctx->base64_decoded_len = 0;
     }
 
-    det_ctx->inspect_buffers_size = (uint32_t)DetectBufferTypeMaxId();
+    det_ctx->inspect_buffers_size = de_ctx->buffer_type_id;
     det_ctx->inspect_buffers = SCCalloc(det_ctx->inspect_buffers_size, sizeof(InspectionBuffer));
     if (det_ctx->inspect_buffers == NULL) {
         return TM_ECODE_FAILED;
     }
-    det_ctx->multi_inspect_buffers_size = (uint32_t)DetectBufferTypeMaxId();
+    det_ctx->multi_inspect_buffers_size = de_ctx->buffer_type_id;
     det_ctx->multi_inspect_buffers = SCCalloc(det_ctx->multi_inspect_buffers_size, sizeof(InspectionBufferMultipleForList));
     if (det_ctx->multi_inspect_buffers == NULL) {
         return TM_ECODE_FAILED;
