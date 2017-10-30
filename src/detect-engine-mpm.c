@@ -637,7 +637,7 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
     return;
 }
 
-void RetrieveFPForSig(Signature *s)
+void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 {
     if (s->init_data->mpm_sm != NULL)
         return;
@@ -659,7 +659,7 @@ void RetrieveFPForSig(Signature *s)
         if (s->init_data->smlists[list_id] == NULL)
             continue;
 
-        if (!FastPatternSupportEnabledForSigMatchList(list_id))
+        if (!FastPatternSupportEnabledForSigMatchList(de_ctx, list_id))
             continue;
 
         for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
@@ -708,6 +708,8 @@ void RetrieveFPForSig(Signature *s)
              tmp != NULL && priority == tmp->priority;
              tmp = tmp->next)
         {
+            if (tmp->list_id >= nlists)
+                continue;
             if (curr_sm_list[tmp->list_id] == 0)
                 continue;
             final_sm_list[count_final_sm_list++] = tmp->list_id;
@@ -1440,7 +1442,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
         if (s->flags & SIG_FLAG_PREFILTER)
             continue;
 
-        RetrieveFPForSig(s);
+        RetrieveFPForSig(de_ctx, s);
         if (s->init_data->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->init_data->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);

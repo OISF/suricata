@@ -71,7 +71,7 @@ static void FpPatternStatsAdd(int list, uint16_t patlen)
     f->tot += patlen;
 }
 
-void EngineAnalysisFP(Signature *s, char *line)
+void EngineAnalysisFP(const DetectEngineCtx *de_ctx, const Signature *s, char *line)
 {
     int fast_pattern_set = 0;
     int fast_pattern_only_set = 0;
@@ -113,8 +113,8 @@ void EngineAnalysisFP(Signature *s, char *line)
     if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
-        const char *name = DetectBufferTypeGetNameById(list_type);
+        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(fp_engine_analysis_FD, "%s (%s)\n", desc, name);
         }
@@ -394,7 +394,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
     return ret;
 }
 
-static void EngineAnalysisRulesPrintFP(const Signature *s)
+static void EngineAnalysisRulesPrintFP(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     DetectContentData *fp_cd = NULL;
     SigMatch *mpm_sm = s->init_data->mpm_sm;
@@ -447,8 +447,8 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
                 payload ? (stream ? "payload and reassembled stream" : "payload") : "reassembled stream");
     }
     else {
-        const char *desc = DetectBufferTypeGetDescriptionById(list_type);
-        const char *name = DetectBufferTypeGetNameById(list_type);
+        const char *desc = DetectBufferTypeGetDescriptionById(de_ctx, list_type);
+        const char *name = DetectBufferTypeGetNameById(de_ctx, list_type);
         if (desc && name) {
             fprintf(rule_engine_analysis_FD, "%s (%s)", desc, name);
         }
@@ -481,7 +481,8 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
  *
  * \param s Pointer to the signature.
  */
-void EngineAnalysisRules(const Signature *s, const char *line)
+void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
+        const Signature *s, const char *line)
 {
     uint32_t rule_bidirectional = 0;
     uint32_t rule_pcre = 0;
@@ -844,7 +845,7 @@ void EngineAnalysisRules(const Signature *s, const char *line)
             fprintf(rule_engine_analysis_FD, "    Prefilter on: %s.\n",
                     sigmatch_table[s->init_data->prefilter_sm->type].name);
         } else {
-            EngineAnalysisRulesPrintFP(s);
+            EngineAnalysisRulesPrintFP(de_ctx, s);
         }
 
         /* this is where the warnings start */

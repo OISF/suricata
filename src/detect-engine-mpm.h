@@ -60,7 +60,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
-void RetrieveFPForSig(Signature *s);
+void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s);
 
 int MpmStoreInit(DetectEngineCtx *);
 void MpmStoreFree(DetectEngineCtx *);

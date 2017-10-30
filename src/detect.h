@@ -413,6 +413,19 @@ typedef struct DetectEngineAppInspectionEngine_ {
     struct DetectEngineAppInspectionEngine_ *next;
 } DetectEngineAppInspectionEngine;
 
+typedef struct DetectBufferType_ {
+    const char *string;
+    const char *description;
+    int id;
+    int parent_id;
+    _Bool mpm;
+    _Bool packet; /**< compat to packet matches */
+    bool supports_transforms;
+    void (*SetupCallback)(struct Signature_ *);
+    bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
+    DetectEngineTransforms transforms;
+} DetectBufferType;
+
 #ifdef UNITTESTS
 #define sm_lists init_data->smlists
 #define sm_lists_tail init_data->smlists_tail
@@ -836,6 +849,9 @@ typedef struct DetectEngineCtx_ {
 
     /** table to store metadata keys and values */
     HashTable *metadata_table;
+
+    DetectBufferType **buffer_type_map;
+    uint32_t buffer_type_map_elements;
 
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this

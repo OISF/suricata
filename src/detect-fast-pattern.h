@@ -35,7 +35,8 @@ typedef struct SCFPSupportSMList_ {
 extern SCFPSupportSMList *sm_fp_support_smlist_list;
 
 void SupportFastPatternForSigMatchList(int list_id, int priority);
-int FastPatternSupportEnabledForSigMatchList(int list_id);
+int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
+        const int list_id);
 
 void SupportFastPatternForSigMatchTypes(void);
 

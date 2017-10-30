@@ -35,8 +35,10 @@ void CleanupRuleAnalyzer (void);
 int PerCentEncodingSetup (void);
 int PerCentEncodingMatch (uint8_t *content, uint8_t content_len);
 
-void EngineAnalysisFP(Signature *s, char *line);
-void EngineAnalysisRules(const Signature *s, const char *line);
+void EngineAnalysisFP(const DetectEngineCtx *de_ctx,
+        const Signature *s, char *line);
+void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
+        const Signature *s, const char *line);
 void EngineAnalysisRulesFailure(char *line, char *file, int lineno);
 
 #endif /* __DETECT_ENGINE_ANALYZER_H__ */

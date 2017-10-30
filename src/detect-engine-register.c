@@ -480,7 +480,7 @@ void SigTableSetup(void)
     DetectBypassRegister();
 
     /* close keyword registration */
-    DetectBufferTypeFinalizeRegistration();
+    DetectBufferTypeCloseRegistration();
 }
 
 void SigTableRegisterTests(void)
