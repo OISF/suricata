@@ -201,7 +201,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -257,7 +257,7 @@ iponly:
  *  \retval 1 sig is dp only
  *  \retval 0 sig is not dp only
  */
-static int SignatureIsPDOnly(const Signature *s)
+static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
@@ -270,7 +270,7 @@ static int SignatureIsPDOnly(const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -357,7 +357,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -1279,7 +1279,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is dp only */
-        if (SignatureIsPDOnly(tmp_s) == 1) {
+        if (SignatureIsPDOnly(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_PDONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", tmp_s->id);
 
@@ -1384,7 +1384,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         int x;
         for (x = 0; x < nlists; x++) {
             if (tmp_s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(x, tmp_s);
+                DetectBufferRunSetupCallback(de_ctx, x, tmp_s);
         }
 
         de_ctx->sig_cnt++;
@@ -1813,7 +1813,7 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
         /* set up inspect engines */
-        DetectEngineAppInspectionEngine2Signature(s);
+        DetectEngineAppInspectionEngine2Signature(de_ctx, s);
 
         /* built-ins */
         int type;

@@ -198,7 +198,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
             if (i < DETECT_SM_LIST_DYNAMIC_START) {
                 name = DetectSigmatchListEnumToString(i);
             } else {
-                name = DetectBufferTypeGetNameById(i);
+                name = DetectBufferTypeGetNameById(de_ctx, i);
             }
 
             DoDump(de_ctx->profile_keyword_ctx_per_list[i], fp, name);

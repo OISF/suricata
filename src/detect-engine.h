@@ -38,24 +38,26 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
 
 int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);
-int DetectBufferTypeGetByIdTransforms(const int id, int *transforms, int transform_cnt);
-const char *DetectBufferTypeGetNameById(const int id);
 void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
 void DetectBufferTypeSupportsTransformations(const char *name);
-_Bool DetectBufferTypeSupportsMpmGetById(const int id);
-_Bool DetectBufferTypeSupportsPacketGetById(const int id);
 int DetectBufferTypeMaxId(void);
-void DetectBufferTypeFinalizeRegistration(void);
+void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
-const char *DetectBufferTypeGetDescriptionById(const int id);
 const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(Signature *));
-void DetectBufferRunSetupCallback(const int id, Signature *s);
 void DetectBufferTypeRegisterValidateCallback(const char *name,
         _Bool (*ValidateCallback)(const Signature *, const char **sigerror));
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, const char **sigerror);
+
+int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
+        int *transforms, int transform_cnt);
+const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id);
+bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id);
+bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id);
+const char *DetectBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id);
+void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx, const int id, Signature *s);
+bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx, const int id, const Signature *s, const char **sigerror);
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
@@ -134,7 +136,7 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
         InspectEngineFuncPtr2 Callback2,
         InspectionBufferGetDataPtr GetData);
 
-int DetectEngineAppInspectionEngine2Signature(Signature *s);
+int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 
 void DetectEngineSetParseMetadata(void);
@@ -142,6 +144,6 @@ void DetectEngineUnsetParseMetadata(void);
 int DetectEngineMustParseMetadata(void);
 
 int DetectBufferSetActiveList(Signature *s, const int list);
-int DetectBufferGetActiveList(Signature *s);
+int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s);
 
 #endif /* __DETECT_ENGINE_H__ */
