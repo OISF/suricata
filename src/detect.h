@@ -858,6 +858,10 @@ typedef struct DetectEngineCtx_ {
     HashListTable *buffer_type_hash;
     int buffer_type_id;
 
+    /* list with app inspect engines. Both the start-time registered ones and
+     * the rule-time registered ones. */
+    DetectEngineAppInspectionEngine *app_inspect_engines;
+
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */
