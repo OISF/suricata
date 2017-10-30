@@ -358,7 +358,7 @@ static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, int type)
  *  \note only supports the lists that are registered through
  *        DetectBufferTypeSupportsMpm().
  */
-SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
+SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
@@ -366,7 +366,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
 
     /* if we have a sticky buffer, use that */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (!(DetectBufferTypeSupportsMpmGetById(s->init_data->list))) {
+        if (!(DetectBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
             return NULL;
         }
 
@@ -379,7 +379,7 @@ SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
     /* otherwise brute force it */
     const int nlists = DetectBufferTypeMaxId();
     for (sm_type = 0; sm_type < nlists; sm_type++) {
-        if (!DetectBufferTypeSupportsMpmGetById(sm_type))
+        if (!DetectBufferTypeSupportsMpmGetById(de_ctx, sm_type))
             continue;
         SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
         sm_new = SigMatchGetLastSMByType(sm_list, DETECT_CONTENT);
@@ -1559,7 +1559,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     int x;
     for (x = 0; x < nlists; x++) {
         if (s->init_data->smlists[x]) {
-            if (DetectBufferRunValidateCallback(x, s, &de_ctx->sigerror) == FALSE) {
+            if (DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror) == FALSE) {
                 SCReturnInt(0);
             }
         }
@@ -1648,10 +1648,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
                 continue;
-            if (!(DetectBufferTypeGetNameById(i)))
+            if (!(DetectBufferTypeGetNameById(de_ctx, i)))
                 continue;
 
-            if (!(DetectBufferTypeSupportsPacketGetById(i))) {
+            if (!(DetectBufferTypeSupportsPacketGetById(de_ctx, i))) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                         "specific matches (like dsize, flags, ttl) with stream / "
                         "state matching by matching on app layer proto (like using "
@@ -1816,7 +1816,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     int x;
     for (x = 0; x < nlists; x++) {
         if (sig->init_data->smlists[x])
-            DetectBufferRunSetupCallback(x, sig);
+            DetectBufferRunSetupCallback(de_ctx, x, sig);
     }
 
     /* validate signature, SigValidate will report the error reason */

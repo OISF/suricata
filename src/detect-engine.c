@@ -314,7 +314,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
  *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
  *        is assigned.
  */
-int DetectEngineAppInspectionEngine2Signature(Signature *s)
+int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s)
 {
     const int nlists = DetectBufferTypeMaxId();
     SigMatchData *ptrs[nlists];
@@ -364,7 +364,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             exit(EXIT_FAILURE);
         }
         if (mpm_list == t->sm_list) {
-            SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(t->sm_list));
+            SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(de_ctx, t->sm_list));
             prepend = true;
             head_is_mpm = true;
             new_engine->mpm = true;
@@ -446,7 +446,7 @@ next:
     DetectEngineAppInspectionEngine *iter = s->app_inspect;
     while (iter) {
         SCLogDebug("%u: engine %s id %u progress %d %s", s->id,
-                DetectBufferTypeGetNameById(iter->sm_list), iter->id,
+                DetectBufferTypeGetNameById(de_ctx, iter->sm_list), iter->id,
                 iter->progress,
                 iter->sm_list == mpm_list ? "MPM":"");
         iter = iter->next;
@@ -509,22 +509,6 @@ static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
 static DetectEngineTransforms no_transforms = { .transforms = { 0 }, .cnt = 0, };
-
-typedef struct DetectBufferType_ {
-    const char *string;
-    const char *description;
-    int id;
-    int parent_id;
-    _Bool mpm;
-    _Bool packet; /**< compat to packet matches */
-    bool supports_transforms;
-    void (*SetupCallback)(Signature *);
-    _Bool (*ValidateCallback)(const Signature *, const char **sigerror);
-    DetectEngineTransforms transforms;
-} DetectBufferType;
-
-static DetectBufferType **g_buffer_type_map = NULL;
-static uint32_t g_buffer_type_map_elements = 0;
 
 int DetectBufferTypeMaxId(void)
 {
@@ -660,23 +644,23 @@ int DetectBufferTypeGetByName(const char *name)
     return exists->id;
 }
 
-const char *DetectBufferTypeGetNameById(const int id)
+const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || id >= g_buffer_type_id);
-    BUG_ON(g_buffer_type_map == NULL);
+    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
+    BUG_ON(de_ctx->buffer_type_map == NULL);
 
-    if (g_buffer_type_map[id] == NULL)
+    if (de_ctx->buffer_type_map[id] == NULL)
         return NULL;
 
-    return g_buffer_type_map[id]->string;
+    return de_ctx->buffer_type_map[id]->string;
 }
 
-static const DetectBufferType *DetectBufferTypeGetById(const int id)
+static const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || id >= g_buffer_type_id);
-    BUG_ON(g_buffer_type_map == NULL);
+    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
+    BUG_ON(de_ctx->buffer_type_map == NULL);
 
-    return g_buffer_type_map[id];
+    return de_ctx->buffer_type_map[id];
 }
 
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
@@ -688,9 +672,9 @@ void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
     exists->description = desc;
 }
 
-const char *DetectBufferTypeGetDescriptionById(const int id)
+const char *DetectBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *exists = DetectBufferTypeGetById(id);
+    const DetectBufferType *exists = DetectBufferTypeGetById(de_ctx, id);
     if (!exists) {
         return NULL;
     }
@@ -706,18 +690,18 @@ const char *DetectBufferTypeGetDescriptionByName(const char *name)
     return exists->description;
 }
 
-_Bool DetectBufferTypeSupportsPacketGetById(const int id)
+bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
         return FALSE;
     SCLogDebug("map %p id %d packet? %d", map, id, map->packet);
     return map->packet;
 }
 
-_Bool DetectBufferTypeSupportsMpmGetById(const int id)
+bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
         return FALSE;
     SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
@@ -734,9 +718,10 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
     exists->SetupCallback = SetupCallback;
 }
 
-void DetectBufferRunSetupCallback(const int id, Signature *s)
+void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx,
+        const int id, Signature *s)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map && map->SetupCallback) {
         map->SetupCallback(s);
     }
@@ -752,9 +737,10 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
     exists->ValidateCallback = ValidateCallback;
 }
 
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, const char **sigerror)
+bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx,
+        const int id, const Signature *s, const char **sigerror)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map && map->ValidateCallback) {
         return map->ValidateCallback(s, sigerror);
     }
@@ -774,14 +760,14 @@ int DetectBufferSetActiveList(Signature *s, const int list)
     return 0;
 }
 
-int DetectBufferGetActiveList(Signature *s)
+int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
 {
     BUG_ON(s->init_data == NULL);
 
     if (s->init_data->list && s->init_data->transform_cnt) {
         SCLogDebug("buffer %d has transform(s) registered: %d",
                 s->init_data->list, s->init_data->transforms[0]);
-        int new_list = DetectBufferTypeGetByIdTransforms(s->init_data->list,
+        int new_list = DetectBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
                 s->init_data->transforms, s->init_data->transform_cnt);
         if (new_list == -1) {
             return -1;
@@ -869,35 +855,45 @@ void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
     }
 }
 
-void DetectBufferTypeFinalizeRegistration(void)
+static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
 {
-    BUG_ON(g_buffer_type_hash == NULL);
-
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
-    g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
-    BUG_ON(!g_buffer_type_map);
-    g_buffer_type_map_elements = size;
-    SCLogDebug("g_buffer_type_map %p with %u members", g_buffer_type_map, size);
+    de_ctx->buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
+    BUG_ON(!de_ctx->buffer_type_map);
+    de_ctx->buffer_type_map_elements = size;
+    SCLogDebug("de_ctx->buffer_type_map %p with %u members", de_ctx->buffer_type_map, size);
 
     SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
     HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
     while (b) {
         DetectBufferType *map = HashListTableGetListData(b);
-        g_buffer_type_map[map->id] = map;
+        de_ctx->buffer_type_map[map->id] = map;
         SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
                 "Callbacks: Setup %p Validate %p", map->string, map->id,
                 map->mpm ? "true" : "false", map->packet ? "true" : "false",
                 map->description, map->SetupCallback, map->ValidateCallback);
         b = HashListTableGetListNext(b);
     }
+}
+static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx && de_ctx->buffer_type_map)
+        SCFree(de_ctx->buffer_type_map);
+}
+
+void DetectBufferTypeCloseRegistration(void)
+{
+    BUG_ON(g_buffer_type_hash == NULL);
+
     g_buffer_type_reg_closed = 1;
 }
 
-int DetectBufferTypeGetByIdTransforms(const int id, int *transforms, int transform_cnt)
+int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
+        int *transforms, int transform_cnt)
 {
-    const DetectBufferType *base_map = DetectBufferTypeGetById(id);
+    const DetectBufferType *base_map = DetectBufferTypeGetById(de_ctx, id);
     if (!base_map) {
         return -1;
     }
@@ -938,13 +934,13 @@ int DetectBufferTypeGetByIdTransforms(const int id, int *transforms, int transfo
     BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
     SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
 
-    if (map->id >= 0 && (uint32_t)map->id >= g_buffer_type_map_elements) {
-        void *ptr = SCRealloc(g_buffer_type_map, (map->id + 1) * sizeof(DetectBufferType *));
+    if (map->id >= 0 && (uint32_t)map->id >= de_ctx->buffer_type_map_elements) {
+        void *ptr = SCRealloc(de_ctx->buffer_type_map, (map->id + 1) * sizeof(DetectBufferType *));
         BUG_ON(ptr == NULL);
-        SCLogDebug("g_buffer_type_map resized to %u (was %u)", (map->id + 1), g_buffer_type_map_elements);
-        g_buffer_type_map = ptr;
-        g_buffer_type_map[map->id] = map;
-        g_buffer_type_map_elements = map->id + 1;
+        SCLogDebug("de_ctx->buffer_type_map resized to %u (was %u)", (map->id + 1), de_ctx->buffer_type_map_elements);
+        de_ctx->buffer_type_map = ptr;
+        de_ctx->buffer_type_map[map->id] = map;
+        de_ctx->buffer_type_map_elements = map->id + 1;
 
         DetectAppLayerInspectEngineCopy(map->parent_id, map->id, &map->transforms);
     }
@@ -1439,6 +1435,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
+    DetectBufferTypeSetupDetectEngine(de_ctx);
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -1549,6 +1546,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     SCClassConfDeInitContext(de_ctx);
     SCRConfDeInitContext(de_ctx);
+    DetectBufferTypeFreeDetectEngine(de_ctx);
 
     SigGroupCleanup(de_ctx);
 
