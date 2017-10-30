@@ -332,8 +332,6 @@ static void DetectFlowbitsAnalyzeDump(const DetectEngineCtx *de_ctx,
 
 void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
 {
-    const int nlists = DetectBufferTypeMaxId();
-
     const uint32_t max_fb_id = de_ctx->max_fb_id;
     if (max_fb_id == 0)
         return;
@@ -352,7 +350,7 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         bool has_state = false;
 
         /* see if the signature uses stateful matching */
-        for (int x = DETECT_SM_LIST_DYNAMIC_START; x < nlists; x++) {
+        for (uint32_t x = DETECT_SM_LIST_DYNAMIC_START; x < s->init_data->smlists_array_size; x++) {
             if (s->init_data->smlists[x] == NULL)
                 continue;
             has_state = true;

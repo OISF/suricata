@@ -853,6 +853,11 @@ typedef struct DetectEngineCtx_ {
     DetectBufferType **buffer_type_map;
     uint32_t buffer_type_map_elements;
 
+    /* hash table with rule-time buffer registration. Start time registration
+     * is in detect-engine.c::g_buffer_type_hash */
+    HashListTable *buffer_type_hash;
+    int buffer_type_id;
+
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */

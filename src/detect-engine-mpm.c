@@ -642,9 +642,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     if (s->init_data->mpm_sm != NULL)
         return;
 
-    const int nlists = DetectBufferTypeMaxId();
-
     SigMatch *mpm_sm = NULL, *sm = NULL;
+    const int nlists = s->init_data->smlists_array_size;
     int nn_sm_list[nlists];
     int n_sm_list[nlists];
     memset(nn_sm_list, 0, nlists * sizeof(int));
@@ -723,6 +722,9 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     int max_len = 0;
     int i;
     for (i = 0; i < count_final_sm_list; i++) {
+        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
+            continue;
+
         for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
@@ -738,6 +740,9 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     }
 
     for (i = 0; i < count_final_sm_list; i++) {
+        if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
+            continue;
+
         for (sm = s->init_data->smlists[final_sm_list[i]]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
