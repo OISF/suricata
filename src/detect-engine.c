@@ -940,6 +940,7 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     }
     de_ctx->buffer_type_id = g_buffer_type_id;
 
+    DetectMpmInitializeAppMpms(de_ctx);
     DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
 }
 
@@ -950,6 +951,19 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(de_ctx->buffer_type_map);
         if (de_ctx->buffer_type_hash)
             HashListTableFree(de_ctx->buffer_type_hash);
+
+        DetectEngineAppInspectionEngine *ilist = de_ctx->app_inspect_engines;
+        while (ilist) {
+            DetectEngineAppInspectionEngine *next = ilist->next;
+            SCFree(ilist);
+            ilist = next;
+        }
+        DetectMpmAppLayerRegistery *mlist = de_ctx->app_mpms_list;
+        while (mlist) {
+            DetectMpmAppLayerRegistery *next = mlist->next;
+            SCFree(mlist);
+            mlist = next;
+        }
     }
 }
 
@@ -999,7 +1013,8 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
     map->mpm = base_map->mpm;
     map->SetupCallback = base_map->SetupCallback;
     map->ValidateCallback = base_map->ValidateCallback;
-    DetectAppLayerMpmRegisterByParentId(map->id, map->parent_id, &map->transforms);
+    DetectAppLayerMpmRegisterByParentId(de_ctx,
+            map->id, map->parent_id, &map->transforms);
 
     BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash, (void *)map, 0) != 0);
     SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
