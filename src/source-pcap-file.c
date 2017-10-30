@@ -419,7 +419,7 @@ TmEcode PcapDirectoryPopulateBuffer(
                 temp_directory_content = MemBufferCreateNew(sizeof(char*) * 32);
                 if (!temp_directory_content)
                 {
-                    SCLogError(SC_ERR_FOPEN, "Failed to create buffer\n");
+                    SCLogError(SC_ERR_FOPEN, "Failed to create buffer");
 
                     SCReturnInt(TM_ECODE_FAILED);
                 }
@@ -431,7 +431,7 @@ TmEcode PcapDirectoryPopulateBuffer(
                 {
                     FreeDirectoryMemBuffer(temp_directory_content);
 
-                    SCLogError(SC_ERR_FOPEN, "Failed to expand buffer\n");
+                    SCLogError(SC_ERR_FOPEN, "Failed to expand buffer");
 
                     SCReturnInt(TM_ECODE_FAILED);
                 }
@@ -442,7 +442,7 @@ TmEcode PcapDirectoryPopulateBuffer(
             {
                 FreeDirectoryMemBuffer(temp_directory_content);
 
-                SCLogError(SC_ERR_FOPEN, "Failed to copy file name\n");
+                SCLogError(SC_ERR_FOPEN, "Failed to copy file name");
 
                 SCReturn(TM_ECODE_FAILED);
             }
@@ -609,7 +609,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv, const char *filename)
     pfv->filename = SCStrdup(filename);
     pfv->pcap_handle = pcap_open_offline(pfv->filename, errbuf);
     if (pfv->pcap_handle == NULL) {
-        SCLogError(SC_ERR_FOPEN, "%s\n", errbuf);
+        SCLogError(SC_ERR_FOPEN, "%s", errbuf);
         if (!RunModeUnixSocketIsActive()) {
             SCReturnInt(TM_ECODE_FAILED);
         } else {
@@ -647,7 +647,7 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv, const char *filename)
 
         default:
             SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
-                    "(yet) supported in module PcapFile.\n", pfv->datalink);
+                    "(yet) supported in module PcapFile.", pfv->datalink);
             if (! RunModeUnixSocketIsActive()) {
                 SCReturnInt(TM_ECODE_FAILED);
             } else {
@@ -819,6 +819,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     SCEnter();
 
     const char *tmpstring = NULL;
+    const char *tmp_bpf_string = NULL;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
@@ -840,8 +841,10 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
-    if (ConfGet("bpf-filter", &(ptv->shared.bpf_string)) != 1) {
+    if (ConfGet("bpf-filter", &(tmp_bpf_string)) != 1) {
         SCLogDebug("could not get bpf or none specified");
+    } else {
+        ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
     }
 
     DIR *directory = NULL;
@@ -944,7 +947,7 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data)
                       chrate);
     }
     SCLogNotice(
-            "Pcap-file module read %" PRIu32 " files, %" PRIu32 " packets, %" PRIu64 " bytes",
+            "Pcap-file module read %" PRIu64 " files, %" PRIu64 " packets, %" PRIu64 " bytes",
             ptv->shared.files,
             ptv->shared.pkts,
             ptv->shared.bytes
@@ -1004,7 +1007,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
         default:
             SCLogError(SC_ERR_UNIMPLEMENTED, "datalink type %" PRId32 " not "
-                    "(yet) supported in module PcapFile.\n", p->datalink);
+                    "(yet) supported in module PcapFile.", p->datalink);
             SCReturnInt(TM_ECODE_FAILED);
     }
 

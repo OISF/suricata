@@ -1581,7 +1581,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:TDhi:l:q:d:r:R:us:S:U:VF:vk:";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:vk:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {

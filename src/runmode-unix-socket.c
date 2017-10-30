@@ -356,7 +356,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     unix_manager_pcap_task_running = 1;
     this->running = 1;
 
-    if (ConfSet("pcap-file.file", cfile->filename) != 1) {
+    if (ConfSetFinal("pcap-file.file", cfile->filename) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
             "Can not set working file to '%s'", cfile->filename);
         PcapFilesFree(cfile);
@@ -366,7 +366,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if(cfile->delay > 0) {
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%ld", cfile->delay);
-        if (ConfSet("pcap-file.delay", tstr) != 1) {
+        if (ConfSetFinal("pcap-file.delay", tstr) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Can not set delay to '%s'", tstr);
             PcapFilesFree(cfile);
@@ -377,7 +377,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if(cfile->poll_interval > 0) {
         char tstr[32];
         snprintf(tstr, sizeof(tstr), "%ld", cfile->poll_interval);
-        if (ConfSet("pcap-file.poll-interval", tstr) != 1) {
+        if (ConfSetFinal("pcap-file.poll-interval", tstr) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Can not set poll-interval to '%s'", tstr);
             PcapFilesFree(cfile);
@@ -388,7 +388,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     if (cfile->tenant_id > 0) {
         char tstr[16];
         snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
-        if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
+        if (ConfSetFinal("pcap-file.tenant-id", tstr) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "Can not set working tenant-id to '%s'", tstr);
             PcapFilesFree(cfile);
@@ -399,7 +399,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
     }
 
     if (cfile->output_dir) {
-        if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
+        if (ConfSetFinal("default-log-dir", cfile->output_dir) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Can not set output dir to '%s'", cfile->output_dir);
             PcapFilesFree(cfile);
