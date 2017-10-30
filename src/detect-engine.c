@@ -237,11 +237,13 @@ void DetectAppLayerInspectEngineRegister2(const char *name,
     }
 }
 
-/* copy an inspect engine to a new list id. */
-static void DetectAppLayerInspectEngineCopy(int sm_list, int new_list,
+/* copy an inspect engine with transforms to a new list id. */
+static void DetectAppLayerInspectEngineCopy(
+        DetectEngineCtx *de_ctx,
+        int sm_list, int new_list,
         const DetectEngineTransforms *transforms)
 {
-    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    const DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
     while (t) {
         if (t->sm_list == sm_list) {
             DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
@@ -250,15 +252,54 @@ static void DetectAppLayerInspectEngineCopy(int sm_list, int new_list,
             }
             new_engine->alproto = t->alproto;
             new_engine->dir = t->dir;
-            new_engine->sm_list = new_list;
+            new_engine->sm_list = new_list;         /* use new list id */
             new_engine->progress = t->progress;
             new_engine->Callback = t->Callback;
             new_engine->v2 = t->v2;
-            new_engine->v2.transforms = transforms;
-            new_engine->next = t->next;
-            t->next = new_engine;
-            t = new_engine;
+            new_engine->v2.transforms = transforms; /* assign transforms */
+
+            if (de_ctx->app_inspect_engines == NULL) {
+                de_ctx->app_inspect_engines = new_engine;
+            } else {
+                DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
+                while (list->next != NULL) {
+                    list = list->next;
+                }
+
+                list->next = new_engine;
+            }
         }
+        t = t->next;
+    }
+}
+
+/* copy inspect engines from global registrations to de_ctx list */
+static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
+{
+    const DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t) {
+        DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+        if (unlikely(new_engine == NULL)) {
+            exit(EXIT_FAILURE);
+        }
+        new_engine->alproto = t->alproto;
+        new_engine->dir = t->dir;
+        new_engine->sm_list = t->sm_list;
+        new_engine->progress = t->progress;
+        new_engine->Callback = t->Callback;
+        new_engine->v2 = t->v2;
+
+        if (de_ctx->app_inspect_engines == NULL) {
+            de_ctx->app_inspect_engines = new_engine;
+        } else {
+            DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
+            while (list->next != NULL) {
+                list = list->next;
+            }
+
+            list->next = new_engine;
+        }
+
         t = t->next;
     }
 }
@@ -338,7 +379,7 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
     bool head_is_mpm = false;
     uint32_t last_id = DE_STATE_FLAG_BASE;
-    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines;
     while (t != NULL) {
         bool prepend = false;
 
@@ -446,7 +487,7 @@ next:
     }
 
 #ifdef DEBUG
-    DetectEngineAppInspectionEngine *iter = s->app_inspect;
+    const DetectEngineAppInspectionEngine *iter = s->app_inspect;
     while (iter) {
         SCLogDebug("%u: engine %s id %u progress %d %s", s->id,
                 DetectBufferTypeGetNameById(de_ctx, iter->sm_list), iter->id,
@@ -898,6 +939,8 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
         BUG_ON(1);
     }
     de_ctx->buffer_type_id = g_buffer_type_id;
+
+    DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
 }
 
 static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
@@ -969,7 +1012,8 @@ int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
         de_ctx->buffer_type_map[map->id] = map;
         de_ctx->buffer_type_map_elements = map->id + 1;
 
-        DetectAppLayerInspectEngineCopy(map->parent_id, map->id, &map->transforms);
+        DetectAppLayerInspectEngineCopy(de_ctx, map->parent_id, map->id,
+                &map->transforms);
     }
     return map->id;
 }
