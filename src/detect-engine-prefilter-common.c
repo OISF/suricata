@@ -93,8 +93,8 @@ static void GetExtraMatch(const Signature *s, uint16_t *type, uint16_t *value)
 /** \internal
  */
 static int
-SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
-        PrefilterPacketHeaderHashCtx *hctx,
+SetupEngineForPacketHeader(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
+        int sm_type, PrefilterPacketHeaderHashCtx *hctx,
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx))
 {
@@ -142,8 +142,8 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
     SCLogDebug("%s: ctx %p extra type %u extra value %u, sig cnt %u",
             sigmatch_table[sm_type].name, ctx, ctx->type, ctx->value,
             ctx->sigs_cnt);
-    PrefilterAppendEngine(sgh, Match, ctx, PrefilterPacketHeaderFree,
-            sigmatch_table[sm_type].name);
+    PrefilterAppendEngine(de_ctx, sgh, Match, ctx,
+            PrefilterPacketHeaderFree, sigmatch_table[sm_type].name);
     return 0;
 }
 
@@ -197,8 +197,8 @@ static void ApplyToU8Hash(PrefilterPacketU8HashCtx *ctx, PrefilterPacketHeaderVa
  *  \todo deduplicate sigs arrays
  */
 static int
-SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(SigGroupHead *sgh, int sm_type,
-        uint32_t *counts,
+SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type, uint32_t *counts,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx))
@@ -240,7 +240,7 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(SigGroupHead *sgh, int sm_typ
     }
 
     if (cnt) {
-        PrefilterAppendEngine(sgh, Match, ctx,
+        PrefilterAppendEngine(de_ctx, sgh, Match, ctx,
                 PrefilterPacketU8HashCtxFree,
                 sigmatch_table[sm_type].name);
     } else {
@@ -252,7 +252,7 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(SigGroupHead *sgh, int sm_typ
 /** \internal
  *  \brief setup a engine for each unique value
  */
-static void SetupSingle(HashListTable *hash_table,
+static void SetupSingle(DetectEngineCtx *de_ctx, HashListTable *hash_table,
         SigGroupHead *sgh, int sm_type,
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
@@ -262,7 +262,7 @@ static void SetupSingle(HashListTable *hash_table,
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
         PrefilterPacketHeaderHashCtx *ctx = HashListTableGetListData(hb);
 
-        SetupEngineForPacketHeader(sgh, sm_type,
+        SetupEngineForPacketHeader(de_ctx, sgh, sm_type,
                 ctx, Compare, Match);
     }
 }
@@ -270,7 +270,7 @@ static void SetupSingle(HashListTable *hash_table,
 /** \internal
  *  \brief setup a single engine with a hash map for u8 values
  */
-static void SetupU8Hash(HashListTable *hash_table,
+static void SetupU8Hash(DetectEngineCtx *de_ctx, HashListTable *hash_table,
         SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
@@ -318,11 +318,12 @@ static void SetupU8Hash(HashListTable *hash_table,
         }
     }
 
-    SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(sgh, sm_type,
+    SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(de_ctx, sgh, sm_type,
             counts, Set, Compare, Match);
 }
 
-static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
+static int PrefilterSetupPacketHeaderCommon(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
@@ -379,9 +380,9 @@ static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
     }
 
     if (u8hash == FALSE) {
-        SetupSingle(hash_table, sgh, sm_type, Compare, Match);
+        SetupSingle(de_ctx, hash_table, sgh, sm_type, Compare, Match);
     } else {
-        SetupU8Hash(hash_table, sgh, sm_type, Set, Compare, Match);
+        SetupU8Hash(de_ctx, hash_table, sgh, sm_type, Set, Compare, Match);
     }
 
     HashListTableFree(hash_table);
@@ -391,22 +392,24 @@ error:
     return -1;
 }
 
-int PrefilterSetupPacketHeaderU8Hash(SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeaderU8Hash(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
                       Packet *p, const void *pectx))
 {
-    return PrefilterSetupPacketHeaderCommon(sgh, sm_type,
+    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type,
             Set, Compare, Match, TRUE);
 }
 
-int PrefilterSetupPacketHeader(SigGroupHead *sgh, int sm_type,
+int PrefilterSetupPacketHeader(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, int sm_type,
         void (*Set)(PrefilterPacketHeaderValue *v, void *),
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
         Packet *p, const void *pectx))
 {
-    return PrefilterSetupPacketHeaderCommon(sgh, sm_type,
+    return PrefilterSetupPacketHeaderCommon(de_ctx, sgh, sm_type,
             Set, Compare, Match, FALSE);
 }

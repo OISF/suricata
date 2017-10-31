@@ -23,6 +23,9 @@
 #ifndef __DETECT_ENGINE_FILEDATA_H__
 #define __DETECT_ENGINE_FILEDATA_H__
 
+int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
 void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
         const void *pectx,
         Packet *p, Flow *f, void *txv,

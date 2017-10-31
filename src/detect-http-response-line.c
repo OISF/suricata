@@ -62,7 +62,8 @@
 
 static int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpResponseLineRegisterTests(void);
-static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
@@ -146,11 +147,12 @@ static void PrefilterTxHttpResponseLine(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseLine,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseLine,
         ALPROTO_HTTP, HTP_RESPONSE_LINE,
         mpm_ctx, NULL, "http_response_line");
 }

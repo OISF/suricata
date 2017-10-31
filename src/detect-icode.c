@@ -52,7 +52,7 @@ static int DetectICodeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
 
-static int PrefilterSetupICode(SigGroupHead *sgh);
+static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterICodeIsPrefilterable(const Signature *s);
 
 /**
@@ -331,9 +331,9 @@ PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupICode(SigGroupHead *sgh)
+static int PrefilterSetupICode(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ICODE,
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ICODE,
             PrefilterPacketICodeSet,
             PrefilterPacketICodeCompare,
             PrefilterPacketICodeMatch);

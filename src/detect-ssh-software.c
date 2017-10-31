@@ -83,11 +83,12 @@ static void PrefilterTxSshRequestSoftware(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshRequestSoftwareRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshRequestSoftwareRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshRequestSoftware,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshRequestSoftware,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -123,11 +124,12 @@ static void PrefilterTxSshResponseSoftware(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshResponseSoftwareRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshResponseSoftwareRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshResponseSoftware,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshResponseSoftware,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;

@@ -23,11 +23,16 @@
 #ifndef __DETECT_ENGINE_TLS_H__
 #define __DETECT_ENGINE_TLS_H__
 
-int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxTlsSerialRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxTlsFingerprintRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsSniRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsIssuerRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsSubjectRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsSerialRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxTlsFingerprintRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectTlsSni(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

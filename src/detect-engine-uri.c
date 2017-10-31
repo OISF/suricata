@@ -81,11 +81,12 @@ static void PrefilterTxUri(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxUriRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxUri,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxUri,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_uri");
 }

@@ -55,7 +55,7 @@ static int DetectFlowSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
 
-static int PrefilterSetupFlow(SigGroupHead *sgh);
+static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterFlowIsPrefilterable(const Signature *s);
 
 /**
@@ -426,9 +426,9 @@ PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupFlow(SigGroupHead *sgh)
+static int PrefilterSetupFlow(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FLOW,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLOW,
         PrefilterPacketFlowSet,
         PrefilterPacketFlowCompare,
         PrefilterPacketFlowMatch);

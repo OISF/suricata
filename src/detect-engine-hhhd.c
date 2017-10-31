@@ -92,11 +92,12 @@ static void PrefilterTxHostname(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHostnameRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHostnameRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHostname,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHostname,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_host");
 }

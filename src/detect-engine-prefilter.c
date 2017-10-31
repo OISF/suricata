@@ -55,7 +55,8 @@
 
 #include "util-profiling.h"
 
-static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *));
+static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
+        const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id);
 
 static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
@@ -183,7 +184,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
     }
 }
 
-int PrefilterAppendEngine(SigGroupHead *sgh,
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name)
@@ -213,11 +214,11 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
     }
 
     e->name = name;
-    e->gid = PrefilterStoreGetId(e->name, e->Free);
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
     return 0;
 }
 
-int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
+int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*PrefilterFunc)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name)
@@ -247,11 +248,11 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
     }
 
     e->name = name;
-    e->gid = PrefilterStoreGetId(e->name, e->Free);
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
     return 0;
 }
 
-int PrefilterAppendTxEngine(SigGroupHead *sgh,
+int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*PrefilterTxFunc)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
@@ -286,7 +287,7 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
     }
 
     e->name = name;
-    e->gid = PrefilterStoreGetId(e->name, e->Free);
+    e->gid = PrefilterStoreGetId(de_ctx, e->name, e->Free);
     return 0;
 }
 
@@ -351,7 +352,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         for (i = 0; i < DETECT_TBLSIZE; i++)
         {
             if (sigmatch_table[i].SetupPrefilter != NULL) {
-                sigmatch_table[i].SetupPrefilter(sgh);
+                sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
             }
         }
     }
@@ -496,7 +497,8 @@ static void PrefilterInit(void)
     SCMutexUnlock(&g_prefilter_mutex);
 }
 
-static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *))
+static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
+        const char *name, void (*FreeFunc)(void *))
 {
     PrefilterStore ctx = { name, FreeFunc, 0 };
 
@@ -626,7 +628,8 @@ static void PrefilterGenericMpmFree(void *ptr)
     SCFree(ptr);
 }
 
-int PrefilterGenericMpmRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
 {
     SCEnter();
@@ -638,7 +641,7 @@ int PrefilterGenericMpmRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx,
     pectx->mpm_ctx = mpm_ctx;
     pectx->transforms = &mpm_reg->v2.transforms;
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterMpm,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterMpm,
         mpm_reg->v2.alproto, mpm_reg->v2.tx_min_progress,
         pectx, PrefilterGenericMpmFree, mpm_reg->pname);
     if (r != 0) {

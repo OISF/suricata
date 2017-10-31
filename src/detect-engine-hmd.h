@@ -30,7 +30,8 @@ int DetectEngineInspectHttpMethod(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
 
-int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxMethodRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 void DetectEngineHttpMethodRegisterTests(void);
 

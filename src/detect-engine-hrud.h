@@ -26,7 +26,8 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxRawUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxRawUriRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpRawUri(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

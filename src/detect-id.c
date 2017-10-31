@@ -55,7 +55,7 @@ static int DetectIdSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
 
-static int PrefilterSetupId(SigGroupHead *sgh);
+static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterIdIsPrefilterable(const Signature *s);
 
 /**
@@ -257,9 +257,9 @@ PrefilterPacketIdCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupId(SigGroupHead *sgh)
+static int PrefilterSetupId(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ID,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ID,
         PrefilterPacketIdSet,
         PrefilterPacketIdCompare,
         PrefilterPacketIdMatch);

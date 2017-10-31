@@ -25,7 +25,8 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxHostnameRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxHostnameRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpHRH(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

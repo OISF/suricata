@@ -73,7 +73,7 @@ static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFragBitsFree(void *);
 
-static int PrefilterSetupFragBits(SigGroupHead *sgh);
+static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterFragBitsIsPrefilterable(const Signature *s);
 
 /**
@@ -358,9 +358,9 @@ PrefilterPacketFragBitsCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupFragBits(SigGroupHead *sgh)
+static int PrefilterSetupFragBits(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FRAGBITS,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FRAGBITS,
         PrefilterPacketFragBitsSet,
         PrefilterPacketFragBitsCompare,
         PrefilterPacketFragBitsMatch);

@@ -91,9 +91,10 @@ static void PrefilterTxMethod(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxMethodRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendTxEngine(sgh, PrefilterTxMethod,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxMethod,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_method");
 }
