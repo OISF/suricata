@@ -40,9 +40,6 @@
 
 #ifdef PROFILING
 
-extern uint32_t g_prefilter_id;
-extern HashListTable *g_prefilter_hash_table;
-
 typedef struct SCProfilePrefilterData_ {
     uint64_t called;
     uint64_t total;
@@ -186,7 +183,7 @@ void
 SCProfilingPrefilterUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks)
 {
     if (det_ctx != NULL && det_ctx->prefilter_perf_data != NULL &&
-            id < (int)g_prefilter_id)
+            id < (int)det_ctx->de_ctx->prefilter_id)
     {
         SCProfilePrefilterData *p = &det_ctx->prefilter_perf_data[id];
 
@@ -237,7 +234,7 @@ void SCProfilingPrefilterThreadSetup(SCProfilePrefilterDetectCtx *ctx, DetectEng
     if (ctx == NULL)
         return;
 
-    const uint32_t size = g_prefilter_id;
+    const uint32_t size = det_ctx->de_ctx->prefilter_id;
 
     SCProfilePrefilterData *a = SCMalloc(sizeof(SCProfilePrefilterData) * size);
     if (a != NULL) {
@@ -253,7 +250,7 @@ static void SCProfilingPrefilterThreadMerge(DetectEngineCtx *de_ctx, DetectEngin
         det_ctx->prefilter_perf_data == NULL)
         return;
 
-    for (uint32_t i = 0; i < g_prefilter_id; i++) {
+    for (uint32_t i = 0; i < de_ctx->prefilter_id; i++) {
         de_ctx->profile_prefilter_ctx->data[i].called += det_ctx->prefilter_perf_data[i].called;
         de_ctx->profile_prefilter_ctx->data[i].total += det_ctx->prefilter_perf_data[i].total;
         if (det_ctx->prefilter_perf_data[i].max > de_ctx->profile_prefilter_ctx->data[i].max)
@@ -285,8 +282,8 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     if (profiling_prefilter_enabled == 0)
         return;
 
-    const uint32_t size = g_prefilter_id;
-    if (g_prefilter_id == 0)
+    const uint32_t size = de_ctx->prefilter_id;
+    if (size == 0)
         return;
 
     de_ctx->profile_prefilter_ctx = SCProfilingPrefilterInitCtx();
@@ -297,7 +294,7 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     BUG_ON(de_ctx->profile_prefilter_ctx->data == NULL);
     memset(de_ctx->profile_prefilter_ctx->data, 0x00, sizeof(SCProfilePrefilterData) * size);
 
-    HashListTableBucket *hb = HashListTableGetListHead(g_prefilter_hash_table);
+    HashListTableBucket *hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
         PrefilterStore *ctx = HashListTableGetListData(hb);
         de_ctx->profile_prefilter_ctx->data[ctx->id].name = ctx->name;

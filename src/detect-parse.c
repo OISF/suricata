@@ -1319,10 +1319,10 @@ void SigFree(Signature *s)
     }
 
     if (s->sp != NULL) {
-        DetectPortCleanupList(s->sp);
+        DetectPortCleanupList(NULL, s->sp);
     }
     if (s->dp != NULL) {
-        DetectPortCleanupList(s->dp);
+        DetectPortCleanupList(NULL, s->dp);
     }
 
     if (s->msg != NULL)
@@ -2317,9 +2317,12 @@ static int SigParseTest02 (void)
     }
 
 end:
-    if (port != NULL) DetectPortCleanupList(port);
-    if (sig != NULL) SigFree(sig);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (port != NULL)
+        DetectPortCleanupList(de_ctx, port);
+    if (sig != NULL)
+        SigFree(sig);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
