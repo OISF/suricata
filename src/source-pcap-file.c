@@ -444,7 +444,7 @@ TmEcode PcapDirectoryPopulateBuffer(
 
                 SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy file name");
 
-                SCReturn(TM_ECODE_FAILED);
+                SCReturnInt(TM_ECODE_FAILED);
             }
             memcpy(mem, pathbuff, written + 1);
 
@@ -470,7 +470,7 @@ TmEcode PcapDirectoryPopulateBuffer(
 
     *directory_content = temp_directory_content;
 
-    SCReturn(TM_ECODE_OK);
+    SCReturnInt(TM_ECODE_OK);
 }
 
 /**
