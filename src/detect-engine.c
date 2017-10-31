@@ -1154,6 +1154,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->profile_sgh_ctx != NULL) {
         SCProfilingSghDestroyCtx(de_ctx);
     }
+    SCProfilingPrefilterDestroyCtx(de_ctx);
 #endif
 
     /* Normally the hashes are freed elsewhere, but
@@ -1785,6 +1786,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
     SCProfilingKeywordThreadSetup(de_ctx->profile_keyword_ctx, det_ctx);
+    SCProfilingPrefilterThreadSetup(de_ctx->profile_prefilter_ctx, det_ctx);
     SCProfilingSghThreadSetup(de_ctx->profile_sgh_ctx, det_ctx);
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
@@ -1944,6 +1946,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 #ifdef PROFILING
     SCProfilingRuleThreadCleanup(det_ctx);
     SCProfilingKeywordThreadCleanup(det_ctx);
+    SCProfilingPrefilterThreadCleanup(det_ctx);
     SCProfilingSghThreadCleanup(det_ctx);
 #endif
 
