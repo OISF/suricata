@@ -76,11 +76,12 @@ static void PrefilterTxTlsSni(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxTlsSniRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSni,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsSni,
         ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
         mpm_ctx, NULL, "tls_sni");
 }
@@ -151,11 +152,12 @@ static void PrefilterTxTlsIssuer(DetectEngineThreadCtx *det_ctx, const void *pec
     }
 }
 
-int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxTlsIssuerRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsIssuer,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsIssuer,
         ALPROTO_TLS, TLS_STATE_CERT_READY,
         mpm_ctx, NULL, "tls_cert_issuer");
 }
@@ -226,11 +228,12 @@ static void PrefilterTxTlsSubject(DetectEngineThreadCtx *det_ctx, const void *pe
     }
 }
 
-int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxTlsSubjectRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSubject,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsSubject,
         ALPROTO_TLS, TLS_STATE_CERT_READY,
         mpm_ctx, NULL, "tls_cert_subject");
 }
@@ -301,11 +304,12 @@ static void PrefilterTxTlsSerial(DetectEngineThreadCtx *det_ctx, const void *pec
     }
 }
 
-int PrefilterTxTlsSerialRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxTlsSerialRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSerial, ALPROTO_TLS,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsSerial, ALPROTO_TLS,
                                    TLS_STATE_CERT_READY, mpm_ctx, NULL,
                                    "tls_cert_serial");
 }
@@ -378,11 +382,12 @@ static void PrefilterTxTlsFingerprint(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxTlsFingerprintRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxTlsFingerprintRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsFingerprint, ALPROTO_TLS,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxTlsFingerprint, ALPROTO_TLS,
                                    TLS_STATE_CERT_READY, mpm_ctx, NULL,
                                    "tls_cert_fingerprint");
 }

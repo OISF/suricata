@@ -281,11 +281,12 @@ static void PrefilterTxHttpResponseBody(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHttpResponseBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHttpResponseBodyRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseBody,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseBody,
         ALPROTO_HTTP, HTP_RESPONSE_BODY,
         mpm_ctx, NULL, "file_data (http response)");
 }

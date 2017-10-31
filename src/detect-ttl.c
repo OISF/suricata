@@ -49,7 +49,7 @@ static int DetectTtlSetup (DetectEngineCtx *, Signature *, const char *);
 void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
 
-static int PrefilterSetupTtl(SigGroupHead *sgh);
+static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterTtlIsPrefilterable(const Signature *s);
 
 /**
@@ -360,9 +360,9 @@ PrefilterPacketTtlCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupTtl(SigGroupHead *sgh)
+static int PrefilterSetupTtl(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_TTL,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_TTL,
             PrefilterPacketTtlSet,
             PrefilterPacketTtlCompare,
             PrefilterPacketTtlMatch);

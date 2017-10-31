@@ -87,11 +87,12 @@ static void PrefilterTxHttpStatMsg(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHttpStatMsgRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpStatMsg,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpStatMsg,
         ALPROTO_HTTP,
         HTP_RESPONSE_LINE+1, /* inspect when response line completely parsed */
         mpm_ctx, NULL, "http_stat_msg");

@@ -52,7 +52,7 @@ static int DetectITypeSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
 
-static int PrefilterSetupIType(SigGroupHead *sgh);
+static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterITypeIsPrefilterable(const Signature *s);
 
 /**
@@ -335,9 +335,9 @@ PrefilterPacketITypeCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupIType(SigGroupHead *sgh)
+static int PrefilterSetupIType(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ITYPE,
+    return PrefilterSetupPacketHeaderU8Hash(de_ctx, sgh, DETECT_ITYPE,
             PrefilterPacketITypeSet,
             PrefilterPacketITypeCompare,
             PrefilterPacketITypeMatch);

@@ -48,7 +48,7 @@ static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Packet *, const Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
 static void DetectAckFree(void *);
-static int PrefilterSetupTcpAck(SigGroupHead *sgh);
+static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterTcpAckIsPrefilterable(const Signature *s);
 
 void DetectAckRegister(void)
@@ -183,9 +183,9 @@ PrefilterPacketAckCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupTcpAck(SigGroupHead *sgh)
+static int PrefilterSetupTcpAck(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ACK,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ACK,
         PrefilterPacketAckSet,
         PrefilterPacketAckCompare,
         PrefilterPacketAckMatch);

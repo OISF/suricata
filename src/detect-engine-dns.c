@@ -169,11 +169,12 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
 #endif
 }
 
-int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxDnsQueryRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxDnsQuery,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery,
         ALPROTO_DNS, 1,
         mpm_ctx, NULL, "dns_query");
 }
