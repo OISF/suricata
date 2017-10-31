@@ -974,7 +974,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         } else {
             SCLogDebug("proto group %d sgh %p is a copy", p, sgh_ts[p]);
 
-            SigGroupHeadFree(sgh_ts[p]);
+            SigGroupHeadFree(de_ctx, sgh_ts[p]);
             sgh_ts[p] = lookup_sgh;
 
             de_ctx->gh_reuse++;
@@ -1011,7 +1011,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         } else {
             SCLogDebug("proto group %d sgh %p is a copy", p, sgh_tc[p]);
 
-            SigGroupHeadFree(sgh_tc[p]);
+            SigGroupHeadFree(de_ctx, sgh_tc[p]);
             sgh_tc[p] = lookup_sgh;
 
             de_ctx->gh_reuse++;
@@ -1216,7 +1216,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
         } else {
             SCLogDebug("port group %p sgh %p is a copy", iter, iter->sh);
 
-            SigGroupHeadFree(iter->sh);
+            SigGroupHeadFree(de_ctx, iter->sh);
             iter->sh = lookup_sgh;
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
 
@@ -1536,7 +1536,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
 
             /* when a group's sigs are added to the joingr, we can free it */
             gr->next = NULL;
-            DetectPortFree(gr);
+            DetectPortFree(de_ctx, gr);
             gr = NULL;
 
         /* append */
@@ -1666,7 +1666,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         SCLogDebug("cleaning up signature grouping structure...");
     }
     if (de_ctx->decoder_event_sgh)
-        SigGroupHeadFree(de_ctx->decoder_event_sgh);
+        SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
 
     int f;
@@ -1677,9 +1677,9 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         }
 
         /* free lookup lists */
-        DetectPortCleanupList(de_ctx->flow_gh[f].tcp);
+        DetectPortCleanupList(de_ctx, de_ctx->flow_gh[f].tcp);
         de_ctx->flow_gh[f].tcp = NULL;
-        DetectPortCleanupList(de_ctx->flow_gh[f].udp);
+        DetectPortCleanupList(de_ctx, de_ctx->flow_gh[f].udp);
         de_ctx->flow_gh[f].udp = NULL;
     }
 
@@ -1690,7 +1690,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
             continue;
 
         SCLogDebug("sgh %p", sgh);
-        SigGroupHeadFree(sgh);
+        SigGroupHeadFree(de_ctx, sgh);
     }
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array = NULL;

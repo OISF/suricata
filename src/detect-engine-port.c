@@ -80,14 +80,14 @@ static DetectPort *DetectPortInit(void)
  *
  * \param dp Pointer to the DetectPort that has to be freed.
  */
-void DetectPortFree(DetectPort *dp)
+void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *dp)
 {
     if (dp == NULL)
         return;
 
     /* only free the head if we have the original */
     if (dp->sh != NULL && !(dp->flags & PORT_SIGGROUPHEAD_COPY)) {
-        SigGroupHeadFree(dp->sh);
+        SigGroupHeadFree(de_ctx, dp->sh);
     }
     dp->sh = NULL;
 
@@ -121,7 +121,7 @@ void DetectPortPrintList(DetectPort *head)
  *
  * \param head Pointer to the DetectPort list head
  */
-void DetectPortCleanupList (DetectPort *head)
+void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head)
 {
     if (head == NULL)
         return;
@@ -131,7 +131,7 @@ void DetectPortCleanupList (DetectPort *head)
     for (cur = head; cur != NULL; ) {
         next = cur->next;
         cur->next = NULL;
-        DetectPortFree(cur);
+        DetectPortFree(de_ctx, cur);
         cur = next;
     }
 }
@@ -191,7 +191,7 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 /* exact overlap/match */
                 if (cur != new) {
                     SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
-                    DetectPortFree(new);
+                    DetectPortFree(de_ctx, new);
                     return 0;
                 }
                 return 1;
@@ -510,13 +510,13 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
     }
 
     if (tmp != NULL) {
-        DetectPortFree(tmp);
+        DetectPortFree(de_ctx, tmp);
     }
     return 0;
 
 error:
     if (tmp != NULL)
-        DetectPortFree(tmp);
+        DetectPortFree(de_ctx, tmp);
     return -1;
 }
 
@@ -805,7 +805,8 @@ static int DetectPortParseInsert(DetectPort **head, DetectPort *new)
  * \retval 0 on success
  * \retval -1 on error
  */
-static int DetectPortParseInsertString(DetectPort **head, const char *s)
+static int DetectPortParseInsertString(const DetectEngineCtx *de_ctx,
+        DetectPort **head, const char *s)
 {
     DetectPort *ad = NULL, *ad_any = NULL;
     int r = 0;
@@ -864,9 +865,9 @@ static int DetectPortParseInsertString(DetectPort **head, const char *s)
 error:
     SCLogError(SC_ERR_PORT_PARSE_INSERT_STRING,"DetectPortParseInsertString error");
     if (ad != NULL)
-        DetectPortCleanupList(ad);
+        DetectPortCleanupList(de_ctx, ad);
     if (ad_any != NULL)
-        DetectPortCleanupList(ad_any);
+        DetectPortCleanupList(de_ctx, ad_any);
     return -1;
 }
 
@@ -989,9 +990,9 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
 
                 if (negate == 0 && n_set == 0) {
-                    r = DetectPortParseInsertString(head, address);
+                    r = DetectPortParseInsertString(de_ctx, head, address);
                 } else {
-                    r = DetectPortParseInsertString(nhead, address);
+                    r = DetectPortParseInsertString(de_ctx, nhead, address);
                 }
                 if (r == -1)
                     goto error;
@@ -1054,9 +1055,9 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 d_set = 0;
             } else {
                 if (!((negate + n_set) % 2)) {
-                    r = DetectPortParseInsertString(head,address);
+                    r = DetectPortParseInsertString(de_ctx, head,address);
                 } else {
-                    r = DetectPortParseInsertString(nhead,address);
+                    r = DetectPortParseInsertString(de_ctx, nhead,address);
                 }
                 if (r == -1)
                     goto error;
@@ -1129,7 +1130,8 @@ static int DetectPortIsCompletePortSpace(DetectPort *p)
  * \retval 0 on success
  * \retval -1 on error
  */
-static int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead)
+static int DetectPortParseMergeNotPorts(const DetectEngineCtx *de_ctx,
+        DetectPort **head, DetectPort **nhead)
 {
     DetectPort *ad = NULL;
     DetectPort *ag, *ag2;
@@ -1148,7 +1150,7 @@ static int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead)
      */
     if (*head == NULL && *nhead != NULL) {
         SCLogDebug("inserting 0:65535 into head");
-        r = DetectPortParseInsertString(head,"0:65535");
+        r = DetectPortParseInsertString(de_ctx, head,"0:65535");
         if (r < 0) {
             goto error;
         }
@@ -1192,7 +1194,7 @@ static int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead)
                 }
                 /** store the next ptr and remove the group */
                 DetectPort *next_ag2 = ag2->next;
-                DetectPortFree(ag2);
+                DetectPortFree(de_ctx,ag2);
                 ag2 = next_ag2;
             } else {
                 ag2 = ag2->next;
@@ -1213,7 +1215,7 @@ static int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead)
     return 0;
 error:
     if (ad != NULL)
-        DetectPortFree(ad);
+        DetectPortFree(de_ctx, ad);
     return -1;
 }
 
@@ -1243,7 +1245,7 @@ int DetectPortTestConfVars(void)
                        "Port var \"%s\" probably has a sequence(something "
                        "in brackets) value set without any quotes. Please "
                        "quote it using \"..\".", seq_node->name);
-            DetectPortCleanupList(gh);
+            DetectPortCleanupList(NULL, gh);
             goto error;
         }
 
@@ -1252,7 +1254,7 @@ int DetectPortTestConfVars(void)
         CleanVariableResolveList(&var_list);
 
         if (r < 0) {
-            DetectPortCleanupList(gh);
+            DetectPortCleanupList(NULL, gh);
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                         "failed to parse port var \"%s\" with value \"%s\". "
                         "Please check it's syntax", seq_node->name, seq_node->val);
@@ -1265,15 +1267,15 @@ int DetectPortTestConfVars(void)
                        "with it's value \"%s\".  Port space range is NIL. "
                        "Probably have a !any or a port range that supplies "
                        "a NULL address range", seq_node->name, seq_node->val);
-            DetectPortCleanupList(gh);
-            DetectPortCleanupList(ghn);
+            DetectPortCleanupList(NULL, gh);
+            DetectPortCleanupList(NULL, ghn);
             goto error;
         }
 
         if (gh != NULL)
-            DetectPortCleanupList(gh);
+            DetectPortCleanupList(NULL, gh);
         if (ghn != NULL)
-            DetectPortCleanupList(ghn);
+            DetectPortCleanupList(NULL, ghn);
     }
 
     return 0;
@@ -1308,15 +1310,15 @@ int DetectPortParse(const DetectEngineCtx *de_ctx,
     SCLogDebug("head %p %p, nhead %p", head, *head, nhead);
 
     /* merge the 'not' address groups */
-    if (DetectPortParseMergeNotPorts(head, &nhead) < 0)
+    if (DetectPortParseMergeNotPorts(de_ctx, head, &nhead) < 0)
         goto error;
 
     /* free the temp negate head */
-    DetectPortCleanupList(nhead);
+    DetectPortCleanupList(de_ctx, nhead);
     return 0;
 
 error:
-    DetectPortCleanupList(nhead);
+    DetectPortCleanupList(de_ctx, nhead);
     return -1;
 }
 
@@ -1389,7 +1391,7 @@ DetectPort *PortParse(const char *str)
 
 error:
     if (dp != NULL)
-        DetectPortCleanupList(dp);
+        DetectPortCleanupList(NULL, dp);
     return NULL;
 }
 
@@ -1467,7 +1469,7 @@ static char DetectPortCompareFunc(void *data1, uint16_t len1,
 static void DetectPortHashFreeFunc(void *ptr)
 {
     DetectPort *p = ptr;
-    DetectPortFree(p);
+    DetectPortFree(NULL, p);
 }
 
 /**
@@ -1601,7 +1603,7 @@ static int PortTestParse01 (void)
 
     int r = DetectPortParse(NULL,&dd,"80");
     if (r == 0) {
-        DetectPortFree(dd);
+        DetectPortFree(NULL, dd);
         return 1;
     }
 
@@ -1623,7 +1625,7 @@ static int PortTestParse02 (void)
             result = 1;
         }
 
-        DetectPortCleanupList(dd);
+        DetectPortCleanupList(NULL, dd);
         return result;
     }
 
@@ -1645,7 +1647,7 @@ static int PortTestParse03 (void)
             result = 1;
         }
 
-        DetectPortCleanupList(dd);
+        DetectPortCleanupList(NULL, dd);
 
         return result;
     }
@@ -1662,7 +1664,7 @@ static int PortTestParse04 (void)
 
     int r = DetectPortParse(NULL,&dd,"!80:81");
     if (r == 0) {
-        DetectPortCleanupList(dd);
+        DetectPortCleanupList(NULL, dd);
         return 1;
     }
 
@@ -1691,7 +1693,7 @@ static int PortTestParse05 (void)
     if (dd->next->port != 82 || dd->next->port2 != 65535)
         goto end;
 
-    DetectPortCleanupList(dd);
+    DetectPortCleanupList(NULL, dd);
     result = 1;
 end:
     return result;
@@ -1744,9 +1746,9 @@ static int PortTestParse06 (void)
 
 end:
     if (copy != NULL)
-        DetectPortCleanupList(copy);
+        DetectPortCleanupList(NULL, copy);
     if (dd != NULL)
-        DetectPortCleanupList(dd);
+        DetectPortCleanupList(NULL, dd);
     return result;
 }
 
@@ -1772,7 +1774,7 @@ static int PortTestParse07 (void)
     if (dd->next->port != 903 || dd->next->port2 != 65535)
         goto end;
 
-    DetectPortCleanupList(dd);
+    DetectPortCleanupList(NULL, dd);
     result = 1;
 end:
     return result;
@@ -1790,7 +1792,7 @@ static int PortTestParse08 (void)
     if (r == 0)
         goto end;
 
-    DetectPortCleanupList(dd);
+    DetectPortCleanupList(NULL, dd);
     result = 1;
 end:
     return result;
@@ -1814,7 +1816,7 @@ static int PortTestParse09 (void)
     if (dd->port != 1024 || dd->port2 != 0xffff)
         goto end;
 
-    DetectPortCleanupList(dd);
+    DetectPortCleanupList(NULL, dd);
     result = 1;
 end:
     return result;
@@ -1834,7 +1836,7 @@ static int PortTestParse10 (void)
         goto end;
     }
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
 end:
     return result;
@@ -1854,7 +1856,7 @@ static int PortTestParse11 (void)
         goto end;
     }
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
 end:
     return result;
@@ -1873,7 +1875,7 @@ static int PortTestParse12 (void)
         goto end;
     }
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
     result = 1 ;
 end:
@@ -1894,7 +1896,7 @@ static int PortTestParse13 (void)
         goto end;
     }
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
 end:
     return result;
@@ -1908,10 +1910,10 @@ static int PortTestParse14 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParseInsertString(&dd, "0:100");
+    int r = DetectPortParseInsertString(NULL, &dd, "0:100");
     if (r != 0)
         goto end;
-    r = DetectPortParseInsertString(&dd, "1000:65535");
+    r = DetectPortParseInsertString(NULL, &dd, "1000:65535");
     if (r != 0 || dd->next == NULL)
         goto end;
 
@@ -1921,7 +1923,7 @@ static int PortTestParse14 (void)
     result &= (dd->next->port == 1000) ? 1 : 0;
     result &= (dd->next->port2 == 65535) ? 1 : 0;
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
 end:
     return result;
@@ -1945,7 +1947,7 @@ static int PortTestParse15 (void)
     result &= (dd->next->port == 3001) ? 1 : 0;
     result &= (dd->next->port2 == 65535) ? 1 : 0;
 
-    DetectPortFree(dd);
+    DetectPortFree(NULL, dd);
 
 end:
     return result;
@@ -2000,9 +2002,9 @@ static int PortTestParse16 (void)
 
 end:
     if (copy != NULL)
-        DetectPortCleanupList(copy);
+        DetectPortCleanupList(NULL, copy);
     if (dd != NULL)
-        DetectPortCleanupList(dd);
+        DetectPortCleanupList(NULL, dd);
     return result;
 }
 
@@ -2062,9 +2064,9 @@ static int PortTestFunctions01(void)
     result = 1;
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (head != NULL)
-        DetectPortFree(head);
+        DetectPortFree(NULL, head);
     return result;
 }
 
@@ -2088,7 +2090,7 @@ static int PortTestFunctions02(void)
         goto end;
 
     /* Merge Nots */
-    r = DetectPortParseMergeNotPorts(&head, &dp1);
+    r = DetectPortParseMergeNotPorts(NULL, &head, &dp1);
     if (r != 0 || head->next != NULL)
         goto end;
 
@@ -2097,7 +2099,7 @@ static int PortTestFunctions02(void)
         goto end;
 
     /* Merge Nots */
-    r = DetectPortParseMergeNotPorts(&head, &dp2);
+    r = DetectPortParseMergeNotPorts(NULL, &head, &dp2);
     if (r != 0 || head->next != NULL)
         goto end;
 
@@ -2110,11 +2112,11 @@ static int PortTestFunctions02(void)
 
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (dp2 != NULL)
-        DetectPortFree(dp2);
+        DetectPortFree(NULL, dp2);
     if (head != NULL)
-        DetectPortFree(head);
+        DetectPortFree(NULL, head);
     return result;
 }
 
@@ -2176,11 +2178,11 @@ static int PortTestFunctions03(void)
 
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (dp2 != NULL)
-        DetectPortFree(dp2);
+        DetectPortFree(NULL, dp2);
     if (dp3 != NULL)
-        DetectPortFree(dp3);
+        DetectPortFree(NULL, dp3);
     return result;
 }
 
@@ -2216,9 +2218,9 @@ static int PortTestFunctions04(void)
     result = 1;
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (dp2 != NULL)
-        DetectPortFree(dp2);
+        DetectPortFree(NULL, dp2);
     return result;
 }
 
@@ -2294,9 +2296,9 @@ static int PortTestFunctions05(void)
     result = 1;
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (dp2 != NULL)
-        DetectPortFree(dp2);
+        DetectPortFree(NULL, dp2);
     return result;
 }
 
@@ -2372,9 +2374,9 @@ static int PortTestFunctions06(void)
     result = 1;
 end:
     if (dp1 != NULL)
-        DetectPortFree(dp1);
+        DetectPortFree(NULL, dp1);
     if (dp2 != NULL)
-        DetectPortFree(dp2);
+        DetectPortFree(NULL, dp2);
     return result;
 }
 
@@ -2402,7 +2404,7 @@ static int PortTestFunctions07(void)
     FAIL_IF_NOT_NULL(DetectPortLookupGroup(dd, 2));
     FAIL_IF_NULL(DetectPortLookupGroup(dd, 80));
 
-    DetectPortCleanupList(dd);
+    DetectPortCleanupList(NULL, dd);
     PASS;
 }
 

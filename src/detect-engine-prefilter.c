@@ -57,7 +57,8 @@
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
         const char *name, void (*FreeFunc)(void *));
-static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id);
+static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
+        const uint32_t id);
 
 static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 {
@@ -310,12 +311,12 @@ void PrefilterFreeEnginesList(PrefilterEngineList *list)
     }
 }
 
-static void PrefilterFreeEngines(PrefilterEngine *list)
+static void PrefilterFreeEngines(const DetectEngineCtx *de_ctx, PrefilterEngine *list)
 {
     PrefilterEngine *t = list;
 
     while (1) {
-        const PrefilterStore *s = PrefilterStoreGetStore(t->gid);
+        const PrefilterStore *s = PrefilterStoreGetStore(de_ctx, t->gid);
         if (s && s->FreeFunc && t->pectx) {
             s->FreeFunc(t->pectx);
         }
@@ -327,18 +328,18 @@ static void PrefilterFreeEngines(PrefilterEngine *list)
     SCFreeAligned(list);
 }
 
-void PrefilterCleanupRuleGroup(SigGroupHead *sgh)
+void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     if (sgh->pkt_engines) {
-        PrefilterFreeEngines(sgh->pkt_engines);
+        PrefilterFreeEngines(de_ctx, sgh->pkt_engines);
         sgh->pkt_engines = NULL;
     }
     if (sgh->payload_engines) {
-        PrefilterFreeEngines(sgh->payload_engines);
+        PrefilterFreeEngines(de_ctx, sgh->payload_engines);
         sgh->payload_engines = NULL;
     }
     if (sgh->tx_engines) {
-        PrefilterFreeEngines(sgh->tx_engines);
+        PrefilterFreeEngines(de_ctx, sgh->tx_engines);
         sgh->tx_engines = NULL;
     }
 }
@@ -471,30 +472,22 @@ static void PrefilterStoreFreeFunc(void *ptr)
     SCFree(ptr);
 }
 
-static SCMutex g_prefilter_mutex = SCMUTEX_INITIALIZER;
-uint32_t g_prefilter_id = 0;
-HashListTable *g_prefilter_hash_table = NULL;
-
-static void PrefilterDeinit(void)
+void PrefilterDeinit(DetectEngineCtx *de_ctx)
 {
-    SCMutexLock(&g_prefilter_mutex);
-    BUG_ON(g_prefilter_hash_table == NULL);
-    HashListTableFree(g_prefilter_hash_table);
-    SCMutexUnlock(&g_prefilter_mutex);
+    if (de_ctx->prefilter_hash_table != NULL) {
+        HashListTableFree(de_ctx->prefilter_hash_table);
+    }
 }
 
-static void PrefilterInit(void)
+void PrefilterInit(DetectEngineCtx *de_ctx)
 {
-    SCMutexLock(&g_prefilter_mutex);
-    BUG_ON(g_prefilter_hash_table != NULL);
+    BUG_ON(de_ctx->prefilter_hash_table != NULL);
 
-    g_prefilter_hash_table = HashListTableInit(256,
+    de_ctx->prefilter_hash_table = HashListTableInit(256,
             PrefilterStoreHashFunc,
             PrefilterStoreCompareFunc,
             PrefilterStoreFreeFunc);
-    BUG_ON(g_prefilter_hash_table == NULL);
-    atexit(PrefilterDeinit);
-    SCMutexUnlock(&g_prefilter_mutex);
+    BUG_ON(de_ctx->prefilter_hash_table == NULL);
 }
 
 static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
@@ -502,49 +495,43 @@ static int PrefilterStoreGetId(DetectEngineCtx *de_ctx,
 {
     PrefilterStore ctx = { name, FreeFunc, 0 };
 
-    if (g_prefilter_hash_table == NULL) {
-        PrefilterInit();
-    }
+    BUG_ON(de_ctx->prefilter_hash_table == NULL);
 
     SCLogDebug("looking up %s", name);
 
-    SCMutexLock(&g_prefilter_mutex);
-    PrefilterStore *rctx = HashListTableLookup(g_prefilter_hash_table, (void *)&ctx, 0);
+    PrefilterStore *rctx = HashListTableLookup(de_ctx->prefilter_hash_table, (void *)&ctx, 0);
     if (rctx != NULL) {
-        SCMutexUnlock(&g_prefilter_mutex);
         return rctx->id;
     }
 
     PrefilterStore *actx = SCCalloc(1, sizeof(*actx));
     if (actx == NULL) {
-        SCMutexUnlock(&g_prefilter_mutex);
         return -1;
     }
 
     actx->name = name;
     actx->FreeFunc = FreeFunc;
-    actx->id = g_prefilter_id++;
+    actx->id = de_ctx->prefilter_id++;
     SCLogDebug("prefilter engine %s has profile id %u", actx->name, actx->id);
 
-    int ret = HashListTableAdd(g_prefilter_hash_table, actx, 0);
+    int ret = HashListTableAdd(de_ctx->prefilter_hash_table, actx, 0);
     if (ret != 0) {
-        SCMutexUnlock(&g_prefilter_mutex);
         SCFree(actx);
         return -1;
     }
 
     int r = actx->id;
-    SCMutexUnlock(&g_prefilter_mutex);
     return r;
 }
 
 /** \warning slow */
-static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id)
+static const PrefilterStore *PrefilterStoreGetStore(const DetectEngineCtx *de_ctx,
+        const uint32_t id)
 {
+
     const PrefilterStore *store = NULL;
-    SCMutexLock(&g_prefilter_mutex);
-    if (g_prefilter_hash_table != NULL) {
-        HashListTableBucket *hb = HashListTableGetListHead(g_prefilter_hash_table);
+    if (de_ctx->prefilter_hash_table != NULL) {
+        HashListTableBucket *hb = HashListTableGetListHead(de_ctx->prefilter_hash_table);
         for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
             PrefilterStore *ctx = HashListTableGetListData(hb);
             if (ctx->id == id) {
@@ -553,28 +540,13 @@ static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id)
             }
         }
     }
-    SCMutexUnlock(&g_prefilter_mutex);
     return store;
 }
 
 #ifdef PROFILING
-/** \warning slow */
 const char *PrefilterStoreGetName(const uint32_t id)
 {
-    const char *name = NULL;
-    SCMutexLock(&g_prefilter_mutex);
-    if (g_prefilter_hash_table != NULL) {
-        HashListTableBucket *hb = HashListTableGetListHead(g_prefilter_hash_table);
-        for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
-            PrefilterStore *ctx = HashListTableGetListData(hb);
-            if (ctx->id == id) {
-                name = ctx->name;
-                break;
-            }
-        }
-    }
-    SCMutexUnlock(&g_prefilter_mutex);
-    return name;
+    return NULL;
 }
 #endif
 
