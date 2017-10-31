@@ -866,6 +866,9 @@ typedef struct DetectEngineCtx_ {
     DetectMpmAppLayerRegistery *app_mpms_list;
     uint32_t app_mpms_list_cnt;
 
+    uint32_t prefilter_id;
+    HashListTable *prefilter_hash_table;
+
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */

@@ -63,11 +63,14 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
 
 void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-void PrefilterCleanupRuleGroup(SigGroupHead *sgh);
+void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #ifdef PROFILING
 const char *PrefilterStoreGetName(const uint32_t id);
 #endif
+
+void PrefilterInit(DetectEngineCtx *de_ctx);
+void PrefilterDeinit(DetectEngineCtx *de_ctx);
 
 int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,

@@ -31,7 +31,7 @@ DetectPort *DetectPortCopy(DetectEngineCtx *, DetectPort *);
 DetectPort *DetectPortCopySingle(DetectEngineCtx *, DetectPort *);
 int DetectPortInsertCopy(DetectEngineCtx *,DetectPort **, DetectPort *);
 int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);
-void DetectPortCleanupList (DetectPort *head);
+void DetectPortCleanupList (const DetectEngineCtx *de_ctx, DetectPort *head);
 
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
 
@@ -40,7 +40,7 @@ int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
 void DetectPortPrint(DetectPort *);
 void DetectPortPrintList(DetectPort *head);
 int DetectPortCmp(DetectPort *, DetectPort *);
-void DetectPortFree(DetectPort *);
+void DetectPortFree(const DetectEngineCtx *de_ctx, DetectPort *);
 
 int DetectPortTestConfVars(void);
 

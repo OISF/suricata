@@ -41,6 +41,7 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
@@ -940,6 +941,7 @@ static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
     }
     de_ctx->buffer_type_id = g_buffer_type_id;
 
+    PrefilterInit(de_ctx);
     DetectMpmInitializeAppMpms(de_ctx);
     DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
 }
@@ -964,6 +966,7 @@ static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
             SCFree(mlist);
             mlist = next;
         }
+        PrefilterDeinit(de_ctx);
     }
 }
 
@@ -1632,7 +1635,6 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     SCClassConfDeInitContext(de_ctx);
     SCRConfDeInitContext(de_ctx);
-    DetectBufferTypeFreeDetectEngine(de_ctx);
 
     SigGroupCleanup(de_ctx);
 
@@ -1659,9 +1661,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 #endif
     }
 
-    DetectPortCleanupList(de_ctx->tcp_whitelist);
-    DetectPortCleanupList(de_ctx->udp_whitelist);
+    DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
+    DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
 
+    DetectBufferTypeFreeDetectEngine(de_ctx);
     /* freed our var name hash */
     VarNameStoreFree(de_ctx->version);
 
@@ -1911,7 +1914,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         if (x->port != x->port2) {
             SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
                 "for detect.grouping.tcp-whitelist: only single ports allowed", ports);
-            DetectPortCleanupList(de_ctx->tcp_whitelist);
+            DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
             de_ctx->tcp_whitelist = NULL;
             break;
         }
@@ -1934,7 +1937,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         if (x->port != x->port2) {
             SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
                 "for detect.grouping.udp-whitelist: only single ports allowed", ports);
-            DetectPortCleanupList(de_ctx->udp_whitelist);
+            DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
             de_ctx->udp_whitelist = NULL;
             break;
         }
