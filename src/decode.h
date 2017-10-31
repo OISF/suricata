@@ -374,7 +374,6 @@ typedef struct PktProfiling_ {
     PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
     PktProfilingLoggerData logger[LOGGER_SIZE];
-    PktProfilingPrefilterData prefilter;
     uint64_t proto_detect;
 } PktProfiling;
 

@@ -55,12 +55,6 @@
 
 #include "util-profiling.h"
 
-typedef struct PrefilterStore_ {
-    const char *name;
-    void (*FreeFunc)(void *);
-    uint32_t id;
-} PrefilterStore;
-
 static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id);
 
@@ -117,10 +111,10 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
             }
         }
 
-        PROFILING_PREFILTER_START(p);
+        PREFILTER_PROFILING_START;
         engine->cb.PrefilterTx(det_ctx, engine->pectx,
                 p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
-        PROFILING_PREFILTER_END(p, engine->gid);
+        PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
         if (tx->tx_progress > engine->tx_min_progress) {
             tx->prefilter_flags |= (1<<(engine->local_id));
@@ -145,16 +139,14 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 {
     SCEnter();
 
-    PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->prefilter_maxid);
-
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
         /* run packet engines */
         PrefilterEngine *engine = sgh->pkt_engines;
         do {
-            PROFILING_PREFILTER_START(p);
+            PREFILTER_PROFILING_START;
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->gid);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
                 break;
@@ -171,9 +163,9 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         PrefilterEngine *engine = sgh->payload_engines;
         while (1) {
-            PROFILING_PREFILTER_START(p);
+            PREFILTER_PROFILING_START;
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->gid);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
                 break;
@@ -479,8 +471,8 @@ static void PrefilterStoreFreeFunc(void *ptr)
 }
 
 static SCMutex g_prefilter_mutex = SCMUTEX_INITIALIZER;
-static uint32_t g_prefilter_id = 0;
-static HashListTable *g_prefilter_hash_table = NULL;
+uint32_t g_prefilter_id = 0;
+HashListTable *g_prefilter_hash_table = NULL;
 
 static void PrefilterDeinit(void)
 {

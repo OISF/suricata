@@ -721,6 +721,7 @@ typedef struct DetectEngineCtx_ {
 #ifdef PROFILING
     struct SCProfileDetectCtx_ *profile_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
+    struct SCProfilePrefilterDetectCtx_ *profile_prefilter_ctx;
     struct SCProfileKeywordDetectCtx_ **profile_keyword_ctx_per_list;
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
@@ -972,6 +973,9 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileKeywordData_ **keyword_perf_data_per_list;
     int keyword_perf_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
     struct SCProfileSghData_ *sgh_perf_data;
+
+    struct SCProfilePrefilterData_ *prefilter_perf_data;
+    int prefilter_perf_size;
 #endif
 } DetectEngineThreadCtx;
 

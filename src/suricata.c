@@ -2200,6 +2200,7 @@ void PreRunInit(const int runmode)
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingKeywordsGlobalInit();
+    SCProfilingPrefilterGlobalInit();
     SCProfilingSghsGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */

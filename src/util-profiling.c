@@ -95,9 +95,6 @@ struct ProfileProtoRecords {
     SCProfilePacketData records4[257];
     SCProfilePacketData records6[257];
 };
-static SCProfilePacketData prefilter4[256][256];
-static SCProfilePacketData prefilter6[256][256];
-
 
 struct ProfileProtoRecords packet_profile_flowworker_data[PROFILE_FLOWWORKER_SIZE];
 
@@ -178,8 +175,6 @@ SCProfilingInit(void)
             memset(&packet_profile_log_data4, 0, sizeof(packet_profile_log_data4));
             memset(&packet_profile_log_data6, 0, sizeof(packet_profile_log_data6));
             memset(&packet_profile_flowworker_data, 0, sizeof(packet_profile_flowworker_data));
-            memset(&prefilter4, 0, sizeof(prefilter4));
-            memset(&prefilter6, 0, sizeof(prefilter6));
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
@@ -314,96 +309,6 @@ SCProfilingDump(void)
 {
     SCProfilingDumpPacketStats();
     SCLogPerf("Done dumping profiling data.");
-}
-
-static void DumpPrefilterIP(FILE *fp, int ipv, uint64_t total)
-{
-    char totalstr[256];
-
-    SCProfilePacketData total_pd;
-    memset(&total_pd, 0, sizeof(total_pd));
-
-    int i;
-    for (i = 0; i < 256; i++) {
-        const char *name = PrefilterStoreGetName(i);
-
-        for (int p = 0; p < 256; p++) {
-            SCProfilePacketData *pd = ipv == 4 ? &prefilter4[i][p] : &prefilter6[i][p];
-            if (pd->cnt == 0) {
-                continue;
-            }
-
-            total_pd.cnt += pd->cnt;
-            total_pd.tot += pd->tot;
-
-            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
-            double percent = (long double)pd->tot /
-                (long double)total * 100;
-
-            fprintf(fp, "%-30s    IPv%d     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %11s  %-6.2f\n",
-                    name, ipv, p, pd->cnt,
-                    pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
-        }
-    }
-    if (total_pd.cnt) {
-        FormatNumber(total_pd.tot, totalstr, sizeof(totalstr));
-        fprintf(fp, "%-30s    IPv%d          %12"PRIu64"                                  %12"PRIu64"  %11s\n",
-                "Total", ipv, total_pd.cnt, (uint64_t)(total_pd.tot / total_pd.cnt), totalstr);
-    }
-}
-
-static void DumpPrefilter(FILE *fp)
-{
-    uint64_t total = 0;
-
-    int i;
-    for (i = 0; i < 256; i++) {
-        for (int p = 0; p < 256; p++) {
-            SCProfilePacketData *pd = &prefilter4[i][p];
-            total += pd->tot;
-            pd = &prefilter6[i][p];
-            total += pd->tot;
-        }
-    }
-
-    fprintf(fp, "\n%-30s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-11s  %-3s\n",
-            "Prefilter", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot", "%%");
-    fprintf(fp, "%-30s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-11s  %-3s\n",
-            "--------------------", "------", "-----", "----------",
-            "------------", "------------", "-----------", "---------", "---");
-    DumpPrefilterIP(fp, 4, total);
-    DumpPrefilterIP(fp, 6, total);
-}
-
-static void SCProfilingUpdatePrefilterRecords(Packet *p)
-{
-    if (p->profile->prefilter.engines != NULL) {
-        uint32_t x;
-        for (x = 0; x < p->profile->prefilter.size; x++) {
-            uint64_t ticks = p->profile->prefilter.engines[x].ticks_spent;
-            if (ticks == 0)
-                continue;
-
-            SCProfilePacketData *pd = NULL;
-            if (PKT_IS_IPV4(p)) {
-                pd = &prefilter4[x][p->proto];
-            } else if (PKT_IS_IPV6(p)) {
-                pd = &prefilter6[x][p->proto];
-            } else {
-                continue;
-            }
-
-            if (pd->min == 0 || ticks < pd->min) {
-                pd->min = ticks;
-            }
-            if (pd->max < ticks) {
-                pd->max = ticks;
-            }
-
-            pd->tot += ticks;
-            pd->cnt ++;
-        }
-    }
 }
 
 static void DumpFlowWorkerIP(FILE *fp, int ipv, uint64_t total)
@@ -832,8 +737,6 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
-    DumpPrefilter(fp);
-
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
     total = 0;
@@ -1255,7 +1158,6 @@ void SCProfilingAddPacket(Packet *p)
             SCProfilingUpdatePacketLogRecords(p);
         }
 
-        SCProfilingUpdatePrefilterRecords(p);
         if (profiling_packets_csv_enabled)
             SCProfilingPrintPacketProfile(p);
 

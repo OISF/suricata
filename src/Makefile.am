@@ -441,10 +441,11 @@ util-prefilter.c util-prefilter.h \
 util-print.c util-print.h \
 util-privs.c util-privs.h \
 util-profiling.c util-profiling.h \
-util-profiling-locks.c util-profiling-locks.h \
-util-profiling-rules.c \
 util-profiling-keywords.c \
+util-profiling-locks.c util-profiling-locks.h \
+util-profiling-prefilter.c \
 util-profiling-rulegroups.c \
+util-profiling-rules.c \
 util-proto-name.c util-proto-name.h \
 util-radix-tree.c util-radix-tree.h \
 util-random.c util-random.h \

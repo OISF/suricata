@@ -1453,6 +1453,11 @@ profiling:
     filename: keyword_perf.log
     append: yes
 
+  prefilter:
+    enabled: yes
+    filename: prefilter_perf.log
+    append: yes
+
   # per rulegroup profiling
   rulegroups:
     enabled: yes
