@@ -26,6 +26,12 @@
 
 #include "detect-engine-state.h"
 
+typedef struct PrefilterStore_ {
+    const char *name;
+    void (*FreeFunc)(void *);
+    uint32_t id;
+} PrefilterStore;
+
 void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
         const uint8_t flags);
 

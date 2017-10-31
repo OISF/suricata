@@ -1905,6 +1905,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 
 #ifdef PROFILING
     SCProfilingKeywordInitCounters(de_ctx);
+    SCProfilingPrefilterInitCounters(de_ctx);
     de_ctx->profile_match_logging_threshold = UINT_MAX; // disabled
 
     intmax_t v = 0;
