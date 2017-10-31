@@ -419,7 +419,7 @@ TmEcode PcapDirectoryPopulateBuffer(
                 temp_directory_content = MemBufferCreateNew(sizeof(char*) * 32);
                 if (!temp_directory_content)
                 {
-                    SCLogError(SC_ERR_FOPEN, "Failed to create buffer");
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to create buffer");
 
                     SCReturnInt(TM_ECODE_FAILED);
                 }
@@ -431,7 +431,7 @@ TmEcode PcapDirectoryPopulateBuffer(
                 {
                     FreeDirectoryMemBuffer(temp_directory_content);
 
-                    SCLogError(SC_ERR_FOPEN, "Failed to expand buffer");
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to expand buffer");
 
                     SCReturnInt(TM_ECODE_FAILED);
                 }
@@ -442,7 +442,7 @@ TmEcode PcapDirectoryPopulateBuffer(
             {
                 FreeDirectoryMemBuffer(temp_directory_content);
 
-                SCLogError(SC_ERR_FOPEN, "Failed to copy file name");
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy file name");
 
                 SCReturn(TM_ECODE_FAILED);
             }
@@ -607,6 +607,10 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv, const char *filename)
     char errbuf[PCAP_ERRBUF_SIZE] = "";
 
     pfv->filename = SCStrdup(filename);
+    if (unlikely(pfv->filename == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
     pfv->pcap_handle = pcap_open_offline(pfv->filename, errbuf);
     if (pfv->pcap_handle == NULL) {
         SCLogError(SC_ERR_FOPEN, "%s", errbuf);
@@ -845,6 +849,10 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         SCLogDebug("could not get bpf or none specified");
     } else {
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
+        if (unlikely(ptv->shared.bpf_string == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate bpf_string");
+            SCReturnInt(TM_ECODE_FAILED);
+        }
     }
 
     DIR *directory = NULL;
@@ -902,6 +910,10 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
 
         pv->shared = &ptv->shared;
         pv->filename = SCStrdup((char*)initdata);
+        if (unlikely(pv->filename == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+            SCReturnInt(TM_ECODE_FAILED);
+        }
         pv->directory = directory;
 
         ptv->is_directory = 1;
