@@ -116,11 +116,12 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpRequestHeaderRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeaderRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeader,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeader,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -202,11 +203,12 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpResponseHeaderRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeaderRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeader,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeader,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;

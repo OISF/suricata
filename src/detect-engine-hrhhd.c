@@ -104,11 +104,12 @@ static void PrefilterTxHostnameRaw(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHostnameRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHostnameRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHostnameRaw,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHostnameRaw,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_raw_host");
 }

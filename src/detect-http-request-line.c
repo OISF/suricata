@@ -62,7 +62,8 @@
 
 static int DetectHttpRequestLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRequestLineRegisterTests(void);
-static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+static int PrefilterTxHttpRequestLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
@@ -146,11 +147,12 @@ static void PrefilterTxHttpRequestLine(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestLineRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestLine,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestLine,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_request_line");
 }

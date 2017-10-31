@@ -56,7 +56,7 @@ static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, const char *str);
 static void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
-static int PrefilterSetupDsize(SigGroupHead *sgh);
+static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterDsizeIsPrefilterable(const Signature *s);
 
 /**
@@ -354,9 +354,9 @@ PrefilterPacketDsizeCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupDsize(SigGroupHead *sgh)
+static int PrefilterSetupDsize(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_DSIZE,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_DSIZE,
             PrefilterPacketDsizeSet,
             PrefilterPacketDsizeCompare,
             PrefilterPacketDsizeMatch);

@@ -25,8 +25,10 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxRequestHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-int PrefilterTxResponseHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxRequestHeadersRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxResponseHeadersRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

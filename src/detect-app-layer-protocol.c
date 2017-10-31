@@ -238,9 +238,9 @@ PrefilterPacketAppProtoCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupAppProto(SigGroupHead *sgh)
+static int PrefilterSetupAppProto(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_AL_APP_LAYER_PROTOCOL,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_AL_APP_LAYER_PROTOCOL,
         PrefilterPacketAppProtoSet,
         PrefilterPacketAppProtoCompare,
         PrefilterPacketAppProtoMatch);

@@ -97,7 +97,8 @@ static int g_app_mpms_list_cnt = 0;
  */
 void DetectAppLayerMpmRegister2(const char *name,
         int direction, int priority,
-        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx,
             const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
         InspectionBufferGetDataPtr GetData,
         AppProto alproto, int tx_min_progress)
@@ -149,7 +150,8 @@ void DetectAppLayerMpmRegister2(const char *name,
 
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
-        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx))
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx))
 {
     SCLogDebug("registering %s/%d/%d/%p",
             name, direction, priority, PrefilterRegister);
@@ -1357,12 +1359,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TS);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
             if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
@@ -1370,12 +1372,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
             if (mpm_store != NULL) {
-                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktStreamRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
 
             SetRawReassemblyFlag(de_ctx, sh);
@@ -1384,19 +1386,19 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TS);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
-                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+                PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
             }
         }
     } else {
         mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_OTHERIP);
         if (mpm_store != NULL) {
-            PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
+            PrefilterPktPayloadRegister(de_ctx, sh, mpm_store->mpm_ctx);
         }
     }
 
@@ -1430,12 +1432,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 /* if we have just certain types of negated patterns,
                  * mpm_ctx can be NULL */
                 if (a->reg->v2.PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
-                    BUG_ON(a->reg->v2.PrefilterRegisterWithListId(sh, mpm_store->mpm_ctx,
+                    BUG_ON(a->reg->v2.PrefilterRegisterWithListId(de_ctx,
+                                sh, mpm_store->mpm_ctx,
                                 a->reg, a->reg->sm_list) != 0);
                     SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
                 }
                 else if (a->reg->PrefilterRegister && mpm_store->mpm_ctx) {
-                    BUG_ON(a->reg->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+                    BUG_ON(a->reg->PrefilterRegister(de_ctx, sh, mpm_store->mpm_ctx) != 0);
                     SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
                 }
             }

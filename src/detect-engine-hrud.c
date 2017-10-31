@@ -89,11 +89,12 @@ static void PrefilterTxRawUri(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxRawUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxRawUriRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxRawUri,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRawUri,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_raw_uri");
 }

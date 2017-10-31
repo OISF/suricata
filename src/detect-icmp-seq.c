@@ -48,7 +48,7 @@ static int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, const char *);
 void DetectIcmpSeqRegisterTests(void);
 void DetectIcmpSeqFree(void *);
-static int PrefilterSetupIcmpSeq(SigGroupHead *sgh);
+static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 static _Bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
 
 /**
@@ -302,9 +302,9 @@ PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupIcmpSeq(SigGroupHead *sgh)
+static int PrefilterSetupIcmpSeq(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ICMP_SEQ,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_ICMP_SEQ,
         PrefilterPacketIcmpSeqSet,
         PrefilterPacketIcmpSeqCompare,
         PrefilterPacketIcmpSeqMatch);

@@ -54,7 +54,8 @@ static void DetectFiledataRegisterTests(void);
 static void DetectFiledataSetupCallback(Signature *s);
 static int g_file_data_buffer_id = 0;
 
-static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+static int PrefilterTxSmtpFiledataRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 /**
  * \brief Registration function for keyword: file_data
@@ -91,11 +92,12 @@ void DetectFiledataRegister(void)
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
 }
 
-static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSmtpFiledataRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxFiledata,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxFiledata,
         ALPROTO_SMTP, 0,
         mpm_ctx, NULL, "file_data (smtp)");
 }

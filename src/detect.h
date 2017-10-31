@@ -557,12 +557,14 @@ typedef struct DetectMpmAppLayerRegistery_ {
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int sm_list;
 
-    int (*PrefilterRegister)(struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx);
+    int (*PrefilterRegister)(struct DetectEngineCtx_ *de_ctx,
+            struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx);
 
     int priority;
 
     struct {
-        int (*PrefilterRegisterWithListId)(struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
+        int (*PrefilterRegisterWithListId)(struct DetectEngineCtx_ *de_ctx,
+                struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
                 const struct DetectMpmAppLayerRegistery_ *mpm_reg, int list_id);
         InspectionBufferGetDataPtr GetData;
         AppProto alproto;
@@ -1130,7 +1132,7 @@ typedef struct SigTableElmt_ {
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
 
     _Bool (*SupportsPrefilter)(const Signature *s);
-    int (*SetupPrefilter)(struct SigGroupHead_ *sgh);
+    int (*SetupPrefilter)(DetectEngineCtx *de_ctx, struct SigGroupHead_ *sgh);
 
     void (*Free)(void *);
     void (*RegisterTests)(void);

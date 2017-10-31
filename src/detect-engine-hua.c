@@ -97,11 +97,12 @@ static void PrefilterTxUA(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxUARegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxUA,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxUA,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_user_agent");
 }
