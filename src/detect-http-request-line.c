@@ -62,12 +62,10 @@
 
 static int DetectHttpRequestLineSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRequestLineRegisterTests(void);
-static int PrefilterTxHttpRequestLineRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx);
-static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 static int g_http_request_line_buffer_id = 0;
 
 /**
@@ -84,12 +82,14 @@ void DetectHttpRequestLineRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_REQUEST_LINE].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("http_request_line", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxHttpRequestLineRegister);
-
-    DetectAppLayerInspectEngineRegister("http_request_line",
+    DetectAppLayerInspectEngineRegister2("http_request_line",
             ALPROTO_HTTP, SIG_FLAG_TOSERVER, HTP_REQUEST_LINE,
-            DetectEngineInspectHttpRequestLine);
+            DetectEngineInspectBufferGeneric,
+            GetData);
+
+    DetectAppLayerMpmRegister2("http_request_line", SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetData,
+            ALPROTO_HTTP, HTP_REQUEST_LINE);
 
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");
@@ -112,98 +112,31 @@ void DetectHttpRequestLineRegister(void)
  */
 static int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_http_request_line_buffer_id;
+    DetectBufferSetActiveList(s, g_http_request_line_buffer_id);
     s->alproto = ALPROTO_HTTP;
     return 0;
 }
 
-/** \brief HTTP request line Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxHttpRequestLine(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id)
 {
-    SCEnter();
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
 
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    htp_tx_t *tx = (htp_tx_t *)txv;
+    if (buffer->inspect == NULL) {
+        htp_tx_t *tx = (htp_tx_t *)txv;
+        if (unlikely(tx->request_line == NULL)) {
+            return NULL;
+        }
+        const uint32_t data_len = bstr_len(tx->request_line);
+        const uint8_t *data = bstr_ptr(tx->request_line);
 
-    if (tx->request_line == NULL)
-        return;
-
-    const uint32_t buffer_len = bstr_len(tx->request_line);
-    const uint8_t *buffer = bstr_ptr(tx->request_line);
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
     }
-}
-
-static int PrefilterTxHttpRequestLineRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestLine,
-        ALPROTO_HTTP, HTP_REQUEST_LINE,
-        mpm_ctx, NULL, "http_request_line");
-}
-
-/**
- * \brief Do the content inspection & validation for a signature
- *
- * \param de_ctx Detection engine context
- * \param det_ctx Detection engine thread context
- * \param s Signature to inspect
- * \param sm SigMatch to inspect
- * \param f Flow
- * \param flags app layer flags
- * \param state App layer state
- *
- * \retval 0 no match.
- * \retval 1 match.
- * \retval 2 Sig can't match.
- */
-static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
-{
-    htp_tx_t *tx = (htp_tx_t *)txv;
-
-    if (tx->request_line == NULL) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_LINE)
-            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        else
-            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-    }
-
-    det_ctx->discontinue_matching = 0;
-    det_ctx->buffer_offset = 0;
-    det_ctx->inspection_recursion_counter = 0;
-
-    /* Inspect all the uricontents fetched on each
-     * transaction at the app layer */
-    int r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, smd,
-                                          f,
-                                          bstr_ptr(tx->request_line),
-                                          bstr_len(tx->request_line),
-                                          0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-    if (r == 1) {
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-    } else {
-        return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-    }
+    return buffer;
 }
 
 /************************************Unittests*********************************/
