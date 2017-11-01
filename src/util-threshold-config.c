@@ -2547,7 +2547,7 @@ static int SCThresholdConfTest21(void)
 *
 * \retval fd Pointer to file descriptor.
 */
-FILE *SCThresholdConfGenerateValidDummyFD22()
+static FILE *SCThresholdConfGenerateValidDummyFD22(void)
 {
     FILE *fd = NULL;
     const char *buffer =
@@ -2566,50 +2566,47 @@ FILE *SCThresholdConfGenerateValidDummyFD22()
 *  \retval 1 on succces
 *  \retval 0 on failure
 */
-int SCThresholdConfTest22(void)
+static int SCThresholdConfTest22(void)
 {
-    Signature *sig = NULL;
-    int result = 0;
-    FILE *fd = NULL;
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
 
     IPPairInitConfig(IPPAIR_QUIET);
 
-    /* This packet will cause rate_filter */
-    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
-    
-    /* Should not be filtered in opposite direction */
-    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
-
-    /* Should not be filtered for different destination */
-    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
-
-    /* Should not be filtered when both src and dst the same */
-    Packet *p4 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
-
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    int alerts = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-
     struct timeval ts;
-
     memset(&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL || p1 == NULL || p2 == NULL || p3 == NULL || p4 == NULL)
-        return result;
+    /* This packet will cause rate_filter */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
 
+    /* Should not be filtered in opposite direction */
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
+    FAIL_IF_NULL(p2);
+
+    /* Should not be filtered for different destination */
+    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
+    FAIL_IF_NULL(p3);
+
+    /* Should not be filtered when both src and dst the same */
+    Packet *p4 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
+    FAIL_IF_NULL(p4);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
-    if (sig == NULL) {
-        goto end;
-    }
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
 
-    fd = SCThresholdConfGenerateValidDummyFD22();
-    SCThresholdConfInitContext(de_ctx, fd);
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD22();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -2618,7 +2615,7 @@ int SCThresholdConfTest22(void)
     p2->ts = p3->ts = p4->ts = p1->ts;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    alerts = PacketAlertCheck(p1, 10);
+    int alerts = PacketAlertCheck(p1, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     alerts += PacketAlertCheck(p2, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
@@ -2626,12 +2623,9 @@ int SCThresholdConfTest22(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
     alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, none dropped */
-    if (alerts != 4 ||
+    FAIL_IF(alerts != 4 ||
         PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP)) {
-        result = 0;
-        goto end;
-    }
+        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
     p1->action = p2->action = p3->action = p4->action = 0;
 
     TimeSetIncrementTime(2);
@@ -2641,10 +2635,7 @@ int SCThresholdConfTest22(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     alerts = PacketAlertCheck(p1, 10);
     /* p1 still shouldn't be dropped after 2nd alert */
-    if (alerts != 1 || PACKET_TEST_ACTION(p1, ACTION_DROP)) {
-        result = 0;
-        goto end;
-    }
+    FAIL_IF(alerts != 1 || PACKET_TEST_ACTION(p1, ACTION_DROP));
     p1->action = 0;
 
     TimeSetIncrementTime(2);
@@ -2660,12 +2651,9 @@ int SCThresholdConfTest22(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
     alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, only p1 must be dropped  due to rate_filter*/
-    if (alerts != 4 ||
+    FAIL_IF(alerts != 4 ||
         !PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP)) {
-        result = 0;
-        goto end;
-    }
+        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
     p1->action = p2->action = p3->action = p4->action = 0;
 
     TimeSetIncrementTime(7);
@@ -2681,28 +2669,19 @@ int SCThresholdConfTest22(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
     alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, none dropped (because timeout expired) */
-    if (alerts != 4 ||
+    FAIL_IF(alerts != 4 ||
         PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP)) {
-        result = 0;
-        goto end;
-    }
+        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
 
-    result = 1;
-
-end:
     UTHFreePacket(p4);
     UTHFreePacket(p3);
     UTHFreePacket(p2);
     UTHFreePacket(p1);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     IPPairShutdown();
-    return result;
+    PASS;
 }
 
 #endif /* UNITTESTS */
