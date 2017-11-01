@@ -155,7 +155,7 @@ void CleanupPcapFileThreadVars(PcapFileThreadVars *tv);
 TmEcode PcapDirectoryFailure(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv);
 TmEcode PcapDirectoryDone(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv);
 TmEcode PcapCheckFile(char *filename, DIR **directory);
-int PcapDirectoryGetModifiedTime(char const * file, time_t * out);
+int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out);
 int PcapDirectorySortByStatTime(const void * vleft, const void * vright);
 void FreeDirectoryMemBuffer(MemBuffer * buffer);
 TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv, time_t newer_than, time_t older_than, time_t *first_new_file_time, MemBuffer **directory_content);
@@ -308,7 +308,7 @@ TmEcode PcapCheckFile(char *filename, DIR **directory)
     return return_code;
 }
 
-int PcapDirectoryGetModifiedTime(char const * file, time_t * out)
+int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out)
 {
     struct stat buf;
     int ret;
@@ -319,7 +319,7 @@ int PcapDirectoryGetModifiedTime(char const * file, time_t * out)
     if ((ret = stat(file, &buf)) != 0)
         return ret;
 
-    *out = buf.st_mtime;
+    *out = buf.st_mtimespec;
 
     return ret;
 }
@@ -329,7 +329,7 @@ int PcapDirectorySortByStatTime(const void * vleft, const void * vright)
     if (vleft == vright)
         return 0;
 
-    time_t leftTime = 0, rightTime = 0;
+    struct timespec leftTime, rightTime;
 
     int leftRet, rightRet;
 
@@ -338,7 +338,19 @@ int PcapDirectorySortByStatTime(const void * vleft, const void * vright)
 
     if (leftRet == 0 && rightRet == 0)
     {
-        return (leftTime == rightTime) ? 0 : ((leftTime < rightTime) ? -1 : 1);
+        if(leftTime.tv_sec < rightTime.tv_sec) {
+            return -1;
+        } else if(leftTime.tv_sec > rightTime.tv_sec) {
+            return 1;
+        } else { //seconds equal
+            if(leftTime.tv_nsec < rightTime.tv_nsec) {
+                return -1;
+            } else if(leftTime.tv_nsec > rightTime.tv_nsec) {
+                return 1;
+            } else {
+                return 0;
+            }
+        }
     }
     else
     {
@@ -393,22 +405,22 @@ TmEcode PcapDirectoryPopulateBuffer(
 
         if (written > 0 && written < PATH_MAX)
         {
-            time_t temp_time = 0;
+            struct timespec temp_time;
 
             if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0)
             {
-                SCLogDebug("File %s time (%lu > %lu < %lu)", pathbuff, newer_than, temp_time, older_than);
+                SCLogDebug("File %s time (%lu > %lu < %lu)", pathbuff, newer_than, temp_time.tv_sec, older_than);
 
                 // Skip files outside of our time range
-                if (temp_time < newer_than) {
+                if (temp_time.tv_sec < newer_than) {
                     SCLogDebug("Skipping old file %s", pathbuff);
                     continue;
                 }
-                else if (temp_time > older_than) {
+                else if (temp_time.tv_sec > older_than) {
                     SCLogDebug("Skipping new file %s", pathbuff);
-                    if (temp_time < fnt || fnt == 0)
+                    if (temp_time.tv_sec < fnt || fnt == 0)
                     {
-                        *first_new_file_time = temp_time;
+                        *first_new_file_time = temp_time.tv_sec;
                     }
                     continue;
                 }
@@ -427,7 +439,7 @@ TmEcode PcapDirectoryPopulateBuffer(
             else if (MEMBUFFER_SIZE(temp_directory_content) - MEMBUFFER_OFFSET(temp_directory_content) < sizeof(char*))
             {
                 // Double size
-                if (!MemBufferExpand(&temp_directory_content, MEMBUFFER_SIZE(temp_directory_content)))
+                if (MemBufferExpand(&temp_directory_content, MEMBUFFER_SIZE(temp_directory_content)) != 0)
                 {
                     FreeDirectoryMemBuffer(temp_directory_content);
 
@@ -720,13 +732,13 @@ TmEcode PcapDirectoryDispatch(
                 CleanupPcapFileFileVars(tv, pftv);
                 pv->current_file = NULL;
 
-                time_t temp_time;
+                struct timespec temp_time;
 
                 if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) != 0) {
-                    temp_time = *newer_than;
+                    temp_time.tv_sec = *newer_than;
                 }
-                SCLogDebug("Processed file %s, processed up to %ld", pathbuff, temp_time);
-                pv->shared->last_processed = temp_time;
+                SCLogDebug("Processed file %s, processed up to %ld", pathbuff, temp_time.tv_sec);
+                pv->shared->last_processed = temp_time.tv_sec;
 
                 status = PcapRunStatus(pv);
             }
@@ -891,7 +903,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (ConfGetInt("pcap-file.delay", &delay) == 1) {
             if (delay > 0 && delay < UINT_MAX) {
                 pv->delay = (time_t)delay;
-                SCLogDebug("delay %u", pv->delay);
+                SCLogDebug("delay %lu", pv->delay);
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "delay out of range");
             }
@@ -902,7 +914,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         if (ConfGetInt("pcap-file.poll-interval", &poll_interval) == 1) {
             if (poll_interval > 0 && poll_interval < UINT_MAX) {
                 pv->poll_interval = (time_t)poll_interval;
-                SCLogDebug("poll-interval %u", pv->delay);
+                SCLogDebug("poll-interval %lu", pv->delay);
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "poll-interval out of range");
             }
