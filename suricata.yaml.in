@@ -427,6 +427,12 @@ outputs:
   # an incrementing number starting at 1. For each file "file.<id>" a meta
   # file "file.<id>.meta" is created.
   #
+  # If working-file-prefix is defined, then files are first written with the given
+  # prefix, and renamed to remove the prefix when finalized.
+  #
+  # If include-pid is yes, then the files are instead "file.<pid>.<id>", with
+  # meta files named as "file.<pid>.<id>.meta"
+  #
   # File extraction depends on a lot of things to be fully done:
   # - file-store stream-depth. For optimal results, set this to 0 (unlimited)
   # - http request / response body sizes. Again set to 0 for optimal results.
@@ -449,6 +455,9 @@ outputs:
       # remain open for filestore by Suricata. Default value is 0 which
       # means files get closed after each write
       #max-open-files: 1000
+      # uncomment to write to tmp files with the given prefix
+      #working-file-prefix: .
+      include-pid: no # set to yes to include pid in file names
 
   # output module to log files tracked in a easily parsable json format
   - file-log:
