@@ -78,7 +78,7 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
             continue;
 
         json_t *js_sig = json_object();
-        if (unlikely(js == NULL))
+        if (unlikely(js_sig == NULL))
             continue;
         json_object_set_new(js_sig, "sig_id", json_integer(s->id));
 #if 0
@@ -130,8 +130,8 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
         if (fp != NULL) {
             MemBufferPrintToFPAsString(mbuf, fp);
             fclose(fp);
-            SCMutexUnlock(&g_rule_dump_write_m);
         }
+        SCMutexUnlock(&g_rule_dump_write_m);
     }
 
     MemBufferFree(mbuf);
