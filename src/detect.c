@@ -137,7 +137,9 @@ static void DetectRun(ThreadVars *th_v,
 
     /* run tx/state inspection */
     if (pflow && pflow->alstate) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX);
         DetectRunTx(th_v, de_ctx, det_ctx, p, pflow, &scratch);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX);
     }
 
 end:
@@ -725,13 +727,11 @@ static inline void DetectRunPrefilterPkt(
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* run the prefilter engines */
     Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
     DetectPrefilterMergeSort(de_ctx, det_ctx);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
 #ifdef PROFILING
     if (tv) {
@@ -913,6 +913,8 @@ static DetectRunScratchpad DetectRunSetup(
     uint8_t flow_flags = 0; /* flow/state flags */
     bool app_decoder_events = false;
 
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_SETUP);
+
 #ifdef UNITTESTS
     p->alerts.cnt = 0;
 #endif
@@ -989,6 +991,7 @@ static DetectRunScratchpad DetectRunSetup(
     }
 
     DetectRunScratchpad pad = { alproto, flow_flags, app_decoder_events, NULL, 0 };
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_SETUP);
     return pad;
 }
 
@@ -1002,9 +1005,9 @@ static inline void DetectRunPostRules(
 {
     /* see if we need to increment the inspect_id and reset the de_state */
     if (pflow && pflow->alstate && AppLayerParserProtocolSupportsTxs(p->proto, scratch->alproto)) {
-        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL_UPDATE);
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_TX_UPDATE);
         DeStateUpdateInspectTransactionId(pflow, scratch->flow_flags, (scratch->sgh == NULL));
-        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL_UPDATE);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_TX_UPDATE);
     }
 
     /* so now let's iterate the alerts and remove the ones after a pass rule
@@ -1365,8 +1368,10 @@ static void DetectRunTx(ThreadVars *tv,
 
         /* run prefilter engines and merge results into a candidates array */
         if (sgh->tx_engines) {
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
             DetectRunPrefilterTx(det_ctx, sgh, p, ipproto, flow_flags, alproto,
                     alstate, &tx);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
             SCLogDebug("%p/%"PRIu64" rules added from prefilter: %u candidates",
                     tx.tx_ptr, tx_id, det_ctx->pmq.rule_id_array_cnt);
 
@@ -1509,6 +1514,7 @@ static void DetectRunTx(ThreadVars *tv,
             }
 
             /* call individual rule inspection */
+            RULE_PROFILING_START(p);
             const int r = DetectRunTxInspectRule(tv, de_ctx, det_ctx, p, f, flow_flags,
                     alstate, &tx, s, inspect_flags, can, scratch);
             if (r == 1) {
@@ -1527,6 +1533,7 @@ static void DetectRunTx(ThreadVars *tv,
                 }
             }
             DetectVarProcessList(det_ctx, p->flow, p);
+            RULE_PROFILING_END(det_ctx, s, r, p);
         }
 
         det_ctx->tx_id = 0;
