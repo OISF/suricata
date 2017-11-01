@@ -26,14 +26,11 @@
 int PrefilterMpmFiledataRegister(DetectEngineCtx *de_ctx,
         SigGroupHead *sgh, MpmCtx *mpm_ctx,
         const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
-void PrefilterTxFiledata(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags);
-int DetectEngineInspectFiledata(ThreadVars *tv,
+int DetectEngineInspectFiledata(
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id);
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 void DetectEngineCleanFiledataBuffers(DetectEngineThreadCtx *det_ctx);
 

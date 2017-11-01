@@ -37,7 +37,7 @@ enum {
 int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len);
 int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
                          DetectEngineThreadCtx *det_ctx,
-                         int hsbd_index,
+                         InspectionBuffer *out_buffer,
                          int swf_type,
                          uint32_t decompress_depth, uint32_t compress_depth);
 

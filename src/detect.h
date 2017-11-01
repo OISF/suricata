@@ -908,13 +908,6 @@ typedef struct HttpReassembledBody_ {
     uint64_t offset;        /**< data offset */
 } HttpReassembledBody;
 
-typedef struct FiledataReassembledBody_ {
-    const uint8_t *buffer;
-    uint32_t buffer_size;   /**< size of the buffer itself */
-    uint32_t buffer_len;    /**< data len in the buffer */
-    uint64_t offset;        /**< data offset */
-} FiledataReassembledBody;
-
 #define DETECT_FILESTORE_MAX 15
 
 typedef struct SignatureNonPrefilterStore_ {
@@ -977,20 +970,10 @@ typedef struct DetectEngineThreadCtx_ {
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
-    HttpReassembledBody *hsbd;
-    uint64_t hsbd_start_tx_id;
-    uint16_t hsbd_buffers_size;
-    uint16_t hsbd_buffers_list_len;
-
     HttpReassembledBody *hcbd;
     uint64_t hcbd_start_tx_id;
     uint16_t hcbd_buffers_size;
     uint16_t hcbd_buffers_list_len;
-
-    FiledataReassembledBody *file_data;
-    uint64_t file_data_start_tx_id;
-    uint16_t file_data_buffers_size;
-    uint16_t file_data_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;
