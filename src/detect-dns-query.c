@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,6 +37,8 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-content-inspection.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -58,9 +60,231 @@
 
 #include "util-unittest-helper.h"
 
+#ifdef HAVE_RUST
+#include "rust-dns-dns-gen.h"
+#endif
+
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectDnsQueryRegisterTests(void);
 static int g_dns_query_buffer_id = 0;
+
+struct DnsQueryGetDataArgs {
+    int local_id;  /**< used as index into thread inspect array */
+#ifdef HAVE_RUST
+    void *txv;
+#else
+    const DNSQueryEntry *query;
+#endif
+};
+
+/** \brief get an InspectionBuffer. Make space if we have to. */
+static InspectionBuffer *GetBuffer(InspectionBufferMultipleForList *fb, uint32_t id)
+{
+    if (id >= fb->size) {
+        uint32_t old_size = fb->size;
+        uint32_t new_size = id + 1;
+        uint32_t grow_by = new_size - old_size;
+        SCLogDebug("size is %u, need %u, so growing by %u",
+                old_size, new_size, grow_by);
+
+        void *ptr = SCRealloc(fb->inspection_buffers, (id + 1) * sizeof(InspectionBuffer));
+        if (ptr == NULL)
+            return NULL;
+
+        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
+        SCLogDebug("fb->inspection_buffers %p ptr %p to_zero %p",
+                fb->inspection_buffers, ptr, to_zero);
+        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
+        fb->inspection_buffers = ptr;
+        fb->size = new_size;
+    }
+
+    InspectionBuffer *buffer = &fb->inspection_buffers[id];
+    SCLogDebug("using file_data buffer %p", buffer);
+    return buffer;
+}
+
+static InspectionBuffer *DnsQueryGetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *f, struct DnsQueryGetDataArgs *cbdata, int list_id, bool first)
+{
+    SCEnter();
+
+    InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[list_id];
+    InspectionBuffer *buffer = GetBuffer(fb, cbdata->local_id);
+    if (buffer == NULL)
+        return NULL;
+    if (!first && buffer->inspect != NULL)
+        return buffer;
+
+    const uint8_t *data;
+    uint32_t data_len;
+#ifdef HAVE_RUST
+    if (rs_dns_tx_get_query_name(cbdata->txv, (uint16_t)cbdata->local_id,
+                (uint8_t **)&data, &data_len) == 0) {
+        return NULL;
+    }
+#else
+    const DNSQueryEntry *query = cbdata->query;
+    data = (const uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
+    data_len = query->len;
+#endif
+    InspectionBufferSetup(buffer, data, data_len);
+    InspectionBufferApplyTransforms(buffer, transforms);
+
+    SCReturnPtr(buffer, "InspectionBuffer");
+}
+
+static int DetectEngineInspectDnsQuery(
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    int local_id = 0;
+
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+#ifdef HAVE_RUST
+    while(1) {
+        struct DnsQueryGetDataArgs cbdata = { local_id, txv, };
+        InspectionBuffer *buffer = DnsQueryGetData(det_ctx,
+            transforms, f, &cbdata, engine->sm_list, false);
+        if (buffer == NULL || buffer->inspect == NULL)
+            break;
+
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
+        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
+                                              f,
+                                              (uint8_t *)buffer->inspect,
+                                              buffer->inspect_len,
+                                              buffer->inspect_offset,
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+        if (match == 1) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        local_id++;
+    }
+#else
+    DNSTransaction *tx = (DNSTransaction *)txv;
+    DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &tx->query_list, next)
+    {
+        struct DnsQueryGetDataArgs cbdata = { local_id, query };
+        InspectionBuffer *buffer = DnsQueryGetData(det_ctx,
+            transforms, f, &cbdata, engine->sm_list, false);
+        if (buffer == NULL || buffer->inspect == NULL)
+            break;
+
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
+        const int match = DetectEngineContentInspection(de_ctx, det_ctx, s, engine->smd,
+                                              f,
+                                              (uint8_t *)buffer->inspect,
+                                              buffer->inspect_len,
+                                              buffer->inspect_offset,
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+        if (match == 1) {
+            return DETECT_ENGINE_INSPECT_SIG_MATCH;
+        }
+        local_id++;
+    }
+#endif
+    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+}
+
+typedef struct PrefilterMpmDnsQuery {
+    int list_id;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmDnsQuery;
+
+/** \brief DnsQuery DnsQuery Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmDnsQuery *ctx = (const PrefilterMpmDnsQuery *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    const int list_id = ctx->list_id;
+
+    int local_id = 0;
+#ifdef HAVE_RUST
+    while(1) {
+        // loop until we get a NULL
+
+        struct DnsQueryGetDataArgs cbdata = { local_id, txv };
+        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms,
+                f, &cbdata, list_id, true);
+        if (buffer == NULL)
+            break;
+
+        if (buffer->inspect_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                    &det_ctx->mtcu, &det_ctx->pmq,
+                    buffer->inspect, buffer->inspect_len);
+        }
+
+        local_id++;
+    }
+#else
+    const DNSTransaction *tx = (DNSTransaction *)txv;
+    const DNSQueryEntry *query = NULL;
+    TAILQ_FOREACH(query, &tx->query_list, next)
+    {
+        struct DnsQueryGetDataArgs cbdata = { local_id, query };
+        InspectionBuffer *buffer = DnsQueryGetData(det_ctx, ctx->transforms,
+                f, &cbdata, list_id, true);
+
+        if (buffer != NULL && buffer->inspect_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                    &det_ctx->mtcu, &det_ctx->pmq,
+                    buffer->inspect, buffer->inspect_len);
+        }
+        local_id++;
+    }
+#endif
+}
+
+static void PrefilterMpmDnsQueryFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+static int PrefilterMpmDnsQueryRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
+{
+    PrefilterMpmDnsQuery *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->v2.transforms;
+
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDnsQuery,
+            mpm_reg->v2.alproto, mpm_reg->v2.tx_min_progress,
+            pectx, PrefilterMpmDnsQueryFree, mpm_reg->name);
+}
+
 
 /**
  * \brief Registration function for keyword: dns_query
@@ -76,12 +300,13 @@ void DetectDnsQueryRegister (void)
 
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("dns_query", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxDnsQueryRegister);
+    DetectAppLayerMpmRegister2("dns_query", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmDnsQueryRegister, NULL,
+            ALPROTO_DNS, 1);
 
-    DetectAppLayerInspectEngineRegister("dns_query",
+    DetectAppLayerInspectEngineRegister2("dns_query",
             ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
-            DetectEngineInspectDnsQueryName);
+            DetectEngineInspectDnsQuery, NULL);
 
     DetectBufferTypeSetDescriptionByName("dns_query",
             "dns request query");
@@ -116,7 +341,7 @@ void DetectDnsQueryRegister (void)
 
 static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    s->init_data->list = g_dns_query_buffer_id;
+    DetectBufferSetActiveList(s, g_dns_query_buffer_id);
     s->alproto = ALPROTO_DNS;
     return 0;
 }
