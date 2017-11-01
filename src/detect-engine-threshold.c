@@ -157,91 +157,61 @@ const DetectThresholdData *SigGetThresholdTypeIter(const Signature *sig,
 /**
  * \brief Remove timeout threshold hash elements
  *
- * \param de_ctx Dectection Context
+ * \param head Current head element of storage
+ * \param tv Current time
+ *
+ * \retval DetectThresholdEntry Return new head element or NULL if all expired
  *
  */
 
-int ThresholdHostTimeoutCheck(Host *host, struct timeval *tv)
+static DetectThresholdEntry* ThresholdTimeoutCheck(DetectThresholdEntry *head, struct timeval *tv)
 {
-    DetectThresholdEntry *tde = NULL;
-    DetectThresholdEntry *tmp = NULL;
+    DetectThresholdEntry *tmp = head;
     DetectThresholdEntry *prev = NULL;
-    int retval = 1;
+    DetectThresholdEntry *new_head = head;
 
-    tmp = HostGetStorageById(host, host_threshold_id);
-    if (tmp == NULL)
-        return 1;
-
-    prev = NULL;
     while (tmp != NULL) {
         if ((tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
             prev = tmp;
             tmp = tmp->next;
-            retval = 0;
             continue;
         }
 
         /* timed out */
 
+        DetectThresholdEntry *tde = tmp;
         if (prev != NULL) {
             prev->next = tmp->next;
-
-            tde = tmp;
-            tmp = tde->next;
-
-            SCFree(tde);
-        } else {
-            HostSetStorageById(host, host_threshold_id, tmp->next);
-            tde = tmp;
-            tmp = tde->next;
-
-            SCFree(tde);
         }
+        else {
+            new_head = tmp->next;
+        }
+        tmp = tde->next;
+        SCFree(tde);
     }
 
-    return retval;
+    return new_head;
 }
+
+int ThresholdHostTimeoutCheck(Host *host, struct timeval *tv)
+{
+    DetectThresholdEntry* head = HostGetStorageById(host, host_threshold_id);
+    DetectThresholdEntry* new_head = ThresholdTimeoutCheck(head, tv);
+    if (new_head != head) {
+        HostSetStorageById(host, host_threshold_id, new_head);
+    }
+    return new_head == NULL;
+}
+
 
 int ThresholdIPPairTimeoutCheck(IPPair *pair, struct timeval *tv)
 {
-    DetectThresholdEntry *tde = NULL;
-    DetectThresholdEntry *tmp = NULL;
-    DetectThresholdEntry *prev = NULL;
-    int retval = 1;
-
-    tmp = IPPairGetStorageById(pair, ippair_threshold_id);
-    if (tmp == NULL)
-        return 1;
-
-    prev = NULL;
-    while (tmp != NULL) {
-        if ((tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
-            prev = tmp;
-            tmp = tmp->next;
-            retval = 0;
-            continue;
-        }
-
-        /* timed out */
-
-        if (prev != NULL) {
-            prev->next = tmp->next;
-
-            tde = tmp;
-            tmp = tde->next;
-
-            SCFree(tde);
-        }
-        else {
-            IPPairSetStorageById(pair, ippair_threshold_id, tmp->next);
-            tde = tmp;
-            tmp = tde->next;
-
-            SCFree(tde);
-        }
+    DetectThresholdEntry* head = IPPairGetStorageById(pair, ippair_threshold_id);
+    DetectThresholdEntry* new_head = ThresholdTimeoutCheck(head, tv);
+    if (new_head != head) {
+        IPPairSetStorageById(pair, ippair_threshold_id, new_head);
     }
-
-    return retval;
+    return new_head == NULL;
 }
 
 static inline DetectThresholdEntry *
@@ -384,6 +354,18 @@ static int IsThresholdQualify(DetectThresholdEntry* lookup_tsh, const DetectThre
     } /* else - if (lookup_tsh->tv_timeout != 0) */
 
     return ret;
+}
+
+static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, uint32_t packet_time)
+{
+    if (h && e)
+    {
+        e->current_count = 1;
+        e->tv_sec1 = packet_time;
+        e->tv_timeout = 0;
+        e->next = HostGetStorageById(h, host_threshold_id);
+        HostSetStorageById(h, host_threshold_id, e);
+    }
 }
 
 static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, uint32_t packet_time)
@@ -600,56 +582,12 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
         case TYPE_RATE:
         {
             SCLogDebug("rate_filter");
-
             ret = 1;
-
-            if (lookup_tsh != NULL) {
-                /* Check if we have a timeout enabled, if so,
-                 * we still matching (and enabling the new_action) */
-                if (lookup_tsh->tv_timeout != 0) {
-                    if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
-                        /* Ok, we are done, timeout reached */
-                        lookup_tsh->tv_timeout = 0;
-                    } else {
-                        /* Already matching */
-                        /* Take the action to perform */
-                        RateFilterSetAction(p, pa, td->new_action);
-                        ret = 1;
-                    } /* else - if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) */
-
-                } else {
-                    /* Update the matching state with the timeout interval */
-                    if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
-                        lookup_tsh->current_count++;
-                        if (lookup_tsh->current_count > td->count) {
-                            /* Then we must enable the new action by setting a
-                             * timeout */
-                            lookup_tsh->tv_timeout = p->ts.tv_sec;
-                            /* Take the action to perform */
-                            RateFilterSetAction(p, pa, td->new_action);
-                            ret = 1;
-                        }
-                    } else {
-                        lookup_tsh->tv_sec1 = p->ts.tv_sec;
-                        lookup_tsh->current_count = 1;
-                    }
-                } /* else - if (lookup_tsh->tv_timeout != 0) */
-            } else {
-                if (td->count == 1) {
-                    ret = 1;
-                }
-
+            if (lookup_tsh && IsThresholdQualify(lookup_tsh, td, p->ts.tv_sec)) {
+                RateFilterSetAction(p, pa, td->new_action);
+            } else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
-                if (e == NULL) {
-                    break;
-                }
-
-                e->current_count = 1;
-                e->tv_sec1 = p->ts.tv_sec;
-                e->tv_timeout = 0;
-
-                e->next = HostGetStorageById(h, host_threshold_id);
-                HostSetStorageById(h, host_threshold_id, e);
+                AddEntryToHostStorage(h, e, p->ts.tv_sec);
             }
             break;
         }
