@@ -319,7 +319,11 @@ int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out)
     if ((ret = stat(file, &buf)) != 0)
         return ret;
 
+#ifdef OS_DARWIN
     *out = buf.st_mtimespec;
+#else
+    *out = buf.st_mtim;
+#endif
 
     return ret;
 }
