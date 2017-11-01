@@ -1046,8 +1046,6 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
                     det_ctx->raw_stream_progress);
 
             DetectEngineCleanHCBDBuffers(det_ctx);
-            DetectEngineCleanHSBDBuffers(det_ctx);
-            DetectEngineCleanFiledataBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
