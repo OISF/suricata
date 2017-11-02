@@ -241,6 +241,13 @@ There are several types of output. The general structure is:
       enabled: yes
       filename: fast.log
       append: yes/no
+      when-blocked:
+        drop-events: yes/no     #Whether events to output should drop if they would
+                                #block in offline mode
+        poll-interval: 100      #How long to poll for when blocked and not dropping
+      retries:
+        reconnecting: 1      #number of retries when reconnecting
+        interrupted: 1       #number of retries if write is interrupted
 
 Enabling all of the logs, will result in a much lower performance and
 the use of more disc space, so enable only the outputs you need.
@@ -259,11 +266,18 @@ appearance of a single fast.log-file line:
 
 ::
 
-  -fast:                    #The log-name.
-     enabled:yes            #This log is enabled. Set to 'no' to disable.
-     filename: fast.log     #The name of the file in the default logging directory.
-     append: yes/no         #If this option is set to yes, the last filled fast.log-file will not be
-                            #overwritten while restarting Suricata.
+  -fast:                       #The log-name.
+     enabled:yes               #This log is enabled. Set to 'no' to disable.
+     filename: fast.log        #The name of the file in the default logging directory.
+     append: yes/no            #If this option is set to yes, the last filled fast.log-file will not be
+                               #overwritten while restarting Suricata.
+     when-blocked:
+       drop-events: yes/no     #Whether events to output should drop if they would
+                               #block in offline mode
+       poll-interval: 100      #How long to poll for when blocked and not dropping
+     retries:
+       reconnecting: 1         #number of retries when reconnecting
+       interrupted: 1          #number of retries if write is interrupted
 
 Eve (Extensible Event Format)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,6 +292,13 @@ integration with 3rd party tools like logstash.
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      when-blocked:
+        drop-events: yes/no     #Whether events to output should drop if they would
+                                #block in offline mode
+        poll-interval: 100      #How long to poll for when blocked and not dropping
+      retries:
+        reconnecting: 1         #number of retries when reconnecting
+        interrupted: 1          #number of retries if write is interrupted
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"

@@ -15,6 +15,13 @@ The most common way to use this is through 'EVE', which is a firehose approach w
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      when-blocked:
+        drop-events: yes/no     #Whether events to output should drop if they would
+                                #block in offline mode
+        poll-interval: 100      #How long to poll for when blocked and not dropping
+      retries:
+        reconnecting: 1         #number of retries when reconnecting
+        interrupted: 1          #number of retries if write is interrupted
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
