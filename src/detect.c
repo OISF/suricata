@@ -729,9 +729,12 @@ static inline void DetectRunPrefilterPkt(
 
     /* run the prefilter engines */
     Prefilter(det_ctx, scratch->sgh, p, scratch->flow_flags);
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
-    DetectPrefilterMergeSort(de_ctx, det_ctx);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
+    /* create match list if we have non-pf and/or pf */
+    if (det_ctx->non_pf_store_cnt || det_ctx->pmq.rule_id_array_cnt) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
+        DetectPrefilterMergeSort(de_ctx, det_ctx);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
+    }
 
 #ifdef PROFILING
     if (tv) {
