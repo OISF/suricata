@@ -2581,17 +2581,13 @@ static int SCThresholdConfTest22(void)
     Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
     FAIL_IF_NULL(p1);
 
-    /* Should not be filtered in opposite direction */
-    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
+    /* Should not be filtered for different destination */
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
     FAIL_IF_NULL(p2);
 
-    /* Should not be filtered for different destination */
-    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
-    FAIL_IF_NULL(p3);
-
     /* Should not be filtered when both src and dst the same */
-    Packet *p4 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
-    FAIL_IF_NULL(p4);
+    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
+    FAIL_IF_NULL(p3);
 
     DetectEngineThreadCtx *det_ctx = NULL;
 
@@ -2612,7 +2608,7 @@ static int SCThresholdConfTest22(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     TimeGet(&p1->ts);
-    p2->ts = p3->ts = p4->ts = p1->ts;
+    p2->ts = p3->ts = p1->ts;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     int alerts = PacketAlertCheck(p1, 10);
@@ -2620,17 +2616,14 @@ static int SCThresholdConfTest22(void)
     alerts += PacketAlertCheck(p2, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
     alerts += PacketAlertCheck(p3, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
-    alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, none dropped */
-    FAIL_IF(alerts != 4 ||
-        PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
-    p1->action = p2->action = p3->action = p4->action = 0;
+    FAIL_IF(alerts != 3 || PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
+    p1->action = p2->action = p3->action = 0;
 
     TimeSetIncrementTime(2);
     TimeGet(&p1->ts);
-    p2->ts = p3->ts = p4->ts = p1->ts;
+    p2->ts = p3->ts = p1->ts;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     alerts = PacketAlertCheck(p1, 10);
@@ -2640,7 +2633,7 @@ static int SCThresholdConfTest22(void)
 
     TimeSetIncrementTime(2);
     TimeGet(&p1->ts);
-    p2->ts = p3->ts = p4->ts = p1->ts;
+    p2->ts = p3->ts = p1->ts;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     alerts = PacketAlertCheck(p1, 10);
@@ -2648,17 +2641,14 @@ static int SCThresholdConfTest22(void)
     alerts += PacketAlertCheck(p2, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
     alerts += PacketAlertCheck(p3, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
-    alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, only p1 must be dropped  due to rate_filter*/
-    FAIL_IF(alerts != 4 ||
-        !PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
-    p1->action = p2->action = p3->action = p4->action = 0;
+    FAIL_IF(alerts != 3 || !PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
+    p1->action = p2->action = p3->action = 0;
 
     TimeSetIncrementTime(7);
     TimeGet(&p1->ts);
-    p2->ts = p3->ts = p4->ts = p1->ts;
+    p2->ts = p3->ts = p1->ts;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
     alerts = PacketAlertCheck(p1, 10);
@@ -2666,14 +2656,10 @@ static int SCThresholdConfTest22(void)
     alerts += PacketAlertCheck(p2, 10);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
     alerts += PacketAlertCheck(p3, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
-    alerts += PacketAlertCheck(p4, 10);
     /* All should be alerted, none dropped (because timeout expired) */
-    FAIL_IF(alerts != 4 ||
-        PACKET_TEST_ACTION(p1, ACTION_DROP) || PACKET_TEST_ACTION(p2, ACTION_DROP) ||
-        PACKET_TEST_ACTION(p3, ACTION_DROP) || PACKET_TEST_ACTION(p4, ACTION_DROP));
+    FAIL_IF(alerts != 3 || PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
 
-    UTHFreePacket(p4);
     UTHFreePacket(p3);
     UTHFreePacket(p2);
     UTHFreePacket(p1);
@@ -2684,6 +2670,88 @@ static int SCThresholdConfTest22(void)
     PASS;
 }
 
+/**
+* \brief Creates a dummy rate_filter file, for testing rate filtering by_both source and destination
+*
+* \retval fd Pointer to file descriptor.
+*/
+static FILE *SCThresholdConfGenerateValidDummyFD23(void)
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "rate_filter gen_id 1, sig_id 10, track by_both, count 1, seconds 5, new_action drop, timeout 6\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+* \test Check if the rate_filter by_both work when similar packets
+*       going in opposite direction
+*
+*  \retval 1 on succces
+*  \retval 0 on failure
+*/
+static int SCThresholdConfTest23(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    struct timeval ts;
+    memset(&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    /* Create two packets between same addresses in opposite direction */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
+
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
+    FAIL_IF_NULL(p2);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+        "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD23();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p1->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    /* First packet should be alerted, not dropped */
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1 || PACKET_TEST_ACTION(p1, ACTION_DROP));
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p2->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    /* Second packet should be dropped because it considered as "the same pair"
+       and rate_filter count reached*/
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1 || !PACKET_TEST_ACTION(p2, ACTION_DROP));
+
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    IPPairShutdown();
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -2727,6 +2795,9 @@ void SCThresholdConfRegisterTests(void)
                    SCThresholdConfTest21);
     UtRegisterTest("SCThresholdConfTest22 - rate_filter by_both",
                    SCThresholdConfTest22);
+    UtRegisterTest("SCThresholdConfTest23 - rate_filter by_both opposite",
+        SCThresholdConfTest23);
+
 #endif /* UNITTESTS */
 }
 
