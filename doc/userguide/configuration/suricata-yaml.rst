@@ -241,6 +241,10 @@ There are several types of output. The general structure is:
       enabled: yes
       filename: fast.log
       append: yes/no
+      retries:
+          reconnecting: 1    #number of retries when reconnecting
+          interrupted: 1     #number of retries if write is interrupted
+          blocked: 0         #number of retries if write is blocked
 
 Enabling all of the logs, will result in a much lower performance and
 the use of more disc space, so enable only the outputs you need.
@@ -264,6 +268,10 @@ appearance of a single fast.log-file line:
      filename: fast.log     #The name of the file in the default logging directory.
      append: yes/no         #If this option is set to yes, the last filled fast.log-file will not be
                             #overwritten while restarting Suricata.
+     retries:
+         reconnecting: 1    #number of retries when reconnecting
+         interrupted: 1     #number of retries if write is interrupted
+         blocked: 0         #number of retries if write is blocked
 
 Eve (Extensible Event Format)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -278,6 +286,10 @@ integration with 3rd party tools like logstash.
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      retries:
+          reconnecting: 1  #number of retries when reconnecting
+          interrupted: 1   #number of retries if write is interrupted
+          blocked: 0       #number of retries if write is blocked
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
