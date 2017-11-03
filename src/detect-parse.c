@@ -1553,13 +1553,63 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
     }
 
+    struct BufferVsDir {
+        int ts;
+        int tc;
+    } bufdir[nlists];
+    memset(&bufdir, 0, nlists * sizeof(struct BufferVsDir));
+
     int x;
     for (x = 0; x < nlists; x++) {
         if (s->init_data->smlists[x]) {
+            const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+            for ( ; app != NULL; app = app->next) {
+                if (app->sm_list == x && s->alproto == app->alproto) {
+                    SCLogDebug("engine %s dir %d alproto %d",
+                            DetectBufferTypeGetNameById(de_ctx, app->sm_list),
+                            app->dir, app->alproto);
+
+                    bufdir[x].ts += (app->dir == 0);
+                    bufdir[x].tc += (app->dir == 1);
+                }
+            }
+
             if (DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror) == FALSE) {
                 SCReturnInt(0);
             }
         }
+    }
+
+    int ts_excl = 0;
+    int tc_excl = 0;
+    int dir_amb = 0;
+    for (x = 0; x < nlists; x++) {
+        if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
+            continue;
+        ts_excl += (bufdir[x].ts > 0 && bufdir[x].tc == 0);
+        tc_excl += (bufdir[x].ts == 0 && bufdir[x].tc > 0);
+        dir_amb += (bufdir[x].ts > 0 && bufdir[x].tc > 0);
+
+        SCLogDebug("%s/%d: %d/%d", DetectBufferTypeGetNameById(de_ctx, x),
+                x, bufdir[x].ts, bufdir[x].tc);
+    }
+    if (ts_excl && tc_excl) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+        SCReturnInt(0);
+    } else if (ts_excl) {
+        SCLogDebug("%u: implied rule direction is toserver", s->id);
+        if (DetectFlowSetupImplicit(s, SIG_FLAG_TOSERVER) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCReturnInt(0);
+        }
+    } else if (tc_excl) {
+        SCLogDebug("%u: implied rule direction is toclient", s->id);
+        if (DetectFlowSetupImplicit(s, SIG_FLAG_TOCLIENT) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCReturnInt(0);
+        }
+    } else if (dir_amb) {
+        SCLogDebug("%u: rule direction cannot be deduced from keywords", s->id);
     }
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&

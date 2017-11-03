@@ -39,6 +39,8 @@ typedef struct DetectFlowData_ {
     uint8_t match_cnt;  /* number of matches we need */
 } DetectFlowData;
 
+int DetectFlowSetupImplicit(Signature *s, uint32_t flags);
+
 /* prototypes */
 void DetectFlowRegister (void);
 
