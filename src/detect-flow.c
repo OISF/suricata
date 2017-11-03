@@ -316,6 +316,37 @@ error:
 
 }
 
+int DetectFlowSetupImplicit(Signature *s, uint32_t flags)
+{
+#define SIG_FLAG_BOTH (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)
+    BUG_ON(flags == 0);
+    BUG_ON(flags & ~SIG_FLAG_BOTH);
+    BUG_ON((flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH);
+
+    SCLogDebug("want %08x", flags & SIG_FLAG_BOTH);
+    SCLogDebug("have %08x", s->flags & SIG_FLAG_BOTH);
+
+    if (flags & SIG_FLAG_TOSERVER) {
+        if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
+            /* both is set if we just have 'flow:established' */
+            s->flags &= ~SIG_FLAG_TOCLIENT;
+        } else if (s->flags & SIG_FLAG_TOCLIENT) {
+            return -1;
+        }
+        s->flags |= SIG_FLAG_TOSERVER;
+    } else {
+        if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
+            /* both is set if we just have 'flow:established' */
+            s->flags &= ~SIG_FLAG_TOSERVER;
+        } else if (s->flags & SIG_FLAG_TOSERVER) {
+            return -1;
+        }
+        s->flags |= SIG_FLAG_TOCLIENT;
+    }
+    return 0;
+#undef SIG_FLAG_BOTH
+}
+
 /**
  * \brief this function is used to add the parsed flowdata into the current signature
  *
