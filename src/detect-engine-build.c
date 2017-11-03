@@ -21,6 +21,7 @@
 #include "detect-parse.h"
 
 #include "detect-engine-address.h"
+#include "detect-engine-analyzer.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-siggroup.h"
@@ -1819,7 +1820,9 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
-
+#ifdef HAVE_LIBJANSSON
+        EngineAnalysisRules2(de_ctx, s);
+#endif
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
         uint32_t i;
         for (i = 0; i < s->init_data->smlists_array_size; i++) {
