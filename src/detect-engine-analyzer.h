@@ -41,4 +41,8 @@ void EngineAnalysisRules(const DetectEngineCtx *de_ctx,
         const Signature *s, const char *line);
 void EngineAnalysisRulesFailure(char *line, char *file, int lineno);
 
+#ifdef HAVE_LIBJANSSON
+void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s);
+#endif
+
 #endif /* __DETECT_ENGINE_ANALYZER_H__ */
