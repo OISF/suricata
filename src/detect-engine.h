@@ -117,4 +117,7 @@ void DetectAppLayerInspectEngineRegister(const char *name,
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 
+void DetectEngineSetParseMetadata(void);
+int DetectEngineMustParseMetadata(void);
+
 #endif /* __DETECT_ENGINE_H__ */

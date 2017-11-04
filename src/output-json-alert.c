@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
@@ -90,6 +91,7 @@
 #define LOG_JSON_FLOW              BIT_U16(11)
 #define LOG_JSON_HTTP_BODY         BIT_U16(12)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_RULE_METADATA     BIT_U16(14)
 
 #define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
 
@@ -230,8 +232,22 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     json_object_set_new(ajs, "target", tjs);
 }
 
+static void AlertJsonMetadata(const PacketAlert *pa, json_t *ajs)
+{
+    if (pa->s->metadata) {
+        DetectMetadata* kv = pa->s->metadata;
+        json_t *mjs = json_object();
+        while (kv) {
+            json_object_set_new(mjs, kv->key, json_string(kv->value));
+            kv = kv->next;
+        }
+        json_object_set_new(ajs, "metadata", mjs);
+    }
+}
 
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
+
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js,
+                     uint16_t flags)
 {
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
@@ -273,6 +289,10 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
         AlertJsonSourceTarget(p, pa, js, ajs);
+    }
+
+    if (flags & LOG_JSON_RULE_METADATA) {
+        AlertJsonMetadata(pa, ajs);
     }
 
     /* alert */
@@ -364,7 +384,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(p, pa, js);
+        AlertJsonHeader(p, pa, js, json_output_ctx->flags);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
@@ -794,6 +814,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
+        SetFlag(conf, "rule-metadata", LOG_JSON_RULE_METADATA, &json_output_ctx->flags);
+
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+            DetectEngineSetParseMetadata();
+        }
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
