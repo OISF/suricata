@@ -1063,6 +1063,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     ThresholdHashInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
+    DetectMetadataHashInit(de_ctx);
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -1185,6 +1186,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectEngineCtxFreeFailedSigs(de_ctx);
 
     DetectAddressMapFree(de_ctx);
+    DetectMetadataHashFree(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {
