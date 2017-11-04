@@ -28,9 +28,9 @@
  * \brief Signature metadata list.
  */
 typedef struct DetectMetadata_ {
-    /* pointer to key */
+    /* pointer to key stored in de_ctx hash table_metadata */
     const char *key;
-    /* value data */
+    /* value data stored in de_ctx hash table_metadata */
     const char *value;
     /* next reference in the signature */
     struct DetectMetadata_ *next;

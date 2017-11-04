@@ -755,6 +755,9 @@ typedef struct DetectEngineCtx_ {
     /** table for storing the string representation with the parsers result */
     HashListTable *address_table;
 
+    /** table to store metadata keys and values */
+    HashTable *metadata_table;
+
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */
@@ -1260,6 +1263,9 @@ void RuleMatchCandidateTxArrayInit(DetectEngineThreadCtx *det_ctx, uint32_t size
 void RuleMatchCandidateTxArrayFree(DetectEngineThreadCtx *det_ctx);
 
 void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
+
+int DetectMetadataHashInit(DetectEngineCtx *de_ctx);
+void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
 
 #include "detect-engine-build.h"
 #include "detect-engine-register.h"

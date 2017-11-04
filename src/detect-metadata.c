@@ -66,18 +66,81 @@ void DetectMetadataFree(DetectMetadata *mdata)
 {
     SCEnter();
 
-    if (mdata->key != NULL) {
-        SCFree((void *)mdata->key);
-    }
-    if (mdata->value != NULL) {
-        SCFree((void *)mdata->value);
-    }
     SCFree(mdata);
 
     SCReturn;
 }
 
-static int DetectMetadataParse(Signature *s, const char *metadatastr)
+/* djb2 string hashing */
+static uint32_t StringHashFunc(HashTable *ht, void *data, uint16_t datalen)
+{
+    uint32_t hash = 5381;
+    int c;
+
+    while ((c = *(char *)data++))
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+    hash = hash % ht->array_size;
+
+    return hash;
+}
+
+static char StringHashCompareFunc(void *data1, uint16_t datalen1,
+                               void *data2, uint16_t datalen2)
+{
+    int len1 = strlen((char *)data1);
+    int len2 = strlen((char *)data2);
+
+    if (len1 == len2 && memcmp(data1, data2, len1) == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
+static void StringHashFreeFunc(void *data)
+{
+    SCFree(data);
+}
+
+int DetectMetadataHashInit(DetectEngineCtx *de_ctx)
+{
+    if (! DetectEngineMustParseMetadata())
+        return 0;
+
+    de_ctx->metadata_table = HashTableInit(4096, StringHashFunc, StringHashCompareFunc, StringHashFreeFunc);
+    if (de_ctx->metadata_table == NULL)
+        return -1;
+    return 0;
+}
+
+void DetectMetadataHashFree(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->metadata_table)
+        HashTableFree(de_ctx->metadata_table);
+}
+
+static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *string)
+{
+    const char * hstring = (char *)HashTableLookup(de_ctx->metadata_table, (void *)string, strlen(string));
+    if (hstring) {
+        return hstring;
+    }
+
+    const char *astring = SCStrdup(string);
+    if (astring == NULL) {
+        return NULL;
+    }
+
+    if (HashTableAdd(de_ctx->metadata_table, (void *)astring, strlen(astring)) == 0) {
+        return (char *)HashTableLookup(de_ctx->metadata_table, (void *)astring, strlen(astring));
+    } else {
+        SCFree((void *)astring);
+    }
+    return NULL;
+}
+
+static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char *metadatastr)
 {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
@@ -93,15 +156,19 @@ static int DetectMetadataParse(Signature *s, const char *metadatastr)
         return 0;
     }
 
-    char *saveptr = NULL;
     size_t metadatalen = strlen(metadatastr)+1;
     char rawstr[metadatalen];
     strlcpy(rawstr, metadatastr, metadatalen);
-    char * kv = strtok_r(rawstr, ",", &saveptr);
     const char *key = NULL;
     const char *value = NULL;
     char pkey[256];
     char pvalue[256];
+
+    char *saveptr = NULL;
+    char *kv = strtok_r(rawstr, ",", &saveptr);
+    if (kv == NULL) {
+        goto error;
+    }
 
     /* now check key value */
     do {
@@ -119,7 +186,7 @@ static int DetectMetadataParse(Signature *s, const char *metadatastr)
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        key = SCStrdup(pkey);
+        key = DetectMedatataHashAdd(de_ctx, pkey);
         if (key == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata key");
             goto error;
@@ -130,7 +197,7 @@ static int DetectMetadataParse(Signature *s, const char *metadatastr)
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        value = SCStrdup(pvalue);
+        value = DetectMedatataHashAdd(de_ctx, pvalue);
         if (value == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata value");
             goto error;
@@ -139,23 +206,13 @@ static int DetectMetadataParse(Signature *s, const char *metadatastr)
         SCLogDebug("key: %s, value: %s", key, value);
 
         dkv = SCMalloc(sizeof(DetectMetadata));
-        if (dkv) {
-            dkv->key = key;
-            if (!dkv->key) {
-                SCFree(dkv);
-            } else {
-                dkv->value = value;
-                if (!dkv->value) {
-                    SCFree((void *)dkv->key);
-                    SCFree(dkv);
-                } else {
-                    dkv->next = s->metadata;
-                    s->metadata = dkv;
-                }
-            }
-        } else {
+        if (dkv == NULL) {
             goto error;
         }
+        dkv->key = key;
+        dkv->value = value;
+        dkv->next = s->metadata;
+        s->metadata = dkv;
 
         kv = strtok_r(NULL, ",", &saveptr);
     } while (kv);
@@ -163,17 +220,13 @@ static int DetectMetadataParse(Signature *s, const char *metadatastr)
     return 0;
 
 error:
-    if (key)
-        SCFree((void *)key);
-    if (value)
-        SCFree((void *)value);
     return -1;
 }
 
 static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
     if (DetectEngineMustParseMetadata()) {
-        DetectMetadataParse(s, rawstr);
+        DetectMetadataParse(de_ctx, s, rawstr);
     }
 
     return 0;
@@ -183,20 +236,13 @@ static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char
 
 static int DetectMetadataParseTest01(void)
 {
+    DetectEngineUnsetParseMetadata();
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
-    int prev_state = 0;
 
-    if (DetectEngineMustParseMetadata()) {
-        prev_state = 1;
-        DetectEngineUnsetParseMetadata();
-    }
     Signature *sig = DetectEngineAppendSig(de_ctx,
                                            "alert tcp any any -> any any "
                                            "(metadata: toto 1; sid:1; rev:1;)");
-    if (prev_state == 1) {
-        DetectEngineSetParseMetadata();
-    }
     FAIL_IF_NULL(sig);
     FAIL_IF(sig->metadata); 
 
@@ -206,14 +252,9 @@ static int DetectMetadataParseTest01(void)
 
 static int DetectMetadataParseTest02(void)
 {
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    DetectEngineSetParseMetadata();
+    DetectEngineCtx *de_ctx = NULL;
     DetectMetadata *dm;
-    int prev_state = 1;
-
-    if (! DetectEngineMustParseMetadata()) {
-        prev_state = 0;
-        DetectEngineSetParseMetadata();
-    }
 
     de_ctx = DetectEngineCtxInit();
     FAIL_IF_NULL(de_ctx);
@@ -222,9 +263,6 @@ static int DetectMetadataParseTest02(void)
                                            "(metadata: toto 1; "
                                            "metadata: titi 2, jaivu gros_minet;"
                                            "sid:1; rev:1;)");
-    if (prev_state == 0) {
-        DetectEngineUnsetParseMetadata();
-    }
     FAIL_IF_NULL(sig);
     FAIL_IF_NULL(sig->metadata); 
     FAIL_IF_NULL(sig->metadata->key); 
