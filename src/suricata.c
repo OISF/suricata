@@ -2842,10 +2842,11 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-    PostConfLoadedDetectSetup(&suricata);
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
+
+    PostConfLoadedDetectSetup(&suricata);
 
     if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
