@@ -1700,6 +1700,14 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
 
     SigBuildAddressMatchArray(sig);
 
+    /* run buffer type callbacks if any */
+    const int nlists = DetectBufferTypeMaxId();
+    int x;
+    for (x = 0; x < nlists; x++) {
+        if (sig->init_data->smlists[x])
+            DetectBufferRunSetupCallback(x, sig);
+    }
+
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(de_ctx, sig) == 0) {
         goto error;

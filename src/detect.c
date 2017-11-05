@@ -3034,14 +3034,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                 }
             }
         }
-
-        /* run buffer type callbacks if any */
-        int x;
-        for (x = 0; x < nlists; x++) {
-            if (tmp_s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(x, tmp_s);
-        }
-
         de_ctx->sig_cnt++;
     }
 
