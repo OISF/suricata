@@ -3007,6 +3007,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         }
 
         SignatureCreateMask(tmp_s);
+        DetectContentPropagateLimits(tmp_s);
         SigParseApplyDsizeToContent(tmp_s);
 
         RuleSetWhitelist(tmp_s);
