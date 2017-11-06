@@ -194,7 +194,6 @@ int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
 extern int run_mode;
-extern int run_mode_offline;
 
 void PreRunInit(const int runmode);
 void PreRunPostPrivsDropInit(const int runmode);
