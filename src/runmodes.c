@@ -484,6 +484,20 @@ int RunModeOutputFiledataEnabled(void)
     return filedata_logger_count > 0;
 }
 
+bool IsRunModeOffline(int run_mode)
+{
+    switch(run_mode) {
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+        case RUNMODE_UNIX_SOCKET:
+            return TRUE;
+            break;
+        case RUNMODE_UNKNOWN:
+            return FALSE;
+    }
+}
+
 /**
  * Cleanup the run mode.
  */

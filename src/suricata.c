@@ -203,9 +203,6 @@ volatile uint8_t suricata_ctl_flags = 0;
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
 
-/** Is this an offline run mode. */
-int run_mode_offline = 0;
-
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
@@ -2108,6 +2105,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     if (engine_analysis)
         suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
 
+    suri->offline = IsRunModeOffline(suri->run_mode);
+
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)
         return ret;
@@ -2373,11 +2372,6 @@ static int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
     switch (suri->run_mode) {
-        case RUNMODE_PCAP_FILE:
-        case RUNMODE_ERF_FILE:
-        case RUNMODE_ENGINE_ANALYSIS:
-            suri->offline = 1;
-            break;
         case RUNMODE_UNKNOWN:
             PrintUsage(argv[0]);
             return TM_ECODE_FAILED;
@@ -2386,7 +2380,6 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     }
     /* Set the global run mode and offline flag. */
     run_mode = suri->run_mode;
-    run_mode_offline = suri->offline;
 
     if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
         return TM_ECODE_FAILED;
