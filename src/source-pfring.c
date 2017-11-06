@@ -127,9 +127,9 @@ static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 #define LIBPFRING_REENTRANT   0
 #define LIBPFRING_WAIT_FOR_INCOMING 1
 
-typedef enum {
-    PFRING_FLAGS_ZERO_COPY = 0x1
-} PfringThreadVarsFlags;
+/* PfringThreadVars flags */
+#define PFRING_FLAGS_ZERO_COPY (1 << 0)
+#define PFRING_FLAGS_BYPASS    (1 << 1)
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -142,6 +142,7 @@ typedef struct PfringThreadVars_
     /* counters */
     uint64_t bytes;
     uint64_t pkts;
+    uint64_t shunt_pkts;
 
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
@@ -213,6 +214,9 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
+#ifdef PF_RING_FLOW_OFFLOAD
+        ptv->shunt_pkts = pfring_s.shunt;
+#endif
     }
 }
 
@@ -283,6 +287,42 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     SET_PKT_LEN(p, h->caplen);
 }
 
+#ifdef PF_RING_FLOW_OFFLOAD
+/**
+ * \brief Pfring bypass callback function
+ *
+ * \param p a Packet to use information from to trigger bypass
+ * \return 1 if bypass is successful, 0 if not
+ */
+static int PfringBypassCallback(Packet *p)
+{
+    hw_filtering_rule r;
+
+    /* Only bypass TCP and UDP */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+        return 0;
+    }
+
+    /* Bypassing tunneled packets is currently not supported */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
+
+    r.rule_family_type = generic_flow_id_rule;
+    r.rule_family.flow_id_rule.action = flow_drop_rule;
+    r.rule_family.flow_id_rule.thread = 0;
+    r.rule_family.flow_id_rule.flow_id = p->pfring_v.flow_id;
+
+    SCLogDebug("Bypass set for flow ID = %u", p->pfring_v.flow_id);
+
+    if (pfring_add_hw_rule(p->pfring_v.ptv->pd, &r) < 0) {
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
 /**
  * \brief Recieves packets from an interface via libpfring.
  *
@@ -352,6 +392,14 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             /* profiling started before blocking pfring_recv call, so
              * reset it here */
             PACKET_PROFILING_RESTART(p);
+
+#ifdef PF_RING_FLOW_OFFLOAD
+            if (ptv->flags & PFRING_FLAGS_BYPASS) {
+                p->pfring_v.flow_id = hdr.extended_hdr.pkt_hash; /* pkt hash contains the flow id in this configuration */
+                p->pfring_v.ptv = ptv;
+                p->BypassPacketsFlow = PfringBypassCallback;
+            }
+#endif
 
             /* Check for Zero-copy mode */
             if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
@@ -493,6 +541,16 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         }
     }
 
+    if (pfconf->flags & PFRING_CONF_FLAGS_BYPASS) {
+#ifdef PF_RING_FLOW_OFFLOAD
+        SCLogInfo("Bypass is supported by this Pfring version");
+        opflag |= PF_RING_FLOW_OFFLOAD | PF_RING_FLOW_OFFLOAD_NOUPDATES;
+        ptv->flags |= PFRING_FLAGS_BYPASS;
+#else
+        SCLogInfo("Bypass is not supported by this Pfring version, please upgrade");
+#endif
+    }
+
     ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size, opflag);
     if (ptv->pd == NULL) {
         SCLogError(SC_ERR_PF_RING_OPEN,"Failed to open %s: pfring_open error."
@@ -613,6 +671,11 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
     SCLogPerf("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+#ifdef PF_RING_FLOW_OFFLOAD
+    if (ptv->flags & PFRING_FLAGS_BYPASS) {
+        SCLogPerf("(%s) Bypass: Packets %" PRIu64 "", tv->name, ptv->shunt_pkts);
+    }
+#endif
 }
 
 /**
