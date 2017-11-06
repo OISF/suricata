@@ -63,13 +63,13 @@ typedef struct SCACTileCtx_ {
      * number of states could make the next state could be 16 bits or
      * 32 bits.
      */
-    uint32_t (*search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
+    uint32_t (*Search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
                        PrefilterRuleStore *, const uint8_t *, uint16_t);
 
     /* Function to set the next state based on size of next state
      * (bytes_per_state).
      */
-    void (*set_next_state)(struct SCACTileCtx_ *ctx, int state, int aa,
+    void (*SetNextState)(struct SCACTileCtx_ *ctx, int state, int aa,
                            int new_state, int outputs);
 
     /* List of patterns that match for this state. Indexed by State Number */
@@ -116,7 +116,7 @@ typedef struct SCACTileSearchCtx_ {
      * number of states could make the next state could be 16 bits or
      * 32 bits.
      */
-    uint32_t (*search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
+    uint32_t (*Search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
                        PrefilterRuleStore *, const uint8_t *, uint16_t);
 
     /* Convert input character to matching alphabet */

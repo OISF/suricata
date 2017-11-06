@@ -629,57 +629,57 @@ static inline void SCACTileCreateDeltaTable(MpmCtx *mpm_ctx)
     if (ctx->state_count < 32767) {
         if (ctx->state_count < 128) {
             ctx->bytes_per_state = 1;
-            ctx->set_next_state = SCACTileSetState1Byte;
+            ctx->SetNextState = SCACTileSetState1Byte;
 
             switch(ctx->alphabet_storage) {
             case 8:
-                ctx->search = SCACTileSearchTiny8;
+                ctx->Search = SCACTileSearchTiny8;
                 break;
             case 16:
-                ctx->search = SCACTileSearchTiny16;
+                ctx->Search = SCACTileSearchTiny16;
                 break;
             case 32:
-                ctx->search = SCACTileSearchTiny32;
+                ctx->Search = SCACTileSearchTiny32;
                 break;
             case 64:
-                ctx->search = SCACTileSearchTiny64;
+                ctx->Search = SCACTileSearchTiny64;
                 break;
             case 128:
-                ctx->search = SCACTileSearchTiny128;
+                ctx->Search = SCACTileSearchTiny128;
                 break;
             default:
-                ctx->search = SCACTileSearchTiny256;
+                ctx->Search = SCACTileSearchTiny256;
             }
         } else {
             /* 16-bit state needed */
             ctx->bytes_per_state = 2;
-            ctx->set_next_state = SCACTileSetState2Bytes;
+            ctx->SetNextState = SCACTileSetState2Bytes;
 
             switch(ctx->alphabet_storage) {
             case 8:
-                ctx->search = SCACTileSearchSmall8;
+                ctx->Search = SCACTileSearchSmall8;
                 break;
             case 16:
-                ctx->search = SCACTileSearchSmall16;
+                ctx->Search = SCACTileSearchSmall16;
                 break;
             case 32:
-                ctx->search = SCACTileSearchSmall32;
+                ctx->Search = SCACTileSearchSmall32;
                 break;
             case 64:
-                ctx->search = SCACTileSearchSmall64;
+                ctx->Search = SCACTileSearchSmall64;
                 break;
             case 128:
-                ctx->search = SCACTileSearchSmall128;
+                ctx->Search = SCACTileSearchSmall128;
                 break;
             default:
-                ctx->search = SCACTileSearchSmall256;
+                ctx->Search = SCACTileSearchSmall256;
             }
         }
     } else {
         /* 32-bit next state */
-        ctx->search = SCACTileSearchLarge;
+        ctx->Search = SCACTileSearchLarge;
         ctx->bytes_per_state = 4;
-        ctx->set_next_state = SCACTileSetState4Bytes;
+        ctx->SetNextState = SCACTileSetState4Bytes;
 
         ctx->alphabet_storage = 256; /* Change? */
     }
@@ -740,7 +740,7 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
         for (aa = 0; aa < ctx->alphabet_size; aa++) {
             int next_state = ctx->goto_table[state][aa];
             int next_state_outputs = ctx->output_table[next_state].no_of_entries;
-            ctx->set_next_state(ctx, state, aa, next_state, next_state_outputs);
+            ctx->SetNextState(ctx, state, aa, next_state, next_state_outputs);
         }
     }
 }
@@ -842,7 +842,7 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     /* Resize the output table to be only as big as its final size. */
     SCACTileReallocOutputTable(ctx, ctx->state_count);
 
-    search_ctx->search = ctx->search;
+    search_ctx->Search = ctx->Search;
     memcpy(search_ctx->translate_table, ctx->translate_table, sizeof(ctx->translate_table));
 
     /* Move the state table from the Init context */
@@ -1243,7 +1243,7 @@ uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         return 0;
 
     /* Context specific matching function. */
-    return search_ctx->search(search_ctx, mpm_thread_ctx, pmq, buf, buflen);
+    return search_ctx->Search(search_ctx, mpm_thread_ctx, pmq, buf, buflen);
 }
 
 /* This function handles (ctx->state_count >= 32767) */
