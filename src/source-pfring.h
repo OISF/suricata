@@ -31,9 +31,11 @@
 #include <pfring.h>
 #endif
 
-typedef enum {
-    PFRING_CONF_FLAGS_CLUSTER = 0x1
-} PfringIfaceConfigFlags;
+typedef struct PfringThreadVars_ PfringThreadVars;
+
+/* PfringIfaceConfig flags */
+#define PFRING_CONF_FLAGS_CLUSTER (1 << 0)
+#define PFRING_CONF_FLAGS_BYPASS  (1 << 1)
 
 typedef struct PfringIfaceConfig_
 {
@@ -55,6 +57,16 @@ typedef struct PfringIfaceConfig_
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
 
+/**
+ * \brief per packet Pfring vars
+ *
+ * This structure is used to pass packet metadata in callbacks.
+ */
+typedef struct PfringPacketVars_
+{
+    PfringThreadVars *ptv;
+    u_int32_t flow_id;
+} PfringPacketVars;
 
 
 void TmModuleReceivePfringRegister (void);
