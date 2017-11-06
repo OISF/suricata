@@ -33,6 +33,7 @@
 #include "suricata-common.h"
 
 #include "host.h"
+#include "ippair.h"
 
 #include "detect.h"
 #include "detect-engine.h"
@@ -68,7 +69,7 @@ static FILE *g_ut_threshold_fp = NULL;
 #define DETECT_THRESHOLD_REGEX "^,\\s*type\\s*(limit|both|threshold)\\s*,\\s*track\\s*(by_dst|by_src)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*$"
 
 /* TODO: "apply_to" */
-#define DETECT_RATE_REGEX "^,\\s*track\\s*(by_dst|by_src|by_rule)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*,\\s*new_action\\s*(alert|drop|pass|log|sdrop|reject)\\s*,\\s*timeout\\s*(\\d+)\\s*$"
+#define DETECT_RATE_REGEX "^,\\s*track\\s*(by_dst|by_src|by_both|by_rule)\\s*,\\s*count\\s*(\\d+)\\s*,\\s*seconds\\s*(\\d+)\\s*,\\s*new_action\\s*(alert|drop|pass|log|sdrop|reject)\\s*,\\s*timeout\\s*(\\d+)\\s*$"
 
 /*
  * suppress has two form:
@@ -916,6 +917,9 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                 parsed_track = TRACK_DST;
             else if (strcasecmp(th_track,"by_src") == 0)
                 parsed_track = TRACK_SRC;
+            else if (strcasecmp(th_track, "by_both") == 0) {
+                parsed_track = TRACK_BOTH;
+            }
             else if (strcasecmp(th_track,"by_rule") == 0)
                 parsed_track = TRACK_RULE;
             else {
@@ -1280,7 +1284,8 @@ static FILE *SCThresholdConfGenerateValidDummyFD05(void)
     const char *buffer =
         "rate_filter gen_id 1, sig_id 10, track by_src, count 1, seconds 60, new_action drop, timeout 10\n"
         "rate_filter gen_id 1, sig_id 100, track by_dst, count 10, seconds 60, new_action pass, timeout 5\n"
-        "rate_filter gen_id 1, sig_id 1000, track by_rule, count 100, seconds 60, new_action alert, timeout 30\n";
+        "rate_filter gen_id 1, sig_id 1000, track by_rule, count 100, seconds 60, new_action alert, timeout 30\n"
+        "rate_filter gen_id 1, sig_id 10000, track by_both, count 1000, seconds 60, new_action reject, timeout 21\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -1301,7 +1306,8 @@ static FILE *SCThresholdConfGenerateValidDummyFD06(void)
     const char *buffer =
         "rate_filter \\\ngen_id 1, sig_id 10, track by_src, count 1, seconds 60\\\n, new_action drop, timeout 10\n"
         "rate_filter gen_id 1, \\\nsig_id 100, track by_dst, \\\ncount 10, seconds 60, new_action pass, timeout 5\n"
-        "rate_filter gen_id 1, sig_id 1000, \\\ntrack by_rule, count 100, seconds 60, new_action alert, timeout 30\n";
+        "rate_filter gen_id 1, sig_id 1000, \\\ntrack by_rule, count 100, seconds 60, new_action alert, timeout 30\n"
+        "rate_filter gen_id 1, sig_id 10000, track by_both, count 1000, \\\nseconds 60, new_action reject, timeout 21\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -2536,6 +2542,216 @@ static int SCThresholdConfTest21(void)
     PASS;
 }
 
+/**
+* \brief Creates a dummy rate_filter file, for testing rate filtering by_both source and destination
+*
+* \retval fd Pointer to file descriptor.
+*/
+static FILE *SCThresholdConfGenerateValidDummyFD22(void)
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "rate_filter gen_id 1, sig_id 10, track by_both, count 2, seconds 5, new_action drop, timeout 6\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+* \test Check if the rate_filter rules work with track by_both
+*
+*  \retval 1 on succces
+*  \retval 0 on failure
+*/
+static int SCThresholdConfTest22(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    struct timeval ts;
+    memset(&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    /* This packet will cause rate_filter */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
+
+    /* Should not be filtered for different destination */
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.2");
+    FAIL_IF_NULL(p2);
+
+    /* Should not be filtered when both src and dst the same */
+    Packet *p3 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.1");
+    FAIL_IF_NULL(p3);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD22();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    int alerts = PacketAlertCheck(p1, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts += PacketAlertCheck(p2, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    alerts += PacketAlertCheck(p3, 10);
+    /* All should be alerted, none dropped */
+    FAIL_IF(alerts != 3 || PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
+    p1->action = p2->action = p3->action = 0;
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts = PacketAlertCheck(p1, 10);
+    /* p1 still shouldn't be dropped after 2nd alert */
+    FAIL_IF(alerts != 1 || PACKET_TEST_ACTION(p1, ACTION_DROP));
+    p1->action = 0;
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts = PacketAlertCheck(p1, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts += PacketAlertCheck(p2, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    alerts += PacketAlertCheck(p3, 10);
+    /* All should be alerted, only p1 must be dropped  due to rate_filter*/
+    FAIL_IF(alerts != 3 || !PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
+    p1->action = p2->action = p3->action = 0;
+
+    TimeSetIncrementTime(7);
+    TimeGet(&p1->ts);
+    p2->ts = p3->ts = p1->ts;
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    alerts = PacketAlertCheck(p1, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    alerts += PacketAlertCheck(p2, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    alerts += PacketAlertCheck(p3, 10);
+    /* All should be alerted, none dropped (because timeout expired) */
+    FAIL_IF(alerts != 3 || PACKET_TEST_ACTION(p1, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p2, ACTION_DROP) || PACKET_TEST_ACTION(p3, ACTION_DROP));
+
+    UTHFreePacket(p3);
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    IPPairShutdown();
+    PASS;
+}
+
+/**
+* \brief Creates a dummy rate_filter file, for testing rate filtering by_both source and destination
+*
+* \retval fd Pointer to file descriptor.
+*/
+static FILE *SCThresholdConfGenerateValidDummyFD23(void)
+{
+    FILE *fd = NULL;
+    const char *buffer =
+        "rate_filter gen_id 1, sig_id 10, track by_both, count 1, seconds 5, new_action drop, timeout 6\n";
+
+    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    if (fd == NULL)
+        SCLogDebug("Error with SCFmemopen() called by Threshold Config test code");
+
+    return fd;
+}
+
+/**
+* \test Check if the rate_filter by_both work when similar packets
+*       going in opposite direction
+*
+*  \retval 1 on succces
+*  \retval 0 on failure
+*/
+static int SCThresholdConfTest23(void)
+{
+    ThreadVars th_v;
+    memset(&th_v, 0, sizeof(th_v));
+
+    IPPairInitConfig(IPPAIR_QUIET);
+
+    struct timeval ts;
+    memset(&ts, 0, sizeof(struct timeval));
+    TimeGet(&ts);
+
+    /* Create two packets between same addresses in opposite direction */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
+    FAIL_IF_NULL(p1);
+
+    Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.10", "172.26.0.1");
+    FAIL_IF_NULL(p2);
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+        "alert tcp any any -> any any (msg:\"ratefilter by_both test\"; gid:1; sid:10;)");
+    FAIL_IF_NULL(sig);
+
+    FAIL_IF_NOT_NULL(g_ut_threshold_fp);
+    g_ut_threshold_fp = SCThresholdConfGenerateValidDummyFD23();
+    FAIL_IF_NULL(g_ut_threshold_fp);
+    SCThresholdConfInitContext(de_ctx);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    TimeGet(&p1->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    /* First packet should be alerted, not dropped */
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1 || PACKET_TEST_ACTION(p1, ACTION_DROP));
+
+    TimeSetIncrementTime(2);
+    TimeGet(&p2->ts);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    /* Second packet should be dropped because it considered as "the same pair"
+       and rate_filter count reached*/
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1 || !PACKET_TEST_ACTION(p2, ACTION_DROP));
+
+    UTHFreePacket(p2);
+    UTHFreePacket(p1);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    IPPairShutdown();
+    PASS;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -2577,6 +2793,11 @@ void SCThresholdConfRegisterTests(void)
                    SCThresholdConfTest20);
     UtRegisterTest("SCThresholdConfTest21 - suppress parsing",
                    SCThresholdConfTest21);
+    UtRegisterTest("SCThresholdConfTest22 - rate_filter by_both",
+                   SCThresholdConfTest22);
+    UtRegisterTest("SCThresholdConfTest23 - rate_filter by_both opposite",
+        SCThresholdConfTest23);
+
 #endif /* UNITTESTS */
 }
 
