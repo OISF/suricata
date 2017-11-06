@@ -65,12 +65,16 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
     saun.sun_family = AF_UNIX;
     strlcpy(saun.sun_path, path, sizeof(saun.sun_path));
 
+    SCLogInfo("Unix socket connecting to \"%s\"", path);
+
     if (connect(s, (const struct sockaddr *)&saun, sizeof(saun)) < 0)
         goto err;
 
     ret = fdopen(s, "w");
     if (ret == NULL)
         goto err;
+
+    SCLogInfo("Unix socket connected to \"%s\"", path);
 
     return ret;
 
@@ -130,7 +134,9 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
 static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
         LogFileCtx *ctx)
 {
-    int tries = 0;
+    int tries_when_blocked = ctx->retries_when_blocked;
+    int tries_when_interrupted = ctx->retries_when_interrupted;
+    int tries_when_reconnecting = ctx->retries_when_reconnecting;
     int ret = 0;
     bool reopen = false;
 #ifdef BUILD_WITH_UNIXSOCKET
@@ -149,13 +155,23 @@ tryagain:
             ret = 0;
         } else {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                SCLogDebug("Socket would block, dropping event.");
-            } else if (errno == EINTR) {
-                if (tries++ == 0) {
-                    SCLogDebug("Interrupted system call, trying again.");
+                if(--tries_when_blocked > 0) {
+                    SCLogDebug(
+                        "Socket would block, trying again. %u attempts remaining",
+                        tries_when_blocked
+                    );
                     goto tryagain;
                 }
-                SCLogDebug("Too many interrupted system calls, "
+                SCLogWarning(SC_ERR_SOCKET, "Socket would block, dropping event.");
+            } else if (errno == EINTR) {
+                if (--tries_when_interrupted > 0) {
+                    SCLogDebug(
+                        "Interrupted system call, trying again. %u attempts remaining",
+                        tries_when_interrupted
+                    );
+                    goto tryagain;
+                }
+                SCLogWarning(SC_ERR_SOCKET, "Too many interrupted system calls, "
                         "dropping event.");
             } else {
                 /* Some other error. Assume badness and reopen. */
@@ -165,8 +181,12 @@ tryagain:
         }
     }
 
-    if (reopen && tries++ == 0) {
+    if (reopen && --tries_when_reconnecting > 0) {
         if (SCLogUnixSocketReconnect(ctx)) {
+            SCLogDebug(
+                "Reconnect failed, trying again. %u attempts remaining",
+                tries_when_reconnecting
+            );
             goto tryagain;
         }
     }
@@ -434,6 +454,24 @@ SCConfLogOpenGeneric(ConfNode *conf,
             ByteExtractStringUint32(&mode, 8, strlen(filemode),
                                     filemode) > 0) {
         log_ctx->filemode = mode;
+    }
+
+    log_ctx->retries_when_reconnecting = 1;
+    intmax_t retries_when_reconnecting = 0;
+    if(ConfGetChildValueInt(conf, "retries.reconnecting", &retries_when_reconnecting) != 0) {
+        log_ctx->retries_when_reconnecting = retries_when_reconnecting;
+    }
+
+    log_ctx->retries_when_blocked = 0;
+    intmax_t retries_when_blocked = 0;
+    if(ConfGetChildValueInt(conf, "retries.blocked", &retries_when_blocked) != 0) {
+        log_ctx->retries_when_blocked = retries_when_blocked;
+    }
+
+    log_ctx->retries_when_interrupted = 1;
+    intmax_t retries_when_interrupted = 0;
+    if(ConfGetChildValueInt(conf, "retries.interrupted", &retries_when_blocked) != 0) {
+        log_ctx->retries_when_interrupted = retries_when_interrupted;
     }
 
     const char *append = ConfNodeLookupChildValue(conf, "append");

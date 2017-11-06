@@ -128,6 +128,15 @@ typedef struct LogFileCtx_ {
     /* Socket types may need to drop events to keep from blocking
      * Suricata. */
     uint64_t dropped;
+
+    /* Number of retries when reconnected */
+    intmax_t retries_when_reconnecting;
+
+    /* Number of retries allowed when log write would be blocked */
+    intmax_t retries_when_blocked;
+
+    /* Number of retries allowed when log write is interrupted */
+    intmax_t retries_when_interrupted;
 } LogFileCtx;
 
 /* Min time (msecs) before trying to reconnect a Unix domain socket */
