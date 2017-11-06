@@ -526,7 +526,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
 #ifdef BUILD_WITH_UNIXSOCKET
     /* If a socket and running live, do non-blocking writes. */
-    if (log_ctx->is_sock && run_mode_offline == 0) {
+    if (log_ctx->is_sock && !IsRunModeOffline(RunmodeGetCurrent())) {
         SCLogInfo("Setting logging socket of non-blocking in live mode.");
         log_ctx->send_flags |= MSG_DONTWAIT;
     }

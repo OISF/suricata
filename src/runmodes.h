@@ -88,6 +88,8 @@ void RunModeShutDown(void);
 int RunModeOutputFileEnabled(void);
 /* bool indicating if filedata logger is enabled */
 int RunModeOutputFiledataEnabled(void);
+/** bool indicating if run mode is offline */
+bool IsRunModeOffline(int run_mode_to_check);
 
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
