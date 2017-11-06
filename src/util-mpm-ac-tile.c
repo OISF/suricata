@@ -946,6 +946,8 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
             ctx->pattern_list[i].patlen = len;
             string_space += space;
         }
+        ctx->pattern_list[i].offset = ctx->parray[i]->offset;
+        ctx->pattern_list[i].depth = ctx->parray[i]->depth;
         ctx->pattern_list[i].pid = ctx->parray[i]->id;
 
         /* ACPatternList now owns this memory */
@@ -1177,7 +1179,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
                uint16_t state, int i, int matches,
                uint8_t *mpm_bitarray)
 {
-    SCACTilePatternList *pattern_list = ctx->pattern_list;
+    const SCACTilePatternList *pattern_list = ctx->pattern_list;
     const uint8_t *buf_offset = buf + i + 1; // Lift out of loop
     uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
     MpmPatternIndex *patterns = ctx->output_table[state].patterns;
@@ -1196,13 +1198,18 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
             matches++;
             continue;
         }
+        const SCACTilePatternList *pat = &pattern_list[pindex];
+        const int offset = i - pat->patlen + 1;
+        if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+            continue;
+
         /* Double check case-sensitve match now. */
         if (patterns[k] >> 31) {
-            uint16_t patlen = pattern_list[pindex].patlen;
+            const uint16_t patlen = pat->patlen;
 #ifdef __tile__
-            if (SCMemcmpNZ(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+            if (SCMemcmpNZ(pat->cs, buf_offset - patlen, patlen) != 0) {
 #else
-            if (SCMemcmp(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+            if (SCMemcmp(pat->cs, buf_offset - patlen, patlen) != 0) {
 #endif
                 /* Case-sensitive match failed. */
                 continue;
