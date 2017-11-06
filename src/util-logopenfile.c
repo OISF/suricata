@@ -65,12 +65,16 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
     saun.sun_family = AF_UNIX;
     strlcpy(saun.sun_path, path, sizeof(saun.sun_path));
 
+    SCLogInfo("Unix socket connecting to \"%s\"", path);
+
     if (connect(s, (const struct sockaddr *)&saun, sizeof(saun)) < 0)
         goto err;
 
     ret = fdopen(s, "w");
     if (ret == NULL)
         goto err;
+
+    SCLogInfo("Unix socket connected to \"%s\"", path);
 
     return ret;
 
@@ -130,7 +134,10 @@ static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
 static int SCLogFileWriteSocket(const char *buffer, int buffer_len,
         LogFileCtx *ctx)
 {
-    int tries = 0;
+    int tries_when_interrupted = ctx->retries_when_interrupted;
+    int tries_when_reconnecting = ctx->retries_when_reconnecting;
+    bool drop_on_block = ctx->when_blocked_drop_events;
+    int poll_interval_ms = ctx->when_blocked_poll_interval_ms;
     int ret = 0;
     bool reopen = false;
 #ifdef BUILD_WITH_UNIXSOCKET
@@ -149,13 +156,46 @@ tryagain:
             ret = 0;
         } else {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                SCLogDebug("Socket would block, dropping event.");
+                if(drop_on_block) {
+                    SCLogWarning(SC_ERR_SOCKET, "Socket would block, dropping event.");
+                    ret = -1;
+                } else {
+                    struct pollfd poll_info;
+                    poll_info.fd = fd;
+                    poll_info.events = POLLOUT;
+pollagain:
+                    ret = 0;
+                    ret = poll(&poll_info, 1, poll_interval_ms);
+                    if(ret == 1) {
+                        if( (poll_info.revents & POLLOUT) == 1) {
+                            goto tryagain;
+                        } else if( (poll_info.revents & POLLERR) == 1) {
+                            SCLogWarning(
+                                SC_ERR_SOCKET,
+                                "Error waiting for writable socket, socket is closed, dropping event"
+                            );
+                        }
+                    } else if(ret == 0) {
+                        SCLogDebug("Socket would block, trying again.");
+                        goto pollagain;
+                    } else {
+                        SCLogWarning(
+                            SC_ERR_SOCKET,
+                            "Error waiting for writable socket %u, dropping event",
+                            ret
+                        );
+                    }
+                }
             } else if (errno == EINTR) {
-                if (tries++ == 0) {
-                    SCLogDebug("Interrupted system call, trying again.");
+                if (--tries_when_interrupted > 0) {
+                    SCLogDebug(
+                        "Interrupted system call, trying again. %u attempts remaining",
+                        tries_when_interrupted
+                    );
                     goto tryagain;
                 }
-                SCLogDebug("Too many interrupted system calls, "
+                ret = -1;
+                SCLogWarning(SC_ERR_SOCKET, "Too many interrupted system calls, "
                         "dropping event.");
             } else {
                 /* Some other error. Assume badness and reopen. */
@@ -165,8 +205,12 @@ tryagain:
         }
     }
 
-    if (reopen && tries++ == 0) {
+    if (reopen && --tries_when_reconnecting > 0) {
         if (SCLogUnixSocketReconnect(ctx)) {
+            SCLogDebug(
+                "Reconnect failed, trying again. %u attempts remaining",
+                tries_when_reconnecting
+            );
             goto tryagain;
         }
     }
@@ -436,6 +480,35 @@ SCConfLogOpenGeneric(ConfNode *conf,
         log_ctx->filemode = mode;
     }
 
+    log_ctx->when_blocked_drop_events = TRUE;
+    int when_blocked_drop_events = 1;
+    if(ConfGetChildValueBool(conf, "when-blocked.drop-events", &when_blocked_drop_events) != 0) {
+        if(when_blocked_drop_events == 0 && TimeModeIsLive()) {
+            SCLogInfo("In live mode, will force event dropping when blocked");
+            when_blocked_drop_events = TRUE;
+        }
+        if(!when_blocked_drop_events) {
+            log_ctx->when_blocked_drop_events = FALSE;
+            log_ctx->when_blocked_poll_interval_ms = 100;
+            intmax_t when_blocked_poll_interval_ms = 0;
+            if(ConfGetChildValueInt(conf, "when-blocked.poll-interval", &when_blocked_poll_interval_ms) != 0) {
+                log_ctx->when_blocked_poll_interval_ms = (int)when_blocked_poll_interval_ms;
+            }
+        }
+    }
+
+    log_ctx->retries_when_reconnecting = 1;
+    intmax_t retries_when_reconnecting = 0;
+    if(ConfGetChildValueInt(conf, "retries.reconnecting", &retries_when_reconnecting) != 0) {
+        log_ctx->retries_when_reconnecting = (int)retries_when_reconnecting;
+    }
+
+    log_ctx->retries_when_interrupted = 1;
+    intmax_t retries_when_interrupted = 0;
+    if(ConfGetChildValueInt(conf, "retries.interrupted", &retries_when_interrupted) != 0) {
+        log_ctx->retries_when_interrupted = (int)retries_when_interrupted;
+    }
+
     const char *append = ConfNodeLookupChildValue(conf, "append");
     if (append == NULL)
         append = DEFAULT_LOG_MODE_APPEND;
@@ -523,14 +596,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
             "Failed to allocate memory for filename");
         return -1;
     }
-
-#ifdef BUILD_WITH_UNIXSOCKET
-    /* If a socket and running live, do non-blocking writes. */
-    if (log_ctx->is_sock && run_mode_offline == 0) {
-        SCLogInfo("Setting logging socket of non-blocking in live mode.");
-        log_ctx->send_flags |= MSG_DONTWAIT;
-    }
-#endif
+    
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
               filename);
 
@@ -587,6 +653,9 @@ LogFileCtx *LogFileNewCtx(void)
     // Default Write and Close functions
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+#ifdef BUILD_WITH_UNIXSOCKET
+    lf_ctx->send_flags |= MSG_DONTWAIT;
+#endif
 
     return lf_ctx;
 }
