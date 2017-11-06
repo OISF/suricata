@@ -30,6 +30,9 @@ typedef struct SCACTilePatternList_ {
     uint8_t *cs;
     uint16_t patlen;
 
+    uint16_t offset;
+    uint16_t depth;
+
     /* Pattern Id */
     uint32_t pid;
 
