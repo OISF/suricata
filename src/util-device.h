@@ -43,6 +43,7 @@ typedef struct LiveDevice_ {
     int ignore_checksum;
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
+    SC_ATOMIC_DECLARE(uint64_t, bypassed);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 

@@ -127,9 +127,9 @@ static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 #define LIBPFRING_REENTRANT   0
 #define LIBPFRING_WAIT_FOR_INCOMING 1
 
-typedef enum {
-    PFRING_FLAGS_ZERO_COPY = 0x1
-} PfringThreadVarsFlags;
+/* PfringThreadVars flags */
+#define PFRING_FLAGS_ZERO_COPY (1 << 0)
+#define PFRING_FLAGS_BYPASS    (1 << 1)
 
 /**
  * \brief Structure to hold thread specific variables.
@@ -145,6 +145,7 @@ typedef struct PfringThreadVars_
 
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
+    uint16_t capture_bypassed;
 
     uint32_t flags;
 
@@ -209,10 +210,19 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * to the interface counter */
         uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
         uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+        uint64_t th_bypassed = StatsGetLocalCounterValue(ptv->tv, ptv->capture_bypassed);
+#endif
         SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+        SC_ATOMIC_ADD(ptv->livedev->bypassed, pfring_s.shunt - th_bypassed);
+#endif
         StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+        StatsSetUI64(ptv->tv, ptv->capture_bypassed, pfring_s.shunt);
+#endif
     }
 }
 
@@ -283,6 +293,42 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     SET_PKT_LEN(p, h->caplen);
 }
 
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+/**
+ * \brief Pfring bypass callback function
+ *
+ * \param p a Packet to use information from to trigger bypass
+ * \return 1 if bypass is successful, 0 if not
+ */
+static int PfringBypassCallback(Packet *p)
+{
+    hw_filtering_rule r;
+
+    /* Only bypass TCP and UDP */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+        return 0;
+    }
+
+    /* Bypassing tunneled packets is currently not supported */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
+
+    r.rule_family_type = generic_flow_id_rule;
+    r.rule_family.flow_id_rule.action = flow_drop_rule;
+    r.rule_family.flow_id_rule.thread = 0;
+    r.rule_family.flow_id_rule.flow_id = p->pfring_v.flow_id;
+
+    SCLogDebug("Bypass set for flow ID = %u", p->pfring_v.flow_id);
+
+    if (pfring_add_hw_rule(p->pfring_v.ptv->pd, &r) < 0) {
+        return 0;
+    }
+
+    return 1;
+}
+#endif
+
 /**
  * \brief Recieves packets from an interface via libpfring.
  *
@@ -352,6 +398,14 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             /* profiling started before blocking pfring_recv call, so
              * reset it here */
             PACKET_PROFILING_RESTART(p);
+
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+            if (ptv->flags & PFRING_FLAGS_BYPASS) {
+                p->pfring_v.flow_id = hdr.extended_hdr.pkt_hash; /* pkt hash contains the flow id in this configuration */
+                p->pfring_v.ptv = ptv;
+                p->BypassPacketsFlow = PfringBypassCallback;
+            }
+#endif
 
             /* Check for Zero-copy mode */
             if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
@@ -493,6 +547,13 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
         }
     }
 
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+    if (pfconf->flags & PFRING_CONF_FLAGS_BYPASS) {
+        opflag |= PF_RING_FLOW_OFFLOAD | PF_RING_FLOW_OFFLOAD_NOUPDATES;
+        ptv->flags |= PFRING_FLAGS_BYPASS;
+    }
+#endif
+
     ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size, opflag);
     if (ptv->pd == NULL) {
         SCLogError(SC_ERR_PF_RING_OPEN,"Failed to open %s: pfring_open error."
@@ -561,6 +622,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             ptv->tv);
     ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
             ptv->tv);
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+    ptv->capture_bypassed = StatsRegisterCounter("capture.bypassed",
+            ptv->tv);
+#endif
 
     /* A bit strange to have this here but we only have vlan information
      * during reading so we need to know if we want to keep vlan during
@@ -613,6 +678,13 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
     SCLogPerf("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+    if (ptv->flags & PFRING_FLAGS_BYPASS) {
+        SCLogPerf("(%s) Bypass: Packets %" PRIu64 "",
+                tv->name,
+                StatsGetLocalCounterValue(tv, ptv->capture_bypassed));
+    }
+#endif
 }
 
 /**
