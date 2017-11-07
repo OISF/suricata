@@ -319,7 +319,7 @@ static inline void RateFilterSetAction(Packet *p, PacketAlert *pa, uint8_t new_a
     }
 }
 
-static int IsThresholdQualify(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, uint32_t packet_time)
+static int IsTimeOrCountQualify(DetectThresholdEntry* lookup_tsh, const DetectThresholdData *td, uint32_t packet_time)
 {
     int ret = 0;
 
@@ -358,8 +358,7 @@ static int IsThresholdQualify(DetectThresholdEntry* lookup_tsh, const DetectThre
 
 static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, uint32_t packet_time)
 {
-    if (h && e)
-    {
+    if (h && e) {
         e->current_count = 1;
         e->tv_sec1 = packet_time;
         e->tv_timeout = 0;
@@ -370,8 +369,7 @@ static void AddEntryToHostStorage(Host *h, DetectThresholdEntry *e, uint32_t pac
 
 static void AddEntryToIPPairStorage(IPPair *pair, DetectThresholdEntry *e, uint32_t packet_time)
 {
-    if (pair && e)
-    {
+    if (pair && e) {
         e->current_count = 1;
         e->tv_sec1 = packet_time;
         e->tv_timeout = 0;
@@ -393,8 +391,7 @@ static int ThresholdHandlePacketIPPair(IPPair *pair, Packet *p, const DetectThre
         {
             SCLogDebug("rate_filter");
             ret = 1;
-            if (lookup_tsh && IsThresholdQualify(lookup_tsh, td, p->ts.tv_sec))
-            {
+            if (lookup_tsh && IsTimeOrCountQualify(lookup_tsh, td, p->ts.tv_sec)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
@@ -583,7 +580,7 @@ static int ThresholdHandlePacketHost(Host *h, Packet *p, const DetectThresholdDa
         {
             SCLogDebug("rate_filter");
             ret = 1;
-            if (lookup_tsh && IsThresholdQualify(lookup_tsh, td, p->ts.tv_sec)) {
+            if (lookup_tsh && IsTimeOrCountQualify(lookup_tsh, td, p->ts.tv_sec)) {
                 RateFilterSetAction(p, pa, td->new_action);
             } else if (!lookup_tsh) {
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
