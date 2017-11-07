@@ -1185,6 +1185,24 @@
                 exit 1
                 fi
             fi
+            AC_COMPILE_IFELSE(
+                [AC_LANG_SOURCE([[
+                    #include <pfring.h>
+                    #ifndef PF_RING_FLOW_OFFLOAD
+                    # error PF_RING_FLOW_OFFLOAD not defined
+                    #endif
+                ]])],
+                [
+                    AC_DEFINE([HAVE_PF_RING_FLOW_OFFLOAD], [1], [PF_RING bypass support enabled])
+                ],
+                [
+                    echo
+                    echo "   Warning! Pfring hw bypass not supported by this library version < 7,"
+                    echo "   please upgrade to a newer version to use this feature."
+                    echo
+                    echo "   Continuing for now with hw bypass support disabled..."
+                    echo
+                ])
         else
             if test "x$enable_pfring" = "xyes"; then
             echo
