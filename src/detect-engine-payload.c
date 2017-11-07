@@ -177,6 +177,48 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     SCReturnInt(0);
 }
 
+/**
+ *  \brief Do the content inspection & validation for a sigmatch list
+ *
+ *  \param de_ctx Detection engine context
+ *  \param det_ctx Detection engine thread context
+ *  \param s Signature to inspect
+ *  \param smd array of matches to eval
+ *  \param f flow (for pcre flowvar storage)
+ *  \param p Packet
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ */
+static int DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx,
+        const Signature *s, const SigMatchData *smd,
+        Flow *f, Packet *p)
+{
+    SCEnter();
+    int r = 0;
+
+    if (smd == NULL) {
+        SCReturnInt(0);
+    }
+#ifdef DEBUG
+    det_ctx->payload_persig_cnt++;
+    det_ctx->payload_persig_size += p->payload_len;
+#endif
+    det_ctx->buffer_offset = 0;
+    det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
+    det_ctx->replist = NULL;
+
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
+            f, p->payload, p->payload_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+    if (r == 1) {
+        SCReturnInt(1);
+    }
+    SCReturnInt(0);
+}
+
 struct StreamContentInspectData {
     DetectEngineCtx *de_ctx;
     DetectEngineThreadCtx *det_ctx;
@@ -282,9 +324,14 @@ int DetectEngineInspectStream(ThreadVars *tv,
     Packet *p = det_ctx->p; /* TODO: get rid of this HACK */
 
     /* in certain sigs, e.g. 'alert dns', which apply to both tcp and udp
-     * we can get called for UDP. */
-    if (p->proto != IPPROTO_TCP)
+     * we can get called for UDP. Then we simply inspect the packet payload */
+    if (p->proto == IPPROTO_UDP) {
+        return DetectEngineInspectStreamUDPPayload(de_ctx,
+                det_ctx, s, smd, f, p);
+    /* for other non-TCP protocols we assume match */
+    } else if (p->proto != IPPROTO_TCP)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
+
     TcpSession *ssn = f->protoctx;
     if (ssn == NULL)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
