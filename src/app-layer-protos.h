@@ -70,4 +70,13 @@ typedef uint16_t AppProto;
  */
 const char *AppProtoToString(AppProto alproto);
 
+/**
+ * \brief Maps a string to its ALPROTO_* equivalent.
+ *
+ * \param String equivalent for the alproto.
+ *
+ * \retval alproto App layer protocol id, or ALPROTO_UNKNOWN.
+ */
+AppProto StringToAppProto(const char *proto_name);
+
 #endif /* __APP_LAYER_PROTOS_H__ */
