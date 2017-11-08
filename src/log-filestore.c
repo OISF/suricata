@@ -203,11 +203,12 @@ static uint32_t FileGetMaxOpenFiles(void)
     return g_file_store_max_open_files;
 }
 
-static char g_file_store_working_file_prefix[PATH_MAX] = 0;
+static char g_file_store_working_file_prefix[PATH_MAX] = "";
 
 static void FileSetWorkingFilePrefix(const char* working_file_prefix)
 {
-    g_file_store_working_file_prefix = working_file_prefix;
+    strlcpy(g_file_store_working_file_prefix, working_file_prefix,
+            sizeof(g_file_store_working_file_prefix));
 }
 
 static const char* FileGetWorkingFilePrefix(void)
@@ -373,14 +374,14 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
         fclose(fp);
         /* Move working files to their final location now that we are done
          * writing them.*/
-        if (*FileWorkingFilePrefix() != "") {
+        if (strcmp(FileGetWorkingFilePrefix(), "") != 0) {
             if (rename(working_filename, final_filename) != 0) {
-                SCLogWarning("renaming file %s to %s failed", working_filename,
-                        final_filename);
+                SCLogWarning(SC_WARN_RENAMING_FILE, "renaming file %s to %s failed",
+                        working_filename, final_filename);
                 return;
             }
             if (rename(working_metafilename, final_metafilename) != 0 ) {
-                SCLogWarning("renaming metafile %s to %s failed",
+                SCLogWarning(SC_WARN_RENAMING_FILE, "renaming metafile %s to %s failed",
                         working_metafilename, final_metafilename);
             }
         }
@@ -651,9 +652,9 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     }
 
     const char *working_file_prefix = ConfNodeLookupChildValue(conf, "working_file_prefix");
-    if (working_file_prefix != NULL && *working_file_prefix != "") {
+    if (working_file_prefix != NULL && strcmp(working_file_prefix, "") != 0) {
         FileSetWorkingFilePrefix(working_file_prefix);
-        SCLogInfo("using %s as a working file prefix of all files", *working_file_prefix);
+        SCLogInfo("using %s as a working file prefix of all files", working_file_prefix);
     }
 
     const char *include_pid = ConfNodeLookupChildValue(conf, "include-pid");
