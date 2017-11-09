@@ -382,7 +382,7 @@ pub extern "C" fn ntp_probing_parser(input:*const i8, input_len: u32, _offset: *
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn register_ntp_parser() {
+pub unsafe extern "C" fn rs_register_ntp_parser() {
     let name = CString::new("ntp").unwrap();
     let default_port = CString::new("123").unwrap();
     let proto_name = CString::new("ntp").unwrap();
