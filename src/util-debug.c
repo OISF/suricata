@@ -141,6 +141,7 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
             syslog_log_level = LOG_INFO;
             break;
         case SC_LOG_DEBUG:
+        case SC_LOG_PERF:
             syslog_log_level = LOG_DEBUG;
             break;
         default:
