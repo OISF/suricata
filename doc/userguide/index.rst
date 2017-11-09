@@ -3,7 +3,7 @@ Suricata User Guide
 
 .. toctree::
    :numbered:
-   :titlesonly:
+   :maxdepth: 2
 
    what-is-suricata
    install.rst

@@ -6,20 +6,19 @@ Suricata Rules
    intro
    meta
    header-keywords
-   prefilter
    payload-keywords
-   http-keywords
+   prefilter-keywords
    flow-keywords
-   flowint
-   xbits
+   http-keywords
    file-keywords
-   thresholding
    dns-keywords
    tls-keywords
    modbus-keyword
    dnp3-keywords
    enip-keyword
    app-layer
+   xbits
+   thresholding
+   ip-reputation-rules
    rule-lua-scripting
-   normalized-buffers
    differences-from-snort
