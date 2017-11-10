@@ -540,7 +540,7 @@ TmEcode PcapDirectoryPopulateBuffer(
                     SCLogDebug("Skipping old file %s", pathbuff);
                     continue;
                 }
-                else if (temp_time.tv_sec > older_than) {
+                else if (temp_time.tv_sec >= older_than) {
                     SCLogDebug("Skipping new file %s", pathbuff);
                     continue;
                 }
