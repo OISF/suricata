@@ -980,7 +980,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         if (mydata == NULL && mydata_len > 0 && CheckGap(ssn, stream, p)) {
             SCLogDebug("sending GAP to app-layer (size: %u)", mydata_len);
 
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+            int r = AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     NULL, mydata_len,
                     StreamGetAppLayerFlags(ssn, stream, p, dir)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
@@ -990,6 +990,9 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
             stream->app_progress_rel += mydata_len;
             app_progress += mydata_len;
+            if (r < 0)
+                break;
+
             continue;
         } else if (mydata == NULL || mydata_len == 0) {
             /* Possibly a gap, but no new data. */

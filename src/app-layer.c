@@ -565,12 +565,15 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (alproto == ALPROTO_UNKNOWN) {
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
             SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
-        } else {
-            PACKET_PROFILING_APP_START(app_tctx, f->alproto);
-            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
-                                    flags, data, data_len);
-            PACKET_PROFILING_APP_END(app_tctx, f->alproto);
+            /* if the other side didn't already find the proto, we're done */
+            if (f->alproto == ALPROTO_UNKNOWN)
+                goto end;
+
         }
+        PACKET_PROFILING_APP_START(app_tctx, f->alproto);
+        r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
+                flags, data, data_len);
+        PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         goto end;
     }
 
