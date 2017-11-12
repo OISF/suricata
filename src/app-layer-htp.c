@@ -6497,6 +6497,298 @@ end:
     return result;
 }
 
+/** \test Test response not HTTP
+ */
+static int HTPParserTest20(void)
+{
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "NOTHTTP\r\nSOMEOTHERDATA";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "STILLNOTHTTP\r\nSOMEMOREOTHERDATA";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf3,
+                            httplen3);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != 0);
+    FAIL_IF(tx->response_protocol_number != -1);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+/** \test Test response not HTTP
+ */
+static int HTPParserTest21(void)
+{
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "999 NOTHTTP REALLY\r\nSOMEOTHERDATA\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "STILLNOTHTTP\r\nSOMEMOREOTHERDATA";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf3,
+                            httplen3);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != 0);
+    FAIL_IF(tx->response_protocol_number != -1);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+/** \test Test response not HTTP
+ */
+static int HTPParserTest22(void)
+{
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "\r\n0000=0000000/ASDF3_31.zip, 456723\r\n"
+                          "AAAAAA_0000=0000000/AAAAAAAA.zip,46725\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != -0);
+    FAIL_IF(tx->response_protocol_number != -1);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+/** \test Test response not HTTP
+ */
+static int HTPParserTest23(void)
+{
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "HTTP0000=0000000/ASDF3_31.zip, 456723\r\n"
+                          "AAAAAA_0000=0000000/AAAAAAAA.zip,46725\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != -1);
+    FAIL_IF(tx->response_protocol_number != -2);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+/** \test Test response not HTTP
+ */
+static int HTPParserTest24(void)
+{
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
+                         "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
+                         "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "HTTP/1.0 0000=0000000/ASDF3_31.zip, 456723\r\n"
+                          "AAAAAA_0000=0000000/AAAAAAAA.zip,46725\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
+                            httplen2);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    htp_tx_t *tx = HTPStateGetTx(http_state, 0);
+    FAIL_IF_NULL(tx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != -1);
+    FAIL_IF(tx->response_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -6546,6 +6838,11 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest17", HTPParserTest17);
     UtRegisterTest("HTPParserTest18", HTPParserTest18);
     UtRegisterTest("HTPParserTest19", HTPParserTest19);
+    UtRegisterTest("HTPParserTest20", HTPParserTest20);
+    UtRegisterTest("HTPParserTest21", HTPParserTest21);
+    UtRegisterTest("HTPParserTest22", HTPParserTest22);
+    UtRegisterTest("HTPParserTest23", HTPParserTest23);
+    UtRegisterTest("HTPParserTest24", HTPParserTest24);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();
