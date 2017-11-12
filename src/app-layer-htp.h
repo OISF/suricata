@@ -57,8 +57,7 @@
 /** a boundary should be smaller in size */
 #define HTP_BOUNDARY_MAX                            200U
 
-#define HTP_FLAG_STATE_OPEN         0x0001    /**< Flag to indicate that HTTP
-                                             connection is open */
+// 0x0001 not used
 #define HTP_FLAG_STATE_CLOSED_TS    0x0002    /**< Flag to indicate that HTTP
                                              connection is closed */
 #define HTP_FLAG_STATE_CLOSED_TC    0x0004    /**< Flag to indicate that HTTP

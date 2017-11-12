@@ -78,6 +78,7 @@
 
 #include "util-memcmp.h"
 #include "util-random.h"
+#include "util-validate.h"
 
 //#define PRINT
 
@@ -647,6 +648,63 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
     }
 }
 
+static int Setup(Flow *f, HtpState *hstate)
+{
+    /* store flow ref in state so callbacks can access it */
+    hstate->f = f;
+
+    HTPCfgRec *htp_cfg_rec = &cfglist;
+    htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
+    void *user_data = NULL;
+
+    if (FLOW_IS_IPV4(f)) {
+        SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
+        (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree, &user_data);
+    }
+    else if (FLOW_IS_IPV6(f)) {
+        SCLogDebug("Looking up HTP config for ipv6");
+        (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree, &user_data);
+    }
+    else {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown address family, bug!");
+        goto error;
+    }
+
+    if (user_data != NULL) {
+        htp_cfg_rec = user_data;
+        htp = htp_cfg_rec->cfg;
+        SCLogDebug("LIBHTP using config: %p", htp);
+    } else {
+        SCLogDebug("Using default HTP config: %p", htp);
+    }
+
+    if (NULL == htp) {
+#ifdef DEBUG_VALIDATION
+        BUG_ON(htp == NULL);
+#endif
+        /* should never happen if HTPConfigure is properly invoked */
+        goto error;
+    }
+
+    hstate->connp = htp_connp_create(htp);
+    if (hstate->connp == NULL) {
+        goto error;
+    }
+
+    hstate->conn = htp_connp_get_connection(hstate->connp);
+
+    htp_connp_set_user_data(hstate->connp, (void *)hstate);
+    hstate->cfg = htp_cfg_rec;
+
+    SCLogDebug("New hstate->connp %p", hstate->connp);
+
+    htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
+
+    return 0;
+error:
+    return -1;
+}
+
 /**
  *  \brief  Function to handle the reassembled data from client and feed it to
  *          the HTP library to process it.
@@ -669,80 +727,22 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     int r = -1;
     int ret = 1;
 
-    //PrintRawDataFp(stdout, input, input_len);
-
     HtpState *hstate = (HtpState *)htp_state;
-    hstate->f = f;
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
      * tree.  Failing that, the default HTP config is used.
      */
     if (NULL == hstate->conn) {
-        HTPCfgRec *htp_cfg_rec = &cfglist;
-        htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
-        void *user_data = NULL;
-
-        if (FLOW_IS_IPV4(f)) {
-            SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
-            (void)SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree, &user_data);
-        }
-        else if (FLOW_IS_IPV6(f)) {
-            SCLogDebug("Looking up HTP config for ipv6");
-            (void)SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree, &user_data);
-        }
-        else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown address family, bug!");
+        if (Setup(f, hstate) != 0) {
             goto error;
         }
-
-        if (user_data != NULL) {
-            htp_cfg_rec = user_data;
-            htp = htp_cfg_rec->cfg;
-            SCLogDebug("LIBHTP using config: %p", htp);
-        } else {
-            SCLogDebug("Using default HTP config: %p", htp);
-        }
-
-        if (NULL == htp) {
-#ifdef DEBUG_VALIDATION
-            BUG_ON(htp == NULL);
-#endif
-            /* should never happen if HTPConfigure is properly invoked */
-            goto error;
-        }
-
-        hstate->connp = htp_connp_create(htp);
-        if (hstate->connp == NULL) {
-            goto error;
-        }
-
-        hstate->conn = htp_connp_get_connection(hstate->connp);
-
-        htp_connp_set_user_data(hstate->connp, (void *)hstate);
-        hstate->cfg = htp_cfg_rec;
-
-        SCLogDebug("New hstate->connp %p", hstate->connp);
     }
-
-    /* the code block above should make sure connp is never NULL here */
-#ifdef DEBUG_VALIDATION
-    BUG_ON(hstate->connp == NULL);
-#endif
+    DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
-
-    /* Open the HTTP connection on receiving the first request */
-    if (!(hstate->flags & HTP_FLAG_STATE_OPEN)) {
-        SCLogDebug("opening htp handle at %p", hstate->connp);
-
-        htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
-        hstate->flags |= HTP_FLAG_STATE_OPEN;
-    } else {
-        SCLogDebug("using existing htp handle at %p", hstate->connp);
-    }
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
@@ -810,14 +810,16 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     int ret = 1;
 
     HtpState *hstate = (HtpState *)htp_state;
-    hstate->f = f;
-    if (hstate->connp == NULL) {
-        SCLogDebug("HTP state has no connp");
-        /* till we have the new libhtp changes that allow response first,
-         * let's take response in first. */
-        //BUG_ON(1);
-        SCReturnInt(-1);
+    /* On the first invocation, create the connection parser structure to
+     * be used by HTP library.  This is looked up via IP in the radix
+     * tree.  Failing that, the default HTP config is used.
+     */
+    if (NULL == hstate->conn) {
+        if (Setup(f, hstate) != 0) {
+            goto error;
+        }
     }
+    DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
@@ -856,6 +858,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
+error:
+    SCReturnInt(-1);
 }
 
 /**
@@ -2882,7 +2886,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOCLIENT,
                                      HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
-        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER);
+        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
+                ALPROTO_HTTP, STREAM_TOSERVER|STREAM_TOCLIENT);
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
