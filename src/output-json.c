@@ -226,11 +226,11 @@ void JsonAddFlowvars(const Flow *f, json_t *js_vars)
             const char *varname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
             if (varname) {
                 if (js_flowbits == NULL) {
-                    js_flowbits = json_object();
+                    js_flowbits = json_array();
                     if (js_flowbits == NULL)
                         break;
                 }
-                json_object_set_new(js_flowbits, varname, json_boolean(1));
+                json_array_append(js_flowbits, json_string(varname));
             }
         }
         gv = gv->next;
