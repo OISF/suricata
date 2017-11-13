@@ -74,7 +74,7 @@ static int RunModeUnixSocketMaster(void);
 static int unix_manager_pcap_task_running = 0;
 static int unix_manager_pcap_task_failed = 0;
 static int unix_manager_pcap_task_interrupted = 0;
-static time_t unix_manager_pcap_last_processed = 0;
+static struct timespec unix_manager_pcap_last_processed;
 
 /**
  * \brief return list of files in the queue
@@ -140,8 +140,10 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 
 static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *data)
 {
+    long epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000l +
+                        unix_manager_pcap_last_processed.tv_nsec / 100000l;
     json_object_set_new(answer, "message",
-                        json_integer(unix_manager_pcap_last_processed * 1000));
+                        json_integer(epoch_millis));
 
     return TM_ECODE_OK;
 }
@@ -484,10 +486,11 @@ void RunModeUnixSocketRegister(void)
 #endif
 }
 
-TmEcode UnixSocketPcapFile(TmEcode tm, time_t last_processed)
+TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
-    unix_manager_pcap_last_processed = last_processed;
+    unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
+    unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
     switch (tm) {
         case TM_ECODE_DONE:
             SCLogInfo("Marking current task as done");

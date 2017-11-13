@@ -186,7 +186,7 @@ To get current processed file:
   Success:
   "/tmp/test.pcap"
 
-When passing in a directory, you can see last processed time (modified time of last file):
+When passing in a directory, you can see last processed time (modified time of last file) in milliseconds since epoch:
 
 ::
 

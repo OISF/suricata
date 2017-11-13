@@ -76,7 +76,7 @@ typedef struct PcapFileSharedVars_
 
     uint32_t tenant_id;
 
-    time_t last_processed;
+    struct timespec last_processed;
 
     ThreadVars *tv;
     TmSlot *slot;
@@ -151,34 +151,20 @@ typedef struct PcapFileThreadVars_
 
 static PcapFileGlobalVars pcap_g;
 
-static TmEcode ReceivePcapFileLoop(
-    ThreadVars *,
-    void *,
-    void *
-);
-static TmEcode ReceivePcapFileFileLoop(
-    PcapFileThreadVars *tv,
-    PcapFileFileVars *ptv
-);
-static TmEcode ReceivePcapFileDirectoryLoop(
-    PcapFileThreadVars *tv,
-    PcapFileDirectoryVars *ptv
-);
-static TmEcode ReceivePcapFileThreadInit(
-    ThreadVars *,
-    const void *,
-    void **
-);
+static int CompareTimes(struct timespec *left, struct timespec *right);
+static void CopyTime(struct timespec *from, struct timespec* to);
+
+static TmEcode ReceivePcapFileLoop(ThreadVars *, void *, void *);
+static TmEcode ReceivePcapFileFileLoop(PcapFileThreadVars *tv,
+                                       PcapFileFileVars *ptv);
+static TmEcode ReceivePcapFileDirectoryLoop(PcapFileThreadVars *tv,
+                                            PcapFileDirectoryVars *ptv);
+static TmEcode ReceivePcapFileThreadInit(ThreadVars *, const void *, void **);
 static void ReceivePcapFileThreadExitStats(ThreadVars *, void *);
 static TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
 
-static TmEcode DecodePcapFile(
-    ThreadVars *,
-    Packet *,
-    void *,
-    PacketQueue *,
-    PacketQueue *
-);
+static TmEcode DecodePcapFile(ThreadVars *, Packet *, void *, PacketQueue *,
+                              PacketQueue *);
 static TmEcode DecodePcapFileThreadInit(ThreadVars *, const void *, void **);
 static TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
@@ -195,23 +181,37 @@ static TmEcode PcapDirectoryFailure(PcapFileThreadVars *tv, PcapFileDirectoryVar
 static TmEcode PcapDirectoryDone(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv);
 static TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory);
 static int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out);
-static TmEcode PcapDirectoryInsertFile(
-    PcapFileDirectoryVars *pv,
-    PendingFile *file_to_add,
-    struct timespec *file_to_add_modified_time
-);
-static TmEcode PcapDirectoryPopulateBuffer(
-    PcapFileDirectoryVars *ptv,
-    time_t newer_than,
-    time_t older_than
-);
-static TmEcode PcapDirectoryDispatch(
-    PcapFileThreadVars *tv,
-    PcapFileDirectoryVars *ptv,
-    time_t *newer_than,
-    time_t *older_than
-);
-static bool IsBefore(struct timespec *left, struct timespec *right);
+static TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
+                                       PendingFile *file_to_add,
+                                       struct timespec *file_to_add_modified_time);
+static TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv,
+                                           struct timespec * newer_than,
+                                           struct timespec * older_than);
+static TmEcode PcapDirectoryDispatch(PcapFileThreadVars *tv,
+                                     PcapFileDirectoryVars *ptv,
+                                     struct timespec *newer_than,
+                                     struct timespec *older_than);
+
+void CopyTime(struct timespec *from, struct timespec *to) {
+    to->tv_sec = from->tv_sec;
+    to->tv_nsec = from->tv_nsec;
+}
+
+int CompareTimes(struct timespec *left, struct timespec *right) {
+    if(left->tv_sec < right->tv_sec) {
+        return -1;
+    } else if(left->tv_sec > right->tv_sec) {
+        return 1;
+    } else {
+        if(left->tv_nsec < right->tv_nsec) {
+            return -1;
+        } else if(left->tv_nsec > right->tv_nsec) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+}
 
 /**
  * Pcap Folder Utilities
@@ -221,7 +221,7 @@ TmEcode PcapRunStatus(PcapFileDirectoryVars *ptv)
     if(RunModeUnixSocketIsActive()) {
         if( (suricata_ctl_flags & SURICATA_STOP) ||
             UnixSocketPcapFile(TM_ECODE_OK,
-                               ptv->shared->last_processed) != TM_ECODE_OK ) {
+                               &ptv->shared->last_processed) != TM_ECODE_OK ) {
             SCReturnInt(TM_ECODE_DONE);
         }
     } else {
@@ -324,7 +324,7 @@ TmEcode PcapDirectoryFailure(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv)
     }
 
     if (RunModeUnixSocketIsActive()) {
-        status = UnixSocketPcapFile(status, ptv->shared->last_processed);
+        status = UnixSocketPcapFile(status, &ptv->shared->last_processed);
     }
 
     CleanupPcapFileDirectoryVars(tv, ptv);
@@ -346,7 +346,7 @@ TmEcode PcapDirectoryDone(PcapFileThreadVars *tv, PcapFileDirectoryVars *ptv)
     }
 
     if (RunModeUnixSocketIsActive()) {
-        status = UnixSocketPcapFile(status, ptv->shared->last_processed);
+        status = UnixSocketPcapFile(status, &ptv->shared->last_processed);
     }
 
     CleanupPcapFileDirectoryVars(tv, ptv);
@@ -416,7 +416,7 @@ TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory)
     return return_code;
 }
 
-int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out)
+int PcapDirectoryGetModifiedTime(char const *file, struct timespec *out)
 {
     struct stat buf;
     int ret;
@@ -434,15 +434,6 @@ int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out)
 #endif
 
     return ret;
-}
-
-bool IsBefore(struct timespec *left, struct timespec *right)
-{
-    return left->tv_sec < right->tv_sec ||
-    (
-        left->tv_sec == right->tv_sec &&
-        left->tv_nsec < right->tv_nsec
-    );
 }
 
 TmEcode PcapDirectoryInsertFile(
@@ -480,7 +471,7 @@ TmEcode PcapDirectoryInsertFile(
                                             &modified_time) == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            if(IsBefore(file_to_add_modified_time, &modified_time)) {
+            if(CompareTimes(file_to_add_modified_time, &modified_time) < 0) {
                 TAILQ_INSERT_BEFORE(file_to_compare, file_to_add, next);
                 file_to_compare = NULL;
             } else {
@@ -499,8 +490,8 @@ TmEcode PcapDirectoryInsertFile(
 
 TmEcode PcapDirectoryPopulateBuffer(
         PcapFileDirectoryVars *pv,
-        time_t newer_than,
-        time_t older_than
+        struct timespec *newer_than,
+        struct timespec *older_than
 ) {
     if(unlikely(pv == NULL)) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "No directory vars passed");
@@ -533,14 +524,14 @@ TmEcode PcapDirectoryPopulateBuffer(
             if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0)
             {
                 SCLogDebug("File %s time (%lu > %lu < %lu)", pathbuff,
-                           newer_than, temp_time.tv_sec, older_than);
+                           newer_than->tv_sec, temp_time.tv_sec, older_than->tv_sec);
 
                 // Skip files outside of our time range
-                if (temp_time.tv_sec < newer_than) {
+                if (CompareTimes(&temp_time, newer_than) < 0) {
                     SCLogDebug("Skipping old file %s", pathbuff);
                     continue;
                 }
-                else if (temp_time.tv_sec >= older_than) {
+                else if (CompareTimes(&temp_time, older_than) >= 0) {
                     SCLogDebug("Skipping new file %s", pathbuff);
                     continue;
                 }
@@ -777,11 +768,11 @@ TmEcode InitPcapFile(PcapFileFileVars *pfv, const char *filename)
 TmEcode PcapDirectoryDispatch(
         PcapFileThreadVars *tv,
         PcapFileDirectoryVars *pv,
-        time_t *newer_than,
-        time_t *older_than
+        struct timespec *newer_than,
+        struct timespec *older_than
 )
 {
-    if(PcapDirectoryPopulateBuffer(pv, *newer_than, *older_than) == TM_ECODE_FAILED) {
+    if(PcapDirectoryPopulateBuffer(pv, newer_than, older_than) == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to populate directory buffer");
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -790,7 +781,8 @@ TmEcode PcapDirectoryDispatch(
 
     if(TAILQ_EMPTY(&pv->directory_content)) {
         SCLogInfo("Directory %s has no files to process", pv->filename);
-        *older_than = time(NULL) - pv->delay;
+        clock_gettime(CLOCK_REALTIME, older_than);
+        older_than->tv_sec = older_than->tv_sec - pv->delay;
         rewinddir(pv->directory);
         status = TM_ECODE_OK;
     } else {
@@ -841,11 +833,11 @@ TmEcode PcapDirectoryDispatch(
 
                     if (PcapDirectoryGetModifiedTime(current_file->filename,
                                                      &temp_time) != 0) {
-                        temp_time.tv_sec = *newer_than;
+                        CopyTime(&temp_time, newer_than);
                     }
                     SCLogDebug("Processed file %s, processed up to %ld",
                                current_file->filename, temp_time.tv_sec);
-                    pv->shared->last_processed = temp_time.tv_sec;
+                    CopyTime(&temp_time, &pv->shared->last_processed);
 
                     status = PcapRunStatus(pv);
                 }
@@ -854,7 +846,8 @@ TmEcode PcapDirectoryDispatch(
 
         *newer_than = *older_than;
     }
-    *older_than = time(NULL) - pv->delay;
+    clock_gettime(CLOCK_REALTIME, older_than);
+    older_than->tv_sec = older_than->tv_sec - pv->delay;
 
     SCReturnInt(status);
 }
@@ -863,19 +856,23 @@ TmEcode ReceivePcapFileDirectoryLoop(PcapFileThreadVars *tv, PcapFileDirectoryVa
 {
     SCEnter();
 
-    time_t newer_than = 0;
-    time_t older_than = INT_MAX;
+    struct timespec newer_than;
+    memset(&newer_than, 0, sizeof(struct timespec));
+    struct timespec older_than;
+    memset(&newer_than, 0, sizeof(struct timespec));
+    older_than.tv_sec = LONG_MAX;
     uint32_t poll_seconds = (uint32_t)localtime(&ptv->poll_interval)->tm_sec;
 
     if(ptv->should_loop) {
-        older_than = time(NULL) - ptv->delay;
+        clock_gettime(CLOCK_REALTIME, &older_than);
+        older_than.tv_sec = older_than.tv_sec - ptv->delay;
     }
     TmEcode status = TM_ECODE_OK;
 
     while (status == TM_ECODE_OK) {
         //loop while directory is ok
         SCLogInfo("Processing pcaps directory %s, files must be newer than %ld and older than %ld",
-                  ptv->filename, newer_than, older_than);
+                  ptv->filename, newer_than.tv_sec, older_than.tv_sec);
         status = PcapDirectoryDispatch(tv, ptv, &newer_than, &older_than);
         if(ptv->should_loop && status == TM_ECODE_OK) {
             sleep(poll_seconds);
@@ -927,7 +924,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
         if (!RunModeUnixSocketIsActive()) {
             EngineStop();
         } else {
-            status = UnixSocketPcapFile(status, ptv->shared.last_processed);
+            status = UnixSocketPcapFile(status, &ptv->shared.last_processed);
         }
         CleanupPcapFileFileVars(ptv, ptv->behavior.file);
     } else {
