@@ -154,7 +154,7 @@ static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
     }
 }
 
-static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
+void JsonAddFlowvars(const Flow *f, json_t *js_vars)
 {
     if (f == NULL || f->flowvar == NULL) {
         return;

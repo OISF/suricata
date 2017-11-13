@@ -277,6 +277,14 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
     json_object_set_new(hjs, "alerted", json_boolean(FlowHasAlerts(f)));
 
+    if (f->flowvar) {
+        json_t *js_vars = json_object();
+        if (likely(js_vars != NULL)) {
+            JsonAddFlowvars(f, js_vars);
+            json_object_set_new(js, "vars", js_vars);
+        }
+    }
+
     json_object_set_new(js, "flow", hjs);
 
 

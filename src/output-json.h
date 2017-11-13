@@ -39,6 +39,7 @@ typedef struct OutputJSONMemBufferWrapper_ {
 
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
+void JsonAddFlowvars(const Flow *f, json_t *js_vars);
 void JsonAddVars(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
