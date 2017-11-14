@@ -1024,45 +1024,56 @@ TmEcode UnixSocketSetOSInfo(json_t *cmd, json_t* answer, void *data) {
     const char *ipv4 = NULL;
     const char *ipv6 = NULL;
     const char *ostype = NULL;
+    const char *errmsg = NULL;
 
-    jarg = json_object_get(cmd, "os-type");
+    jarg = json_object_get(cmd, "ostype");
     if (!json_is_string(jarg)) {
-        SCLogInfo("error: os-type is not a string");
-        json_object_set_new(answer, "message", json_string("os-type is not a string"));
-        return TM_ECODE_FAILED;
+        errmsg = "ostype is not a string";
+        goto error;
     }
     ostype = json_string_value(jarg);
 
     jarg = json_object_get(cmd, "ipv4");
     if (!json_is_string(jarg)) {
-        SCLogInfo("error: ipv4 is not a string");
-        json_object_set_new(answer, "message", json_string("ipv4 is not a string"));
-        return TM_ECODE_FAILED;
+        errmsg= "ipv4 is not a string";
+        goto error;
     }
     ipv4 = json_string_value(jarg);
 
-    jarg = json_object_get(cmd, "ipv6");
-    if (!json_is_string(jarg)) {
-        SCLogInfo("error: ipv6 is not a string");
-        json_object_set_new(answer, "message", json_string("ipv6 is not a string"));
-        return TM_ECODE_FAILED;
+    if (!ipv4) {
+        jarg = json_object_get(cmd, "ipv6");
+        if (!json_is_string(jarg)) {
+            errmsg= "ipv6 is not a string";
+            goto error;
+        }
+        ipv6 = json_string_value(jarg);
     }
-    ipv6 = json_string_value(jarg);
 
     if ( ipv4 ) {
         SCLogInfo("Set host %s to OS %s", ipv4, ostype);
-        SCHInfoAddHostOSInfo(ostype, ipv4, 1);
+        if (SCHInfoAddHostOSInfo(ostype, ipv4, 1) < 0) {
+            errmsg = "SCHInfoAddHostOSInfo failed";
+            goto error;
+        }
     } else if ( ipv6 ) {
         SCLogInfo("Set host [%s] to OS %s", ipv6, ostype);
-        SCHInfoAddHostOSInfo(ostype, ipv6, 0);
+        if (SCHInfoAddHostOSInfo(ostype, ipv6, 0) < 0) {
+            errmsg = "SCHInfoAddHostOSInfo failed";
+            goto error;
+        }
     } else {
-        SCLogInfo("error: no valid ipv4 or ipv6");
-        json_object_set_new(answer, "message", json_string("no valid ipv4 or ipv6"));
-        return TM_ECODE_FAILED;
+        errmsg = "no valid ipv4 or ipv6";
+        goto error;
     }
 
-    json_object_set_new(answer, "message", json_string("work in progress"));
+    json_object_set_new(answer, "message", json_string("OK"));
     return TM_ECODE_OK;
+
+    error:
+
+    SCLogInfo("error: %s", errmsg);
+    json_object_set_new(answer, "message", json_string(errmsg));
+    return TM_ECODE_FAILED;
 }
 
 #endif /* BUILD_UNIX_SOCKET */
@@ -1089,7 +1100,7 @@ static int RunModeUnixSocketMaster(void)
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
-    UnixManagerRegisterCommand("set-os-info", UnixSocketSetOSInfo, pcapcmd, 0);
+    UnixManagerRegisterCommand("set-os-info", UnixSocketSetOSInfo, NULL, UNIX_CMD_TAKE_ARGS);
 
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
 
