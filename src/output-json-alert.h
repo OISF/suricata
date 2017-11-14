@@ -29,7 +29,7 @@
 
 void JsonAlertLogRegister(void);
 #ifdef HAVE_LIBJANSSON
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js,
+void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *js,
                      uint16_t flags);
 #endif /* HAVE_LIBJANSSON */
 

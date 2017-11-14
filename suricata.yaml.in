@@ -172,7 +172,11 @@ outputs:
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
             metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
-            # rule-metadata: yes       # enable dumping of key/value pairs defined by metadata keyword of rule
+
+            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
+              enabled: no              # set to yes to enable
+              output-array: no         # output value of key as an array
+              array-keys: [tag]        # comma separated array of keys to output as array
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
