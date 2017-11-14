@@ -39,6 +39,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitAdd(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitRemove(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketSetOSInfo(json_t *cmd, json_t* answer, void *data);
 #endif
 
 #endif /* __RUNMODE_UNIX_SOCKET_H__ */

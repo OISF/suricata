@@ -26,6 +26,7 @@
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
+#include "util-host-os-info.h"
 #include "unix-manager.h"
 
 #include "detect-engine.h"
@@ -1011,6 +1012,59 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
     json_object_set_new(answer, "message", jdata);
     return TM_ECODE_OK;
 }
+
+/**
+ * \brief Command to set the os type of an IP
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ */
+TmEcode UnixSocketSetOSInfo(json_t *cmd, json_t* answer, void *data) {
+    json_t *jarg = NULL;
+    const char *ipv4 = NULL;
+    const char *ipv6 = NULL;
+    const char *ostype = NULL;
+
+    jarg = json_object_get(cmd, "os-type");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: os-type is not a string");
+        json_object_set_new(answer, "message", json_string("os-type is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    ostype = json_string_value(jarg);
+
+    jarg = json_object_get(cmd, "ipv4");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: ipv4 is not a string");
+        json_object_set_new(answer, "message", json_string("ipv4 is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    ipv4 = json_string_value(jarg);
+
+    jarg = json_object_get(cmd, "ipv6");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: ipv6 is not a string");
+        json_object_set_new(answer, "message", json_string("ipv6 is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    ipv6 = json_string_value(jarg);
+
+    if ( ipv4 ) {
+        SCLogInfo("Set host %s to OS %s", ipv4, ostype);
+        SCHInfoAddHostOSInfo(ostype, ipv4, 1);
+    } else if ( ipv6 ) {
+        SCLogInfo("Set host [%s] to OS %s", ipv6, ostype);
+        SCHInfoAddHostOSInfo(ostype, ipv6, 0);
+    } else {
+        SCLogInfo("error: no valid ipv4 or ipv6");
+        json_object_set_new(answer, "message", json_string("no valid ipv4 or ipv6"));
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+    return TM_ECODE_OK;
+}
+
 #endif /* BUILD_UNIX_SOCKET */
 
 #ifdef BUILD_UNIX_SOCKET
@@ -1035,6 +1089,7 @@ static int RunModeUnixSocketMaster(void)
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
+    UnixManagerRegisterCommand("set-os-info", UnixSocketSetOSInfo, pcapcmd, 0);
 
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
 
