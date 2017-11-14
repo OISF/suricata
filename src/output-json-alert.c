@@ -43,6 +43,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "app-layer-parser.h"
 #include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
@@ -76,30 +77,38 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD           BIT_U16(0)
-#define LOG_JSON_PACKET            BIT_U16(1)
-#define LOG_JSON_PAYLOAD_BASE64    BIT_U16(2)
-#define LOG_JSON_HTTP              BIT_U16(3)
-#define LOG_JSON_TLS               BIT_U16(4)
-#define LOG_JSON_SSH               BIT_U16(5)
-#define LOG_JSON_SMTP              BIT_U16(6)
-#define LOG_JSON_TAGGED_PACKETS    BIT_U16(7)
-#define LOG_JSON_DNP3              BIT_U16(8)
-#define LOG_JSON_VARS              BIT_U16(9)
-#define LOG_JSON_APP_LAYER         BIT_U16(10)
-#define LOG_JSON_FLOW              BIT_U16(11)
-#define LOG_JSON_HTTP_BODY         BIT_U16(12)
-#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_PAYLOAD                BIT_U16(0)
+#define LOG_JSON_PACKET                 BIT_U16(1)
+#define LOG_JSON_PAYLOAD_BASE64         BIT_U16(2)
+#define LOG_JSON_HTTP                   BIT_U16(3)
+#define LOG_JSON_TLS                    BIT_U16(4)
+#define LOG_JSON_SSH                    BIT_U16(5)
+#define LOG_JSON_SMTP                   BIT_U16(6)
+#define LOG_JSON_TAGGED_PACKETS         BIT_U16(7)
+#define LOG_JSON_DNP3                   BIT_U16(8)
+#define LOG_JSON_VARS                   BIT_U16(9)
+#define LOG_JSON_APP_LAYER              BIT_U16(10)
+#define LOG_JSON_FLOW                   BIT_U16(11)
+#define LOG_JSON_HTTP_BODY              BIT_U16(12)
+#define LOG_JSON_HTTP_BODY_BASE64       BIT_U16(13)
+#define LOG_JSON_RULE_METADATA          BIT_U16(14)
+#define LOG_JSON_RULE_METADATA_AS_ARRAY BIT_U16(15)
 
 #define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
+
+typedef struct KeysList_ {
+    const char *key;
+    TAILQ_ENTRY(KeysList_) next;
+} KeysList;
 
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
+    TAILQ_HEAD(, KeysList_) keys_list;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -230,9 +239,49 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
     json_object_set_new(ajs, "target", tjs);
 }
 
-
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
+static int RuleMetadataLogKeyAsArray(AlertJsonOutputCtx *json_output_ctx, const char *key)
 {
+    KeysList *lkey = NULL;
+    TAILQ_FOREACH(lkey, &json_output_ctx->keys_list, next) {
+        if (!strcmp(lkey->key, key)) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void AlertJsonMetadata(AlertJsonOutputCtx *json_output_ctx, const PacketAlert *pa, json_t *ajs)
+{
+    if (pa->s->metadata) {
+        DetectMetadata* kv = pa->s->metadata;
+        json_t *mjs = json_object();
+        while (kv) {
+            if ((json_output_ctx->flags & LOG_JSON_RULE_METADATA_AS_ARRAY) ||
+                RuleMetadataLogKeyAsArray(json_output_ctx, kv->key)) {
+                json_t *jkey = json_object_get(mjs, kv->key);
+                if (jkey == NULL) {
+                    jkey = json_array();
+                    if (jkey == NULL)
+                        return;
+                    json_array_append_new(jkey, json_string(kv->value));
+                    json_object_set_new(mjs, kv->key, jkey);
+                } else {
+                    json_array_append_new(jkey, json_string(kv->value));
+                }
+            } else {
+                json_object_set_new(mjs, kv->key, json_string(kv->value));
+            }
+            kv = kv->next;
+        }
+        json_object_set_new(ajs, "metadata", mjs);
+    }
+}
+
+
+void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *js,
+                     uint16_t flags)
+{
+    AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *)ctx;
     const char *action = "allowed";
     /* use packet action if rate_filter modified the action */
     if (unlikely(pa->flags & PACKET_ALERT_RATE_FILTER_MODIFIED)) {
@@ -273,6 +322,10 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 
     if (pa->s->flags & SIG_FLAG_HAS_TARGET) {
         AlertJsonSourceTarget(p, pa, js, ajs);
+    }
+
+    if ((json_output_ctx != NULL) && (flags & LOG_JSON_RULE_METADATA)) {
+        AlertJsonMetadata(json_output_ctx, pa, ajs);
     }
 
     /* alert */
@@ -364,7 +417,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(p, pa, js);
+        AlertJsonHeader(json_output_ctx, p, pa, js, json_output_ctx->flags);
 
         if (IS_TUNNEL_PKT(p)) {
             AlertJsonTunnel(p, js);
@@ -726,6 +779,14 @@ static void JsonAlertLogDeInitCtx(OutputCtx *output_ctx)
             SCFree(xff_cfg);
         }
         LogFileFreeCtx(json_output_ctx->file_ctx);
+        KeysList *key, *tkey;
+        TAILQ_FOREACH_SAFE(key, &json_output_ctx->keys_list, next, tkey) {
+            if (key->key) {
+                SCFree((void *)key->key);
+            }
+            TAILQ_REMOVE(&json_output_ctx->keys_list, key, next);
+            SCFree(key);
+        }
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
@@ -742,7 +803,14 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
         if (xff_cfg != NULL) {
             SCFree(xff_cfg);
         }
-
+        KeysList *key, *tkey;
+        TAILQ_FOREACH_SAFE(key, &json_output_ctx->keys_list, next, tkey) {
+            if (key->key) {
+                SCFree((void *)key->key);
+            }
+            TAILQ_REMOVE(&json_output_ctx->keys_list, key, next);
+            SCFree(key);
+        }
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
@@ -762,6 +830,39 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
 }
 
 #define DEFAULT_LOG_FILENAME "alert.json"
+
+static void RuleMetadataGetCfg(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
+{
+    int enabled = 0;
+    int ret = ConfGetChildValueBool(conf, "output-array", &enabled);
+
+    if (ret && enabled) {
+        json_output_ctx->flags |= LOG_JSON_RULE_METADATA_AS_ARRAY;
+        /* full array mode so no more conf parsing needed */
+        return;
+    }
+    ConfNode *custom;
+    if ((custom = ConfNodeLookupChild(conf, "array-keys")) != NULL) {
+        ConfNode *field;
+        TAILQ_FOREACH(field, &custom->head, next) {
+            if (field != NULL) {
+                KeysList *kl = SCMalloc(sizeof(*kl));
+                if (unlikely(kl == NULL)) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate new key");
+                    continue;
+                }
+                memset(kl, 0, sizeof(*kl));
+                kl->key = SCStrdup(field->val);
+                if (kl->key == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate new value");
+                    SCFree(kl);
+                    continue;
+                }
+                TAILQ_INSERT_TAIL(&json_output_ctx->keys_list, kl, next);
+            }
+        }
+    }
+}
 
 static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
 {
@@ -794,6 +895,20 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
+
+        ConfNode *rmetadata = ConfNodeLookupChild(conf, "rule-metadata");
+        if (rmetadata != NULL) {
+            int enabled = 0, ret;
+            ret = ConfGetChildValueBool(rmetadata, "enabled", &enabled);
+            if (ret && enabled) {
+                json_output_ctx->flags |= LOG_JSON_RULE_METADATA;
+                RuleMetadataGetCfg(json_output_ctx, rmetadata);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
+            DetectEngineSetParseMetadata();
+        }
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
@@ -848,6 +963,7 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = logfile_ctx;
+    TAILQ_INIT(&json_output_ctx->keys_list);
 
     XffSetup(json_output_ctx, conf);
 
@@ -878,6 +994,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
+    TAILQ_INIT(&json_output_ctx->keys_list);
 
     XffSetup(json_output_ctx, conf);
 
