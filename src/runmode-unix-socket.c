@@ -1011,7 +1011,6 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
     json_object_set_new(answer, "message", jdata);
     return TM_ECODE_OK;
 }
-
 #endif /* BUILD_UNIX_SOCKET */
 
 #ifdef BUILD_UNIX_SOCKET
