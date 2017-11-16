@@ -63,6 +63,7 @@ The set of existing commands is the following:
 * capture-mode: display capture system used
 * conf-get: get configuration item (see example below)
 * dump-counters: dump Suricata's performance counters
+* set-os-info: change reassembly policy for a host/network
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
