@@ -34,6 +34,7 @@
 #include "util-device.h"
 #include "util-signal.h"
 #include "util-buffer.h"
+#include "util-host-os-info.h"
 
 #if (defined BUILD_UNIX_SOCKET) && (defined HAVE_SYS_UN_H) && (defined HAVE_SYS_STAT_H) && (defined HAVE_SYS_TYPES_H)
 #include <sys/un.h>
@@ -728,6 +729,65 @@ static TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+static TmEcode UnixSocketSetOSInfo(json_t *cmd,
+                               json_t *answer, void *data)
+{
+    SCEnter();
+    json_t *jarg = NULL;
+    const char *ipv4 = NULL;
+    const char *ipv6 = NULL;
+    const char *ostype = NULL;
+    const char *errmsg = NULL;
+
+    jarg = json_object_get(cmd, "ostype");
+    if (!json_is_string(jarg)) {
+        errmsg = "ostype is not a string";
+        goto error;
+    }
+    ostype = json_string_value(jarg);
+
+    jarg = json_object_get(cmd, "ipv4");
+    if (!json_is_string(jarg)) {
+        errmsg= "ipv4 is not a string";
+        goto error;
+    }
+    ipv4 = json_string_value(jarg);
+
+    if (!ipv4) {
+        jarg = json_object_get(cmd, "ipv6");
+        if (!json_is_string(jarg)) {
+            errmsg= "ipv6 is not a string";
+            goto error;
+        }
+        ipv6 = json_string_value(jarg);
+    }
+
+    if ( ipv4 ) {
+        SCLogInfo("Set host %s to OS %s", ipv4, ostype);
+        if (SCHInfoAddHostOSInfo(ostype, ipv4, 1) < 0) {
+            errmsg = "SCHInfoAddHostOSInfo failed";
+            goto error;
+        }
+    } else if ( ipv6 ) {
+        SCLogInfo("Set host [%s] to OS %s", ipv6, ostype);
+        if (SCHInfoAddHostOSInfo(ostype, ipv6, 0) < 0) {
+            errmsg = "SCHInfoAddHostOSInfo failed";
+            goto error;
+        }
+    } else {
+        errmsg = "no valid ipv4 or ipv6";
+        goto error;
+    }
+
+    json_object_set_new(answer, "message", json_string("OK"));
+    return TM_ECODE_OK;
+
+    error:
+
+    SCLogInfo("error: %s", errmsg);
+    json_object_set_new(answer, "message", json_string(errmsg));
+    SCReturnInt(TM_ECODE_FAILED);
+}
 
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
@@ -883,6 +943,7 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("set-os-info", UnixSocketSetOSInfo, NULL, UNIX_CMD_TAKE_ARGS);
 
     return 0;
 }
