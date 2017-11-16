@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit', 'set-os-info']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -311,6 +311,20 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["ipaddress"] = ipaddress
+            elif "set-os-info" in command:
+                try:
+                    [cmd, ip, ostype] = command.split(' ')
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "set-os-info":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    if ':' in ip:
+                        arguments["ipv6"] = ip
+                    else:
+                        arguments["ipv4"] = ip
+                    arguments["ostype"] = ostype
             else:
                 cmd = command
         else:
