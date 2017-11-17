@@ -386,6 +386,12 @@ int ConfGetInt(const char *name, intmax_t *val)
     if (ConfGet(name, &strval) == 0)
         return 0;
 
+    if (strval == NULL) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed integer value "
+                "for %s: NULL", name);
+        return 0;
+    }
+
     errno = 0;
     tmpint = strtoimax(strval, &endptr, 0);
     if (strval[0] == '\0' || *endptr != '\0')
