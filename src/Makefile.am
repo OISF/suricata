@@ -243,6 +243,7 @@ detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-target.c detect-target.h \
 detect-template.c detect-template.h \
+detect-ftpdata.c detect-ftpdata.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
