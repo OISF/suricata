@@ -174,6 +174,7 @@
 #include "detect-geoip.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
+#include "detect-ftpdata.h"
 #include "detect-target.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
@@ -3859,6 +3860,7 @@ void SigTableSetup(void)
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
     DetectTemplateRegister();
+    DetectFtpdataRegister();
     DetectTargetRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
