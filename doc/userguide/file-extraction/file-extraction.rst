@@ -4,12 +4,18 @@ File Extraction
 Architecture
 ~~~~~~~~~~~~
 
-The file extraction code works on top of the HTTP, SMTP, NFS and NTP parsers. The HTTP parser takes care of dechunking and unzipping the request and/or response data if necessary. The application layer parsers runs on top of the stream reassembly engine.
+The file extraction code works on top of the some protocols parsers. The HTTP parser takes care of dechunking and unzipping the request and/or response data if necessary. The application layer parsers runs on top of the stream reassembly engine.
 
 This means that settings in the stream engine, reassembly engine and the application layer parser all affect the workings of the file extraction.
 
 What files are actually extracted and stored to disk is controlled by the rule language.
 
+Supported protocols are:
+
+- HTTP
+- SMTP
+- NFS
+- FTP
 
 Settings
 ~~~~~~~~
