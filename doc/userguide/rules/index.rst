@@ -16,6 +16,7 @@ Suricata Rules
    modbus-keyword
    dnp3-keywords
    enip-keyword
+   ftp-keywords
    app-layer
    xbits
    thresholding
