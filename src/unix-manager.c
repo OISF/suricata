@@ -839,7 +839,6 @@ static TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-
 static TmEcode UnixManagerReopenLogFiles(json_t *cmd, json_t *server_msg, void *data)
 {
     OutputNotifyFileRotation();
@@ -1007,6 +1006,9 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("reopen-log-files", UnixManagerReopenLogFiles, NULL, 0);
+    UnixManagerRegisterCommand("memcap-set", UnixSocketSetMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-show", UnixSocketShowMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-list", UnixSocketShowAllMemcap, NULL, 0);
 
     return 0;
 }
