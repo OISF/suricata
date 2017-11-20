@@ -114,6 +114,8 @@ int StreamTcpReassembleDepthReached(Packet *p);
 
 void StreamTcpReassembleIncrMemuse(uint64_t size);
 void StreamTcpReassembleDecrMemuse(uint64_t size);
+void StreamTcpReassembleSetMemcap(uint64_t size);
+uint64_t StreamTcpReassembleGetMemcap(void);
 int StreamTcpReassembleCheckMemcap(uint32_t size);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 

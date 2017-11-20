@@ -109,6 +109,8 @@ void StreamTcpSessionPktFree (Packet *);
 void StreamTcpInitMemuse(void);
 void StreamTcpIncrMemuse(uint64_t);
 void StreamTcpDecrMemuse(uint64_t);
+void StreamTcpSetMemcap(uint64_t);
+uint64_t StreamTcpGetMemcap(void);
 int StreamTcpCheckMemcap(uint64_t);
 uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);

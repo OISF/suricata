@@ -151,6 +151,26 @@ int StreamTcpReassembleCheckMemcap(uint32_t size)
     return 0;
 }
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void StreamTcpReassembleSetMemcap(uint64_t size)
+{
+    stream_config.reassembly_memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \return memcap memcap value
+ */
+uint64_t StreamTcpReassembleGetMemcap()
+{
+    return stream_config.reassembly_memcap;
+}
+
 /* memory functions for the streaming buffer API */
 
 /*
