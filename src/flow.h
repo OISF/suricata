@@ -245,7 +245,6 @@ typedef struct FlowCnf_
 {
     uint32_t hash_rand;
     uint32_t hash_size;
-    uint64_t memcap;
     uint32_t max_flows;
     uint32_t prealloc;
 
@@ -256,6 +255,7 @@ typedef struct FlowCnf_
     uint32_t emerg_timeout_est;
     uint32_t emergency_recovery;
 
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
 } FlowConfig;
 
 /* Hash key for the flow hash */
@@ -496,6 +496,10 @@ int FlowGetPacketDirection(const Flow *, const Packet *);
 void FlowCleanupAppLayer(Flow *);
 
 void FlowUpdateState(Flow *f, enum FlowState s);
+
+int FlowSetMemcap(uint64_t size);
+uint64_t FlowGetMemcap(void);
+uint64_t FlowGetMemuse(void);
 
 /** ----- Inline functions ----- */
 
