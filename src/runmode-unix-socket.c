@@ -33,12 +33,16 @@
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "stream-tcp.h"
+#include "stream-tcp-reassemble.h"
 #include "host.h"
 #include "defrag.h"
+#include "defrag-hash.h"
 #include "ippair.h"
 #include "app-layer.h"
+#include "app-layer-htp-mem.h"
 #include "host-bit.h"
 
+#include "util-misc.h"
 #include "util-profiling.h"
 
 #include "conf-yaml-loader.h"
@@ -59,6 +63,23 @@ typedef struct PcapCommand_ {
     int running;
     char *currentfile;
 } PcapCommand;
+
+typedef struct MemcapCommand_ {
+    const char *name;
+    void (*SetFunc)(uint64_t);
+    uint64_t (*GetFunc)(void);
+} MemcapCommand;
+
+#define MEMCAPS_MAX 7
+static MemcapCommand memcaps[MEMCAPS_MAX] = {
+    { "stream",                 StreamTcpSetMemcap,             StreamTcpGetMemcap           },
+    { "stream-reassembly",      StreamTcpReassembleSetMemcap,   StreamTcpReassembleGetMemcap },
+    { "flow",                   FlowSetMemcap,                  FlowGetMemcap                },
+    { "applayer-proto-http",    HTPSetMemcap,                   HTPGetMemcap                 },
+    { "defrag",                 DefragTrackerSetMemcap,         DefragTrackerGetMemcap       },
+    { "ippair",                 IPPairSetMemcap,                IPPairGetMemcap              },
+    { "host",                   HostSetMemcap,                  HostGetMemcap                },
+};
 
 const char *RunModeUnixSocketGetDefaultMode(void)
 {
@@ -1010,6 +1031,122 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data_unused)
     json_object_set_new(jdata, "hostbits", jarray);
     json_object_set_new(answer, "message", jdata);
     return TM_ECODE_OK;
+}
+
+TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
+{
+    char *memcap = NULL;
+    char *value_str = NULL;
+    uint64_t value;
+    int i;
+
+    json_t *jarg = json_object_get(cmd, "config");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("memcap key is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    memcap = (char *)json_string_value(jarg);
+
+    jarg = json_object_get(cmd, "memcap");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("memcap value is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    value_str = (char *)json_string_value(jarg);
+
+    if (ParseSizeStringU64(value_str, &value) < 0) {
+        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                   "memcap from unix socket: %s", value_str);
+        json_object_set_new(answer, "message",
+                            json_string("error parsing memcap specified, "
+                                        "value not changed"));
+        return TM_ECODE_FAILED;
+    }
+
+    for (i = 0; i < MEMCAPS_MAX; i++) {
+        if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].SetFunc) {
+            memcaps[i].SetFunc(value);
+
+            char message[100];
+            snprintf(message, sizeof(message), "memcap value for '%s' updated: %"PRIu64"", memcaps[i].name, value);
+
+            json_object_set_new(answer, "message", json_string(message));
+            return TM_ECODE_OK;
+        }
+    }
+
+    json_object_set_new(answer, "message",
+                        json_string("Memcap value not found. Use 'memcap-list' to show all"));
+    return TM_ECODE_FAILED;
+}
+
+TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
+{
+    char *memcap = NULL;
+    int i;
+
+    json_t *jarg = json_object_get(cmd, "config");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("memcap name is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    memcap = (char *)json_string_value(jarg);
+
+    for (i = 0; i < MEMCAPS_MAX; i++) {
+        if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].GetFunc) {
+            char str[100];
+            uint64_t val = memcaps[i].GetFunc();
+
+            if (val == 0) {
+                strlcpy(str, "unlimited", sizeof(str));
+            } else {
+                snprintf(str, sizeof(str), "%"PRIu64"MB", val / (1024*1024));
+            }
+
+            json_object_set_new(answer, "message", json_string(str));
+            return TM_ECODE_OK;
+        }
+    }
+
+    json_object_set_new(answer, "message",
+                        json_string("Memcap value not found. Use 'memcap-list' to show all"));
+    return TM_ECODE_FAILED;
+}
+
+TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
+{
+    json_t *jmemcaps = json_array();
+    int i;
+
+    if (jmemcaps == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json array creation"));
+        return TM_ECODE_FAILED;
+    }
+
+    for (i = 0; i < MEMCAPS_MAX; i++) {
+        json_t *jobj = json_object();
+        if (jobj == NULL) {
+            json_object_set_new(answer, "message",
+                                json_string("internal error at json object creation"));
+            return TM_ECODE_FAILED;
+        }
+        char str[100];
+        uint64_t val = memcaps[i].GetFunc();
+
+        if (val == 0) {
+            strlcpy(str, "unlimited", sizeof(str));
+        } else {
+            snprintf(str, sizeof(str), "%"PRIu64"MB", val / (1024*1024));
+        }
+
+        json_object_set_new(jobj, "name", json_string(memcaps[i].name));
+        json_object_set_new(jobj, "value", json_string(str));
+        json_array_append_new(jmemcaps, jobj);
+    }
+
+    json_object_set_new(answer, "message", jmemcaps);
+    SCReturnInt(TM_ECODE_OK);
 }
 #endif /* BUILD_UNIX_SOCKET */
 
