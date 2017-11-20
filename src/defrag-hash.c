@@ -30,6 +30,26 @@ static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 /** queue with spare tracker */
 static DefragTrackerQueue defragtracker_spare_q;
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void DefragTrackerSetMemcap(uint64_t size)
+{
+    defrag_config.memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t DefragTrackerGetMemcap(void)
+{
+    return defrag_config.memcap;
+}
+
 uint32_t DefragTrackerSpareQueueGetSize(void)
 {
     return DefragTrackerQueueLen(&defragtracker_spare_q);
