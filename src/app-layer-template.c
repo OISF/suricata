@@ -201,7 +201,7 @@ static int TemplateHasEvents(void *state)
  * \retval ALPROTO_TEMPLATE if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TemplateProbingParser(uint8_t *input, uint32_t input_len,
+static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
     uint32_t *offset)
 {
     /* Very simple test - if there is input, this is echo. */
