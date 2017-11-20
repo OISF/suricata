@@ -352,6 +352,7 @@ typedef enum {
     SC_ERR_PLEDGE_FAILED,
     SC_ERR_FTP_LOG_GENERIC,
     SC_ERR_THASH_INIT,
+    SC_ERR_DATASET,
 
     SC_ERR_MAX
 } SCError;
