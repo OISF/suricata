@@ -75,6 +75,18 @@ static int ParseSizeString(const char *size, double *res)
 
     *res = 0;
 
+    if (size == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS,"invalid size argument - NULL. Valid size "
+                   "argument should be in the format - \n"
+                   "xxx <- indicates it is just bytes\n"
+                   "xxxkb or xxxKb or xxxKB or xxxkB <- indicates kilobytes\n"
+                   "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
+                   "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.\n"
+			    );
+        retval = -2;
+        goto end;
+    }
+
     pcre_exec_ret = pcre_exec(parse_regex, parse_regex_study, size, strlen(size), 0, 0,
                     ov, MAX_SUBSTRINGS);
     if (!(pcre_exec_ret == 2 || pcre_exec_ret == 3)) {
