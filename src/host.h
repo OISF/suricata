@@ -93,7 +93,7 @@ HostHashRow *host_hash;
 #define HOST_QUIET      1
 
 typedef struct HostConfig_ {
-    uint64_t memcap;
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
@@ -107,7 +107,7 @@ typedef struct HostConfig_ {
  *  \retval 0 no fit
  */
 #define HOST_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= host_config.memcap))
+    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(host_config.memcap)))
 
 #define HostIncrUsecnt(h) \
     (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
@@ -152,6 +152,10 @@ Host *HostAlloc(void);
 void HostFree(Host *);
 
 void HostUnlock(Host *h);
+
+int HostSetMemcap(uint64_t);
+uint64_t HostGetMemcap(void);
+uint64_t HostGetMemuse(void);
 
 #endif /* __HOST_H__ */
 
