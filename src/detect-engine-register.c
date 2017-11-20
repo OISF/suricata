@@ -120,6 +120,8 @@
 #include "detect-filesha1.h"
 #include "detect-filesha256.h"
 #include "detect-filesize.h"
+#include "detect-dataset.h"
+#include "detect-datarep.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -475,6 +477,8 @@ void SigTableSetup(void)
     DetectIsdataatRegister();
     DetectIdRegister();
     DetectDsizeRegister();
+    DetectDatasetRegister();
+    DetectDatarepRegister();
     DetectFlowvarRegister();
     DetectFlowintRegister();
     DetectPktvarRegister();

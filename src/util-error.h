@@ -351,6 +351,7 @@ typedef enum {
     SC_WARN_EVE_MISSING_EVENTS,
     SC_ERR_PLEDGE_FAILED,
     SC_ERR_THASH_INIT,
+    SC_ERR_DATASET,
 
     SC_ERR_MAX
 } SCError;

@@ -45,6 +45,8 @@
 #include "detect-lua.h"
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
+#include "detect-dataset.h"
+#include "detect-datarep.h"
 
 #include "app-layer-dcerpc.h"
 
@@ -538,6 +540,28 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             goto no_match;
         }
         goto match;
+
+    } else if (smd->type == DETECT_DATASET) {
+
+        //PrintRawDataFp(stdout, buffer, buffer_len);
+        const DetectDatasetData *sd = (const DetectDatasetData *) smd->ctx;
+        int r = DetectDatasetBufferMatch(det_ctx, sd, buffer, buffer_len); //TODO buffer offset?
+        if (r == 1) {
+            goto match;
+        }
+        det_ctx->discontinue_matching = 1;
+        goto no_match;
+
+    } else if (smd->type == DETECT_DATAREP) {
+
+        //PrintRawDataFp(stdout, buffer, buffer_len);
+        const DetectDatarepData *sd = (const DetectDatarepData *) smd->ctx;
+        int r = DetectDatarepBufferMatch(det_ctx, sd, buffer, buffer_len); //TODO buffer offset?
+        if (r == 1) {
+            goto match;
+        }
+        det_ctx->discontinue_matching = 1;
+        goto no_match;
 
     } else if (smd->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");

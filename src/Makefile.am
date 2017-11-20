@@ -56,6 +56,10 @@ app-layer-ssl.c app-layer-ssl.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \
+datasets.c datasets.h datasets-reputation.h \
+datasets-string.c datasets-string.h \
+datasets-sha256.c datasets-sha256.h \
+datasets-md5.c datasets-md5.h \
 decode.c decode.h \
 decode-afl.c \
 decode-erspan.c decode-erspan.h \
@@ -98,6 +102,8 @@ detect.c detect.h \
 detect-classtype.c detect-classtype.h \
 detect-content.c detect-content.h \
 detect-csum.c detect-csum.h \
+detect-datarep.c detect-datarep.h \
+detect-dataset.c detect-dataset.h \
 detect-dce-iface.c detect-dce-iface.h \
 detect-dce-opnum.c detect-dce-opnum.h \
 detect-dce-stub-data.c detect-dce-stub-data.h \
