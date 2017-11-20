@@ -23,5 +23,8 @@ void *HTPCalloc(size_t n, size_t size);
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size);
 void HTPFree(void *ptr, size_t size);
 
+int HTPSetMemcap(uint64_t size);
+uint64_t HTPGetMemcap(void);
+
 uint64_t HTPMemuseGlobalCounter(void);
 uint64_t HTPMemcapGlobalCounter(void);
