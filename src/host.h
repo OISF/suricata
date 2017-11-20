@@ -153,5 +153,8 @@ void HostFree(Host *);
 
 void HostUnlock(Host *h);
 
+void HostSetMemcap(uint64_t);
+uint64_t HostGetMemcap(void);
+
 #endif /* __HOST_H__ */
 
