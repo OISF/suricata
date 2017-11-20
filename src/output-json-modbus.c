@@ -182,20 +182,22 @@ static void JsonModbusLog(json_t *modbusjs, ModbusTransaction *modbustx,
             json_object_set_new(type_write, "address", json_integer(modbustx->write.address));
             json_object_set_new(type_write, "quantity", json_integer(modbustx->write.quantity));
             json_object_set_new(type_write, "count", json_integer(modbustx->write.count));
-            if (modbustx->function == MODBUS_FUNC_WRITESINGLEREG) {
-                json_object_set(type_write, "value", json_integer(*(modbustx->data)));
-            } else if (modbustx->type & MODBUS_TYP_WRITE_MULTIPLE &&
-                       modbustx->write.count && modbustx->data) {
-                json_t *value;
-                if (modbustx->type  & MODBUS_TYP_BIT_ACCESS_MASK) {
-                    value = JsonModbusLogBits(modbustx, modbustx->write.quantity,
-                                              use_dict);
-                } else {
-                    value = JsonModbusLogRegisters(modbustx, modbustx->write.quantity,
-                                                   use_dict);
-                }
-                if (value) {
-                    json_object_set_new(type_write, "value", value);
+            if (modbustx->data != NULL) {
+                if (modbustx->function == MODBUS_FUNC_WRITESINGLEREG) {
+                    json_object_set(type_write, "value", json_integer(*(modbustx->data)));
+                } else if (modbustx->type & MODBUS_TYP_WRITE_MULTIPLE &&
+                           modbustx->write.count) {
+                    json_t *value;
+                    if (modbustx->type  & MODBUS_TYP_BIT_ACCESS_MASK) {
+                        value = JsonModbusLogBits(modbustx, modbustx->write.quantity,
+                                                  use_dict);
+                    } else {
+                        value = JsonModbusLogRegisters(modbustx, modbustx->write.quantity,
+                                                       use_dict);
+                    }
+                    if (value) {
+                        json_object_set_new(type_write, "value", value);
+                    }
                 }
             }
             json_object_set_new(modbusjs, "write", type_write);
