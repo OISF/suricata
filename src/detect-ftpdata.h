@@ -15,33 +15,29 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Eric Leblond <eric@regit.org>
+ */
 
-extern crate libc;
+#ifndef __DETECT_FTPDATA_H__
+#define __DETECT_FTPDATA_H__
 
-#[macro_use]
-extern crate nom;
+#include "detect-engine.h"
+#include "app-layer-ftp.h"
 
-extern crate crc;
+/** Per keyword data. This is set up by the DetectFtpcommandSetup() function.
+ *  Each signature will have an instance of DetectFtpcommandData per occurence
+ *  of the keyword.
+ *  The structure should be considered static/readonly after initialization.
+ */
+typedef struct DetectFtpdataData_ {
+    FtpRequestCommand command;
+} DetectFtpdataData;
 
-#[macro_use]
-pub mod log;
+/** \brief registers the keyword into the engine. Called from
+ *         detect.c::SigTableSetup() */
+void DetectFtpdataRegister(void);
 
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
+#endif /* __DETECT_FTPDATA_H__ */

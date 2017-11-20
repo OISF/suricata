@@ -19,6 +19,7 @@ Suricata Rules
    modbus-keyword
    dnp3-keywords
    enip-keyword
+   ftp-keywords
    app-layer
    rule-lua-scripting
    normalized-buffers
