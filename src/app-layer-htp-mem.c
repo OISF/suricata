@@ -104,6 +104,26 @@ static int HTPCheckMemcap(uint64_t size)
     return 0;
 }
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void HTPSetMemcap(uint64_t size)
+{
+    htp_config_memcap = size;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t HTPGetMemcap(void)
+{
+    return htp_config_memcap;
+}
+
 void *HTPMalloc(size_t size)
 {
     void *ptr = NULL;
