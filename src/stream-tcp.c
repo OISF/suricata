@@ -164,9 +164,36 @@ uint64_t StreamTcpMemuseCounter(void)
  */
 int StreamTcpCheckMemcap(uint64_t size)
 {
-    if (stream_config.memcap == 0 || size + SC_ATOMIC_GET(st_memuse) <= stream_config.memcap)
+    uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.memcap);
+    if (memcapcopy == 0 || size + SC_ATOMIC_GET(st_memuse) <= memcapcopy)
         return 1;
     return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int StreamTcpSetMemcap(uint64_t size)
+{
+    if (size == 0 || (uint64_t)SC_ATOMIC_GET(st_memuse) < size) {
+        SC_ATOMIC_SET(stream_config.memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \param memcap memcap value
+ */
+uint64_t StreamTcpGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.memcap);
+    return memcapcopy;
 }
 
 void StreamTcpStreamCleanup(TcpStream *stream)
@@ -337,6 +364,9 @@ void StreamTcpInitConfig(char quiet)
 
     memset(&stream_config,  0, sizeof(stream_config));
 
+    SC_ATOMIC_INIT(stream_config.memcap);
+    SC_ATOMIC_INIT(stream_config.reassembly_memcap);
+
     if ((ConfGetInt("stream.max-sessions", &value)) == 1) {
         SCLogWarning(SC_WARN_OPTION_OBSOLETE, "max-sessions is obsolete. "
             "Number of concurrent sessions is now only limited by Flow and "
@@ -364,18 +394,21 @@ void StreamTcpInitConfig(char quiet)
 
     const char *temp_stream_memcap_str;
     if (ConfGetValue("stream.memcap", &temp_stream_memcap_str) == 1) {
-        if (ParseSizeStringU64(temp_stream_memcap_str, &stream_config.memcap) < 0) {
+        uint64_t stream_memcap_copy;
+        if (ParseSizeStringU64(temp_stream_memcap_str, &stream_memcap_copy) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing stream.memcap "
                        "from conf file - %s.  Killing engine",
                        temp_stream_memcap_str);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(stream_config.memcap, stream_memcap_copy);
         }
     } else {
-        stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
+        SC_ATOMIC_SET(stream_config.memcap, STREAMTCP_DEFAULT_MEMCAP);
     }
 
     if (!quiet) {
-        SCLogConfig("stream \"memcap\": %"PRIu64, stream_config.memcap);
+        SCLogConfig("stream \"memcap\": %"PRIu64, SC_ATOMIC_GET(stream_config.memcap));
     }
 
     ConfGetBool("stream.midstream", &stream_config.midstream);
@@ -472,20 +505,24 @@ void StreamTcpInitConfig(char quiet)
 
     const char *temp_stream_reassembly_memcap_str;
     if (ConfGetValue("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
+        uint64_t stream_reassembly_memcap_copy;
         if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
-                               &stream_config.reassembly_memcap) < 0) {
+                               &stream_reassembly_memcap_copy) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "stream.reassembly.memcap "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_memcap_str);
             exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(stream_config.reassembly_memcap, stream_reassembly_memcap_copy);
         }
     } else {
-        stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
+        SC_ATOMIC_SET(stream_config.reassembly_memcap , STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP);
     }
 
     if (!quiet) {
-        SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
+        SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"",
+                    SC_ATOMIC_GET(stream_config.reassembly_memcap));
     }
 
     const char *temp_stream_reassembly_depth_str;
@@ -624,6 +661,9 @@ void StreamTcpInitConfig(char quiet)
 
 void StreamTcpFreeConfig(char quiet)
 {
+    SC_ATOMIC_DESTROY(stream_config.memcap);
+    SC_ATOMIC_DESTROY(stream_config.reassembly_memcap);
+
     StreamTcpReassembleFree(quiet);
 
     SCMutexLock(&ssn_pool_mutex);
@@ -8657,7 +8697,7 @@ static int StreamTcpTest28(void)
 
     FAIL_IF(StreamTcpCheckMemcap(500) != 1);
 
-    FAIL_IF(StreamTcpCheckMemcap((memuse + stream_config.memcap)) != 0);
+    FAIL_IF(StreamTcpCheckMemcap((memuse + SC_ATOMIC_GET(stream_config.memcap))) != 0);
 
     StreamTcpUTDeinit(stt.ra_ctx);
 
