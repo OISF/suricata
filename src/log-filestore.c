@@ -203,6 +203,31 @@ static uint32_t FileGetMaxOpenFiles(void)
     return g_file_store_max_open_files;
 }
 
+static char g_file_store_working_file_prefix[PATH_MAX] = "";
+
+static void FileSetWorkingFilePrefix(const char* working_file_prefix)
+{
+    strlcpy(g_file_store_working_file_prefix, working_file_prefix,
+            sizeof(g_file_store_working_file_prefix));
+}
+
+static const char* FileGetWorkingFilePrefix(void)
+{
+    return g_file_store_working_file_prefix;
+}
+
+static int g_file_store_include_pid = 0;
+
+static void FileIncludePidEnable(void)
+{
+    g_file_store_include_pid = 1;
+}
+
+static int FileIncludePid(void)
+{
+    return g_file_store_include_pid;
+}
+
 static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *filename, int ipver) {
     if (!FileWriteMeta())
         return;
@@ -282,12 +307,23 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     if (!FileWriteMeta())
         return;
 
-    char filename[PATH_MAX] = "";
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
-    char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-    FILE *fp = fopen(metafilename, "a");
+    char working_filename[PATH_MAX] = "";
+    char pid_expression[PATH_MAX] = "";
+    if (FileIncludePid())
+        snprintf(pid_expression, sizeof(pid_expression), ".%d", getpid());
+    snprintf(working_filename, sizeof(working_filename), "%s/%sfile%s.%u",
+            g_logfile_base_dir, FileGetWorkingFilePrefix(), pid_expression,
+            ff->file_store_id);
+    char working_metafilename[PATH_MAX] = "";
+    snprintf(working_metafilename, sizeof(working_metafilename),
+            "%s.meta", working_filename);
+    char final_filename[PATH_MAX] = "";
+    snprintf(final_filename, sizeof(final_filename), "%s/file%s.%u",
+            g_logfile_base_dir, pid_expression, ff->file_store_id);
+    char final_metafilename[PATH_MAX] = "";
+    snprintf(final_metafilename, sizeof(final_metafilename),
+            "%s.meta", final_filename);
+    FILE *fp = fopen(working_metafilename, "a");
     if (fp != NULL) {
 #ifdef HAVE_MAGIC
         fprintf(fp, "MAGIC:             %s\n",
@@ -336,8 +372,21 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
         fprintf(fp, "SIZE:              %"PRIu64"\n", FileTrackedSize(ff));
 
         fclose(fp);
+        /* Move working files to their final location now that we are done
+         * writing them.*/
+        if (strcmp(FileGetWorkingFilePrefix(), "") != 0) {
+            if (rename(working_filename, final_filename) != 0) {
+                SCLogWarning(SC_WARN_RENAMING_FILE, "renaming file %s to %s failed",
+                        working_filename, final_filename);
+                return;
+            }
+            if (rename(working_metafilename, final_metafilename) != 0 ) {
+                SCLogWarning(SC_WARN_RENAMING_FILE, "renaming metafile %s to %s failed",
+                        working_metafilename, final_metafilename);
+            }
+        }
     } else {
-        SCLogInfo("opening %s failed: %s", metafilename, strerror(errno));
+        SCLogInfo("opening %s failed: %s", working_metafilename, strerror(errno));
     }
 }
 
@@ -365,8 +414,12 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
+    char pid_expression[PATH_MAX] = "";
+    if (FileIncludePid())
+        snprintf(pid_expression, sizeof(pid_expression), ".%d", getpid());
+    snprintf(filename, sizeof(filename), "%s/%sfile%s.%u",
+            g_logfile_base_dir, FileGetWorkingFilePrefix(), pid_expression,
+            ff->file_store_id);
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
@@ -556,9 +609,15 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     }
 
     const char *write_meta = ConfNodeLookupChildValue(conf, "write-meta");
+    const char *working_file_prefix = ConfNodeLookupChildValue(conf, "working_file_prefix");
     if (write_meta != NULL && !ConfValIsTrue(write_meta)) {
         FileWriteMetaDisable();
         SCLogInfo("File-store output will not write meta files");
+    } else {
+        if (working_file_prefix != NULL && strcmp(working_file_prefix, "") != 0) {
+            FileSetWorkingFilePrefix(working_file_prefix);
+            SCLogInfo("using %s as a working file prefix of all files", working_file_prefix);
+        }
     }
 
     FileForceHashParseCfg(conf);
@@ -596,6 +655,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
                           " open files", file_count);
             }
         }
+    }
+
+    const char *include_pid = ConfNodeLookupChildValue(conf, "include-pid");
+    if (include_pid != NULL && ConfValIsTrue(include_pid)) {
+        FileIncludePidEnable();
+        SCLogInfo("enabling pid as a part of all file names");
     }
 
     SCReturnPtr(output_ctx, "OutputCtx");
