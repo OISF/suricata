@@ -51,6 +51,26 @@ static IPPairQueue ippair_spare_q;
  *  the storage APIs additions. */
 static uint16_t g_ippair_size = sizeof(IPPair);
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void IPPairSetMemcap(uint64_t size)
+{
+    ippair_config.memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t IPPairGetMemcap(void)
+{
+    return ippair_config.memcap;
+}
+
 uint32_t IPPairSpareQueueGetSize(void)
 {
     return IPPairQueueLen(&ippair_spare_q);
