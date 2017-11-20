@@ -90,7 +90,7 @@ IPPairHashRow *ippair_hash;
 #define IPPAIR_QUIET      1
 
 typedef struct IPPairConfig_ {
-    uint64_t memcap;
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
@@ -104,7 +104,7 @@ typedef struct IPPairConfig_ {
  *  \retval 0 no fit
  */
 #define IPPAIR_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)(size)) <= ippair_config.memcap))
+    ((((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(ippair_config.memcap)))
 
 #define IPPairIncrUsecnt(h) \
     (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
@@ -150,5 +150,9 @@ void IPPairFree(IPPair *);
 
 void IPPairLock(IPPair *);
 void IPPairUnlock(IPPair *);
+
+int IPPairSetMemcap(uint64_t size);
+uint64_t IPPairGetMemcap(void);
+uint64_t IPPairGetMemuse(void);
 
 #endif /* __IPPAIR_H__ */
