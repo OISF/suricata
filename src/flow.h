@@ -497,6 +497,9 @@ void FlowCleanupAppLayer(Flow *);
 
 void FlowUpdateState(Flow *f, enum FlowState s);
 
+void FlowSetMemcap(uint64_t size);
+uint64_t FlowGetMemcap(void);
+
 /** ----- Inline functions ----- */
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.

@@ -89,6 +89,26 @@ int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void FlowSetMemcap(uint64_t size)
+{
+    flow_config.memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t FlowGetMemcap(void)
+{
+    return flow_config.memcap;
+}
+
 void FlowCleanupAppLayer(Flow *f)
 {
     if (f == NULL || f->proto == 0)
