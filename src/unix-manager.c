@@ -838,7 +838,6 @@ static TmEcode UnixManagerListCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
                                json_t *server_msg, void *data)
@@ -998,6 +997,9 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-set", UnixSocketSetMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-show", UnixSocketShowMemcap, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("memcap-list", UnixSocketShowAllMemcap, NULL, 0);
 
     return 0;
 }
