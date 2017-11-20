@@ -73,6 +73,8 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "datasets.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
@@ -373,7 +375,8 @@ static void GlobalsDestroy(SCInstance *suri)
     DetectEnginePruneFreeList();
 
     AppLayerDeSetup();
-
+    DatasetsSave();
+    DatasetsDestroy();
     TagDestroyCtx();
 
     LiveDeviceListClean();
@@ -2272,6 +2275,7 @@ void PreRunInit(const int runmode)
     SCProfilingSghsGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */
+    DatasetsInit();
     DefragInit();
     FlowInitConfig(FLOW_QUIET);
     IPPairInitConfig(FLOW_QUIET);
