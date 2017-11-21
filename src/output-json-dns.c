@@ -51,6 +51,7 @@
 #include "output-json.h"
 #include "output-json-dns.h"
 
+//@TODO remove the comment
 #ifdef HAVE_LIBJANSSON
 
 #ifdef HAVE_RUST

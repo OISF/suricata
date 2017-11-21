@@ -47,6 +47,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
+#include "util-print.h"
 
 #ifdef HAVE_RUST
 #include "rust-dns-dns-gen.h"
@@ -119,6 +120,48 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
     return r;
 }
 
+int DetectEngineInspectDnsResponse(ThreadVars *tv,
+                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                                    const Signature *s, const SigMatchData *smd,
+                                    Flow *f, uint8_t flags, void *alstate,
+                                    void *txv, uint64_t tx_id)
+{
+    int r = 0;
+
+    SCLogDebug("start");
+
+    DNSTransaction *tx = (DNSTransaction *)txv;
+    DNSAnswerEntry *answer = NULL;
+
+    TAILQ_FOREACH(answer, &tx->answer_list, next) {
+        SCLogDebug("tx %p query %p", tx, answer);
+        if(answer->type == DNS_RECORD_TYPE_A) {
+            det_ctx->discontinue_matching = 0;
+            det_ctx->buffer_offset = 0;
+            det_ctx->inspection_recursion_counter = 0;
+
+            const uint8_t *temp = (const uint8_t *) ((uint8_t *) answer +
+                                    sizeof(DNSAnswerEntry) + answer->fqdn_len);
+
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *) temp, a, sizeof(a));
+
+            uint8_t *ipstring = (uint8_t *) a;
+
+            r = DetectEngineContentInspection(de_ctx, det_ctx,
+                                              s, smd,
+                                              f, ipstring, sizeof(a), 0,
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+
+            if (r == 1)
+                break;
+        }
+    }
+
+    return r;
+
+}
+
 /** \brief DNS Query Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx
@@ -169,6 +212,35 @@ static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
 #endif
 }
 
+static void PrefilterTxDnsResponse(DetectEngineThreadCtx *det_ctx,
+                                   const void *pectx,
+                                   Packet *p, Flow *f, void *txv,
+                                    const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+
+    DNSTransaction *tx = (DNSTransaction *)txv;
+    DNSAnswerEntry *answer = NULL;
+
+    TAILQ_FOREACH(answer, &tx->answer_list, next) {
+
+        if (answer->type == DNS_RECORD_TYPE_A) {
+            const uint8_t *temp = (const uint8_t *) ((uint8_t *) answer + sizeof(DNSAnswerEntry) + answer->fqdn_len);
+
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *) temp, a, sizeof(a));
+
+            uint8_t *ipstring = (uint8_t *)a;
+
+            if (sizeof(a) >= mpm_ctx->minlen) {
+                (void) mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq,
+                                                           ipstring, sizeof(a));
+            }
+        }
+    }
+}
+
 int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
@@ -178,16 +250,16 @@ int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
         mpm_ctx, NULL, "dns_query");
 }
 
-int DetectEngineInspectDnsRequest(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+int PrefilterTxDnsResponseRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return DetectEngineInspectGenericList(tv, de_ctx, det_ctx, s, smd,
-                                          f, flags, alstate, txv, tx_id);
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxDnsResponse,
+        ALPROTO_DNS, 1,
+        mpm_ctx, NULL, "dns_response");
 }
 
-int DetectEngineInspectDnsResponse(ThreadVars *tv,
+int DetectEngineInspectDnsRequest(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)

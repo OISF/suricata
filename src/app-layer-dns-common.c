@@ -25,9 +25,9 @@
 #include "stream.h"
 #include "app-layer-parser.h"
 #include "app-layer-dns-common.h"
-#ifdef DEBUG
+//#ifdef DEBUG
 #include "util-print.h"
-#endif
+//#endif
 #include "util-memcmp.h"
 #include "util-atomic.h"
 
@@ -851,10 +851,10 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         case DNS_RECORD_TYPE_A:
         {
             if (datalen == 0 || datalen == 4) {
-                //PrintRawDataFp(stdout, data, ntohs(head->len));
-                //char a[16];
-                //PrintInet(AF_INET, (const void *)data, a, sizeof(a));
-                //SCLogInfo("A %s TTL %u", a, ntohl(head->ttl));
+               // PrintRawDataFp(stdout, data, ntohs(head->len));
+                char a[16];
+                PrintInet(AF_INET, (const void *)data, a, sizeof(a));
+                SCLogInfo("A %s TTL %u", a, ntohl(head->ttl));
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
