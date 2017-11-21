@@ -108,6 +108,10 @@ function patch_app_layer_protos_c {
 s/TEMPLATE/${protoname_upper}/
 +
 s/template/${protoname_lower}/
+/if (strcmp(proto_name,"template")==0)
+t-
+-,.s/TEMPLATE/${protoname_upper}/
+-,.s/template/${protoname_lower}/
 w
 EOF
 }
