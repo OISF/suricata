@@ -47,6 +47,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-validate.h"
+#include "util-print.h"
 
 #ifdef HAVE_RUST
 #include "rust-dns-dns-gen.h"
@@ -125,8 +126,6 @@ int DetectEngineInspectDnsResponse(ThreadVars *tv,
                                     Flow *f, uint8_t flags, void *alstate,
                                     void *txv, uint64_t tx_id)
 {
-    uint8_t *buffer;
-    uint32_t buffer_len;
     int r = 0;
 
     SCLogDebug("start");
@@ -136,30 +135,32 @@ int DetectEngineInspectDnsResponse(ThreadVars *tv,
 
     TAILQ_FOREACH(answer, &tx->answer_list, next) {
         SCLogDebug("tx %p query %p", tx, answer);
-        det_ctx->discontinue_matching = 0;
-        det_ctx->buffer_offset = 0;
-        det_ctx->inspection_recursion_counter = 0;
+        if(answer->type == DNS_RECORD_TYPE_A) {
+            det_ctx->discontinue_matching = 0;
+            det_ctx->buffer_offset = 0;
+            det_ctx->inspection_recursion_counter = 0;
 
-        buffer = (uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry));
-        buffer_len = answer->data_len;
+            const uint8_t *temp = (const uint8_t *) ((uint8_t *) answer +
+                                    sizeof(DNSAnswerEntry) + answer->fqdn_len);
 
-        //PrintRawDataFp(stdout, buffer, buffer_len);
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *) temp, a, sizeof(a));
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx,
-                                          s, smd,
-                                          f, buffer, buffer_len, 0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
-        if (r == 1)
-            break;
+            uint8_t *ipstring = (uint8_t *) a;
+
+            r = DetectEngineContentInspection(de_ctx, det_ctx,
+                                              s, smd,
+                                              f, ipstring, sizeof(a), 0,
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+
+            if (r == 1)
+                break;
+        }
     }
 
     return r;
 
 }
-
-
-
-
 
 /** \brief DNS Query Mpm prefilter callback
  *
@@ -223,28 +224,19 @@ static void PrefilterTxDnsResponse(DetectEngineThreadCtx *det_ctx,
     DNSAnswerEntry *answer = NULL;
 
     TAILQ_FOREACH(answer, &tx->answer_list, next) {
-        SCLogDebug("This should be all the answers");
 
-        const uint8_t *buffer =
-                (const uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry));
-        const uint32_t buffer_len = answer->data_len;
-        //PrintRawDataFp(stdout, buffer, buffer_len);
-        if (buffer_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq,
-                                    buffer, buffer_len);
-        }
-    }
+        if (answer->type == DNS_RECORD_TYPE_A) {
+            const uint8_t *temp = (const uint8_t *) ((uint8_t *) answer + sizeof(DNSAnswerEntry) + answer->fqdn_len);
 
-    TAILQ_FOREACH(answer, &tx->authority_list, next) {
-        SCLogDebug("This should be all the authority entries");
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *) temp, a, sizeof(a));
 
-        const uint8_t *buffer =
-                (const uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry));
-        const uint32_t buffer_len = answer->data_len;
+            uint8_t *ipstring = (uint8_t *)a;
 
-        if (buffer_len >= mpm_ctx->minlen) {
-            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq,
-                                    buffer, buffer_len);
+            if (sizeof(a) >= mpm_ctx->minlen) {
+                (void) mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx, &det_ctx->mtcu, &det_ctx->pmq,
+                                                           ipstring, sizeof(a));
+            }
         }
     }
 }

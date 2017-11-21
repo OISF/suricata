@@ -104,103 +104,109 @@ static int DetectDnsResponseSetup(DetectEngineCtx *de_ctx, Signature *s, const c
 }
 
 
-static void DetectDnsResponseRegisterTests(void) {
+
 #ifdef UNITTESTS
 
-    /** \test simple dns response match A record */
-    static int DetectDnsResponseTest01(void) {
+/** \test simple dns response match A record */
+static int DetectDnsResponseTest01(void)
+{
 
-       uint8_t buf[] = {    0x00, 0x01, // tx id
-                            0x81, 0x80, // response flags (response recursion desired + available)
-                            0x00, 0x01, // nr of questions
-                            0x00, 0x01, // answer RRs
-                            0x00, 0x00, // authority RR
-                            0x00, 0x00, // additional RRs
-                            /* Query */
-                            0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00 // google.com
-                            0x00, 0x01, // A Type
-                            0x00, 0x01, // Class
-                            /* Answer */
-                            0xC0, 0x0C,
-                            0x00, 0x01, // A type
-                            0x00, 0x01, // Class
-                            0x00, 0x00, 0x00, 0xFF, // TTL
-                            0x00, 0x04, // Length
-                            0xAC, 0xD9, 0x12, 0x8E, // 172.217.18.142
-                        }
+   uint8_t buf[] = {
+            0x00, 0x01, // tx id
+            0x81, 0x80, // response flags (response recursion desired + available)
+            0x00, 0x01, // nr of questions
+            0x00, 0x01, // answer RRs
+            0x00, 0x00, // authority RR
+            0x00, 0x00, // additional RRs
+            0x06, 0x67, 0x6F, 0x6F, 0x67, 0x6C, 0x65, 0x03, 0x63, 0x6F, 0x6D, 0x00, // google.com
+            0x00, 0x01, // A Type
+            0x00, 0x01, // Class
+            0xC0, 0x0C,
+            0x00, 0x01, // A type
+            0x00, 0x01, // Class
+            0x00, 0x00, 0x00, 0xFF, // TTL
+            0x00, 0x04, // Length
+            0xAC, 0xD9, 0x12, 0x8E, // 172.217.18.142
+        };
 
-        Flow f;
-        DNSState *dns_state = NULL;
-        Packet *p = NULL;
-        Signature *s = NULL;
-        ThreadVars tv;
-        DetectEngineThreadCtx *det_ctx = NULL;
-        AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    DNSState *dns_state = NULL;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
-        memset(&tv, 0, sizeof(ThreadVars));
-        memset(&f, 0, sizeof(Flow));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
 
-        p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
-                               "192.168.1.1", "192.168.1.5",
-                               53, 41424);
+    p = UTHBuildPacketReal(buf, sizeof(buf), IPPROTO_UDP,
+                           "192.168.1.1", "192.168.1.5",
+                           53, 41424);
 
-        FLOW_INITIALIZE(&f);
-        f.flags |= FLOW_IPV4;
-        f.proto = IPPROTO_UDP;
-        f.protomap = FlowGetProtoMapping(f.proto);
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_IPV4;
+    f.proto = IPPROTO_UDP;
+    f.protomap = FlowGetProtoMapping(f.proto);
 
-        p->flow = &f;
-        p->flags |= PKT_HAS_FLOW;
-        p->flowflags |= FLOW_PKT_TOCLIENT;
-        f.alproto = ALPROTO_DNS;
+    p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
+    f.alproto = ALPROTO_DNS;
 
-        DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-        FAIL_IF_NULL(de_ctx);
-        de_ctx->mpm_matcher = mpm_default_matcher;
-        de_ctx->flags |= DE_QUIET;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->mpm_matcher = mpm_default_matcher;
+    de_ctx->flags |= DE_QUIET;
 
-        s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
-                                  "(msg:\"Test dns_query option\"; "
-                                  "dns_response; content:\"172.217.18.142\"; nocase; sid:1;)");
-        FAIL_IF_NULL(s);
+    s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
+                              "(msg:\"Test dns_query option\"; "
+                              "dns_response; content:\"172.217.18.142\"; nocase; sid:1;)");
+    FAIL_IF_NULL(s);
 
-        SigGroupBuild(de_ctx);
-        DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-        FLOWLOCK_WRLOCK(&f);
-        int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
-                                    STREAM_TOCLIENT, buf, sizeof(buf));
-        if (r != 0) {
-            printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-            FLOWLOCK_UNLOCK(&f);
-            FAIL;
-        }
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
+                                STREAM_TOCLIENT, buf, sizeof(buf));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         FLOWLOCK_UNLOCK(&f);
-
-        dns_state = f.alstate;
-        FAIL_IF_NULL(dns_state);
-
-        /* do detect */
-        SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-
-        if (!(PacketAlertCheck(p, 1))) {
-            printf("sig 1 didn't alert, but it should have: ");
-            FAIL;
-        }
-
-        if (alp_tctx != NULL)
-            AppLayerParserThreadCtxFree(alp_tctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&tv, det_ctx);
-        if (de_ctx != NULL)
-            SigGroupCleanup(de_ctx);
-        if (de_ctx != NULL)
-            DetectEngineCtxFree(de_ctx);
-
-        FLOW_DESTROY(&f);
-        UTHFreePacket(p);
-        PASS;
-
+        FAIL;
     }
+    FLOWLOCK_UNLOCK(&f);
+
+    dns_state = f.alstate;
+    FAIL_IF_NULL(dns_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sig 1 didn't alert, but it should have: ");
+        FAIL;
+    }
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    PASS;
+
+}
+#endif
+
+static void DetectDnsResponseRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("DetectDnsResponseTest01", DetectDnsResponseTest01);
 #endif
 };

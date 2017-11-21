@@ -742,7 +742,7 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
     if (fqdn_offset) {
         fqdn_offset--;
     }
-    PrintRawDataFp(stdout, fqdn, fqdn_offset);
+    //PrintRawDataFp(stdout, fqdn, fqdn_offset);
     SCReturnUInt(fqdn_offset);
 bad_data:
 insufficient_data:
@@ -851,7 +851,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         case DNS_RECORD_TYPE_A:
         {
             if (datalen == 0 || datalen == 4) {
-                PrintRawDataFp(stdout, data, ntohs(head->len));
+               // PrintRawDataFp(stdout, data, ntohs(head->len));
                 char a[16];
                 PrintInet(AF_INET, (const void *)data, a, sizeof(a));
                 SCLogInfo("A %s TTL %u", a, ntohl(head->ttl));
