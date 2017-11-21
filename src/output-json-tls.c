@@ -40,6 +40,7 @@
 #include "app-layer-parser.h"
 #include "output.h"
 #include "app-layer-ssl.h"
+#include "app-layer-tls-cipher-suite.h"
 #include "app-layer.h"
 #include "util-privs.h"
 #include "util-buffer.h"
@@ -77,6 +78,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
 #define LOG_TLS_FIELD_CHAIN             (1 << 9)
 #define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
+#define LOG_TLS_FIELD_CIPHER_SUITE      (1 << 11)
 
 typedef struct {
     const char *name;
@@ -95,6 +97,7 @@ TlsFields tls_fields[] = {
     { "certificate",     LOG_TLS_FIELD_CERTIFICATE },
     { "chain",           LOG_TLS_FIELD_CHAIN },
     { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { "cipher_suite",    LOG_TLS_FIELD_CIPHER_SUITE },
     { NULL,              -1 }
 };
 
@@ -255,6 +258,63 @@ static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
     json_object_set_new(js, "chain", chain);
 }
 
+static void JsonTlsLogCipherSuite(json_t *js, SSLState *ssl_state)
+{
+    json_t *cipher_suite_js;
+    const char *desc = NULL;
+    char number[7] = {0};
+    uint16_t value;
+    unsigned char *bytes = NULL;
+
+    cipher_suite_js = json_object();
+    if (cipher_suite_js == NULL) {
+        return;
+    }
+
+    /* server cipher suite choosed */
+    if (ssl_state->server_connp.cipher_suites) {
+        value = ssl_state->server_connp.cipher_suites[0];
+        desc = SSLCipherSuiteDescription(value);
+        if (!desc || *desc == '-') {
+            bytes = (unsigned char *) &value;
+            snprintf(number, 6, "0X%02X%02X",
+                    (unsigned int) bytes[0], (unsigned int) bytes[1]);
+            json_object_set_new(cipher_suite_js, "server",
+                    json_string(number));
+        }
+        else {
+            json_object_set_new(cipher_suite_js, "server",
+                    json_string(desc));
+        }
+    }
+
+    /* client cipher suite list */
+    if (ssl_state->client_connp.cipher_suites) {
+        json_t *suite_array_js = json_array();
+        for (uint32_t i = 0; i < ssl_state->client_connp.num_cipher_suites; ++i) {
+            value = ssl_state->client_connp.cipher_suites[i];
+            desc = SSLCipherSuiteDescription(value);
+            if (!desc) {
+                json_array_append_new(suite_array_js, json_string("?"));
+            } else {
+                if ( *desc == '-') {
+                    bzero(number, 7);
+                    bytes = (unsigned char *) &value;
+                    snprintf(number, 6, "0X%02X%02X",
+                            (unsigned int) bytes[0], (unsigned int) bytes[1]);
+                    json_array_append_new(suite_array_js, json_string(number));
+                }
+                else {
+                    json_array_append_new(suite_array_js, json_string(desc));
+                }
+            }
+        }
+        json_object_set_new(cipher_suite_js, "client", suite_array_js);
+    }
+
+    json_object_set_new(js, "cipher_suite", cipher_suite_js);
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -313,6 +373,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls chain */
     if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
         JsonTlsLogChain(js, ssl_state);
+
+    /* tls cipher suite */
+    if (tls_ctx->fields & LOG_TLS_FIELD_CIPHER_SUITE)
+        JsonTlsLogCipherSuite(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)

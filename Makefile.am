@@ -4,7 +4,7 @@ AUTOMAKE_OPTIONS = foreign 1.4
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              classification.config threshold.config \
-             reference.config
+             reference.config tls.cipher-suites.config
 SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib scripts etc
 
 CLEANFILES = stamp-h[0-9]*
@@ -23,6 +23,7 @@ install-conf:
 	@test -e "$(DESTDIR)$(e_sysconfdir)/classification.config" || install -m 600 "$(top_srcdir)/classification.config" "$(DESTDIR)$(e_sysconfdir)"
 	@test -e "$(DESTDIR)$(e_sysconfdir)/reference.config" || install -m 600 "$(top_srcdir)/reference.config" "$(DESTDIR)$(e_sysconfdir)"
 	@test -e "$(DESTDIR)$(e_sysconfdir)/threshold.config" || install -m 600 "$(top_srcdir)/threshold.config" "$(DESTDIR)$(e_sysconfdir)"
+	@test -e "$(DESTDIR)$(e_sysconfdir)/tls.cipher-suites.config" || install -m 600 "$(top_srcdir)/tls.cipher-suites.config" "$(DESTDIR)$(e_sysconfdir)"
 	install -d "$(DESTDIR)$(e_logfilesdir)"
 	install -d "$(DESTDIR)$(e_logcertsdir)"
 	install -d "$(DESTDIR)$(e_rundir)"
