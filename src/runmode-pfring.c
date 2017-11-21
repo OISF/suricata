@@ -30,6 +30,10 @@
 #include "util-runmodes.h"
 #include "util-device.h"
 
+#ifdef HAVE_PFRING
+#include <pfring.h>
+#endif
+
 static const char *default_mode_autofp = NULL;
 
 

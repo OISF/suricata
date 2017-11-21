@@ -419,6 +419,7 @@ typedef enum {
     LOGGER_SIZE,
 } LoggerId;
 
+#include "util-optimize.h"
 #include <htp/htp.h>
 #include "threads.h"
 #include "tm-threads-common.h"
@@ -426,7 +427,6 @@ typedef enum {
 #include "util-error.h"
 #include "util-mem.h"
 #include "detect-engine-alert.h"
-#include "util-optimize.h"
 #include "util-path.h"
 #include "util-conf.h"
 

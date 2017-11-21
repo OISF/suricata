@@ -28,10 +28,6 @@
  * \todo Allow ring options such as snaplen etc, to be user configurable.
  */
 
-#ifdef HAVE_PFRING
-#include <pfring.h>
-#endif /* HAVE_PFRING */
-
 #include "suricata-common.h"
 #include "suricata.h"
 #include "conf.h"
@@ -118,6 +114,8 @@ TmEcode NoPfringSupportExit(ThreadVars *tv, const void *initdata, void **data)
 }
 
 #else /* implied we do have PF_RING support */
+
+#include <pfring.h>
 
 /** protect pfring_set_bpf_filter, as it is not thread safe */
 static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
@@ -578,7 +576,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
     } else if (strncmp(ptv->interface, "zc", 2) == 0) {
         SCLogInfo("ZC interface detected, not adding thread to cluster");
     } else {
-        ptv->ctype = pfconf->ctype;
+        ptv->ctype = (cluster_type)pfconf->ctype;
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 
         if (rc != 0) {
