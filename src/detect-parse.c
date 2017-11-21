@@ -556,8 +556,8 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size)
 {
     SigTableElmt *st = NULL;
-    char optname[64];
-    char optvalue[DETECT_MAX_RULE_SIZE] = "";
+    char *optname = NULL;
+    char *optvalue = NULL;
 
     /* Trim leading space. */
     while (isblank(*optstr)) {
@@ -594,7 +594,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             }
         }
 
-        strlcpy(optvalue, optvalptr, sizeof(optvalue));
+        optvalue = optvalptr;
     }
 
     /* Trim trailing space from name. */
@@ -605,7 +605,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
             break;
         }
     }
-    strlcpy(optname, optstr, sizeof(optname));
+    optname = optstr;
 
     /* Call option parsing */
     st = SigTableGet(optname);
@@ -615,7 +615,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
 
     if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
-        if (strlen(optvalue) == 0) {
+        if (optvalue == NULL || strlen(optvalue) == 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
                     optname, optstr);
             goto error;
@@ -624,7 +624,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     s->init_data->negated = false;
 
     /* Validate double quoting, trimming trailing white space along the way. */
-    if (strlen(optvalue) > 0) {
+    if (optvalue != NULL && strlen(optvalue) > 0) {
         size_t ovlen = strlen(optvalue);
         char *ptr = optvalue;
 
