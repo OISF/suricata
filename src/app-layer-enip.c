@@ -323,6 +323,9 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
             APP_LAYER_PARSER_EOF))
     {
         SCReturnInt(1);
+    } else if (input == NULL && input_len != 0) {
+        // GAP
+        SCReturnInt(0);
     } else if (input == NULL || input_len == 0)
     {
         SCReturnInt(-1);
@@ -526,6 +529,11 @@ void RegisterENIPTCPParsers(void)
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
+
+        /* This parser accepts gaps. */
+        AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_ENIP,
+                APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
+
     } else
     {
         SCLogConfig("Parser disabled for %s protocol. Protocol detection still on.",
