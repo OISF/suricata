@@ -70,7 +70,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "4.0.0-dev"
+#define PROG_VER "4.1.0-dev"
 
 /* workaround SPlint error (don't know __gnuc_va_list) */
 #ifdef S_SPLINT_S
