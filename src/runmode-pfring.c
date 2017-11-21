@@ -195,6 +195,7 @@ static void *ParsePfringConfig(const char *iface)
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
     const char *bpf_filter = NULL;
+    int bool_val;
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -351,6 +352,19 @@ static void *ParsePfringConfig(const char *iface)
             pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", pfconf->iface);
+        }
+    }
+
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &bool_val) == 1) {
+        if (bool_val) {
+#ifdef HAVE_PF_RING_FLOW_OFFLOAD
+            SCLogConfig("Enabling bypass support in PF_RING for iface %s (if supported by underlying hw)", pfconf->iface);
+            pfconf->flags |= PFRING_CONF_FLAGS_BYPASS;
+#else
+            SCLogError(SC_ERR_BYPASS_NOT_SUPPORTED, "Bypass is not supported by this Pfring version, please upgrade");
+            SCFree(pfconf);
+            return NULL;
+#endif
         }
     }
 

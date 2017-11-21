@@ -1620,6 +1620,12 @@ pfring:
     cluster-type: cluster_flow
     # bpf filter for this interface
     #bpf-filter: tcp
+
+    # If bypass is set then the PF_RING hw bypass is activated, when supported
+    # by the interface in use. Suricata will instruct the interface to bypass  
+    # all future packets for a flow that need to be bypassed.
+    #bypass: yes
+
     # Choose checksum verification mode for the interface. At the moment
     # of the capture, some packets may be with an invalid checksum due to
     # offloading to the network card of the checksum computation.
