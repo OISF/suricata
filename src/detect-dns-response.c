@@ -65,7 +65,7 @@ static int g_dns_response_buffer_id = 0;
 void DetectDnsResponseRegister (void)
 {
     sigmatch_table[DETECT_AL_DNS_RESPONSE].name = "dns_response";
-    sigmatch_table[DETECT_AL_DNS_RESPONSE].desc = "content modifier to match DNS responses for A records";
+    sigmatch_table[DETECT_AL_DNS_RESPONSE].desc = "content modifier to match DNS responses in a binary format";
     sigmatch_table[DETECT_AL_DNS_RESPONSE].Match = NULL;
     sigmatch_table[DETECT_AL_DNS_RESPONSE].Setup = DetectDnsResponseSetup;
     sigmatch_table[DETECT_AL_DNS_RESPONSE].Free  = NULL;
@@ -161,7 +161,7 @@ static int DetectDnsResponseTest01(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert dns any any -> any any "
                               "(msg:\"Test dns_query option\"; "
-                              "dns_response; content:\"172.217.18.142\"; nocase; sid:1;)");
+                              "dns_response; content:\"|AC D9 12 8E|\"; nocase; sid:1;)");
     FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
