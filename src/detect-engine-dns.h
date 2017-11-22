@@ -24,6 +24,7 @@
 #define __DETECT_ENGINE_DNS_H__
 
 int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxDnsResponseRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectDnsQueryName(ThreadVars *,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
