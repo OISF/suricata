@@ -237,6 +237,27 @@ extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
 static int rule_engine_analysis_set = 0;
 
+SCEnumCharMap det_ctx_event_table[ ] = {
+#ifdef UNITTESTS
+    { "TEST",                       DET_CTX_EVENT_TEST },
+#endif
+    { "NO_MEMORY",                  FILE_DECODER_EVENT_NO_MEM },
+    { "INVALID_SWF_LENGTH",         FILE_DECODER_EVENT_INVALID_SWF_LENGTH },
+    { "INVALID_SWF_VERSION",        FILE_DECODER_EVENT_INVALID_SWF_VERSION },
+    { "Z_DATA_ERROR",               FILE_DECODER_EVENT_Z_DATA_ERROR },
+    { "Z_STREAM_ERROR",             FILE_DECODER_EVENT_Z_STREAM_ERROR },
+    { "Z_BUF_ERROR",                FILE_DECODER_EVENT_Z_BUF_ERROR },
+    { "Z_UNKNOWN_ERROR",            FILE_DECODER_EVENT_Z_UNKNOWN_ERROR },
+    { "LZMA_DECODER_ERROR",         FILE_DECODER_EVENT_LZMA_DECODER_ERROR },
+    { "LZMA_MEMLIMIT_ERROR",        FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR },
+    { "LZMA_OPTIONS_ERROR",         FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR },
+    { "LZMA_FORMAT_ERROR",          FILE_DECODER_EVENT_LZMA_FORMAT_ERROR },
+    { "LZMA_DATA_ERROR",            FILE_DECODER_EVENT_LZMA_DATA_ERROR },
+    { "LZMA_BUF_ERROR",             FILE_DECODER_EVENT_LZMA_BUF_ERROR },
+    { "LZMA_UNKNOWN_ERROR",         FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR },
+    { NULL,                         -1 },
+};
+
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
 
@@ -1476,6 +1497,33 @@ static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
      * tentant_id member. But as that member is the first in the struct, we
      * can use the id directly. */
     return HashTableLookup(h, &id, 0);
+}
+
+/* events api */
+void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e)
+{
+    AppLayerDecoderEventsSetEventRaw(&det_ctx->decoder_events, e);
+    det_ctx->events++;
+}
+
+AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx)
+{
+    return det_ctx->decoder_events;
+}
+
+int DetectEngineGetEventInfo(const char *event_name, int *event_id,
+                             AppLayerEventType *event_type)
+{
+    *event_id = SCMapEnumNameToValue(event_name, det_ctx_event_table);
+    if (*event_id == -1) {
+        SCLogError(SC_ERR_INVALID_ENUM_MAP, "event \"%s\" not present in "
+                   "det_ctx's enum map table.",  event_name);
+        /* this should be treated as fatal */
+        return -1;
+    }
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
+
+    return 0;
 }
 
 static void DetectFlow(ThreadVars *tv,
