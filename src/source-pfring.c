@@ -28,10 +28,6 @@
  * \todo Allow ring options such as snaplen etc, to be user configurable.
  */
 
-#ifdef HAVE_PFRING
-#include <pfring.h>
-#endif /* HAVE_PFRING */
-
 #include "suricata-common.h"
 #include "suricata.h"
 #include "conf.h"
@@ -61,6 +57,10 @@
 #include "util-cuda-vars.h"
 
 #endif /* __SC_CUDA_SUPPORT__ */
+
+#ifdef HAVE_PFRING
+#include <pfring.h>
+#endif /* HAVE_PFRING */
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
