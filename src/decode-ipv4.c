@@ -601,6 +601,7 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                         PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV4);
                         PacketEnqueue(pq,tp);
                     }
+                    FlowSetupPacket(p);
                 }
                 break;
             }
