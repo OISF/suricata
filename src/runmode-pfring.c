@@ -96,7 +96,7 @@ static void *OldParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     const char *tmpclusterid;
     const char *tmpctype = NULL;
-    cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
+    int default_ctype = CLUSTER_ROUND_ROBIN;
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -156,11 +156,11 @@ static void *OldParsePfringConfig(const char *iface)
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
                 pfconf->iface);
-        pfconf->ctype = (cluster_type)tmpctype;
+        pfconf->ctype = CLUSTER_ROUND_ROBIN;
     } else if (strcmp(tmpctype, "cluster_flow") == 0) {
         SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
                 pfconf->iface);
-        pfconf->ctype = (cluster_type)tmpctype;
+        pfconf->ctype = CLUSTER_FLOW;
     } else {
         SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
         SCFree(pfconf);
@@ -192,7 +192,7 @@ static void *ParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     const char *tmpclusterid;
     const char *tmpctype = NULL;
-    cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
+    int default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
     const char *bpf_filter = NULL;
 
@@ -209,7 +209,7 @@ static void *ParsePfringConfig(const char *iface)
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
-    pfconf->ctype = (cluster_type)default_ctype;
+    pfconf->ctype = default_ctype;
     pfconf->DerefFunc = PfringDerefConfig;
     SC_ATOMIC_INIT(pfconf->ref);
     (void) SC_ATOMIC_ADD(pfconf->ref, 1);

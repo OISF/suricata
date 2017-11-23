@@ -27,9 +27,6 @@
 #define PFRING_IFACE_NAME_LENGTH 48
 
 #include <config.h>
-#ifdef HAVE_PFRING
-#include <pfring.h>
-#endif
 
 typedef enum {
     PFRING_CONF_FLAGS_CLUSTER = 0x1
@@ -41,9 +38,7 @@ typedef struct PfringIfaceConfig_
 
     /* cluster param */
     int cluster_id;
-#ifdef HAVE_PFRING
-    cluster_type ctype;
-#endif
+    int ctype;
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
