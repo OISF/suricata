@@ -700,6 +700,7 @@ app-layer:
       enabled: yes
     ftp:
       enabled: yes
+      # memcap: 64mb
     ssh:
       enabled: yes
     smtp:
