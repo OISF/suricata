@@ -160,6 +160,8 @@ typedef struct FtpDataState_ {
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
 void FTPAtExitPrintStats(void);
+uint64_t FTPMemuseGlobalCounter(void);
+uint64_t FTPMemcapGlobalCounter(void);
 
 #ifdef HAVE_LIBJANSSON
 json_t *JsonFTPDataAddMetadata(const Flow *f);
