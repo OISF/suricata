@@ -1090,6 +1090,7 @@ void DecodeGlobalConfig(void);
 /* http://www.tcpdump.org/linktypes.html defines DLT_RAW as 101, yet others don't.
  * Libpcap on at least OpenBSD returns 101 as datalink type for RAW pcaps though. */
 #define LINKTYPE_RAW2       101
+#define LINKTYPE_IPV4       228
 #define PPP_OVER_GRE        11
 #define VLAN_OVER_GRE       13
 
