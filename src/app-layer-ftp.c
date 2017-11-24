@@ -54,10 +54,139 @@
 #include "util-memcmp.h"
 #include "util-memrchr.h"
 #include "util-byte.h"
+#include "util-mem.h"
+#include "util-misc.h"
 
 #ifdef HAVE_RUST
 #include "rust-ftp-mod-gen.h"
 #endif
+
+uint64_t ftp_config_memcap = 0;
+
+SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
+SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
+
+static void FTPParseMemcap(void)
+{
+    const char *conf_val;
+
+    /** set config values for memcap, prealloc and hash_size */
+    if ((ConfGet("app-layer.protocols.ftp.memcap", &conf_val)) == 1)
+    {
+        if (ParseSizeStringU64(conf_val, &ftp_config_memcap) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ftp.memcap "
+                       "from conf file - %s.  Killing engine",
+                       conf_val);
+            exit(EXIT_FAILURE);
+        }
+        SCLogInfo("FTP memcap: %"PRIu64, ftp_config_memcap);
+    } else {
+        /* default to unlimited */
+        ftp_config_memcap = 0;
+    }
+
+    SC_ATOMIC_INIT(ftp_memuse);
+    SC_ATOMIC_INIT(ftp_memcap);
+}
+
+static void FTPIncrMemuse(uint64_t size)
+{
+    (void) SC_ATOMIC_ADD(ftp_memuse, size);
+    return;
+}
+
+static void FTPDecrMemuse(uint64_t size)
+{
+    (void) SC_ATOMIC_SUB(ftp_memuse, size);
+    return;
+}
+
+uint64_t FTPMemuseGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(ftp_memuse);
+    return tmpval;
+}
+
+uint64_t FTPMemcapGlobalCounter(void)
+{
+    uint64_t tmpval = SC_ATOMIC_GET(ftp_memcap);
+    return tmpval;
+}
+
+/**
+ *  \brief Check if alloc'ing "size" would mean we're over memcap
+ *
+ *  \retval 1 if in bounds
+ *  \retval 0 if not in bounds
+ */
+static int FTPCheckMemcap(uint64_t size)
+{
+    if (ftp_config_memcap == 0 || size + SC_ATOMIC_GET(ftp_memuse) <= ftp_config_memcap)
+        return 1;
+    (void) SC_ATOMIC_ADD(ftp_memcap, 1);
+    return 0;
+}
+
+static void *FTPMalloc(size_t size)
+{
+    void *ptr = NULL;
+
+    if (FTPCheckMemcap((uint32_t)size) == 0)
+        return NULL;
+
+    ptr = SCMalloc(size);
+
+    if (unlikely(ptr == NULL))
+        return NULL;
+
+    FTPIncrMemuse((uint64_t)size);
+
+    return ptr;
+}
+
+static void *FTPCalloc(size_t n, size_t size)
+{
+    void *ptr = NULL;
+
+    if (FTPCheckMemcap((uint32_t)(n * size)) == 0)
+        return NULL;
+
+    ptr = SCCalloc(n, size);
+
+    if (unlikely(ptr == NULL))
+        return NULL;
+
+    FTPIncrMemuse((uint64_t)(n * size));
+
+    return ptr;
+}
+
+static void *FTPRealloc(void *ptr, size_t orig_size, size_t size)
+{
+    void *rptr = NULL;
+
+    if (FTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
+        return NULL;
+
+    rptr = SCRealloc(ptr, size);
+    if (rptr == NULL)
+        return NULL;
+
+    if (size > orig_size) {
+        FTPIncrMemuse(size - orig_size);
+    } else {
+        FTPDecrMemuse(orig_size - size);
+    }
+
+    return rptr;
+}
+
+static void FTPFree(void *ptr, size_t size)
+{
+    SCFree(ptr);
+
+    FTPDecrMemuse((uint64_t)size);
+}
 
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 {
@@ -68,7 +197,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         line_state->current_line_lf_seen = 0;
         if (line_state->current_line_db == 1) {
             line_state->current_line_db = 0;
-            SCFree(line_state->db);
+            FTPFree(line_state->db, line_state->db_len);
             line_state->db = NULL;
             line_state->db_len = 0;
             state->current_line = NULL;
@@ -86,7 +215,7 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
          * if we see fragmentation then it's definitely something you
          * should alert about */
         if (line_state->current_line_db == 0) {
-            line_state->db = SCMalloc(state->input_len);
+            line_state->db = FTPMalloc(state->input_len);
             if (line_state->db == NULL) {
                 return -1;
             }
@@ -94,10 +223,10 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
             memcpy(line_state->db, state->input, state->input_len);
             line_state->db_len = state->input_len;
         } else {
-            ptmp = SCRealloc(line_state->db,
+            ptmp = FTPRealloc(line_state->db, line_state->db_len,
                              (line_state->db_len + state->input_len));
             if (ptmp == NULL) {
-                SCFree(line_state->db);
+                FTPFree(line_state->db, line_state->db_len);
                 line_state->db = NULL;
                 line_state->db_len = 0;
                 return -1;
@@ -117,10 +246,10 @@ static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
         line_state->current_line_lf_seen = 1;
 
         if (line_state->current_line_db == 1) {
-            ptmp = SCRealloc(line_state->db,
+            ptmp = FTPRealloc(line_state->db, line_state->db_len,
                              (line_state->db_len + (lf_idx + 1 - state->input)));
             if (ptmp == NULL) {
-                SCFree(line_state->db);
+                FTPFree(line_state->db, line_state->db_len);
                 line_state->db = NULL;
                 line_state->db_len = 0;
                 return -1;
@@ -240,7 +369,7 @@ static void FtpTransferCmdFree(void *data)
     if (cmd->file_name) {
         SCFree(cmd->file_name);
     }
-    SCFree(cmd);
+    FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
 
 /**
@@ -281,9 +410,10 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
         switch (state->command) {
             case FTP_COMMAND_PORT:
                 if (state->current_line_len > state->port_line_size) {
-                    ptmp = SCRealloc(state->port_line, state->current_line_len);
+                    ptmp = FTPRealloc(state->port_line, state->port_line_size,
+                                      state->current_line_len);
                     if (ptmp == NULL) {
-                        SCFree(state->port_line);
+                        FTPFree(state->port_line, state->port_line_size);
                         state->port_line = NULL;
                         state->port_line_size = 0;
                         return 0;
@@ -304,14 +434,14 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 // fallthrough
             case FTP_COMMAND_STOR:
                 {
-                    struct FtpTransferCmd *data = SCCalloc(1, sizeof(struct FtpTransferCmd));
+                    struct FtpTransferCmd *data = FTPCalloc(1, sizeof(struct FtpTransferCmd));
                     if (data == NULL)
                         SCReturnInt(-1);
                     data->DFree = FtpTransferCmdFree;
                     /* Min size has been checked in FTPParseRequestCommand */
-                    data->file_name = SCCalloc(state->current_line_len - 4, sizeof(char));
+                    data->file_name = FTPCalloc(state->current_line_len - 4, sizeof(char));
                     if (data->file_name == NULL) {
-                        SCFree(data);
+                        FTPFree(data, sizeof(struct FtpTransferCmd));
                         SCReturnInt(-1);
                     }
                     data->file_name[state->current_line_len - 5] = 0;
@@ -323,7 +453,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                                                          state->dyn_port,
                                                          ALPROTO_FTPDATA, data);
                     if (ret == -1) {
-                        SCFree(data);
+                        FTPFree(data, sizeof(struct FtpTransferCmd));
                         SCLogDebug("No expectation created.");
                         SCReturnInt(-1);
                     } else {
@@ -437,7 +567,7 @@ static uint64_t ftp_state_memcnt = 0;
 
 static void *FTPStateAlloc(void)
 {
-    void *s = SCMalloc(sizeof(FtpState));
+    void *s = FTPMalloc(sizeof(FtpState));
     if (unlikely(s == NULL))
         return NULL;
 
@@ -456,11 +586,11 @@ static void FTPStateFree(void *s)
 {
     FtpState *fstate = (FtpState *) s;
     if (fstate->port_line != NULL)
-        SCFree(fstate->port_line);
+        FTPFree(fstate->port_line, fstate->port_line_size);
     if (fstate->line_state[0].db)
-        SCFree(fstate->line_state[0].db);
+        FTPFree(fstate->line_state[0].db, fstate->line_state[0].db_len);
     if (fstate->line_state[1].db)
-        SCFree(fstate->line_state[1].db);
+        FTPFree(fstate->line_state[1].db, fstate->line_state[1].db_len);
 
     //AppLayerDecoderEventsFreeEvents(&s->decoder_events);
 
@@ -468,7 +598,7 @@ static void FTPStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
 
-    SCFree(s);
+    FTPFree(s, sizeof(FtpState));
 #ifdef DEBUG
     SCMutexLock(&ftp_state_mem_lock);
     ftp_state_memcnt--;
@@ -672,7 +802,7 @@ static uint64_t ftpdata_state_memcnt = 0;
 
 static void *FTPDataStateAlloc(void)
 {
-    void *s = SCMalloc(sizeof(FtpDataState));
+    void *s = FTPMalloc(sizeof(FtpDataState));
     if (unlikely(s == NULL))
         return NULL;
 
@@ -696,7 +826,7 @@ static void FTPDataStateFree(void *s)
         DetectEngineStateFree(fstate->de_state);
     }
     if (fstate->file_name != NULL) {
-        SCFree(fstate->file_name);
+        FTPFree(fstate->file_name, fstate->file_len);
     }
 
     FileContainerFree(fstate->files);
@@ -828,7 +958,12 @@ void RegisterFTPParsers(void)
                 FTPDataGetAlstateProgressCompletionStatus);
 
         sbcfg.buf_size = 4096;
+        sbcfg.Malloc = FTPMalloc;
+        sbcfg.Calloc = FTPCalloc;
+        sbcfg.Realloc = FTPRealloc;
+        sbcfg.Free = FTPFree;
 
+        FTPParseMemcap();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
