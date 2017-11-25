@@ -797,9 +797,11 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     }
     iface_ctx->log_level = tmp_log_level;
 
+#ifndef OS_WIN32
     if (isatty(fileno(stdout)) && isatty(fileno(stderr))) {
         iface_ctx->use_color = TRUE;
     }
+#endif
 
     return iface_ctx;
 }
