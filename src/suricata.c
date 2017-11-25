@@ -2685,7 +2685,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     StorageInit();
     CIDRInit();
-    SigParsePrepare();
     SCProtoNameInit();
 
     TagInitCtx();
