@@ -130,7 +130,8 @@ int SCHInfoAddHostOSInfo(const char *host_os, const char *host_os_ip_range, int 
     int *user_data = NULL;
     char recursive = FALSE;
 
-    if (host_os == NULL || host_os_ip_range == NULL) {
+    if (host_os == NULL || host_os_ip_range == NULL ||
+            strlen(host_os_ip_range) == 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid arguments");
         return -1;
     }
