@@ -70,11 +70,6 @@
 
 extern int sc_set_caps;
 
-static pcre *config_pcre = NULL;
-static pcre *option_pcre = NULL;
-static pcre_extra *config_pcre_extra = NULL;
-static pcre_extra *option_pcre_extra = NULL;
-
 static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
         SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail);
@@ -99,29 +94,6 @@ typedef struct SigDuplWrapper_ {
 #define CONFIG_DST    5
 #define CONFIG_DP     6
 #define CONFIG_OPTS   7
-
-/* if enclosed in [], spaces are allowed */
-#define CONFIG_PCRE_SRCDST "(" \
-                            "[\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/]+" \
-                           "|" \
-                            "\\[[\\[\\]A-z0-9\\.\\:_\\$\\!\\-,\\/\\s]+\\]"\
-                           ")"
-
-/* if enclosed in [], spaces are allowed */
-#define CONFIG_PCRE_PORT   "([\\[\\]\\:A-z0-9_\\$\\!,\\s]+)"
-
-/* format: action space(s) protocol spaces(s) src space(s) sp spaces(s) dir spaces(s) dst spaces(s) dp spaces(s) options */
-#define CONFIG_PCRE "^([A-z]+)\\s+([A-z0-9\\-]+)\\s+" \
-                    CONFIG_PCRE_SRCDST \
-                    "\\s+"\
-                    CONFIG_PCRE_PORT \
-                    "\\s+(-\\>|\\<\\>|\\<\\-)\\s+" \
-                    CONFIG_PCRE_SRCDST \
-                    "\\s+" \
-                    CONFIG_PCRE_PORT \
-                    "(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?\\s*$"
-#define OPTION_PARTS 3
-#define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
 /** helper structure for sig parsing */
 typedef struct SignatureParser_ {
@@ -581,70 +553,59 @@ int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
     return -1;
 }
 
-void SigParsePrepare(void)
-{
-    const char *regexstr = CONFIG_PCRE;
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    opts |= PCRE_UNGREEDY;
-    config_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
-    if(config_pcre == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
-        exit(1);
-    }
-
-    config_pcre_extra = pcre_study(config_pcre, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        exit(1);
-    }
-
-    regexstr = OPTION_PCRE;
-    opts |= PCRE_UNGREEDY;
-
-    option_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
-    if(option_pcre == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
-        exit(1);
-    }
-
-    option_pcre_extra = pcre_study(option_pcre, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        exit(1);
-    }
-}
-
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size)
 {
-#define MAX_SUBSTRINGS 30
-    int ov[MAX_SUBSTRINGS];
-    int ret = 0;
     SigTableElmt *st = NULL;
-    char optname[64];
-    char optvalue[DETECT_MAX_RULE_SIZE] = "";
+    char *optname = NULL;
+    char *optvalue = NULL;
 
-    ret = pcre_exec(option_pcre, option_pcre_extra, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
-    /* if successful, we either have:
-     *  2: keyword w/o value
-     *  3: keyword w value, final opt OR keyword w/o value, more options coming
-     *  4: keyword w value, more options coming
-     */
-    if (ret != 2 && ret != 3 && ret != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec failed: ret %" PRId32 ", optstr \"%s\"", ret, optstr);
-        goto error;
+    /* Trim leading space. */
+    while (isblank(*optstr)) {
+        optstr++;
     }
 
-    /* extract the substrings */
-    if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 1, optname, sizeof(optname)) < 0) {
-        goto error;
+    /* Look for the end of this option, handling escaped semicolons. */
+    char *optend = optstr;
+    for (;;) {
+        optend = strchr(optend, ';');
+        if (optend == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "no terminating \";\" found");
+            goto error;
+        }
+        if (*(optend -1) == '\\') {
+            optend++;
+        } else {
+            break;
+        }
     }
+    *(optend++) = '\0';
+
+    /* Find the start of the option value. */
+    char *optvalptr = strchr(optstr, ':');
+    if (optvalptr) {
+        *(optvalptr++) = '\0';
+
+        /* Trim trailing space from name. */
+        for (size_t i = strlen(optvalptr); i > 0; i--) {
+            if (isblank(optvalptr[i - 1])) {
+                optvalptr[i - 1] = '\0';
+            } else {
+                break;
+            }
+        }
+
+        optvalue = optvalptr;
+    }
+
+    /* Trim trailing space from name. */
+    for (size_t i = strlen(optstr); i > 0; i--) {
+        if (isblank(optstr[i - 1])) {
+            optstr[i - 1] = '\0';
+        } else {
+            break;
+        }
+    }
+    optname = optstr;
 
     /* Call option parsing */
     st = SigTableGet(optname);
@@ -653,27 +614,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         goto error;
     }
 
-    if (ret == 3) {
-        if (st->flags & SIGMATCH_NOOPT) {
-            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, output, output_size) < 0) {
-                goto error;
-            }
-        } else {
-            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
-                goto error;
-            }
-        }
-    } else if (ret == 4) {
-        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
-            goto error;
-        }
-        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 3, output, output_size) < 0) {
-            goto error;
-        }
-    }
-
     if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
-        if (strlen(optvalue) == 0) {
+        if (optvalue == NULL || strlen(optvalue) == 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting or malformed option to %s keyword: \'%s\'",
                     optname, optstr);
             goto error;
@@ -682,7 +624,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     s->init_data->negated = false;
 
     /* Validate double quoting, trimming trailing white space along the way. */
-    if (strlen(optvalue) > 0) {
+    if (optvalue != NULL && strlen(optvalue) > 0) {
         size_t ovlen = strlen(optvalue);
         char *ptr = optvalue;
 
@@ -774,7 +716,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
     }
     s->init_data->negated = false;
 
-    if (ret == 4) {
+    if (strlen(optend) > 0) {
+        strlcpy(output, optend, output_size);
         return 1;
     }
 
@@ -974,40 +917,136 @@ static int SigParseAction(Signature *s, const char *action)
 }
 
 /**
+ * \brief Parse the next token in rule.
+ *
+ * For rule parsing a token is considered to be a string of characters
+ * separated by white space.
+ *
+ * \param input double pointer to input buffer, will be advanced as input is
+ *     parsed.
+ * \param output buffer to copy token into.
+ * \param output_size length of output buffer.
+ */
+static inline int SigParseToken(char **input, char *output,
+    const size_t output_size)
+{
+    size_t len = *input == NULL ? 0 : strlen(*input);
+
+    if (!len) {
+        return 0;
+    }
+
+    while (len && isblank(**input)) {
+        (*input)++;
+        len--;
+    }
+
+    char *endptr = strpbrk(*input, " \t\n\r");
+    if (endptr != NULL) {
+        *(endptr++) = '\0';
+    }
+    strlcpy(output, *input, output_size);
+    *input = endptr;
+
+    return 1;
+}
+
+/**
+ * \brief Parse the next rule "list" token.
+ *
+ * Parses rule tokens that may be lists such as addresses and ports
+ * handling the case when they may not be lists.
+ *
+ * \param input ouble pointer to input buffer, will be advanced as input is
+ *     parsed.
+ * \param output buffer to copy token into.
+ * \param output_size length of output buffer.
+ */
+static inline int SigParseList(char **input, char *output,
+    const size_t output_size)
+{
+    int in_list = 0;
+    size_t len = *input != NULL ? strlen(*input) : 0;
+
+    if (len == 0) {
+        return 0;
+    }
+
+    while (len && isblank(**input)) {
+        (*input)++;
+        len--;
+    }
+
+    size_t i = 0;
+    for (i = 0; i < len; i++) {
+        char c = (*input)[i];
+        if (c == '[') {
+            in_list++;
+        } else if (c == ']') {
+            in_list--;
+        } else if (c == ' ') {
+            if (!in_list) {
+                break;
+            }
+        }
+    }
+    (*input)[i] = '\0';
+    strlcpy(output, *input, output_size);
+    *input = *input + i + 1;
+
+    return 1;
+}
+
+/**
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
  */
 static int SigParseBasics(DetectEngineCtx *de_ctx,
         Signature *s, const char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
 {
-#define MAX_SUBSTRINGS 30
-    int ov[MAX_SUBSTRINGS];
-    int ret = 0;
-
-    ret = pcre_exec(config_pcre, config_pcre_extra, sigstr, strlen(sigstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret != 8 && ret != 9) {
-        SCLogDebug("pcre_exec failed: ret %" PRId32 ", sigstr \"%s\"", ret, sigstr);
+    char *index, *dup = SCStrdup(sigstr);
+    if (unlikely(dup == NULL)) {
         goto error;
     }
+    index = dup;
 
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 1, parser->action, sizeof(parser->action)) < 0)
+    /* Action. */
+    SigParseToken(&index, parser->action, sizeof(parser->action));
+
+    /* Protocol. */
+    SigParseList(&index, parser->protocol, sizeof(parser->protocol));
+
+    /* Source. */
+    SigParseList(&index, parser->src, sizeof(parser->src));
+
+    /* Source port(s). */
+    SigParseList(&index, parser->sp, sizeof(parser->sp));
+
+    /* Direction. */
+    SigParseToken(&index, parser->direction, sizeof(parser->direction));
+
+    /* Destination. */
+    SigParseList(&index, parser->dst, sizeof(parser->dst));
+
+    /* Destination port(s). */
+    SigParseList(&index, parser->dp, sizeof(parser->dp));
+
+    /* Options. */
+    if (index == NULL) {
+        fprintf(stderr, "no rule options.\n");
         goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 2, parser->protocol, sizeof(parser->protocol)) < 0)
-        goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 3, parser->src, sizeof(parser->src)) < 0)
-        goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 4, parser->sp, sizeof(parser->sp)) < 0)
-        goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 5, parser->direction, sizeof(parser->direction)) < 0)
-        goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 6, parser->dst, sizeof(parser->dst)) < 0)
-        goto error;
-    if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 7, parser->dp, sizeof(parser->dp)) < 0)
-        goto error;
-    if (ret == 9) {
-        if (pcre_copy_substring(sigstr, ov, MAX_SUBSTRINGS, 8, parser->opts, sizeof(parser->opts)) < 0)
-            goto error;
     }
+    while (isspace(*index) || *index == '(') {
+        index++;
+    }
+    for (size_t i = strlen(index); i > 0; i--) {
+        if (isspace(index[i - 1]) || index[i - 1] == ')') {
+            index[i - 1] = '\0';
+        } else {
+            break;
+        }
+    }
+    strlcpy(parser->opts, index, sizeof(parser->opts));
 
     /* Parse Action */
     if (SigParseAction(s, parser->action) < 0)
@@ -1016,13 +1055,14 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     if (SigParseProto(s, parser->protocol) < 0)
         goto error;
 
-    if (strcmp(parser->direction, "<-") == 0) {
-        SCLogError(SC_ERR_INVALID_DIRECTION, "\"<-\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");
+    if (strcmp(parser->direction, "<>") == 0) {
+        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
+    } else if (strcmp(parser->direction, "->") != 0) {
+        SCLogError(SC_ERR_INVALID_DIRECTION,
+                "\"%s\" is not a valid direction modifier, "
+                "\"->\" and \"<>\" are supported.", parser->direction);
         goto error;
     }
-    /* Check if it is bidirectional */
-    if (strcmp(parser->direction, "<>") == 0)
-        s->init_data->init_flags |= SIG_FLAG_INIT_BIDIREC;
 
     /* Parse Address & Ports */
     if (SigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
@@ -1047,9 +1087,13 @@ static int SigParseBasics(DetectEngineCtx *de_ctx,
     if (SigParsePort(de_ctx, s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
+    SCFree(dup);
     return 0;
 
 error:
+    if (dup != NULL) {
+        SCFree(dup);
+    }
     return -1;
 }
 
@@ -2120,7 +2164,6 @@ int RuleParseDataFromFile(char *filename)
     char buffer[65536];
 
     SigTableSetup();
-    SigParsePrepare();
     SCReferenceConfInit();
     SCClassConfInit();
 
@@ -2773,6 +2816,23 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
+}
+
+/**
+ * \test rule ending in carriage return
+ */
+static int SigParseTest23(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    Signature *s = NULL;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; offset:1; depth:5; sid:1;)\r");
+    FAIL_IF_NULL(s);
+
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /** \test Direction operator validation (invalid) */
@@ -3738,6 +3798,7 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTest20", SigParseTest20);
     UtRegisterTest("SigParseTest21 -- address with space", SigParseTest21);
     UtRegisterTest("SigParseTest22 -- address with space", SigParseTest22);
+    UtRegisterTest("SigParseTest23 -- carriage return", SigParseTest23);
 
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07);
