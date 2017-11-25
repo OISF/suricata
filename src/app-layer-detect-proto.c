@@ -55,6 +55,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
+#include "app-layer-expectation.h"
 
 #include "conf.h"
 #include "util-memcmp.h"
@@ -169,6 +170,9 @@ struct AppLayerProtoDetectThreadCtx_ {
 
 /* The global app layer proto detection context. */
 static AppLayerProtoDetectCtx alpd_ctx;
+
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos);
 
 /***** Static Internal Calls: Protocol Retrieval *****/
 
@@ -314,6 +318,21 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
     SCReturnPtr(pp_port, "AppLayerProtoDetectProbingParserPort *");
 }
 
+
+/**
+ * \brief Call the probing expectation to see if there is some for this flow.
+ *
+ */
+static AppProto AppLayerProtoDetectPEGetProto(Flow *f, uint8_t ipproto,
+                                              uint8_t direction)
+{
+    AppProto alproto = ALPROTO_UNKNOWN;
+
+    alproto = AppLayerExpectationHandle(f, direction);
+
+    return alproto;
+}
+
 /**
  * \brief Call the probing parser if it exists for this flow.
  *
@@ -399,9 +418,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -420,9 +439,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -670,6 +689,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_HTTP\n");
                     else if (pp_pe->alproto == ALPROTO_FTP)
                         printf("            alproto: ALPROTO_FTP\n");
+                    else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                        printf("            alproto: ALPROTO_FTPDATA\n");
                     else if (pp_pe->alproto == ALPROTO_SMTP)
                         printf("            alproto: ALPROTO_SMTP\n");
                     else if (pp_pe->alproto == ALPROTO_TLS)
@@ -731,6 +752,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_HTTP\n");
                 else if (pp_pe->alproto == ALPROTO_FTP)
                     printf("            alproto: ALPROTO_FTP\n");
+                else if (pp_pe->alproto == ALPROTO_FTPDATA)
+                    printf("            alproto: ALPROTO_FTPDATA\n");
                 else if (pp_pe->alproto == ALPROTO_SMTP)
                     printf("            alproto: ALPROTO_SMTP\n");
                 else if (pp_pe->alproto == ALPROTO_TLS)
@@ -1329,8 +1352,15 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
         }
     }
 
-    if (!FLOW_IS_PP_DONE(f, direction))
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, direction);
+    if (!FLOW_IS_PP_DONE(f, direction)) {
+        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen,
+                                                ipproto, direction);
+        if (alproto != ALPROTO_UNKNOWN)
+            goto end;
+    }
+
+    /* Look for potential connection in expectation */
+    alproto = AppLayerProtoDetectPEGetProto(f, ipproto, direction);
 
  end:
     SCReturnUInt(alproto);
@@ -1573,6 +1603,9 @@ int AppLayerProtoDetectSetup(void)
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, mpm_matcher);
         }
     }
+
+    AppLayerExpectationSetup();
+
     SCReturnInt(0);
 }
 
@@ -1827,6 +1860,7 @@ void AppLayerProtoDetectSupportedIpprotos(AppProto alproto, uint8_t *ipprotos)
 
     AppLayerProtoDetectPMGetIpprotos(alproto, ipprotos);
     AppLayerProtoDetectPPGetIpprotos(alproto, ipprotos);
+    AppLayerProtoDetectPEGetIpprotos(alproto, ipprotos);
 
     SCReturn;
 }
@@ -1867,6 +1901,30 @@ void AppLayerProtoDetectSupportedAppProtocols(AppProto *alprotos)
     }
 
     SCReturn;
+}
+
+uint8_t expectation_proto[ALPROTO_MAX];
+
+static void AppLayerProtoDetectPEGetIpprotos(AppProto alproto,
+                                             uint8_t *ipprotos)
+{
+    if (expectation_proto[alproto] == IPPROTO_TCP) {
+        ipprotos[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+    }
+    if (expectation_proto[alproto] == IPPROTO_UDP) {
+        ipprotos[IPPROTO_UDP / 8] |= 1 << (IPPROTO_UDP % 8);
+    }
+}
+
+void AppLayerRegisterExpectationProto(uint8_t proto, AppProto alproto)
+{
+    if (expectation_proto[alproto]) {
+        if (proto != expectation_proto[alproto]) {
+            SCLogError(SC_ERR_NOT_SUPPORTED,
+                       "Expectation on 2 IP protocols are not supported");
+        }
+    }
+    expectation_proto[alproto] = proto;
 }
 
 /***** Unittests *****/
@@ -3034,7 +3092,8 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
     return result;
 }
 
-static uint16_t ProbingParserDummyForTesting(uint8_t *input,
+static uint16_t ProbingParserDummyForTesting(Flow *f,
+                                             uint8_t *input,
                                              uint32_t input_len,
                                              uint32_t *offset)
 {
