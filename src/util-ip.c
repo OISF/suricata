@@ -74,6 +74,45 @@ bool IPv4AddressStringIsValid(const char *str)
     return true;
 }
 
+/** \brief determine if a string is a valid ipv6 address
+ *  \retval bool is addr valid?
+ */
+bool IPv6AddressStringIsValid(const char *str)
+{
+    int block_size = 0;
+    int sep = 0;
+    bool colon_seen = false;
+
+    uint32_t len = strlen(str);
+    uint32_t i = 0;
+    for (i = 0; i < len && str[i] != 0; i++) {
+        if (!(str[i] == '.' || str[i] == ':' ||
+            isxdigit(str[i])))
+            return false;
+
+        if (str[i] == ':') {
+            block_size = 0;
+            colon_seen = true;
+            sep++;
+        } else if (str[i] == '.') {
+            block_size = false;
+            sep++;
+        } else {
+            if (block_size == 4)
+                return false;
+            block_size++;
+        }
+    }
+
+    if (!colon_seen)
+        return false;
+    if (sep > 7) {
+        SCLogDebug("too many seps %d", sep);
+        return false;
+    }
+    return true;
+}
+
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
  *        version of the IPV4 address
@@ -119,6 +158,9 @@ struct in_addr *ValidateIPV4Address(const char *addr_str)
 struct in6_addr *ValidateIPV6Address(const char *addr_str)
 {
     struct in6_addr *addr = NULL;
+
+    if (!IPv6AddressStringIsValid(addr_str))
+        return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in6_addr))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in ValidateIPV6Address. Exiting...");

@@ -949,37 +949,11 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
-    int block_size = 0;
-    int sep = 0;
-    bool colon_seen = false;
     uint32_t i = 0;
     for (i = 0; i < len && urlhost[i] != 0; i++) {
         if (urlhost[i] == '/') {
             break;
         }
-        if (!(urlhost[i] == '.' || urlhost[i] == ':' ||
-            isxdigit(urlhost[i])))
-            return 0;
-
-        if (urlhost[i] == ':') {
-            block_size = 0;
-            colon_seen = true;
-            sep++;
-        } else if (urlhost[i] == '.') {
-            block_size = 0;
-            sep++;
-        } else {
-            if (block_size == 4)
-                return 0;
-            block_size++;
-        }
-    }
-
-    if (!colon_seen)
-        return 0;
-    if (sep > 7) {
-        SCLogDebug("too many seps %d", sep);
-        return 0;
     }
 
     /* Too many chars */
@@ -990,6 +964,9 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     /* Create null-terminated string */
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
+
+    if (!IPv6AddressStringIsValid(tempIp))
+        return 0;
 
     return inet_pton(AF_INET6, tempIp, &in6);
 }
