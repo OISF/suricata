@@ -51,6 +51,7 @@
 #define AFP_TPACKET_V3 (1<<4)
 #define AFP_VLAN_DISABLED (1<<5)
 #define AFP_MMAP_LOCKED (1<<6)
+#define AFP_BYPASS   (1<<7)
 
 #define AFP_COPY_MODE_NONE  0
 #define AFP_COPY_MODE_TAP   1

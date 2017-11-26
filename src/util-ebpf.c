@@ -45,15 +45,6 @@
 
 #define BPF_MAP_MAX_COUNT 16
 
-#define MAX_ERRNO   4095
-
-#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
-
-static inline long IS_ERR(const void *ptr)
-{
-    return IS_ERR_VALUE((unsigned long)ptr);
-}
-
 struct bpf_map_item {
     const char * name;
     int fd;
@@ -69,13 +60,18 @@ int EBPFGetMapFDByName(const char *name)
     if (name == NULL)
         return -1;
     for (i = 0; i < BPF_MAP_MAX_COUNT; i++) {
+        if (!bpf_map_array[i].name)
+            continue;
         if (!strcmp(bpf_map_array[i].name, name)) {
-            SCLogNotice("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
+            SCLogDebug("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
             return bpf_map_array[i].fd;
         }
     }
     return -1;
 }
+
+#define bpf__is_error(ee) ee
+#define bpf__get_error(ee) 1
 
 /** 
  * Load a section of an eBPF file
@@ -104,10 +100,13 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     bpfobj = bpf_object__open(path);
 
-    if (IS_ERR(bpfobj)) {
+    if (libbpf_get_error(bpfobj)) {
+        char err_buf[128];
+        libbpf_strerror(bpf__get_error(bpfobj), err_buf,
+                        sizeof(err_buf));
         SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to load eBPF objects in '%s'",
-                   path);
+                   "Unable to load eBPF objects in '%s': %s",
+                   path, err_buf);
         return -1;
     }
 
@@ -149,7 +148,7 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     /* store the map in our array */
     bpf_map__for_each(map, bpfobj) {
-        SCLogNotice("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
+        SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_array[bpf_map_last].fd = bpf_map__fd(map);
         bpf_map_array[bpf_map_last].name = SCStrdup(bpf_map__name(map));
         if (!bpf_map_array[bpf_map_last].name) {
@@ -172,6 +171,83 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     *val = pfd;
     return 0;
+}
+
+int EBPFForEachFlowV4Table(const char *name,
+                              int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+                              struct flows_stats *flowstats,
+                              void *data)
+{
+    int mapfd = EBPFGetMapFDByName(name);
+    struct flowv4_keys key = {}, next_key;
+    struct pair value = {0, 0, 0};
+    int ret, found = 0;
+    if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
+        return found;
+    }
+    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+        bpf_map_lookup_elem(mapfd, &key, &value);
+        ret = FlowCallback(mapfd, &key, &value, data);
+        if (ret) {
+            flowstats->count++;
+            flowstats->packets += value.packets;
+            flowstats->bytes += value.bytes;
+            found = 1;
+        }
+        key = next_key;
+    }
+
+    bpf_map_lookup_elem(mapfd, &key, &value);
+    ret = FlowCallback(mapfd, &key, &value, data);
+    if (ret) {
+        flowstats->count++;
+        flowstats->packets += value.packets;
+        flowstats->bytes += value.bytes;
+        found = 1;
+    }
+
+    return found;
+}
+
+int EBPFForEachFlowV6Table(const char *name,
+                              int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
+                              struct flows_stats *flowstats,
+                              void *data)
+{
+    int mapfd = EBPFGetMapFDByName(name);
+    struct flowv6_keys key = {}, next_key;
+    struct pair value = {0, 0, 0};
+    int ret, found = 0;
+    if (bpf_map_get_next_key(mapfd, &key, &next_key) != 0) {
+        return found;
+    }
+    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+        bpf_map_lookup_elem(mapfd, &key, &value);
+        ret = FlowCallback(mapfd, &key, &value, data);
+        if (ret) {
+            flowstats->count++;
+            flowstats->packets += value.packets;
+            flowstats->bytes += value.bytes;
+            found = 1;
+        }
+        key = next_key;
+    }
+
+    bpf_map_lookup_elem(mapfd, &key, &value);
+    ret = FlowCallback(mapfd, &key, &value, data);
+    if (ret) {
+        flowstats->count++;
+        flowstats->packets += value.packets;
+        flowstats->bytes += value.bytes;
+        found = 1;
+    }
+
+    return found;
+}
+
+void EBPFDeleteKey(int fd, void *key)
+{
+    bpf_map_delete_elem(fd, key);
 }
 
 #endif

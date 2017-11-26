@@ -260,6 +260,7 @@ detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
+flow-bypass.c flow-bypass.h \
 flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \

@@ -64,6 +64,12 @@
 #include <sys/ioctl.h>
 #endif
 
+#ifdef HAVE_PACKET_EBPF
+#include "util-ebpf.h"
+#include <bpf/libbpf.h>
+#include <bpf/bpf.h>
+#endif
+
 struct bpf_program {
     unsigned int bf_len;
     struct bpf_insn *bf_insns;
@@ -191,6 +197,8 @@ union thdr {
 #endif
     void *raw;
 };
+
+static int AFPBypassCallback(Packet *p);
 
 #define MAX_MAPS 32
 /**
@@ -606,6 +614,9 @@ static int AFPRead(AFPThreadVars *ptv)
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     /* get timestamp of packet via ioctl */
     if (ioctl(ptv->socket, SIOCGSTAMP, &p->ts) == -1) {
@@ -875,6 +886,9 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+        if (ptv->flags & AFP_BYPASS) {
+            p->BypassPacketsFlow = AFPBypassCallback;
+        }
 
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
@@ -987,6 +1001,9 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     ptv->pkts++;
     p->livedev = ptv->livedev;
@@ -2189,6 +2206,123 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     }
 
     return TM_ECODE_OK;
+}
+
+#ifdef HAVE_PACKET_EBPF
+/**
+ * Insert a half flow in the kernel bypass table
+ *
+ * \param mapfd file descriptor of the protocol bypass table
+ * \param key data to use as key in the table
+ * \param inittime time of creation of the entry (in monotonic clock)
+ */
+static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
+{
+        /* FIXME error handling */
+        struct pair value = {inittime, 0, 0};
+        SCLogDebug("Inserting element in eBPF mapping");
+        if (bpf_map_update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
+            switch (errno) {
+                case E2BIG:
+                case EEXIST:
+                    return 0;
+                default:
+                    SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
+                               strerror(errno),
+                               errno);
+                    return 0;
+            }
+        }
+        return 1;
+}
+#endif
+
+static int AFPBypassCallback(Packet *p)
+{
+#ifdef HAVE_PACKET_EBPF
+    SCLogDebug("Calling af_packet callback function");
+    /* Only bypass TCP and UDP */
+    if (!(PKT_IS_TCP(p) || PKT_IS_UDP(p))) {
+        return 0;
+    }
+
+    /* Bypassing tunneled packets is currently not supported
+     * because we can't discard the inner packet only due to
+     * primitive parsing in eBPF */
+    if (IS_TUNNEL_PKT(p)) {
+        return 0;
+    }
+    struct timespec curtime;
+    uint64_t inittime = 0;
+    /* In eBPF, the function that we have use to get time return the
+     * monotonic clock (the time since start of the computer). So we
+     * can't use the timestamp of the packet. */
+    if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
+        inittime = curtime.tv_sec * 1000000000;
+    }
+    if (PKT_IS_IPV4(p)) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v4");
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v4");
+            return 0;
+        }
+        /* FIXME error handling */
+        struct flowv4_keys key = {};
+        key.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+        key.port16[0] = GET_TCP_SRC_PORT(p);
+        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.ip_proto = IPV4_GET_IPPROTO(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
+        key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key.port16[0] = GET_TCP_DST_PORT(p);
+        key.port16[1] = GET_TCP_SRC_PORT(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        return 1;
+    }
+    /* For IPv6 case we don't handle extended header in eBPF */
+    if (PKT_IS_IPV6(p) && 
+        ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v6");
+        int i = 0;
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v6");
+            return 0;
+        }
+        SCLogDebug("add an IPv6");
+        /* FIXME error handling */
+        /* FIXME filter out next hdr IPV6 packets */
+        struct flowv6_keys key = {};
+        for (i = 0; i < 4; i++) {
+            key.src[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
+            key.dst[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
+        }
+        key.port16[0] = GET_TCP_SRC_PORT(p);
+        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.ip_proto = IPV6_GET_NH(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        for (i = 0; i < 4; i++) {
+            key.src[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
+            key.dst[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
+        }
+        key.port16[0] = GET_TCP_DST_PORT(p);
+        key.port16[1] = GET_TCP_SRC_PORT(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        return 1;
+    }
+#endif
+    return 0;
 }
 
 /**
