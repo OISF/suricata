@@ -27,6 +27,53 @@
 #include "suricata-common.h"
 #include "util-ip.h"
 
+/** \brief determine if a string is a valid ipv4 address
+ *  \retval bool is addr valid?
+ */
+bool IPv4AddressStringIsValid(const char *str)
+{
+    int alen = 0;
+    char addr[4][4];
+    int dots = 0;
+
+    memset(&addr, 0, sizeof(addr));
+
+    uint32_t len = strlen(str);
+    uint32_t i = 0;
+    for (i = 0; i < len; i++) {
+        if (!(str[i] == '.' || isdigit(str[i]))) {
+            return false;
+        }
+        if (str[i] == '.') {
+            if (dots == 3) {
+                SCLogDebug("too many dots");
+                return false;
+            }
+            addr[dots][alen] = '\0';
+            dots++;
+            alen = 0;
+        } else {
+            if (alen >= 4) {
+                SCLogDebug("too long");
+                return false;
+            }
+            addr[dots][alen++] = str[i];
+        }
+    }
+    if (dots != 3)
+        return false;
+
+    addr[dots][alen] = '\0';
+    for (int x = 0; x < 4; x++) {
+        int a = atoi(addr[x]);
+        if (a < 0 || a >= 256) {
+            SCLogDebug("out of range");
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
  *        version of the IPV4 address
@@ -42,6 +89,9 @@
 struct in_addr *ValidateIPV4Address(const char *addr_str)
 {
     struct in_addr *addr = NULL;
+
+    if (!IPv4AddressStringIsValid(addr_str))
+        return NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in ValidateIPV4Address. Exiting...");
