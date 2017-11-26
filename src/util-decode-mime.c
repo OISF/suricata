@@ -911,11 +911,41 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP4_CHARS + 1];
 
     /* Cut off at '/'  */
+    int alen = 0;
+    char addr[4][4];
+    int dots = 0;
     uint32_t i = 0;
     for (i = 0; i < len && urlhost[i] != 0; i++) {
 
         if (urlhost[i] == '/') {
             break;
+        }
+
+        if (!(urlhost[i] == '.' || isdigit(urlhost[i]))) {
+            return 0;
+        }
+        if (urlhost[i] == '.') {
+            if (dots == 3) {
+                SCLogDebug("too many dots");
+                return 0;
+            }
+            addr[dots][alen] = '\0';
+            dots++;
+            alen = 0;
+        } else {
+            if (alen >= 4) {
+                SCLogDebug("too long");
+                return 0;
+            }
+            addr[dots][alen++] = urlhost[i];
+        }
+    }
+    addr[dots][alen] = '\0';
+    for (int x = 0; x < 4; x++) {
+        int a = atoi(addr[x]);
+        if (a < 0 || a >= 256) {
+            SCLogDebug("out of range");
+            return 0;
         }
     }
 
@@ -946,12 +976,37 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
+    int block_size = 0;
+    int sep = 0;
+    bool colon_seen = false;
     uint32_t i = 0;
     for (i = 0; i < len && urlhost[i] != 0; i++) {
-
         if (urlhost[i] == '/') {
             break;
         }
+        if (!(urlhost[i] == '.' || urlhost[i] == ':' ||
+            isxdigit(urlhost[i])))
+            return 0;
+
+        if (urlhost[i] == ':') {
+            block_size = 0;
+            colon_seen = true;
+            sep++;
+        } else if (urlhost[i] == '.') {
+            block_size = 0;
+            sep++;
+        } else {
+            if (block_size == 4)
+                return 0;
+            block_size++;
+        }
+    }
+
+    if (!colon_seen)
+        return 0;
+    if (sep > 7) {
+        SCLogDebug("too many seps %d", sep);
+        return 0;
     }
 
     /* Too many chars */
@@ -2978,71 +3033,47 @@ static int MimeIsExeURLTest01(void)
     return ret;
 }
 
+#define TEST(str, len, expect) {                        \
+    SCLogDebug("str %s", (str));                        \
+    int r = IsIpv4Host((const uint8_t *)(str),(len));   \
+    FAIL_IF_NOT(r == (expect));                         \
+}
 static int MimeIsIpv4HostTest01(void)
 {
-    if(IsIpv4Host((const uint8_t *)"192.168.1.1", 11) != 1) {
-        return 0;
-    }
-
-    if(IsIpv4Host((const uint8_t *)"999.oogle.com", 14) != 0) {
-        return 0;
-    }
-
-    if(IsIpv4Host((const uint8_t *)"0:0:0:0:0:0:0:0", 15) != 0) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"192.168.255.255", 15) != 1) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 1) {
-        return 0;
-    }
-
-    if (IsIpv4Host((const uint8_t *)"www.google.com", 14) != 0) {
-        return 0;
-    }
-
-    return 1;
+    TEST("192.168.1.1", 11, 1);
+    TEST("192.168.1.1.4", 13, 0);
+    TEST("999.168.1.1", 11, 0);
+    TEST("1111.168.1.1", 12, 0);
+    TEST("999.oogle.com", 14, 0);
+    TEST("0:0:0:0:0:0:0:0", 15, 0);
+    TEST("192.168.255.255", 15, 1);
+    TEST("192.168.255.255/testurl.html", 28, 1);
+    TEST("www.google.com", 14, 0);
+    PASS;
 }
+#undef TEST
 
+#define TEST(str, len, expect) {                        \
+    SCLogDebug("str %s", (str));                        \
+    int r = IsIpv6Host((const uint8_t *)(str),(len));   \
+    FAIL_IF_NOT(r == (expect));                         \
+}
 static int MimeIsIpv6HostTest01(void)
 {
-    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"0000:0000:0000:0000:0000:0000:0000:0000", 39) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"192:168:1:1:0:0:0:0", 19) != 1) {
-        return 0;
-    }
-
-    if(IsIpv6Host((const uint8_t *)"999.oogle.com", 14) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"192.168.255.255", 15) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"192.168.255.255/testurl.html", 28) != 0) {
-        return 0;
-    }
-
-    if (IsIpv6Host((const uint8_t *)"www.google.com", 14) != 0) {
-        return 0;
-    }
-
-    return 1;
+    TEST("0:0:0:0:0:0:0:0", 19, 1);
+    TEST("0000:0000:0000:0000:0000:0000:0000:0000", 39, 1);
+    TEST("XXXX:0000:0000:0000:0000:0000:0000:0000", 39, 0);
+    TEST("00001:0000:0000:0000:0000:0000:0000:0000", 40, 0);
+    TEST("0:0:0:0:0:0:0:0", 19, 1);
+    TEST("0:0:0:0:0:0:0:0:0", 20, 0);
+    TEST("192:168:1:1:0:0:0:0", 19, 1);
+    TEST("999.oogle.com", 14, 0);
+    TEST("192.168.255.255", 15, 0);
+    TEST("192.168.255.255/testurl.html", 28, 0);
+    TEST("www.google.com", 14, 0);
+    PASS;
 }
+#undef TEST
 
 #endif /* UNITTESTS */
 
