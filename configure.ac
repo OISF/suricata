@@ -73,6 +73,7 @@
     AC_PROG_INSTALL
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
+    AC_PROG_GREP
 
     AC_PATH_PROG(HAVE_PKG_CONFIG, pkg-config, "no")
     if test "$HAVE_PKG_CONFIG" = "no"; then
@@ -392,6 +393,25 @@
         AC_DEFINE([UNITTESTS],[1],[Enable built-in unittests])
     ])
     AM_CONDITIONAL([BUILD_UNITTESTS], [test "x$enable_unittests" = "xyes"])
+
+  # enable the building of ebpf files 
+    AC_ARG_ENABLE(ebpf-build,
+           AS_HELP_STRING([--enable-ebpf-build], [Enable compilation of ebpf files]),,[enable_ebpf_build=no])
+    AM_CONDITIONAL([BUILD_EBPF], [test "x$enable_ebpf_build" = "xyes"])
+
+    if test "x$enable_ebpf_build" = "xyes"; then
+        if echo $CC | grep clang; then
+            AC_MSG_CHECKING([llc binary for clang version])
+            llc_version_line=$($CC --version|$GREP version)
+            llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+            AC_MSG_RESULT($llc_version)
+            LLC="llc-$llc_version"
+            AC_SUBST(LLC)
+        else
+            echo "clang needed to build ebpf files"
+            exit 1        
+        fi
+    fi
 
   # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,
@@ -1319,7 +1339,7 @@
         AC_CHECK_DECL([SOF_TIMESTAMPING_RAW_HARDWARE],
             AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
             [],
-            [[#include <linux/net_tstamp.h>]])
+            [[#include <linux/net_tstamp.h>]]),
     ])
 
   # Netmap support
@@ -1468,6 +1488,37 @@
     fi
     ;;
     esac
+
+
+    AC_ARG_ENABLE(ebpf,
+	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
+	        [ enable_ebpf="yes"],
+	        [ enable_ebpf="no"])
+
+    if test "$enable_ebpf" = "yes"; then
+        AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
+        if test "$LIBELF" = "no"; then
+            echo
+            echo "   libelf library and development headers not found but"
+            echo "   but needed to use eBPF code"
+            echo
+            exit 1
+        fi;
+
+        AC_CHECK_LIB(bpf,bpf_object__open,,LIBBPF="no")
+        if test "$LIBBPF" = "no"; then
+            echo
+            echo "   libbpf library and development headers not found but"
+            echo "   but needed to use eBPF code. It can be found in the"
+            echo "   Linux kernel tree under tools/lib/bpf"
+            echo
+            exit 1
+        fi;
+        AC_CHECK_DECL([PACKET_FANOUT_EBPF],
+            AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
+            [],
+            [[#include <linux/if_packet.h>]])
+    fi;
 
   # Check for DAG support.
     AC_ARG_ENABLE(dag,
@@ -2197,10 +2248,11 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile ebpf/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
+  eBPF support:                            ${enable_ebpf}
   PF_RING support:                         ${enable_pfring}
   NFQueue support:                         ${enable_nfqueue}
   NFLOG support:                           ${enable_nflog}
