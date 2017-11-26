@@ -51,6 +51,7 @@
 
 #include "tmqh-flow.h"
 #include "flow-manager.h"
+#include "flow-bypass.h"
 #include "counters.h"
 
 #ifdef __SC_CUDA_SUPPORT__
@@ -398,6 +399,7 @@ void RunModeDispatch(int runmode, const char *custom_mode)
         /* spawn management threads */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
+        BypassedFlowManagerThreadSpawn();
         StatsSpawnThreads();
     }
 }
