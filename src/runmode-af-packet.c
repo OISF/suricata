@@ -1,4 +1,4 @@
-/* Copyright (C) 2011,2012 Open Information Security Foundation
+/* Copyright (C) 2011-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -30,7 +30,6 @@
  *
  */
 
-
 #include "suricata-common.h"
 #include "config.h"
 #include "tm-threads.h"
@@ -53,6 +52,7 @@
 #include "util-device.h"
 #include "util-runmodes.h"
 #include "util-ioctl.h"
+#include "util-ebpf.h"
 
 #include "source-af-packet.h"
 
@@ -123,6 +123,7 @@ static void *ParseAFPConfig(const char *iface)
     const char *bpf_filter = NULL;
     const char *out_iface = NULL;
     int cluster_type = PACKET_FANOUT_HASH;
+    const char *ebpf_file = NULL;
 
     if (iface == NULL) {
         return NULL;
@@ -145,6 +146,10 @@ static void *ParseAFPConfig(const char *iface)
     aconf->DerefFunc = AFPDerefConfig;
     aconf->flags = AFP_RING_MODE;
     aconf->bpf_filter = NULL;
+    aconf->ebpf_lb_file = NULL;
+    aconf->ebpf_lb_fd = -1;
+    aconf->ebpf_filter_file = NULL;
+    aconf->ebpf_filter_fd = -1;
     aconf->out_iface = NULL;
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     aconf->block_timeout = 10;
@@ -331,7 +336,13 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
         cluster_type = PACKET_FANOUT_ROLLOVER;
-
+#ifdef HAVE_PACKET_EBPF
+    } else if (strcmp(tmpctype, "cluster_ebpf") == 0) {
+        SCLogInfo("Using ebpf based cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_EBPF;
+        cluster_type = PACKET_FANOUT_EBPF;
+#endif
     } else {
         SCLogWarning(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
     }
@@ -353,6 +364,53 @@ static void *ParseAFPConfig(const char *iface)
                 SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
             }
         }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
+        aconf->ebpf_lb_file = NULL;
+    } else {
+#ifdef HAVE_PACKET_EBPF
+        SCLogInfo("af-packet will use '%s' as eBPF load balancing file",
+                  ebpf_file);
+#endif
+        aconf->ebpf_lb_file = ebpf_file;
+    }
+
+    /* One shot loading of the eBPF file */
+    if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
+#ifdef HAVE_PACKET_EBPF
+        int ret = EBPFLoadFile(aconf->ebpf_lb_file, "loadbalancer",
+                               &aconf->ebpf_lb_fd);
+        if (ret != 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
+        }
+#else
+        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+#endif
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-filter-file", &ebpf_file) != 1) {
+        aconf->ebpf_filter_file = NULL;
+    } else {
+#ifdef HAVE_PACKET_EBPF
+        SCLogInfo("af-packet will use '%s' as eBPF filter file",
+                  ebpf_file);
+#endif
+        aconf->ebpf_filter_file = ebpf_file;
+    }
+
+    /* One shot loading of the eBPF file */
+    if (aconf->ebpf_filter_file) {
+#ifdef HAVE_PACKET_EBPF
+        int ret = EBPFLoadFile(aconf->ebpf_filter_file, "filter",
+                               &aconf->ebpf_filter_fd);
+        if (ret != 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                         "Error when loading eBPF filter file");
+        }
+#else
+        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+#endif
     }
 
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
