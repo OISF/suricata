@@ -635,6 +635,9 @@ af-packet:
     # eBPF file containing a 'filter' function that will be inserted into the
     # kernel and used as packet filter function
     #ebpf-filter-file:  @e_sysconfdir@/ebpf/filter.bpf
+    # if the ebpf filter implements a bypass function, you can set 'bypass' to
+    # yes and benefit from these feature
+    #bypass: yes
     # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
     # full then kernel will send the packet on the next socket with room available. This option
     # can minimize packet drop and increase the treated bandwidth on single intensive flow.
