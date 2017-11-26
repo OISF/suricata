@@ -25,7 +25,7 @@
 #include "suricata-common.h"
 
 #include "util-decode-mime.h"
-
+#include "util-ip.h"
 #include "util-spm-bs.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
@@ -911,41 +911,11 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
     char tempIp[MAX_IP4_CHARS + 1];
 
     /* Cut off at '/'  */
-    int alen = 0;
-    char addr[4][4];
-    int dots = 0;
     uint32_t i = 0;
-    for (i = 0; i < len && urlhost[i] != 0; i++) {
+    for ( ; i < len && urlhost[i] != 0; i++) {
 
         if (urlhost[i] == '/') {
             break;
-        }
-
-        if (!(urlhost[i] == '.' || isdigit(urlhost[i]))) {
-            return 0;
-        }
-        if (urlhost[i] == '.') {
-            if (dots == 3) {
-                SCLogDebug("too many dots");
-                return 0;
-            }
-            addr[dots][alen] = '\0';
-            dots++;
-            alen = 0;
-        } else {
-            if (alen >= 4) {
-                SCLogDebug("too long");
-                return 0;
-            }
-            addr[dots][alen++] = urlhost[i];
-        }
-    }
-    addr[dots][alen] = '\0';
-    for (int x = 0; x < 4; x++) {
-        int a = atoi(addr[x]);
-        if (a < 0 || a >= 256) {
-            SCLogDebug("out of range");
-            return 0;
         }
     }
 
@@ -957,6 +927,9 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
     /* Create null-terminated string */
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
+
+    if (!IPv4AddressStringIsValid(tempIp))
+        return 0;
 
     return inet_pton(AF_INET, tempIp, &(sa.sin_addr));
 }
