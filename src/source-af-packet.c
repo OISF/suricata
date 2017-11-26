@@ -32,6 +32,8 @@
  *       interface
  */
 
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 #include "suricata-common.h"
 #include "config.h"
 #include "suricata.h"
@@ -60,6 +62,19 @@
 
 #if HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
+
+struct bpf_program {
+    unsigned int bf_len;
+    struct bpf_insn *bf_insns;
+};
+
+#ifdef HAVE_PCAP_H
+#include <pcap.h>
+#endif
+
+#ifdef HAVE_PCAP_PCAP_H
+#include <pcap/pcap.h>
 #endif
 
 #if HAVE_LINUX_IF_ETHER_H
@@ -177,6 +192,7 @@ union thdr {
     void *raw;
 };
 
+#define MAX_MAPS 32
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -231,6 +247,8 @@ typedef struct AFPThreadVars_
     int buffer_size;
     /* Filter */
     const char *bpf_filter;
+    int ebpf_lb_fd;
+    int ebpf_filter_fd;
 
     int promisc;
 
@@ -255,6 +273,9 @@ typedef struct AFPThreadVars_
     /* mmap'ed ring buffer */
     unsigned int ring_buflen;
     uint8_t *ring_buf;
+
+    int map_fd[MAX_MAPS];
+
 } AFPThreadVars;
 
 TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -1894,6 +1915,45 @@ int AFPIsFanoutSupported(void)
 #endif
 }
 
+#ifdef HAVE_PACKET_EBPF
+
+static int SockFanoutSeteBPF(AFPThreadVars *ptv)
+{
+    int pfd = ptv->ebpf_lb_fd;
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Fanout file descriptor is invalid");
+        return -1;
+    }
+
+    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT_DATA, &pfd, sizeof(pfd))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf");
+        return -1;
+    }
+    SCLogInfo("Activated eBPF on socket");
+
+    return 0;
+}
+
+static int SetEbpfFilter(AFPThreadVars *ptv)
+{
+    int pfd = ptv->ebpf_filter_fd;
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Filter file descriptor is invalid");
+        return -1;
+    }
+
+    if (setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_BPF, &pfd, sizeof(pfd))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf: %s", strerror(errno));
+        return -1;
+    }
+    SCLogInfo("Activated eBPF filter on socket");
+
+    return 0;
+}
+#endif
+
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 {
     int r;
@@ -2003,6 +2063,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         goto socket_err;
     }
 
+
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
     if (ptv->threads > 1) {
@@ -2013,6 +2074,18 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         if (r < 0) {
             SCLogError(SC_ERR_AFP_CREATE,
                        "Couldn't set fanout mode, error %s",
+                       strerror(errno));
+            goto socket_err;
+        }
+    }
+#endif
+
+#ifdef HAVE_PACKET_EBPF
+    if (ptv->cluster_type == PACKET_FANOUT_EBPF) {
+        r = SockFanoutSeteBPF(ptv);
+        if (r < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                       "Coudn't set EBPF, error %s",
                        strerror(errno));
             goto socket_err;
         }
@@ -2070,6 +2143,12 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     struct bpf_program filter;
     struct sock_fprog  fcode;
     int rc;
+
+#ifdef HAVE_PACKET_EBPF
+    if (ptv->ebpf_filter_fd != -1) {
+        return SetEbpfFilter(ptv);
+    }
+#endif
 
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;
@@ -2175,6 +2254,8 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     if (afpconfig->bpf_filter) {
         ptv->bpf_filter = afpconfig->bpf_filter;
     }
+    ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
+    ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
 
 #ifdef PACKET_STATISTICS
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",

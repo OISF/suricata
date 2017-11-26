@@ -188,6 +188,7 @@
 #include <netdb.h>
 #endif
 
+#ifndef SC_PCAP_DONT_INCLUDE_PCAP_H
 #ifdef HAVE_PCAP_H
 #include <pcap.h>
 #endif
@@ -195,9 +196,6 @@
 #ifdef HAVE_PCAP_PCAP_H
 #include <pcap/pcap.h>
 #endif
-
-#ifdef HAVE_PCAP_BPF_H
-#include <pcap/bpf.h>
 #endif
 
 #ifdef HAVE_UTIME_H
