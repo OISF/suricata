@@ -635,6 +635,13 @@ af-packet:
     # eBPF file containing a 'filter' function that will be inserted into the
     # kernel and used as packet filter function
     #ebpf-filter-file:  @e_sysconfdir@/ebpf/filter.bpf
+    # eBPF file containing a 'xdp' function that will be inserted into the
+    # kernel and used as XDP packet filter function
+    #ebpf-filter-file:  @e_sysconfdir@filter.bpf
+    # Xdp mode, "soft" for skb based version, "driver" for network card based
+    # and "hw" for card supporting eBPF.
+    #xdp-mode: driver
+    #xdp-filter-file:  @e_sysconfdir@xdp_filter.bpf
     # if the ebpf filter implements a bypass function, you can set 'bypass' to
     # yes and benefit from these feature
     #bypass: yes
