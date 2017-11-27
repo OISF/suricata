@@ -44,6 +44,7 @@
 
 #include <jansson.h>
 
+#include "output.h"
 #include "output-json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
@@ -839,6 +840,13 @@ static TmEcode UnixManagerListCommand(json_t *cmd,
 }
 
 
+static TmEcode UnixManagerReopenLogFiles(json_t *cmd, json_t *server_msg, void *data)
+{
+    OutputNotifyFileRotation();
+    json_object_set_new(server_msg, "message", json_string("done"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 #if 0
 TmEcode UnixManagerReloadRules(json_t *cmd,
                                json_t *server_msg, void *data)
@@ -998,6 +1006,7 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("add-hostbit", UnixSocketHostbitAdd, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("remove-hostbit", UnixSocketHostbitRemove, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("list-hostbit", UnixSocketHostbitList, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("reopen-log-files", UnixManagerReopenLogFiles, NULL, 0);
 
     return 0;
 }
