@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -69,6 +69,21 @@ __thread uint64_t rwr_lock_cnt;
 #include <sys/thr.h>
 #define cpu_set_t cpuset_t
 #endif /* OS_FREEBSD */
+
+#ifdef OS_WIN32
+static inline void SleepUsec(uint64_t usec)
+{
+    uint64_t msec = 1;
+    if (usec > 1000) {
+        msec = usec / 1000;
+    }
+    Sleep(msec);
+}
+#define SleepMsec(msec) Sleep((msec))
+#else
+#define SleepUsec(usec) usleep((usec))
+#define SleepMsec(msec) usleep((msec) * 1000)
+#endif
 
 /* prototypes */
 static int SetCPUAffinity(uint16_t cpu);
@@ -214,7 +229,7 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
                     run = 0;
             }
         } else {
-            usleep(1);
+            SleepUsec(1);
         }
 
         if (tv->stream_pq->len == 0 && TmThreadsCheckFlag(tv, THV_KILL)) {
@@ -1511,17 +1526,14 @@ static int TmThreadKillThread(ThreadVars *tv)
  */
 static void TmThreadDrainPacketThreads(void)
 {
-    /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-#define WAIT_TIME 1000
-
-    uint64_t total_wait_time = 0;
-
     ThreadVars *tv = NULL;
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
 again:
-    if (total_wait_time > (THREAD_KILL_MAX_WAIT_TIME * 1000000)) {
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
         SCLogWarning(SC_ERR_SHUTDOWN, "unable to get all packet threads "
                 "to process their packets in time");
         return;
@@ -1531,7 +1543,6 @@ again:
 
     /* all receive threads are part of packet processing threads */
     tv = tv_root[TVT_PPT];
-
     while (tv) {
         if (tv->inq != NULL) {
             /* we wait till we dry out all the inq packets, before we
@@ -1543,10 +1554,8 @@ again:
                 if (q->len != 0) {
                     SCMutexUnlock(&tv_root_lock);
 
-                    total_wait_time += WAIT_TIME;
-
-                    /* don't sleep while holding a lock */
-                    usleep(WAIT_TIME);
+                    /* sleep outside lock */
+                    SleepMsec(1);
                     goto again;
                 }
             }
@@ -1557,9 +1566,6 @@ again:
 
     SCMutexUnlock(&tv_root_lock);
     return;
-
-#undef THREAD_KILL_MAX_WAIT_TIME
-#undef WAIT_TIME
 }
 
 /**
@@ -1571,16 +1577,18 @@ again:
  */
 void TmThreadDisableReceiveThreads(void)
 {
-    /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-#define WAIT_TIME 100
-
-    double total_wait_time = 0;
-
     ThreadVars *tv = NULL;
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
 again:
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+        FatalError(SC_ERR_FATAL, "Engine unable to disable detect "
+                "thread - \"%s\". Killing engine", tv->name);
+    }
+
     SCMutexLock(&tv_root_lock);
 
     /* all receive threads are part of packet processing threads */
@@ -1618,7 +1626,7 @@ again:
                     if (q->len != 0) {
                         SCMutexUnlock(&tv_root_lock);
                         /* don't sleep while holding a lock */
-                        usleep(1000);
+                        SleepMsec(1);
                         goto again;
                     }
                 }
@@ -1645,14 +1653,7 @@ again:
             while (!TmThreadsCheckFlag(tv, THV_FLOW_LOOP)) {
                 SCMutexUnlock(&tv_root_lock);
 
-                usleep(WAIT_TIME);
-                total_wait_time += WAIT_TIME / 1000000.0;
-                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
-                    SCLogError(SC_ERR_FATAL, "Engine unable to "
-                               "disable detect thread - \"%s\".  "
-                               "Killing engine", tv->name);
-                    exit(EXIT_FAILURE);
-                }
+                SleepMsec(1);
                 goto again;
             }
         }
@@ -1675,18 +1676,20 @@ again:
  */
 void TmThreadDisablePacketThreads(void)
 {
-    /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-#define WAIT_TIME 100
-
-    double total_wait_time = 0;
-
     ThreadVars *tv = NULL;
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
     /* first drain all packet threads of their packets */
     TmThreadDrainPacketThreads();
 again:
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
+        FatalError(SC_ERR_FATAL, "Engine unable to disable detect "
+                "thread - \"%s\". Killing engine", tv->name);
+    }
+
     SCMutexLock(&tv_root_lock);
 
     /* all receive threads are part of packet processing threads */
@@ -1707,7 +1710,7 @@ again:
                 if (q->len != 0) {
                     SCMutexUnlock(&tv_root_lock);
                     /* don't sleep while holding a lock */
-                    usleep(1000);
+                    SleepMsec(1);
                     goto again;
                 }
             }
@@ -1731,14 +1734,7 @@ again:
         while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
             SCMutexUnlock(&tv_root_lock);
 
-            usleep(WAIT_TIME);
-            total_wait_time += WAIT_TIME / 1000000.0;
-            if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
-                SCLogError(SC_ERR_FATAL, "Engine unable to "
-                        "disable detect thread - \"%s\".  "
-                        "Killing engine", tv->name);
-                exit(EXIT_FAILURE);
-            }
+            SleepMsec(1);
             goto again;
         }
 
@@ -1782,10 +1778,11 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
 }
 
 #define MIN_WAIT_TIME 100
+#define MAX_WAIT_TIME 999999
 void TmThreadKillThreadsFamily(int family)
 {
     ThreadVars *tv = NULL;
-    unsigned int sleep = MIN_WAIT_TIME;
+    unsigned int sleep_usec = MIN_WAIT_TIME;
 
     BUG_ON((family < 0) || (family >= TVT_MAX));
 
@@ -1797,16 +1794,19 @@ again:
         int r = TmThreadKillThread(tv);
         if (r == 0) {
             SCMutexUnlock(&tv_root_lock);
-            usleep(sleep);
-            sleep += MIN_WAIT_TIME; /* slowly back off */
+            SleepUsec(sleep_usec);
+            sleep_usec *= 2; /* slowly back off */
+            sleep_usec = MIN(sleep_usec, MAX_WAIT_TIME);
             goto again;
         }
-        sleep = MIN_WAIT_TIME; /* reset */
+        sleep_usec = MIN_WAIT_TIME; /* reset */
 
         tv = tv->next;
     }
     SCMutexUnlock(&tv_root_lock);
 }
+#undef MIN_WAIT_TIME
+#undef MAX_WAIT_TIME
 
 void TmThreadKillThreads(void)
 {
@@ -1995,7 +1995,7 @@ static void TmThreadDeinitMC(ThreadVars *tv)
 void TmThreadTestThreadUnPaused(ThreadVars *tv)
 {
     while (TmThreadsCheckFlag(tv, THV_PAUSE)) {
-        usleep(100);
+        SleepUsec(100);
 
         if (TmThreadsCheckFlag(tv, THV_KILL))
             break;
@@ -2013,7 +2013,7 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
 void TmThreadWaitForFlag(ThreadVars *tv, uint16_t flags)
 {
     while (!TmThreadsCheckFlag(tv, flags)) {
-        usleep(100);
+        SleepUsec(100);
     }
 
     return;
@@ -2125,9 +2125,19 @@ TmEcode TmThreadWaitOnThreadInit(void)
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
 
-    uint64_t slept = 0;
+    struct timeval start_ts;
+    struct timeval cur_ts;
+    gettimeofday(&start_ts, NULL);
 
 again:
+    gettimeofday(&cur_ts, NULL);
+    if ((cur_ts.tv_sec - start_ts.tv_sec) > 120) {
+        SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                "initialize in time: flags %04x", tv->name,
+                SC_ATOMIC_GET(tv->flags));
+        return TM_ECODE_FAILED;
+    }
+
     SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
@@ -2144,17 +2154,9 @@ again:
             if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
                 SCMutexUnlock(&tv_root_lock);
 
-                if (slept > (120*1000000)) {
-                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                            "initialize in time: flags %04x", tv->name,
-                            SC_ATOMIC_GET(tv->flags));
-                    return TM_ECODE_FAILED;
-                }
-
                 /* sleep a little to give the thread some
                  * time to finish initialization */
-                usleep(100);
-                slept += 100;
+                SleepUsec(100);
                 goto again;
             }
 
