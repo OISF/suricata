@@ -2134,30 +2134,36 @@ eval "$2=[$]$2$3"
 
 # suricata log dir
 if test "$WINDOWS_PATH" = "yes"; then
-  systemtype="`systeminfo | grep \"based PC\"`"
-  case "$systemtype" in
-    *x64*)
-      e_winbase="C:\\\\Program Files (x86)\\\\Suricata"
-      ;;
-    *)
-      e_winbase="C:\\\\Program Files\\\\Suricata"
-      ;;
-  esac
+    case $host in
+        x86_64-w64-mingw32)
+            e_winbase="C:\\\\Program Files\\\\Suricata"
+            ;;
+        *)
+            systemtype="`systeminfo | grep \"based PC\"`"
+            case "$systemtype" in
+            *x64*)
+                e_winbase="C:\\\\Program Files (x86)\\\\Suricata"
+                ;;
+            *)
+                e_winbase="C:\\\\Program Files\\\\Suricata"
+                ;;
+        esac
+    esac
 
-  e_sysconfdir="$e_winbase\\\\"
-  e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
-  e_magic_file="$e_winbase\\\\magic.mgc"
-  e_logdir="$e_winbase\\\\log"
-  e_logfilesdir="$e_logdir\\\\files"
-  e_logcertsdir="$e_logdir\\\\certs"
+    e_sysconfdir="${e_winbase}\\\\"
+    e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
+    e_magic_file="$e_winbase\\\\magic.mgc"
+    e_logdir="$e_winbase\\\\log"
+    e_logfilesdir="$e_logdir\\\\files"
+    e_logcertsdir="$e_logdir\\\\certs"
 else
-  EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
-  EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
-  EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
-  EXPAND_VARIABLE(localstatedir, e_logcertsdir, "/log/suricata/certs")
-  EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
-  EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
-  EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
+    EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
+    EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
+    EXPAND_VARIABLE(localstatedir, e_logfilesdir, "/log/suricata/files")
+    EXPAND_VARIABLE(localstatedir, e_logcertsdir, "/log/suricata/certs")
+    EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
+    EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
+    EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
