@@ -41,6 +41,7 @@ typedef enum {
     FTP_COMMAND_CHMOD,
     FTP_COMMAND_CWD,
     FTP_COMMAND_DELE,
+    FTP_COMMAND_EPSV,
     FTP_COMMAND_HELP,
     FTP_COMMAND_IDLE,
     FTP_COMMAND_LIST,
@@ -131,15 +132,40 @@ typedef struct FtpState_ {
     uint32_t port_line_size;
     uint8_t *port_line;
 
+    uint16_t dyn_port;
     /* specifies which loggers are done logging */
     uint32_t logged;
 
     DetectEngineState *de_state;
 } FtpState;
 
+enum {
+    FTPDATA_STATE_IN_PROGRESS,
+    FTPDATA_STATE_FINISHED,
+};
+
+/** FTP Data State for app layer parser */
+typedef struct FtpDataState_ {
+    uint8_t *input;
+    uint8_t *file_name;
+    FileContainer *files;
+    DetectEngineState *de_state;
+    int32_t input_len;
+    int16_t file_len;
+    FtpRequestCommand command;
+    uint8_t state;
+    uint8_t direction;
+} FtpDataState;
+
 void RegisterFTPParsers(void);
 void FTPParserRegisterTests(void);
 void FTPAtExitPrintStats(void);
+uint64_t FTPMemuseGlobalCounter(void);
+uint64_t FTPMemcapGlobalCounter(void);
+
+#ifdef HAVE_LIBJANSSON
+json_t *JsonFTPDataAddMetadata(const Flow *f);
+#endif
 
 #endif /* __APP_LAYER_FTP_H__ */
 

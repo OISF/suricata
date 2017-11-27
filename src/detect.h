@@ -267,13 +267,14 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_TLS_STATE          (1<<9)
 #define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
-#define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
-#define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<13)
-#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<14)
-#define SIG_MASK_REQUIRE_DNP3_STATE         (1<<15)
+#define SIG_MASK_REQUIRE_FTPDATA_STATE      (1<<12)
+#define SIG_MASK_REQUIRE_SMTP_STATE         (1<<13)
+#define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<14)
+#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<15)
+#define SIG_MASK_REQUIRE_DNP3_STATE         (1<<16)
 
 /* for now a uint8_t is enough */
-#define SignatureMask uint16_t
+#define SignatureMask uint32_t
 
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
@@ -1351,6 +1352,7 @@ enum {
     DETECT_BASE64_DATA,
 
     DETECT_TEMPLATE,
+    DETECT_FTPDATA,
     DETECT_TARGET,
     DETECT_AL_TEMPLATE_BUFFER,
 
