@@ -187,7 +187,6 @@ int SEC("filter") hashfilter(struct __sk_buff *skb) {
     return -1;
 }
 
-
 char __license[] SEC("license") = "GPL";
 
 uint32_t __version SEC("version") = LINUX_VERSION_CODE;

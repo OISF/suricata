@@ -42,6 +42,7 @@
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
+#include <net/if.h>
 #include "config.h"
 
 #define BPF_MAP_MAX_COUNT 16
@@ -86,7 +87,7 @@ int EBPFGetMapFDByName(const char *name)
  * \param val a pointer to an integer that will be the file desc
  * \return -1 in case of error and 0 in case of success
  */
-int EBPFLoadFile(const char *path, const char * section, int *val)
+int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags)
 {
     int err, pfd;
     bool found = false;
@@ -114,7 +115,11 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
     bpf_object__for_each_program(bpfprog, bpfobj) {
         const char *title = bpf_program__title(bpfprog, 0);
         if (!strcmp(title, section)) {
-            bpf_program__set_socket_filter(bpfprog);
+            if (flags & EBPF_SOCKET_FILTER) {
+                bpf_program__set_socket_filter(bpfprog);
+            } else {
+                bpf_program__set_xdp(bpfprog);
+            }
             found = true;
             break;
         }
@@ -173,6 +178,29 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
     *val = pfd;
     return 0;
 }
+
+
+int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
+{
+#ifdef HAVE_PACKET_XDP
+    unsigned int ifindex = if_nametoindex(iface);
+    if (ifindex == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                "Unknown interface '%s'", iface);
+        return -1;
+    }
+    int err = bpf_set_link_xdp_fd(ifindex, fd, flags);
+    if (err != 0) {
+        char buf[129];
+        libbpf_strerror(err, buf, sizeof(buf));
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to set XDP on '%s': %s (%d)",
+                iface, buf, err);
+        return -1;
+    }
+#endif
+    return 0;
+}
+
 
 int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
