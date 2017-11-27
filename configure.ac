@@ -1510,6 +1510,10 @@
             AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
+        AC_CHECK_LIB(bpf, bpf_set_link_xdp_fd,have_xdp="yes",have_xdp="no")
+        if test "$have_xdp" = "yes"; then
+            AC_DEFINE([HAVE_PACKET_XDP],[1],[XDP support is available])
+        fi
     fi;
 
   # Check for DAG support.
@@ -2272,6 +2276,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
   eBPF support:                            ${enable_ebpf}
+  XDP support:                             ${have_xdp}
 
   Rust support (experimental):             ${enable_rust}
   Experimental Rust parsers:               ${enable_rust_experimental}
