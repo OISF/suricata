@@ -760,8 +760,10 @@
         else
             case $host in
                 *-*-mingw32*)
+                    enable_unixsocket="no"
                     ;;
                 *-*-cygwin)
+                    enable_unixsocket="no"
                     ;;
                 *)
                     if test "x$enable_unixsocket" = "xtest"; then
