@@ -187,6 +187,11 @@ typedef enum {
     DNS_RRTYPE_MAX,
 } DnsRRTypes;
 
+typedef enum {
+    DNS_VERSION_1 = 1,
+    DNS_VERSION_2
+} DnsVersion;
+
 static struct {
     const char *config_rrtype;
     uint64_t flags;
@@ -255,6 +260,7 @@ typedef struct LogDnsFileCtx_ {
     LogFileCtx *file_ctx;
     uint64_t flags; /** Store mode */
     bool include_metadata;
+    DnsVersion version;
 } LogDnsFileCtx;
 
 typedef struct LogDnsLogThread_ {
@@ -816,47 +822,95 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
+                                  const char *query_key, const char *answer_key,
+                                  const char *answer_types_key)
+{
+    const char *query = ConfNodeLookupChildValue(conf, query_key);
+    if (query != NULL) {
+        if (ConfValIsTrue(query)) {
+            dnslog_ctx->flags |= LOG_QUERIES;
+        } else {
+            dnslog_ctx->flags &= ~LOG_QUERIES;
+        }
+    } else {
+        if (dnslog_ctx->version == DNS_VERSION_2) {
+            dnslog_ctx->flags |= LOG_QUERIES;
+        }
+    }
+
+    const char *response = ConfNodeLookupChildValue(conf, answer_key);
+    if (response != NULL) {
+        if (ConfValIsTrue(response)) {
+            dnslog_ctx->flags |= LOG_ANSWERS;
+        } else {
+            dnslog_ctx->flags &= ~LOG_ANSWERS;
+        }
+    } else {
+        if (dnslog_ctx->version == DNS_VERSION_2) {
+            dnslog_ctx->flags |= LOG_ANSWERS;
+        }
+    }
+
+    ConfNode *custom;
+    if ((custom = ConfNodeLookupChild(conf, answer_types_key)) != NULL) {
+        dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
+        ConfNode *field;
+        TAILQ_FOREACH(field, &custom->head, next)
+        {
+            if (field != NULL)
+            {
+                DnsRRTypes f;
+                for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++)
+                {
+                    if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
+                                   field->val) == 0)
+                    {
+                        dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
+                        break;
+                    }
+                }
+            }
+        }
+    } else {
+        if (dnslog_ctx->version == DNS_VERSION_2) {
+            dnslog_ctx->flags |= LOG_ALL_RRTYPES;
+        }
+    }
+}
+
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
     dnslog_ctx->flags = ~0UL;
 
     if (conf) {
-        const char *query = ConfNodeLookupChildValue(conf, "query");
-        if (query != NULL) {
-            if (ConfValIsTrue(query)) {
-                dnslog_ctx->flags |= LOG_QUERIES;
-            } else {
-                dnslog_ctx->flags &= ~LOG_QUERIES;
+        intmax_t version;
+        int ret = ConfGetChildValueInt(conf, "version", &version);
+        if (ret) {
+            switch(version) {
+                case 1:
+                    dnslog_ctx->version = DNS_VERSION_1;
+                    break;
+                case 2:
+                    dnslog_ctx->version = DNS_VERSION_2;
+                    break;
+                default:
+                    SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                                 "Invalid version option: %ji, "
+                                 "forcing it to version 1", version);
+                    dnslog_ctx->version = DNS_VERSION_1;
+                    break;
             }
+        } else {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                         "Version not found, forcing it to version 1");
+            dnslog_ctx->version = DNS_VERSION_1;
         }
-        const char *response = ConfNodeLookupChildValue(conf, "answer");
-        if (response != NULL) {
-            if (ConfValIsTrue(response)) {
-                dnslog_ctx->flags |= LOG_ANSWERS;
-            } else {
-                dnslog_ctx->flags &= ~LOG_ANSWERS;
-            }
-        }
-        ConfNode *custom;
-        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
-            dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
-            ConfNode *field;
-            TAILQ_FOREACH(field, &custom->head, next)
-            {
-                if (field != NULL)
-                {
-                    DnsRRTypes f;
-                    for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_MAX; f++)
-                    {
-                        if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
-                                       field->val) == 0)
-                        {
-                            dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
-                            break;
-                        }
-                    }
-                }
-            }
+
+        if (dnslog_ctx->version == DNS_VERSION_1) {
+            JsonDnsLogParseConfig(dnslog_ctx, conf, "query", "answer", "custom");
+        } else {
+            JsonDnsLogParseConfig(dnslog_ctx, conf, "requests", "responses", "types");
         }
     }
 }
@@ -864,6 +918,11 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
+    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
+    if (enabled != NULL && !ConfValIsTrue(enabled)) {
+        return result;
+    }
+
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
@@ -904,6 +963,11 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
 static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
+    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
+    if (enabled != NULL && !ConfValIsTrue(enabled)) {
+        return result;
+    }
+
     LogFileCtx *file_ctx = LogFileNewCtx();
 
     if(file_ctx == NULL) {
