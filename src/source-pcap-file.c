@@ -326,6 +326,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         case LINKTYPE_PPP:
             pcap_g.Decoder = DecodePPP;
             break;
+        case LINKTYPE_IPV4:
         case LINKTYPE_RAW:
         case LINKTYPE_RAW2:
             pcap_g.Decoder = DecodeRaw;

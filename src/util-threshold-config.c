@@ -1005,7 +1005,7 @@ static int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx
     uint32_t parsed_seconds = 0;
     uint32_t parsed_timeout = 0;
     const char *th_ip = NULL;
-    uint32_t id, gid;
+    uint32_t id = 0, gid = 0;
 
     int r = 0;
     r = ParseThresholdRule(de_ctx, rawstr, &id, &gid, &parsed_type, &parsed_track,
@@ -1094,97 +1094,36 @@ static int SCThresholdConfLineIsMultiline(char *line)
 }
 
 /**
- * \brief Get the config line length to allocate the buffer needed
- *
- * \param fd Pointer to file descriptor.
- * \retval int of the line length
- */
-static int SCThresholdConfLineLength(FILE *fd)
-{
-    long pos = ftell(fd);
-    int len = 0;
-    int c;
-
-    while ( (c = fgetc(fd)) && (char)c != '\n' && c != EOF && !feof(fd))
-        len++;
-
-    if (pos < 0)
-        pos = 0;
-
-    if (fseek(fd, pos, SEEK_SET) < 0) {
-        SCLogError(SC_ERR_THRESHOLD_SETUP, "threshold fseek failure: %s",
-                strerror(errno));
-        return -1;
-    }
-    return len;
-}
-
-/**
  * \brief Parses the Threshold Config file
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param fd Pointer to file descriptor.
  */
-void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
+void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fp)
 {
-    char *line = NULL;
-    int len = 0;
+    char line[8192] = "";
     int rule_num = 0;
 
     /* position of "\", on multiline rules */
     int esc_pos = 0;
 
-    if (fd == NULL)
+    if (fp == NULL)
         return;
 
-    while (!feof(fd)) {
-        len = SCThresholdConfLineLength(fd);
+    while (fgets(line + esc_pos, (int)sizeof(line) - esc_pos, fp) != NULL) {
+        if (SCThresholdConfIsLineBlankOrComment(line)) {
+            continue;
+        }
 
-        if (len > 0) {
-            if (line == NULL) {
-                line = SCMalloc(len + 1);
-                if (unlikely(line == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                    return;
-                }
-            } else {
-                char *newline = SCRealloc(line, strlen(line) + len + 1);
-                if (unlikely(newline == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                    SCFree(line);
-                    return;
-                }
-                line = newline;
-            }
-
-            if (fgets(line + esc_pos, len + 1, fd) == NULL)
-                break;
-
-            /* Skip EOL to inspect the next line (or read EOF) */
-            (void)fgetc(fd);
-
-            if (SCThresholdConfIsLineBlankOrComment(line)) {
-                continue;
-            }
-
-            esc_pos = SCThresholdConfLineIsMultiline(line);
-            if (esc_pos == 0) {
-                rule_num++;
-                SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
-                SCThresholdConfAddThresholdtype(line, de_ctx);
-            }
-        } else {
-            /* Skip EOL to inspect the next line (or read EOF) */
-            (void)fgetc(fd);
-            if (feof(fd))
-                break;
+        esc_pos = SCThresholdConfLineIsMultiline(line);
+        if (esc_pos == 0) {
+            rule_num++;
+            SCLogDebug("Adding threshold.config rule num %"PRIu32"( %s )", rule_num, line);
+            SCThresholdConfAddThresholdtype(line, de_ctx);
         }
     }
 
     SCLogInfo("Threshold config parsed: %d rule(s) found", rule_num);
-
-    /* Free the last line */
-    SCFree(line);
 
     return;
 }

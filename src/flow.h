@@ -331,10 +331,6 @@ typedef struct Flow_
     uint8_t proto;
     uint8_t recursion_level;
     uint16_t vlan_id[2];
-    uint8_t min_ttl_toserver;
-    uint8_t max_ttl_toserver;
-    uint8_t min_ttl_toclient;
-    uint8_t max_ttl_toclient;
 
     /** flow hash - the flow hash before hash table size mod. */
     uint32_t flow_hash;
@@ -408,6 +404,12 @@ typedef struct Flow_
 
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;
+
+    /** ttl tracking */
+    uint8_t min_ttl_toserver;
+    uint8_t max_ttl_toserver;
+    uint8_t min_ttl_toclient;
+    uint8_t max_ttl_toclient;
 
     /** application level storage ptrs.
      *

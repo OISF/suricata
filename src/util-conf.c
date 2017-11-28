@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "conf.h"
+#include "runmodes.h"
 #include "util-conf.h"
 
 TmEcode ConfigSetLogDirectory(char *name)
@@ -105,7 +106,7 @@ int ConfUnixSocketIsEnable(void)
 #ifdef OS_WIN32
         return 0;
 #else
-        if (TimeModeIsLive()) {
+        if (!IsRunModeOffline(RunmodeGetCurrent())) {
             SCLogInfo("Running in live mode, activating unix socket");
             return 1;
         } else {

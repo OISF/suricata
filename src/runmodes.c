@@ -487,6 +487,7 @@ int RunModeOutputFiledataEnabled(void)
 bool IsRunModeOffline(int run_mode_to_check)
 {
     switch(run_mode_to_check) {
+        case RUNMODE_CONF_TEST:
         case RUNMODE_PCAP_FILE:
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:

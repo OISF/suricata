@@ -140,16 +140,20 @@ void *HTPCalloc(size_t n, size_t size)
 
 void *HTPRealloc(void *ptr, size_t orig_size, size_t size)
 {
-    void *rptr = NULL;
+    if (size > orig_size) {
+        if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
+            return NULL;
+    }
 
-    if (HTPCheckMemcap((uint32_t)(size - orig_size)) == 0)
-        return NULL;
-
-    rptr = SCRealloc(ptr, size);
+    void *rptr = SCRealloc(ptr, size);
     if (rptr == NULL)
         return NULL;
 
-    HTPIncrMemuse((uint64_t)(size - orig_size));
+    if (size > orig_size) {
+        HTPIncrMemuse((uint64_t)(size - orig_size));
+    } else {
+        HTPDecrMemuse((uint64_t)(orig_size - size));
+    }
 
     return rptr;
 }

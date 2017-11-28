@@ -1459,6 +1459,7 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
 #ifdef AFLFUZZ_APPLAYER
 int AppLayerParserRequestFromFile(uint8_t ipproto, AppProto alproto, char *filename)
 {
+    bool do_dump = (getenv("SC_AFL_DUMP_FILES") != NULL);
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
     gettimeofday(&ts, NULL);
@@ -1504,13 +1505,15 @@ int AppLayerParserRequestFromFile(uint8_t ipproto, AppProto alproto, char *filen
             if (size < sizeof(buffer))
                 done = 1;
 
-            char outfilename[256];
-            snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
-                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
-            FILE *out_fp = fopen(outfilename, "w");
-            BUG_ON(out_fp == NULL);
-            (void)fwrite(buffer, size, 1, out_fp);
-            fclose(out_fp);
+            if (do_dump) {
+                char outfilename[256];
+                snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
+                        (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
+                FILE *out_fp = fopen(outfilename, "w");
+                BUG_ON(out_fp == NULL);
+                (void)fwrite(buffer, size, 1, out_fp);
+                fclose(out_fp);
+            }
             //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
 
             uint8_t flags = STREAM_TOSERVER;
@@ -1536,13 +1539,15 @@ int AppLayerParserRequestFromFile(uint8_t ipproto, AppProto alproto, char *filen
     }
 #endif /* AFLFUZZ_PERSISTANT_MODE */
 
-    /* if we get here there was no crash, so we can remove our files */
-    uint32_t x = 0;
-    for (x = 0; x < cnt; x++) {
-        char rmfilename[256];
-        snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
-            (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
-        unlink(rmfilename);
+    if (do_dump) {
+        /* if we get here there was no crash, so we can remove our files */
+        uint32_t x = 0;
+        for (x = 0; x < cnt; x++) {
+            char rmfilename[256];
+            snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
+                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
+            unlink(rmfilename);
+        }
     }
 
     result = 0;
@@ -1622,6 +1627,7 @@ end:
 
 int AppLayerParserFromFile(uint8_t ipproto, AppProto alproto, char *filename)
 {
+    bool do_dump = (getenv("SC_AFL_DUMP_FILES") != NULL);
     struct timeval ts;
     memset(&ts, 0, sizeof(ts));
     gettimeofday(&ts, NULL);
@@ -1667,14 +1673,15 @@ int AppLayerParserFromFile(uint8_t ipproto, AppProto alproto, char *filename)
             size_t size = fread(&buffer, 1, sizeof(buffer), fp);
             if (size < sizeof(buffer))
                 done = 1;
-
-            char outfilename[256];
-            snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
-                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
-            FILE *out_fp = fopen(outfilename, "w");
-            BUG_ON(out_fp == NULL);
-            (void)fwrite(buffer, size, 1, out_fp);
-            fclose(out_fp);
+            if (do_dump) {
+                char outfilename[256];
+                snprintf(outfilename, sizeof(outfilename), "dump/%u-%u.%u",
+                        (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, cnt);
+                FILE *out_fp = fopen(outfilename, "w");
+                BUG_ON(out_fp == NULL);
+                (void)fwrite(buffer, size, 1, out_fp);
+                fclose(out_fp);
+            }
             //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
 
             uint8_t flags = 0;
@@ -1709,13 +1716,15 @@ int AppLayerParserFromFile(uint8_t ipproto, AppProto alproto, char *filename)
     }
 #endif /* AFLFUZZ_PERSISTANT_MODE */
 
-    /* if we get here there was no crash, so we can remove our files */
-    uint32_t x = 0;
-    for (x = 0; x < cnt; x++) {
-        char rmfilename[256];
-        snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
-            (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
-        unlink(rmfilename);
+    if (do_dump) {
+        /* if we get here there was no crash, so we can remove our files */
+        uint32_t x = 0;
+        for (x = 0; x < cnt; x++) {
+            char rmfilename[256];
+            snprintf(rmfilename, sizeof(rmfilename), "dump/%u-%u.%u",
+                    (unsigned int)ts.tv_sec, (unsigned int)ts.tv_usec, x);
+            unlink(rmfilename);
+        }
     }
 
     result = 0;

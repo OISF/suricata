@@ -172,7 +172,7 @@ static void WINAPI SCServiceMain(uint32_t argc, char** argv)
 int SCServiceInit(int argc, char **argv)
 {
     SERVICE_TABLE_ENTRY	DispatchTable[]	= {
-        {PROG_NAME, (LPSERVICE_MAIN_FUNCTION) SCServiceMain},
+        {(char *)PROG_NAME, (LPSERVICE_MAIN_FUNCTION) SCServiceMain},
         {NULL, NULL}
     };
 
