@@ -508,6 +508,8 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
             tx->recursion_desired = 1;
     }
 
+    tx->flags = ntohs(dns_header->flags);
+
     if (tx != NULL) {
         tx->replied = 1;
     }
