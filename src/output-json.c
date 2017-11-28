@@ -100,6 +100,28 @@ json_t *SCJsonBool(int val)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
+EveVersion OutputJsonGetVersion(ConfNode *conf)
+{
+    intmax_t version;
+    int ret = ConfGetChildValueInt(conf, "version", &version);
+
+    if (ret) {
+        switch (version) {
+            case 1:
+                return EVE_VERSION_1;
+            case 2:
+                return EVE_VERSION_2;
+                break;
+            default:
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "Invalid version option: %ji", version);
+                exit(EXIT_FAILURE);
+        }
+    } else {
+        return EVE_VERSION_1;
+    }
+}
+
 static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
 {
     if (p == NULL || p->pktvar == NULL) {
@@ -713,6 +735,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
+        json_ctx->version = OutputJsonGetVersion(conf);
         json_ctx->file_ctx->type = json_ctx->json_out;
     }
 

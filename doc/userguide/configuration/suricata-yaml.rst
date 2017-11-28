@@ -278,6 +278,7 @@ integration with 3rd party tools like logstash.
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
+      version: 2 #1|2, 2 will enable new logging format (actually used only for dns logging)
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
@@ -341,6 +342,9 @@ integration with 3rd party tools like logstash.
             # default yes, no to disable
             query: yes     # enable logging of DNS queries
             answer: yes    # enable logging of DNS answers
+            # log answer event in one line
+            # set to 'detailed', 'aggs' or 'both'
+            #answer-type: both
             # control which RR types are logged
             # all enabled if custom not specified
             #custom: [a, aaaa, cname, mx, ns, ptr, txt]
