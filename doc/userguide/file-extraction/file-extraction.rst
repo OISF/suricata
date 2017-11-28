@@ -44,8 +44,9 @@ drop dir must be configured.
       waldo: file.waldo # waldo file to store the file_id across runs
       max-open-files: 0 # how many files to keep open (O means none)
       write-meta: yes   # write a .meta file if set to yes
+      include-pid: yes  # include the pid in filenames if set to yes.
 
-Each file that is stored with have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used. A "file.<id>.meta" file is generated containing file metadata if write-meta is set to yes (default).
+Each file that is stored with have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used. A "file.<id>.meta" file is generated containing file metadata if write-meta is set to yes (default). If the include-pid option is set, the files will instead have a name "file.<pid>.<id>", and metafiles will be "file.<pid>.<id>.meta". Files will additionally have the suffix ".tmp" while they are open, which is only removed when they are finalized.
 
 
 ::

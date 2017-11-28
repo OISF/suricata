@@ -343,6 +343,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_REDIS_ASYNC);
         CASE_CODE (SC_ERR_REDIS_CONFIG);
         CASE_CODE (SC_ERR_BYPASS_NOT_SUPPORTED);
+        CASE_CODE (SC_WARN_RENAMING_FILE);
     }
 
     return "UNKNOWN_ERROR";
