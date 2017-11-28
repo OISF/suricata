@@ -113,6 +113,12 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, const char *
                       "invalid value for depth: %s", str);
             goto end;
         }
+
+        if (cd->depth < cd->content_len) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "depth:%u smaller than "
+                   "content of len %u", cd->depth, cd->content_len);
+            return -1;
+        }
         /* Now update the real limit, as depth is relative to the offset */
         cd->depth += cd->offset;
     }
