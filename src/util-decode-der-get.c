@@ -51,6 +51,7 @@ typedef struct AsnExtension_ {
 
 static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
+static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -98,7 +99,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.17", .extn_name = "subject_alternative_name",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1SubjectAltNameToJSON
 #endif
     },
     { .extn_id = "2.5.29.18", .extn_name = "issuer_alternative_name",
@@ -910,6 +911,49 @@ static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *extn)
         /* add 8 bytes (oid length already checked above) and skip 2 bytes *
          * to get the next OID to check. */
         offset += 10;
+    }
+
+    return jdata;
+}
+
+static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *extn)
+{
+    uint8_t tag = extn->extn_value[0];
+    uint8_t len = 0;
+    unsigned int offset = 0;
+    json_t *jdata = NULL;
+
+    /* Only handle DNS name */
+    while (offset < extn->extn_length) {
+        if (tag == (ASN1_CONTEXT_SPECIFIC | 2))
+            break;
+        tag = extn->extn_value[++offset];
+    }
+
+    if (offset >= extn->extn_length) {
+        return NULL;
+    }
+
+    jdata = json_array();
+    while (offset < extn->extn_length) {
+        offset++;
+        len = extn->extn_value[offset];
+        if (len <= 3) {
+            offset += 2;
+            continue;
+        }
+        offset++;
+        /* Only handle DNS name */
+        if (tag  == (ASN1_CONTEXT_SPECIFIC | 2)) {
+            char buf[len + 1];
+            memcpy(buf, extn->extn_value + offset, len);
+            buf[len] = '\0';
+            json_array_append_new(jdata, json_string(buf));
+        }
+        offset += len;
+        if (offset >= extn->extn_length)
+            break;
+        tag = extn->extn_value[offset];
     }
 
     return jdata;
