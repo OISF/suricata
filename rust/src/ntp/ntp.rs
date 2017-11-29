@@ -20,7 +20,7 @@
 extern crate ntp_parser;
 use self::ntp_parser::*;
 use core;
-use core::{AppProto,ALPROTO_UNKNOWN,ALPROTO_FAILED};
+use core::{AppProto,Flow,ALPROTO_UNKNOWN,ALPROTO_FAILED};
 use applayer;
 use parser::*;
 use libc;
@@ -361,7 +361,7 @@ pub extern "C" fn rs_ntp_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_NTP : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn ntp_probing_parser(input:*const i8, input_len: u32, _offset: *const i8) -> AppProto {
+pub extern "C" fn ntp_probing_parser(_flow: *const Flow, input:*const u8, input_len: u32, _offset: *const u32) -> AppProto {
     let slice: &[u8] = unsafe { std::slice::from_raw_parts(input as *mut u8, input_len as usize) };
     let alproto = unsafe{ ALPROTO_NTP };
     match parse_ntp(slice) {
