@@ -50,6 +50,7 @@ typedef struct AsnExtension_ {
 } AsnExtension;
 
 static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
+static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -82,7 +83,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.37", .extn_name = "extended_key_usage",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1ExtKeyUsageToJSON
 #endif
     },
     { .extn_id = "2.5.29.14", .extn_name = "subject_key_identifier",
@@ -870,6 +871,48 @@ static json_t *Asn1KeyUsageToJSON(SSLCertExtension *extn)
         json_array_append_new(val, json_string("Decipher Only"));
 
     return val;
+}
+
+typedef struct eku_oids_t {
+    const char *oid;
+    const char *desc;
+} eku_oids;
+
+eku_oids ext_key_usage[] = {
+    { "\x2b\x06\x01\x05\x05\x07\x03\x01", "TLS WWW Server Authentication" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x02", "TLS WWW Client Authentication" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x03", "Code Signing" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x04", "E-mail Protection" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x08", "Time Stamping" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x09", "OCSP Signing" },
+};
+
+#define OID_MAX 6
+static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *extn)
+{
+    /* OID stats at 4th byte */
+    unsigned int offset = 4;
+    int i;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while (offset < extn->extn_length) {
+        for (i = 0; i < OID_MAX; i++) {
+            if (memcmp(ext_key_usage[i].oid, extn->extn_value + offset,
+                       strlen(ext_key_usage[i].oid)) == 0)
+            {
+                json_array_append_new(jdata, json_string(ext_key_usage[i].desc));
+                break;
+            }
+        }
+        /* add 8 bytes (oid length already checked above) and skip 2 bytes *
+         * to get the next OID to check. */
+        offset += 10;
+    }
+
+    return jdata;
 }
 
 #endif
