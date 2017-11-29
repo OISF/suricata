@@ -38,6 +38,8 @@
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
 
+#include "output-json.h"
+
 /* number of extensions supported */
 #define EXTN_MAX 15
 
@@ -52,6 +54,7 @@ typedef struct AsnExtension_ {
 static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
+static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -64,7 +67,7 @@ static const uint8_t SEQ_IDX_SIGNATURE_ALGO[] = { 1, 0 };
 static AsnExtension asn_extns[EXTN_MAX] = {
     { .extn_id = "2.5.29.19", .extn_name = "basic_contraints",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1BasicContraintsToJSON
 #endif
     },
     { .extn_id = "2.5.29.30", .extn_name = "name_contraints",
@@ -956,6 +959,18 @@ static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *extn)
         tag = extn->extn_value[offset];
     }
 
+    return jdata;
+}
+
+static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *extn)
+{
+    int ca = (int)extn->extn_value[1];
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    json_object_set_new(jdata, "CA", json_boolean(ca));
     return jdata;
 }
 
