@@ -57,6 +57,7 @@ static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
 static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
+static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -139,7 +140,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.54", .extn_name = "inhibit_any_policy",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1InhibitAnyPolicyToJSON
 #endif
     },
 };
@@ -1036,6 +1037,30 @@ static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *extn)
     }
 
     return json_string(out);
+}
+
+static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn)
+{
+    #define MAX_LENGTH 6
+    uint32_t val = 0;
+    uint32_t i;
+
+    if (extn->extn_value[0] != ASN1_INTEGER) {
+        SCLogDebug("Invalid value, expected an integer");
+        return json_string("unknown");
+    }
+
+    if (extn->extn_length > MAX_LENGTH) {
+        SCLogDebug("value is too big");
+        return json_string("unknown");
+    }
+
+    for (i = 2; i < extn->extn_length; i++)
+    {
+        val = val<<8 | extn->extn_value[i];
+    }
+
+    return json_integer(val);
 }
 
 #endif
