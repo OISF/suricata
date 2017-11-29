@@ -56,6 +56,7 @@ static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
 static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *);
+static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -98,7 +99,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.35", .extn_name = "authority_key_identifier",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1AuthorityKeyIdentifierToJSON
 #endif
     },
     { .extn_id = "2.5.29.17", .extn_name = "subject_alternative_name",
@@ -999,6 +1000,37 @@ static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *extn)
         char one[4];
 
         memcpy((void *)&x, extn->extn_value + (2+i), 1);
+        snprintf(one, sizeof(one), i == len - 1 ? "%02X" : "%02X:", x);
+        strlcat(out, one, out_len);
+    }
+
+    return json_string(out);
+}
+
+static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid value, expected a constructed type.");
+        return NULL;
+    }
+
+    uint32_t len = extn->extn_value[3];
+    if (len == 0 || len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    unsigned int out_len = len * 3;
+    char out[out_len];
+    unsigned int i;
+
+    memset(out, 0x00, out_len);
+
+    for (i = 0; i < len; i++) {
+        int x = 0;
+        char one[4];
+
+        memcpy((void *)&x, extn->extn_value + (4+i), 1);
         snprintf(one, sizeof(one), i == len - 1 ? "%02X" : "%02X:", x);
         strlcat(out, one, out_len);
     }
