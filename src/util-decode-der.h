@@ -55,6 +55,7 @@
 #define ASN1_IA5STRING       0x16
 #define ASN1_UTCTIME         0x17
 #define ASN1_GENERALIZEDTIME 0x18
+#define ASN1_CONSTRUCTED     0x30
 #define ASN1_CONTEXT_SPECIFIC 0x80
 
 typedef struct Asn1ElementType_ {
