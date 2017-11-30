@@ -435,6 +435,14 @@ void UTHFreePacket(Packet *p)
     SCFree(p);
 }
 
+void UTHAssignFlow(Packet *p, Flow *f)
+{
+    if (p && f) {
+        p->flow = f;
+        p->flags |= PKT_HAS_FLOW;
+    }
+}
+
 Flow *UTHBuildFlow(int family, const char *src, const char *dst, Port sp, Port dp)
 {
     struct in_addr in;
