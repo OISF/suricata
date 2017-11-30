@@ -2071,6 +2071,12 @@ static int SignatureCreateMask(Signature *s)
                         "flowbit(s)");
                 break;
             }
+            case DETECT_FLOWINT:
+                /* flow is required for any flowint manipulation */
+                s->mask |= SIG_MASK_REQUIRE_FLOW;
+                SCLogDebug("sig requires flow to be able to manipulate "
+                        "flowint(s)");
+                break;
             case DETECT_FLAGS:
             {
                 DetectFlagsData *fl = (DetectFlagsData *)sm->ctx;
