@@ -41,6 +41,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *, uint16_t);
 void UTHFreePacket(Packet *);
 void UTHFreePackets(Packet **, int);
 
+void UTHAssignFlow(Packet *p, Flow *f);
 Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp);
 void UTHFreeFlow(Flow *flow);
 
