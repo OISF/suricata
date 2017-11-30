@@ -53,6 +53,9 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
  */
 FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen)
 {
+    if (f == NULL)
+        return NULL;
+
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {
@@ -74,6 +77,9 @@ FlowVar *FlowVarGetByKey(Flow *f, const uint8_t *key, uint16_t keylen)
  */
 FlowVar *FlowVarGet(Flow *f, uint32_t idx)
 {
+    if (f == NULL)
+        return NULL;
+
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {
