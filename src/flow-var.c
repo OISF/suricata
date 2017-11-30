@@ -53,6 +53,9 @@ static void FlowVarUpdateInt(FlowVar *fv, uint32_t value)
  */
 FlowVar *FlowVarGet(Flow *f, uint16_t idx)
 {
+    if (f == NULL)
+        return NULL;
+
     GenericVar *gv = f->flowvar;
 
     for ( ; gv != NULL; gv = gv->next) {

@@ -95,6 +95,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     uint32_t targetval;
     int ret = 0;
 
+    if (p->flow == NULL)
+        return 0;
+
     /** ATM If we are going to compare the current var with another
      * that doesn't exist, the default value will be zero;
      * if you don't want this behaviour, you can use the keyword
