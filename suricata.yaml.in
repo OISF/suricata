@@ -779,6 +779,9 @@ app-layer:
       detection-ports:
         dp: 443
 
+      # Generate JA3 fingerprint from client hello
+      ja3-fingerprints: no
+
       # Completely stop processing TLS/SSL session after the handshake
       # completed. If bypass is enabled this will also trigger flow
       # bypass. If disabled (the default), TLS/SSL session is still

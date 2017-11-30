@@ -420,6 +420,7 @@ util-host-info.c util-host-info.h \
 util-hyperscan.c util-hyperscan.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
+util-ja3.h util-ja3.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-log-redis.h util-log-redis.c \
