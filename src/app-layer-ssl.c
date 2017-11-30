@@ -49,6 +49,7 @@
 #include "util-print.h"
 #include "util-pool.h"
 #include "util-byte.h"
+#include "util-ja3.h"
 #include "flow-util.h"
 #include "flow-private.h"
 
@@ -83,8 +84,12 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
 /* by default we keep tracking */
 #define SSL_CONFIG_DEFAULT_NOREASSEMBLE 0
 
+/* JA3 fingerprints are disabled by default */
+#define SSL_CONFIG_DEFAULT_JA3 0
+
 typedef struct SslConfig_ {
     int no_reassemble;
+    int enable_ja3;
 } SslConfig;
 
 SslConfig ssl_config;
@@ -258,11 +263,67 @@ static int SSLSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
     return 0;
 }
 
+/**
+ * \inline
+ * \brief Check if value is GREASE.
+ *
+ * http://tools.ietf.org/html/draft-davidben-tls-grease-00
+ *
+ * \param value Value to check.
+ *
+ * \retval 1 if is GREASE.
+ * \retval 0 if not is GREASE.
+ */
+static inline int TLSDecodeValueIsGREASE(const uint16_t value)
+{
+    switch (value)
+    {
+        case 0x0a0a:
+        case 0x1a1a:
+        case 0x2a2a:
+        case 0x3a3a:
+        case 0x4a4a:
+        case 0x5a5a:
+        case 0x6a6a:
+        case 0x7a7a:
+        case 0x8a8a:
+        case 0x9a9a:
+        case 0xaaaa:
+        case 0xbaba:
+        case 0xcaca:
+        case 0xdada:
+        case 0xeaea:
+        case 0xfafa:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state, uint8_t **input,
                                           const uint32_t input_len,
                                           const uint8_t *initial_input)
 {
-    /* Skip version */
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+            ssl_config.enable_ja3) {
+        if (!(HAS_SPACE(SSLV3_CLIENT_HELLO_VERSION_LEN))) {
+            SCLogDebug("TLS handshake invalid length");
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
+            return -1;
+        }
+
+        uint16_t version = **input << 8 | *(*input + 1);
+
+        ssl_state->ja3_str = Ja3BufferInit();
+        if (ssl_state->ja3_str == NULL)
+            return -1;
+
+        int rc = Ja3BufferAddValue(ssl_state->ja3_str, version);
+        if (rc != 0)
+            return -1;
+    }
+
     *input += SSLV3_CLIENT_HELLO_VERSION_LEN;
 
     return 0;
@@ -307,20 +368,61 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
                                                const uint32_t input_len,
                                                const uint8_t *initial_input)
 {
-    if (!(HAS_SPACE(2))) {
-        SCLogDebug("TLS handshake invalid length");
-        SSLSetEvent(ssl_state,
-                    TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
-        return -1;
-    }
+    if (!(HAS_SPACE(2)))
+        goto invalid_length;
 
     uint16_t cipher_suites_length = **input << 8 | *(*input + 1);
     *input += 2;
 
-    /* Skip cipher suites */
-    *input += cipher_suites_length;
+    if (!(HAS_SPACE(cipher_suites_length)))
+        goto invalid_length;
+
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+            ssl_config.enable_ja3) {
+        int rc;
+
+        JA3Buffer *ja3_cipher_suites = Ja3BufferInit();
+        if (ja3_cipher_suites == NULL)
+            return -1;
+
+        uint16_t processed_len = 0;
+        while (processed_len < cipher_suites_length)
+        {
+            if (!(HAS_SPACE(2)))
+                goto invalid_length;
+
+            uint16_t cipher_suite = **input << 8 | *(*input + 1);
+            *input += 2;
+
+            if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
+                rc = Ja3BufferAddValue(ja3_cipher_suites, cipher_suite);
+                if (rc != 0) {
+                    Ja3BufferFree(ja3_cipher_suites);
+                    return -1;
+                }
+            }
+
+            processed_len += 2;
+        }
+
+        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_cipher_suites);
+        if (rc != 0) {
+            Ja3BufferFree(ja3_cipher_suites);
+            return -1;
+        }
+
+    } else {
+        /* Skip cipher suites */
+        *input += cipher_suites_length;
+    }
 
     return 0;
+
+invalid_length:
+    SCLogDebug("TLS handshake invalid length");
+    SSLSetEvent(ssl_state,
+                TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
+    return -1;
 }
 
 static inline int TLSDecodeHSHelloCompressionMethods(SSLState *ssl_state,
@@ -349,6 +451,20 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                                              const uint32_t input_len,
                                              const uint8_t *initial_input)
 {
+    JA3Buffer *ja3_extensions = NULL;
+    JA3Buffer *ja3_elliptic_curves = NULL;
+    JA3Buffer *ja3_elliptic_curves_pf = NULL;
+
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+            ssl_config.enable_ja3) {
+        ja3_extensions = Ja3BufferInit();
+        ja3_elliptic_curves = Ja3BufferInit();
+        ja3_elliptic_curves_pf = Ja3BufferInit();
+        if (ja3_extensions == NULL || ja3_elliptic_curves == NULL ||
+                ja3_elliptic_curves_pf == NULL)
+            return -1;
+    }
+
     /* Extensions are optional (RFC5246 section 7.4.1.2) */
     if (!(HAS_SPACE(2)))
         goto end;
@@ -436,22 +552,131 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 break;
             }
 
+            case SSL_EXTENSION_ELLIPTIC_CURVES:
+            {
+                if (!(HAS_SPACE(2)))
+                    goto invalid_length;
+
+                uint16_t elliptic_curves_len = **input << 8 | *(*input + 1);
+                *input += 2;
+
+                if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                        ssl_config.enable_ja3) {
+                    if (!(HAS_SPACE(elliptic_curves_len)))
+                        goto invalid_length;
+
+                    uint16_t ec_processed_len = 0;
+                    while (ec_processed_len < elliptic_curves_len)
+                    {
+                        uint16_t elliptic_curve = **input << 8 | *(*input + 1);
+                        *input += 2;
+
+                        if (TLSDecodeValueIsGREASE(elliptic_curve) != 1) {
+                            int rc = Ja3BufferAddValue(ja3_elliptic_curves,
+                                                       elliptic_curve);
+                            if (rc != 0)
+                                goto error;
+                        }
+
+                        ec_processed_len += 2;
+                    }
+
+                } else {
+                    /* Skip elliptic curves */
+                    *input += elliptic_curves_len;
+                }
+
+                break;
+            }
+
+            case SSL_EXTENSION_EC_POINT_FORMATS:
+            {
+                if (!(HAS_SPACE(1)))
+                    goto invalid_length;
+
+                uint8_t ec_pf_len = **input;
+                *input += 1;
+
+                if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                        ssl_config.enable_ja3) {
+                    if (!(HAS_SPACE(ec_pf_len)))
+                        goto invalid_length;
+
+                    uint8_t ec_pf_processed_len = 0;
+                    while (ec_pf_processed_len < ec_pf_len)
+                    {
+                        uint8_t elliptic_curve_pf = **input;
+                        *input += 1;
+
+                        if (TLSDecodeValueIsGREASE(elliptic_curve_pf) != 1) {
+                            int rc = Ja3BufferAddValue(ja3_elliptic_curves_pf,
+                                                       elliptic_curve_pf);
+                            if (rc != 0)
+                                goto error;
+                        }
+
+                        ec_pf_processed_len += 1;
+                    }
+
+                } else {
+                    /* Skip elliptic curve point formats */
+                    *input += ec_pf_len;
+                }
+
+                break;
+            }
+
             default:
             {
                 *input += ext_len;
                 break;
             }
         }
+
+        if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                ssl_config.enable_ja3) {
+            if (TLSDecodeValueIsGREASE(ext_type) != 1) {
+                int rc = Ja3BufferAddValue(ja3_extensions, ext_type);
+                if (rc != 0)
+                    goto error;
+            }
+        }
+
         processed_len += ext_len + 4;
     }
 
 end:
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+            ssl_config.enable_ja3) {
+        int rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_extensions);
+        if (rc != 0)
+            goto error;
+
+        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_elliptic_curves);
+        if (rc != 0)
+            goto error;
+
+        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str,
+                                   ja3_elliptic_curves_pf);
+        if (rc != 0)
+            goto error;
+    }
+
     return 0;
 
 invalid_length:
     SCLogDebug("TLS handshake invalid length");
     SSLSetEvent(ssl_state,
                 TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
+
+error:
+    if (ja3_extensions != NULL)
+        Ja3BufferFree(ja3_extensions);
+    if (ja3_elliptic_curves != NULL)
+        Ja3BufferFree(ja3_elliptic_curves);
+    if (ja3_elliptic_curves_pf != NULL)
+        Ja3BufferFree(ja3_elliptic_curves_pf);
+
     return -1;
 }
 
@@ -491,6 +716,11 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
                                     initial_input);
     if (rc != 0)
         goto end;
+
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+            ssl_config.enable_ja3) {
+        ssl_state->ja3_hash = Ja3GenerateHash(ssl_state->ja3_str);
+    }
 
 end:
     return 0;
@@ -1694,6 +1924,11 @@ static void SSLStateFree(void *p)
     if (ssl_state->server_connp.sni)
         SCFree(ssl_state->server_connp.sni);
 
+    if (ssl_state->ja3_str)
+        Ja3BufferFree(ssl_state->ja3_str);
+    if (ssl_state->ja3_hash)
+        SCFree(ssl_state->ja3_hash);
+
     AppLayerDecoderEventsFreeEvents(&ssl_state->decoder_events);
 
     if (ssl_state->de_state != NULL) {
@@ -1970,6 +2205,25 @@ void RegisterSSLParsers(void)
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
                 ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
         }
+
+        /* Check if we should generate JA3 fingerprints */
+        if (ConfGetBool("app-layer.protocols.tls.ja3-fingerprints",
+                        &ssl_config.enable_ja3) != 1) {
+            ssl_config.enable_ja3 = SSL_CONFIG_DEFAULT_JA3;
+        }
+
+#ifndef HAVE_NSS
+        if (ssl_config.enable_ja3) {
+            SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
+                         "no MD5 calculation support built in, disabling JA3");
+            ssl_config.enable_ja3 = 0;
+        }
+#else
+        if (RunmodeIsUnittests()) {
+            ssl_config.enable_ja3 = 1;
+        }
+#endif
+
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
