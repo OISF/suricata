@@ -58,6 +58,7 @@ static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
+static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -120,7 +121,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.31", .extn_name = "crl_distribution_points",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1CRLDistributionPointsToJSON
 #endif
     },
     { .extn_id = "2.5.29.16", .extn_name = "private_key_usage_period",
@@ -1068,6 +1069,102 @@ static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn)
     }
 
     return json_integer(val);
+}
+
+static json_t *Asn1CRLParseFullName(uint8_t *data, uint8_t *dp_len, uint8_t dp_seq_len)
+{
+    int offset = 0;
+    json_t *jret = NULL;
+    uint8_t fn_len = data[++offset];
+    if (fn_len == 0 || fn_len > dp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    if (data[++offset] == 0x86) {
+        uint8_t uri_len = data[++offset];
+        if (uri_len == 0 || (uri_len + 4) > dp_seq_len) {
+            SCLogDebug("invalid length");
+            return NULL;
+        }
+        char buf[uri_len + 1];
+        offset++;
+        memcpy(buf, (char *)data + offset, uri_len);
+        buf[uri_len] = '\0';
+        jret = json_string(buf);
+    }
+
+    *dp_len += fn_len;
+
+    return jret;
+}
+
+static json_t *Asn1CRLParseDistributionPoint(uint8_t *data, uint8_t *crl_len, uint8_t dp_seq_len)
+{
+    int offset = 0;
+    uint8_t dp_len = data[++offset];
+    if (dp_len == 0 || dp_len > dp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    json_t *jobj = NULL;
+    if (data[++offset] == 0xA0) {
+        /* fullName field length */
+        jobj = Asn1CRLParseFullName(data + offset, &len, dp_len);
+    }
+    *crl_len += dp_len;
+
+    return jobj;
+}
+
+static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *extn)
+{
+    /* check if CRLDistributionPoints is a SEQUENCE */
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        return NULL;
+    }
+
+    uint8_t crl_len = extn->extn_value[1];
+    if (crl_len == 0 || crl_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while ((len + 2) < crl_len) {
+        /* check if DistributionPoint is a SEQUENCE */
+        if (extn->extn_value[offset] != 0x30) {
+            SCLogDebug("identifier different than 0x30");
+            break;
+        }
+
+        uint8_t dp_seq_len = extn->extn_value[++offset];
+        if (dp_seq_len == 0 || dp_seq_len > crl_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+
+        if ((uint8_t)extn->extn_value[++offset] == 0xA0) {
+            json_t *jobj = Asn1CRLParseDistributionPoint((uint8_t *)extn->extn_value + offset, &len, dp_seq_len);
+            if (jobj) {
+                json_array_append_new(jdata, jobj);
+            }
+        }
+
+        offset += len + 2;
+        len += 3;
+    }
+
+    return jdata;
 }
 
 #endif
