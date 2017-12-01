@@ -109,7 +109,7 @@ static uint8_t *GetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         headers = tx->response_headers;
         line = tx->response_line;
     }
-    if (headers == NULL)
+    if (line == NULL || headers == NULL)
         return NULL;
 
     size_t line_size = bstr_len(line) + 2;
