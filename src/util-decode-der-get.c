@@ -59,6 +59,7 @@ static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
 static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
+static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -131,7 +132,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.32", .extn_name = "certificate_policies",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1CertificatePoliciesToJSON
 #endif
     },
     { .extn_id = "2.5.29.33", .extn_name = "policy_mappings",
@@ -1165,6 +1166,189 @@ static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *extn)
     }
 
     return jdata;
+}
+
+static void Asn1BuildOidValue(uint8_t *data, int offset, uint8_t oid_len, char *str)
+{
+    uint32_t oid_value;
+    uint8_t c;
+    int i = 1;
+
+    c = data[offset];
+    snprintf(str, MAX_OID_LENGTH, "%d.%d", (c/40), (c%40));
+
+    /* sub-identifiers are multi-valued, coded and 7 bits, first bit of
+       the 8bits is used to indicate, if a new value is starting */
+    while (i < oid_len) {
+        int s = strlen(str);
+        c = data[offset + i];
+        oid_value = 0;
+        while (i < oid_len && (c & (1<<7)) == 1<<7) {
+            oid_value = oid_value<<7 | (c & ~(1<<7));
+            i++;
+            c = data[offset + i];
+        }
+        oid_value = oid_value<<7 | c;
+        i++;
+        snprintf(str + s, MAX_OID_LENGTH - s, ".%d", oid_value);
+    }
+}
+
+static json_t *Asn1CPParsePolicyIdentifier(uint8_t *data, uint8_t *crl_len, uint8_t cp_seq_len)
+{
+    int offset = 0;
+    uint8_t pid_len = data[++offset];
+    if (pid_len == 0 || pid_len > cp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+    offset++;
+
+    char str[MAX_OID_LENGTH];
+    Asn1BuildOidValue(data, offset, pid_len, str);
+
+    *crl_len += pid_len + 2;
+
+    return json_string(str);
+}
+
+static json_t *Asn1CPParsePolicyQualifiers(uint8_t *data, uint8_t *crl_len, uint8_t cp_seq_len)
+{
+    int offset = 2;
+    uint8_t pq_len = data[1];
+    if (pq_len == 0 || pq_len > cp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    *crl_len += pq_len + 2;
+
+    /* PolicyQualifierInfo */
+    if (data[0] == ASN1_CONSTRUCTED) {
+        uint8_t len = 0;
+        json_t *jobj = json_object();
+        if (jobj == NULL) {
+            return NULL;
+        }
+
+        while (len < pq_len) {
+            switch(data[offset]) {
+                case ASN1_OID:
+                    {
+                        uint8_t pqid_len = data[++offset];
+                        if (pqid_len == 0 || pqid_len > pq_len) {
+                            SCLogDebug("invalid length");
+                            json_object_clear(jobj);
+                            json_decref(jobj);
+                            return NULL;
+                        }
+                        offset++;
+                        char str[MAX_OID_LENGTH];
+                        Asn1BuildOidValue(data, offset, pqid_len, str);
+                        len += pqid_len + 2;
+                        json_object_set_new(jobj, "qualifier_id", json_string(str));
+                    }
+                    break;
+                case ASN1_IA5STRING:
+                    {
+                        uint8_t qualifier_len = data[++offset];
+                        if (qualifier_len == 0 || qualifier_len > pq_len) {
+                            SCLogDebug("invalid length");
+                            json_object_clear(jobj);
+                            json_decref(jobj);
+                            return NULL;
+                        }
+                        char buf[qualifier_len + 1];
+                        memset(buf, 0x00, qualifier_len + 1);
+                        offset++;
+                        memcpy(buf, (char *)data + offset, qualifier_len);
+                        buf[qualifier_len] = '\0';
+                        json_object_set_new(jobj, "qualifier", json_string(buf));
+                        len += qualifier_len + 2;
+                    }
+                    break;
+                default:
+                    len += data[++offset] + 2;
+                    break;
+            }
+            offset = len + 2;
+        }
+        return jobj;
+    }
+
+    return NULL;
+}
+
+static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid value, expected a constructed type.");
+        return NULL;
+    }
+
+    uint8_t cp_len = extn->extn_value[1];
+    if (cp_len == 0 || cp_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 2;
+    int offset = 2;
+
+    json_t *jidentifier = NULL;
+    json_t *jqualifier = NULL;
+
+    while ((len + 2) < cp_len) {
+        if (extn->extn_value[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid value, expected a constructed type.");
+            break;
+        }
+
+        uint8_t pi_seq_len = extn->extn_value[++offset];
+        if (pi_seq_len == 0 || pi_seq_len > cp_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+
+        len += 2;
+        offset++;
+        json_t *jobj2;
+        if ((uint8_t)extn->extn_value[offset] == ASN1_OID) {
+            jobj2 = Asn1CPParsePolicyIdentifier((uint8_t *)extn->extn_value + offset, &len, pi_seq_len);
+            if (jobj2) {
+                if (jidentifier == NULL) {
+                    jidentifier = json_array();
+                    if (jidentifier == NULL) {
+                        return NULL;
+                    }
+                }
+                json_array_append_new(jidentifier, jobj2);
+            }
+        } else if ((uint8_t)extn->extn_value[offset] == ASN1_CONSTRUCTED) {
+            jobj2 = Asn1CPParsePolicyQualifiers((uint8_t *)extn->extn_value + offset, &len, pi_seq_len);
+            if (jobj2) {
+                if (jqualifier == NULL) {
+                    jqualifier = json_array();
+                    if (jqualifier == NULL) {
+                        return NULL;
+                    }
+                }
+                json_array_append_new(jqualifier, jobj2);
+            }
+        }
+        offset = len;
+    }
+
+    if (jqualifier || jidentifier) {
+        json_t *jdata = json_object();
+        if (jqualifier)
+            json_object_set_new(jdata, "policy_qualifiers", jqualifier);
+        if (jidentifier)
+            json_object_set_new(jdata, "policy_identifiers", jidentifier);
+        return jdata;
+    }
+
+    return NULL;
 }
 
 #endif
