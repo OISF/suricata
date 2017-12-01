@@ -42,10 +42,18 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
+            # http-body: yes           # enable dumping of http body in Base64
+            # http-body-printable: yes # enable dumping of http body in printable format
+            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
+            # http: yes                # enable dumping of http fields
+            # tls: yes                 # enable dumping of tls fields
+            # ssh: yes                 # enable dumping of ssh fields
+            # smtp: yes                # enable dumping of smtp fields
+
+            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
+              enabled: no              # set to yes to enable
+              output-array: no         # output value of key as an array
+              array-keys: [tag]        # comma separated array of keys to output as array
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
@@ -185,6 +193,18 @@ layer metadata to output on a per application layer basis ::
 
 The `vars` will enable dumping of a set of key/value based on flowbits and other vars
 such as named groups in regular expression.
+
+It is also possible to log key/value pairs defined by the metadata keyword on rule. To
+do so you need to set `enabled` to yes under `rule-metadata` ::
+
+        - alert:
+            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
+            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
+              enabled: yes              # set to yes to enable
+              output-array: no         # output value of key as an array
+              array-keys: [tag]        # comma separated array of keys to output as array
+
+This will add a `alert.metadata` object in the alert event.
 
 DNS
 ~~~

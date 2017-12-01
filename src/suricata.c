@@ -2884,10 +2884,11 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-    PostConfLoadedDetectSetup(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
     PreRunPostPrivsDropInit(suri.run_mode);
+
+    PostConfLoadedDetectSetup(&suri);
 
     if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");

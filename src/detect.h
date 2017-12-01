@@ -30,6 +30,7 @@
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
+#include "detect-metadata.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -465,6 +466,8 @@ typedef struct Signature_ {
     char *class_msg;
     /** Reference */
     DetectReference *references;
+    /** Metadata */
+    DetectMetadata *metadata;
 
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
@@ -730,6 +733,9 @@ typedef struct DetectEngineCtx_ {
 
     /** table for storing the string representation with the parsers result */
     HashListTable *address_table;
+
+    /** table to store metadata keys and values */
+    HashTable *metadata_table;
 
     /** table with mpms and their registration function
      *  \todo we only need this at init, so perhaps this
@@ -1417,6 +1423,9 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
+
+int DetectMetadataHashInit(DetectEngineCtx *de_ctx);
+void DetectMetadataHashFree(DetectEngineCtx *de_ctx);
 
 #endif /* __DETECT_H__ */
 
