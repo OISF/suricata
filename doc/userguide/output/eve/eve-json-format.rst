@@ -184,6 +184,13 @@ Outline of fields seen in the different kinds of DNS events:
 
 * "type": Indicating DNS message type, can be "answer" or "query".
 * "id": <needs explanation>
+* "flags": Indicating DNS answer flag, in hexadecimal (ex: 8180 , please note 0x is not output)
+* "qr": Indicating in case of DNS answer flag, Query/Response flag (ex: true if set)
+* "aa": Indicating in case of DNS answer flag, Authoritative Answer flag (ex: true if set)
+* "tc": Indicating in case of DNS answer flag, Truncation flag (ex: true if set)
+* "rd": Indicating in case of DNS answer flag, Recursion Desired flag (ex: true if set)
+* "ra": Indicating in case of DNS answer flag, Recursion Available flag (ex: true if set)
+* "rcode": (ex: NOERROR)
 * "rrname": Resource Record Name (ex: a domain name)
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
 * "rdata": Resource Data (ex. IP that domain name resolves to)
@@ -213,6 +220,11 @@ Example of a DNS answer with an IPv4 (resource record type 'A') return:
   "dns": {
       "type": "answer",
       "id":16000,
+      "flags":"8180", 
+      "qr":true,
+      "rd":true,
+      "ra":true,
+      "rcode":"NOERROR"
       "rrname": "twitter.com",
       "rrtype":"A",
       "ttl":8,

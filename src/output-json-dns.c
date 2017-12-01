@@ -465,6 +465,22 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
     /* id */
     json_object_set_new(js, "id", json_integer(tx->tx_id));
 
+    /* dns */
+    char flags[7] = "";
+    snprintf(flags, sizeof(flags), "%4x", tx->flags);
+    json_object_set_new(js, "flags", json_string(flags));
+    if (tx->flags & 0x8000)
+        json_object_set_new(js, "qr", json_true());
+    if (tx->flags & 0x0400)
+        json_object_set_new(js, "aa", json_true());
+    if (tx->flags & 0x0200)
+        json_object_set_new(js, "tc", json_true());
+    if (tx->flags & 0x0100)
+        json_object_set_new(js, "rd", json_true());
+    if (tx->flags & 0x0080)
+        json_object_set_new(js, "ra", json_true());
+
+
     /* rcode */
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
