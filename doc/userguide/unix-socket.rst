@@ -72,6 +72,9 @@ The set of existing commands is the following:
 * ruleset-reload-time: return time of last reload
 * ruleset-stats: display the number of rules loaded and failed
 * ruleset-failed-rules: display the list of failed rules
+* memcap-set: update memcap value of an item specified
+* memcap-show: show memcap value of an item specified
+* memcap-list: list all memcap values available
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
