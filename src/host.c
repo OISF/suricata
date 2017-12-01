@@ -52,6 +52,26 @@ static HostQueue host_spare_q;
  *  the storage APIs additions. */
 static uint16_t g_host_size = sizeof(Host);
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void HostSetMemcap(uint64_t size)
+{
+    host_config.memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t HostGetMemcap(void)
+{
+    return host_config.memcap;
+}
+
 uint32_t HostSpareQueueGetSize(void)
 {
     return HostQueueLen(&host_spare_q);

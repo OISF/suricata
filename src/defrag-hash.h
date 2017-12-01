@@ -99,5 +99,8 @@ void DefragTrackerClearMemory(DefragTracker *);
 void DefragTrackerMoveToSpare(DefragTracker *);
 uint32_t DefragTrackerSpareQueueGetSize(void);
 
+void DefragTrackerSetMemcap(uint64_t);
+uint64_t DefragTrackerGetMemcap(void);
+
 #endif /* __DEFRAG_HASH_H__ */
 

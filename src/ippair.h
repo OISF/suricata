@@ -151,4 +151,7 @@ void IPPairFree(IPPair *);
 void IPPairLock(IPPair *);
 void IPPairUnlock(IPPair *);
 
+void IPPairSetMemcap(uint64_t size);
+uint64_t IPPairGetMemcap(void);
+
 #endif /* __IPPAIR_H__ */

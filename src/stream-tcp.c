@@ -169,6 +169,26 @@ int StreamTcpCheckMemcap(uint64_t size)
     return 0;
 }
 
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+void StreamTcpSetMemcap(uint64_t size)
+{
+    stream_config.memcap = size;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \param memcap memcap value
+ */
+uint64_t StreamTcpGetMemcap(void)
+{
+    return stream_config.memcap;
+}
+
 void StreamTcpStreamCleanup(TcpStream *stream)
 {
     if (stream != NULL) {
