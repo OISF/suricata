@@ -509,6 +509,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
     }
 
     if (tx != NULL) {
+        tx->flags = ntohs(dns_header->flags);
         tx->replied = 1;
     }
 
