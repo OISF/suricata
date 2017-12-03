@@ -68,7 +68,19 @@ you can pick from. These are:
 * ftp
 * tls (this includes ssl)
 * smb
-* dns (from v2.0)
+* dns
+* dcerpc
+* ssh
+* smtp
+* imap
+* msn
+* modbus (disabled by default)
+* dnp3 (disabled by default)
+* enip (disabled by default)
+* nfs (depends on rust availability)
+* ntp (depends on rust availability)
+
+The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.
 
 If you have a signature with for
 instance a http protocol, Suricata makes sure the signature can only
