@@ -519,20 +519,18 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 
-    FlowDeReference(&p->flow);
-
     /* we're done with the tunnel root now as well */
     if (proot == true) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
 
-        FlowDeReference(&p->root->flow);
-
+        PACKET_RELEASE_REFS(p->root);
         p->root->ReleasePacket(p->root);
         p->root = NULL;
     }
 
     PACKET_PROFILING_END(p);
 
+    PACKET_RELEASE_REFS(p);
     p->ReleasePacket(p);
 
     SCReturn;
