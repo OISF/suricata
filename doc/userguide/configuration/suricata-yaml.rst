@@ -337,6 +337,32 @@ integration with 3rd party tools like logstash.
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
         - dns:
+            # Use version 2 logging. Without setting a version the
+            # version will fallback to 1 for backwards compatibility.
+            version: 2
+
+            # Enable/disable this logger. Default: enabled.
+            #enabled: no
+
+            # By default both requests and responses are logged.
+            #requests: no
+            #responses: no
+
+            # Format of answer logging:
+            # - detailed: array item per answer
+            # - grouped: answers aggregated by type
+            # Default: all
+            #answer-format: [detailed, grouped]
+
+            # Answer types to log.
+            # Default: all
+            #answer-types: [a, aaaa, cname, mx, ns, ptr, txt]
+        - dns:
+            # Version 1 (deprecated) DNS logger.
+            version: 1
+
+            enabled: no
+
             # control logging of queries and answers
             # default yes, no to disable
             query: yes     # enable logging of DNS queries
