@@ -110,6 +110,8 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             #md5: [body, subject]
 
         - ssh
+        - modbus:
+            array-as-dict: yes       # log values as an integer indexed dict (ELK compliant)
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
