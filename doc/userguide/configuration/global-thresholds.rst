@@ -53,6 +53,8 @@ track
 Where to track the rule matches. When using by_src/by_dst the tracking is
 done per IP-address. The Host table is used for storage. When using by_rule
 it's done globally for the rule.
+Option by_both used to track per IP pair of source and destination. Packets
+going to opposite directions between same addresses tracked as the same pair.
 
 count
 ^^^^^

@@ -39,6 +39,7 @@
 #define TRACK_SRC      2
 #define TRACK_RULE     3
 #define TRACK_EITHER   4 /**< either src or dst: only used by suppress */
+#define TRACK_BOTH     5 /* used by rate_filter to match detections by both src and dst addresses */
 
 /* Get the new action to take */
 #define TH_ACTION_ALERT     0x01
