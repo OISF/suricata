@@ -379,6 +379,22 @@ fn dns_log_json_answer(header: &DNSHeader, answer: &DNSAnswerEntry)
 
     js.set_string("type", "answer");
     js.set_integer("id", header.tx_id as u64);
+    js.set_string("flags", format!("{:x}", header.flags).as_str());
+    if header.flags & 0x8000 != 0 {
+        js.set_boolean("qr", true);
+    }
+    if header.flags & 0x0400 != 0 {
+        js.set_boolean("aa", true);
+    }
+    if header.flags & 0x0200 != 0 {
+        js.set_boolean("tc", true);
+    }
+    if header.flags & 0x0100 != 0 {
+        js.set_boolean("rd", true);
+    }
+    if header.flags & 0x0080 != 0 {
+        js.set_boolean("ra", true);
+    }
     js.set_string("rcode", &dns_rcode_string(header.flags));
     js.set_string_from_bytes("rrname", &answer.name);
     js.set_string("rrtype", &dns_rrtype_string(answer.rrtype));
