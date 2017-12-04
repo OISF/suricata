@@ -224,6 +224,7 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 static int Unified2IPv4TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2IPv6TypeAlert(ThreadVars *, const Packet *, void *);
 static int Unified2PacketTypeAlert(Unified2AlertThread *, const Packet *, uint32_t, int);
+static int Unified2XFFTypeAlert(Unified2AlertThread *, const Packet *, uint32_t);
 void Unified2RegisterTests(void);
 static int Unified2AlertOpenFileCtx(LogFileCtx *, const char *, bool);
 static void Unified2AlertDeInitCtx(OutputCtx *);
@@ -439,65 +440,9 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, const
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader*)(aun->data);
     Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
-    /** Prepare the pointers to extra data structures should they be required.
-     * If they are required we will shift the *hdr and the *phdr */
-    Unified2AlertFileHeader *eu2hdr =  (Unified2AlertFileHeader*)(aun->data);
-    Unified2ExtraDataHdr *ehdr = (Unified2ExtraDataHdr *)(eu2hdr + 1);
-    Unified2ExtraData *dhdr = (Unified2ExtraData *) (ehdr + 1);
-    uint32_t *edxff = (uint32_t *) (dhdr + 1);
 
     aun->length = 0;
     aun->offset = 0;
-
-    // If XFF is in extra data mode...
-    if (aun->xff_flags & XFF_EXTRADATA) {
-        memset(dhdr, 0, sizeof(Unified2ExtraData));
-
-        if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4) {
-            eu2hdr->type = htonl (UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
-            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
-            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
-            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t));
-            dhdr->sensor_id = 0;
-            dhdr->event_id = aun->event_id;
-            dhdr->event_second = htonl(p->ts.tv_sec);
-            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
-            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV4_TYPE);
-            dhdr->blob_length = htonl(3 * sizeof(uint32_t));
-            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
-            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + sizeof(uint32_t);
-            *edxff=aun->xff_ip[0];
-            /** Shift the *hdr and *phdr pointers */
-            hdr = (Unified2AlertFileHeader*)(edxff + 1);
-            phdr = (Unified2Packet *)(hdr + 1);
-        }
-        else if (aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6) {
-            eu2hdr->type = htonl(UNIFIED2_IDS_EVENT_EXTRADATA_TYPE);
-            eu2hdr->length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
-            ehdr->event_type = htonl(UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA);
-            ehdr->event_length = htonl(sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t));
-            dhdr->sensor_id = 0;
-            dhdr->event_id = aun->event_id;
-            dhdr->event_second = htonl(p->ts.tv_sec);
-            dhdr->data_type = htonl(UNIFIED2_EXTRADATA_TYPE_BLOB);
-            dhdr->type = htonl(UNIFIED2_EXTRADATA_CLIENT_IPV6_TYPE);
-            dhdr->blob_length = htonl(6 * sizeof(uint32_t));
-            aun->length += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
-            aun->offset += sizeof(Unified2AlertFileHeader) + sizeof (Unified2ExtraDataHdr)
-                    + sizeof (Unified2ExtraData) + 4 * sizeof(uint32_t);
-            memcpy(edxff, aun->xff_ip, 4 * sizeof(uint32_t));
-            /** Shift the *hdr and *phdr pointers */
-            hdr = (Unified2AlertFileHeader*)(edxff + 4);
-            phdr = (Unified2Packet *)(hdr + 1);
-        }
-    }
 
     int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
@@ -774,6 +719,89 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
     return 1;
 }
 
+
+/**
+ *  \brief Function to fill unified2 xff extra data into the file.
+ *
+ *  No need to lock here, since it's already locked.
+ *  Will clear thread local data prior to writing, resetting length and offset
+ *
+ *  \param aun thread local data
+ *  \param p Packet
+ *  \param event_id unique event id
+ *
+ *  \retval 0 on succces
+ *  \retval -1 on failure
+ */
+static int Unified2XFFTypeAlert(Unified2AlertThread *aun, const Packet *p, uint32_t event_id)
+{
+    /* Return immediately if XFF extra-data mode is not enabled */
+    if ( !(aun->xff_flags & XFF_EXTRADATA) ) {
+        return 0;
+    }
+
+    /* Determine length info for various data fields*/
+    size_t addr_size;
+    unsigned int blob_length;
+    unsigned int dhdr_type;
+
+    if ( aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4 ) {
+        addr_size = sizeof(uint32_t);
+        blob_length = 3 * sizeof(uint32_t);
+        dhdr_type = UNIFIED2_EXTRADATA_CLIENT_IPV4_TYPE;
+    } else if ( aun->xff_flags & UNIFIED2_ALERT_XFF_IPV6 ) {
+        addr_size = 4*sizeof(uint32_t);
+        blob_length = 6 * sizeof(uint32_t);
+        dhdr_type = UNIFIED2_EXTRADATA_CLIENT_IPV6_TYPE;
+    } else {
+        return -1;
+    }
+
+    int hdr_length = sizeof(Unified2ExtraDataHdr)
+                   + sizeof(Unified2ExtraData)
+                   + addr_size;
+    int total_len = sizeof(Unified2AlertFileHeader) + hdr_length;
+
+    /* Clear aun's data and set new length */
+    memset( aun->data, 0, aun->datalen );
+    if ( total_len > aun->datalen ) {
+        SCLogError( SC_ERR_INVALID_VALUE, "len too big for thread data: %d, %d",
+                total_len, aun->datalen );
+        return -1;
+    }
+
+    aun->length = total_len;
+    aun->offset = total_len;
+
+    /* Prepare pointers to file header, extra data header, extra data record,
+    * and the extra data itself */
+    Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader *)(aun->data);
+    Unified2ExtraDataHdr *ehdr = (Unified2ExtraDataHdr *)(hdr + 1);
+    Unified2ExtraData *dhdr = (Unified2ExtraData *)(ehdr + 1);
+    uint32_t *xff = (uint32_t *) (dhdr + 1);
+
+    /* Fill in all data structures and write */
+    hdr->type = htonl( UNIFIED2_IDS_EVENT_EXTRADATA_TYPE );
+    hdr->length = htonl( hdr_length );
+
+    ehdr->event_type = htonl( UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA );
+    ehdr->event_length = hdr->length;
+
+    dhdr->sensor_id = 0;
+    dhdr->event_id = event_id;
+    dhdr->event_second = htonl( p->ts.tv_sec );
+    dhdr->data_type = htonl( UNIFIED2_EXTRADATA_TYPE_BLOB );
+    dhdr->type = htonl( dhdr_type );
+    dhdr->blob_length = htonl( blob_length );
+
+    memcpy( xff, aun->xff_ip, addr_size );
+
+    Unified2Write(aun);
+
+    return 0;
+}
+
+
 /**
  *  \brief Function to fill unified2 ipv6 ids type format into the file.
  *
@@ -935,6 +963,19 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
+            SCMutexUnlock(&file_ctx->fp_mutex);
+            return -1;
+        }
+
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+
+        /* Write the extra data if any (it doesn't lock inside, since we
+         * already locked here for rotation check) */
+        ret = Unified2XFFTypeAlert(aun, p, phdr->event_id);
+        if (ret != 0) {
+            SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
@@ -1111,6 +1152,18 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         }
 
         if (Unified2Write(aun) != 1) {
+            SCMutexUnlock(&file_ctx->fp_mutex);
+            return -1;
+        }
+
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+
+        /* Write the extra data if any (it doesn't lock inside, since we
+         * already locked here for rotation check) */
+        ret = Unified2XFFTypeAlert(aun, p, event_id);
+        if (ret != 0) {
             SCMutexUnlock(&file_ctx->fp_mutex);
             return -1;
         }
