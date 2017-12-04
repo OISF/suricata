@@ -1,7 +1,7 @@
-Header Keywords
-===============
 
-IP-keywords
+.. role:: example-rule-emphasis
+
+IP Keywords
 -----------
 
 ttl
@@ -27,17 +27,31 @@ routing loops.
 
 Example of the ttl keyword in a rule:
 
-.. image:: header-keywords/ttl.png
+.. container:: example-rule
 
-Ipopts
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC 0 ttl"; :example-rule-emphasis:`ttl:0;` reference:url,support.microsoft.com/default.aspx?scid=kb#-#-EN-US#-#-q138268; reference:url,www.isi.edu/in-notes/rfc1122.txt; classtype:misc-activity; sid:2101321; rev:9;)
+
+ipopts
 ^^^^^^
-
-With the ipopts keyword you can check if a specific ip option is
+With the ipopts keyword you can check if a specific IP option is
 set. Ipopts has to be used at the beginning of a rule. You can only
 match on one option per rule. There are several options on which can
 be matched. These are:
 
-.. image:: header-keywords/ipopts.png
+=========  =============================
+IP Option  Description
+=========  =============================
+rr         Record Route
+eol        End of List
+nop        No Op
+ts         Time Stamp
+sec        IP Security
+esec       IP Extended Security
+lsrr       Loose Source Routing
+ssrr       Strict Source Routing
+satid      Stream Identifier
+any        any IP options are set
+=========  =============================
 
 Format of the ipopts keyword::
 
@@ -49,7 +63,9 @@ For example::
 
 Example of ipopts in a rule:
 
-.. image:: header-keywords/ipopts_rule.png
+.. container:: example-rule
+
+    alert ip $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL MISC source route ssrr"; :example-rule-emphasis:`ipopts:ssrr;` reference:arachnids,422; classtype:bad-unknown; sid:2100502; rev:3;)
 
 sameip
 ^^^^^^
@@ -64,11 +80,12 @@ keyword is::
 
 Example of sameip in a rule:
 
-.. image:: header-keywords/sameip.png
+.. container:: example-rule
+
+    alert ip any any -> any any (msg:"GPL SCAN same SRC/DST"; :example-rule-emphasis:`sameip;` reference:bugtraq,2666; reference:cve,1999-0016; reference:url,www.cert.org/advisories/CA-1997-28.html; classtype:bad-unknown; sid:2100527; rev:9;)
 
 ip_proto
 ^^^^^^^^
-
 With the ip_proto keyword you can match on the IP protocol in the
 packet-header. You can use the name or the number of the protocol.
 You can match for example on the following protocols::
@@ -86,13 +103,15 @@ http://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
 
 Example of ip_proto in a rule:
 
-.. image:: header-keywords/ip_proto.png
+.. container:: example-rule
 
-The named variante of that example would be::
+    alert ip any any -> any any (msg:"GPL MISC IP Proto 103 PIM"; :example-rule-emphasis:`ip_proto:103;` reference:bugtraq,8211; reference:cve,2003-0567; classtype:non-standard-protocol; sid:2102189; rev:4;)
+
+The named variant of that example would be::
 
     ip_proto:PIM
 
-Id
+id
 ^^
 
 With the id keyword, you can match on a specific IP ID value.  The ID
@@ -110,11 +129,12 @@ Format of id::
 
 Example of id in a rule:
 
-.. image:: header-keywords/id.png
+.. container:: example-rule
 
-Geoip
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET DELETED F5 BIG-IP 3DNS TCP Probe 1"; :example-rule-emphasis:`id: 1;` dsize: 24; flags: S,12; content:"\|00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00\|"; window: 2048; reference:url,www.f5.com/f5products/v9intro/index.html; reference:url,doc.emergingthreats.net/2001609; classtype:misc-activity; sid:2001609; rev:13;)
+
+geoip
 ^^^^^
-
 The geoip keyword enables (you) to match on the source, destination or
 source and destination IP addresses of network traffic, and to see to
 which country it belongs. To be able to do this, Suricata uses GeoIP
@@ -139,12 +159,8 @@ direction you would like to match::
 The keyword only supports IPv4. As it uses the GeoIP API of Maxmind,
 libgeoip must be compiled in.
 
-
-Fragments
----------
-
-Fragbits
-^^^^^^^^
+fragbits (IP fragmentation)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With the fragbits keyword, you can check if the fragmentation and
 reserved bits are set in the IP header. The fragbits keyword should be
@@ -174,9 +190,11 @@ Format::
 
 Example of fragbits in a rule:
 
-.. image:: header-keywords/fragbits.png
+.. container:: example-rule
 
-Fragoffset
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; :example-rule-emphasis:`fragbits: M;` fragoffset: >0; reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
+
+fragoffset
 ^^^^^^^^^^
 
 With the fragoffset keyword you can match on specific decimal values
@@ -199,14 +217,15 @@ Format of fragoffset::
 
 Example of fragoffset in a rule:
 
-.. image:: header-keywords/fragoffset.png
+.. container:: example-rule
+
+   alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"ET EXPLOIT Invalid non-fragmented packet with fragment offset>0"; fragbits: M; :example-rule-emphasis:`fragoffset: >0;` reference:url,doc.emergingthreats.net/bin/view/Main/2001022; classtype:bad-unknown; sid:2001022; rev:5; metadata:created_at 2010_07_30, updated_at 2010_07_30;)
 
 TCP keywords
 ------------
 
 seq
 ^^^
-
 The seq keyword can be used in a signature to check for a specific TCP
 sequence number.  A sequence number is a number that is generated
 practically at random by both endpoints of a TCP-connection. The
@@ -226,7 +245,9 @@ Example::
 
 Example of seq in a signature:
 
-.. image:: header-keywords/seq.png
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN NULL"; flow:stateless; ack:0; flags:0; :example-rule-emphasis:`seq:0;` reference:arachnids,4; classtype:attempted-recon; sid:2100623; rev:7;)
 
 Example of seq in a packet (Wireshark):
 
@@ -249,7 +270,9 @@ Format of ack::
 
 Example of ack in a signature:
 
-.. image:: header-keywords/ack.png
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN NULL"; flow:stateless; :example-rule-emphasis:`ack:0;` flags:0; seq:0; reference:arachnids,4; classtype:attempted-recon; sid:2100623; rev:7;)
 
 Example of ack in a packet (Wireshark):
 
@@ -275,7 +298,9 @@ The format of the window keyword::
 
 Example of window in a rule:
 
-.. image:: header-keywords/Window.png
+.. container:: example-rule
+
+    alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL DELETED typot trojan traffic"; flow:stateless; flags:S,12; :example-rule-emphasis:`window:55808;` reference:mcafee,100406; classtype:trojan-activity; sid:2182; rev:8;)
 
 ICMP keywords
 -------------
@@ -316,7 +341,44 @@ This example looks for an ICMP type greater than 10::
 
 Example of the itype keyword in a signature:
 
-.. image:: header-keywords/icmp_type.png
+.. container:: example-rule
+
+    alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN Broadscan Smurf Scanner"; dsize:4; icmp_id:0; icmp_seq:0; :example-rule-emphasis:`itype:8;` classtype:attempted-recon; sid:2100478; rev:4;)
+
+The following lists all ICMP types known at the time of writing. A recent table can be found `at the website of IANA <https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml>`_
+
+==========  ==========================================================
+ICMP Type   Name
+==========  ==========================================================
+0           Echo Reply
+3           Destination Unreachable
+4           Source Quench
+5           Redirect
+6           Alternate Host Address
+8           Echo
+9           Router Advertisement
+10          Router Solicitation
+11          Time Exceeded
+12          Parameter Problem
+13          Timestamp
+14          Timestamp Reply
+15          Information Request
+16          Information Reply
+17          Address Mask Request
+18          Address Mask Reply
+30          Traceroute
+31          Datagram Conversion Error
+32          Mobile Host Redirect
+33          IPv6 Where-Are-You
+34          IPv6 I-Am-Here
+35          Mobile Registration Request
+36          Mobile Registration Reply
+37          Domain Name Request
+38          Domain Name Reply
+39          SKIP
+40          Photuris
+41          Experimental mobility protocols such as Seamoby
+==========  ==========================================================
 
 icode
 ^^^^^
@@ -338,7 +400,52 @@ This example looks for an ICMP code greater than 5::
 
 Example of the icode keyword in a rule:
 
-.. image:: header-keywords/icode.png
+.. container:: example-rule
+
+    alert icmp $HOME_NET any -> $EXTERNAL_NET any (msg:"GPL MISC Time-To-Live Exceeded in Transit"; :example-rule-emphasis:`icode:0;` itype:11; classtype:misc-activity; sid:2100449; rev:7;)
+
+The following lists the meaning of all ICMP types. When a code is not listed,
+only type 0 is defined and has the meaning of the ICMP code, in the table above.
+A recent table can be found `at the website of IANA <https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml>`_
+
+==========  ==========  =========================================================================
+ICMP Code   ICMP Type   Description
+==========  ==========  =========================================================================
+3           - 0         - Net Unreachable
+            - 1         - Host Unreachable
+            - 2         - Protocol Unreachable
+            - 3         - Port Unreachable
+            - 4         - Fragmentation Needed and Don't Fragment was Set
+            - 5         - Source Route Failed
+            - 6         - Destination Network Unknown
+            - 7         - Destination Host Unknown
+            - 8         - Source Host Isolated
+            - 9         - Communication with Destination Network is Administratively Prohibited
+            - 10        - Communication with Destination Host is Administratively Prohibited
+            - 11        - Destination Network Unreachable for Type of Service
+            - 12        - Destination Host Unreachable for Type of Service
+            - 13        - Communication Administratively Prohibited
+            - 14        - Host Precedence Violation
+            - 15        - Precedence cutoff in effect
+5           - 0         - Redirect Datagram for the Network (or subnet)
+            - 1         - Redirect Datagram for the Host
+            - 2         - Redirect Datagram for the Type of Service and Network
+            - 3         - Redirect Datagram for the Type of Service and Host
+9           - 0         - Normal router advertisement
+            - 16        - Doest not route common traffic
+11          - 0         - Time to Live exceeded in Transit
+            - 1         - Fragment Reassembly Time Exceeded
+12          - 0         - Pointer indicates the error
+            - 1         - Missing a Required Option
+            - 2         - Bad Length
+40          - 0         - Bad SPI
+            - 1         - Authentication Failed
+            - 2         - Decompression Failed
+            - 3         - Decryption Failed
+            - 4         - Need Authentication
+            - 5         - Need Authorization
+==========  ==========  =========================================================================
+
 
 icmp_id
 ^^^^^^^
@@ -360,7 +467,9 @@ This example looks for an ICMP ID of 0::
 
 Example of the icmp_id keyword in a rule:
 
-.. image:: header-keywords/icmp_id.png
+.. container:: example-rule
+
+    alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN Broadscan Smurf Scanner"; dsize:4; :example-rule-emphasis:`icmp_id:0;` icmp_seq:0; itype:8; classtype:attempted-recon; sid:2100478; rev:4;)
 
 icmp_seq
 ^^^^^^^^
@@ -381,12 +490,6 @@ This example looks for an ICMP Sequence of 0::
 
 Example of icmp_seq in a rule:
 
-.. image:: header-keywords/icmp_seq.png
+.. container:: example-rule
 
-Message types and numbers:
-
-.. image:: header-keywords/ICMP_types.png
-
-Meaning of type-numbers en codes combined:
-
-.. image:: header-keywords/ICMP_type_code.png
+    alert icmp $EXTERNAL_NET any -> $HOME_NET any (msg:"GPL SCAN Broadscan Smurf Scanner"; dsize:4; icmp_id:0; :example-rule-emphasis:`icmp_seq:0;` itype:8; classtype:attempted-recon; sid:2100478; rev:4;)
