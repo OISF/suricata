@@ -415,7 +415,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     if (cfile->delay > 0) {
         char tstr[32];
-        snprintf(tstr, sizeof(tstr), "%ld", cfile->delay);
+        snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->delay);
         if (ConfSetFinal("pcap-file.delay", tstr) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Can not set delay to '%s'", tstr);
             PcapFilesFree(cfile);
@@ -425,7 +425,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     if (cfile->poll_interval > 0) {
         char tstr[32];
-        snprintf(tstr, sizeof(tstr), "%ld", cfile->poll_interval);
+        snprintf(tstr, sizeof(tstr), "%" PRIuMAX, (uintmax_t)cfile->poll_interval);
         if (ConfSetFinal("pcap-file.poll-interval", tstr) != 1) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,
                        "Can not set poll-interval to '%s'", tstr);
