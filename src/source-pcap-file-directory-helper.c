@@ -18,15 +18,20 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Danny Browning <danny.browning@protectwise.com>
  *
- * File based pcap packet acquisition support
+ * Helper methods for directory based packet acquisition
  */
 
 #include "source-pcap-file-directory-helper.h"
 #include "runmode-unix-socket.h"
 #include "util-mem.h"
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
 
+static void GetTime(struct timespec *tm);
 static void CopyTime(struct timespec *from, struct timespec *to);
 static int CompareTimes(struct timespec *left, struct timespec *right);
 static TmEcode PcapRunStatus(PcapFileDirectoryVars *);
@@ -43,12 +48,29 @@ static TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                                                  struct timespec *newer_than,
                                                  struct timespec *older_than);
 
-void CopyTime(struct timespec *from, struct timespec *to) {
+void GetTime(struct timespec *tm)
+{
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+    clock_serv_t cclock;
+    mach_timespec_t mts;
+    host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+    clock_get_time(cclock, &mts);
+    mach_port_deallocate(mach_task_self(), cclock);
+    tm->tv_sec = mts.tv_sec;
+    tm->tv_nsec = mts.tv_nsec;
+#else
+    clock_gettime(CLOCK_REALTIME, &tm);
+#endif
+}
+
+void CopyTime(struct timespec *from, struct timespec *to)
+{
     to->tv_sec = from->tv_sec;
     to->tv_nsec = from->tv_nsec;
 }
 
-int CompareTimes(struct timespec *left, struct timespec *right) {
+int CompareTimes(struct timespec *left, struct timespec *right)
+{
     if (left->tv_sec < right->tv_sec) {
         return -1;
     } else if (left->tv_sec > right->tv_sec) {
@@ -265,6 +287,8 @@ TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
         file_to_compare = TAILQ_FIRST(&pv->directory_content);
         while(file_to_compare != NULL) {
             struct timespec modified_time;
+            memset(&modified_time, 0, sizeof(struct timespec));
+
             if (PcapDirectoryGetModifiedTime(file_to_compare->filename,
                                              &modified_time) == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
@@ -317,6 +341,7 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
             SCReturnInt(TM_ECODE_FAILED);
         } else {
             struct timespec temp_time;
+            memset(&temp_time, 0, sizeof(struct timespec));
 
             if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0) {
                 SCLogDebug("File %s time (%lu > %lu < %lu)", pathbuff,
@@ -376,7 +401,7 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
     if (TAILQ_EMPTY(&pv->directory_content)) {
         SCLogInfo("Directory %s has no files to process", pv->filename);
-        clock_gettime(CLOCK_REALTIME, older_than);
+        GetTime(older_than);
         older_than->tv_sec = older_than->tv_sec - pv->delay;
         rewinddir(pv->directory);
         status = TM_ECODE_OK;
@@ -448,7 +473,7 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
 
         *newer_than = *older_than;
     }
-    clock_gettime(CLOCK_REALTIME, older_than);
+    GetTime(older_than);
     older_than->tv_sec = older_than->tv_sec - pv->delay;
 
     SCReturnInt(status);
@@ -466,14 +491,14 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
     uint32_t poll_seconds = (uint32_t)localtime(&ptv->poll_interval)->tm_sec;
 
     if (ptv->should_loop) {
-        clock_gettime(CLOCK_REALTIME, &older_than);
+        GetTime(&older_than);
         older_than.tv_sec = older_than.tv_sec - ptv->delay;
     }
     TmEcode status = TM_ECODE_OK;
 
     while (status == TM_ECODE_OK) {
         //loop while directory is ok
-        SCLogInfo("Processing pcaps directory %s, files must be newer than %ld and older than %ld",
+        SCLogInfo("Processing pcaps directory %s, files must be newer than %lu and older than %lu",
                   ptv->filename, newer_than.tv_sec, older_than.tv_sec);
         status = PcapDirectoryDispatchForTimeRange(ptv, &newer_than, &older_than);
         if (ptv->should_loop && status == TM_ECODE_OK) {
