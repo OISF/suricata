@@ -501,9 +501,10 @@ static inline uint32_t MpmInitHashRaw(uint8_t *pat, uint16_t patlen)
  *
  * \retval hash A 32 bit unsigned hash.
  */
-static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx, uint8_t *pat,
-                                                  uint16_t patlen, char flags,
-                                                  uint32_t pid)
+static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx,
+        uint8_t *pat, uint16_t patlen,
+        uint16_t offset, uint16_t depth,
+        uint8_t flags, uint32_t pid)
 {
     uint32_t hash = MpmInitHashRaw(pat, patlen);
 
@@ -517,7 +518,7 @@ static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx, uint8_t *pat,
             if (t->id == pid)
                 return t;
         } else {
-            if (t->len == patlen &&
+            if (t->len == patlen && t->offset == offset && t->depth == depth &&
                     memcmp(pat, t->original_pat, patlen) == 0 &&
                     t->flags == flags)
             {
@@ -652,7 +653,8 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         pid = UINT_MAX;
 
     /* check if we have already inserted this pattern */
-    MpmPattern *p = MpmInitHashLookup(mpm_ctx, pat, patlen, flags, pid);
+    MpmPattern *p = MpmInitHashLookup(mpm_ctx, pat, patlen,
+            offset, depth, flags, pid);
     if (p == NULL) {
         SCLogDebug("Allocing new pattern");
 
@@ -661,6 +663,8 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
 
         p->len = patlen;
         p->flags = flags;
+        p->offset = offset;
+        p->depth = depth;
         if (flags & MPM_PATTERN_CTX_OWNS_ID)
             p->id = mpm_ctx->max_pat_id++;
         else

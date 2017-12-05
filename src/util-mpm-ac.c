@@ -836,6 +836,8 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
             ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
         }
+        ctx->pid_pat_list[ctx->parray[i]->id].offset = ctx->parray[i]->offset;
+        ctx->pid_pat_list[ctx->parray[i]->id].depth = ctx->parray[i]->depth;
 
         /* ACPatternList now owns this memory */
         //SCLogInfo("ctx->parray[i]->sids_size %u", ctx->parray[i]->sids_size);
@@ -1062,7 +1064,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo tried loop unrolling with register var, with no perf increase.  Need
      * to dig deeper */
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
-    SCACPatternList *pid_pat_list = ctx->pid_pat_list;
+    const SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
     uint8_t bitarray[ctx->pattern_id_bitarray_size];
     memset(bitarray, 0, ctx->pattern_id_bitarray_size);
@@ -1079,9 +1081,14 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & AC_CASE_MASK) {
                         uint32_t lower_pid = pids[k] & AC_PID_MASK;
-                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
-                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
-                                     pid_pat_list[lower_pid].patlen) != 0) {
+                        const SCACPatternList *pat = &pid_pat_list[lower_pid];
+                        const int offset = i - pat->patlen + 1;
+
+                        if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+
+                        if (SCMemcmp(pat->cs, buf + offset, pat->patlen) != 0)
+                        {
                             /* inside loop */
                             continue;
                         }
@@ -1089,17 +1096,21 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             ;
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            PrefilterAddSids(pmq, pid_pat_list[lower_pid].sids,
-                                    pid_pat_list[lower_pid].sids_size);
+                            PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                         }
                         matches++;
                     } else {
+                        const SCACPatternList *pat = &pid_pat_list[pids[k]];
+                        const int offset = i - pat->patlen + 1;
+
+                        if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+
                         if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            PrefilterAddSids(pmq, pid_pat_list[pids[k]].sids,
-                                    pid_pat_list[pids[k]].sids_size);
+                            PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                         }
                         matches++;
                     }
@@ -1121,9 +1132,14 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & AC_CASE_MASK) {
                         uint32_t lower_pid = pids[k] & 0x0000FFFF;
-                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
-                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
-                                     pid_pat_list[lower_pid].patlen) != 0) {
+                        const SCACPatternList *pat = &pid_pat_list[lower_pid];
+                        const int offset = i - pat->patlen + 1;
+
+                        if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+
+                        if (SCMemcmp(pat->cs, buf + offset,
+                                     pat->patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
@@ -1131,17 +1147,21 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             ;
                         } else {
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            PrefilterAddSids(pmq, pid_pat_list[lower_pid].sids,
-                                    pid_pat_list[lower_pid].sids_size);
+                            PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                         }
                         matches++;
                     } else {
+                        const SCACPatternList *pat = &pid_pat_list[pids[k]];
+                        const int offset = i - pat->patlen + 1;
+
+                        if (offset < (int)pat->offset || (pat->depth && i > pat->depth))
+                            continue;
+
                         if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            PrefilterAddSids(pmq, pid_pat_list[pids[k]].sids,
-                                    pid_pat_list[pids[k]].sids_size);
+                            PrefilterAddSids(pmq, pat->sids, pat->sids_size);
                         }
                         matches++;
                     }

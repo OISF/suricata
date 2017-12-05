@@ -59,6 +59,13 @@ typedef struct MpmPattern_ {
     uint16_t len;
     /* flags decribing the pattern */
     uint8_t flags;
+
+    /* offset into the buffer where match may start */
+    uint16_t offset;
+
+    /* offset into the buffer before which match much complete */
+    uint16_t depth;
+
     /* holds the original pattern that was added */
     uint8_t *original_pat;
     /* case sensitive */
