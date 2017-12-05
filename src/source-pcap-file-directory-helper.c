@@ -361,6 +361,7 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
             file_to_add->filename = SCStrdup(pathbuff);
             if (unlikely(file_to_add->filename == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Failed to copy filename");
+                CleanupPendingFile(file_to_add);
 
                 SCReturnInt(TM_ECODE_FAILED);
             }
@@ -369,6 +370,8 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
 
             if (PcapDirectoryInsertFile(pv, file_to_add, &temp_time) == TM_ECODE_FAILED) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to add file");
+                CleanupPendingFile(file_to_add);
+
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
