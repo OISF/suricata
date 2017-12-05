@@ -488,8 +488,8 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
 
     while (status == TM_ECODE_OK) {
         //loop while directory is ok
-        SCLogInfo("Processing pcaps directory %s, files must be newer than %lu and older than %lu",
-                  ptv->filename, newer_than.tv_sec, older_than.tv_sec);
+        SCLogInfo("Processing pcaps directory %s, files must be newer than %" PRIuMAX " and older than %" PRIuMAX,
+                  ptv->filename, (uintmax_t)newer_than.tv_sec, (uintmax_t)older_than.tv_sec);
         status = PcapDirectoryDispatchForTimeRange(ptv, &newer_than, &older_than);
         if (ptv->should_loop && status == TM_ECODE_OK) {
             sleep(poll_seconds);
