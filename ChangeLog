@@ -1,3 +1,10 @@
+3.2.5 -- 2017-12-06
+
+Bug #2328: detect: mixing byte_extract and isdataat leads to FP & FN (3.2.x)
+Bug #2329: various config parsing issues
+Bug #2330: rules: depth < content rules not rejected (3.2.x)
+Bug #2331: Suricata segfaults on ICMP and flowint check (3.2.x)
+
 3.2.4 -- 2017-10-18
 
 Bug #2241: smb dcerpc segfaults in StubDataParser (3.2.x)
