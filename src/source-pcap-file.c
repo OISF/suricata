@@ -246,6 +246,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         pv->filename = SCStrdup((char *)initdata);
         if (unlikely(pv->filename == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+            CleanupPcapFileFileVars(pv);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -260,6 +261,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCLogWarning(SC_ERR_PCAP_DISPATCH,
                          "Failed to init pcap file %s, skipping", (char *)initdata);
             CleanupPcapFileFileVars(pv);
+            CleanupPcapFileThreadVars(ptv);
             SCReturnInt(init_file_return);
         }
     } else {
@@ -271,6 +273,14 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
             SCReturnInt(TM_ECODE_FAILED);
         }
         memset(pv, 0, sizeof(PcapFileDirectoryVars));
+
+        pv->filename = SCStrdup((char*)initdata);
+        if (unlikely(pv->filename == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+            CleanupPcapFileDirectoryVars(pv);
+            CleanupPcapFileThreadVars(ptv);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
 
         int should_loop = 0;
         pv->should_loop = false;
@@ -301,11 +311,6 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
 
         pv->shared = &ptv->shared;
-        pv->filename = SCStrdup((char*)initdata);
-        if (unlikely(pv->filename == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
-            SCReturnInt(TM_ECODE_FAILED);
-        }
         pv->directory = directory;
         TAILQ_INIT(&pv->directory_content);
 
