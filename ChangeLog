@@ -1,3 +1,7 @@
+4.0.3 -- 2017-12-06
+
+No change. Rereleasing 4.0.2 as 4.0.3 due to packaging mistake.
+
 4.0.2 -- 2017-12-06
 
 Feature #2245: decoder for ieee802.1AH traffic
