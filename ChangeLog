@@ -1,3 +1,21 @@
+4.0.2 -- 2017-12-06
+
+Feature #2245: decoder for ieee802.1AH traffic
+Bug #798: stats.log in yaml config - append option - missing
+Bug #891: detect-engine.profile does not err out in incorrect values - suricata.yaml
+Bug #961: max pending packets variable parsing
+Bug #1185: napatech: cppcheck warning
+Bug #2215: Lost events writing to unix socket
+Bug #2230: valgrind memcheck - 4.0.0-dev (rev 1180687)
+Bug #2250: detect: mixing byte_extract and isdataat leads to FP & FN
+Bug #2263: content matches disregarded when using dns_query on udp traffic
+Bug #2274: ParseSizeString in util-misc.c: Null-pointer dereference
+Bug #2275: ConfGetInt in conf.c: NULL-pointer dereference
+Bug #2276: conf: NULL-pointer dereference in CoredumpLoadConfig
+Bug #2293: rules: depth < content rules not rejected
+Bug #2324: segfault in http_start (4.0.x)
+Bug #2325: Suricata segfaults on ICMP and flowint check (4.0.x)
+
 4.0.1 -- 2017-10-18
 
 Bug #2050: TLS rule mixes up server and client certificates
