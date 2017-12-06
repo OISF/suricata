@@ -106,6 +106,7 @@ typedef struct PcapLogProfileData_ {
 } PcapLogProfileData;
 
 #define MAX_TOKS 9
+#define MAX_FILENAMELEN 513
 
 /**
  * PcapLog thread vars
@@ -832,16 +833,24 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
     return TM_ECODE_OK;
 }
 
+
 static int ParseFilename(PcapLogData *pl, const char *filename)
 {
     char *toks[MAX_TOKS] = { NULL };
     int tok = 0;
-    char str[512] = "";
+    char str[MAX_FILENAMELEN] = "";
     int s = 0;
     int i, x;
     char *p = NULL;
+    size_t filename_len = 0;
 
     if (filename) {
+        filename_len = strlen(filename);
+        if (filename_len > (MAX_FILENAMELEN-1)) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid filename option. Max filename-length: %d",MAX_FILENAMELEN-1);
+            goto error;
+        }
+
         for (i = 0; i < (int)strlen(filename); i++) {
             if (tok >= MAX_TOKS) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
