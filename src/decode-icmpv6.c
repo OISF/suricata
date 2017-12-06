@@ -152,6 +152,28 @@ static void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     return;
 }
 
+/** \retval type counterpart type or -1 */
+int ICMPv6GetCounterpart(uint8_t type)
+{
+#define CASE_CODE(t,r) case (t): return r; case (r): return t;
+    switch (type) {
+        CASE_CODE(ICMP6_ECHO_REQUEST,   ICMP6_ECHO_REPLY);
+        CASE_CODE(ND_NEIGHBOR_SOLICIT,  ND_NEIGHBOR_ADVERT);
+        CASE_CODE(ND_ROUTER_SOLICIT,    ND_ROUTER_ADVERT);
+        CASE_CODE(MLD_LISTENER_QUERY,   MLD_LISTENER_REPORT);
+        CASE_CODE(ICMP6_NI_QUERY,       ICMP6_NI_REPLY);
+        CASE_CODE(HOME_AGENT_AD_REQUEST,HOME_AGENT_AD_REPLY);
+
+        CASE_CODE(MOBILE_PREFIX_SOLICIT,MOBILE_PREFIX_ADVERT);
+        CASE_CODE(CERT_PATH_SOLICIT,    CERT_PATH_ADVERT);
+        CASE_CODE(MC_ROUTER_ADVERT,     MC_ROUTER_SOLICIT);
+        CASE_CODE(DUPL_ADDR_REQUEST,    DUPL_ADDR_CONFIRM);
+        default:
+            return -1;
+    }
+#undef CASE_CODE
+}
+
 /**
  * \brief Decode ICMPV6 packets and fill the Packet with the decoded info
  *
@@ -178,10 +200,15 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     p->icmpv6h = (ICMPV6Hdr *)pkt;
     p->proto = IPPROTO_ICMPV6;
-    p->type = p->icmpv6h->type;
-    p->code = p->icmpv6h->code;
+    p->icmp_s.type = p->icmpv6h->type;
+    p->icmp_s.code = p->icmpv6h->code;
     p->payload_len = len - ICMPV6_HEADER_LEN;
     p->payload = pkt + ICMPV6_HEADER_LEN;
+
+    int ctype = ICMPv6GetCounterpart(p->icmp_s.type);
+    if (ctype != -1) {
+        p->icmp_d.type = (uint8_t)ctype;
+    }
 
     SCLogDebug("ICMPV6 TYPE %" PRIu32 " CODE %" PRIu32 "", p->icmpv6h->type,
                p->icmpv6h->code);

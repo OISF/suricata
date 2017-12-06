@@ -329,11 +329,17 @@ typedef struct Flow_
     FlowAddress src, dst;
     union {
         Port sp;        /**< tcp/udp source port */
-        uint8_t type;   /**< icmp type */
+        struct {
+            uint8_t type;   /**< icmp type */
+            uint8_t code;   /**< icmp code */
+        } icmp_s;
     };
     union {
         Port dp;        /**< tcp/udp destination port */
-        uint8_t code;   /**< icmp code */
+        struct {
+            uint8_t type;   /**< icmp type */
+            uint8_t code;   /**< icmp code */
+        } icmp_d;
     };
     uint8_t proto;
     uint8_t recursion_level;
