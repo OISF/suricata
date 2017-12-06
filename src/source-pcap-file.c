@@ -222,6 +222,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         ptv->shared.bpf_string = SCStrdup(tmp_bpf_string);
         if (unlikely(ptv->shared.bpf_string == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate bpf_string");
+            CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
