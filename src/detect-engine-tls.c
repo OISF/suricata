@@ -348,6 +348,80 @@ int DetectEngineInspectTlsSerial(ThreadVars *tv, DetectEngineCtx *de_ctx,
     return cnt;
 }
 
+/** \brief TLS JA3 hash Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxTlsJa3Hash(DetectEngineThreadCtx *det_ctx,
+        const void *pectx, Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    SSLState *ssl_state = f->alstate;
+
+    if (ssl_state->ja3_hash == NULL)
+        return;
+
+    const uint8_t *buffer = (uint8_t *)ssl_state->ja3_hash;
+    const uint32_t buffer_len = strlen(ssl_state->ja3_hash);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+int PrefilterTxTlsJa3HashRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsJa3Hash,
+                                   ALPROTO_TLS, 0, mpm_ctx, NULL, "ja3_hash");
+}
+
+/** \brief Do the content inspection and validation for a signature
+ *
+ *  \param de_ctx  Detection engine context
+ *  \param det_ctx Detection engine thread context
+ *  \param s       Signature to inspect
+ *  \param sm      SigMatch to inspect
+ *  \param f       Flow
+ *  \param flags   App layer flags
+ *  \param state   App layer state
+ *
+ *  \retval 0 No match
+ *  \retval 1 Match
+ */
+int DetectEngineInspectTlsJa3Hash(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, const Signature *s,
+        const SigMatchData *smd, Flow *f, uint8_t flags, void *alstate,
+        void *txv, uint64_t tx_id)
+{
+    uint8_t *buffer;
+    uint16_t buffer_len;
+    int cnt = 0;
+
+    SSLState *ssl_state = (SSLState *)alstate;
+
+    if (ssl_state->ja3_hash == NULL)
+        return 0;
+
+    buffer = (uint8_t *)ssl_state->ja3_hash;
+    buffer_len = strlen(ssl_state->ja3_hash);
+
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
+            f, buffer, buffer_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+
+    return cnt;
+}
+
 /** \brief TLS fingerprint Mpm prefilter callback
  *
  *  \param det_ctx detection engine thread ctx

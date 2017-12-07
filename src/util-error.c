@@ -349,6 +349,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_FLOWBIT);
         CASE_CODE (SC_ERR_MAX);
         CASE_CODE (SC_WARN_NO_JA3_SUPPORT);
+        CASE_CODE (SC_WARN_JA3_DISABLED);
     }
 
     return "UNKNOWN_ERROR";
