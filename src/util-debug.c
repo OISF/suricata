@@ -506,22 +506,24 @@ static SCError SCLogMessageGetBuffer(
     return SC_OK;
 }
 
-static void SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
+/** \internal
+ *  \brief try to reopen file
+ *  \note no error reporting here, as we're called by SCLogMessage
+ *  \retval status 0 ok, -1 error */
+static int SCLogReopen(SCLogOPIfaceCtx *op_iface_ctx)
 {
-    if (op_iface_ctx->file_d == NULL) {
-        return;
-    }
-
     if (op_iface_ctx->file == NULL) {
-        return;
+        return 0;
     }
 
-    fclose(op_iface_ctx->file_d);
+    if (op_iface_ctx->file_d != NULL) {
+        fclose(op_iface_ctx->file_d);
+    }
     op_iface_ctx->file_d = fopen(op_iface_ctx->file, "a");
     if (op_iface_ctx->file_d == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Erroring re-opening file \"%s\": %s",
-            op_iface_ctx->file, strerror(errno));
+        return -1;
     }
+    return 0;
 }
 
 /**
@@ -578,13 +580,20 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
+                    int r = 0;
                     SCMutexLock(&op_iface_ctx->fp_mutex);
                     if (op_iface_ctx->rotation_flag) {
-                        SCLogReopen(op_iface_ctx);
+                        r = SCLogReopen(op_iface_ctx);
                         op_iface_ctx->rotation_flag = 0;
                     }
                     SCLogPrintToStream(op_iface_ctx->file_d, buffer);
                     SCMutexUnlock(&op_iface_ctx->fp_mutex);
+
+                    /* report error outside of lock to avoid recursion */
+                    if (r == -1) {
+                        SCLogError(SC_ERR_FOPEN, "re-opening file \"%s\" failed: %s",
+                                op_iface_ctx->file, strerror(errno));
+                    }
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
