@@ -103,14 +103,11 @@ static int DetectDnsResponseSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     return 0;
 }
 
-
-
 #ifdef UNITTESTS
 
 /** \test simple dns response match on A record */
 static int DetectDnsResponseTest01(void)
 {
-
    uint8_t buf[] = {
             0x00, 0x01, // tx id
             0x81, 0x80, // response flags (response recursion desired + available)
@@ -170,11 +167,9 @@ static int DetectDnsResponseTest01(void)
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOCLIENT, buf, sizeof(buf));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        FAIL;
-    }
+
+    FAIL_IF(r != 0);
+
     FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
@@ -183,6 +178,7 @@ static int DetectDnsResponseTest01(void)
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
     if (!(PacketAlertCheck(p, 1))) {
         printf("sig 1 didn't alert, but it should have: ");
         FAIL;
