@@ -338,7 +338,8 @@ typedef enum {
     SC_ERR_CREATE_DIRECTORY,
     SC_WARN_FLOWBIT,
     SC_ERR_MAX,
-    SC_WARN_NO_JA3_SUPPORT
+    SC_WARN_NO_JA3_SUPPORT,
+    SC_WARN_JA3_DISABLED
 } SCError;
 
 const char *SCErrorToString(SCError);
