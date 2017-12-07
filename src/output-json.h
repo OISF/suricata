@@ -66,6 +66,8 @@ TmEcode JsonLogThreadDeinit(ThreadVars *t, void *data);
 
 typedef struct OutputJsonCommonSettings_ {
     bool include_metadata;
+    bool include_community_id;
+    uint16_t community_id_seed;
 } OutputJsonCommonSettings;
 
 /*

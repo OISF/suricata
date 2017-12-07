@@ -59,6 +59,7 @@
 #include "util-log-redis.h"
 #include "util-device.h"
 #include "util-validate.h"
+#include "util-crypt.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
@@ -90,6 +91,7 @@ void OutputJsonRegister (void)
 #define MAX_JSON_SIZE 2048
 
 static void OutputJsonDeInitCtx(OutputCtx *);
+static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed);
 
 static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
 static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
@@ -391,6 +393,9 @@ void JsonAddCommonOptions(const OutputJsonCommonSettings *cfg,
     if (cfg->include_metadata) {
         JsonAddMetadata(p, f, js);
     }
+    if (cfg->include_community_id && f != NULL) {
+        CreateJSONCommunityFlowId(js, f, cfg->community_id_seed);
+    }
 }
 
 /** \brief jsonify tcp flags field
@@ -544,6 +549,120 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
     }
 
     json_object_set_new(js, "proto", json_string(proto));
+}
+
+static void CreateJSONCommunityFlowIdv4(json_t *js, const Flow *f,
+        const uint16_t seed)
+{
+    struct {
+        uint16_t seed;
+        uint32_t src;
+        uint32_t dst;
+        uint16_t proto;
+        uint16_t sp;
+        uint16_t dp;
+    } __attribute__((__packed__)) ipv4;
+
+    uint32_t src = f->src.addr_data32[0];
+    uint32_t dst = f->dst.addr_data32[0];
+    uint16_t sp = f->sp;
+    if (f->proto == IPPROTO_ICMP)
+        sp = f->icmp_s.type;
+    sp = htons(sp);
+    uint16_t dp = f->dp;
+    if (f->proto == IPPROTO_ICMP)
+        dp = f->icmp_d.type;
+    dp = htons(dp);
+
+    ipv4.seed = htons(seed);
+    ipv4.proto = htons(f->proto);
+    if (ntohl(src) < ntohl(dst) || (src == dst && sp < dp)) {
+        ipv4.src = src;
+        ipv4.dst = dst;
+        ipv4.sp = sp;
+        ipv4.dp = dp;
+    } else {
+        ipv4.src = dst;
+        ipv4.dst = src;
+        ipv4.sp = dp;
+        ipv4.dp = sp;
+    }
+
+    uint8_t hash[20];
+    if (ComputeSHA1((const uint8_t *)&ipv4, sizeof(ipv4), hash, sizeof(hash)) == 1) {
+        unsigned char base64buf[64] = "1:";
+        unsigned long out_len = sizeof(base64buf) - 2;
+        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+        }
+    }
+}
+
+static inline bool FlowHashRawAddressIPv6LtU32(const uint32_t *a, const uint32_t *b)
+{
+    for (int i = 0; i < 4; i++) {
+        if (a[i] < b[i])
+            return true;
+        if (a[i] > b[i])
+            break;
+    }
+
+    return false;
+}
+
+static void CreateJSONCommunityFlowIdv6(json_t *js, const Flow *f,
+        const uint16_t seed)
+{
+    struct {
+        uint16_t seed;
+        uint32_t src[4];
+        uint32_t dst[4];
+        uint16_t proto;
+        uint16_t sp;
+        uint16_t dp;
+    } __attribute__((__packed__)) ipv6;
+
+    uint16_t sp = f->sp;
+    if (f->proto == IPPROTO_ICMPV6)
+        sp = f->icmp_s.type;
+    sp = htons(sp);
+    uint16_t dp = f->dp;
+    if (f->proto == IPPROTO_ICMPV6)
+        dp = f->icmp_d.type;
+    dp = htons(dp);
+
+    ipv6.seed = htons(seed);
+    ipv6.proto = htons(f->proto);
+    if (FlowHashRawAddressIPv6LtU32(f->src.addr_data32, f->dst.addr_data32) ||
+            ((memcmp(&f->src, &f->dst, sizeof(f->src)) == 0) && sp < dp))
+    {
+        memcpy(&ipv6.src, &f->src.addr_data32, 16);
+        memcpy(&ipv6.dst, &f->dst.addr_data32, 16);
+        ipv6.sp = sp;
+        ipv6.dp = dp;
+    } else {
+        memcpy(&ipv6.src, &f->dst.addr_data32, 16);
+        memcpy(&ipv6.dst, &f->src.addr_data32, 16);
+        ipv6.sp = dp;
+        ipv6.dp = sp;
+    }
+
+    uint8_t hash[20];
+    if (ComputeSHA1((const uint8_t *)&ipv6, sizeof(ipv6), hash, sizeof(hash)) == 1) {
+        unsigned char base64buf[64] = "1:";
+        unsigned long out_len = sizeof(base64buf) - 2;
+        if (Base64Encode(hash, sizeof(hash), base64buf+2, &out_len) == SC_BASE64_OK) {
+            json_object_set_new(js, "community_id", json_string((const char *)base64buf));
+        }
+    }
+}
+
+static void CreateJSONCommunityFlowId(json_t *js, const Flow *f, const uint16_t seed)
+{
+    if (f->flags & FLOW_IPV4)
+        return CreateJSONCommunityFlowIdv4(js, f, seed);
+    else if (f->flags & FLOW_IPV6)
+        return CreateJSONCommunityFlowIdv6(js, f, seed);
 }
 
 void CreateJSONFlowId(json_t *js, const Flow *f)
@@ -883,6 +1002,26 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->cfg.include_metadata = false;
         } else {
             json_ctx->cfg.include_metadata = true;
+        }
+
+        /* See if we want to enable the community id */
+        const ConfNode *community_id = ConfNodeLookupChild(conf, "community-id");
+        if (community_id && community_id->val && ConfValIsTrue(community_id->val)) {
+            SCLogConfig("Enabling eve community_id logging.");
+            json_ctx->cfg.include_community_id = true;
+        } else {
+            json_ctx->cfg.include_community_id = false;
+        }
+        const char *cid_seed = ConfNodeLookupChildValue(conf, "community-id-seed");
+        if (cid_seed != NULL) {
+            if (ByteExtractStringUint16(&json_ctx->cfg.community_id_seed,
+                        10, 0, cid_seed) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                           "Failed to initialize JSON output, "
+                           "invalid community-id-seed: %s", cid_seed);
+                exit(EXIT_FAILURE);
+            }
         }
 
         /* Do we have a global eve xff configuration? */

@@ -102,6 +102,19 @@ outputs:
 
       pcap-file: false
 
+      # Community Flow ID
+      # Adds a 'community_id' field to EVE records. These are meant to give
+      # a records a predictable flow id that can be used to match records to
+      # output of other tools such as Bro.
+      #
+      # Takes a 'seed' that needs to be same across sensors and tools
+      # to make the id less predictable.
+
+      # enable/disable the community id feature.
+      community-id: false
+      # Seed value for the ID output. Valid values are 0-65535.
+      community-id-seed: 0
+
       # HTTP X-Forwarded-For support by adding an extra field or overwriting
       # the source or destination IP address (depending on flow direction)
       # with the one reported in the X-Forwarded-For HTTP header. This is
