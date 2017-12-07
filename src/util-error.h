@@ -335,7 +335,8 @@ typedef enum {
     SC_ERR_BYPASS_NOT_SUPPORTED,
     SC_WARN_RENAMING_FILE,
     SC_ERR_PF_RING_VLAN,
-    SC_WARN_NO_JA3_SUPPORT
+    SC_WARN_NO_JA3_SUPPORT,
+    SC_WARN_JA3_DISABLED
 } SCError;
 
 const char *SCErrorToString(SCError);
