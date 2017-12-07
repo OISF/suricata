@@ -98,19 +98,16 @@ void DetectDnsResponseRegister (void)
 
 static int DetectDnsResponseSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    s->init_data->list = g_dns_response_buffer_id;
-    s->alproto = ALPROTO_DNS;
-    return 0;
+    if (DetectSignatureSSetAppProto(s, ALPROTO_DNS) != 0) {
+        return -1;
+    }
 }
-
-
 
 #ifdef UNITTESTS
 
 /** \test simple dns response match on A record */
 static int DetectDnsResponseTest01(void)
 {
-
    uint8_t buf[] = {
             0x00, 0x01, // tx id
             0x81, 0x80, // response flags (response recursion desired + available)
@@ -136,6 +133,8 @@ static int DetectDnsResponseTest01(void)
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -170,11 +169,9 @@ static int DetectDnsResponseTest01(void)
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DNS,
                                 STREAM_TOCLIENT, buf, sizeof(buf));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        FAIL;
-    }
+
+    FAIL_IF(r != 0);
+
     FLOWLOCK_UNLOCK(&f);
 
     dns_state = f.alstate;
@@ -183,19 +180,12 @@ static int DetectDnsResponseTest01(void)
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert, but it should have: ");
-        FAIL;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL)
-        DetectEngineThreadCtxDeinit(&tv, det_ctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    SigGroupCleanup(de_ctx);
+    DetectEngineCtxFree(de_ctx);
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
