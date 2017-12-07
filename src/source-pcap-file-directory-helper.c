@@ -328,6 +328,7 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
 
         if (written <= 0 || written >= PATH_MAX) {
             SCLogError(SC_ERR_SPRINTF, "Could not write path");
+
             SCReturnInt(TM_ECODE_FAILED);
         } else {
             struct timespec temp_time;
@@ -476,6 +477,8 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
 {
     SCEnter();
 
+    DIR *directory_check = NULL;
+
     struct timespec newer_than;
     memset(&newer_than, 0, sizeof(struct timespec));
     struct timespec older_than;
@@ -502,10 +505,12 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
                 SCLogDebug("Checking if directory %s still exists", ptv->filename);
                 //check directory
                 if (PcapDetermineDirectoryOrFile(ptv->filename,
-                                                &(ptv->directory)) == TM_ECODE_FAILED) {
+                                                 &directory_check) == TM_ECODE_FAILED) {
                     SCLogInfo("Directory %s no longer exists, stopping",
                               ptv->filename);
                     status = TM_ECODE_DONE;
+                } else {
+                    closedir(directory_check);
                 }
             }
         } else if (status == TM_ECODE_OK) { //not looping, mark done
