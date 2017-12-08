@@ -344,6 +344,8 @@ source-nfq.c source-nfq.h \
 source-nflog.c source-nflog.h \
 source-pcap.c source-pcap.h \
 source-pcap-file.c source-pcap-file.h \
+source-pcap-file-directory-helper.c source-pcap-file-directory-helper.h \
+source-pcap-file-helper.c source-pcap-file-helper.h \
 source-pfring.c source-pfring.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
@@ -389,6 +391,7 @@ util-decode-asn1.c util-decode-asn1.h \
 util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
+util-detect.c util-detect.h \
 util-device.c util-device.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \

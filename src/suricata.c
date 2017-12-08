@@ -230,6 +230,14 @@ int g_disable_randomness = 0;
 int g_disable_randomness = 1;
 #endif
 
+/** Suricata instance */
+SCInstance suricata;
+
+int SuriHasSigFile(void)
+{
+    return (suricata.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -647,6 +655,7 @@ static void PrintUsage(const char *progname)
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
+    printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
@@ -1489,6 +1498,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+        {"pcap-file-continuous", 0, 0, 0},
         {"simulate-ips", 0, 0 , 0},
         {"no-random", 0, &g_disable_randomness, 1},
 
@@ -1865,6 +1875,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     }
                 }
             }
+            else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
+                if(ConfSetFinal("pcap-file.continuous", "true") != 1) {
+                    SCLogError(SC_ERR_CMD_LINE, "Failed to set pcap-file.continuous");
+                    return TM_ECODE_FAILED;
+                }
+                return TM_ECODE_OK;
+            }
             break;
         case 'c':
             suri->conf_filename = optarg;
@@ -2002,6 +2019,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
                 return TM_ECODE_FAILED;
             }
+
             break;
         case 's':
             if (suri->sig_file != NULL) {
@@ -2554,6 +2572,7 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
             }
         }
 
+        gettimeofday(&de_ctx->last_reload, NULL);
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
     } else {
@@ -2778,7 +2797,7 @@ static void SuricataMainLoop(SCInstance *suri)
                 if (!(DetectEngineReloadIsStart())) {
                     DetectEngineReloadStart();
                     DetectEngineReload(suri);
-                    DetectEngineReloadSetDone();
+                    DetectEngineReloadSetIdle();
                     sigusr2_count--;
                 }
             }
@@ -2787,10 +2806,10 @@ static void SuricataMainLoop(SCInstance *suri)
             if (suri->sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             } else {
                 DetectEngineReload(suri);
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             }
         }
 
@@ -2800,8 +2819,7 @@ static void SuricataMainLoop(SCInstance *suri)
 
 int main(int argc, char **argv)
 {
-    SCInstance suri;
-    SCInstanceInit(&suri, argv[0]);
+    SCInstanceInit(&suricata, argv[0]);
 
 #ifdef HAVE_RUST
     SuricataContext context;
@@ -2842,15 +2860,15 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
-    if (ParseCommandLine(argc, argv, &suri) != TM_ECODE_OK) {
+    if (ParseCommandLine(argc, argv, &suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    if (FinalizeRunMode(&suri, argv) != TM_ECODE_OK) {
+    if (FinalizeRunMode(&suricata, argv) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    switch (StartInternalRunMode(&suri, argc, argv)) {
+    switch (StartInternalRunMode(&suricata, argc, argv)) {
         case TM_ECODE_DONE:
             exit(EXIT_SUCCESS);
         case TM_ECODE_FAILED:
@@ -2861,35 +2879,35 @@ int main(int argc, char **argv)
     GlobalsInitPreConfig();
 
     /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig(&suri) != TM_ECODE_OK) {
+    if (LoadYamlConfig(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
+    if (suricata.run_mode == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
 
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
-    SCLogLoadConfig(suri.daemon, suri.verbose);
+    SCLogLoadConfig(suricata.daemon, suricata.verbose);
 
     LogVersion();
     UtilCpuPrintSummary();
 
-    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+    if (ParseInterfacesList(suricata.run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
+    if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
-    PostConfLoadedDetectSetup(&suri);
+    PostConfLoadedDetectSetup(&suricata);
 
-    SCDropMainThreadCaps(suri.userid, suri.groupid);
-    PreRunPostPrivsDropInit(suri.run_mode);
+    SCDropMainThreadCaps(suricata.userid, suricata.groupid);
+    PreRunPostPrivsDropInit(suricata.run_mode);
 
-    if (suri.run_mode == RUNMODE_CONF_TEST){
+    if (suricata.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
 #ifdef HAVE_MAGIC
         MagicDeinit();
@@ -2897,9 +2915,9 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    SCSetStartTime(&suri);
-    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    SCSetStartTime(&suricata);
+    RunModeDispatch(suricata.run_mode, suricata.runmode_custom_mode);
+    if (suricata.run_mode != RUNMODE_UNIX_SOCKET) {
         UnixManagerThreadSpawnNonRunmode();
     }
 
@@ -2916,7 +2934,7 @@ int main(int argc, char **argv)
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
-    PostRunStartedDetectSetup(&suri);
+    PostRunStartedDetectSetup(&suricata);
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
@@ -2925,17 +2943,17 @@ int main(int argc, char **argv)
 #endif
 #endif
 
-    SuricataMainLoop(&suri);
+    SuricataMainLoop(&suricata);
 
     /* Update the engine stage/status flag */
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
     UnixSocketKillSocketThread();
-    PostRunDeinit(suri.run_mode, &suri.start_time);
+    PostRunDeinit(suricata.run_mode, &suricata.start_time);
     /* kill remaining threads */
     TmThreadKillThreads();
 
-    GlobalsDestroy(&suri);
+    GlobalsDestroy(&suricata);
 
     exit(EXIT_SUCCESS);
 }

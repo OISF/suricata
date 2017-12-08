@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-continuous','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -190,6 +190,24 @@ class SuricataSC:
                     arguments = {}
                     arguments["filename"] = filename
                     arguments["output-dir"] = output
+                    if tenant != None:
+                        arguments["tenant"] = int(tenant)
+            elif "pcap-file-continuous " in command:
+                try:
+                    parts = command.split(' ');
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                cmd, filename, output = parts[0], parts[1], parts[2]
+                tenant = None
+                if len(parts) > 3:
+                    tenant = parts[3]
+                if cmd != "pcap-file":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["filename"] = filename
+                    arguments["output-dir"] = output
+                    arguments["continuous"] = True
                     if tenant != None:
                         arguments["tenant"] = int(tenant)
             elif "iface-stat" in command:

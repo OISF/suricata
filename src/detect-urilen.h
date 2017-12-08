@@ -36,7 +36,7 @@ typedef struct DetectUrilenData_ {
     uint8_t raw_buffer;
 }DetectUrilenData;
 
-bool DetectUrilenValidateContent(const Signature *s, int list);
+bool DetectUrilenValidateContent(const Signature *s, int list, const char **);
 void DetectUrilenApplyToContent(Signature *s, int list);
 int DetectUrilenMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
                        uint8_t, void *, Signature *, SigMatch *);

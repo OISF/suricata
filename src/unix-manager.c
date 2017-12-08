@@ -29,6 +29,8 @@
 #include "runmodes.h"
 #include "conf.h"
 
+#include "output-json-stats.h"
+
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-device.h"
@@ -54,6 +56,8 @@
 #define SOCKET_PATH LOCAL_STATE_DIR "/run/suricata/"
 #define SOCKET_FILENAME "suricata-command.socket"
 #define SOCKET_TARGET SOCKET_PATH SOCKET_FILENAME
+
+#define MAX_FAILED_RULES   20
 
 typedef struct Command_ {
     char *name;
@@ -652,20 +656,126 @@ static TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+static TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, void *data, int do_wait)
 {
     SCEnter();
-    DetectEngineReloadStart();
 
-    while (DetectEngineReloadIsDone() == 0)
-        usleep(100);
+    if (SuriHasSigFile()) {
+        json_object_set_new(server_msg, "message",
+                            json_string("Live rule reload not possible if -s "
+                                        "or -S option used at runtime."));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    int r = DetectEngineReloadStart();
+
+    if (r == 0 && do_wait) {
+        while (DetectEngineReloadIsIdle() == 0)
+            usleep(100);
+    } else {
+        if (r == -1) {
+            json_object_set_new(server_msg, "message", json_string("Reload already in progress"));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
 
     json_object_set_new(server_msg, "message", json_string("done"));
     SCReturnInt(TM_ECODE_OK);
 }
 
+static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 1);
+}
+
+static TmEcode UnixManagerNonBlockingReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 0);
+}
+
+static TmEcode UnixManagerReloadTimeCommand(json_t *cmd,
+                                            json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = NULL;
+
+    retval = OutputEngineStatsReloadTime(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+static TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
+                                              json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = NULL;
+
+    retval = OutputEngineStatsRuleset(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+static TmEcode UnixManagerShowFailedRules(json_t *cmd,
+                                          json_t *server_msg, void *data)
+{
+    SCEnter();
+    int rules_cnt = 0;
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    /* Since we need to deference de_ctx, we don't want to lost it. */
+    DetectEngineCtx *list = de_ctx;
+    json_t *js_sigs_array = json_array();
+
+    if (js_sigs_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        goto error;
+    }
+    while (list) {
+        SigString *sigs_str = NULL;
+        TAILQ_FOREACH(sigs_str, &list->sig_stat.failed_sigs, next) {
+            json_t *jdata = json_object();
+            if (jdata == NULL) {
+                json_object_set_new(server_msg, "message", json_string("Unable to get the sig"));
+                goto error;
+            }
+
+            json_object_set_new(jdata, "tenant_id", json_integer(list->tenant_id));
+            json_object_set_new(jdata, "rule", json_string(sigs_str->sig_str));
+            json_object_set_new(jdata, "filename", json_string(sigs_str->filename));
+            json_object_set_new(jdata, "line", json_integer(sigs_str->line));
+            if (sigs_str->sig_error) {
+                json_object_set_new(jdata, "error", json_string(sigs_str->sig_error));
+            }
+            json_array_append_new(js_sigs_array, jdata);
+            if (++rules_cnt > MAX_FAILED_RULES) {
+                break;
+            }
+        }
+        if (rules_cnt > MAX_FAILED_RULES) {
+            break;
+        }
+        list = list->next;
+    }
+
+    json_object_set_new(server_msg, "message", js_sigs_array);
+    DetectEngineDeReference(&de_ctx);
+    SCReturnInt(TM_ECODE_OK);
+
+error:
+    DetectEngineDeReference(&de_ctx);
+    json_object_clear(js_sigs_array);
+    json_decref(js_sigs_array);
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
 static TmEcode UnixManagerConfGetCommand(json_t *cmd,
-                                  json_t *server_msg, void *data)
+                                         json_t *server_msg, void *data)
 {
     SCEnter();
 
@@ -875,6 +985,11 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-nonblocking", UnixManagerNonBlockingReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-time", UnixManagerReloadTimeCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-failed-rules", UnixManagerShowFailedRules, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
