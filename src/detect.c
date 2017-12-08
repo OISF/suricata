@@ -255,6 +255,11 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, const char *sig_f
     char *path = NULL;
     char varname[128];
 
+    if (sig_file == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS,"invalid sig_file argument - NULL");
+        return NULL;
+    }
+
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.default-rule-path",
                 de_ctx->config_prefix);
