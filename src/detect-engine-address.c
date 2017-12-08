@@ -1299,15 +1299,18 @@ int DetectAddressTestConfVars(void)
         return 0;
     }
 
+    DetectAddressHead *gh = NULL;
+    DetectAddressHead *ghn = NULL;
+
     ConfNode *seq_node;
     TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
         SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
 
-        DetectAddressHead *gh = DetectAddressHeadInit();
+        gh = DetectAddressHeadInit();
         if (gh == NULL) {
             goto error;
         }
-        DetectAddressHead *ghn = DetectAddressHeadInit();
+        ghn = DetectAddressHeadInit();
         if (ghn == NULL) {
             goto error;
         }
@@ -1340,14 +1343,22 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        if (gh != NULL)
+        if (gh != NULL) {
             DetectAddressHeadFree(gh);
-        if (ghn != NULL)
+            gh = NULL;
+        }
+        if (ghn != NULL) {
             DetectAddressHeadFree(ghn);
+            ghn = NULL;
+        }
     }
 
     return 0;
  error:
+    if (gh != NULL)
+        DetectAddressHeadFree(gh);
+    if (ghn != NULL)
+        DetectAddressHeadFree(ghn);
     return -1;
 }
 
