@@ -1487,7 +1487,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     int x;
     for (x = 0; x < nlists; x++) {
         if (s->init_data->smlists[x]) {
-            if (DetectBufferRunValidateCallback(x, s) == FALSE) {
+            if (DetectBufferRunValidateCallback(x, s, &de_ctx->sigerror) == FALSE) {
                 SCReturnInt(0);
             }
         }
