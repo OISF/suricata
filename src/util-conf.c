@@ -101,6 +101,11 @@ int ConfUnixSocketIsEnable(void)
         return 0;
     }
 
+    if (value == NULL) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "malformed value for unix-command.enabled: NULL");
+        return 0;
+    }
+
     if (!strcmp(value, "auto")) {
 #ifdef HAVE_LIBJANSSON
 #ifdef OS_WIN32
