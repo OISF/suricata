@@ -13,6 +13,7 @@ Suricata Rules
    file-keywords
    dns-keywords
    tls-keywords
+   ja3-keywords
    modbus-keyword
    dnp3-keywords
    enip-keyword
