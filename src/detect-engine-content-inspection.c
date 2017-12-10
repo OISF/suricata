@@ -41,6 +41,7 @@
 #include "detect-engine-content-inspection.h"
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
+#include "detect-bsize.h"
 #include "detect-lua.h"
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
@@ -530,7 +531,20 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         goto match;
 
-        /* we should never get here, but bail out just in case */
+    } else if (smd->type == DETECT_BSIZE) {
+
+        bool eof = (flags & DETECT_CI_FLAGS_END);
+        const uint64_t data_size = buffer_len + stream_start_offset;
+        int r = DetectBsizeMatch(smd->ctx, data_size, eof);
+        if (r < 0) {
+            det_ctx->discontinue_matching = 1;
+            goto no_match;
+
+        } else if (r == 0) {
+            goto no_match;
+        }
+        goto match;
+
     } else if (smd->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");
 

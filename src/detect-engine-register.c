@@ -137,6 +137,7 @@
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
 #include "detect-urilen.h"
+#include "detect-bsize.h"
 #include "detect-detection-filter.h"
 #include "detect-http-client-body.h"
 #include "detect-http-server-body.h"
@@ -462,6 +463,7 @@ void SigTableSetup(void)
     DetectNfsProcedureRegister();
     DetectNfsVersionRegister();
     DetectUrilenRegister();
+    DetectBsizeRegister();
     DetectDetectionFilterRegister();
     DetectAsn1Register();
     DetectSshProtocolRegister();
