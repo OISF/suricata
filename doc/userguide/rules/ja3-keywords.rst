@@ -18,3 +18,18 @@ Example::
 
 ``ja3_hash`` can be used as ``fast_pattern``.
 
+ja3_str
+-------
+
+Match on JA3 string.
+
+Example::
+
+  alert tls any any -> any any (msg:"match JA3 string"; \
+      ja3_str; content:"19-20-21-22"; \
+      sid:100002;)
+
+``ja3_str`` is a 'Sticky buffer'.
+
+``ja3_str`` cam be used as ``fast_pattern``.
+
