@@ -104,6 +104,7 @@ detect-distance.c detect-distance.h \
 detect-dnp3.c detect-dnp3.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-ja3-hash.c detect-tls-ja3-hash.h \
+detect-tls-ja3-string.c detect-tls-ja3-string.h \
 detect-tls-sni.c detect-tls-sni.h \
 detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-tls-cert-subject.c detect-tls-cert-subject.h \

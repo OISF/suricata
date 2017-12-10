@@ -53,6 +53,7 @@
 #include "detect-tls-cert-subject.h"
 #include "detect-tls-cert-serial.h"
 #include "detect-tls-ja3-hash.h"
+#include "detect-tls-ja3-string.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-filedata.h"
@@ -410,6 +411,7 @@ void SigTableSetup(void)
     DetectTlsFingerprintRegister();
 
     DetectTlsJa3HashRegister();
+    DetectTlsJa3StringRegister();
 
     DetectAppLayerEventRegister();
     /* end of order dependent regs */
