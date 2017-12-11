@@ -28,6 +28,7 @@
 #include "suricata-common.h"
 #include "win32-misc.h"
 #include "direct.h"
+#include "util-ip.h"
 
 void setenv(const char *name, const char *value, int overwrite)
 {
@@ -79,6 +80,17 @@ int inet_pton(int af, const char *src, void *dst)
     struct addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = af;
+
+    /* as getaddrinfo below seems more liberal that inet_pton on Linux,
+     * add this check here that does a guess at the validity of the
+     * input address. */
+    if (af == AF_INET) {
+        if (!IPv4AddressStringIsValid(src))
+            return -1;
+    } else if (af == AF_INET6) {
+        if (!IPv6AddressStringIsValid(src))
+            return -1;
+    }
 
     struct addrinfo* result = NULL;
     if (0 != getaddrinfo(src, NULL, &hints, &result))
