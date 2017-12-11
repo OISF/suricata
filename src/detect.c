@@ -49,6 +49,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-uri.h"
 #include "detect-dns-query.h"
+#include "detect-dns-response.h"
 #include "detect-tls-sni.h"
 #include "detect-tls-cert-issuer.h"
 #include "detect-tls-cert-subject.h"
@@ -3743,6 +3744,8 @@ void SigTableSetup(void)
     DetectHttpStatCodeRegister();
 
     DetectDnsQueryRegister();
+    DetectDnsResponseRegister();
+
     DetectModbusRegister();
     DetectCipServiceRegister();
     DetectEnipCommandRegister();
