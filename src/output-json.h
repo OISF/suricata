@@ -48,15 +48,12 @@ json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
-enum JsonFormat { COMPACT, INDENT };
-
 /*
  * Global configuration context data
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
-    enum JsonFormat format;
 } OutputJsonCtx;
 
 typedef struct AlertJsonThread_ {
