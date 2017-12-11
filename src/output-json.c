@@ -637,19 +637,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 return NULL;
             }
             OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
-
-            const char *format_s = ConfNodeLookupChildValue(conf, "format");
-            if (format_s != NULL) {
-                if (strcmp(format_s, "indent") == 0) {
-                    json_ctx->format = INDENT;
-                } else if (strcmp(format_s, "compact") == 0) {
-                    json_ctx->format = COMPACT;
-                } else {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                               "Invalid JSON format option: %s", format_s);
-                    exit(EXIT_FAILURE);
-                }
-            }
         } else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
