@@ -40,10 +40,12 @@
 
 static inline int FiledataCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
 {
-    void *ptmp;
     if (size > det_ctx->file_data_buffers_size) {
-        ptmp = SCRealloc(det_ctx->file_data,
-                         (det_ctx->file_data_buffers_size + BUFFER_STEP) * sizeof(FiledataReassembledBody));
+        uint16_t grow_by = size - det_ctx->file_data_buffers_size;
+        grow_by = MAX(grow_by, BUFFER_STEP);
+
+        void *ptmp = SCRealloc(det_ctx->file_data,
+                         (det_ctx->file_data_buffers_size + grow_by) * sizeof(FiledataReassembledBody));
         if (ptmp == NULL) {
             SCFree(det_ctx->file_data);
             det_ctx->file_data = NULL;
@@ -53,10 +55,13 @@ static inline int FiledataCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t s
         }
         det_ctx->file_data = ptmp;
 
-        memset(det_ctx->file_data + det_ctx->file_data_buffers_size, 0, BUFFER_STEP * sizeof(FiledataReassembledBody));
-        det_ctx->file_data_buffers_size += BUFFER_STEP;
+        memset(det_ctx->file_data + det_ctx->file_data_buffers_size, 0, grow_by * sizeof(FiledataReassembledBody));
+        det_ctx->file_data_buffers_size += grow_by;
     }
-    for (int i = det_ctx->file_data_buffers_list_len; i < (size); i++) {
+    uint16_t i;
+    for (i = det_ctx->file_data_buffers_list_len;
+            i < det_ctx->file_data_buffers_size; i++)
+    {
         det_ctx->file_data[i].buffer_len = 0;
         det_ctx->file_data[i].offset = 0;
     }
