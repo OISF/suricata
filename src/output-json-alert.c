@@ -785,7 +785,15 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     if (conf != NULL) {
         SetFlag(conf, "metadata", LOG_JSON_METADATA_ALL, &json_output_ctx->flags);
         SetFlag(conf, "flow", LOG_JSON_FLOW, &json_output_ctx->flags);
-        SetFlag(conf, "vars", LOG_JSON_VARS, &json_output_ctx->flags);
+
+        /* Break out vars so we can issue a deprecation notice. */
+        const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        if (vars != NULL && ConfValIsTrue(vars)) {
+            SCLogNotice("The \"vars\" eve type has been deprecated.");
+            json_output_ctx->flags |= LOG_JSON_VARS;
+        } else {
+            json_output_ctx->flags &= ~LOG_JSON_VARS;
+        }
 
         SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
         SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
