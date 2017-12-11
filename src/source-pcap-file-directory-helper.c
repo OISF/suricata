@@ -229,17 +229,31 @@ TmEcode PcapDetermineDirectoryOrFile(char *filename, DIR **directory)
 
 int PcapDirectoryGetModifiedTime(char const *file, struct timespec *out)
 {
+#ifdef OS_WIN32
+    struct _stat buf;
+#else
     struct stat buf;
+#endif /* OS_WIN32 */
     int ret;
 
     if (file == NULL)
         return -1;
 
+#ifdef OS_WIN32
+    if((ret = _stat(file, &buf)) != 0)
+        return ret;
+#else
     if ((ret = stat(file, &buf)) != 0)
         return ret;
+#endif
 
 #ifdef OS_DARWIN
     *out = buf.st_mtimespec;
+#elif OS_WIN32
+    struct timespec ts;
+    memset(&ts, 0, sizeof(ts));
+    ts.tv_sec = buf.st_mtime;
+    *out = ts;
 #else
     *out = buf.st_mtim;
 #endif
@@ -316,7 +330,13 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
     PendingFile *file_to_add = NULL;
 
     while ((dir = readdir(pv->directory)) != NULL) {
+#ifndef OS_WIN32
         if (dir->d_type != DT_REG) {
+            continue;
+        }
+#endif
+        if (strcmp(dir->d_name, ".") == 0 ||
+            strcmp(dir->d_name, "..") == 0) {
             continue;
         }
 
