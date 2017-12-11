@@ -42,6 +42,9 @@ typedef struct SCACPatternList_ {
     uint8_t *cs;
     uint16_t patlen;
 
+    uint16_t offset;
+    uint16_t depth;
+
     /* sid(s) for this pattern */
     uint32_t sids_size;
     SigIntId *sids;
