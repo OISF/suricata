@@ -371,7 +371,7 @@ void JsonAddVars(const Packet *p, const Flow *f, json_t *js)
 /**
  * \brief Add top-level metadata to the eve json object.
  */
-static void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
+void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         json_t *js_vars = json_object();
@@ -578,9 +578,6 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
 
     /* 5-tuple */
     JsonFiveTuple(p, direction_sensitive, js);
-
-    /* Metadata. */
-    JsonAddMetadata(p, f, js);
 
     /* icmp */
     switch (p->proto) {
@@ -831,6 +828,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                            "invalid sensor-is: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
+        }
+
+        /* Check if top-level metadata should be logged. */
+        const ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
+        if (metadata && metadata->val && ConfValIsFalse(metadata->val)) {
+            SCLogNotice("Disabling eve metadata logging.");
+            json_ctx->include_metadata = false;
+        } else {
+            json_ctx->include_metadata = true;
         }
 
         json_ctx->file_ctx->type = json_ctx->json_out;
