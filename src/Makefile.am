@@ -26,6 +26,7 @@ app-layer-dns-udp-rust.c app-layer-dns-udp-rust.h \
 app-layer-enip.c app-layer-enip.h \
 app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
+app-layer-expectation.c app-layer-expectation.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-htp-body.c app-layer-htp-body.h \
 app-layer-htp.c app-layer-htp.h \
@@ -240,6 +241,7 @@ detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-target.c detect-target.h \
 detect-template.c detect-template.h \
+detect-ftpdata.c detect-ftpdata.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \

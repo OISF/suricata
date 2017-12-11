@@ -387,6 +387,9 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
         return;
     int64_t flow_id = FlowGetId(f);
     json_object_set_new(js, "flow_id", json_integer(flow_id));
+    if (f->parent_id) {
+        json_object_set_new(js, "parent_id", json_integer(f->parent_id));
+    }
 }
 
 json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,

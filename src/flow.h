@@ -79,22 +79,26 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE  BIT_U32(13)
 /** Probing parser alproto detection done */
 #define FLOW_TS_PP_ALPROTO_DETECT_DONE  BIT_U32(14)
+/** Expectation alproto detection done */
+#define FLOW_TS_PE_ALPROTO_DETECT_DONE  BIT_U32(15)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE  BIT_U32(15)
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE  BIT_U32(16)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE  BIT_U32(16)
-#define FLOW_TIMEOUT_REASSEMBLY_DONE    BIT_U32(17)
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE  BIT_U32(17)
+/** Expectation alproto detection done */
+#define FLOW_TC_PE_ALPROTO_DETECT_DONE  BIT_U32(18)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE    BIT_U32(19)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                       BIT_U32(18)
+#define FLOW_IPV4                       BIT_U32(20)
 /** flow is ipv6 */
-#define FLOW_IPV6                       BIT_U32(19)
+#define FLOW_IPV6                       BIT_U32(21)
 
-#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(20)
-#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(21)
+#define FLOW_PROTO_DETECT_TS_DONE       BIT_U32(22)
+#define FLOW_PROTO_DETECT_TC_DONE       BIT_U32(23)
 
 /** Indicate that alproto detection for flow should be done again */
-#define FLOW_CHANGE_PROTO               BIT_U32(22)
+#define FLOW_CHANGE_PROTO               BIT_U32(24)
 
 /* File flags */
 
@@ -233,12 +237,15 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 
 #define FLOW_IS_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_IS_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_IS_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags & FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags & FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 #define FLOW_SET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_SET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_SET_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags |= FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags |= FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 #define FLOW_RESET_PM_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PM_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PM_ALPROTO_DETECT_DONE))
 #define FLOW_RESET_PP_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PP_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PP_ALPROTO_DETECT_DONE))
+#define FLOW_RESET_PE_DONE(f, dir) (((dir) & STREAM_TOSERVER) ? ((f)->flags &= ~FLOW_TS_PE_ALPROTO_DETECT_DONE) : ((f)->flags &= ~FLOW_TC_PE_ALPROTO_DETECT_DONE))
 
 /* global flow config */
 typedef struct FlowCnf_
@@ -360,6 +367,9 @@ typedef struct Flow_
     uint32_t probing_parser_toclient_alproto_masks;
 
     uint32_t flags;         /**< generic flags */
+
+    /* Parent flow id for protocol like ftp */
+    int64_t parent_id;
 
     uint16_t file_flags;    /**< file tracking/extraction flags */
     /* coccinelle: Flow:file_flags:FLOWFILE_ */
