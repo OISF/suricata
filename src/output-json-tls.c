@@ -102,6 +102,7 @@ typedef struct OutputTlsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags;  /** Store mode */
     uint64_t fields; /** Store fields */
+    bool include_metadata;
 } OutputTlsCtx;
 
 
@@ -361,6 +362,10 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
         return 0;
     }
 
+    if (tls_ctx->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
+
     json_t *tjs = json_object();
     if (tjs == NULL) {
         free(js);
@@ -561,6 +566,7 @@ static OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     tls_ctx->file_ctx = ojc->file_ctx;
+    tls_ctx->include_metadata = ojc->include_metadata;
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
             (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)) {
