@@ -195,6 +195,12 @@ void HTPFree(void *ptr, size_t size)
     HTPDecrMemuse((uint64_t)size);
 }
 
+void HTPDestroyMemcap(void)
+{
+    SC_ATOMIC_DESTROY(htp_config_memcap);
+    SC_ATOMIC_DESTROY(htp_memcap);
+    SC_ATOMIC_DESTROY(htp_memuse);
+}
 
 /**
  * @}
