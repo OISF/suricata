@@ -63,6 +63,7 @@ static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *);
 static json_t *Asn1IssuerAlternativeName(SSLCertExtension *);
+static json_t *Asn1NameContraintsToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -80,7 +81,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.30", .extn_name = "name_contraints",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1NameContraintsToJSON
 #endif
     },
     { .extn_id = "2.5.29.36", .extn_name = "policy_contraints",
@@ -832,6 +833,7 @@ int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp,
 #ifdef HAVE_LIBJANSSON
 
 #define URI_TYPE 0x86
+#define DNS_TYPE 0x82
 
 json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn)
 {
@@ -1517,6 +1519,142 @@ static json_t *Asn1IssuerAlternativeName(SSLCertExtension *extn)
         }
         len += gn_len + 2;
         offset = len;
+    }
+
+    return jobj;
+}
+
+static json_t *Asn1NCParseGeneralSubtrees(uint8_t *data, uint8_t *gst_len, uint8_t gst_seq_len)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    json_t *jarray_uri = NULL;
+    json_t *jarray_dns = NULL;
+
+    int offset = 0;
+    uint8_t len = 0;
+
+    while ((len + 4) < gst_seq_len) {
+        if (data[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid type, expected a constructed.");
+            json_decref(jobj);
+            return NULL;
+        }
+        uint8_t seq_len = data[++offset];
+        if (seq_len == 0 || seq_len > gst_seq_len) {
+            SCLogDebug("invalid length");
+            json_decref(jobj);
+            return NULL;
+        }
+        offset++;
+        uint8_t name_type = data[offset];
+        if (name_type == URI_TYPE || name_type == DNS_TYPE) {
+            uint8_t gn_len = data[++offset];
+            if (gn_len == 0 || gn_len > seq_len) {
+                SCLogDebug("invalid length");
+                json_object_clear(jobj);
+                json_decref(jobj);
+                return NULL;
+            }
+            if (jarray_uri == NULL && name_type == URI_TYPE) {
+                jarray_uri = json_array();
+                if (jarray_uri == NULL) {
+                    json_decref(jobj);
+                    if (jarray_dns != NULL) {
+                        json_decref(jarray_dns);
+                    }
+                    return NULL;
+                }
+            }
+            if (jarray_dns == NULL && name_type == DNS_TYPE) {
+                jarray_dns = json_array();
+                if (jarray_dns == NULL) {
+                    json_decref(jobj);
+                    if (jarray_uri != NULL) {
+                        json_decref(jarray_uri);
+                    }
+                    return NULL;
+                }
+            }
+            offset++;
+            char buf[gn_len + 1];
+            memset(buf, 0x00, gn_len + 1);
+            memcpy(buf, (char *)data + offset, gn_len);
+            if (name_type == URI_TYPE) {
+                json_array_append_new(jarray_uri, json_string(buf));
+            }
+            if (name_type == DNS_TYPE) {
+                json_array_append_new(jarray_dns, json_string(buf));
+            }
+            len += gn_len + 2;
+            offset = len + 2;
+        } else {
+            /* we have got an invalid type, so let's quit
+             * and return what we have seen, if any. */
+            goto end;
+        }
+    }
+    *gst_len += len + 2;
+end:
+    if (jarray_uri)
+        json_object_set_new(jobj, "uri", jarray_uri);
+    if (jarray_dns)
+        json_object_set_new(jobj, "dns", jarray_dns);
+
+    return jobj;
+}
+
+static json_t *Asn1NameContraintsToJSON(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        const char *key = NULL;
+        if ((uint8_t)extn->extn_value[offset] == 0xA0) {
+            key = "permittedSubTrees";
+        } else if ((uint8_t)extn->extn_value[offset] == 0xA1) {
+            key = "excludedSubtrees";
+        } else {
+            return jobj;
+        }
+
+        uint8_t gst_seq_len = extn->extn_value[++offset];
+        if (gst_seq_len == 0 || gst_seq_len > seq_len) {
+            SCLogDebug("invalid length");
+            return jobj;
+        }
+        uint8_t sub_len = 0;
+        offset++;
+        while ((sub_len + 4) < gst_seq_len) {
+            json_t *jdata = Asn1NCParseGeneralSubtrees((uint8_t *)extn->extn_value + offset, &sub_len, gst_seq_len);
+            if (jdata) {
+                json_object_set_new(jobj, key, jdata);
+            } else {
+                return jobj;
+            }
+        }
+        len += sub_len + 2;
     }
 
     return jobj;
