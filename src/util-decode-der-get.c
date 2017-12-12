@@ -61,6 +61,7 @@ static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
 static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
 static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
+static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -83,7 +84,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.36", .extn_name = "policy_contraints",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1PolicyContraintsToJSON
 #endif
     },
     { .extn_id = "2.5.29.15", .extn_name = "key_usage",
@@ -1409,6 +1410,61 @@ static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *extn)
     }
 
     return jdata;
+}
+
+static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid type, expected a constructed.");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        const char *key = NULL;
+        int i;
+        uint32_t value = 0;
+        if ((uint8_t)extn->extn_value[offset] == 0x80) {
+            key = "requireExplicitPolicy";
+        } else if ((uint8_t)extn->extn_value[offset] == 0x81) {
+            key = "inhibitPolicyMapping";
+        } else {
+            /* this sequence has only two possible values,
+             * so if we are here means that current value
+             * is wrong. So let's return the object which
+             * may contain a valid value. */
+            return jobj;
+        }
+
+        uint8_t int_len = extn->extn_value[++offset];
+        if (int_len == 0 || int_len > seq_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+        offset++;
+        for (i = 0; i < int_len; i++) {
+            value = value<<8 | (uint8_t)extn->extn_value[offset];
+            offset++;
+        }
+        json_object_set_new(jobj, key, json_integer(value));
+        len += int_len + 2;
+    }
+
+    return jobj;
 }
 
 #endif
