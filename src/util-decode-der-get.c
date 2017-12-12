@@ -62,6 +62,7 @@ static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
 static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *);
+static json_t *Asn1IssuerAlternativeName(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -114,7 +115,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.18", .extn_name = "issuer_alternative_name",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1IssuerAlternativeName
 #endif
     },
     { .extn_id = "2.5.29.9", .extn_name = "subject_directory_attributes",
@@ -829,6 +830,9 @@ int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp,
 }
 
 #ifdef HAVE_LIBJANSSON
+
+#define URI_TYPE 0x86
+
 json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn)
 {
     int id = GetAsnExtension(extn);
@@ -1469,6 +1473,50 @@ static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *extn)
         }
         json_object_set_new(jobj, key, json_integer(value));
         len += int_len + 2;
+    }
+
+    return jobj;
+}
+
+static json_t *Asn1IssuerAlternativeName(SSLCertExtension *extn)
+{
+    json_t *jobj = json_array();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        uint8_t gn_len = extn->extn_value[++offset];
+        if (gn_len == 0 || gn_len > seq_len) {
+            SCLogDebug("Invalid length");
+            return jobj;
+        }
+        if ((uint8_t)extn->extn_value[offset - 1] == URI_TYPE) {
+            char buf[gn_len + 1];
+            memset(buf, 0x00, gn_len + 1);
+            offset++;
+            memcpy(buf, extn->extn_value + offset, gn_len);
+            buf[gn_len] = '\0';
+            json_array_append_new(jobj, json_string(buf));
+        }
+        len += gn_len + 2;
+        offset = len;
     }
 
     return jobj;
