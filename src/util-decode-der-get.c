@@ -60,6 +60,7 @@ static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
 static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
 static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
 static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
+static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -137,7 +138,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.33", .extn_name = "policy_mappings",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1PolicyMappingsToJSON
 #endif
     },
     { .extn_id = "2.5.29.54", .extn_name = "inhibit_any_policy",
@@ -1349,6 +1350,72 @@ static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *extn)
     }
 
     return NULL;
+}
+
+static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid type, expected a constructed.");
+        return NULL;
+    }
+
+    uint8_t pm_len = extn->extn_value[1];
+    if (pm_len == 0 || pm_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while ((len + 2) < pm_len) {
+        if (extn->extn_value[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid type, expected a constructed.");
+            break;
+        }
+
+        uint8_t seq_len = extn->extn_value[++offset];
+        if (seq_len == 0 || seq_len > pm_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+        uint8_t len2 = 0;
+        int first = 1;
+        json_t *jobj = json_object();
+        if (jobj == NULL) {
+            json_decref(jdata);
+            return NULL;
+        }
+        offset++;
+        while ((len2 + 4) < seq_len) {
+            if ((uint8_t)extn->extn_value[offset] == ASN1_OID) {
+                uint8_t obj_len = extn->extn_value[++offset];
+                if (obj_len == 0 || obj_len > seq_len) {
+                    SCLogDebug("invalid length");
+                    break;
+                }
+                offset++;
+                const char *key = (first) ? "issuerDomainPolicy" : "subjectDomainPolicy";
+                char value[MAX_OID_LENGTH];
+                Asn1BuildOidValue((uint8_t *)extn->extn_value, offset, obj_len, value);
+                json_object_set_new(jobj, key, json_string(value));
+                len2 += obj_len;
+                offset += obj_len;
+            }
+            first = (first) ? 0 : 1;
+        }
+        json_array_append_new(jdata, jobj);
+        len += len2 + 4;
+        if (offset > len) {
+            offset = len;
+        }
+    }
+
+    return jdata;
 }
 
 #endif
