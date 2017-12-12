@@ -655,7 +655,7 @@ static void PrintUsage(const char *progname)
     printf("\t--dump-config                        : show the running configuration\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
-    printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted");
+    printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size                   : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
@@ -1880,7 +1880,6 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogError(SC_ERR_CMD_LINE, "Failed to set pcap-file.continuous");
                     return TM_ECODE_FAILED;
                 }
-                return TM_ECODE_OK;
             }
             break;
         case 'c':
