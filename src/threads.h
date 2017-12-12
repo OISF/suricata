@@ -152,6 +152,7 @@ enum {
 #define SCCtrlCondT pthread_cond_t
 #define SCCtrlCondInit pthread_cond_init
 #define SCCtrlCondSignal pthread_cond_signal
+#define SCCtrlCondBroadcast pthread_cond_broadcast
 #define SCCtrlCondTimedwait pthread_cond_timedwait
 #define SCCtrlCondWait pthread_cond_wait
 #define SCCtrlCondDestroy pthread_cond_destroy

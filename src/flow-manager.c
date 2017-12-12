@@ -125,6 +125,15 @@ typedef struct FlowTimeoutCounters_ {
 } FlowTimeoutCounters;
 
 /**
+ * \brief Signal flow manager threads that are timed wait to wakeup
+ *
+ */
+void FlowManagerWakeupThreads(void)
+{
+    SCCtrlCondBroadcast(&flow_manager_ctrl_cond);
+}
+
+/**
  * \brief Used to disable flow manager thread(s).
  *
  * \todo Kinda hackish since it uses the tv name to identify flow manager
@@ -138,9 +147,7 @@ void FlowDisableFlowManagerThread(void)
     ThreadVars *tv = NULL;
 
     /* wake up threads */
-    uint32_t u;
-    for (u = 0; u < flowmgr_number; u++)
-        SCCtrlCondSignal(&flow_manager_ctrl_cond);
+    FlowManagerWakeupThreads();
 
     SCMutexLock(&tv_root_lock);
     /* flow manager thread(s) is/are a part of mgmt threads */
@@ -190,8 +197,7 @@ again:
     SCMutexUnlock(&tv_root_lock);
 
     /* wake up threads, another try */
-    for (u = 0; u < flowmgr_number; u++)
-        SCCtrlCondSignal(&flow_manager_ctrl_cond);
+    FlowManagerWakeupThreads();
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowmgr_cnt, 0);
