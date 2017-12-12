@@ -1276,8 +1276,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD07(void)
 }
 
 /**
- * \brief Creates a dummy threshold file, with all valid options, but
- *        with splitted rules (multiline), for testing purposes.
+ * \brief Creates a dummy threshold file, for testing rate_filter, track by_rule
  *
  * \retval fd Pointer to file descriptor.
  */
@@ -1285,8 +1284,7 @@ static FILE *SCThresholdConfGenerateValidDummyFD08(void)
 {
     FILE *fd = NULL;
     const char *buffer =
-        "rate_filter gen_id 1, sig_id 10, track by_rule, count 3, seconds 3, new_action drop, timeout 10\n"
-        "rate_filter gen_id 1, sig_id 11, track by_src, count 3, seconds 1, new_action drop, timeout 5\n";
+        "rate_filter gen_id 1, sig_id 10, track by_rule, count 3, seconds 3, new_action drop, timeout 10\n";
 
     fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
@@ -1741,7 +1739,11 @@ static int SCThresholdConfTest10(void)
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
 
-    Packet *p1 = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
+    /* Create two different packets falling to the same rule, and
+    *  because count:3, we should drop on match #4.
+    */
+    Packet *p1 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP,
+            "172.26.0.2", "172.26.0.11");
     FAIL_IF_NULL(p1);
     Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP,
             "172.26.0.1", "172.26.0.10");
@@ -1767,26 +1769,44 @@ static int SCThresholdConfTest10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
     TimeGet(&p1->ts);
+    p2->ts = p1->ts;
 
+    /* All should be alerted, none dropped */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF(PacketAlertCheck(p1, 10));
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF(PacketAlertCheck(p2, 10));
-
+    FAIL_IF(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+    p2->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PacketAlertCheck(p1, 10) == 1);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
+
+    /* Match #4 should be dropped*/
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p2, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p2, 10) != 1);
+    p2->action = 0;
 
     TimeSetIncrementTime(2);
     TimeGet(&p1->ts);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    FAIL_IF_NOT(PacketAlertCheck(p2, 10) == 1);
+    /* Still dropped because timeout not expired */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    FAIL_IF_NOT(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
+    p1->action = 0;
 
-    TimeSetIncrementTime(10);
+    TimeSetIncrementTime(5);
     TimeGet(&p1->ts);
 
+    /* Not dropped because timeout expired */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    FAIL_IF_NOT(PacketAlertCheck(p1, 10) == 0);
+    FAIL_IF(PACKET_TEST_ACTION(p1, ACTION_DROP));
+    FAIL_IF(PacketAlertCheck(p1, 10) != 1);
 
     /* Ensure that a Threshold entry was installed at the sig */
     FAIL_IF_NULL(de_ctx->ths_ctx.th_entry[s->num]);
