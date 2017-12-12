@@ -227,13 +227,13 @@ DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
     if (unlikely(ste == NULL)) {
         SCReturnPtr(NULL, "DetectThresholdEntry");
     }
+    memset(ste, 0, sizeof(*ste));
 
     ste->sid = sid;
     ste->gid = gid;
 
     ste->track = td->track;
     ste->seconds = td->seconds;
-    ste->tv_timeout = 0;
 
     SCReturnPtr(ste, "DetectThresholdEntry");
 }
@@ -614,50 +614,32 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p,
 {
     int ret = 0;
 
-    if (td->type != TYPE_RATE)
-        return 1;
-
     DetectThresholdEntry* lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
-    if (lookup_tsh != NULL) {
-        /* Check if we have a timeout enabled, if so,
-         * we still matching (and enabling the new_action) */
-        if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
-            /* Ok, we are done, timeout reached */
-            lookup_tsh->tv_timeout = 0;
-        } else {
-            /* Already matching */
-            /* Take the action to perform */
-            RateFilterSetAction(p, pa, td->new_action);
-            ret = 1;
-        }
+    SCLogDebug("by_rule lookup_tsh %p num %u", lookup_tsh, s->num);
 
-        /* Update the matching state with the timeout interval */
-        if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
-            lookup_tsh->current_count++;
-            if (lookup_tsh->current_count >= td->count) {
-                /* Then we must enable the new action by setting a
-                 * timeout */
-                lookup_tsh->tv_timeout = p->ts.tv_sec;
-                /* Take the action to perform */
+    switch (td->type) {
+        case TYPE_RATE:
+        {
+            ret = 1;
+            if (lookup_tsh && IsThresholdReached(lookup_tsh, td, p->ts.tv_sec)) {
                 RateFilterSetAction(p, pa, td->new_action);
-                ret = 1;
             }
-        } else {
-            lookup_tsh->tv_sec1 = p->ts.tv_sec;
-            lookup_tsh->current_count = 1;
-        }
-    } else {
-        if (td->count == 1) {
-            ret = 1;
-        }
+            else if (!lookup_tsh) {
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s->id, s->gid);
+                if (e != NULL) {
+                    e->current_count = 1;
+                    e->tv_sec1 = p->ts.tv_sec;
+                    e->tv_timeout = 0;
 
-        DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s->id, s->gid);
-        if (e != NULL) {
-            e->current_count = 1;
-            e->tv_sec1 = p->ts.tv_sec;
-            e->tv_timeout = 0;
-
-            de_ctx->ths_ctx.th_entry[s->num] = e;
+                    de_ctx->ths_ctx.th_entry[s->num] = e;
+                }
+            }
+            break;
+        }
+        default:
+        {
+            SCLogError(SC_ERR_INVALID_VALUE, "type %d is not supported", td->type);
+            break;
         }
     }
 
