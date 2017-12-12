@@ -51,6 +51,7 @@ typedef struct AsnExtension_ {
 #endif
 } AsnExtension;
 
+#ifdef HAVE_LIBJANSSON
 static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
 static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
@@ -64,6 +65,8 @@ static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
 static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *);
 static json_t *Asn1IssuerAlternativeName(SSLCertExtension *);
 static json_t *Asn1NameContraintsToJSON(SSLCertExtension *);
+static json_t *Asn1PrivateKeyUsagePeriod(SSLCertExtension *);
+#endif
 
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
 static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
@@ -131,7 +134,7 @@ static AsnExtension asn_extns[EXTN_MAX] = {
     },
     { .extn_id = "2.5.29.16", .extn_name = "private_key_usage_period",
 #ifdef HAVE_LIBJANSSON
-        NULL
+        Asn1PrivateKeyUsagePeriod
 #endif
     },
     { .extn_id = "2.5.29.32", .extn_name = "certificate_policies",
@@ -1648,6 +1651,68 @@ static json_t *Asn1NameContraintsToJSON(SSLCertExtension *extn)
             }
         }
         len += sub_len + 2;
+    }
+
+    return jobj;
+}
+
+#define EXTN_TIME_LEN 15
+static json_t *Asn1PrivateKeyUsagePeriod(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+    const char *key = NULL;
+
+    while ((len + EXTN_TIME_LEN + 2) <= seq_len) {
+        if ((uint8_t)extn->extn_value[offset] == 0x80) {
+            key = "notbefore";
+        } else if ((uint8_t)extn->extn_value[offset] == 0x81) {
+            key = "notafter";
+        } else {
+            return jobj;
+        }
+        uint8_t time_len = extn->extn_value[++offset];
+        if (time_len != EXTN_TIME_LEN) {
+            SCLogDebug("invalid length");
+            return jobj;
+        }
+        offset++;
+        char timestr[EXTN_TIME_LEN + 1];
+        char timebuf[64];
+        time_t time;
+        struct timeval tv;
+
+        memset(timestr, 0x00, sizeof(timestr));
+        memcpy(timestr, extn->extn_value + offset, EXTN_TIME_LEN);
+        time = GentimeToTime(timestr);
+        if (time < 0) {
+            return jobj;
+        }
+
+        tv.tv_sec = time;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+
+        json_object_set_new(jobj, key, json_string(timebuf));
+        len += EXTN_TIME_LEN + 2;
+        offset = len + 2;
     }
 
     return jobj;
