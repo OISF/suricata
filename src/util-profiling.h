@@ -300,7 +300,8 @@ PktProfiling *SCProfilePacketStart(void);
         ticks_start)                                                \
     {                                                               \
         uint64_t ticks_end = UtilCpuGetTicks();                     \
-        (p)->profile->prefilter.engines[(profile_id)].ticks_spent += (ticks_end - ticks_start);    \
+        if (ticks_end > ticks_start)                                \
+            (p)->profile->prefilter.engines[(profile_id)].ticks_spent += (ticks_end - ticks_start);    \
         ticks_start = 0;                                            \
     }                                                               \
 
