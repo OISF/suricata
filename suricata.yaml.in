@@ -45,6 +45,10 @@ vars:
     FTP_PORTS: 21
 
 
+# Information about your networks can be defined in the file
+# below using a JSON syntax and added when an event is generated.
+#network-info: @e_sysconfdir@network.json
+
 ##
 ## Step 2: select the rules to enable or disable
 ##
