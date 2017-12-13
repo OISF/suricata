@@ -270,6 +270,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         PcapFileDirectoryVars *pv = SCMalloc(sizeof(PcapFileDirectoryVars));
         if (unlikely(pv == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate directory vars");
+            closedir(directory);
             CleanupPcapFileThreadVars(ptv);
             SCReturnInt(TM_ECODE_FAILED);
         }
