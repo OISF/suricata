@@ -92,12 +92,15 @@ sed -i "s/template/${LC}/g" $FILE_C
 sed -i "s/template/${LC}/g" $FILE_H
 # add to Makefile.am
 sed -i "s/detect-template.c detect-template.h \\\/detect-template.c detect-template.h \\\\\n${FILE_C} ${FILE_H} \\\/g" Makefile.am
+
 # update enum
-sed -i "s/DETECT_TEMPLATE,/DETECT_TEMPLATE,\\n    DETECT_${UC},/g" detect.h
-# add include to detect.c
-sed -i "s/#include \"detect-template.h\"/#include \"detect-template.h\"\\n#include \"${FILE_H}\"/g" detect.c
-# add reg func to detect.c
-sed -i "s/DetectTemplateRegister();/DetectTemplateRegister();\\n    Detect${NR}Register();/g" detect.c
+sed -i "s/DETECT_TEMPLATE,/DETECT_TEMPLATE,\\n    DETECT_${UC},/g" detect-engine-register.h
+
+# add include to detect-engine-register.c
+sed -i "s/#include \"detect-template.h\"/#include \"detect-template.h\"\\n#include \"${FILE_H}\"/g" detect-engine-register.c
+
+# add reg func to detect-engine-register.c
+sed -i "s/DetectTemplateRegister();/DetectTemplateRegister();\\n    Detect${NR}Register();/g" detect-engine-register.c
 
 Done
 exit 0
