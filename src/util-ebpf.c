@@ -37,6 +37,9 @@
 
 #ifdef HAVE_PACKET_EBPF
 
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include "util-ebpf.h"
 #include "util-cpu.h"
 
@@ -88,6 +91,12 @@ int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags
         return -1;
     }
 
+    struct rlimit r = {RLIM_INFINITY, RLIM_INFINITY};
+    if (setrlimit(RLIMIT_MEMLOCK, &r)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to lock memory");
+        return -1;
+    }
+
     bpfobj = bpf_object__open(path);
 
     if (libbpf_get_error(bpfobj)) {
@@ -125,8 +134,8 @@ int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags
     if (err < 0) {
         if (err == -EPERM) {
             SCLogError(SC_ERR_MEM_ALLOC,
-                    "Permission issue when loading eBPF object try to "
-                    "increase memlock limit: %s (%d)",
+                    "Permission issue when loading eBPF object: "
+                    "%s (%d)",
                     strerror(err),
                     err);
         } else {
