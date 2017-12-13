@@ -423,6 +423,7 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                 pftv->filename = SCStrdup(current_file->filename);
                 if (unlikely(pftv->filename == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate filename");
+                    CleanupPcapFileFileVars(pftv);
                     SCReturnInt(TM_ECODE_FAILED);
                 }
                 pftv->shared = pv->shared;
@@ -509,7 +510,7 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
                     SCLogInfo("Directory %s no longer exists, stopping",
                               ptv->filename);
                     status = TM_ECODE_DONE;
-                } else {
+                } else if(directory_check != NULL) {
                     closedir(directory_check);
                 }
             }
