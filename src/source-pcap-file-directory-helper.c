@@ -512,6 +512,7 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
                     status = TM_ECODE_DONE;
                 } else if(directory_check != NULL) {
                     closedir(directory_check);
+                    directory_check = NULL;
                 }
             }
         } else if (status == TM_ECODE_OK) { //not looping, mark done
