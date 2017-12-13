@@ -95,17 +95,23 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
             (FLOW_IS_PM_DONE(f, direction) && FLOW_IS_PP_DONE(f, direction)));
 }
 
+/**
+ * \note id can be 0 if protocol parser is disabled but detection
+ *       is enabled.
+ */
 static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
 {
-    if (likely(tv)) {
-        StatsIncr(tv, applayer_counters[f->protomap][f->alproto].counter_id);
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_id;
+    if (likely(tv && id > 0)) {
+        StatsIncr(tv, id);
     }
 }
 
 void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step)
 {
-    if (likely(tv)) {
-        StatsAddUI64(tv, applayer_counters[f->protomap][f->alproto].counter_tx_id, step);
+    const uint16_t id = applayer_counters[f->protomap][f->alproto].counter_tx_id;
+    if (likely(tv && id > 0)) {
+        StatsAddUI64(tv, id, step);
     }
 }
 
