@@ -143,7 +143,7 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  * \retval 1 if in bounds
  * \retval 0 if not in bounds
  */
-int StreamTcpReassembleCheckMemcap(uint32_t size)
+int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
     if (stream_config.reassembly_memcap == 0 ||
             (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= stream_config.reassembly_memcap)
