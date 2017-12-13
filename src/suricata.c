@@ -293,11 +293,8 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
  */
 static void SignalHandlerSigusr2(int sig)
 {
-    if (sigusr2_count < 16) {
+    if (sigusr2_count < 2)
         sigusr2_count++;
-    } else {
-        SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Too many USR2 signals pending, ignoring new ones!");
-    }
 }
 
 /**
