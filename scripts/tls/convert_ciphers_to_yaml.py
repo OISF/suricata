@@ -31,10 +31,6 @@ def is_number(s):
 def handle_line(line):
     #print line
     fields = line.split(':')
-    # fixes
-    rfc = fields[12]
-    if not is_number(rfc):
-        rfc = 0
     print """
   - cipher: %s
     cs: 0x%s
@@ -60,7 +56,7 @@ def handle_line(line):
         fields[6] or "NULL",
         fields[7],
         fields[8], fields[9], fields[10], fields[11],
-        rfc, fields[13], fields[14], fields[15].rstrip(),
+        fields[12], fields[13], fields[14], fields[15].rstrip(),
         )
 
 # print header

@@ -26,7 +26,7 @@ previous script, and converts it to the YAML format expected by suricata.
 
 The execution of the scripts is done as follows::
 
- ./extract-iana-ciphers.py
+ ./extract-iana-ciphers.py > tls-ciphersuites.txt
  ./convert_ciphers_to_yaml.py < tls-ciphersuites.txt > tls-ciphersuites.yaml
 
 .. vim: set ft=rst tw=80:

@@ -17,7 +17,7 @@ tls-ciphersuites:
     mac-size: 0
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -35,7 +35,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -53,7 +53,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -71,7 +71,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346,rfc6347
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -89,7 +89,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -107,7 +107,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -125,7 +125,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -143,7 +143,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -161,7 +161,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -179,7 +179,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -197,7 +197,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -215,7 +215,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -233,7 +233,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -251,7 +251,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -269,7 +269,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -287,7 +287,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -305,7 +305,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -323,7 +323,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -341,7 +341,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -359,7 +359,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -377,7 +377,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -395,7 +395,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -413,7 +413,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -431,7 +431,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346,rfc6347
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -449,7 +449,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -467,7 +467,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4346
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -485,7 +485,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5469
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -503,7 +503,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -521,7 +521,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -539,7 +539,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -557,7 +557,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -575,7 +575,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -593,7 +593,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -611,7 +611,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -629,7 +629,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -647,7 +647,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -665,7 +665,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -683,7 +683,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -701,7 +701,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712,rfc6347
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -719,7 +719,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -737,7 +737,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -755,7 +755,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc2712,rfc6347
     export: 1
     minversion: 0x0300
     maxversion: 0x0302
@@ -773,7 +773,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4785
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -791,7 +791,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4785
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -809,7 +809,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc4785
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -827,7 +827,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -845,7 +845,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -863,7 +863,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -881,7 +881,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -899,7 +899,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -917,7 +917,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -935,7 +935,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -953,7 +953,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -971,7 +971,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -989,7 +989,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1007,7 +1007,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1025,7 +1025,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1043,7 +1043,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1061,7 +1061,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1079,7 +1079,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1097,7 +1097,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1115,7 +1115,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1133,7 +1133,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 0
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1151,7 +1151,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1169,7 +1169,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1187,7 +1187,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1205,7 +1205,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1223,7 +1223,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1241,7 +1241,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 0
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1259,7 +1259,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1277,7 +1277,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1295,7 +1295,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1313,7 +1313,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1331,7 +1331,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1349,7 +1349,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1367,7 +1367,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5246
+    rfc: rfc5246
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1385,7 +1385,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1403,7 +1403,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1421,7 +1421,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1439,7 +1439,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1457,7 +1457,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1475,7 +1475,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1493,7 +1493,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1511,7 +1511,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1529,7 +1529,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1547,7 +1547,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1565,7 +1565,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1583,7 +1583,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1601,7 +1601,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1619,7 +1619,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1637,7 +1637,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1655,7 +1655,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1673,7 +1673,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1691,7 +1691,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4279
+    rfc: rfc4279
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1709,7 +1709,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1727,7 +1727,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1745,7 +1745,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1763,7 +1763,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1781,7 +1781,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1799,7 +1799,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4162
+    rfc: rfc4162
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -1817,7 +1817,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1835,7 +1835,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1853,7 +1853,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1871,7 +1871,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1889,7 +1889,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1907,7 +1907,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1925,7 +1925,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1943,7 +1943,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1961,7 +1961,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1979,7 +1979,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -1997,7 +1997,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2015,7 +2015,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5288
+    rfc: rfc5288
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2033,7 +2033,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2051,7 +2051,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2069,7 +2069,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2087,7 +2087,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2105,7 +2105,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2123,7 +2123,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2141,7 +2141,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2159,7 +2159,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2177,7 +2177,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2195,7 +2195,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2213,7 +2213,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2231,7 +2231,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2249,7 +2249,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2267,7 +2267,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2285,7 +2285,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2303,7 +2303,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2321,7 +2321,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2339,7 +2339,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5487
+    rfc: rfc5487
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2357,7 +2357,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2375,7 +2375,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2393,7 +2393,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2411,7 +2411,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2429,7 +2429,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2447,7 +2447,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2465,7 +2465,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2483,7 +2483,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2501,7 +2501,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2519,7 +2519,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2537,7 +2537,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2555,7 +2555,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5932
+    rfc: rfc5932
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -2573,7 +2573,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2591,7 +2591,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2609,7 +2609,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2627,7 +2627,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2645,7 +2645,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2663,7 +2663,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2681,7 +2681,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2699,7 +2699,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2717,7 +2717,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2735,7 +2735,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2753,7 +2753,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2771,7 +2771,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2789,7 +2789,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2807,7 +2807,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2825,7 +2825,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2843,7 +2843,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2861,7 +2861,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2879,7 +2879,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2897,7 +2897,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2915,7 +2915,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2933,7 +2933,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2951,7 +2951,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2969,7 +2969,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -2987,7 +2987,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3005,7 +3005,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 4492
+    rfc: RFC-ietf-tls-rfc4492bis-17
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3023,7 +3023,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3041,7 +3041,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3059,7 +3059,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3077,7 +3077,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3095,7 +3095,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3113,7 +3113,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3131,7 +3131,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3149,7 +3149,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3167,7 +3167,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5054
+    rfc: rfc5054
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3185,7 +3185,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3203,7 +3203,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3221,7 +3221,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3239,7 +3239,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3257,7 +3257,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3275,7 +3275,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3293,7 +3293,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3311,7 +3311,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3329,7 +3329,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3347,7 +3347,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3365,7 +3365,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3383,7 +3383,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3401,7 +3401,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3419,7 +3419,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3437,7 +3437,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3455,7 +3455,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 5289
+    rfc: rfc5289
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3473,7 +3473,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5489
+    rfc: rfc5489,rfc6347
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3491,7 +3491,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3509,7 +3509,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3527,7 +3527,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3545,7 +3545,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3563,7 +3563,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3581,7 +3581,7 @@ tls-ciphersuites:
     mac-size: 160
     prf: DEFAULT
     prf-size: 0
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0300
     maxversion: 0xffff
@@ -3599,7 +3599,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3617,7 +3617,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 5489
+    rfc: rfc5489
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3635,7 +3635,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3653,7 +3653,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3671,7 +3671,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3689,7 +3689,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3707,7 +3707,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3725,7 +3725,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3743,7 +3743,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3761,7 +3761,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3779,7 +3779,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3797,7 +3797,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3815,7 +3815,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3833,7 +3833,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3851,7 +3851,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3869,7 +3869,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3887,7 +3887,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3905,7 +3905,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3923,7 +3923,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3941,7 +3941,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3959,7 +3959,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3977,7 +3977,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -3995,7 +3995,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4013,7 +4013,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4031,7 +4031,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4049,7 +4049,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4067,7 +4067,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4085,7 +4085,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4103,7 +4103,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4121,7 +4121,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4139,7 +4139,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4157,7 +4157,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4175,7 +4175,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4193,7 +4193,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4211,7 +4211,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4229,7 +4229,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4247,7 +4247,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4265,7 +4265,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4283,7 +4283,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4301,7 +4301,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4319,7 +4319,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4337,7 +4337,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4355,7 +4355,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4373,7 +4373,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4391,7 +4391,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4409,7 +4409,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4427,7 +4427,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4445,7 +4445,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4463,7 +4463,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4481,7 +4481,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4499,7 +4499,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4517,7 +4517,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4535,7 +4535,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4553,7 +4553,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4571,7 +4571,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4589,7 +4589,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6209
+    rfc: rfc6209
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4607,7 +4607,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4625,7 +4625,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4643,7 +4643,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4661,7 +4661,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4679,7 +4679,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4697,7 +4697,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4715,7 +4715,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4733,7 +4733,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4751,7 +4751,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4769,7 +4769,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4787,7 +4787,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4805,7 +4805,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4823,7 +4823,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4841,7 +4841,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4859,7 +4859,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4877,7 +4877,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4895,7 +4895,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4913,7 +4913,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4931,7 +4931,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4949,7 +4949,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4967,7 +4967,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -4985,7 +4985,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5003,7 +5003,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5021,7 +5021,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5039,7 +5039,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5057,7 +5057,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5075,7 +5075,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5093,7 +5093,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5111,7 +5111,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5129,7 +5129,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5147,7 +5147,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5165,7 +5165,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5183,7 +5183,7 @@ tls-ciphersuites:
     mac-size: 128
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5201,7 +5201,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5219,7 +5219,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5237,7 +5237,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5255,7 +5255,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5273,7 +5273,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5291,7 +5291,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5309,7 +5309,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5327,7 +5327,7 @@ tls-ciphersuites:
     mac-size: 256
     prf: SHA256
     prf-size: 256
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5345,7 +5345,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: SHA384
     prf-size: 384
-    rfc: 6367
+    rfc: rfc6367
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5363,7 +5363,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5381,7 +5381,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5399,7 +5399,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5417,7 +5417,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5435,7 +5435,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5453,7 +5453,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5471,7 +5471,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5489,7 +5489,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5507,7 +5507,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5525,7 +5525,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5543,7 +5543,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5561,7 +5561,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5579,7 +5579,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5597,7 +5597,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5615,7 +5615,7 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
@@ -5633,7 +5633,277 @@ tls-ciphersuites:
     mac-size: 384
     prf: DEFAULT
     prf-size: 0
-    rfc: 6655
+    rfc: rfc6655
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_128_CCM
+    cs: 0xc0ac
+    name: TLS_ECDHE_ECDSA_WITH_AES_128_CCM
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: rfc7251
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_256_CCM
+    cs: 0xc0ad
+    name: TLS_ECDHE_ECDSA_WITH_AES_256_CCM
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: rfc7251
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+    cs: 0xc0ae
+    name: TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: rfc7251
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8
+    cs: 0xc0af
+    name: TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: AES
+    enc-mode: CCM
+    enc-size: 256
+    mac: HMAC-SHA384
+    mac-size: 384
+    prf: DEFAULT
+    prf-size: 0
+    rfc: rfc7251
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xcca8
+    name: TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: RSA
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xcca9
+    name: TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: ECDSA
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xccaa
+    name: TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: RSA
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_PSK_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xccab
+    name: TLS_PSK_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: PSK
+    au: PSK
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xccac
+    name: TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xccad
+    name: TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: DHE
+    au: PSK
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256
+    cs: 0xccae
+    name: TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256
+    openssl-name: NULL
+    kx: RSA
+    au: PSK
+    enc: CHACHA20_POLY1305
+    enc-mode: CBC
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: rfc7905
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256
+    cs: 0xd001
+    name: TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 128
+    mac: AEAD
+    mac-size: 128
+    prf: SHA256
+    prf-size: 256
+    rfc: RFC-ietf-tls-ecdhe-psk-aead-05
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384
+    cs: 0xd002
+    name: TLS_ECDHE_PSK_WITH_AES_256_GCM_SHA384
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: GCM
+    enc-size: 256
+    mac: AEAD
+    mac-size: 256
+    prf: SHA384
+    prf-size: 384
+    rfc: RFC-ietf-tls-ecdhe-psk-aead-05
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_128_CCM_8_SHA256
+    cs: 0xd003
+    name: TLS_ECDHE_PSK_WITH_AES_128_CCM_8_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: RFC-ietf-tls-ecdhe-psk-aead-05
+    export: 0
+    minversion: 0x0303
+    maxversion: 0xffff
+
+  - cipher: TLS_ECDHE_PSK_WITH_AES_128_CCM_SHA256
+    cs: 0xd005
+    name: TLS_ECDHE_PSK_WITH_AES_128_CCM_SHA256
+    openssl-name: NULL
+    kx: ECDHE
+    au: PSK
+    enc: AES
+    enc-mode: CCM
+    enc-size: 128
+    mac: HMAC-SHA256
+    mac-size: 256
+    prf: SHA256
+    prf-size: 256
+    rfc: RFC-ietf-tls-ecdhe-psk-aead-05
     export: 0
     minversion: 0x0303
     maxversion: 0xffff
