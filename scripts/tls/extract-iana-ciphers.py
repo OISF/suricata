@@ -17,15 +17,22 @@
 #
 # author: Pierre Chifflier <chifflier@wzdftpd.net>
 
+from __future__ import print_function
+import sys
+
 import urllib2
-from BeautifulSoup import BeautifulSoup, ResultSet
+from bs4 import BeautifulSoup, ResultSet
+
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 file = urllib2.urlopen('http://www.iana.org/assignments/tls-parameters/tls-parameters.xml')
 data = file.read()
 with open('tls-parameters.xml', 'wb') as myFile:
     myFile.write(data)
 file.close()
 
-dom = BeautifulSoup(data)
+dom = BeautifulSoup(data,"xml")
 
 #ciphersuites=dom.findAll ("registry")[4]
 ciphersuites=dom.findAll (id="tls-parameters-4")
@@ -167,12 +174,10 @@ for i in ciphersuites.findAll ("record"):
   
   if desc == "TLS_EMPTY_RENEGOTIATION_INFO_SCSV":
     continue
+  elif desc == "TLS_FALLBACK_SCSV":
+    continue
   
-  rfc = "NONE"
-  if i.xref:
-    rfc_tmp = filter (lambda (var,val) : var == "data", i.xref.attrs)
-    if len (rfc_tmp) > 0:
-      rfc = rfc_tmp[0][1][3:7]
+  rfc = ','.join([x['data'] for x in i.find_all('xref')])
 
   real_value = "".join (map (lambda x : "%2.2x" % (int (x, 16)), value.split (",")))
 
@@ -232,6 +237,10 @@ for i in ciphersuites.findAll ("record"):
     enc = "SEED"
     encmode = "CBC"
     encsize = 128
+  elif _encstr == "CHACHA20_POLY1305":
+    enc = "CHACHA20_POLY1305"
+    encmode = "CBC"
+    encsize = 256
   elif len (_enc) == 2:
     enc = _enc[0]
     encmode = ""
@@ -283,14 +292,16 @@ for i in ciphersuites.findAll ("record"):
     minver = 0x303
     encmode = "CCM"
   else:
-    print desc
-    print encmac
-    print hashfun
+    eprint("Unsupported: %s, %s, %s" % (desc,encmac,hashfun))
     raise "Unsupported."
   
   if encmode == "GCM":
     mac = "AEAD"
     macsize = encsize
     minver = 0x303
+  if _encstr == "CHACHA20_POLY1305":
+    mac = "AEAD"
+    macsize = encsize
+    minver = 0x303
     
-  print "%s:%s:%s:%s:%s:%s:%s:%d:%s:%d:%s:%d:%s:%d:%4.4x:%4.4x" % (real_value, desc, get_openssl_name (real_value), kx, au, enc, encmode, encsize, mac, macsize, prf, prfsize, rfc, export, minver, maxver)
+  print ("%s:%s:%s:%s:%s:%s:%s:%d:%s:%d:%s:%d:%s:%d:%4.4x:%4.4x" % (real_value, desc, get_openssl_name (real_value), kx, au, enc, encmode, encsize, mac, macsize, prf, prfsize, rfc, export, minver, maxver))
