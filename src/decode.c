@@ -282,6 +282,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
     p->tenant_id = parent->tenant_id;
+    p->pcap_filename = parent->pcap_filename;
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -361,6 +362,7 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->vlan_id[0] = parent->vlan_id[0];
     p->vlan_id[1] = parent->vlan_id[1];
     p->vlan_idx = parent->vlan_idx;
+    p->pcap_filename = parent->pcap_filename;
 
     SCReturnPtr(p, "Packet");
 }

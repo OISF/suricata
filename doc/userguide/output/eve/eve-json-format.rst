@@ -47,6 +47,29 @@ The common part has a field "event_type" to indicate the log type.
 
   "event_type":"TYPE"
 
+PCAP fields
+~~~~~~~~~~~
+
+If Suricata is processing a pcap file, additional fields are added:
+
+::
+
+    "pcap_cnt": 123
+
+``pcap_cnt`` contains the packet number in the pcap. This can be used to look
+up a packet in Wireshark for example.
+
+::
+
+    "pcap_filename":"/path/to/file.pcap"
+
+``pcap_filename`` contains the file name and location of the pcap that
+generated the event.
+
+.. note:: the pcap fields are only available on "real" packets, and are
+          omitted from internal "pseudo" packets such as flow timeout
+          packets.
+
 Event type: Alert
 -----------------
 
