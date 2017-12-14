@@ -75,7 +75,7 @@ function copy_templates() {
     copy_template_file "src/detect-template-buffer.c" ${detect_c_dst}
 }
 
-function patch_makefile_am() {
+function patch() {
     filename="src/Makefile.am"
     echo "Patching ${filename}."
     ed -s ${filename} > /dev/null <<EOF
@@ -84,15 +84,28 @@ t-
 s/template-buffer/${protoname_lower}-${buffername_lower}/g
 w
 EOF
-}
 
-function patch_detect_c() {
-    filename="src/detect.c"
+    filename="src/detect-engine-register.c"
     echo "Patching ${filename}."
+
     ed -s ${filename} > /dev/null <<EOF
 /#include "detect-template-buffer.h"
 t-
 s/template-buffer/${protoname_lower}-${buffername_lower}/
+w
+EOF
+
+    ed -s ${filename} > /dev/null <<EOF
+/DetectTemplateBufferRegister
+t-
+s/TemplateBuffer/${protoname}${buffername}/
+w
+EOF
+
+    filename="src/detect-engine-build.c"
+    echo "Patching ${filename}."
+
+    ed -s ${filename} > /dev/null <<EOF
 /case ALPROTO_TEMPLATE
 .,+3t-
 -3
@@ -112,14 +125,9 @@ s/template/${protoname_lower}/g
 /SIG_MASK_REQUIRE_TEMPLATE_STATE
 .t-
 s/TEMPLATE/${protoname_upper}/g
-/DetectTemplateBufferRegister
-t-
-s/TemplateBuffer/${protoname}${buffername}/
 w
 EOF
-}
 
-function patch_detect_h() {
     filename="src/detect.h"
     echo "Patching ${filename}."
     if [ $(grep -c SIG_MASK_REQUIRE_${protoname_upper}_STATE ${filename}) -eq 0 ]; then
@@ -130,6 +138,9 @@ s/TEMPLATE/${protoname_upper}/
 w
 EOF
     fi
+
+    filename="src/detect-engine-register.h"
+    echo "Patching ${filename}."
     ed -s ${filename} > /dev/null <<EOF
 /DETECT_AL_TEMPLATE_BUFFER
 t-
@@ -174,9 +185,7 @@ buffername_lower=$(printf ${buffername} | tr '[:upper:]' '[:lower:]')
 buffername_upper=$(printf ${buffername} | tr '[:lower:]' '[:upper:]')
 
 copy_templates
-patch_makefile_am
-patch_detect_c
-patch_detect_h
+patch
 
 cat <<EOF
 
