@@ -903,6 +903,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
             if (suricata_ctl_flags != 0) {
+                SCMutexUnlock(&tv_root_lock);
                 return -1;
             }
 
