@@ -163,6 +163,9 @@ outputs:
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+      metadata:
+        # add pcap filename to records. Useful in unix socket or directory mode
+        pcap-file: false
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
