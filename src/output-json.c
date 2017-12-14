@@ -418,6 +418,9 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     if (p->pcap_cnt != 0) {
         json_object_set_new(js, "pcap_cnt", json_integer(p->pcap_cnt));
     }
+    if (p->pcap_filename != NULL) {
+        json_object_set_new(js, "pcap_filename", json_string(p->pcap_filename));
+    }
 
     if (event_type) {
         json_object_set_new(js, "event_type", json_string(event_type));

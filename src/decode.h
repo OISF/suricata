@@ -554,6 +554,7 @@ typedef struct Packet_
 
     /** packet number in the pcap file, matches wireshark */
     uint64_t pcap_cnt;
+    const char *pcap_filename;
 
 
     /* engine events */
@@ -820,6 +821,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->alerts.cnt = 0;                    \
         (p)->alerts.drop.action = 0;            \
         (p)->pcap_cnt = 0;                      \
+        (p)->pcap_filename = NULL;              \
         (p)->tunnel_rtv_cnt = 0;                \
         (p)->tunnel_tpr_cnt = 0;                \
         (p)->events.cnt = 0;                    \

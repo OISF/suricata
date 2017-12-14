@@ -78,6 +78,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
     p->datalink = ptv->datalink;
     p->pcap_cnt = ++pcap_g.cnt;
+    p->pcap_filename = ptv->filename;
 
     p->pcap_v.tenant_id = ptv->shared->tenant_id;
     ptv->shared->pkts++;
