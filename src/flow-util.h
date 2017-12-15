@@ -127,7 +127,7 @@
  *  \retval 0 no fit
  */
 #define FLOW_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)(size)) <= flow_config.memcap))
+    ((((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)(size)) <= SC_ATOMIC_GET(flow_config.memcap)))
 
 Flow *FlowAlloc(void);
 Flow *FlowAllocDirect(void);
