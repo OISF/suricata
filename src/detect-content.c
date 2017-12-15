@@ -487,8 +487,13 @@ void DetectContentPropagateLimits(Signature *s)
                     }
                     if (have_anchor && !last_reset && offset_plus_pat && cd->flags & DETECT_CONTENT_WITHIN && cd->within >= 0) {
                         if (depth && depth > offset_plus_pat) {
+                            uint16_t dist = 0;
+                            if (cd->flags & DETECT_CONTENT_DISTANCE && cd->distance > 0) {
+                                dist = cd->distance;
+                                SCLogDebug("distance to add: %u. depth + dist %u", dist, depth + dist);
+                            }
                             SCLogDebug("depth %u + cd->within %u", depth, cd->within);
-                            depth = cd->depth = depth + cd->within;
+                            depth = cd->depth = depth + cd->within + dist;
                         } else {
                             SCLogDebug("offset %u + cd->within %u", offset, cd->within);
                             depth = cd->depth = offset + cd->within;
@@ -686,6 +691,11 @@ static int DetectContentDepthTest01(void)
     TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0;", 2, 0);
     TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14;", 6, 0);
     TEST_RUN("content:\"|16 03|\"; depth:2; content:\"|55 04 0a|\"; distance:0; content:\"|0d|LogMeIn, Inc.\"; distance:1; within:14; content:\".app\";", 0, 0);
+
+    TEST_RUN("content:\"=\"; offset:4; depth:9;", 4, 13);
+    // low end: offset 4 + patlen 1 = 5. So 5 + distance 55 = 60.
+    // hi end: depth '13' (4+9) + distance 55 = 68 + within 2 = 70
+    TEST_RUN("content:\"=\"; offset:4; depth:9; content:\"=&\"; distance:55; within:2;", 60, 70);
 
     TEST_DONE;
 }
