@@ -126,6 +126,24 @@ Example:
 
 .. image:: payload-keywords/content4.png
 
+startswith
+----------
+
+The ``startswith`` keyword is similar to ``depth``. It takes no arguments
+and must follow a ``content`` keyword. It modifies the ``content`` to match
+exactly at the start of a buffer.
+
+Example::
+
+    content:"GET|20|"; startswith;
+
+``startswith`` is a short hand notation for::
+
+    content:"GET|20|"; depth:4; offset:0;
+
+``startswith`` cannot be mixed with ``depth``, ``offset``, ``within`` or
+``distance`` for the same pattern.
+
 offset
 ------
 
