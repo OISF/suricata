@@ -225,6 +225,16 @@ static int DetectEngineContentInspectionTest10(void) {
     TEST_FOOTER;
 }
 
+static int DetectEngineContentInspectionTest11(void) {
+    TEST_HEADER;
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\";", true, 2);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith; content:\"b\"; within:1; distance:0;", true, 2);
+    TEST_RUN("ab", 2, "content:\"ab\"; startswith;", true, 1);
+    TEST_RUN("ab", 2, "content:\"a\"; startswith;", true, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; startswith;", false, 1);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -247,6 +257,8 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest09);
     UtRegisterTest("DetectEngineContentInspectionTest10",
                    DetectEngineContentInspectionTest10);
+    UtRegisterTest("DetectEngineContentInspectionTest11 startswith",
+                   DetectEngineContentInspectionTest11);
 }
 
 #undef TEST_HEADER

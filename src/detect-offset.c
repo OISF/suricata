@@ -69,6 +69,10 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, const char *offset
     /* verify other conditions */
     DetectContentData *cd = (DetectContentData *)pm->ctx;
 
+    if (cd->flags & DETECT_CONTENT_STARTS_WITH) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use offset with startswith");
+        goto end;
+    }
     if (cd->flags & DETECT_CONTENT_OFFSET) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple offsets for the same content. ");
         goto end;
