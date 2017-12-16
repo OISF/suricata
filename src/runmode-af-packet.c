@@ -45,6 +45,8 @@
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 
+#include "flow-bypass.h"
+
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
@@ -401,10 +403,15 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_filter_file = ebpf_file;
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
+#ifdef HAVE_PACKET_EBPF
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_BYPASS;
             RunModeEnablesBypassManager();
+            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout);
+#else
+            SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but eBPF support is not built-in");
+#endif
         }
     }
 
@@ -430,10 +437,15 @@ static void *ParseAFPConfig(const char *iface)
         aconf->xdp_filter_file = ebpf_file;
         ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
         if (conf_val) {
+#ifdef HAVE_PACKET_XDP
             SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             aconf->flags |= AFP_XDPBYPASS;
             RunModeEnablesBypassManager();
+            BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout);
+#else
+            SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but XDP support is not built-in");
+#endif
         }
 #ifdef HAVE_PACKET_XDP
         const char *xdp_mode;

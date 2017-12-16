@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2016-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -28,7 +28,6 @@
 #include "flow-private.h"
 #include "util-ebpf.h"
 
-#define BYPASSED_FLOW_TIMEOUT   60
 #define FLOW_BYPASS_DELAY       10
 
 typedef struct BypassedFlowManagerThreadData_ {
@@ -37,42 +36,9 @@ typedef struct BypassedFlowManagerThreadData_ {
     uint16_t flow_bypassed_bytes;
 } BypassedFlowManagerThreadData;
 
-#ifdef HAVE_PACKET_EBPF
-
-static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
-{
-    struct timespec *curtime = (struct timespec *)data;
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1], key->ip_proto
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        return 1;
-    }
-    return 0;
-}
-
-static int BypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pair *value, void *data)
-{
-    struct timespec *curtime = (struct timespec *)data;
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1]
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        EBPFDeleteKey(fd, key);
-        return 1;
-    }
-    return 0;
-}
-
-#endif
+#define BYPASSFUNCMAX   4
+int g_bypassed_func_max_index = 0;
+BypassedCheckFunc BypassedFuncList[BYPASSFUNCMAX];
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
@@ -81,29 +47,23 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     BypassedFlowManagerThreadData *ftd = thread_data;
 
     while (1) {
+        int i;
         SCLogDebug("Dumping the table");
         struct timespec curtime;
-        struct flows_stats bypassstats = { 0, 0, 0};
         if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Can't get time: %s (%d)",
                          strerror(errno), errno);
             sleep(1);
             continue;
         }
-        /* TODO indirection here: AF_PACKET and NFQ should be able to give their iterate function */
-        tcount = EBPFForEachFlowV4Table("flow_table_v4", BypassedFlowV4Timeout, &bypassstats, &curtime);
-        if (tcount) {
-            StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
-            StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
-            StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
-        }
-        memset(&bypassstats, 0, sizeof(bypassstats));
-        /* TODO indirection here: AF_PACKET and NFQ should be able to give their iterate function */
-        tcount = EBPFForEachFlowV6Table("flow_table_v6", BypassedFlowV6Timeout, &bypassstats, &curtime);
-        if (tcount) {
-            StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
-            StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
-            StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
+        for (i = 0; i < g_bypassed_func_max_index; i++) {
+            struct flows_stats bypassstats = { 0, 0, 0};
+            tcount = BypassedFuncList[i](&bypassstats, &curtime);
+            if (tcount) {
+                StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
+                StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
+                StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
+            }
         }
 
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
@@ -147,7 +107,6 @@ void BypassedFlowManagerThreadSpawn()
     return;
 #endif
 
-#ifdef HAVE_PACKET_EBPF
     ThreadVars *tv_flowmgr = NULL;
     tv_flowmgr = TmThreadCreateMgmtThreadByName("BypassedFlowManager",
             "BypassedFlowManager", 0);
@@ -161,7 +120,20 @@ void BypassedFlowManagerThreadSpawn()
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
-#endif
+}
+
+int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc)
+{
+    if (!CheckFunc) {
+        return -1;
+    }
+    if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
+        BypassedFuncList[g_bypassed_func_max_index] = CheckFunc;
+        g_bypassed_func_max_index++;
+    } else {
+        return -1;
+    }
+    return 0;
 }
 
 void TmModuleBypassedFlowManagerRegister (void)
