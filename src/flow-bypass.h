@@ -24,10 +24,21 @@
 #ifndef __FLOW_BYPASS_H__
 #define __FLOW_BYPASS_H__
 
+struct flows_stats {
+    uint64_t count;
+    uint64_t packets;
+    uint64_t bytes;
+};
+
+typedef int (*BypassedCheckFunc)(struct flows_stats *bypassstats,
+                                 struct timespec *curtime);
+
 void FlowAddToBypassed(Flow *f);
 
 void BypassedFlowManagerThreadSpawn(void);
 void TmModuleBypassedFlowManagerRegister(void);
+
+int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc);
 
 #endif
 

@@ -31,7 +31,7 @@
 #define XDP_FLAGS_DRV_MODE		(1U << 2)
 #define XDP_FLAGS_HW_MODE		(1U << 3)
 
-
+#include "flow-bypass.h"
 
 struct flowv4_keys {
 	__be32 src;
@@ -59,12 +59,6 @@ struct pair {
     uint64_t bytes;
 } __attribute__((__aligned__(8)));
 
-struct flows_stats {
-    uint64_t count;
-    uint64_t packets;
-    uint64_t bytes;
-};
-
 #define EBPF_SOCKET_FILTER  (1<<0)
 #define EBPF_XDP_CODE       (1<<1)
 
@@ -72,15 +66,8 @@ int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags);
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
-int EBPFForEachFlowV4Table(const char *name,
-                              int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
-                              struct flows_stats *flowstats,
-                              void *data);
-int EBPFForEachFlowV6Table(const char *name,
-                              int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
-                              struct flows_stats *flowstats,
-                              void *data);
-void EBPFDeleteKey(int fd, void *key);
+int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
+                                        struct timespec *curtime);
 
 #endif
 

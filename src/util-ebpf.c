@@ -34,6 +34,7 @@
 #define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 
 #include "suricata-common.h"
+#include "flow-bypass.h"
 
 #ifdef HAVE_PACKET_EBPF
 
@@ -50,6 +51,8 @@
 
 #define BPF_MAP_MAX_COUNT 16
 
+#define BYPASSED_FLOW_TIMEOUT   60
+
 struct bpf_map_item {
     const char * name;
     int fd;
@@ -57,6 +60,11 @@ struct bpf_map_item {
 
 static struct bpf_map_item bpf_map_array[BPF_MAP_MAX_COUNT];
 static int bpf_map_last = 0;
+
+static void EBPFDeleteKey(int fd, void *key)
+{
+    bpf_map_delete_elem(fd, key);
+}
 
 int EBPFGetMapFDByName(const char *name)
 {
@@ -214,7 +222,7 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 }
 
 
-int EBPFForEachFlowV4Table(const char *name,
+static int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
                               void *data)
@@ -258,7 +266,7 @@ int EBPFForEachFlowV4Table(const char *name,
     return found;
 }
 
-int EBPFForEachFlowV6Table(const char *name,
+static int EBPFForEachFlowV6Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
                               void *data)
@@ -303,9 +311,63 @@ int EBPFForEachFlowV6Table(const char *name,
     return found;
 }
 
-void EBPFDeleteKey(int fd, void *key)
+static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
 {
-    bpf_map_delete_elem(fd, key);
+    struct timespec *curtime = (struct timespec *)data;
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
+               curtime->tv_sec, value->time / 1000000000,
+               key->port16[0], key->port16[1], key->ip_proto
+              );
+
+    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
+        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
+                   key->port16[0], key->port16[1], value->time);
+        return 1;
+    }
+    return 0;
+}
+
+static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pair *value, void *data)
+{
+    struct timespec *curtime = (struct timespec *)data;
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
+               curtime->tv_sec, value->time / 1000000000,
+               key->port16[0], key->port16[1]
+              );
+
+    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
+        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
+                   key->port16[0], key->port16[1], value->time);
+        EBPFDeleteKey(fd, key);
+        return 1;
+    }
+    return 0;
+}
+
+int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
+                                        struct timespec *curtime)
+{
+    struct flows_stats l_bypassstats = { 0, 0, 0};
+    int ret = 0;
+    int tcount = 0;
+    tcount = EBPFForEachFlowV4Table("flow_table_v4", EBPFBypassedFlowV4Timeout,
+                                    &l_bypassstats, curtime);
+    if (tcount) {
+        bypassstats->count = l_bypassstats.count;
+        bypassstats->packets = l_bypassstats.packets ;
+        bypassstats->bytes = l_bypassstats.bytes;
+        ret = 1;
+    }
+    memset(&l_bypassstats, 0, sizeof(l_bypassstats));
+    tcount = EBPFForEachFlowV6Table("flow_table_v6", EBPFBypassedFlowV6Timeout,
+                                    &l_bypassstats, curtime);
+    if (tcount) {
+        bypassstats->count += l_bypassstats.count;
+        bypassstats->packets += l_bypassstats.packets ;
+        bypassstats->bytes += l_bypassstats.bytes;
+        ret = 1;
+    }
+    return ret;
 }
 
 #endif
