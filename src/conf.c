@@ -506,7 +506,7 @@ int ConfGetBool(const char *name, int *val)
     const char *strval = NULL;
 
     *val = 0;
-    if (ConfGet(name, &strval) != 1)
+    if (ConfGetValue(name, &strval) != 1)
         return 0;
 
     *val = ConfValIsTrue(strval);
