@@ -152,7 +152,7 @@ void HostInitConfig(char quiet)
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("host.memcap", &conf_val)) == 1)
+    if ((ConfGetValue("host.memcap", &conf_val)) == 1)
     {
         if (ParseSizeStringU64(conf_val, &host_config.memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing host.memcap "
@@ -161,7 +161,7 @@ void HostInitConfig(char quiet)
             exit(EXIT_FAILURE);
         }
     }
-    if ((ConfGet("host.hash-size", &conf_val)) == 1)
+    if ((ConfGetValue("host.hash-size", &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
@@ -169,7 +169,7 @@ void HostInitConfig(char quiet)
         }
     }
 
-    if ((ConfGet("host.prealloc", &conf_val)) == 1)
+    if ((ConfGetValue("host.prealloc", &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
