@@ -46,6 +46,7 @@
 #include "tm-threads.h"
 #include "tm-threads-common.h"
 #include "conf.h"
+#include "util-cpu.h"
 #include "util-debug.h"
 #include "util-device.h"
 #include "util-error.h"
@@ -2230,22 +2231,29 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
-        /* FIXME error handling */
-        struct pair value = {inittime, 0, 0};
-        SCLogDebug("Inserting element in eBPF mapping");
-        if (bpf_map_update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
-            switch (errno) {
-                case E2BIG:
-                case EEXIST:
-                    return 0;
-                default:
-                    SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
-                               strerror(errno),
-                               errno);
-                    return 0;
-            }
+    /* FIXME error handling */
+    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
+    struct pair value[nr_cpus];
+    unsigned int i;
+    for (i = 0; i < nr_cpus; i++) {
+        value[i].time = inittime;
+        value[i].packets = 0;
+        value[i].bytes = 0;
+    }
+    SCLogDebug("Inserting element in eBPF mapping: %lu", inittime);
+    if (bpf_map_update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
+        switch (errno) {
+            case E2BIG:
+            case EEXIST:
+                return 0;
+            default:
+                SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
+                        strerror(errno),
+                        errno);
+                return 0;
         }
-        return 1;
+    }
+    return 1;
 }
 #endif
 

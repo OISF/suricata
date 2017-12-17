@@ -144,10 +144,13 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
 #if 0
         char fmt[] = "Found flow v4: %u %d -> %d\n";
         bpf_trace_printk(fmt, sizeof(fmt), tuple.src, sport, dport);
+        char fmt[] = "Data: t:%lu p:%lu n:%lu\n";
+        bpf_trace_printk(fmt, sizeof(fmt), value->time, value->packets, value->bytes);
 #endif
+        value->time = bpf_ktime_get_ns();
         value->packets++;
         value->bytes += data_end - data;
-        value->time = bpf_ktime_get_ns();
+
         return XDP_DROP;
     }
     return XDP_PASS;

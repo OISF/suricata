@@ -236,18 +236,21 @@ static int EBPFForEachFlowV4Table(const char *name,
         SCLogWarning(SC_ERR_INVALID_VALUE, "Unable to get CPU count");
         return 0;
     }
-    struct pair values_array[nr_cpus];
 
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
         int iret = 1;
-        int pkts_cnt = 0;
-        int bytes_cnt = 0;
+        uint64_t pkts_cnt = 0;
+        uint64_t bytes_cnt = 0;
+        struct pair values_array[nr_cpus];
+        memset(values_array, 0, sizeof(values_array));
         bpf_map_lookup_elem(mapfd, &key, values_array);
         for (i = 0; i < nr_cpus; i++) {
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
             if (ret) {
                 /* no packet for the flow on this CPU, let's start accumulating
                    value we can compute the counters */
+                SCLogDebug("%d:%lu: Adding pkts %lu bytes %lu", i, values_array[i].time / 1000000000,
+                            values_array[i].packets, values_array[i].bytes);
                 pkts_cnt += values_array[i].packets;
                 bytes_cnt += values_array[i].bytes;
             } else {
@@ -258,6 +261,8 @@ static int EBPFForEachFlowV4Table(const char *name,
         }
         /* No packet seen, we discard the flow  and do accounting */
         if (iret) {
+            SCLogDebug("Got no packet for %d -> %d", key.port16[0], key.port16[1]);
+            SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
             flowstats->count++;
             flowstats->packets += pkts_cnt;
             flowstats->bytes += bytes_cnt;
@@ -284,12 +289,13 @@ static int EBPFForEachFlowV6Table(const char *name,
         SCLogWarning(SC_ERR_INVALID_VALUE, "Unable to get CPU count");
         return 0;
     }
-    struct pair values_array[nr_cpus];
 
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
         int iret = 1;
-        int pkts_cnt = 0;
-        int bytes_cnt = 0;
+        uint64_t pkts_cnt = 0;
+        uint64_t bytes_cnt = 0;
+        struct pair values_array[nr_cpus];
+        memset(values_array, 0, sizeof(values_array));
         bpf_map_lookup_elem(mapfd, &key, values_array);
         for (i = 0; i < nr_cpus; i++) {
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
