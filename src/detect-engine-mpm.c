@@ -933,14 +933,14 @@ static void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             s = de_ctx->sig_array[sig];
             if (s == NULL)
                 continue;
+            if ((s->flags & ms->direction) == 0)
+                continue;
             if (s->init_data->mpm_sm == NULL)
                 continue;
             int list = SigMatchListSMBelongsTo(s, s->init_data->mpm_sm);
             if (list < 0)
                 continue;
             if (list != ms->sm_list)
-                continue;
-            if ((s->flags & ms->direction) == 0)
                 continue;
 
             SCLogDebug("adding %u", s->id);
