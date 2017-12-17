@@ -246,13 +246,17 @@ static int EBPFForEachFlowV4Table(const char *name,
         for (i = 0; i < nr_cpus; i++) {
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
             if (ret) {
+                /* no packet for the flow on this CPU, let's start accumulating
+                   value we can compute the counters */
                 pkts_cnt += values_array[i].packets;
                 bytes_cnt += values_array[i].bytes;
             } else {
+                /* Packet seen on one CPU so we keep the flow */
                 iret = 0;
                 break;
             }
         }
+        /* No packet seen, we discard the flow  and do accounting */
         if (iret) {
             flowstats->count++;
             flowstats->packets += pkts_cnt;
@@ -273,7 +277,6 @@ static int EBPFForEachFlowV6Table(const char *name,
 {
     int mapfd = EBPFGetMapFDByName(name);
     struct flowv6_keys key = {}, next_key;
-    struct pair value = {0, 0, 0};
     int found = 0;
     unsigned int i;
     unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
