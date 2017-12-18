@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-continuous','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-continuous','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit', 'memcap-set', 'memcap-show']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -329,6 +329,27 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["ipaddress"] = ipaddress
+            elif "memcap-set" in command:
+                try:
+                    [cmd, config, memcap] = command.split(' ', 2)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "memcap-set":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["config"] = config
+                    arguments["memcap"] = memcap
+            elif "memcap-show" in command:
+                try:
+                    [cmd, config] = command.split(' ')
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "memcap-show":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["config"] = config
             else:
                 cmd = command
         else:

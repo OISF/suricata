@@ -44,8 +44,8 @@ typedef struct TcpStreamCnf_ {
      *
      * max stream mem usage
      */
-    uint64_t memcap;
-    uint64_t reassembly_memcap; /**< max memory usage for stream reassembly */
+    SC_ATOMIC_DECLARE(uint64_t, memcap);
+    SC_ATOMIC_DECLARE(uint64_t, reassembly_memcap); /**< max memory usage for stream reassembly */
 
     uint16_t stream_init_flags; /**< new stream flags will be initialized to this */
 
@@ -109,6 +109,8 @@ void StreamTcpSessionPktFree (Packet *);
 void StreamTcpInitMemuse(void);
 void StreamTcpIncrMemuse(uint64_t);
 void StreamTcpDecrMemuse(uint64_t);
+int StreamTcpSetMemcap(uint64_t);
+uint64_t StreamTcpGetMemcap(void);
 int StreamTcpCheckMemcap(uint64_t);
 uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);

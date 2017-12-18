@@ -803,12 +803,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static uint64_t FlowGetMemuse(void)
-{
-    uint64_t flow_memuse = SC_ATOMIC_GET(flow_memuse);
-    return flow_memuse;
-}
-
 /** \brief spawn the flow manager thread */
 void FlowManagerThreadSpawn()
 {
@@ -1366,7 +1360,7 @@ static int FlowMgrTest05 (void)
 
     uint32_t ini = 0;
     uint32_t end = flow_spare_q.len;
-    flow_config.memcap = 10000;
+    SC_ATOMIC_SET(flow_config.memcap, 10000);
     flow_config.prealloc = 100;
 
     /* Let's get the flow_spare_q empty */

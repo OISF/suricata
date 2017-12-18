@@ -143,12 +143,39 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
  * \retval 1 if in bounds
  * \retval 0 if not in bounds
  */
-int StreamTcpReassembleCheckMemcap(uint32_t size)
+int StreamTcpReassembleCheckMemcap(uint64_t size)
 {
-    if (stream_config.reassembly_memcap == 0 ||
-            (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= stream_config.reassembly_memcap)
+    uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.reassembly_memcap);
+    if (memcapcopy == 0 ||
+        (uint64_t)((uint64_t)size + SC_ATOMIC_GET(ra_memuse)) <= memcapcopy)
         return 1;
     return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int StreamTcpReassembleSetMemcap(uint64_t size)
+{
+    if (size == 0 || (uint64_t)SC_ATOMIC_GET(ra_memuse) < size) {
+        SC_ATOMIC_SET(stream_config.reassembly_memcap, size);
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ *  \brief Return memcap value
+ *
+ *  \return memcap memcap value
+ */
+uint64_t StreamTcpReassembleGetMemcap()
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(stream_config.reassembly_memcap);
+    return memcapcopy;
 }
 
 /* memory functions for the streaming buffer API */
@@ -2885,7 +2912,7 @@ static int StreamTcpReassembleTest44(void)
     StreamTcpReassembleDecrMemuse(500);
     FAIL_IF(SC_ATOMIC_GET(ra_memuse) != memuse);
     FAIL_IF(StreamTcpReassembleCheckMemcap(500) != 1);
-    FAIL_IF(StreamTcpReassembleCheckMemcap((1 + memuse + stream_config.reassembly_memcap)) != 0);
+    FAIL_IF(StreamTcpReassembleCheckMemcap((1 + memuse + SC_ATOMIC_GET(stream_config.reassembly_memcap))) != 0);
     StreamTcpFreeConfig(TRUE);
     FAIL_IF(SC_ATOMIC_GET(ra_memuse) != 0);
     PASS;
