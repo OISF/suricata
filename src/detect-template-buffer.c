@@ -97,12 +97,14 @@ static int DetectEngineInspectTemplateBuffer(ThreadVars *tv,
 
     if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, tx->request_buffer, tx->request_buffer_len, 0,
+            f, tx->request_buffer, tx->request_buffer_len,
+            0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
     else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
         ret = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, tx->response_buffer, tx->response_buffer_len, 0,
+            f, tx->response_buffer, tx->response_buffer_len,
+            0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     }
 

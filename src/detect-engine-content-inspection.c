@@ -102,7 +102,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                                   const Signature *s, const SigMatchData *smd,
                                   Flow *f,
                                   uint8_t *buffer, uint32_t buffer_len,
-                                  uint32_t stream_start_offset,
+                                  uint32_t stream_start_offset, uint8_t flags,
                                   uint8_t inspection_mode, void *data)
 {
     SCEnter();
@@ -332,7 +332,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                      * search for another occurence of this content and see
                      * if the others match then until we run out of matches */
                     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                            f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
+                            f, buffer, buffer_len, stream_start_offset, flags,
+                            inspection_mode, data);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -435,7 +436,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * search for another occurence of this pcre and see
              * if the others match, until we run out of matches */
             r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                    f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
+                    f, buffer, buffer_len, stream_start_offset, flags,
+                    inspection_mode, data);
             if (r == 1) {
                 SCReturnInt(1);
             }
@@ -449,27 +451,27 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
     } else if (smd->type == DETECT_BYTETEST) {
         DetectBytetestData *btd = (DetectBytetestData *)smd->ctx;
-        uint8_t flags = btd->flags;
+        uint8_t btflags = btd->flags;
         int32_t offset = btd->offset;
         uint64_t value = btd->value;
-        if (flags & DETECT_BYTETEST_OFFSET_BE) {
+        if (btflags & DETECT_BYTETEST_OFFSET_BE) {
             offset = det_ctx->bj_values[offset];
         }
-        if (flags & DETECT_BYTETEST_VALUE_BE) {
+        if (btflags & DETECT_BYTETEST_VALUE_BE) {
             value = det_ctx->bj_values[value];
         }
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (flags & DETECT_BYTETEST_DCE && data != NULL) {
+        if (btflags & DETECT_BYTETEST_DCE && data != NULL) {
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            btflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
                       DETECT_BYTETEST_LITTLE: 0);
         }
 
-        if (DetectBytetestDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, flags,
+        if (DetectBytetestDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len, btflags,
                                   offset, value) != 1) {
             goto no_match;
         }
@@ -478,25 +480,25 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
     } else if (smd->type == DETECT_BYTEJUMP) {
         DetectBytejumpData *bjd = (DetectBytejumpData *)smd->ctx;
-        uint8_t flags = bjd->flags;
+        uint8_t bjflags = bjd->flags;
         int32_t offset = bjd->offset;
 
-        if (flags & DETECT_BYTEJUMP_OFFSET_BE) {
+        if (bjflags & DETECT_BYTEJUMP_OFFSET_BE) {
             offset = det_ctx->bj_values[offset];
         }
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (flags & DETECT_BYTEJUMP_DCE && data != NULL) {
+        if (bjflags & DETECT_BYTEJUMP_DCE && data != NULL) {
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
-            flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
+            bjflags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
         if (DetectBytejumpDoMatch(det_ctx, s, smd->ctx, buffer, buffer_len,
-                                  flags, offset) != 1) {
+                                  bjflags, offset) != 1) {
             goto no_match;
         }
 
@@ -604,7 +606,8 @@ match:
     if (!smd->is_last) {
         KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
         int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd+1,
-                f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
+                f, buffer, buffer_len, stream_start_offset, flags,
+                inspection_mode, data);
         SCReturnInt(r);
     }
 final_match:
