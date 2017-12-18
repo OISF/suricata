@@ -44,6 +44,7 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-network-tree.h"
 #include "output-json.h"
 #include "output-json-flow.h"
 
@@ -68,6 +69,7 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     char timebuf[64];
     char srcip[46], dstip[46];
     Port sp, dp;
+    json_t *src_net_info = NULL, *dst_net_info = NULL;
 
     json_t *js = json_object();
     if (unlikely(js == NULL))
@@ -84,9 +86,13 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
     if (FLOW_IS_IPV4(f)) {
         PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
         PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        src_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)f->src.address.address_un_data8, f->tenant_id);
+        dst_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)f->dst.address.address_un_data8, f->tenant_id);
     } else if (FLOW_IS_IPV6(f)) {
         PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
         PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+        src_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)f->src.address.address_un_data8, f->tenant_id);
+        dst_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)f->dst.address.address_un_data8, f->tenant_id);
     }
 
     sp = f->sp;
@@ -167,6 +173,18 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
             json_object_set_new(js, "icmp_code",
                     json_integer(f->code));
             break;
+    }
+    if (src_net_info != NULL || dst_net_info != NULL) {
+        json_t *netinfojs = json_object();
+        if (netinfojs != NULL) {
+            if (src_net_info != NULL) {
+                json_object_set_new(netinfojs, "src", src_net_info);
+            }
+            if (dst_net_info != NULL) {
+                json_object_set_new(netinfojs, "dest", dst_net_info);
+            }
+            json_object_set_new(js, "net_info", netinfojs);
+        }
     }
     return js;
 }
