@@ -200,7 +200,7 @@ int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
                                           f,
                                           bstr_ptr(tx->response_line),
                                           bstr_len(tx->response_line),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

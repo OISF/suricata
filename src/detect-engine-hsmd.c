@@ -131,7 +131,7 @@ int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(tx->response_message),
                                           bstr_len(tx->response_message),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

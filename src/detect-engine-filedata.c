@@ -162,6 +162,11 @@ int DetectEngineInspectFiledata(
         if (buffer == NULL)
             continue;
 
+        bool eof = (file->state == FILE_STATE_CLOSED);
+        uint8_t ciflags = eof ? DETECT_CI_FLAGS_END : 0;
+        if (buffer->inspect_offset == 0)
+            ciflags |= DETECT_CI_FLAGS_START;
+
         det_ctx->buffer_offset = 0;
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
@@ -169,7 +174,7 @@ int DetectEngineInspectFiledata(
                                               f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
-                                              buffer->inspect_offset,
+                                              buffer->inspect_offset, ciflags,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1) {
             r = 1;
