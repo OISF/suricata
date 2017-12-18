@@ -749,6 +749,12 @@ void RunModeInitializeOutputs(void)
                     "files installed to add lua support.");
             continue;
 #endif
+        } else if (strcmp(output->val, "dns-log") == 0) {
+#ifdef HAVE_RUST
+            SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                    "dns-log is not available when Rust is enabled.");
+            continue;
+#endif
         } else if (strcmp(output->val, "tls-log") == 0) {
             tls_log_enabled = 1;
         }
