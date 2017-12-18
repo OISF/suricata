@@ -795,7 +795,7 @@ void RunModeInitializeOutputs(void)
             }
         }
         if (count == 0) {
-            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
                 "No output module named %s", output->val);
             continue;
         }
