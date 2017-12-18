@@ -27,17 +27,6 @@ use core;
 use dns::parser;
 
 /// DNS record types.
-pub const DNS_RTYPE_A:     u16 = 1;
-pub const DNS_RTYPE_CNAME: u16 = 5;
-pub const DNS_RTYPE_SOA:   u16 = 6;
-pub const DNS_RTYPE_PTR:   u16 = 12;
-pub const DNS_RTYPE_MX:    u16 = 15;
-pub const DNS_RTYPE_TXT:   u16 = 16;
-pub const DNS_RTYPE_AAAA:  u16 = 28;
-pub const DNS_RTYPE_SSHFP: u16 = 44;
-pub const DNS_RTYPE_RRSIG: u16 = 46;
-
-/// DNS record types.
 pub const DNS_RECORD_TYPE_A           : u16 = 1;
 pub const DNS_RECORD_TYPE_NS          : u16 = 2;
 pub const DNS_RECORD_TYPE_MD          : u16 = 3;   // Obsolete
@@ -67,7 +56,7 @@ pub const DNS_RECORD_TYPE_PX          : u16 = 26;
 pub const DNS_RECORD_TYPE_GPOS        : u16 = 27;
 pub const DNS_RECORD_TYPE_AAAA        : u16 = 28;
 pub const DNS_RECORD_TYPE_LOC         : u16 = 29;
-pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obosolete
+pub const DNS_RECORD_TYPE_NXT         : u16 = 30;  // Obsolete
 pub const DNS_RECORD_TYPE_SRV         : u16 = 33;
 pub const DNS_RECORD_TYPE_ATMA        : u16 = 34;
 pub const DNS_RECORD_TYPE_NAPTR       : u16 = 35;
@@ -100,7 +89,26 @@ pub const DNS_RECORD_TYPE_URI         : u16 = 256;
 /// DNS error codes.
 pub const DNS_RCODE_NOERROR:  u16 = 0;
 pub const DNS_RCODE_FORMERR:  u16 = 1;
+pub const DNS_RCODE_SERVFAIL: u16 = 2;
 pub const DNS_RCODE_NXDOMAIN: u16 = 3;
+pub const DNS_RCODE_NOTIMP:   u16 = 4;
+pub const DNS_RCODE_REFUSED:  u16 = 5;
+pub const DNS_RCODE_YXDOMAIN: u16 = 6;
+pub const DNS_RCODE_YXRRSET:  u16 = 7;
+pub const DNS_RCODE_NXRRSET:  u16 = 8;
+pub const DNS_RCODE_NOTAUTH:  u16 = 9;
+pub const DNS_RCODE_NOTZONE:  u16 = 10;
+// Support for OPT RR from RFC6891 will be needed to
+// parse RCODE values over 15
+pub const DNS_RCODE_BADVERS:  u16 = 16;
+pub const DNS_RCODE_BADSIG:   u16 = 16;
+pub const DNS_RCODE_BADKEY:   u16 = 17;
+pub const DNS_RCODE_BADTIME:  u16 = 18;
+pub const DNS_RCODE_BADMODE:  u16 = 19;
+pub const DNS_RCODE_BADNAME:  u16 = 20;
+pub const DNS_RCODE_BADALG:   u16 = 21;
+pub const DNS_RCODE_BADTRUNC: u16 = 22;
+
 
 /// The maximum number of transactions to keep in the queue pending
 /// processing before they are aggressively purged. Due to the

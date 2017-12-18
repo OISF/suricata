@@ -162,7 +162,7 @@ fn dns_parse_answer<'a>(slice: &'a [u8], message: &'a [u8], count: usize)
                 let ttl = val.3;
                 let data = val.4;
                 let n = match rrtype {
-                    DNS_RTYPE_TXT => {
+                    DNS_RECORD_TYPE_TXT => {
                         // For TXT records we need to run the parser
                         // multiple times. Set n high, to the maximum
                         // value based on a max txt side of 65535, but
@@ -266,12 +266,12 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
     -> nom::IResult<&'a [u8], Vec<u8>>
 {
     match rrtype {
-        DNS_RTYPE_CNAME |
-        DNS_RTYPE_PTR |
-        DNS_RTYPE_SOA => {
+        DNS_RECORD_TYPE_CNAME |
+        DNS_RECORD_TYPE_PTR |
+        DNS_RECORD_TYPE_SOA => {
             dns_parse_name(input, message)
         },
-        DNS_RTYPE_MX => {
+        DNS_RECORD_TYPE_MX => {
             // For MX we we skip over the preference field before
             // parsing out the name.
             closure!(&'a [u8], do_parse!(
@@ -280,7 +280,7 @@ pub fn dns_parse_rdata<'a>(input: &'a [u8], message: &'a [u8], rrtype: u16)
                     (name)
             ))(input)
         },
-        DNS_RTYPE_TXT => {
+        DNS_RECORD_TYPE_TXT => {
             closure!(&'a [u8], do_parse!(
                 len: be_u8 >>
                 txt: take!(len) >>
