@@ -164,7 +164,7 @@ static int DetectEngineInspectDnsQuery(
                                               f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
-                                              buffer->inspect_offset,
+                                              buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;
@@ -190,7 +190,7 @@ static int DetectEngineInspectDnsQuery(
                                               f,
                                               (uint8_t *)buffer->inspect,
                                               buffer->inspect_len,
-                                              buffer->inspect_offset,
+                                              buffer->inspect_offset, DETECT_CI_FLAGS_SINGLE,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1) {
             return DETECT_ENGINE_INSPECT_SIG_MATCH;

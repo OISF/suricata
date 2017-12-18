@@ -117,7 +117,7 @@ int DetectEngineInspectTlsSni(ThreadVars *tv,
     buffer_len = strlen(ssl_state->client_connp.sni);
 
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, buffer, buffer_len, 0,
+            f, buffer, buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
@@ -193,7 +193,7 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv,
     buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
 
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, buffer, buffer_len, 0,
+            f, buffer, buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
@@ -269,7 +269,7 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv,
     buffer_len = strlen(ssl_state->server_connp.cert0_subject);
 
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, buffer, buffer_len, 0,
+            f, buffer, buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
@@ -346,7 +346,7 @@ int DetectEngineInspectTlsSerial(ThreadVars *tv, DetectEngineCtx *de_ctx,
     buffer_len = strlen(ssl_state->server_connp.cert0_serial);
 
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-           f, buffer, buffer_len, 0,
+           f, buffer, buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
@@ -424,7 +424,7 @@ int DetectEngineInspectTlsFingerprint(ThreadVars *tv, DetectEngineCtx *de_ctx,
     buffer_len = strlen(ssl_state->server_connp.cert0_fingerprint);
 
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-           f, buffer, buffer_len, 0,
+           f, buffer, buffer_len, 0, DETECT_CI_FLAGS_SINGLE,
            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
