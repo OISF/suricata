@@ -139,7 +139,7 @@ pub extern "C" fn rs_dns_lua_get_answer_table(clua: &mut CLuaState,
             if answer.data.len() > 0 {
                 lua.pushstring("addr");
                 match answer.rrtype {
-                    DNS_RTYPE_A | DNS_RTYPE_AAAA => {
+                    DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
                         lua.pushstring(&dns_print_addr(&answer.data));
                     }
                     _ => {

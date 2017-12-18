@@ -271,15 +271,64 @@ fn dns_log_rrtype_enabled(rtype: u16, flags: u64) -> bool
 
 pub fn dns_rrtype_string(rrtype: u16) -> String {
     match rrtype {
-        DNS_RTYPE_A => "A",
-        DNS_RTYPE_CNAME => "CNAME",
-        DNS_RTYPE_SOA => "SOA",
-        DNS_RTYPE_PTR => "PTR",
-        DNS_RTYPE_MX => "MX",
-        DNS_RTYPE_TXT => "TXT",
-        DNS_RTYPE_AAAA => "AAAA",
-        DNS_RTYPE_SSHFP => "SSHFP",
-        DNS_RTYPE_RRSIG => "RRSIG",
+        DNS_RECORD_TYPE_A => "A",
+        DNS_RECORD_TYPE_NS => "NS",
+        DNS_RECORD_TYPE_AAAA => "AAAA",
+        DNS_RECORD_TYPE_CNAME => "CNAME",
+        DNS_RECORD_TYPE_TXT => "TXT",
+        DNS_RECORD_TYPE_MX => "MX",
+        DNS_RECORD_TYPE_SOA => "SOA",
+        DNS_RECORD_TYPE_PTR => "PTR",
+        DNS_RECORD_TYPE_SIG => "SIG",
+        DNS_RECORD_TYPE_KEY => "KEY",
+        DNS_RECORD_TYPE_WKS => "WKS",
+        DNS_RECORD_TYPE_TKEY => "TKEY",
+        DNS_RECORD_TYPE_TSIG => "TSIG",
+        DNS_RECORD_TYPE_ANY => "ANY",
+        DNS_RECORD_TYPE_RRSIG => "RRSIG",
+        DNS_RECORD_TYPE_NSEC => "NSEC",
+        DNS_RECORD_TYPE_DNSKEY => "DNSKEY",
+        DNS_RECORD_TYPE_HINFO => "HINFO",
+        DNS_RECORD_TYPE_MINFO => "MINFO",
+        DNS_RECORD_TYPE_RP => "RP",
+        DNS_RECORD_TYPE_AFSDB => "AFSDB",
+        DNS_RECORD_TYPE_X25 => "X25",
+        DNS_RECORD_TYPE_ISDN => "ISDN",
+        DNS_RECORD_TYPE_RT => "RT",
+        DNS_RECORD_TYPE_NSAP => "NSAP",
+        DNS_RECORD_TYPE_NSAPPTR => "NSAPPT",
+        DNS_RECORD_TYPE_PX => "PX",
+        DNS_RECORD_TYPE_GPOS => "GPOS",
+        DNS_RECORD_TYPE_LOC => "LOC",
+        DNS_RECORD_TYPE_SRV => "SRV",
+        DNS_RECORD_TYPE_ATMA => "ATMA",
+        DNS_RECORD_TYPE_NAPTR => "NAPTR",
+        DNS_RECORD_TYPE_KX => "KX",
+        DNS_RECORD_TYPE_CERT => "CERT",
+        DNS_RECORD_TYPE_A6 => "A6",
+        DNS_RECORD_TYPE_DNAME => "DNAME",
+        DNS_RECORD_TYPE_OPT => "OPT",
+        DNS_RECORD_TYPE_APL => "APL",
+        DNS_RECORD_TYPE_DS => "DS",
+        DNS_RECORD_TYPE_SSHFP => "SSHFP",
+        DNS_RECORD_TYPE_IPSECKEY => "IPSECKEY",
+        DNS_RECORD_TYPE_DHCID => "DHCID",
+        DNS_RECORD_TYPE_NSEC3 => "NSEC3",
+        DNS_RECORD_TYPE_NSEC3PARAM => "NSEC3PARAM",
+        DNS_RECORD_TYPE_TLSA => "TLSA",
+        DNS_RECORD_TYPE_HIP => "HIP",
+        DNS_RECORD_TYPE_CDS => "CDS",
+        DNS_RECORD_TYPE_CDNSKEY => "CDSNKEY",
+        DNS_RECORD_TYPE_MAILA => "MAILA",
+        DNS_RECORD_TYPE_URI => "URI",
+        DNS_RECORD_TYPE_MB => "MB",
+        DNS_RECORD_TYPE_MG => "MG",
+        DNS_RECORD_TYPE_MR => "MR",
+        DNS_RECORD_TYPE_NULL => "NULL",
+        DNS_RECORD_TYPE_SPF => "SPF",
+        DNS_RECORD_TYPE_NXT => "NXT",
+        DNS_RECORD_TYPE_MD => "ND",
+        DNS_RECORD_TYPE_MF => "MF",
         _ => {
             return rrtype.to_string();
         }
@@ -290,7 +339,22 @@ fn dns_rcode_string(flags: u16) -> String {
     match flags & 0x000f {
         DNS_RCODE_NOERROR => "NOERROR",
         DNS_RCODE_FORMERR => "FORMERR",
+        DNS_RCODE_SERVFAIL => "SERVFAIL",
         DNS_RCODE_NXDOMAIN => "NXDOMAIN",
+        DNS_RCODE_NOTIMP => "NOTIMP",
+        DNS_RCODE_REFUSED => "REFUSED",
+        DNS_RCODE_YXDOMAIN => "YXDOMAIN",
+        DNS_RCODE_YXRRSET => "YXRRSET",
+        DNS_RCODE_NXRRSET => "NXRRSET",
+        DNS_RCODE_NOTAUTH => "NOTAUTH",
+        DNS_RCODE_NOTZONE => "NOTZONE",
+        DNS_RCODE_BADVERS => "BADVERS/BADSIG",
+        DNS_RCODE_BADKEY => "BADKEY",
+        DNS_RCODE_BADTIME => "BADTIME",
+        DNS_RCODE_BADMODE => "BADMODE",
+        DNS_RCODE_BADNAME => "BADNAME",
+        DNS_RCODE_BADALG => "BADALG",
+        DNS_RCODE_BADTRUNC => "BADTRUNC",
         _ => {
             return (flags & 0x000f).to_string();
         }
@@ -385,16 +449,16 @@ fn dns_log_json_answer(header: &DNSHeader, answer: &DNSAnswerEntry)
     js.set_integer("ttl", answer.ttl as u64);
 
     match answer.rrtype {
-        DNS_RTYPE_A | DNS_RTYPE_AAAA => {
+        DNS_RECORD_TYPE_A | DNS_RECORD_TYPE_AAAA => {
             js.set_string("rdata", &dns_print_addr(&answer.data));
         }
-        DNS_RTYPE_CNAME |
-        DNS_RTYPE_MX |
-        DNS_RTYPE_TXT |
-        DNS_RTYPE_PTR => {
+        DNS_RECORD_TYPE_CNAME |
+        DNS_RECORD_TYPE_MX |
+        DNS_RECORD_TYPE_TXT |
+        DNS_RECORD_TYPE_PTR => {
             js.set_string_from_bytes("rdata", &answer.data);
         },
-        DNS_RTYPE_SSHFP => {
+        DNS_RECORD_TYPE_SSHFP => {
             dns_log_sshfp(&js, &answer);
         },
         _ => {}
