@@ -386,7 +386,6 @@ static void OutputFlowLogDeinit(OutputCtx *output_ctx)
 #define DEFAULT_LOG_FILENAME "flow.json"
 static OutputCtx *OutputFlowLogInit(ConfNode *conf)
 {
-    SCLogInfo("hi");
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
