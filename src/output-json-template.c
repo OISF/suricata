@@ -125,7 +125,7 @@ static void OutputTemplateLogDeInitCtxSub(OutputCtx *output_ctx)
 static OutputCtx *OutputTemplateLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     LogTemplateFileCtx *templatelog_ctx = SCCalloc(1, sizeof(*templatelog_ctx));
     if (unlikely(templatelog_ctx == NULL)) {

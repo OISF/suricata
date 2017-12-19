@@ -440,7 +440,7 @@ static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
 
 static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))

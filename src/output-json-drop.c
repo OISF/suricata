@@ -312,7 +312,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
