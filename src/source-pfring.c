@@ -255,11 +255,23 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * so that is what we do here. */
     p->datalink = LINKTYPE_ETHERNET;
 
-    /* get vlan id from header. Check on vlan_id not null even if comment in
-     * header announce NO_VLAN is used when there is no VLAN. But NO_VLAN
-     * is not defined nor used in PF_RING code. And vlan_id is set to 0
-     * in PF_RING kernel code when there is no VLAN. */
-    if ((!ptv->vlan_disabled) && h->extended_hdr.parsed_pkt.vlan_id) {
+    /* In the past, we needed this vlan handling in cases
+     * where the vlan header was stripped from the raw packet.
+     * With modern (at least >= 6) versions of PF_RING, the
+     * 'copy_data_to_ring' function (kernel/pf_ring.c) makes
+     * sure that if the hardware stripped the vlan header,
+     * it is put back by PF_RING.
+     *
+     * PF_RING should put it back in all cases, but as a extra
+     * precaution keep the check here. If the vlan header is
+     * part of the raw packet, the vlan_offset will be set.
+     * So is it is not set, use the parsed info from PF_RING's
+     * extended header.
+     */
+    if ((!ptv->vlan_disabled) &&
+        h->extended_hdr.parsed_pkt.offset.vlan_offset == 0 &&
+        h->extended_hdr.parsed_pkt.vlan_id)
+    {
         p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
         p->vlanh[0] = NULL;
