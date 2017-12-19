@@ -364,7 +364,7 @@ static void OutputDNP3LogDeInitCtxSub(OutputCtx *output_ctx)
 
 static OutputCtx *OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     LogDNP3FileCtx *dnp3log_ctx = SCCalloc(1, sizeof(*dnp3log_ctx));
     if (unlikely(dnp3log_ctx == NULL)) {

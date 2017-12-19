@@ -59,11 +59,6 @@ typedef struct OutputJsonCtx_ {
     enum JsonFormat format;
 } OutputJsonCtx;
 
-typedef struct AlertJsonThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx *file_ctx;
-} AlertJsonThread;
-
 json_t *SCJsonBool(int val);
 
 #endif /* HAVE_LIBJANSSON */

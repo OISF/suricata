@@ -136,7 +136,7 @@ static void OutputNFSLogDeInitCtxSub(OutputCtx *output_ctx)
 static OutputCtx *OutputNFSLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     LogNFSFileCtx *nfslog_ctx = SCCalloc(1, sizeof(*nfslog_ctx));
     if (unlikely(nfslog_ctx == NULL)) {
