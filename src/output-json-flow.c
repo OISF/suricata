@@ -59,15 +59,8 @@ typedef struct LogJsonFileCtx_ {
 typedef struct JsonFlowLogThread_ {
     LogJsonFileCtx *flowlog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t uri_cnt;
-
     MemBuffer *buffer;
 } JsonFlowLogThread;
-
-
-#define LOG_HTTP_DEFAULT 0
-#define LOG_HTTP_EXTENDED 1
-#define LOG_HTTP_CUSTOM 2
 
 static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type)
 {
@@ -439,7 +432,6 @@ static OutputCtx *OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
-    flow_ctx->flags = LOG_HTTP_DEFAULT;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinitSub;
