@@ -255,11 +255,20 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * so that is what we do here. */
     p->datalink = LINKTYPE_ETHERNET;
 
-    /* get vlan id from header. Check on vlan_id not null even if comment in
-     * header announce NO_VLAN is used when there is no VLAN. But NO_VLAN
-     * is not defined nor used in PF_RING code. And vlan_id is set to 0
-     * in PF_RING kernel code when there is no VLAN. */
-    if ((!ptv->vlan_disabled) && h->extended_hdr.parsed_pkt.vlan_id) {
+    /* Get vlan id from the parser packet PF_RING prepared.
+     * PF_RING sets the vlan_id based on its own parsing or
+     * based on the hardware offload. It gives no indication
+     * on where the vlan_id came from, so we rely on the
+     * vlan_offset field. If it's 0, we assume the PF_RING
+     * parser did not see the vlan header and got it from
+     * the hardware offload. In this case we will use this
+     * information directly, as we won't get a raw vlan header
+     * later. If PF_RING did set the offset, we do the parsing
+     * in the Suricata decoder so that we have full control. */
+    if ((!ptv->vlan_disabled) &&
+        h->extended_hdr.parsed_pkt.offset.vlan_offset == 0 &&
+        h->extended_hdr.parsed_pkt.vlan_id)
+    {
         p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
         p->vlanh[0] = NULL;
