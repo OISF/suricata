@@ -54,7 +54,6 @@ typedef struct LogDNP3FileCtx_ {
 
 typedef struct LogDNP3LogThread_ {
     LogDNP3FileCtx *dnp3log_ctx;
-    uint32_t        count;
     MemBuffer      *buffer;
 } LogDNP3LogThread;
 
