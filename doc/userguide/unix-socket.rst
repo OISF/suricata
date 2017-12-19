@@ -67,6 +67,7 @@ The set of existing commands is the following:
 * capture-mode: display capture system used
 * conf-get: get configuration item (see example below)
 * dump-counters: dump Suricata's performance counters
+* reopen-log-files: reopen log files (to be run after external log rotation)
 * ruleset-reload-rules: reload ruleset and wait for completion
 * ruleset-reload-nonblocking: reload rulesat and proceed without waiting
 * ruleset-reload-time: return time of last reload
