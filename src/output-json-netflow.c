@@ -327,7 +327,6 @@ static void OutputNetFlowLogDeinit(OutputCtx *output_ctx)
 #define DEFAULT_LOG_FILENAME "netflow.json"
 static OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
 {
-    SCLogInfo("hi");
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_NETFLOW_LOG_GENERIC, "couldn't create new file_ctx");
