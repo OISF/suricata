@@ -241,6 +241,88 @@ static int DetectHttpRequestLineTest02(void)
     PASS;
 }
 
+static int DetectHttpRequestLineWrapper(const char *sig, const int expectation)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "User-Agent: This is dummy message body\r\n"
+        "Content-Type: text/html\r\n"
+        "\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig);
+    FAIL_IF_NULL(de_ctx->sig_list);
+    int sid = de_ctx->sig_list->id;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParserParse(&th_v, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_len);
+    FAIL_IF(r != 0);
+
+    http_state = f.alstate;
+    FAIL_IF_NULL(http_state);
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    r = PacketAlertCheck(p, sid);
+    FAIL_IF_NOT(r == expectation);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    PASS;
+}
+
+static int DetectHttpRequestLineTest03(void)
+{
+    FAIL_IF_NOT(DetectHttpRequestLineWrapper("alert http any any -> any any (http_request_line; bsize:>10; sid:1;)", true));
+    FAIL_IF_NOT(DetectHttpRequestLineWrapper("alert http any any -> any any (http_request_line; bsize:<100; sid:2;)", true));
+    FAIL_IF_NOT(DetectHttpRequestLineWrapper("alert http any any -> any any (http_request_line; bsize:10<>100; sid:3;)", true));
+    FAIL_IF_NOT(DetectHttpRequestLineWrapper("alert http any any -> any any (http_request_line; bsize:>100; sid:3;)", false));
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 static void DetectHttpRequestLineRegisterTests(void)
@@ -248,6 +330,7 @@ static void DetectHttpRequestLineRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("DetectHttpRequestLineTest01", DetectHttpRequestLineTest01);
     UtRegisterTest("DetectHttpRequestLineTest02", DetectHttpRequestLineTest02);
+    UtRegisterTest("DetectHttpRequestLineTest03", DetectHttpRequestLineTest03);
 #endif /* UNITTESTS */
 
     return;
