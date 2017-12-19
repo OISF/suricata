@@ -235,6 +235,34 @@ static int DetectEngineContentInspectionTest11(void) {
     TEST_FOOTER;
 }
 
+/** \test ends_with (isdataat) recursion logic
+ *        based on DetectEngineContentInspectionTest06 */
+static int DetectEngineContentInspectionTest12(void) {
+    TEST_HEADER;
+    // 6 steps: (1) a, (2) 1st b, (3) c not found, (4) 2nd b, (5) c found, ends_with
+    TEST_RUN("ababc", 5, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; ends_with;", true, 5);
+
+    TEST_RUN("ababcabc", 8, "content:\"a\"; content:\"b\"; distance:0; within:1; content:\"c\"; distance:0; within:1; ends_with;", true, 7);
+
+    TEST_RUN("abcXYZ", 6, "content:\"abc\"; content:\"XYZ\"; distance:0; within:3; ends_with;", true, 2);
+    TEST_RUN("abcXYZ", 6, "content:\"XYZ\"; distance:3; within:3; ends_with;", true, 1);
+    TEST_RUN("abcXYZ", 6, "content:\"cXY\"; distance:2; within:3; ends_with;", false, 1);
+
+    TEST_RUN("xxxxxxxxxxxxxxxxxyYYYYYYYYYYYYYYYY", 34, "content:\"yYYYYYYYYYYYYYYYY\"; distance:9; within:29; ends_with;", true, 1);
+    TEST_FOOTER;
+}
+
+static int DetectEngineContentInspectionTest13(void) {
+    TEST_HEADER;
+    TEST_RUN("ab", 2, "content:\"a\"; starts_with; content:\"b\"; ends_with;", true, 2);
+    TEST_RUN("ab", 2, "content:\"a\"; starts_with; content:\"b\"; within:1; distance:0; ends_with;", true, 2);
+    TEST_RUN("ab", 2, "content:\"ab\"; starts_with; ends_with;", true, 1);
+    TEST_RUN("ab", 2, "content:\"a\"; starts_with; ends_with;", false, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; starts_with;", false, 1);
+    TEST_RUN("ab", 2, "content:\"b\"; starts_with; ends_with;", false, 1);
+    TEST_FOOTER;
+}
+
 void DetectEngineContentInspectionRegisterTests(void)
 {
     UtRegisterTest("DetectEngineContentInspectionTest01",
@@ -259,6 +287,10 @@ void DetectEngineContentInspectionRegisterTests(void)
                    DetectEngineContentInspectionTest10);
     UtRegisterTest("DetectEngineContentInspectionTest11 starts_with",
                    DetectEngineContentInspectionTest11);
+    UtRegisterTest("DetectEngineContentInspectionTest12 ends_with",
+                   DetectEngineContentInspectionTest12);
+    UtRegisterTest("DetectEngineContentInspectionTest13 mix starts_with/ends_with",
+                   DetectEngineContentInspectionTest13);
 }
 
 #undef TEST_HEADER
