@@ -344,6 +344,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_REDIS_CONFIG);
         CASE_CODE (SC_ERR_BYPASS_NOT_SUPPORTED);
         CASE_CODE (SC_WARN_RENAMING_FILE);
+        CASE_CODE (SC_ERR_PF_RING_VLAN);
     }
 
     return "UNKNOWN_ERROR";
