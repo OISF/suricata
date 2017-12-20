@@ -43,6 +43,7 @@ app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
 app-layer-nfs-udp.c app-layer-nfs-udp.h \
 app-layer-ntp.c app-layer-ntp.h \
 app-layer-tftp.c app-layer-tftp.h \
+app-layer-register.c app-layer-register.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \

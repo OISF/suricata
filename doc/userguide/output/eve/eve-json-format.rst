@@ -287,3 +287,23 @@ Example of certificate logging using TLS custom logging (subject, sni, certifica
       "sni": "www.googleapis.com",
       "certificate": "MIIE3TCCA8WgAwIBAgIIQPsvobRZN0gwDQYJKoZIhvcNAQELBQAwSTELMA [...]"
    }
+
+Event type: TFTP
+---------------
+
+Fields
+~~~~~~
+
+* "packet": The operation code, can be "read" or "write" or "error"
+* "file": The filename transported with the tftp protocol
+* "mode": The mode field, can be "octet" or "mail" or "netascii" (or any combination of upper and lower case)
+
+Example of TFTP logging:
+
+::
+
+  "tftp": {
+      "packet": "write",
+      "file": "rfc1350.txt",
+      "mode": "octet"
+   }
