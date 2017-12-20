@@ -2098,6 +2098,11 @@
     ])
     AC_SUBST(RUST_FEATURES)
 
+    AC_ARG_ENABLE(rust_debug,
+           AS_HELP_STRING([--enable-rust-debug], [Rust not in --release mode]),,[enable_rust_debug=no])
+    AM_CONDITIONAL([RUST_DEBUG], [test "x$enable_rust_debug" = "xyes"])
+    AC_SUBST(RUST_DEBUG)
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`
@@ -2212,6 +2217,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Rust support (experimental):             ${enable_rust}
   Experimental Rust parsers:               ${enable_rust_experimental}
   Rust strict mode:                        ${enable_rust_strict}
+  Rust strict debug:                       ${enable_rust_debug}
 
   Suricatasc install:                      ${enable_python}
 
