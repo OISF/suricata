@@ -92,14 +92,14 @@ void DetectDnsQueryRegister (void)
     DetectAppLayerInspectEngineRegister("dns_request",
             ALPROTO_DNS, SIG_FLAG_TOSERVER, 1,
             DetectEngineInspectDnsRequest);
-    DetectAppLayerInspectEngineRegister("dns_response",
+    DetectAppLayerInspectEngineRegister("dns_response_generic",
             ALPROTO_DNS, SIG_FLAG_TOCLIENT, 1,
-            DetectEngineInspectDnsResponse);
+            DetectEngineInspectDnsResponseGeneric);
 
     DetectBufferTypeSetDescriptionByName("dns_request",
             "dns requests");
-    DetectBufferTypeSetDescriptionByName("dns_response",
-            "dns responses");
+    DetectBufferTypeSetDescriptionByName("dns_response_generic",
+            "dns responses_generic");
 }
 
 
