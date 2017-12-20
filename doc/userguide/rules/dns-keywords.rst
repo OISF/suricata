@@ -22,6 +22,18 @@ used in a rule all contents following it are affected by it.  Example:
 The dns_query keyword affects all following contents, until pkt_data
 is used or it reaches the end of the rule.
 
+dns_response
+------------
+
+The **dns_response** keyword allows you to do bytestring matching on DNS response data.
+
+ Example match on 172.217.18.142:
+ alert dns any any -> any any (msg:"Test dns_response option";
+ dns_response; content:"|AC D9 12 8E|"; sid:1;)
+
+This could be useful when the DNS responses are of interest. For instance traffic from sinkholes.
+
+
 Normalized Buffer
 ~~~~~~~~~~~~~~~~~
 
