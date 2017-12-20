@@ -186,6 +186,7 @@ static void JsonVarsLogDeInitCtxSub(OutputCtx *output_ctx)
  */
 static OutputCtx *JsonVarsLogInitCtx(ConfNode *conf)
 {
+    SCLogNotice("The \"vars\" eve type has been deprecated.");
     VarsJsonOutputCtx *json_output_ctx = NULL;
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
@@ -227,6 +228,7 @@ static OutputCtx *JsonVarsLogInitCtx(ConfNode *conf)
  */
 static OutputCtx *JsonVarsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    SCLogNotice("The \"vars\" eve type has been deprecated.");
     OutputJsonCtx *ajt = parent_ctx->data;
     VarsJsonOutputCtx *json_output_ctx = NULL;
 

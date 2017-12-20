@@ -58,6 +58,7 @@ typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
+    bool include_metadata;
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -455,6 +456,10 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
+    if (jhl->httplog_ctx->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
+
     SCLogDebug("got a HTTP request and now logging !!");
 
     /* reset */
@@ -572,6 +577,7 @@ static OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     http_ctx->file_ctx = ojc->file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
+    http_ctx->include_metadata = ojc->include_metadata;
 
     if (conf) {
         const char *extended = ConfNodeLookupChildValue(conf, "extended");

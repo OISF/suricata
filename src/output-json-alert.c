@@ -101,6 +101,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
+    bool include_metadata;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -355,6 +356,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
+
+    if (json_output_ctx->include_metadata) {
+        JsonAddMetadata(p, p->flow, js);
+    }
 
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
@@ -786,7 +791,15 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     if (conf != NULL) {
         SetFlag(conf, "metadata", LOG_JSON_METADATA_ALL, &json_output_ctx->flags);
         SetFlag(conf, "flow", LOG_JSON_FLOW, &json_output_ctx->flags);
-        SetFlag(conf, "vars", LOG_JSON_VARS, &json_output_ctx->flags);
+
+        /* Break out vars so we can issue a deprecation notice. */
+        const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        if (vars != NULL && ConfValIsTrue(vars)) {
+            SCLogNotice("The \"vars\" eve type has been deprecated.");
+            json_output_ctx->flags |= LOG_JSON_VARS;
+        } else {
+            json_output_ctx->flags &= ~LOG_JSON_VARS;
+        }
 
         SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
         SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
@@ -884,6 +897,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->include_metadata = ajt->include_metadata;
 
     XffSetup(json_output_ctx, conf);
 

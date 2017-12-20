@@ -53,6 +53,7 @@
 
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
+    bool include_metadata;
 } LogJsonFileCtx;
 
 typedef struct JsonNetFlowLogThread_ {
@@ -298,6 +299,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonNetFlowLogThread *jhl = (JsonNetFlowLogThread *)thread_data;
+    LogJsonFileCtx *netflow_ctx = jhl->flowlog_ctx;
 
     /* reset */
     MemBufferReset(jhl->buffer);
@@ -305,6 +307,9 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
+    if (netflow_ctx->include_metadata) {
+        JsonAddMetadata(NULL, f, js);
+    }
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
@@ -316,6 +321,9 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToClient(jhl, js, f);
+    if (netflow_ctx->include_metadata) {
+        JsonAddMetadata(NULL, f, js);
+    }
     OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
@@ -390,6 +398,7 @@ static OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
+    flow_ctx->include_metadata = ojc->include_metadata;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinitSub;

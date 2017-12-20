@@ -57,6 +57,7 @@
 typedef struct OutputSshCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
+    bool include_metadata;
 } OutputSshCtx;
 
 
@@ -108,6 +109,10 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     json_t *js = CreateJSONHeader((Packet *)p, 1, "ssh");//TODO
     if (unlikely(js == NULL))
         return 0;
+
+    if (ssh_ctx->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
@@ -239,6 +244,7 @@ static OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     ssh_ctx->file_ctx = ojc->file_ctx;
+    ssh_ctx->include_metadata = ojc->include_metadata;
 
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinitSub;

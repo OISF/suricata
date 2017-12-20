@@ -40,6 +40,7 @@ typedef struct OutputJSONMemBufferWrapper_ {
 int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 void JsonAddVars(const Packet *p, const Flow *f, json_t *js);
+void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 void JsonFiveTuple(const Packet *, int, json_t *);
@@ -48,15 +49,13 @@ json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
-enum JsonFormat { COMPACT, INDENT };
-
 /*
  * Global configuration context data
  */
 typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
-    enum JsonFormat format;
+    bool include_metadata;
 } OutputJsonCtx;
 
 typedef struct AlertJsonThread_ {

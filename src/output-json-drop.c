@@ -65,6 +65,7 @@
 typedef struct JsonDropOutputCtx_ {
     LogFileCtx *file_ctx;
     uint8_t flags;
+    bool include_metadata;
 } JsonDropOutputCtx;
 
 typedef struct JsonDropLogThread_ {
@@ -86,10 +87,15 @@ static int g_droplog_flows_start = 1;
  */
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
+    JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
     uint16_t proto = 0;
     json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
+
+    if (drop_ctx->include_metadata) {
+        JsonAddMetadata(p, p->flow, js);
+    }
 
     json_t *djs = json_object();
     if (unlikely(djs == NULL)) {
@@ -312,7 +318,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
@@ -345,6 +351,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
 
     drop_ctx->file_ctx = ajt->file_ctx;
+    drop_ctx->include_metadata = ajt->include_metadata;
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;

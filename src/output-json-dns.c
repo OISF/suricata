@@ -254,6 +254,7 @@ static struct {
 typedef struct LogDnsFileCtx_ {
     LogFileCtx *file_ctx;
     uint64_t flags; /** Store mode */
+    bool include_metadata;
 } LogDnsFileCtx;
 
 typedef struct LogDnsLogThread_ {
@@ -666,6 +667,9 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
+        if (dnslog_ctx->include_metadata) {
+            JsonAddMetadata(p, f, js);
+        }
         json_t *dns = rs_dns_log_json_query(txptr, i, td->dnslog_ctx->flags);
         if (unlikely(dns == NULL)) {
             json_decref(js);
@@ -683,6 +687,9 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
         js = CreateJSONHeader((Packet *)p, 1, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
+        if (dnslog_ctx->include_metadata) {
+            JsonAddMetadata(p, f, js);
+        }
 
         LogQuery(td, js, tx, tx_id, query);
 
@@ -707,6 +714,10 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
 
     js = CreateJSONHeader((Packet *)p, 0, "dns");
+
+    if (dnslog_ctx->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
 
 #if HAVE_RUST
     /* Log answers. */
@@ -862,6 +873,7 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
     dnslog_ctx->file_ctx = ojc->file_ctx;
+    dnslog_ctx->include_metadata = ojc->include_metadata;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
