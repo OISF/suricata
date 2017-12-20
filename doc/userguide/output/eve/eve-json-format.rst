@@ -200,6 +200,21 @@ Event with extended logging:
 Event type: DNS
 ---------------
 
+A new version of dns logging has been introduced to improve how dns answers
+are logged.
+
+With that new version, dns answers are logged in one event
+rather than an event for each answer.
+
+It's possible to customize how a dns answer will be logged with the following
+formats:
+
+* "detailed": "rrname", "rrtype", "rdata" and "ttl" fields are logged for each answer
+* "grouped": answers logged are aggregated by their type (A, AAAA, NS, ...)
+
+It will be still possible to use the old DNS logging format, you can control it
+with "version" option in dns configuration section.
+
 Fields
 ~~~~~~
 
@@ -207,6 +222,7 @@ Outline of fields seen in the different kinds of DNS events:
 
 * "type": Indicating DNS message type, can be "answer" or "query".
 * "id": Identifier field
+* "version": Indicating DNS logging version in use
 * "flags": Indicating DNS answer flag, in hexadecimal (ex: 8180 , please note 0x is not output)
 * "qr": Indicating in case of DNS answer flag, Query/Response flag (ex: true if set)
 * "aa": Indicating in case of DNS answer flag, Authoritative Answer flag (ex: true if set)
@@ -269,7 +285,68 @@ Example of a DNS query for the IPv4 address of "twitter.com" (resource record ty
       "rrtype":"A"
   }
 
-Example of a DNS answer with an IPv4 (resource record type 'A') return:
+Example of a DNS answer with "detailed" format:
+
+::
+
+
+  "dns": {
+      "version": 2,
+      "type": "answer",
+      "id": 45444,
+      "flags": "8180",
+      "qr": true,
+      "rd": true,
+      "ra": true,
+      "rcode": "NOERROR",
+      "answers": [
+        {
+          "rrname": "www.suricata-ids.org",
+          "rrtype": "CNAME",
+          "ttl": 3324,
+          "rdata": "suricata-ids.org"
+        },
+        {
+          "rrname": "suricata-ids.org",
+          "rrtype": "A",
+          "ttl": 10,
+          "rdata": "192.0.78.24"
+        },
+        {
+          "rrname": "suricata-ids.org",
+          "rrtype": "A",
+          "ttl": 10,
+          "rdata": "192.0.78.25"
+        }
+      ]
+  }
+
+Example of a DNS answer with "grouped" format:
+
+::
+
+  "dns": {
+      "version": 2,
+      "type": "answer",
+      "id": 18523,
+      "flags": "8180",
+      "qr": true,
+      "rd": true,
+      "ra": true,
+      "rcode": "NOERROR",
+      "grouped": {
+        "A": [
+          "192.0.78.24",
+          "192.0.78.25"
+        ],
+        "CNAME": [
+          "suricata-ids.org"
+        ]
+      }
+  }
+
+
+Example of a old DNS answer with an IPv4 (resource record type 'A') return:
 
 ::
 
