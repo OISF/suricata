@@ -333,7 +333,8 @@ typedef enum {
     SC_ERR_NO_REDIS_ASYNC,
     SC_ERR_REDIS_CONFIG,
     SC_ERR_BYPASS_NOT_SUPPORTED,
-    SC_WARN_RENAMING_FILE
+    SC_WARN_RENAMING_FILE,
+    SC_ERR_PF_RING_VLAN,
 } SCError;
 
 const char *SCErrorToString(SCError);
