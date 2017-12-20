@@ -342,6 +342,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_EVENT_DROPPED);
         CASE_CODE (SC_ERR_NO_REDIS_ASYNC);
         CASE_CODE (SC_ERR_REDIS_CONFIG);
+        CASE_CODE (SC_ERR_PF_RING_VLAN);
     }
 
     return "UNKNOWN_ERROR";
