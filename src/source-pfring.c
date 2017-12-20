@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,18 +45,6 @@
 #include "util-host-info.h"
 #include "runmodes.h"
 #include "util-profiling.h"
-
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
@@ -238,7 +226,6 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
  */
 static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Packet *p)
 {
-
     PfringThreadVars *ptv = (PfringThreadVars *)user;
 
     ptv->bytes += h->caplen;
@@ -419,7 +406,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
             if (ptv->flags & PFRING_FLAGS_BYPASS) {
-                p->pfring_v.flow_id = hdr.extended_hdr.pkt_hash; /* pkt hash contains the flow id in this configuration */
+                /* pkt hash contains the flow id in this configuration */
+                p->pfring_v.flow_id = hdr.extended_hdr.pkt_hash;
                 p->pfring_v.ptv = ptv;
                 p->BypassPacketsFlow = PfringBypassCallback;
             }
@@ -429,9 +417,6 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
                 PacketSetData(p, pkt_buffer, hdr.caplen);
             }
-
-            //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
-            //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
 
             PfringProcessPacket(ptv, &hdr, p);
 
@@ -782,18 +767,12 @@ TmEcode DecodePfringThreadInit(ThreadVars *tv, const void *initdata, void **data
     DecodeThreadVars *dtv = NULL;
 
     dtv = DecodeThreadVarsAlloc(tv);
-
     if (dtv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
 
     *data = (void *)dtv;
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
 
     return TM_ECODE_OK;
 }
@@ -804,7 +783,6 @@ TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data)
         DecodeThreadVarsFree(tv, data);
     SCReturnInt(TM_ECODE_OK);
 }
-
 
 #endif /* HAVE_PFRING */
 /* eof */
