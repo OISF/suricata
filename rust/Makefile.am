@@ -15,7 +15,7 @@ if HAVE_RUST_VENDOR
 FROZEN = --frozen
 endif
 
-if !DEBUG
+if !RUST_DEBUG
 RELEASE = --release
 endif
 
