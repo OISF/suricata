@@ -177,13 +177,15 @@ int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 
     tosd = DetectTosParse(arg, s->init_data->negated);
     if (tosd == NULL)
-        goto error;
+        return -1;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    if (sm == NULL) {
+        DetectTosFree(tosd);
+        return -1;
+    }
 
     sm->type = DETECT_TOS;
     sm->ctx = (SigMatchCtx *)tosd;
@@ -192,9 +194,6 @@ int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
-
-error:
-    return -1;
 }
 
 /**
