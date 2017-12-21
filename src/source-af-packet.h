@@ -135,6 +135,8 @@ typedef struct AFPPacketVars_
      */
     AFPPeer *mpeer;
     uint8_t copy_mode;
+    int v4_map_fd;
+    int v6_map_fd;
 } AFPPacketVars;
 
 #define AFPV_CLEANUP(afpv) do {           \
