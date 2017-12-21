@@ -750,6 +750,8 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                 if ( (inter_node->netmasks = SCMalloc((node->netmask_cnt - i) *
                                 sizeof(uint8_t))) == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCRadixAddKey. Mem not allocated...");
+                    SCRadixReleaseNode(inter_node, tree);
+                    SCRadixReleaseNode(new_node, tree);
                     return NULL;
                 }
 
