@@ -170,18 +170,13 @@ error:
  * \retval  0 on Success.
  * \retval -1 on Failure.
  */
-int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
+static int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectTosData *tosd;
-    SigMatch *sm;
-
-    tosd = DetectTosParse(arg, s->init_data->negated);
+    DetectTosData *tosd = DetectTosParse(arg, s->init_data->negated);
     if (tosd == NULL)
         return -1;
 
-    /* Okay so far so good, lets get this into a SigMatch
-     * and put it in the Signature. */
-    sm = SigMatchAlloc();
+    SigMatch *sm = SigMatchAlloc();
     if (sm == NULL) {
         DetectTosFree(tosd);
         return -1;
@@ -192,7 +187,6 @@ int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
-
     return 0;
 }
 
@@ -201,7 +195,7 @@ int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
  *
  * \param tosd Data to be freed.
  */
-void DetectTosFree(void *tosd)
+static void DetectTosFree(void *tosd)
 {
     SCFree(tosd);
 }
