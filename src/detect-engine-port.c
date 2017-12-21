@@ -1047,11 +1047,11 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 temp_rule_var_port = alloc_rule_var_port;
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2, var_list);
+                SCFree(alloc_rule_var_port);
                 if (r == -1)
                     goto error;
 
                 d_set = 0;
-                SCFree(alloc_rule_var_port);
             } else {
                 if (!((negate + n_set) % 2)) {
                     r = DetectPortParseInsertString(head,address);
