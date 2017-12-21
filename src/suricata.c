@@ -2264,6 +2264,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     HostCleanup();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     DefragDestroy();
+
     TmqResetQueues();
 #ifdef PROFILING
     if (profiling_rules_enabled)

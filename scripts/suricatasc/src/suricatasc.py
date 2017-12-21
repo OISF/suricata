@@ -203,12 +203,13 @@ class SuricataSC:
                 tenant = None
                 if len(parts) > 3:
                     tenant = parts[3]
-                if cmd != "pcap-file-continuous":
+                if cmd != "pcap-file":
                     raise SuricataCommandException("Invalid command '%s'" % (command))
                 else:
                     arguments = {}
                     arguments["filename"] = filename
                     arguments["output-dir"] = output
+                    arguments["continuous"] = True
                     if tenant != None:
                         arguments["tenant"] = int(tenant)
             elif "iface-stat" in command:
