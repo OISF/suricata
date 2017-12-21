@@ -35,13 +35,10 @@ static TmEcode PcapDirectoryFailure(PcapFileDirectoryVars *ptv);
 static TmEcode PcapDirectoryDone(PcapFileDirectoryVars *ptv);
 static int PcapDirectoryGetModifiedTime(char const * file, struct timespec * out);
 static TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
-                                       PendingFile *file_to_add,
-                                       struct timespec *file_to_add_modified_time);
+                                       PendingFile *file_to_add);
 static TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv,
-                                           struct timespec * newer_than,
                                            struct timespec * older_than);
 static TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
-                                                 struct timespec *newer_than,
                                                  struct timespec *older_than);
 
 void GetTime(struct timespec *tm)
@@ -262,8 +259,7 @@ int PcapDirectoryGetModifiedTime(char const *file, struct timespec *out)
 }
 
 TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
-                                PendingFile *file_to_add,
-                                struct timespec *file_to_add_modified_time
+                                PendingFile *file_to_add
 ) {
     PendingFile *file_to_compare = NULL;
     PendingFile *next_file_to_compare = NULL;
@@ -290,14 +286,7 @@ TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
     } else {
         file_to_compare = TAILQ_FIRST(&pv->directory_content);
         while(file_to_compare != NULL) {
-            struct timespec modified_time;
-            memset(&modified_time, 0, sizeof(struct timespec));
-
-            if (PcapDirectoryGetModifiedTime(file_to_compare->filename,
-                                             &modified_time) == TM_ECODE_FAILED) {
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-            if (CompareTimes(file_to_add_modified_time, &modified_time) < 0) {
+            if (CompareTimes(&file_to_add->modified_time, &file_to_compare->modified_time) < 0) {
                 TAILQ_INSERT_BEFORE(file_to_compare, file_to_add, next);
                 file_to_compare = NULL;
             } else {
@@ -315,7 +304,6 @@ TmEcode PcapDirectoryInsertFile(PcapFileDirectoryVars *pv,
 }
 
 TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
-                                    struct timespec *newer_than,
                                     struct timespec *older_than
 ) {
     if (unlikely(pv == NULL)) {
@@ -355,11 +343,11 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
             memset(&temp_time, 0, sizeof(struct timespec));
 
             if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0) {
-                SCLogDebug("File %s time (%lu > %lu < %lu)", pathbuff,
-                           newer_than->tv_sec, temp_time.tv_sec, older_than->tv_sec);
+                SCLogDebug("%lu < %lu (%s) < %lu)", newer_than->tv_sec,
+                           temp_time.tv_sec, pathbuff, older_than->tv_sec);
 
                 // Skip files outside of our time range
-                if (CompareTimes(&temp_time, newer_than) < 0) {
+                if (CompareTimes(&temp_time, &pv->shared->last_processed) <= 0) {
                     SCLogDebug("Skipping old file %s", pathbuff);
                     continue;
                 }
@@ -387,9 +375,12 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
                 SCReturnInt(TM_ECODE_FAILED);
             }
 
+            memset(&file_to_add->modified_time, 0, sizeof(struct timespec));
+            CopyTime(&temp_time, &file_to_add->modified_time);
+
             SCLogDebug("Found \"%s\"", file_to_add->filename);
 
-            if (PcapDirectoryInsertFile(pv, file_to_add, &temp_time) == TM_ECODE_FAILED) {
+            if (PcapDirectoryInsertFile(pv, file_to_add) == TM_ECODE_FAILED) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to add file");
                 CleanupPendingFile(file_to_add);
 
@@ -403,10 +394,9 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
 
 
 TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
-                                          struct timespec *newer_than,
                                           struct timespec *older_than)
 {
-    if (PcapDirectoryPopulateBuffer(pv, newer_than, older_than) == TM_ECODE_FAILED) {
+    if (PcapDirectoryPopulateBuffer(pv, older_than) == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to populate directory buffer");
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -414,13 +404,16 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
     TmEcode status = TM_ECODE_OK;
 
     if (TAILQ_EMPTY(&pv->directory_content)) {
-        SCLogInfo("Directory %s has no files to process", pv->filename);
+        SCLogDebug("Directory %s has no files to process", pv->filename);
         GetTime(older_than);
         older_than->tv_sec = older_than->tv_sec - pv->delay;
         rewinddir(pv->directory);
         status = TM_ECODE_OK;
     } else {
         PendingFile *current_file = NULL;
+
+        struct timespec last_time_seen;
+        memset(&last_time_seen, 0, sizeof(struct timespec));
 
         while (status == TM_ECODE_OK && !TAILQ_EMPTY(&pv->directory_content)) {
             current_file = TAILQ_FIRST(&pv->directory_content);
@@ -467,16 +460,12 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                         SCReturnInt(status);
                     }
 
-                    struct timespec temp_time;
-                    memset(&temp_time, 0, sizeof(struct timespec));
-
-                    if (PcapDirectoryGetModifiedTime(current_file->filename,
-                                                     &temp_time) != 0) {
-                        CopyTime(&temp_time, newer_than);
-                    }
                     SCLogDebug("Processed file %s, processed up to %ld",
-                               current_file->filename, temp_time.tv_sec);
-                    CopyTime(&temp_time, &pv->shared->last_processed);
+                               current_file->filename, current_file->modified_time.tv_sec);
+
+                    if(CompareTimes(&current_file->modified_time, &last_time_seen) > 0) {
+                        CopyTime(&current_file->modified_time, &last_time_seen);
+                    }
 
                     CleanupPendingFile(current_file);
                     pv->current_file = NULL;
@@ -486,7 +475,10 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
             }
         }
 
-        *newer_than = *older_than;
+        if(CompareTimes(&last_time_seen, &pv->shared->last_processed) > 0) {
+            CopyTime(&last_time_seen, &pv->shared->last_processed);
+            status = PcapRunStatus(pv);
+        }
     }
     GetTime(older_than);
     older_than->tv_sec = older_than->tv_sec - pv->delay;
@@ -500,8 +492,6 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
 
     DIR *directory_check = NULL;
 
-    struct timespec newer_than;
-    memset(&newer_than, 0, sizeof(struct timespec));
     struct timespec older_than;
     memset(&older_than, 0, sizeof(struct timespec));
     older_than.tv_sec = LONG_MAX;
@@ -516,8 +506,8 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
     while (status == TM_ECODE_OK) {
         //loop while directory is ok
         SCLogInfo("Processing pcaps directory %s, files must be newer than %" PRIuMAX " and older than %" PRIuMAX,
-                  ptv->filename, (uintmax_t)newer_than.tv_sec, (uintmax_t)older_than.tv_sec);
-        status = PcapDirectoryDispatchForTimeRange(ptv, &newer_than, &older_than);
+                  ptv->filename, (uintmax_t)ptv->shared->last_processed.tv_sec, (uintmax_t)older_than.tv_sec);
+        status = PcapDirectoryDispatchForTimeRange(ptv, &older_than);
         if (ptv->should_loop && status == TM_ECODE_OK) {
             sleep(poll_seconds);
             //update our status based on suricata control flags or unix command socket

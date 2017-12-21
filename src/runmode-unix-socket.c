@@ -132,6 +132,7 @@ static int unix_manager_pcap_task_running = 0;
 static int unix_manager_pcap_task_failed = 0;
 static int unix_manager_pcap_task_interrupted = 0;
 static struct timespec unix_manager_pcap_last_processed;
+static SCCtrlMutex unix_manager_pcap_last_processed_mutex;
 
 /**
  * \brief return list of files in the queue
@@ -197,8 +198,12 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 
 static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *data)
 {
-    uint64_t epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000l +
-                        unix_manager_pcap_last_processed.tv_nsec / 100000l;
+    json_int_t epoch_millis;
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
+    epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000L +
+                        unix_manager_pcap_last_processed.tv_nsec / 100000L;
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
+
     json_object_set_new(answer, "message",
                         json_integer(epoch_millis));
 
@@ -546,8 +551,10 @@ void RunModeUnixSocketRegister(void)
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
     unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
     unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
     switch (tm) {
         case TM_ECODE_DONE:
             SCLogInfo("Marking current task as done");
@@ -1370,6 +1377,10 @@ static int RunModeUnixSocketMaster(void)
     TAILQ_INIT(&pcapcmd->files);
     pcapcmd->running = 0;
     pcapcmd->current_file = NULL;
+
+    memset(&unix_manager_pcap_last_processed, 0, sizeof(struct timespec));
+
+    SCCtrlMutexInit(&unix_manager_pcap_last_processed_mutex, NULL);
 
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
