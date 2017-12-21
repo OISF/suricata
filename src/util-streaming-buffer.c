@@ -322,7 +322,7 @@ static void SBBUpdate(StreamingBuffer *sb,
             StreamingBufferBlock *new_sbb = GetNew(sb, my_block.offset, my_block.len, sbb);
 
             /* place before, maybe replace list head */
-            if (sbb == sb->block_list) {
+            if (prev == NULL) {
                 sb->block_list = new_sbb;
             } else {
                 prev->next = new_sbb;
