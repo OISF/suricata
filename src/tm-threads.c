@@ -2130,14 +2130,6 @@ TmEcode TmThreadWaitOnThreadInit(void)
     gettimeofday(&start_ts, NULL);
 
 again:
-    gettimeofday(&cur_ts, NULL);
-    if ((cur_ts.tv_sec - start_ts.tv_sec) > 120) {
-        SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
-                "initialize in time: flags %04x", tv->name,
-                SC_ATOMIC_GET(tv->flags));
-        return TM_ECODE_FAILED;
-    }
-
     SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
@@ -2153,6 +2145,14 @@ again:
 
             if (!(TmThreadsCheckFlag(tv, THV_INIT_DONE))) {
                 SCMutexUnlock(&tv_root_lock);
+
+                gettimeofday(&cur_ts, NULL);
+                if ((cur_ts.tv_sec - start_ts.tv_sec) > 120) {
+                    SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
+                            "initialize in time: flags %04x", tv->name,
+                            SC_ATOMIC_GET(tv->flags));
+                    return TM_ECODE_FAILED;
+                }
 
                 /* sleep a little to give the thread some
                  * time to finish initialization */
