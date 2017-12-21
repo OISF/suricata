@@ -197,6 +197,8 @@
     fi
     echo -n "installation for $host OS... "
 
+    RUST_SURICATA_LIBNAME="libsuricata.a"
+
     e_magic_file=""
     e_magic_file_comment="#"
     PCAP_LIB_NAME="pcap"
@@ -207,6 +209,7 @@
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
+            RUST_LDADD="-lrt -lm"
             ;;
         *-*-openbsd*)
             LUA_PC_NAME="lua51"
@@ -222,7 +225,6 @@
             LDFLAGS="${LDFLAGS} -L/opt/local/lib"
             ;;
         *-*-linux*)
-            #for now do nothing
             RUST_LDADD="-ldl -lrt -lm"
             ;;
         *-*-mingw32*)
@@ -231,6 +233,8 @@
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
+            RUST_SURICATA_LIBNAME="suricata.lib"
+            RUST_LDADD="-luserenv -lshell32 -ladvapi32 -lgcc_eh"
             ;;
         *-*-cygwin)
             LUA_PC_NAME="lua"
@@ -1966,9 +1970,9 @@
           enable_rust="yes"
           AC_DEFINE([HAVE_RUST],[1],[Enable Rust language])
           if test "x$enable_debug" = "xyes"; then
-            RUST_SURICATA_LIB="../rust/target/debug/libsuricata.a"
+            RUST_SURICATA_LIB="../rust/target/debug/${RUST_SURICATA_LIBNAME}"
           else
-            RUST_SURICATA_LIB="../rust/target/release/libsuricata.a"
+            RUST_SURICATA_LIB="../rust/target/release/${RUST_SURICATA_LIBNAME}"
           fi
           RUST_LDADD="${RUST_SURICATA_LIB} ${RUST_LDADD}"
           CFLAGS="${CFLAGS} -I\${srcdir}/../rust/gen/c-headers"
