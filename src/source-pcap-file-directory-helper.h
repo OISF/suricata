@@ -31,6 +31,7 @@
 typedef struct PendingFile_
 {
     char *filename;
+    struct timespec modified_time;
     TAILQ_ENTRY(PendingFile_) next;
 } PendingFile;
 /**

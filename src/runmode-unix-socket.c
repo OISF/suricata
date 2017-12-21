@@ -34,6 +34,7 @@
 #include "flow-timeout.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
+#include "source-pcap-file-directory-helper.h"
 #include "host.h"
 #include "defrag.h"
 #include "defrag-hash.h"
@@ -132,6 +133,7 @@ static int unix_manager_pcap_task_running = 0;
 static int unix_manager_pcap_task_failed = 0;
 static int unix_manager_pcap_task_interrupted = 0;
 static struct timespec unix_manager_pcap_last_processed;
+static SCCtrlMutex unix_manager_pcap_last_processed_mutex;
 
 /**
  * \brief return list of files in the queue
@@ -186,7 +188,7 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 {
     PcapCommand *this = (PcapCommand *) data;
 
-    if (this->current_file && this->current_file->filename) {
+    if (this->current_file != NULL && this->current_file->filename != NULL) {
         json_object_set_new(answer, "message",
                             json_string(this->current_file->filename));
     } else {
@@ -197,8 +199,11 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 
 static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *data)
 {
-    uint64_t epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000l +
-                        unix_manager_pcap_last_processed.tv_nsec / 100000l;
+    json_int_t epoch_millis;
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
+    epoch_millis = SCTimespecAsEpochMillis(&unix_manager_pcap_last_processed);
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
+
     json_object_set_new(answer, "message",
                         json_integer(epoch_millis));
 
@@ -422,7 +427,7 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
 }
 
 /**
- * \brief Command to add a file to treatment list
+ * \brief Command to add a file to treatment list, forcing continuous mode
  *
  * \param cmd the content of command Arguments as a json_t object
  * \param answer the json_t object that has to be used to answer
@@ -467,6 +472,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         this->current_file = NULL;
     }
+
     if (TAILQ_EMPTY(&this->files)) {
         // nothing to do
         return TM_ECODE_OK;
@@ -573,8 +579,10 @@ void RunModeUnixSocketRegister(void)
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
     unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
     unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
     switch (tm) {
         case TM_ECODE_DONE:
             SCLogInfo("Marking current task as done");
@@ -1398,6 +1406,10 @@ static int RunModeUnixSocketMaster(void)
     TAILQ_INIT(&pcapcmd->files);
     pcapcmd->running = 0;
     pcapcmd->current_file = NULL;
+
+    memset(&unix_manager_pcap_last_processed, 0, sizeof(struct timespec));
+
+    SCCtrlMutexInit(&unix_manager_pcap_last_processed_mutex, NULL);
 
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-continuous", UnixSocketAddPcapFileContinuous, pcapcmd, UNIX_CMD_TAKE_ARGS);
