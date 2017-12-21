@@ -243,7 +243,7 @@ modifiers.
 Rotate log file
 ~~~~~~~~~~~~~~~
 
-Eve-log can be configured to rotate based on time.
+Eve-log can be configured to rotate based on time, file size, or both combined.
 
 ::
 
@@ -251,9 +251,16 @@ Eve-log can be configured to rotate based on time.
     - eve-log:
         filename: eve-%Y-%m-%d-%H:%M.json
         rotate-interval: minute
+        rotate-size: 100mb
 
-The example above creates a new log file each minute, where the filename contains
-a timestamp. Other supported ``rotate-interval`` values are ``hour`` and ``day``.
+The example above creates a new log file either each minute or when the file
+reaches 100 mb in size. The filename contains a timestamp to avoid overwriting
+itself when rotating.
+
+If both time-based and size-based rotation is used at the same time, then the
+rotation time is reset upon rotation, even if the rotation was based on size.
+
+Other supported ``rotate-interval`` values are ``hour`` and ``day``.
 
 In addition to this, it is also possible to specify the ``rotate-interval`` as a
 relative value. One example is to rotate the log file each X seconds.
