@@ -541,6 +541,7 @@ extern int sc_log_module_cleaned;
 
 /** \brief Fatal error IF we're starting up, and configured to consider
  *         errors to be fatal errors */
+#if !defined(__clang_analyzer__)
 #define FatalErrorOnInit(x, ...) do {                                       \
     int init_errors_fatal = 0;                                              \
     ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);           \
@@ -551,7 +552,10 @@ extern int sc_log_module_cleaned;
     }                                                                       \
     SCLogWarning(x, __VA_ARGS__);                                           \
 } while(0)
-
+/* make it simpler for scan-build */
+#else
+#define FatalErrorOnInit(x, ...) FatalError(x, __VA_ARGS__)
+#endif
 
 SCLogInitData *SCLogAllocLogInitData(void);
 
