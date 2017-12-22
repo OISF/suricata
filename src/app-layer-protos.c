@@ -89,6 +89,8 @@ const char *AppProtoToString(AppProto alproto)
             break;
         case ALPROTO_FTPDATA:
             proto_name = "ftp-data";
+        case ALPROTO_TFTP:
+            proto_name = "tftp";
             break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
