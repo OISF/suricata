@@ -2322,6 +2322,9 @@ static int AFPBypassCallback(Packet *p)
     }
     if (PKT_IS_IPV4(p)) {
         SCLogDebug("add an IPv4");
+        if (p->afp_v.v4_map_fd == -1) {
+            return 0;
+        }
         struct flowv4_keys key = {};
         key.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
         key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
@@ -2345,6 +2348,9 @@ static int AFPBypassCallback(Packet *p)
     if (PKT_IS_IPV6(p) && 
         ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         int i;
+        if (p->afp_v.v6_map_fd == -1) {
+            return 0;
+        }
         SCLogDebug("add an IPv6");
         struct flowv6_keys key = {};
         for (i = 0; i < 4; i++) {
@@ -2394,6 +2400,9 @@ static int AFPXDPBypassCallback(Packet *p)
     }
     if (PKT_IS_IPV4(p)) {
         struct flowv4_keys key = {};
+        if (p->afp_v.v4_map_fd == -1) {
+            return 0;
+        }
         key.src = GET_IPV4_SRC_ADDR_U32(p);
         key.dst = GET_IPV4_DST_ADDR_U32(p);
         /* FIXME htons or not depending of XDP and af_packet eBPF */
@@ -2416,6 +2425,9 @@ static int AFPXDPBypassCallback(Packet *p)
     if (PKT_IS_IPV6(p) && 
         ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         SCLogDebug("add an IPv6");
+        if (p->afp_v.v6_map_fd == -1) {
+            return 0;
+        }
         int i;
         struct flowv6_keys key = {};
         for (i = 0; i < 4; i++) {
