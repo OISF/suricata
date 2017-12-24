@@ -2396,7 +2396,6 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         key.src = GET_IPV4_SRC_ADDR_U32(p);
         key.dst = GET_IPV4_DST_ADDR_U32(p);
-        /* FIXME htons or not depending of XDP and af_packet eBPF */
         key.port16[0] = htons(GET_TCP_SRC_PORT(p));
         key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV4_GET_IPPROTO(p);
