@@ -144,6 +144,8 @@ typedef struct AFPPacketVars_
     (afpv)->copy_mode = 0;                \
     (afpv)->peer = NULL;                  \
     (afpv)->mpeer = NULL;                 \
+    (afpv)->v4_map_fd = -1;               \
+    (afpv)->v6_map_fd = -1;               \
 } while(0)
 
 /**
