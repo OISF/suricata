@@ -58,6 +58,7 @@
 #include "log-tlslog.h"
 #include "log-tlsstore.h"
 #include "output-json-tls.h"
+#include "output-json-ja3.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
 #include "log-file.h"
@@ -1060,6 +1061,8 @@ void OutputRegisterLoggers(void)
     LogTlsLogRegister();
     JsonTlsLogRegister();
     LogTlsStoreRegister();
+    /* ja3 log */
+    JsonJa3LogRegister();
     /* ssh */
     JsonSshLogRegister();
     /* pcap log */
