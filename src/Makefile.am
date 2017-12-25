@@ -308,6 +308,7 @@ output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
+output-json-ja3.c output-json-ja3.h \
 output-json-nfs.c output-json-nfs.h \
 output-json-template.c output-json-template.h \
 output-json-vars.c output-json-vars.h \

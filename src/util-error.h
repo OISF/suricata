@@ -336,7 +336,8 @@ typedef enum {
     SC_WARN_RENAMING_FILE,
     SC_ERR_PF_RING_VLAN,
     SC_WARN_NO_JA3_SUPPORT,
-    SC_WARN_JA3_DISABLED
+    SC_WARN_JA3_DISABLED,
+    SC_ERR_JA3_LOG_GENERIC
 } SCError;
 
 const char *SCErrorToString(SCError);
