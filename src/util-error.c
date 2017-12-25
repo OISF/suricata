@@ -347,6 +347,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PF_RING_VLAN);
         CASE_CODE (SC_WARN_NO_JA3_SUPPORT);
         CASE_CODE (SC_WARN_JA3_DISABLED);
+        CASE_CODE (SC_ERR_JA3_LOG_GENERIC);
     }
 
     return "UNKNOWN_ERROR";

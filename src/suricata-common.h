@@ -430,6 +430,7 @@ typedef enum {
     LOGGER_JSON_DNP3,
     LOGGER_JSON_VARS,
     LOGGER_SIZE,
+    LOGGER_JSON_JA3,
 } LoggerId;
 
 #include "util-optimize.h"

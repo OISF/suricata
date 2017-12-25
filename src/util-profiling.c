@@ -1361,6 +1361,7 @@ const char * PacketProfileLoggertIdToString(LoggerId id)
         CASE_CODE (LOGGER_PRELUDE);
         CASE_CODE (LOGGER_PCAP);
         CASE_CODE (LOGGER_JSON_VARS);
+        CASE_CODE (LOGGER_JSON_JA3);
         default:
             return "UNKNOWN";
     }
