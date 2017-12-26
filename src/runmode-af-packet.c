@@ -381,7 +381,7 @@ static void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_PACKET_EBPF
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
-        int ret = EBPFLoadFile(aconf->ebpf_lb_file, "loadbalancer",
+        int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_lb_file, "loadbalancer",
                                &aconf->ebpf_lb_fd, EBPF_SOCKET_FILTER);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
@@ -418,7 +418,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_filter_file) {
 #ifdef HAVE_PACKET_EBPF
-        int ret = EBPFLoadFile(aconf->ebpf_filter_file, "filter",
+        int ret = EBPFLoadFile(aconf->iface, aconf->ebpf_filter_file, "filter",
                                &aconf->ebpf_filter_fd, EBPF_SOCKET_FILTER);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
@@ -469,7 +469,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->xdp_filter_file) {
 #ifdef HAVE_PACKET_XDP
-        int ret = EBPFLoadFile(aconf->xdp_filter_file, "xdp",
+        int ret = EBPFLoadFile(aconf->iface, aconf->xdp_filter_file, "xdp",
                                &aconf->xdp_filter_fd, EBPF_XDP_CODE);
         if (ret != 0) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
