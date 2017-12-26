@@ -246,3 +246,38 @@ char *Ja3GenerateHash(JA3Buffer *buffer)
 
 }
 
+/**
+ * \brief Check if JA3 is disabled.
+ *
+ * Issue warning if JA3 is disabled or if we are lacking support for JA3.
+ *
+ * \param type Type to add to warning.
+ *
+ * \retval 1 if disabled.
+ * \retval 0 otherwise.
+ */
+int Ja3IsDisabled(const char *type)
+{
+    int is_enabled = 0;
+
+    /* Check if JA3 is enabled */
+    ConfGetBool("app-layer.protocols.tls.ja3-fingerprints", &is_enabled);
+
+    if (is_enabled == 0) {
+        SCLogWarning(SC_WARN_JA3_DISABLED, "JA3 is disabled, skipping %s",
+                     type);
+        return 1;
+    }
+
+#ifndef HAVE_NSS
+    else {
+        SCLogWarning(SC_WARN_NO_JA3_SUPPORT,
+                     "no MD5 calculation support build in, skipping %s",
+                     type);
+        return 1;
+    }
+#endif /* HAVE_NSS */
+
+    return 0;
+}
+
