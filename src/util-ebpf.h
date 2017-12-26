@@ -62,12 +62,15 @@ struct pair {
 #define EBPF_SOCKET_FILTER  (1<<0)
 #define EBPF_XDP_CODE       (1<<1)
 
-int EBPFGetMapFDByName(const char *name);
-int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags);
+int EBPFGetMapFDByName(const char *iface, const char *name);
+int EBPFLoadFile(const char *iface, const char *path, const char * section,
+                 int *val, uint8_t flags);
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
                                         struct timespec *curtime);
+
+void EBPFRegisterExtension(void);
 
 #endif
 

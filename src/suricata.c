@@ -127,6 +127,7 @@
 #include "app-layer-dnp3.h"
 
 #include "util-decode-der.h"
+#include "util-ebpf.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
@@ -2568,6 +2569,9 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     StorageInit();
+#ifdef HAVE_PACKET_EBPF
+    EBPFRegisterExtension();
+#endif
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
