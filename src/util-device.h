@@ -60,6 +60,8 @@ void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
 int LiveBuildDeviceListCustom(const char *base, const char *itemname);
 
+LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev);
+
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
 TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *server_msg, void *data);
