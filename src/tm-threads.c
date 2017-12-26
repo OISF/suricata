@@ -188,6 +188,8 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     return TM_ECODE_OK;
 }
 
+#ifndef AFLFUZZ_PCAP_RUNMODE
+
 /** \internal
  *
  *  \brief Process flow timeout packets
@@ -267,8 +269,6 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
         queue;
 
  */
-
-#ifndef AFLFUZZ_PCAP_RUNMODE
 
 static void *TmThreadsSlotPktAcqLoop(void *td)
 {
