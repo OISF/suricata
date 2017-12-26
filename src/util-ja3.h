@@ -37,6 +37,7 @@ void Ja3BufferFree(JA3Buffer *);
 int Ja3BufferAppendBuffer(JA3Buffer *, JA3Buffer *);
 int Ja3BufferAddValue(JA3Buffer *, int);
 char *Ja3GenerateHash(JA3Buffer *);
+int Ja3IsDisabled(const char *);
 
 #endif /* __UTIL_JA3_H__ */
 
