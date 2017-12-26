@@ -268,6 +268,8 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 
  */
 
+#ifndef AFLFUZZ_PCAP_RUNMODE
+
 static void *TmThreadsSlotPktAcqLoop(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
@@ -396,6 +398,8 @@ error:
     pthread_exit((void *) -1);
     return NULL;
 }
+
+#endif /* NO  AFLFUZZ_PCAP_RUNMODE */
 
 #ifdef AFLFUZZ_PCAP_RUNMODE
 /** \brief simplified loop to speed up AFL
