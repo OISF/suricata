@@ -2517,11 +2517,11 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
 
 #ifdef HAVE_PACKET_EBPF
     if (ptv->flags & (AFP_BYPASS|AFP_XDPBYPASS)) {
-        ptv->v4_map_fd = EBPFGetMapFDByName("flow_table_v4");
+        ptv->v4_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v4");
         if (ptv->v4_map_fd == -1) {
             SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'", "flow_table_v4");
         }
-        ptv->v6_map_fd = EBPFGetMapFDByName("flow_table_v6");
+        ptv->v6_map_fd = EBPFGetMapFDByName(ptv->iface, "flow_table_v6");
         if (ptv->v6_map_fd  == -1) {
             SCLogError(SC_ERR_INVALID_VALUE, "Can't find eBPF map fd for '%s'", "flow_table_v6");
         }

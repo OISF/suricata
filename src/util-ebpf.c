@@ -43,6 +43,9 @@
 
 #include "util-ebpf.h"
 #include "util-cpu.h"
+#include "util-device.h"
+
+#include "device-storage.h"
 
 #include <linux/bpf.h>
 #include <bpf/libbpf.h>
@@ -54,31 +57,61 @@
 
 #define BYPASSED_FLOW_TIMEOUT   60
 
+static int g_livedev_storage_id = -1;
+
 struct bpf_map_item {
-    const char * name;
+    char * name;
     int fd;
 };
 
-static struct bpf_map_item bpf_map_array[BPF_MAP_MAX_COUNT];
-static int bpf_map_last = 0;
+struct bpf_maps_info {
+    struct bpf_map_item array[BPF_MAP_MAX_COUNT];
+    int last;
+};
+
+static void BpfMapsInfoFree(void *bpf)
+{
+    struct bpf_maps_info *bpfinfo = (struct bpf_maps_info *)bpf;
+    int i;
+    for (i = 0; i < bpfinfo->last; i ++) {
+        if (bpfinfo->array[i].name) {
+            SCFree(bpfinfo->array[i].name);
+        }
+    }
+    SCFree(bpfinfo);
+}
 
 static void EBPFDeleteKey(int fd, void *key)
 {
     bpf_map_delete_elem(fd, key);
 }
 
-int EBPFGetMapFDByName(const char *name)
+static struct bpf_maps_info *EBPFGetBpfMap(const char *iface)
+{
+    LiveDevice *livedev = LiveGetDevice(iface);
+    if (livedev == NULL)
+        return NULL;
+    void *data = LiveDevGetStorageById(livedev, g_livedev_storage_id);
+
+    return (struct bpf_maps_info *)data;
+}
+
+int EBPFGetMapFDByName(const char *iface, const char *name)
 {
     int i;
 
-    if (name == NULL)
+    if (iface == NULL || name == NULL)
         return -1;
+    struct bpf_maps_info *bpf_maps = EBPFGetBpfMap(iface);
+    if (bpf_maps == NULL)
+        return -1;
+
     for (i = 0; i < BPF_MAP_MAX_COUNT; i++) {
-        if (!bpf_map_array[i].name)
+        if (!bpf_maps->array[i].name)
             continue;
-        if (!strcmp(bpf_map_array[i].name, name)) {
-            SCLogDebug("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
-            return bpf_map_array[i].fd;
+        if (!strcmp(bpf_maps->array[i].name, name)) {
+            SCLogDebug("Got fd %d for eBPF map '%s'", bpf_maps->array[i].fd, name);
+            return bpf_maps->array[i].fd;
         }
     }
     return -1;
@@ -99,14 +132,21 @@ int EBPFGetMapFDByName(const char *name)
  * \param val a pointer to an integer that will be the file desc
  * \return -1 in case of error and 0 in case of success
  */
-int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags)
+int EBPFLoadFile(const char *iface, const char *path, const char * section,
+                 int *val, uint8_t flags)
 {
     int err, pfd;
     bool found = false;
     struct bpf_object *bpfobj = NULL;
     struct bpf_program *bpfprog = NULL;
     struct bpf_map *map = NULL;
-    /* FIXME we will need to close BPF at exit of runmode */
+
+    if (iface == NULL)
+        return -1;
+    LiveDevice *livedev = LiveGetDevice(iface);
+    if (livedev == NULL)
+        return -1;
+
     if (! path) {
         SCLogError(SC_ERR_INVALID_VALUE, "No file defined to load eBPF from");
         return -1;
@@ -173,21 +213,30 @@ int EBPFLoadFile(const char *path, const char * section, int *val, uint8_t flags
         return -1;
     }
 
+    struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
+    if (bpf_map_data == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
+        return -1;
+    }
+
     /* store the map in our array */
     bpf_map__for_each(map, bpfobj) {
-        SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
-        bpf_map_array[bpf_map_last].fd = bpf_map__fd(map);
-        bpf_map_array[bpf_map_last].name = SCStrdup(bpf_map__name(map));
-        if (!bpf_map_array[bpf_map_last].name) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate map name");
-            return -1;
-        }
-        bpf_map_last++;
-        if (bpf_map_last == BPF_MAP_MAX_COUNT) {
+        if (bpf_map_data->last == BPF_MAP_MAX_COUNT) {
             SCLogError(SC_ERR_NOT_SUPPORTED, "Too many BPF maps in eBPF files");
+            break;
+        }
+        SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
+        bpf_map_data->array[bpf_map_data->last].fd = bpf_map__fd(map);
+        bpf_map_data->array[bpf_map_data->last].name = SCStrdup(bpf_map__name(map));
+        if (!bpf_map_data->array[bpf_map_data->last].name) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to duplicate map name");
+            BpfMapsInfoFree(bpf_map_data);
             return -1;
         }
+        bpf_map_data->last++;
     }
+
+    LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
 
     pfd = bpf_program__fd(bpfprog);
     if (pfd == -1) {
@@ -223,12 +272,12 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 }
 
 
-static int EBPFForEachFlowV4Table(const char *name,
+static int EBPFForEachFlowV4Table(const char *iface, const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
                               void *data)
 {
-    int mapfd = EBPFGetMapFDByName(name);
+    int mapfd = EBPFGetMapFDByName(iface, name);
     struct flowv4_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
@@ -276,12 +325,12 @@ static int EBPFForEachFlowV4Table(const char *name,
     return found;
 }
 
-static int EBPFForEachFlowV6Table(const char *name,
+static int EBPFForEachFlowV6Table(const char *iface, const char *name,
                               int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
                               void *data)
 {
-    int mapfd = EBPFGetMapFDByName(name);
+    int mapfd = EBPFGetMapFDByName(iface, name);
     struct flowv6_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
@@ -359,24 +408,33 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     struct flows_stats l_bypassstats = { 0, 0, 0};
     int ret = 0;
     int tcount = 0;
-    tcount = EBPFForEachFlowV4Table("flow_table_v4", EBPFBypassedFlowV4Timeout,
-                                    &l_bypassstats, curtime);
-    if (tcount) {
-        bypassstats->count = l_bypassstats.count;
-        bypassstats->packets = l_bypassstats.packets ;
-        bypassstats->bytes = l_bypassstats.bytes;
-        ret = 1;
-    }
-    memset(&l_bypassstats, 0, sizeof(l_bypassstats));
-    tcount = EBPFForEachFlowV6Table("flow_table_v6", EBPFBypassedFlowV6Timeout,
-                                    &l_bypassstats, curtime);
-    if (tcount) {
-        bypassstats->count += l_bypassstats.count;
-        bypassstats->packets += l_bypassstats.packets ;
-        bypassstats->bytes += l_bypassstats.bytes;
-        ret = 1;
+    LiveDevice *ldev = NULL, *ndev;
+
+    while(LiveDeviceForEach(&ldev, &ndev)) {
+        tcount = EBPFForEachFlowV4Table(ldev->dev, "flow_table_v4", EBPFBypassedFlowV4Timeout,
+                &l_bypassstats, curtime);
+        if (tcount) {
+            bypassstats->count = l_bypassstats.count;
+            bypassstats->packets = l_bypassstats.packets ;
+            bypassstats->bytes = l_bypassstats.bytes;
+            ret = 1;
+        }
+        memset(&l_bypassstats, 0, sizeof(l_bypassstats));
+        tcount = EBPFForEachFlowV6Table(ldev->dev, "flow_table_v6", EBPFBypassedFlowV6Timeout,
+                &l_bypassstats, curtime);
+        if (tcount) {
+            bypassstats->count += l_bypassstats.count;
+            bypassstats->packets += l_bypassstats.packets ;
+            bypassstats->bytes += l_bypassstats.bytes;
+            ret = 1;
+        }
     }
     return ret;
+}
+
+void EBPFRegisterExtension(void)
+{
+    g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
 }
 
 #endif
