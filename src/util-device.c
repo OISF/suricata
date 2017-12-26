@@ -370,4 +370,22 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(answer, "message", jdata);
     SCReturnInt(TM_ECODE_OK);
 }
+
 #endif /* BUILD_UNIX_SOCKET */
+
+LiveDevice *LiveDeviceForEach(LiveDevice **l, LiveDevice **n)
+{
+    if (*l == NULL) {
+        *l = TAILQ_FIRST(&live_devices);
+        *n = TAILQ_NEXT(*l, next);
+        return *l;
+    } else {
+        *l = *n;
+        if (*l) {
+            *n = TAILQ_NEXT(*l, next);
+        }
+        return *l;
+    }
+    return NULL;
+}
+
