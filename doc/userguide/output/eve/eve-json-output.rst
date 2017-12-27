@@ -86,7 +86,9 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             # custom allows to control which tls fields that are included
             # in eve-log
             #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain]
-
+        - ja3:
+            # custom allows to control which JA3 fields that are included
+            #custom: [hash, str]
         - files:
             force-magic: no   # force logging magic on all logged files
             # force logging of checksums, available hash functions are md5,
@@ -222,6 +224,20 @@ The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
+
+JA3
+~~~
+
+JA3 fingerprints are logged one record per TLS session.
+
+YAML::
+
+        - ja3:
+            # custom allows to control which JA3 fields that are included
+            #custom: [hash, str]
+
+The default is to log both the JA3 hash and the JA3 string. By using ``custom``
+it is possible to select which JA3 fields to log.
 
 Date modifiers in filename
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
