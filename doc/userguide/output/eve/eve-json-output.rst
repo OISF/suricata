@@ -114,6 +114,20 @@ enabled, then the log gets more verbose.
 
 By using ``custom`` it is possible to select which TLS fields to log.
 
+JA3
+~~~
+
+JA3 fingerprints are logged one record per TLS session.
+
+YAML::
+
+        - ja3:
+            # custom allows to control which JA3 fields that are included
+            #custom: [hash, str]
+
+The default is to log both the JA3 hash and the JA3 string. By using ``custom``
+it is possible to select which JA3 fields to log.
+
 Date modifiers in filename
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
