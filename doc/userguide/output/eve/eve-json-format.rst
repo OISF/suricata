@@ -319,3 +319,23 @@ Example of TFTP logging:
       "file": "rfc1350.txt",
       "mode": "octet"
    }
+
+Event type: JA3
+---------------
+
+* "hash": The JA3 hash, which is a md5sum of the JA3 string
+* "str": The JA3 string, based on several fields from the TLS CLIENT_HELLO packet
+
+JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
+
+Examples
+~~~~~~~~
+
+Example with both fields enabled:
+
+::
+
+  "ja3": {
+      "hash": "2efb07037a97b06201ab4fe7ec0c326e",
+      "str": "771,49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-51-57-47-53-10,0-23-65281-10-11-35-16-5-13-21,29-23-24-25,0"
+  }
