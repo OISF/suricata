@@ -61,6 +61,7 @@
 #include "util-lua-common.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
+#include "util-lua-ja3.h"
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
 #include "util-lua-smtp.h"
@@ -637,6 +638,7 @@ static lua_State *LuaScriptSetup(const char *filename)
      * if the tx is registered in the state at runtime though. */
     LuaRegisterHttpFunctions(luastate);
     LuaRegisterDnsFunctions(luastate);
+    LuaRegisterJa3Functions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSshFunctions(luastate);
     LuaRegisterSmtpFunctions(luastate);

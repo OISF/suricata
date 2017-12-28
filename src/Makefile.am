@@ -424,6 +424,7 @@ util-lua-dnp3.c util-lua-dnp3.h \
 util-lua-dnp3-objects.c util-lua-dnp3-objects.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
+util-lua-ja3.c util-lua-ja3.h \
 util-lua-tls.c util-lua-tls.h \
 util-lua-ssh.c util-lua-ssh.h \
 util-lua-smtp.c util-lua-smtp.h \
