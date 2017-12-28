@@ -95,9 +95,8 @@ pub static mut SURICATA_NFS3_FILE_CONFIG: Option<&'static SuricataFileContext> =
 #[repr(u32)]
 pub enum NFSEvent {
     MalformedData = 0,
-    /* remove 'Padding' when more events are added. Rustc 1.7 won't
-     *   accept a single field enum with repr(u32) */
-    Padding,
+    NonExistingVersion = 1,
+    UnsupportedVersion = 2,
 }
 
 #[derive(Debug)]
@@ -1061,15 +1060,24 @@ impl NFSState {
         }
 
         match xidmap.progver {
-            3 => {
-                SCLogDebug!("NFSv3 reply record");
-                return self.process_reply_record_v3(r, &mut xidmap);
-            },
             2 => {
                 SCLogDebug!("NFSv2 reply record");
                 return self.process_reply_record_v2(r, &xidmap);
             },
-            _ => { panic!("unsupported NFS version"); },
+            3 => {
+                SCLogDebug!("NFSv3 reply record");
+                return self.process_reply_record_v3(r, &mut xidmap);
+            },
+            4 => {
+                SCLogDebug!("NFSv4 unsupported");
+                self.set_event(NFSEvent::UnsupportedVersion);
+                return 0;
+            },
+            _ => {
+                SCLogDebug!("Invalid NFS version");
+                self.set_event(NFSEvent::NonExistingVersion);
+                return 0;
+            },
         }
     }
 
