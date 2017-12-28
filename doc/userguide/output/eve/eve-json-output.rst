@@ -85,7 +85,7 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3_hash, ja3_str]
         - ja3:
             # custom allows to control which JA3 fields that are included
             #custom: [hash, str]
@@ -218,7 +218,7 @@ YAML::
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, ja3_hash, ja3_str]
 
 The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
