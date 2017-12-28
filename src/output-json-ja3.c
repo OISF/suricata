@@ -83,7 +83,7 @@ typedef struct JsonJa3LogThread_ {
     MemBuffer *buffer;
 } JsonJa3LogThread;
 
-static void JsonJa3LogHash(json_t *js, SSLState *ssl_state, const char *name)
+void JsonJa3LogHash(json_t *js, SSLState *ssl_state, const char *name)
 {
     if (ssl_state->ja3_hash != NULL) {
         json_object_set_new(js, name,
@@ -91,7 +91,7 @@ static void JsonJa3LogHash(json_t *js, SSLState *ssl_state, const char *name)
     }
 }
 
-static void JsonJa3LogStr(json_t *js, SSLState *ssl_state, const char *name)
+void JsonJa3LogStr(json_t *js, SSLState *ssl_state, const char *name)
 {
     if ((ssl_state->ja3_str != NULL) &&
             (ssl_state->ja3_str->data != NULL)) {
