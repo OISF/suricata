@@ -45,14 +45,13 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 #ifdef HAVE_PACKET_EBPF
     int tcount = 0;
     BypassedFlowManagerThreadData *ftd = thread_data;
-
     while (1) {
         int i;
         SCLogDebug("Dumping the table");
         struct timespec curtime;
         if (clock_gettime(CLOCK_MONOTONIC, &curtime) != 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Can't get time");
-            sleep(1);
+            usleep(10000);
             continue;
         }
         for (i = 0; i < g_bypassed_func_max_index; i++) {
@@ -69,8 +68,14 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             StatsSyncCounters(th_v);
             return TM_ECODE_OK;
         }
-        sleep(FLOW_BYPASS_DELAY);
-        StatsSyncCountersIfSignalled(th_v);
+        for (i = 0; i < FLOW_BYPASS_DELAY * 100; i++) {
+            if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+                StatsSyncCounters(th_v);
+                return TM_ECODE_OK;
+            }
+            StatsSyncCountersIfSignalled(th_v);
+            usleep(10000);
+        }
     }
 #endif
     return TM_ECODE_OK;
