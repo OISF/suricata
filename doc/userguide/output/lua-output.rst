@@ -508,6 +508,35 @@ Example:
       end
   end
 
+JA3
+---
+
+Initialize with:
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["protocol"] = "tls"
+      return needs
+  end
+
+Ja3GetHash
+~~~~~~~~~~
+
+Get the JA3 hash (md5sum of JA3 string) through Ja3GetHash.
+
+Example:
+
+::
+
+  function log (args)
+      hash = Ja3GetHash()
+      if hash == nil then
+          return
+      end
+  end
+
 SSH
 ---
 
