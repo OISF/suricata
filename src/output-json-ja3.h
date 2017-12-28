@@ -26,5 +26,13 @@
 
 void JsonJa3LogRegister(void);
 
+#ifdef HAVE_LIBJANSSON
+#include "app-layer-ssl.h"
+
+void JsonJa3LogHash(json_t *, SSLState *, const char *);
+void JsonJa3LogStr(json_t *, SSLState *, const char *);
+
+#endif /* HAVE_LIBJANSSON */
+
 #endif /* __OUTPUT_JSON_JA3_H__ */
 

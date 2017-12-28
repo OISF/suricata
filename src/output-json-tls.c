@@ -46,8 +46,10 @@
 
 #include "util-logopenfile.h"
 #include "util-crypt.h"
+#include "util-ja3.h"
 
 #include "output-json.h"
+#include "output-json-ja3.h"
 #include "output-json-tls.h"
 
 #ifdef HAVE_LIBJANSSON
@@ -77,6 +79,8 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
 #define LOG_TLS_FIELD_CHAIN             (1 << 9)
 #define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
+#define LOG_TLS_FIELD_JA3_HASH          (1 << 11)
+#define LOG_TLS_FIELD_JA3_STR           (1 << 12)
 
 typedef struct {
     const char *name;
@@ -95,6 +99,8 @@ TlsFields tls_fields[] = {
     { "certificate",     LOG_TLS_FIELD_CERTIFICATE },
     { "chain",           LOG_TLS_FIELD_CHAIN },
     { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { "ja3_hash",        LOG_TLS_FIELD_JA3_HASH },
+    { "ja3_str",         LOG_TLS_FIELD_JA3_STR },
     { NULL,              -1 }
 };
 
@@ -314,6 +320,14 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls chain */
     if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
         JsonTlsLogChain(js, ssl_state);
+
+    /* tls ja3_hash */
+    if (tls_ctx->fields & LOG_TLS_FIELD_JA3_HASH)
+        JsonJa3LogHash(js, ssl_state, "ja3_hash");
+
+    /* tls ja3_str */
+    if (tls_ctx->fields & LOG_TLS_FIELD_JA3_STR)
+        JsonJa3LogStr(js, ssl_state, "ja3_str");
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
@@ -495,6 +509,14 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     const char *session_resumption = ConfNodeLookupChildValue(conf, "session-resumption");
     if (session_resumption == NULL || ConfValIsTrue(session_resumption)) {
         tls_ctx->flags |= LOG_TLS_SESSION_RESUMPTION;
+    }
+
+    if (((tls_ctx->fields & LOG_TLS_FIELD_JA3_HASH) ||
+            (tls_ctx->fields & LOG_TLS_FIELD_JA3_STR)) &&
+            Ja3IsDisabled("fields")) {
+        /* JA3 is disabled, so don't log any JA3 fields */
+        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3_HASH;
+        tls_ctx->fields &= ~LOG_TLS_FIELD_JA3_STR;
     }
 
     if ((tls_ctx->fields & LOG_TLS_FIELD_CERTIFICATE) &&
