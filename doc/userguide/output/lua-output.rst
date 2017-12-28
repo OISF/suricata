@@ -539,6 +539,22 @@ Example:
       end
   end
 
+Ja3GetStr
+~~~~~~~~~
+
+Get the JA3 string through Ja3GetStr.
+
+Example:
+
+::
+
+  function log (args)
+      str = Ja3GetStr()
+      if str == nil then
+          return
+      end
+  end
+
 SSH
 ---
 
