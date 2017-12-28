@@ -68,6 +68,7 @@ layer metadata to output on a per application layer basis ::
             http: yes                # enable dumping of http fields
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields
+            ja3: yes                 # enable dumping of ja3 fields
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of dnp3 fields
             flow: yes                # enable dumping of a partial flow entry
