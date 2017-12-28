@@ -254,6 +254,8 @@ In addition to this, custom logging also allows the following fields:
 
 * "certificate": The TLS certificate base64 encoded
 * "chain": The entire TLS certificate chain base64 encoded
+* "ja3_hash": The JA3 hash, which is an md5sum of the JA3 string
+* "ja3_str": The JA3 string, based on several fields from the TLS CLIENT_HELLO packet
 
 Examples
 ~~~~~~~~
