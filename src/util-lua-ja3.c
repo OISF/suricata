@@ -80,11 +80,36 @@ static int Ja3GetHash(lua_State *luastate)
                                strlen(ssl_state->ja3_hash));
 }
 
+static int Ja3GetStr(lua_State *luastate)
+{
+    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
+        return LuaCallbackError(luastate, "error: protocol is not tls");
+
+    Flow *f = LuaStateGetFlow(luastate);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
+
+    SSLState *ssl_state = (SSLState *)state;
+
+    if (ssl_state->ja3_str == NULL || ssl_state->ja3_str->data == NULL)
+        return LuaCallbackError(luastate, "error: no JA3 str");
+
+    return LuaPushStringBuffer(luastate, (uint8_t *)ssl_state->ja3_str->data,
+                               ssl_state->ja3_str->used);
+}
+
 /** *\brief Register JA3 Lua extensions */
 int LuaRegisterJa3Functions(lua_State *luastate)
 {
     lua_pushcfunction(luastate, Ja3GetHash);
     lua_setglobal(luastate, "Ja3GetHash");
+
+    lua_pushcfunction(luastate, Ja3GetStr);
+    lua_setglobal(luastate, "Ja3GetStr");
 
     return 0;
 }
