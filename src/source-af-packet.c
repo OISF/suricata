@@ -56,18 +56,6 @@
 #include "source-af-packet.h"
 #include "runmodes.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 #ifdef HAVE_AF_PACKET
 
 #if HAVE_SYS_IOCTL_H
@@ -2350,11 +2338,6 @@ TmEcode DecodeAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
     DecodeRegisterPerfCounters(dtv, tv);
 
     *data = (void *)dtv;
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
 
     SCReturnInt(TM_ECODE_OK);
 }

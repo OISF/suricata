@@ -27,18 +27,6 @@
 #include "util-checksum.h"
 #include "util-profiling.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
 

@@ -44,8 +44,6 @@ Tmq *TmqCreateQueue(const char *name)
         goto error;
 
     q->id = tmq_id++;
-    /* for cuda purposes */
-    q->q_type = 0;
 
     SCLogDebug("created queue \'%s\', %p", name, q);
     return q;

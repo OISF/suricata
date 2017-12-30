@@ -60,7 +60,6 @@
 #include "conf.h"
 #include "util-memcmp.h"
 #include "util-spm.h"
-#include "util-cuda.h"
 #include "util-debug.h"
 
 #include "runmodes.h"
@@ -1590,12 +1589,6 @@ int AppLayerProtoDetectSetup(void)
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     uint16_t mpm_matcher = PatternMatchDefaultMatcher();
-
-#ifdef __SC_CUDA_SUPPORT__
-    /* CUDA won't work here, so fall back to AC */
-    if (mpm_matcher == MPM_AC_CUDA)
-        mpm_matcher = mpm_default_matcher;
-#endif
 
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {

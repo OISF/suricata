@@ -119,11 +119,6 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
             }
         }
     }
-#ifdef __SC_CUDA_SUPPORT__
-    if (dtv->cuda_vars.mpm_is_cuda)
-        CudaBufferPacket(&dtv->cuda_vars, p);
-#endif
-
 }
 
 /**

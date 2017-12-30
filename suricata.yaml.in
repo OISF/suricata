@@ -967,10 +967,6 @@ host-mode: auto
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
 # impact caching.
-#
-# If you are using the CUDA pattern matcher (mpm-algo: ac-cuda), different rules
-# apply. In that case try something like 60000 or more. This is because the CUDA
-# pattern matcher buffers and scans as many packets as possible in parallel.
 #max-pending-packets: 1024
 
 # Runmode the engine should use. Please check --list-runmodes to get the available
@@ -1345,7 +1341,6 @@ detect:
 # The supported algorithms are:
 # "ac"      - Aho-Corasick, default implementation
 # "ac-bs"   - Aho-Corasick, reduced memory implementation
-# "ac-cuda" - Aho-Corasick, CUDA implementation
 # "ac-ks"   - Aho-Corasick, "Ken Steele" variant
 # "hs"      - Hyperscan, available when built with Hyperscan support
 #
@@ -1358,10 +1353,6 @@ detect:
 # to be set to "single", because of ac's memory requirements, unless the
 # ruleset is small enough to fit in one's memory, in which case one can
 # use "full" with "ac".  Rest of the mpms can be run in "full" mode.
-#
-# There is also a CUDA pattern matcher (only available if Suricata was
-# compiled with --enable-cuda: b2g_cuda. Make sure to update your
-# max-pending-packets setting above as well if you use b2g_cuda.
 
 mpm-algo: auto
 
@@ -1724,40 +1715,6 @@ mpipe:
     size10386: 0
     size16384: 0
 
-##
-## Hardware accelaration
-##
-
-# Cuda configuration.
-cuda:
-  # The "mpm" profile.  On not specifying any of these parameters, the engine's
-  # internal default values are used, which are same as the ones specified in
-  # in the default conf file.
-  mpm:
-    # The minimum length required to buffer data to the gpu.
-    # Anything below this is MPM'ed on the CPU.
-    # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
-    # A value of 0 indicates there's no limit.
-    data-buffer-size-min-limit: 0
-    # The maximum length for data that we would buffer to the gpu.
-    # Anything over this is MPM'ed on the CPU.
-    # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
-    data-buffer-size-max-limit: 1500
-    # The ring buffer size used by the CudaBuffer API to buffer data.
-    cudabuffer-buffer-size: 500mb
-    # The max chunk size that can be sent to the gpu in a single go.
-    gpu-transfer-size: 50mb
-    # The timeout limit for batching of packets in microseconds.
-    batching-timeout: 2000
-    # The device to use for the mpm.  Currently we don't support load balancing
-    # on multiple gpus.  In case you have multiple devices on your system, you
-    # can specify the device to use, using this conf.  By default we hold 0, to
-    # specify the first device cuda sees.  To find out device-id associated with
-    # the card(s) on the system run "suricata --list-cuda-cards".
-    device-id: 0
-    # No of Cuda streams used for asynchronous processing. All values > 0 are valid.
-    # For this option you need a device with Compute Capability > 1.0.
-    cuda-streams: 2
 
 ##
 ## Include other configs

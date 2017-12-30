@@ -51,7 +51,6 @@ app-layer-tls-handshake.c app-layer-tls-handshake.h \
 conf.c conf.h \
 conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \
-data-queue.c data-queue.h \
 decode.c decode.h \
 decode-afl.c \
 decode-erspan.c decode-erspan.h \
@@ -384,10 +383,6 @@ util-conf.c util-conf.h \
 util-coredump-config.c util-coredump-config.h \
 util-cpu.c util-cpu.h \
 util-crypt.c util-crypt.h \
-util-cuda.c util-cuda.h \
-util-cuda-buffer.c util-cuda-buffer.h \
-util-cuda-handlers.c util-cuda-handlers.h \
-util-cuda-vars.c util-cuda-vars.h \
 util-daemon.c util-daemon.h \
 util-debug.c util-debug.h \
 util-debug-filters.c util-debug-filters.h \
@@ -482,7 +477,7 @@ win32-misc.c win32-misc.h \
 win32-service.c win32-service.h \
 win32-syslog.h
 
-EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py tests
+EXTRA_DIST = tests
 
 # set the include path found by configure
 AM_CPPFLAGS = $(all_includes)
@@ -493,58 +488,6 @@ suricata_LDADD = $(HTP_LDADD) $(RUST_LDADD)
 
 if HAVE_RUST
 suricata_DEPENDENCIES = $(RUST_SURICATA_LIB)
-endif
-
-# Rules to build CUDA ptx modules
-if BUILD_CUDA
-BUILT_SOURCES = cuda-ptxdump.h
-
-suricata_CUDA_KERNELS = \
-util-mpm-ac-cuda-kernel.cu
-
-NVCCFLAGS=-O2
-
-PTXS = $(suricata_CUDA_KERNELS:.cu=.ptx_sm_20)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_21)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_30)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_32)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_35)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_37)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_50)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_52)
-PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_53)
-
-.cu.ptx_sm_20:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_20 -ptx $<
-
-.cu.ptx_sm_21:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_21 -ptx $<
-
-.cu.ptx_sm_30:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_30 -ptx $<
-
-.cu.ptx_sm_32:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_32 -ptx $<
-
-.cu.ptx_sm_35:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_35 -ptx $<
-
-.cu.ptx_sm_37:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_37 -ptx $<
-
-.cu.ptx_sm_50:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_50 -ptx $<
-
-.cu.ptx_sm_52:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_52 -ptx $<
-
-.cu.ptx_sm_53:
-	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_53 -ptx $<
-
-cuda-ptxdump.h: $(PTXS)
-	$(PYTHON) ptxdump.py cuda-ptxdump $(PTXS)
-
-CLEANFILES = $(PTXS) cuda-ptxdump.h
 endif
 
 # default CFLAGS

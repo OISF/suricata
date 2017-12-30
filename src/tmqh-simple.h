@@ -24,11 +24,6 @@
 #ifndef __TMQH_SIMPLE_H__
 #define __TMQH_SIMPLE_H__
 
-#include "data-queue.h"
-
-SCDQGenericQData *TmqhInputSimpleOnQ(SCDQDataQueue *);
-void TmqhOutputSimpleOnQ(SCDQDataQueue *, SCDQGenericQData *);
-
 void TmqhSimpleRegister (void);
 
 #endif /* __TMQH_SIMPLE_H__ */

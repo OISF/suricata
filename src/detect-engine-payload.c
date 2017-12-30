@@ -117,19 +117,9 @@ static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
     if (p->payload_len < mpm_ctx->minlen)
         SCReturn;
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (p->cuda_pkt_vars.cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
-        (void)SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
-    } else {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtc, &det_ctx->pmq,
-                p->payload, p->payload_len);
-    }
-#else
     (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
             &det_ctx->mtc, &det_ctx->pmq,
             p->payload, p->payload_len);
-#endif
 }
 
 int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)

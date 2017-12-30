@@ -53,11 +53,6 @@
 #include "flow-manager.h"
 #include "counters.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#endif
-
 int debuglog_enabled = 0;
 
 /* Runmode Global Thread Names */
@@ -349,15 +344,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
         }
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA &&
-        strcasecmp(custom_mode, "autofp") != 0) {
-        SCLogError(SC_ERR_RUNMODE, "When using a cuda mpm, the only runmode we "
-                   "support is autofp.");
-        exit(EXIT_FAILURE);
-    }
-#endif
-
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
     if (mode == NULL) {
         SCLogError(SC_ERR_RUNMODE, "The custom type \"%s\" doesn't exist "
@@ -385,11 +371,6 @@ void RunModeDispatch(int runmode, const char *custom_mode)
 
     if (local_custom_mode != NULL)
         SCFree(local_custom_mode);
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        SCACCudaStartDispatcher();
-#endif
 
     /* Check if the alloted queues have at least 1 reader and writer */
     TmValidateQueueState();

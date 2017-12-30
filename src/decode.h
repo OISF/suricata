@@ -32,11 +32,6 @@
 #include "decode-events.h"
 #include "flow-worker.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-#include "util-cuda-buffer.h"
-#include "util-cuda-vars.h"
-#endif /* __SC_CUDA_SUPPORT__ */
-
 #ifdef HAVE_NAPATECH
 #include "util-napatech.h"
 #endif /* HAVE_NAPATECH */
@@ -596,9 +591,6 @@ typedef struct Packet_
 #ifdef PROFILING
     PktProfiling *profile;
 #endif
-#ifdef __SC_CUDA_SUPPORT__
-    CudaPacketVars cuda_pkt_vars;
-#endif
 #ifdef HAVE_NAPATECH
     NapatechPacketVars ntpv;
 #endif
@@ -692,9 +684,6 @@ typedef struct DecodeThreadVars_
      * flow recycle during lookups */
     void *output_flow_thread_data;
 
-#ifdef __SC_CUDA_SUPPORT__
-    CudaThreadVars cuda_vars;
-#endif
 } DecodeThreadVars;
 
 typedef struct CaptureStats_ {
@@ -734,25 +723,11 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
 /**
  *  \brief Initialize a packet structure for use.
  */
-#ifdef __SC_CUDA_SUPPORT__
-#include "util-cuda-handlers.h"
-#include "util-mpm.h"
-
-#define PACKET_INITIALIZE(p) do {                                       \
-        memset((p), 0x00, SIZE_OF_PACKET);                              \
-        SCMutexInit(&(p)->tunnel_mutex, NULL);                          \
-        PACKET_RESET_CHECKSUMS((p));                                    \
-        (p)->livedev = NULL;                                            \
-        SCMutexInit(&(p)->cuda_pkt_vars.cuda_mutex, NULL);            \
-        SCCondInit(&(p)->cuda_pkt_vars.cuda_cond, NULL);                \
-    } while (0)
-#else
 #define PACKET_INITIALIZE(p) {         \
     SCMutexInit(&(p)->tunnel_mutex, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
     (p)->livedev = NULL; \
 }
-#endif
 
 #define PACKET_RELEASE_REFS(p) do {              \
         FlowDeReference(&((p)->flow));          \

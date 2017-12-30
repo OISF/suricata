@@ -30,18 +30,6 @@
 #include "flow-manager.h"
 #include "util-checksum.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 extern int max_pending_packets;
 PcapFileGlobalVars pcap_g;
 
@@ -423,11 +411,6 @@ TmEcode DecodePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **da
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
 
     *data = (void *)dtv;
 

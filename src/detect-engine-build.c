@@ -1998,39 +1998,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
-            /* setting it to default.  You've gotta remove it once you fix the state table thing */
-            SCACConstructBoth16and32StateTables();
-
-            MpmCudaConf *conf = CudaHandlerGetCudaProfile("mpm");
-            CUcontext cuda_context = CudaHandlerModuleGetContext(MPM_AC_CUDA_MODULE_NAME, conf->device_id);
-            if (cuda_context == 0) {
-                SCLogError(SC_ERR_FATAL, "cuda context is NULL.");
-                exit(EXIT_FAILURE);
-            }
-            int r = SCCudaCtxPushCurrent(cuda_context);
-            if (r < 0) {
-                SCLogError(SC_ERR_FATAL, "context push failed.");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
-            int r = SCCudaCtxPopCurrent(NULL);
-            if (r < 0) {
-                SCLogError(SC_ERR_FATAL, "cuda context pop failure.");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        /* too late to call this either ways.  Should be called post ac goto.
-         * \todo Support this. */
-        DetermineCudaStateTableSize(de_ctx);
-    }
-#endif
-
     int r = DetectMpmPrepareBuiltinMpms(de_ctx);
     r |= DetectMpmPrepareAppMpms(de_ctx);
     if (r != 0) {

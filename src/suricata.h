@@ -66,7 +66,6 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
-#include "data-queue.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
@@ -131,8 +130,6 @@ enum {
  */
 PacketQueue trans_q[256];
 
-SCDQDataQueue data_queues[256];
-
 typedef struct SCInstance_ {
     enum RunModes run_mode;
 
@@ -173,16 +170,6 @@ void GlobalsInitPreConfig(void);
 extern volatile uint8_t suricata_ctl_flags;
 extern int g_disable_randomness;
 
-/* uppercase to lowercase conversion lookup table */
-uint8_t g_u8_lowercasetable[256];
-
-/* marco to do the actual lookup */
-//#define u8_tolower(c) g_u8_lowercasetable[(c)]
-// these 2 are slower:
-//#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? g_u8_lowercasetable[(c)] : (c)
-//#define u8_tolower(c) (((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c))
-
-/* this is faster than the table lookup */
 #include <ctype.h>
 #define u8_tolower(c) tolower((uint8_t)(c))
 

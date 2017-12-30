@@ -1347,80 +1347,6 @@
     fi
 
 
-  # enable CUDA output
-    AC_ARG_ENABLE(cuda,
-           AS_HELP_STRING([--enable-cuda], [Enable experimental CUDA pattern matching]),,[enable_cuda=no])
-    AS_IF([test "x$enable_cuda" = "xyes"], [
-        AC_ARG_WITH(cuda_includes,
-                [  --with-cuda-includes=DIR  cuda include directory],
-                [with_cuda_includes="$withval"],[with_cuda_includes=no])
-        AC_ARG_WITH(cuda_libraries,
-                [  --with-cuda-libraries=DIR    cuda library directory],
-                [with_cuda_libraries="$withval"],[with_cuda_libraries="no"])
-        AC_ARG_WITH(cuda_nvcc,
-                [  --with-cuda-nvcc=DIR  cuda nvcc compiler directory],
-                [with_cuda_nvcc="$withval"],[with_cuda_nvcc=no])
-
-        AC_DEFINE([__SC_CUDA_SUPPORT__],[1],(CUDA support enabled))
-
-        if test "$with_cuda_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_cuda_includes}"
-        else
-            CPPFLAGS="${CPPFLAGS} -I/usr/local/cuda/include"
-        fi
-
-        if test "$with_cuda_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS} -L${with_cuda_libraries}"
-        fi
-
-        if test "$with_cuda_nvcc" != "no"; then
-            NVCC_DIR="${with_cuda_nvcc}"
-        else
-            NVCC_DIR="/usr/local/cuda/bin"
-        fi
-
-        AC_CHECK_HEADER(cuda.h,,[AC_ERROR(cuda.h not found ...)])
-
-        LIBCUDA=""
-        AC_CHECK_LIB(cuda, cuArray3DCreate,, LIBCUDA="no")
-        if test "$LIBCUDA" = "no"; then
-            echo
-            echo "   ERROR! libcuda library not found"
-            echo
-            exit 1
-        fi
-
-        AC_PATH_PROG([NVCC], [nvcc], no, [$PATH:$NVCC_DIR])
-        if test "x$NVCC" = "xno"; then
-            echo
-            echo "   ERROR! CUDA nvcc compiler not found: use --with-cuda-nvcc=DIR"
-            echo
-            exit 1
-        fi
-
-        AC_MSG_CHECKING(for nvcc version)
-        NVCCVER=`$NVCC --version | grep "release" | sed 's/.*release \(@<:@0-9@:>@\)\.\(@<:@0-9@:>@\).*/\1\2/'`
-        AC_MSG_RESULT($NVCCVER)
-        if test "$NVCCVER" -lt 31; then
-            echo
-            echo "   Warning! Your CUDA nvcc version might be outdated."
-            echo "   If compilation fails try the latest CUDA toolkit from"
-            echo "   www.nvidia.com/object/cuda_develop.html"
-            echo
-        fi
-
-        AM_PATH_PYTHON(,, no)
-        if test "x$PYTHON" = "xno"; then
-            echo
-            echo "   ERROR! Compiling CUDA kernels requires python."
-            echo
-            exit 1
-        fi
-    ])
-    AM_CONDITIONAL([BUILD_CUDA], [test "x$enable_cuda" = "xyes"])
-    AM_CONDITIONAL([__SC_CUDA_SUPPORT__], [test "x$enable_cuda" = "xyes"])
-
-
   # Check for libcap-ng
     case $host in
     *-*-linux*)
@@ -2220,7 +2146,6 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libgeoip:                                ${enable_geoip}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
-  CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
 

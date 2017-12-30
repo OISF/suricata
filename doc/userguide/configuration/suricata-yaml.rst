@@ -787,69 +787,6 @@ To let Suricata make these decisions set default to 'auto':
       default: auto
 
 
-CUDA (Compute United Device Architecture)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Suricata utilizes CUDA for offloading CPU intensive tasks to the
-(NVIDIA) GPU (graphics processing unit). Suricata supports an
-experimental multi-pattern-matcher using CUDA.  Only if you have
-compiled Suricata with CUDA (by entering --enable-cuda in the
-configure stage) you can make use of these features.  There are
-several options for CUDA.  The option 'packet_buffer_limit' designates
-how many packets will be send to the GPU at the same time. Suricata
-sends packets in 'batches', meaning it sends multiple packets at
-once. As soon as Suricata has collected the amount of packets set in
-the 'packet_buffer_limit' option, it sends them to the GPU. The
-default amount of packets is 2400.
-
-The option 'packet_size_limit' makes sure that packets with payloads
-bigger than a certain amount of bytes will not be send to the
-GPU. Other packets will be send to the GPU. The default setting is
-1500 bytes.
-
-The option 'packet_buffers' designates the amount of buffers that will
-be filled with packets and will be processed. Buffers contain the
-batches of packets. During the time these filled buffers are being
-processed, new buffers will be filled.
-
-The option 'batching_timeout' can have all values higher than 0. If a
-buffers is not fully filled after a period of time (set in this option
-'batching_timeout'), the buffer will be send to the GPU anyway.
-
-The option 'page_locked' designates whether the page locked memory
-will or will not be used. The advantage of page locked memory is that
-it can not be swapped out to disk. You would not want your computer to
-use your hard disk for Suricata, because it lowers the performance a
-lot. In this option you can set whether you still want this for CUDA
-or not.
-
-The option 'device_id' is an option within CUDA to determine which GPU
-should be turned to account.(If there is only one GPU present at your
-computer, there is no benefit making use of the 'device-id' option.)
-To detect the id of your GPU's, enter the following in your command
-line:
-
-::
-
-  suricata --list-cuda-cards
-
-With the option 'cuda_streams' you can determine how many cuda-streams
-should be used for asynchronous processing. All values > 0 are
-valid. For this option you need a device with Compute Capability > 1.0
-and page_locked enabled to have any effect.
-
-::
-
-  cuda:
-    -mpm:
-       packet_buffer_limit: 2400
-       packet_size_limit: 1500
-       packet_buffers: 10
-       batching_timeout: 1
-       page_locked: enabled
-       device_id: 0
-       cuda_streams: 2
-
 Pattern matcher settings
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

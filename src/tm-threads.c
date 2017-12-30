@@ -1487,10 +1487,7 @@ static int TmThreadKillThread(ThreadVars *tv)
         }
         if (tv->inq != NULL) {
             for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                if (tv->inq->q_type == 0)
-                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                else
-                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                SCCondSignal(&trans_q[tv->inq->id].cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
@@ -1641,10 +1638,7 @@ again:
             if (tv->inq != NULL) {
                 int i;
                 for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                    if (tv->inq->q_type == 0)
-                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                    else
-                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
                 }
                 SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
@@ -1723,10 +1717,7 @@ again:
         if (tv->inq != NULL) {
             int i;
             for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                if (tv->inq->q_type == 0)
-                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                else
-                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                SCCondSignal(&trans_q[tv->inq->id].cond_q);
             }
             SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }

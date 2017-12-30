@@ -42,18 +42,6 @@
 #include "util-ioctl.h"
 #include "tmqh-packetpool.h"
 
-#ifdef __SC_CUDA_SUPPORT__
-
-#include "util-cuda.h"
-#include "util-cuda-buffer.h"
-#include "util-mpm-ac.h"
-#include "util-cuda-handlers.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-#include "util-cuda-vars.h"
-
-#endif /* __SC_CUDA_SUPPORT__ */
-
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1
 
@@ -601,11 +589,6 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, const void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
 
     DecodeRegisterPerfCounters(dtv, tv);
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (CudaThreadVarsInit(&dtv->cuda_vars) < 0)
-        SCReturnInt(TM_ECODE_FAILED);
-#endif
 
     *data = (void *)dtv;
 

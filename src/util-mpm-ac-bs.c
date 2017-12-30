@@ -995,8 +995,6 @@ void SCACBSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
  * \brief Initialize the AC context.
  *
  * \param mpm_ctx       Mpm context.
- * \param module_handle Cuda module handle from the cuda handler API.  We don't
- *                      have to worry about this here.
  */
 void SCACBSInitCtx(MpmCtx *mpm_ctx)
 {

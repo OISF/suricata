@@ -219,7 +219,6 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-hashlist.h"
-#include "util-cuda.h"
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-validate.h"

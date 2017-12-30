@@ -185,9 +185,6 @@ static void RegisterUnittests(void)
     SCClassConfRegisterTests();
     SCThresholdConfRegisterTests();
     SCRConfRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-    SCCudaRegisterTests();
-#endif
     PayloadRegisterTests();
     DcePayloadRegisterTests();
     UriRegisterTests();
@@ -218,9 +215,6 @@ static void RegisterUnittests(void)
     DetectPortTests();
     SCAtomicRegisterTests();
     MemrchrRegisterTests();
-#ifdef __SC_CUDA_SUPPORT__
-    CudaBufferRegisterUnittests();
-#endif
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
@@ -251,9 +245,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
     default_packet_size = DEFAULT_PACKET_SIZE;
     /* load the pattern matchers */
     MpmTableSetup();
-#ifdef __SC_CUDA_SUPPORT__
-    MpmCudaEnvironmentSetup();
-#endif
     SpmTableSetup();
 
     AppLayerSetup();
@@ -312,11 +303,6 @@ void RunUnittests(int list_unittests, const char *regex_arg)
         UtCleanup();
 #ifdef BUILD_HYPERSCAN
         MpmHSGlobalCleanup();
-#endif
-#ifdef __SC_CUDA_SUPPORT__
-        if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-            MpmCudaBufferDeSetup();
-        CudaHandlerFreeProfiles();
 #endif
         if (failed) {
             exit(EXIT_FAILURE);
