@@ -479,7 +479,6 @@ static void *ParseAFPConfig(const char *iface)
             if (ret != 0) {
                 SCLogWarning(SC_ERR_INVALID_VALUE,
                              "Error when setting up XDP");
-                /* FIXME error handling */
             }
         }
 #else
