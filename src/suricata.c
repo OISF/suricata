@@ -2837,6 +2837,8 @@ int main(int argc, char **argv)
     }
     PostConfLoadedDetectSetup(&suricata);
 
+    LiveDeviceFinalize();
+
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
 
