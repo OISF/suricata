@@ -36,6 +36,9 @@
 static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
 
+static TAILQ_HEAD(, PreLiveDevice_) pre_live_devices =
+    TAILQ_HEAD_INITIALIZER(pre_live_devices);
+
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
 
@@ -62,12 +65,44 @@ int LiveGetOffload(void)
 /**
  *  \brief Add a pcap device for monitoring
  *
+ * To be used during option parsing. When a device has
+ * to be created during runmode init, use LiveRegisterDeviceFull()
+ *
  *  \param dev string with the device name
  *
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
 int LiveRegisterDevice(const char *dev)
+{
+    PreLiveDevice *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(PreLiveDevice));
+    if (unlikely(pd == NULL)) {
+        return -1;
+    }
+
+    pd->dev = SCStrdup(dev);
+    if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
+
+    TAILQ_INSERT_TAIL(&pre_live_devices, pd, next);
+
+    SCLogDebug("Device \"%s\" registered.", dev);
+    return 0;
+}
+
+/**
+ *  \brief Add a pcap device for monitoring and create structure
+ *
+ *  \param dev string with the device name
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int LiveRegisterDeviceFull(const char *dev)
 {
     LiveDevice *pd = NULL;
 
@@ -94,7 +129,7 @@ int LiveRegisterDevice(const char *dev)
     pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
-    SCLogDebug("Device \"%s\" registered.", dev);
+    SCLogDebug("Device \"%s\" registered and created.", dev);
     return 0;
 }
 
@@ -389,3 +424,16 @@ LiveDevice *LiveDeviceForEach(LiveDevice **l, LiveDevice **n)
     return NULL;
 }
 
+void LiveDeviceFinalize(void)
+{
+    PreLiveDevice *ld, *pld;
+    SCLogDebug("Finalize live device");
+    /* Iter on devices and register them */
+    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
+        if (ld->dev) {
+            LiveRegisterDeviceFull(ld->dev);
+            SCFree(ld->dev);
+        }
+        SCFree(ld);
+    }
+}
