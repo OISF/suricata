@@ -36,6 +36,15 @@
 static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
 
+/** List of the name of devices
+ *
+ * As we don't know the size of the Storage on devices
+ * before the parsing we need to wait and use this list
+ * to create later the LiveDevice via LiveDeviceFinalize()
+ */
+static TAILQ_HEAD(, LiveDeviceName_) pre_live_devices =
+    TAILQ_HEAD_INITIALIZER(pre_live_devices);
+
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
 
@@ -60,7 +69,39 @@ int LiveGetOffload(void)
 }
 
 /**
- *  \brief Add a pcap device for monitoring
+ *  \brief Add a device for monitoring
+ *
+ * To be used during option parsing. When a device has
+ * to be created during runmode init, use LiveRegisterDevice()
+ *
+ *  \param dev string with the device name
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int LiveRegisterDeviceName(const char *dev)
+{
+    LiveDeviceName *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(LiveDeviceName));
+    if (unlikely(pd == NULL)) {
+        return -1;
+    }
+
+    pd->dev = SCStrdup(dev);
+    if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
+
+    TAILQ_INSERT_TAIL(&pre_live_devices, pd, next);
+
+    SCLogDebug("Device \"%s\" registered.", dev);
+    return 0;
+}
+
+/**
+ *  \brief Add a pcap device for monitoring and create structure
  *
  *  \param dev string with the device name
  *
@@ -94,7 +135,7 @@ int LiveRegisterDevice(const char *dev)
     pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
-    SCLogDebug("Device \"%s\" registered.", dev);
+    SCLogDebug("Device \"%s\" registered and created.", dev);
     return 0;
 }
 
@@ -254,7 +295,7 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
                     break;
                 SCLogConfig("Adding %s %s from config file",
                           itemname, subchild->val);
-                LiveRegisterDevice(subchild->val);
+                LiveRegisterDeviceName(subchild->val);
                 i++;
             }
         }
@@ -389,3 +430,22 @@ LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
     return NULL;
 }
 
+/**
+ * Create registered devices
+ *
+ * This function creates all needed LiveDevice from
+ * the LiveDeviceName list created via LiveRegisterDevice()
+ */
+void LiveDeviceFinalize(void)
+{
+    LiveDeviceName *ld, *pld;
+    SCLogDebug("Finalize live device");
+    /* Iter on devices and register them */
+    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
+        if (ld->dev) {
+            LiveRegisterDevice(ld->dev);
+            SCFree(ld->dev);
+        }
+        SCFree(ld);
+    }
+}
