@@ -2265,10 +2265,14 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
-    /* FIXME error handling */
     unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
     struct pair value[nr_cpus];
     unsigned int i;
+
+    if (mapd == -1) {
+        return 0;
+    }
+
     for (i = 0; i < nr_cpus; i++) {
         value[i].time = inittime;
         value[i].packets = 0;
