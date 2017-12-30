@@ -1,9 +1,27 @@
+eBPF and XDP
+============
 
-Set up
-======
+Introduction
+------------
+
+eBPF stands for extended BPF. This is an extended version of Berkeley Packet Filter available in recent
+Linux kernel.
+
+It provides more advanced features with eBPF program developed in C and able to use structured data shared
+between kernel and userspace.
+
+eBPF is used for three things in Suricata:
+
+- eBPF filter: any BPF like filter can be developed. A example of filter accepting only packet for some VLANs is provided.
+- eBPF load balancing: provide programmable load balancing. A simple ippair load balancing is provided.
+- XDP programs: suricata can load XDP programs. A bypass program is provided.
+
+Bypass can be implemented in eBPF and XDP. The advantage of XDP is that the packets are dropped at the earliest stage
+possible. So performance are better. But bypassed packets don't reach the network so you can't use this on regular
+traffic but only on duplicated/sniffed traffic.
 
 XDP
----
+~~~
 
 XDP provides another Linux native way of optimising Suricata's performance on sniffing high speed networks.
 
@@ -23,7 +41,7 @@ Requirements
 Prerequisites
 -------------
 
-This guide has been confirmed on Debian/Ubutnu LTS Linux.
+This guide has been confirmed on Debian/Ubuntu LTS Linux.
 
 Disable irqbalance
 ~~~~~~~~~~~~~~~~~~
@@ -41,8 +59,7 @@ Install kernel 4.13.+ and reboot.
 Clang
 ~~~~~
 
-Make sure you have clang installed on the system.
-::
+Make sure you have clang (>3.9) installed on the system  ::
 
  apt-get install clang
 
@@ -50,9 +67,9 @@ BPF
 ~~~
 
 Suricata use libbpf to interact with eBPF and XDP. This library is available
-in the Linux tree. Before 4.16, a patched libbpf library is also needed::
+in the Linux tree. Before Linux 4.16, a patched libbpf library is also needed::
 
- git clone -b libbpf-xdp  https://github.com/regit/linux.git
+ git clone -b libbpf-xdp-v5  https://github.com/regit/linux.git
 
 If you have a recent enough kernel, you can skip this part.
 
@@ -69,12 +86,14 @@ Now, you can build and install the library ::
 Compile and install Suricata
 ----------------------------
 
-::
+If ever you don't have the source ::
 
  git clone  https://github.com/OISF/suricata.git
  cd suricata && git clone https://github.com/OISF/libhtp.git -b 0.5.x
 
  ./autogen.sh
+
+Then you need to add the ebpf flags to configure ::
 
  CC=clang ./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/ \
  --enable-ebpf --enable-ebpf-build
@@ -83,39 +102,13 @@ Compile and install Suricata
  sudo  make install-full
  sudo ldconfig
 
-Copy the resulting xdp fiter as needed::
+Setup bypass
+------------
 
- cp src/ebpf/xdp_filter.bpf /etc/suricata/
+If you plan to use eBPF or XDP for a kernel/hardware level bypass, you need to do
+the following:
 
-Setup af-packet section/interface in ``suricata.yaml``.
-
-We will use ``cluster_qm`` as we have symmetric hashing on the NIC, ``xdp-mode: driver`` and we will
-also use the ``/etc/suricata/xdp_filter.bpf`` (in our example TCP offloading/bypass) ::
-
-  - interface: eth3
-    threads: 16
-    cluster-id: 97
-    cluster-type: cluster_qm # symmetric hashing  is a must!
-    defrag: yes
-    # eBPF file containing a 'loadbalancer' function that will be inserted into the
-    # kernel and used as load balancing function
-    #ebpf-lb-file:  /etc/suricata/lb.bpf
-    # eBPF file containing a 'filter' function that will be inserted into the
-    # kernel and used as packet filter function
-    # eBPF file containing a 'xdp' function that will be inserted into the
-    # kernel and used as XDP packet filter function
-    #ebpf-filter-file:  /etc/suricata/filter.bpf
-    # Xdp mode, "soft" for skb based version, "driver" for network card based
-    # and "hw" for card supporting eBPF.
-    xdp-mode: driver
-    xdp-filter-file:  /etc/suricata/xdp_filter.bpf
-    # if the ebpf filter implements a bypass function, you can set 'bypass' to
-    # yes and benefit from these feature
-    bypass: yes
-    use-mmap: yes
-    ring-size: 200000
-
-Also enable "bypass" in the "stream" section ::
+First, enable `bypass` in the `stream` section ::
 
  stream:
    bypass: true
@@ -137,8 +130,109 @@ in the app-layer tls section ::
         no-reassemble: yes
 
 
+Setup eBPF filter
+-----------------
+
+Copy the resulting ebpf fiter as needed ::
+
+ cp src/ebpf/vlan_filter.bpf /etc/suricata/
+
+Then setup the `ebpf-filter-file` variable in af-packet section ::
+
+  - interface: eth3
+    threads: 16
+    cluster-id: 97
+    cluster-type: cluster_flow # choose any type suitable
+    defrag: yes
+    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # kernel and used as load balancing function
+    ebpf-filter-file:  /etc/suricata/vlan_filter.bpf
+    use-mmap: yes
+    ring-size: 200000
+
+You can then run suricata normally ::
+
+ /usr/bin/suricata --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv 
+
+You can also use eBPF bypass. To do that load the `bypass_filter.bpf` file and
+update af-packet configuration to set bypass to yes ::
+
+  - interface: eth3
+    threads: 16
+    cluster-id: 97
+    cluster-type: cluster_qm # symmetric hashing is a must!
+    defrag: yes
+    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # kernel and used as load balancing function
+    #ebpf-lb-file:  /etc/suricata/lb.bpf
+    # eBPF file containing a 'filter' function that will be inserted into the
+    # kernel and used as packet filter function
+    # eBPF file containing a 'xdp' function that will be inserted into the
+    # kernel and used as XDP packet filter function
+    ebpf-filter-file:  /etc/suricata/bypass_filter.bpf
+    bypass: yes
+    use-mmap: yes
+    ring-size: 200000
+
+
+Setup eBPF load balancing
+-------------------------
+
+Copy the resulting ebpf fiter as needed ::
+
+ cp src/ebpf/lb.bpf /etc/suricata/
+
+We will use ``cluster_ebpf`` in the interface section of af-packet ::
+
+  - interface: eth3
+    threads: 16
+    cluster-id: 97
+    cluster-type: cluster_ebpf
+    defrag: yes
+    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # kernel and used as load balancing function
+    ebpf-lb-file:  /etc/suricata/lb.bpf
+    use-mmap: yes
+    ring-size: 200000
+
+Setup XDP
+---------
+
+Copy the resulting xdp fiter as needed::
+
+ cp src/ebpf/xdp_filter.bpf /etc/suricata/
+
+Setup af-packet section/interface in ``suricata.yaml``.
+
+We will use ``cluster_qm`` as we have symmetric hashing on the NIC, ``xdp-mode: driver`` and we will
+also use the ``/etc/suricata/xdp_filter.bpf`` (in our example TCP offloading/bypass) ::
+
+  - interface: eth3
+    threads: 16
+    cluster-id: 97
+    cluster-type: cluster_qm # symmetric hashing is a must!
+    defrag: yes
+    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # kernel and used as load balancing function
+    #ebpf-lb-file:  /etc/suricata/lb.bpf
+    # eBPF file containing a 'filter' function that will be inserted into the
+    # kernel and used as packet filter function
+    # eBPF file containing a 'xdp' function that will be inserted into the
+    # kernel and used as XDP packet filter function
+    #ebpf-filter-file:  /etc/suricata/filter.bpf
+    # Xdp mode, "soft" for skb based version, "driver" for network card based
+    # and "hw" for card supporting eBPF.
+    xdp-mode: driver
+    xdp-filter-file:  /etc/suricata/xdp_filter.bpf
+    # if the ebpf filter implements a bypass function, you can set 'bypass' to
+    # yes and benefit from these feature
+    bypass: yes
+    use-mmap: yes
+    ring-size: 200000
+
+
 Setup symmetric hashing on the NIC
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Follow these instructions closely for desired result::
 
@@ -171,7 +265,7 @@ In the above set up you are free to use any recent ``set_irq_affinity`` script. 
 We use a special low entropy key for the symmetric hashing. `More info about the research for symmetric hashing set up <http://www.ndsl.kaist.edu/~kyoungsoo/papers/TR-symRSS.pdf>`_
 
 Disable an NIC offloading
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Run the following to disable offloading ::
 
@@ -180,7 +274,7 @@ Run the following to disable offloading ::
  done
 
 Balance as much as you can
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Try to use the network's card balancing as much as possible ::
  
@@ -189,7 +283,7 @@ Try to use the network's card balancing as much as possible ::
  done
 
 Start Suricata with XDP
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 You can now start Suricata with XDP bypass activated ::
 
