@@ -134,10 +134,10 @@ typedef struct LogFileCtx_ {
 #define LOGFILE_RECONN_MIN_TIME     500
 
 /* flags for LogFileCtx */
-#define LOGFILE_HEADER_WRITTEN  0x01
-#define LOGFILE_ALERTS_PRINTED  0x02
-#define LOGFILE_ROTATE_INTERVAL 0x04
-#define LOGFILE_ROTATE_SIZE     0x08
+#define LOGFILE_HEADER_WRITTEN  BIT_U8(0)
+#define LOGFILE_ALERTS_PRINTED  BIT_U8(1)
+#define LOGFILE_ROTATE_INTERVAL BIT_U8(2)
+#define LOGFILE_ROTATE_SIZE     BIT_U8(3)
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
