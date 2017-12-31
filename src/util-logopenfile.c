@@ -432,9 +432,10 @@ SCConfLogOpenGeneric(ConfNode *conf,
             if (log_ctx->rotate_interval == 0) {
                 SCLogError(SC_ERR_INVALID_NUMERIC_VALUE,
                            "invalid rotate-interval value");
-                exit(EXIT_FAILURE);
+                log_ctx->flags &= ~LOGFILE_ROTATE_INTERVAL;
+            } else {
+                log_ctx->rotate_time = now + log_ctx->rotate_interval;
             }
-            log_ctx->rotate_time = now + log_ctx->rotate_interval;
         }
     }
 
