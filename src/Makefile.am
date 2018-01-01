@@ -258,6 +258,7 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+device-storage.c device-storage.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-bypass.c flow-bypass.h \
