@@ -20,6 +20,8 @@
 #include "util-device.h"
 #include "util-ioctl.h"
 
+#include "device-storage.h"
+
 #define MAX_DEVNAME 10
 
 /**
@@ -67,7 +69,9 @@ int LiveGetOffload(void)
  */
 int LiveRegisterDevice(const char *dev)
 {
-    LiveDevice *pd = SCCalloc(1, sizeof(LiveDevice));
+    LiveDevice *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(LiveDevice) + LiveDevStorageSize());
     if (unlikely(pd == NULL)) {
         return -1;
     }
@@ -290,6 +294,7 @@ int LiveDeviceListClean()
         SC_ATOMIC_DESTROY(pd->pkts);
         SC_ATOMIC_DESTROY(pd->drop);
         SC_ATOMIC_DESTROY(pd->invalid_checksums);
+        LiveDevFreeStorage(pd);
         SCFree(pd);
     }
 
