@@ -2276,6 +2276,12 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data)
     ptv->datalen = 0;
 
     ptv->bpf_filter = NULL;
+    if ((ptv->flags & AFP_TPACKET_V3) && ptv->ring_v3) {
+        SCFree(ptv->ring_v3);
+    } else {
+        if (ptv->ring_v2)
+            SCFree(ptv->ring_v2);
+    }
 
     SCFree(ptv);
     SCReturnInt(TM_ECODE_OK);
