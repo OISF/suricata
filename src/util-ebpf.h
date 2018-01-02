@@ -1,4 +1,4 @@
-/* Copyright (C) 2016 Open Information Security Foundation
+/* Copyright (C) 2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -71,6 +71,8 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
                                         struct timespec *curtime);
 
 void EBPFRegisterExtension(void);
+
+void EBPFBuildCPUSet(ConfNode *node, char *iface);
 
 #endif
 
