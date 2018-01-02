@@ -479,6 +479,22 @@ static void *ParseAFPConfig(const char *iface)
             if (ret != 0) {
                 SCLogWarning(SC_ERR_INVALID_VALUE,
                              "Error when setting up XDP");
+            } else {
+                /* Try to get the xdp-cpu-redirect key */
+                const char *cpuset;
+                if (ConfGetChildValueWithDefault(if_root, if_default,
+                                                 "xdp-cpu-redirect", &cpuset) == 1) {
+                    SCLogConfig("Setting up CPU map XDP");
+                    ConfNode *node = ConfGetChildWithDefault(if_root, if_default, "xdp-cpu-redirect");
+                    if (node == NULL) {
+                        SCLogError(SC_ERR_INVALID_VALUE, "Should not be there");
+                    } else {
+                        EBPFBuildCPUSet(node, aconf->iface);
+                    }
+                } else {
+                        /* It will just set CPU count to 0 */
+                        EBPFBuildCPUSet(NULL, aconf->iface);
+                }
             }
         }
 #else
