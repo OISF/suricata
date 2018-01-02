@@ -446,4 +446,72 @@ void EBPFRegisterExtension(void)
     g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
 }
 
+
+#ifdef HAVE_PACKET_XDP
+
+static uint32_t g_redirect_iface_cpu_counter = 0;
+
+static int EBPFAddCPUToMap(const char *iface, uint32_t i)
+{
+    int cpumap = EBPFGetMapFDByName(iface, "cpu_map");
+    uint32_t queue_size = 4096;
+    int ret;
+
+    if (cpumap < 0) {
+        SCLogError(SC_ERR_AFP_CREATE, "Can't find cpu_map");
+        return -1;
+    }
+    ret = bpf_map_update_elem(cpumap, &i, &queue_size, 0);
+    if (ret) {
+        SCLogError(SC_ERR_AFP_CREATE, "Create CPU entry failed (err:%d)", ret);
+        return -1;
+    }
+    int cpus_available = EBPFGetMapFDByName(iface, "cpus_available");
+    if (cpus_available < 0) {
+        SCLogError(SC_ERR_AFP_CREATE, "Can't find cpus_available map");
+        return -1;
+    }
+
+    ret = bpf_map_update_elem(cpus_available, &g_redirect_iface_cpu_counter, &i, 0);
+    if (ret) {
+        SCLogError(SC_ERR_AFP_CREATE, "Create CPU entry failed (err:%d)", ret);
+        return -1;
+    }
+    return 0;
+}
+
+static void EBPFRedirectMapAddCPU(int i, void *data)
+{
+    if (EBPFAddCPUToMap(data, i) < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                "Unable to add CPU %d to set", i);
+    } else {
+        g_redirect_iface_cpu_counter++;
+    }
+}
+
+void EBPFBuildCPUSet(ConfNode *node, char *iface)
+{
+    uint32_t key0 = 0;
+    int mapfd = EBPFGetMapFDByName(iface, "cpus_count");
+    if (mapfd < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                "Unable to find 'cpus_count' map");
+        return;
+    }
+    g_redirect_iface_cpu_counter = 0;
+    if (node == NULL) {
+        bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
+                        BPF_ANY);
+        return;
+    }
+    BuildCpusetWithCallback("xdp-cpu-redirect", node,
+            EBPFRedirectMapAddCPU,
+            iface);
+    bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
+                        BPF_ANY);
+}
+
+#endif /* HAVE_PACKET_XDP */
+
 #endif
