@@ -293,7 +293,12 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
         uint64_t bytes_cnt = 0;
         struct pair values_array[nr_cpus];
         memset(values_array, 0, sizeof(values_array));
-        bpf_map_lookup_elem(mapfd, &key, values_array);
+        int res = bpf_map_lookup_elem(mapfd, &key, values_array);
+        if (res < 0) {
+            SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
+            key = next_key;
+            continue;
+        }
         for (i = 0; i < nr_cpus; i++) {
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
             if (ret) {
@@ -346,7 +351,12 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
         uint64_t bytes_cnt = 0;
         struct pair values_array[nr_cpus];
         memset(values_array, 0, sizeof(values_array));
-        bpf_map_lookup_elem(mapfd, &key, values_array);
+        int res = bpf_map_lookup_elem(mapfd, &key, values_array);
+        if (res < 0) {
+            SCLogDebug("no entry in v6 table for %d -> %d", key.port16[0], key.port16[1]);
+            key = next_key;
+            continue;
+        }
         for (i = 0; i < nr_cpus; i++) {
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
             if (ret) {
