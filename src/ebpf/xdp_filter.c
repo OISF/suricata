@@ -33,6 +33,8 @@
 
 #define LINUX_VERSION_CODE 263682
 
+#define CPUMAP_MAX_CPUS     64
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -76,6 +78,28 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
     .key_size = sizeof(struct flowv6_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
+};
+
+/* Special map type that can XDP_REDIRECT frames to another CPU */
+struct bpf_map_def SEC("maps") cpu_map = {
+	.type		= BPF_MAP_TYPE_CPUMAP,
+	.key_size	= sizeof(__u32),
+	.value_size	= sizeof(__u32),
+	.max_entries	= CPUMAP_MAX_CPUS,
+};
+
+struct bpf_map_def SEC("maps") cpus_available = {
+	.type		= BPF_MAP_TYPE_ARRAY,
+	.key_size	= sizeof(__u32),
+	.value_size	= sizeof(__u32),
+	.max_entries	= CPUMAP_MAX_CPUS,
+};
+
+struct bpf_map_def SEC("maps") cpus_count = {
+	.type		= BPF_MAP_TYPE_ARRAY,
+	.key_size	= sizeof(__u32),
+	.value_size	= sizeof(__u32),
+	.max_entries	= 1,
 };
 
 static __always_inline int get_sport(void *trans_data, void *data_end,
@@ -129,6 +153,10 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv4_keys tuple;
     struct pair *value;
+    uint32_t cpu_dest;
+    uint32_t key0 = 0;
+    uint32_t *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
+    uint32_t *cpu_selected;
 
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
@@ -169,7 +197,17 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
 
         return XDP_DROP;
     }
-    return XDP_PASS;
+
+    if (cpu_max && *cpu_max) {
+        cpu_dest = (tuple.src + tuple.dst) % *cpu_max;
+        cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
+        if (!cpu_selected)
+            return XDP_ABORTED;
+        cpu_dest = *cpu_selected;
+        return bpf_redirect_map(&cpu_map, cpu_dest, 0);
+    } else {
+        return XDP_PASS;
+    }
 }
 
 static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
@@ -179,6 +217,10 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv6_keys tuple;
     struct pair *value;
+    uint32_t cpu_dest;
+    uint32_t key0 = 0;
+    int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
+    uint32_t *cpu_selected;
 
     if ((void *)(ip6h + 1) > data_end)
         return 0;
@@ -210,7 +252,16 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
         value->time = bpf_ktime_get_ns();
         return XDP_DROP;
     }
-    return XDP_PASS;
+    if (cpu_max && *cpu_max) {
+        cpu_dest = (tuple.src[0] + tuple.dst[0] + tuple.src[3] + tuple.dst[3]) % *cpu_max;
+        cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
+        if (!cpu_selected)
+            return XDP_ABORTED;
+        cpu_dest = *cpu_selected;
+        return bpf_redirect_map(&cpu_map, cpu_dest, 0);
+    } else {
+        return XDP_PASS;
+    }
 }
 
 int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
