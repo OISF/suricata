@@ -591,6 +591,9 @@ af-packet:
     # if the ebpf filter implements a bypass function, you can set 'bypass' to
     # yes and benefit from these feature
     #bypass: yes
+    # if the ebpf implements CPU redirect map, you have to define the CPU set here
+    # you can use a single integer or a range 
+    #cpu-set:  ["0-7"]
     # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
     # full then kernel will send the packet on the next socket with room available. This option
     # can minimize packet drop and increase the treated bandwidth on single intensive flow.
