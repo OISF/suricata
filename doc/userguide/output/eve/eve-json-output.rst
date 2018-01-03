@@ -85,7 +85,8 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, fingerprint, sni, version, not_before, not_after, certificate, chain, subject_pk_algo
+            #         cert_signature_algo, signature_algo, extensions]
 
         - files:
             force-magic: no   # force logging magic on all logged files
@@ -216,7 +217,8 @@ YAML::
             extended: yes     # enable this for extended logging information
             # custom allows to control which tls fields that are included
             # in eve-log
-            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain]
+            #custom: [subject, issuer, serial, fingerprint, sni, version, not_before, not_after, certificate, chain, subject_pk_algo
+            #         cert_signature_algo, signature_algo, extensions]
 
 The default is to log certificate subject and issuer. If ``extended`` is
 enabled, then the log gets more verbose.
