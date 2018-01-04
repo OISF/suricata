@@ -25,7 +25,14 @@
 #ifndef __UTIL_PATH_H__
 #define __UTIL_PATH_H__
 
+#ifndef HAVE_NON_POSIX_MKDIR
+    #define SCMkDir(a, b) mkdir(a, b)
+#else
+    #define SCMkDir(a, b) mkdir(a)
+#endif
+
 int PathIsAbsolute(const char *);
 int PathIsRelative(const char *);
+int SCCreateDirectoryTree(const char *path);
 
 #endif /* __UTIL_PATH_H__ */

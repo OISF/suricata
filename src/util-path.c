@@ -26,6 +26,7 @@
 #include "suricata.h"
 #include "debug.h"
 #include "util-debug.h"
+#include "util-path.h"
 
 /**
  *  \brief Check if a path is absolute
@@ -63,4 +64,39 @@ int PathIsAbsolute(const char *path)
 int PathIsRelative(const char *path)
 {
     return PathIsAbsolute(path) ? 0 : 1;
+}
+
+/** \brief Recursively create missing log directories.
+ *  \param path path to log file
+ *  \retval 0 on success
+ *  \retval -1 on error
+ */
+int SCCreateDirectoryTree(const char *path)
+{
+    char pathbuf[PATH_MAX];
+    char *p;
+    size_t len = strlen(path);
+
+    if (len > PATH_MAX - 1) {
+        return -1;
+    }
+
+    strlcpy(pathbuf, path, len);
+
+    for (p = pathbuf + 1; *p; p++) {
+        if (*p == '/') {
+            /* Truncate, while creating directory */
+            *p = '\0';
+
+            if (SCMkDir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+                if (errno != EEXIST) {
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    return 0;
 }
