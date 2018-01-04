@@ -120,3 +120,20 @@ int SCCreateDirectoryTree(const char *path, const bool final)
 
     return 0;
 }
+
+/**
+ * \brief Check if a path exists.
+ *
+ * \param Path to check for existence
+ *
+ * \retval true if path exists
+ * \retval false if path does not exist
+ */
+bool SCPathExists(const char *path)
+{
+    struct stat sb;
+    if (stat(path, &sb) == 0) {
+        return true;
+    }
+    return false;
+}
