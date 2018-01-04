@@ -81,7 +81,7 @@ int SCCreateDirectoryTree(const char *path)
         return -1;
     }
 
-    strlcpy(pathbuf, path, len);
+    strlcpy(pathbuf, path, sizeof(pathbuf));
 
     for (p = pathbuf + 1; *p; p++) {
         if (*p == '/') {
