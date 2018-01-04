@@ -33,6 +33,7 @@
 
 int PathIsAbsolute(const char *);
 int PathIsRelative(const char *);
-int SCCreateDirectoryTree(const char *path);
+int SCDefaultMkDir(const char *path);
+int SCCreateDirectoryTree(const char *path, const bool final);
 
 #endif /* __UTIL_PATH_H__ */
