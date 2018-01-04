@@ -455,6 +455,13 @@ outputs:
       #max-open-files: 1000
       include-pid: no # set to yes to include pid in file names
 
+  - file-store:
+      version: 2
+      enabled: no
+
+      # Force storing of all files. Default: no.
+      #force-filestore: yes
+
   # output module to log files tracked in a easily parsable json format
   - file-log:
       enabled: no
