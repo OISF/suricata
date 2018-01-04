@@ -267,7 +267,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting, uint32_t mode)
         return NULL;
     }
 
-    int rc = SCCreateDirectoryTree(filename);
+    int rc = SCCreateDirectoryTree(filename, false);
     if (rc < 0) {
         SCFree(filename);
         return NULL;

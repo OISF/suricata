@@ -66,12 +66,24 @@ int PathIsRelative(const char *path)
     return PathIsAbsolute(path) ? 0 : 1;
 }
 
-/** \brief Recursively create missing log directories.
- *  \param path path to log file
- *  \retval 0 on success
- *  \retval -1 on error
+/**
+ * \brief Wrapper around SCMkDir with default mode arguments.
  */
-int SCCreateDirectoryTree(const char *path)
+int SCDefaultMkDir(const char *path)
+{
+    return SCMkDir(path, S_IRWXU | S_IRGRP | S_IXGRP);
+}
+
+/**
+ * \brief Recursively create a directory.
+ *
+ * \param path Path to create
+ * \param final true will create the final path component, false will not
+ *
+ * \retval 0 on success
+ * \retval -1 on error
+ */
+int SCCreateDirectoryTree(const char *path, const bool final)
 {
     char pathbuf[PATH_MAX];
     char *p;
@@ -88,13 +100,21 @@ int SCCreateDirectoryTree(const char *path)
             /* Truncate, while creating directory */
             *p = '\0';
 
-            if (SCMkDir(pathbuf, S_IRWXU | S_IRGRP | S_IXGRP) != 0) {
+            if (SCDefaultMkDir(pathbuf) != 0) {
                 if (errno != EEXIST) {
                     return -1;
                 }
             }
 
             *p = '/';
+        }
+    }
+
+    if (final) {
+        if (SCDefaultMkDir(pathbuf) != 0) {
+            if (errno != EEXIST) {
+                return -1;
+            }
         }
     }
 
