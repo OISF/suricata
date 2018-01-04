@@ -73,6 +73,7 @@
 #include "output-lua.h"
 #include "output-json-dnp3.h"
 #include "output-json-vars.h"
+#include "output-filestore.h"
 
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
@@ -1066,6 +1067,7 @@ void OutputRegisterLoggers(void)
     LogFileLogRegister();
     JsonFileLogRegister();
     LogFilestoreRegister();
+    OutputFilestoreRegister();
     /* dns log */
     LogDnsLogRegister();
     JsonDnsLogRegister();
