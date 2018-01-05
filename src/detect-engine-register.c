@@ -176,6 +176,7 @@
 #include "detect-target.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
+#include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
 
 #include "util-rule-vars.h"
@@ -421,6 +422,7 @@ void SigTableSetup(void)
     DetectWindowRegister();
     DetectRpcRegister();
     DetectFtpbounceRegister();
+    DetectFtpdataRegister();
     DetectIsdataatRegister();
     DetectIdRegister();
     DetectDsizeRegister();
