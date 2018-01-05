@@ -6,3 +6,4 @@ Using Capture Hardware
    endace-dag
    napatech
    myricom
+   ebpf-xdp
