@@ -41,14 +41,14 @@ struct pair {
 } __attribute__((__aligned__(8)));
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
-    .type = BPF_MAP_TYPE_HASH,
+    .type = BPF_MAP_TYPE_PERCPU_HASH,
     .key_size = sizeof(struct flowv4_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
 };
 
 struct bpf_map_def SEC("maps") flow_table_v6 = {
-    .type = BPF_MAP_TYPE_HASH,
+    .type = BPF_MAP_TYPE_PERCPU_HASH,
     .key_size = sizeof(struct flowv6_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
@@ -103,8 +103,8 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
             bpf_trace_printk(bfmt, sizeof(bfmt), tuple.src, sp, tuple.dst);
         }
 #endif
-        __sync_fetch_and_add(&value->packets, 1);
-        __sync_fetch_and_add(&value->bytes, skb->len);
+        value->packets++;
+        value->bytes += skb->len;
         value->time = bpf_ktime_get_ns();
         return 0;
     }
@@ -156,8 +156,8 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     if (value) {
         //char fmt[] = "Got a match IPv6: %u and %u\n";
         //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
-        __sync_fetch_and_add(&value->packets, 1);
-        __sync_fetch_and_add(&value->bytes, skb->len);
+        value->packets++;
+        value->bytes += skb->len;
         value->time = bpf_ktime_get_ns();
         return 0;
     }
