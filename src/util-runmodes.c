@@ -422,8 +422,8 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
         aconf = ConfigParser(live_dev);
         live_dev_c = live_dev;
     } else {
-        aconf = ConfigParser(live_dev_c);
         live_dev_c = LiveGetDeviceName(0);
+        aconf = ConfigParser(live_dev_c);
     }
 
     return RunModeSetLiveCaptureWorkersForDevice(
