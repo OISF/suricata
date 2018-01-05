@@ -2261,6 +2261,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  * \param mapfd file descriptor of the protocol bypass table
  * \param key data to use as key in the table
  * \param inittime time of creation of the entry (in monotonic clock)
+ * \return 0 in case of error, 1 if success
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
@@ -2294,6 +2295,9 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 }
 #endif
 
+/**
+ * Bypass function for AF_PACKET capture
+ */
 static int AFPBypassCallback(Packet *p)
 {
 #ifdef HAVE_PACKET_EBPF
