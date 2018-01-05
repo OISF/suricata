@@ -372,7 +372,7 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_lb_file = NULL;
     } else {
 #ifdef HAVE_PACKET_EBPF
-        SCLogInfo("af-packet will use '%s' as eBPF load balancing file",
+        SCLogConfig("af-packet will use '%s' as eBPF load balancing file",
                   ebpf_file);
 #endif
         aconf->ebpf_lb_file = ebpf_file;
@@ -397,7 +397,7 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_filter_file = NULL;
     } else {
 #ifdef HAVE_PACKET_EBPF
-        SCLogInfo("af-packet will use '%s' as eBPF filter file",
+        SCLogConfig("af-packet will use '%s' as eBPF filter file",
                   ebpf_file);
 #endif
         aconf->ebpf_filter_file = ebpf_file;
