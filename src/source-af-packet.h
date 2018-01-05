@@ -85,7 +85,7 @@ typedef struct AFPIfaceConfig_
     /* promisc mode */
     int promisc;
     /* misc use flags including ring mode */
-    int flags;
+    unsigned int flags;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     const char *bpf_filter;
