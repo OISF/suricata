@@ -399,6 +399,19 @@ int ConfGetChildValue(const ConfNode *base, const char *name, const char **vptr)
     }
 }
 
+ConfNode *ConfGetChildWithDefault(const ConfNode *base, const ConfNode *dflt,
+    const char *name)
+{
+    ConfNode *node = ConfNodeLookupChild(base, name);
+    if (node != NULL)
+        return node;
+
+    /* Get 'default' value */
+    if (dflt) {
+        return ConfNodeLookupChild(dflt, name);
+    }
+    return NULL;
+}
 
 int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt,
     const char *name, const char **vptr)
