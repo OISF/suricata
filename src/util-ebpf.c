@@ -117,9 +117,6 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
     return -1;
 }
 
-#define bpf__is_error(ee) ee
-#define bpf__get_error(ee) 1
-
 /** 
  * Load a section of an eBPF file
  *
@@ -162,10 +159,10 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     }
 
     bpfobj = bpf_object__open(path);
-
-    if (libbpf_get_error(bpfobj)) {
+    long error = libbpf_get_error(bpfobj);
+    if (error) {
         char err_buf[128];
-        libbpf_strerror(bpf__get_error(bpfobj), err_buf,
+        libbpf_strerror(error, err_buf,
                         sizeof(err_buf));
         SCLogError(SC_ERR_INVALID_VALUE,
                    "Unable to load eBPF objects in '%s': %s",
