@@ -137,15 +137,6 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
 
     nhoff = skb->cb[0];
 
-    tuple.src[0] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr));
-    tuple.src[1] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4);
-    tuple.src[2] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 8);
-    tuple.src[3] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 12);
-    tuple.dst[0] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr));
-    tuple.dst[1] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4);
-    tuple.dst[2] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 8);
-    tuple.dst[3] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 12);
-
     /* get next header */
     nhdr = load_byte(skb, nhoff + offsetof(struct ipv6hdr, nexthdr));
 
@@ -157,6 +148,15 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
         default:
             return -1;
     }
+
+    tuple.src[0] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr));
+    tuple.src[1] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 4);
+    tuple.src[2] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 8);
+    tuple.src[3] = load_word(skb, nhoff + offsetof(struct ipv6hdr, saddr) + 12);
+    tuple.dst[0] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr));
+    tuple.dst[1] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 4);
+    tuple.dst[2] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 8);
+    tuple.dst[3] = load_word(skb, nhoff + offsetof(struct ipv6hdr, daddr) + 12);
 
     /* Parse TCP */
     tuple.ports = load_word(skb, nhoff + 40 /* IPV6_HEADER_LEN */);
