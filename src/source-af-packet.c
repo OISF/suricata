@@ -2279,9 +2279,13 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
     SCLogDebug("Inserting element in eBPF mapping: %lu", inittime);
     if (bpf_map_update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
         switch (errno) {
+            /* no more place in the hash */
             case E2BIG:
-            case EEXIST:
                 return 0;
+            /* if we already have the key then bypass is a success */
+            case EEXIST:
+                return 1;
+            /* Not supposed to be there so issue a error */
             default:
                 SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
                         strerror(errno),
