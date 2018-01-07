@@ -70,6 +70,11 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
     .max_entries = 32768,
 };
 
+/**
+ * IPv4 filter
+ *
+ * \return 0 to drop packet out and -1 to accept it
+ */
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
 {
     uint32_t nhoff, verlen;
@@ -127,6 +132,11 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
     return -1;
 }
 
+/**
+ * IPv6 filter
+ *
+ * \return 0 to drop packet out and -1 to accept it
+ */
 static __always_inline int ipv6_filter(struct __sk_buff *skb)
 {
     uint32_t nhoff;
@@ -180,6 +190,14 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     return -1;
 }
 
+/**
+ * filter function
+ *
+ * It is loaded in kernel by Suricata that uses the section name specified
+ * by the SEC call to find it in the Elf binary object and load it.
+ *
+ * \return 0 to drop packet out and -1 to accept it
+ */
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
     __u32 nhoff = BPF_LL_OFF + ETH_HLEN;
 

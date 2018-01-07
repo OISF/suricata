@@ -105,4 +105,6 @@ int  __section("loadbalancer") lb(struct __sk_buff *skb) {
 
 char __license[] __section("license") = "GPL";
 
+/* libbpf needs version section to check sync of eBPF code and kernel
+ * but socket filter don't need it */
 uint32_t __version __section("version") = LINUX_VERSION_CODE;
