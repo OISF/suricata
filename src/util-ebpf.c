@@ -95,6 +95,13 @@ static struct bpf_maps_info *EBPFGetBpfMap(const char *iface)
     return (struct bpf_maps_info *)data;
 }
 
+/**
+ * Get file descriptor of a map in the scope of a interface
+ *
+ * \param iface the interface where the map need to be looked for
+ * \param name the name of the map
+ * \return the file descriptor or -1 in case of error
+ */
 int EBPFGetMapFDByName(const char *iface, const char *name)
 {
     int i;
@@ -120,7 +127,7 @@ int EBPFGetMapFDByName(const char *iface, const char *name)
  * Load a section of an eBPF file
  *
  * This function loads a section inside an eBPF and return
- * via a parameter the file descriptor that will be used to
+ * via the parameter val the file descriptor that will be used to
  * inject the eBPF code into the kernel via a syscall.
  *
  * \param path the path of the eBPF file to load
@@ -157,6 +164,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    /* Open the eBPF file and parse it */
     bpfobj = bpf_object__open(path);
     long error = libbpf_get_error(bpfobj);
     if (error) {
@@ -169,6 +177,7 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    /* Let's check that our section is here */
     bpf_object__for_each_program(bpfprog, bpfobj) {
         const char *title = bpf_program__title(bpfprog, 0);
         if (!strcmp(title, section)) {
@@ -209,13 +218,16 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         return -1;
     }
 
+    /* Kernel and userspace are sharing data via map. Userspace access to the
+     * map via a file descriptor. So we need to store the map to fd info. For
+     * that we use bpf_maps_info:: */
     struct bpf_maps_info *bpf_map_data = SCCalloc(1, sizeof(*bpf_map_data));
     if (bpf_map_data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
         return -1;
     }
 
-    /* store the map in our array */
+    /* Store the maps in bpf_maps_info:: */
     bpf_map__for_each(map, bpfobj) {
         if (bpf_map_data->last == BPF_MAP_MAX_COUNT) {
             SCLogError(SC_ERR_NOT_SUPPORTED, "Too many BPF maps in eBPF files");
@@ -232,8 +244,12 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         bpf_map_data->last++;
     }
 
+    /* Attach the bpf_maps_info to the LiveDevice via the device storage */
     LiveDevSetStorageById(livedev, g_livedev_storage_id, bpf_map_data);
 
+    /* Finally we get the file descriptor for our eBPF program. We will use
+     * the fd to attach the program to the socket (eBPF case) or to the device
+     * (XDP case). */
     pfd = bpf_program__fd(bpfprog);
     if (pfd == -1) {
         SCLogError(SC_ERR_INVALID_VALUE,
@@ -245,7 +261,14 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
     return 0;
 }
 
-
+/**
+ * Attach a XDP program identified by its file descriptor to a device
+ * 
+ * \param iface the name of interface
+ * \param fd the eBPF/XDP program file descriptor
+ * \param a flag to pass to attach function mostly used to set XDP mode 
+ * \return -1 in case of error, 0 if success
+ */
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 {
 #ifdef HAVE_PACKET_XDP
@@ -267,7 +290,12 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
     return 0;
 }
 
-
+/**
+ * Bypassed flows cleaning for IPv4
+ *
+ * This function iterates on all the flows of the IPv4 table
+ * looking for timeouted flow to delete from the flow table.
+ */
 static int EBPFForEachFlowV4Table(const char *iface, const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
@@ -284,9 +312,10 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
     }
 
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        int iret = 1;
+        bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
+        /* We use a per CPU structure so we will get a array of values. */
         struct pair values_array[nr_cpus];
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
@@ -299,19 +328,19 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
             int ret = FlowCallback(mapfd, &key, &values_array[i], data);
             if (ret) {
                 /* no packet for the flow on this CPU, let's start accumulating
-                   value we can compute the counters */
+                   value so we can compute the counters */
                 SCLogDebug("%d:%lu: Adding pkts %lu bytes %lu", i, values_array[i].time / 1000000000,
                             values_array[i].packets, values_array[i].bytes);
                 pkts_cnt += values_array[i].packets;
                 bytes_cnt += values_array[i].bytes;
             } else {
                 /* Packet seen on one CPU so we keep the flow */
-                iret = 0;
+                purge = false;
                 break;
             }
         }
-        /* No packet seen, we discard the flow  and do accounting */
-        if (iret) {
+        /* No packet seen, we discard the flow and do accounting */
+        if (purge) {
             SCLogDebug("Got no packet for %d -> %d", key.port16[0], key.port16[1]);
             SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
             flowstats->count++;
@@ -326,6 +355,12 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
     return found;
 }
 
+/**
+ * Bypassed flows cleaning for IPv6
+ *
+ * This function iterates on all the flows of the IPv4 table
+ * looking for timeouted flow to delete from the flow table.
+ */
 static int EBPFForEachFlowV6Table(const char *iface, const char *name,
                               int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
@@ -342,7 +377,7 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
     }
 
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        int iret = 1;
+        bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
         struct pair values_array[nr_cpus];
@@ -359,11 +394,11 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
                 pkts_cnt += values_array[i].packets;
                 bytes_cnt += values_array[i].bytes;
             } else {
-                iret = 0;
+                purge = false;
                 break;
             }
         }
-        if (iret) {
+        if (purge) {
             flowstats->count++;
             flowstats->packets += pkts_cnt;
             flowstats->bytes += bytes_cnt;
@@ -376,6 +411,24 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
     return found;
 }
 
+/**
+ * Decide if an IPV4 flow needs to be timeouted
+ *
+ * The filter is maintaining for each half flow a struct pair:: structure in
+ * the kernel where it does accounting and timestamp update. So by comparing
+ * the current timestamp to the timestamp in the struct pair we can know that
+ * no packet have been seen on a half flow since a certain delay.
+ *
+ * If a per-CPU array map is used, this function has only a per-CPU view so
+ * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
+ * 1 for all CPUs.
+ *
+ * \param fd the file descriptor of the flow table map
+ * \param key the key of the element
+ * \param value the value of the element in the hash
+ * \param data the current time
+ * \return 1 if timeouted 0 if not
+ */
 static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
 {
     struct timespec *curtime = (struct timespec *)data;
@@ -392,6 +445,24 @@ static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pai
     return 0;
 }
 
+/**
+ * Decide if an IPV6 flow needs to be timeouted
+ *
+ * The filter is maintaining for each half flow a struct pair:: structure in
+ * the kernel where it does accounting and timestamp update. So by comparing
+ * the current timestamp to the timestamp in the struct pair we can know that
+ * no packet have been seen on a half flow since a certain delay.
+ *
+ * If a per-CPU array map is used, this function has only a per-CPU view so
+ * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
+ * 1 for all CPUs.
+ *
+ * \param fd the file descriptor of the flow table map
+ * \param key the key of the element
+ * \param value the value of the element in the hash
+ * \param data the current time*
+ * \return 1 if timeouted 0 if not
+ */
 static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pair *value, void *data)
 {
     struct timespec *curtime = (struct timespec *)data;
@@ -408,6 +479,13 @@ static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pai
     return 0;
 }
 
+/**
+ * Flow timeout checking function
+ *
+ * This function is called by the Flow bypass manager to trigger removal
+ * of entries in the kernel/userspace flow table if needed.
+ *
+ */
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
                                         struct timespec *curtime)
 {

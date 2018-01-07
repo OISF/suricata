@@ -224,7 +224,9 @@ typedef struct AFPThreadVars_
     uint32_t datalink;
 
 #ifdef HAVE_PACKET_EBPF
+    /* File descriptor of the IPv4 flow bypass table maps */
     int v4_map_fd;
+    /* File descriptor of the IPv6 flow bypass table maps */
     int v6_map_fd;
 #endif
 
@@ -2271,6 +2273,8 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
         return 0;
     }
 
+    /* We use a per CPU structure so we have to set an array of values as the kernel
+     * is not duplicating the data on each CPU by itself. */
     for (i = 0; i < nr_cpus; i++) {
         value[i].time = inittime;
         value[i].packets = 0;
@@ -2298,7 +2302,18 @@ static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 #endif
 
 /**
- * Bypass function for AF_PACKET capture
+ * Bypass function for AF_PACKET capture in eBPF mode
+ *
+ * This function creates two half flows in the map shared with the kernel
+ * to trigger bypass.
+ *
+ * The implementation of bypass is done via an IPv4 and an IPv6 flow table.
+ * This table contains the list of half flows to bypass. The in-kernel filter
+ * will skip/drop the packet if they belong to a flow in one of the flows
+ * table.
+ *
+ * \param p the packet belonging to the flow to bypass
+ * \return 0 if unable to bypass, 1 if success
  */
 static int AFPBypassCallback(Packet *p)
 {
@@ -2381,6 +2396,17 @@ static int AFPBypassCallback(Packet *p)
     return 0;
 }
 
+/**
+ * Bypass function for AF_PACKET capture in XDP mode
+ *
+ * This function creates two half flows in the map shared with the kernel
+ * to trigger bypass. This function is similar to AFPBypassCallback() but
+ * the bytes order is changed for some data due to the way we get the data
+ * in the XDP case.
+ *
+ * \param p the packet belonging to the flow to bypass
+ * \return 0 if unable to bypass, 1 if success
+ */
 static int AFPXDPBypassCallback(Packet *p)
 {
 #ifdef HAVE_PACKET_XDP
@@ -2398,6 +2424,9 @@ static int AFPXDPBypassCallback(Packet *p)
     }
     struct timespec curtime;
     uint64_t inittime = 0;
+    /* In eBPF, the function that we have use to get time return the
+     * monotonic clock (the time since start of the computer). So we
+     * can't use the timestamp of the packet. */
     if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
         inittime = curtime.tv_sec * 1000000000;
     }
@@ -2408,6 +2437,8 @@ static int AFPXDPBypassCallback(Packet *p)
         }
         key.src = GET_IPV4_SRC_ADDR_U32(p);
         key.dst = GET_IPV4_DST_ADDR_U32(p);
+        /* In the XDP filter we get port from parsing of packet and not from skb
+         * (as in eBPF filter) so we need to pass from host to network order */      
         key.port16[0] = htons(GET_TCP_SRC_PORT(p));
         key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV4_GET_IPPROTO(p);
