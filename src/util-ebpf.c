@@ -291,15 +291,82 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
 }
 
 /**
+ * Decide if an IPV4 flow needs to be timeouted
+ *
+ * The filter is maintaining for each half flow a struct pair:: structure in
+ * the kernel where it does accounting and timestamp update. So by comparing
+ * the current timestamp to the timestamp in the struct pair we can know that
+ * no packet have been seen on a half flow since a certain delay.
+ *
+ * If a per-CPU array map is used, this function has only a per-CPU view so
+ * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
+ * 1 for all CPUs.
+ *
+ * \param fd the file descriptor of the flow table map
+ * \param key the key of the element
+ * \param value the value of the element in the hash
+ * \param curtime the current time
+ * \return 1 if timeouted 0 if not
+ */
+static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key,
+                                     struct pair *value, struct timespec *curtime)
+{
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
+               curtime->tv_sec, value->time / 1000000000,
+               key->port16[0], key->port16[1], key->ip_proto
+              );
+
+    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
+        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
+                   key->port16[0], key->port16[1], value->time);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * Decide if an IPV6 flow needs to be timeouted
+ *
+ * The filter is maintaining for each half flow a struct pair:: structure in
+ * the kernel where it does accounting and timestamp update. So by comparing
+ * the current timestamp to the timestamp in the struct pair we can know that
+ * no packet have been seen on a half flow since a certain delay.
+ *
+ * If a per-CPU array map is used, this function has only a per-CPU view so
+ * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
+ * 1 for all CPUs.
+ *
+ * \param fd the file descriptor of the flow table map
+ * \param key the key of the element
+ * \param value the value of the element in the hash
+ * \param curtime the current time
+ * \return 1 if timeouted 0 if not
+ */
+static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key,
+                                     struct pair *value, struct timespec *curtime)
+{
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
+               curtime->tv_sec, value->time / 1000000000,
+               key->port16[0], key->port16[1]
+              );
+
+    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
+        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
+                   key->port16[0], key->port16[1], value->time);
+        return 1;
+    }
+    return 0;
+}
+
+/**
  * Bypassed flows cleaning for IPv4
  *
  * This function iterates on all the flows of the IPv4 table
  * looking for timeouted flow to delete from the flow table.
  */
 static int EBPFForEachFlowV4Table(const char *iface, const char *name,
-                              int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
-                              struct flows_stats *flowstats,
-                              void *data)
+                                  struct flows_stats *flowstats,
+                                  struct timespec *ctime)
 {
     int mapfd = EBPFGetMapFDByName(iface, name);
     struct flowv4_keys key = {}, next_key;
@@ -325,7 +392,7 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
             continue;
         }
         for (i = 0; i < nr_cpus; i++) {
-            int ret = FlowCallback(mapfd, &key, &values_array[i], data);
+            int ret = EBPFBypassedFlowV4Timeout(mapfd, &key, &values_array[i], ctime);
             if (ret) {
                 /* no packet for the flow on this CPU, let's start accumulating
                    value so we can compute the counters */
@@ -362,9 +429,8 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
  * looking for timeouted flow to delete from the flow table.
  */
 static int EBPFForEachFlowV6Table(const char *iface, const char *name,
-                              int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
-                              struct flows_stats *flowstats,
-                              void *data)
+                                  struct flows_stats *flowstats,
+                                  struct timespec *ctime)
 {
     int mapfd = EBPFGetMapFDByName(iface, name);
     struct flowv6_keys key = {}, next_key;
@@ -389,7 +455,7 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
             continue;
         }
         for (i = 0; i < nr_cpus; i++) {
-            int ret = FlowCallback(mapfd, &key, &values_array[i], data);
+            int ret = EBPFBypassedFlowV6Timeout(mapfd, &key, &values_array[i], ctime);
             if (ret) {
                 pkts_cnt += values_array[i].packets;
                 bytes_cnt += values_array[i].bytes;
@@ -412,74 +478,6 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
 }
 
 /**
- * Decide if an IPV4 flow needs to be timeouted
- *
- * The filter is maintaining for each half flow a struct pair:: structure in
- * the kernel where it does accounting and timestamp update. So by comparing
- * the current timestamp to the timestamp in the struct pair we can know that
- * no packet have been seen on a half flow since a certain delay.
- *
- * If a per-CPU array map is used, this function has only a per-CPU view so
- * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
- * 1 for all CPUs.
- *
- * \param fd the file descriptor of the flow table map
- * \param key the key of the element
- * \param value the value of the element in the hash
- * \param data the current time
- * \return 1 if timeouted 0 if not
- */
-static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
-{
-    struct timespec *curtime = (struct timespec *)data;
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1], key->ip_proto
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        return 1;
-    }
-    return 0;
-}
-
-/**
- * Decide if an IPV6 flow needs to be timeouted
- *
- * The filter is maintaining for each half flow a struct pair:: structure in
- * the kernel where it does accounting and timestamp update. So by comparing
- * the current timestamp to the timestamp in the struct pair we can know that
- * no packet have been seen on a half flow since a certain delay.
- *
- * If a per-CPU array map is used, this function has only a per-CPU view so
- * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
- * 1 for all CPUs.
- *
- * \param fd the file descriptor of the flow table map
- * \param key the key of the element
- * \param value the value of the element in the hash
- * \param data the current time*
- * \return 1 if timeouted 0 if not
- */
-static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pair *value, void *data)
-{
-    struct timespec *curtime = (struct timespec *)data;
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1]
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        return 1;
-    }
-    return 0;
-}
-
-/**
  * Flow timeout checking function
  *
  * This function is called by the Flow bypass manager to trigger removal
@@ -495,8 +493,8 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     LiveDevice *ldev = NULL, *ndev;
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
-        tcount = EBPFForEachFlowV4Table(ldev->dev, "flow_table_v4", EBPFBypassedFlowV4Timeout,
-                &l_bypassstats, curtime);
+        tcount = EBPFForEachFlowV4Table(ldev->dev, "flow_table_v4",
+                                        &l_bypassstats, curtime);
         if (tcount) {
             bypassstats->count = l_bypassstats.count;
             bypassstats->packets = l_bypassstats.packets ;
@@ -504,8 +502,8 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
             ret = 1;
         }
         memset(&l_bypassstats, 0, sizeof(l_bypassstats));
-        tcount = EBPFForEachFlowV6Table(ldev->dev, "flow_table_v6", EBPFBypassedFlowV6Timeout,
-                &l_bypassstats, curtime);
+        tcount = EBPFForEachFlowV6Table(ldev->dev, "flow_table_v6",
+                                        &l_bypassstats, curtime);
         if (tcount) {
             bypassstats->count += l_bypassstats.count;
             bypassstats->packets += l_bypassstats.packets ;
