@@ -362,12 +362,12 @@ void LogDnsLogRegister (void)
 {
 #ifndef HAVE_RUST
     /* Request logger. */
-    OutputRegisterTxModuleWithProgress(LOGGER_DNS, MODULE_NAME, "dns-log",
+    OutputRegisterTxModuleWithProgress(LOGGER_DNS_TS, MODULE_NAME, "dns-log",
         LogDnsLogInitCtx, ALPROTO_DNS, LogDnsRequestLogger, 0, 1,
         LogDnsLogThreadInit, LogDnsLogThreadDeinit, LogDnsLogExitPrintStats);
 
     /* Response logger. */
-    OutputRegisterTxModuleWithProgress(LOGGER_DNS, MODULE_NAME, "dns-log",
+    OutputRegisterTxModuleWithProgress(LOGGER_DNS_TC, MODULE_NAME, "dns-log",
         LogDnsLogInitCtx, ALPROTO_DNS, LogDnsResponseLogger, 1, 1,
         LogDnsLogThreadInit, LogDnsLogThreadDeinit, LogDnsLogExitPrintStats);
 

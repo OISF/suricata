@@ -430,11 +430,11 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
 void JsonDNP3LogRegister(void)
 {
     /* Register direction aware eve sub-modules. */
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3, "eve-log",
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3_TS, "eve-log",
         "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
         JsonDNP3LoggerToServer, 0, 1, JsonDNP3LogThreadInit,
         JsonDNP3LogThreadDeinit, NULL);
-    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3, "eve-log",
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3_TC, "eve-log",
         "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
         JsonDNP3LoggerToClient, 1, 1, JsonDNP3LogThreadInit,
         JsonDNP3LogThreadDeinit, NULL);
