@@ -2362,6 +2362,7 @@ static int AFPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v4_map_fd, &key, inittime) == 0) {
             return 0;
         }
+        EBPFUpdateFlow(p->flow, p);
         return 1;
     }
     /* For IPv6 case we don't handle extended header in eBPF */
@@ -2392,6 +2393,7 @@ static int AFPBypassCallback(Packet *p)
         if (AFPInsertHalfFlow(p->afp_v.v6_map_fd, &key, inittime) == 0) {
             return 0;
         }
+        EBPFUpdateFlow(p->flow, p);
         return 1;
     }
 #endif

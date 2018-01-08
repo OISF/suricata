@@ -409,6 +409,7 @@ static void *ParseAFPConfig(const char *iface)
             aconf->flags |= AFP_BYPASS;
             RunModeEnablesBypassManager();
             BypassedFlowManagerRegisterCheckFunc(EBPFCheckBypassedFlowTimeout);
+            BypassedFlowManagerRegisterUpdateFunc(EBPFUpdateFlow);
 #else
             SCLogError(SC_ERR_UNIMPLEMENTED, "Bypass set but eBPF support is not built-in");
 #endif
@@ -495,6 +496,10 @@ static void *ParseAFPConfig(const char *iface)
                         /* It will just set CPU count to 0 */
                         EBPFBuildCPUSet(NULL, aconf->iface);
                 }
+            }
+            /* we have a peer and we use bypass so we can set up XDP iface redirect */
+            if (aconf->out_iface) {
+                EBPFSetPeerIface(aconf->iface, aconf->out_iface);
             }
         }
 #else
