@@ -64,9 +64,7 @@ enum PktSrcEnum {
 #include "source-af-packet.h"
 #include "source-netmap.h"
 #include "source-windivert.h"
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
-#endif
 
 #include "action-globals.h"
 
@@ -466,9 +464,7 @@ typedef struct Packet_
         NetmapPacketVars netmap_v;
 #endif
 #ifdef HAVE_PFRING
-#ifdef HAVE_PF_RING_FLOW_OFFLOAD
         PfringPacketVars pfring_v;
-#endif
 #endif
 #ifdef WINDIVERT
         WinDivertPacketVars windivert_v;

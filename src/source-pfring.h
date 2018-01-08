@@ -87,6 +87,10 @@ typedef struct PfringPacketVars_
 {
     PfringThreadVars *ptv;
     uint32_t flow_id;
+    int copy_mode;
+    int flush_packet;
+    PfringPeer *peer;
+    PfringPeer *mpeer;
 } PfringPacketVars;
 
 
