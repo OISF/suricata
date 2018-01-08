@@ -79,6 +79,9 @@ static uint32_t g_file_store_reassembly_depth = 0;
 
 /* prototypes */
 static void FileFree(File *);
+#ifdef HAVE_NSS
+static void FileEndSha256(File *ff);
+#endif
 
 void FileForceFilestoreEnable(void)
 {
@@ -879,6 +882,12 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
         if (flags & FILE_NOSTORE) {
             SCLogDebug("not storing this file");
             ff->flags |= FILE_NOSTORE;
+        } else {
+#ifdef HAVE_NSS
+            if (g_file_force_sha256 && ff->sha256_ctx) {
+                FileEndSha256(ff);
+            }
+#endif
         }
     } else {
         ff->state = FILE_STATE_CLOSED;
@@ -896,9 +905,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
             ff->flags |= FILE_SHA1;
         }
         if (ff->sha256_ctx) {
-            unsigned int len = 0;
-            HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
-            ff->flags |= FILE_SHA256;
+            FileEndSha256(ff);
         }
 #endif
     }
@@ -1285,3 +1292,17 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
         }
     }
 }
+
+/**
+ * \brief Finish the SHA256 calculation.
+ */
+#ifdef HAVE_NSS
+static void FileEndSha256(File *ff)
+{
+    if (!(ff->flags & FILE_SHA256) && ff->sha256_ctx) {
+        unsigned int len = 0;
+        HASH_End(ff->sha256_ctx, ff->sha256, &len, sizeof(ff->sha256));
+        ff->flags |= FILE_SHA256;
+    }
+}
+#endif
