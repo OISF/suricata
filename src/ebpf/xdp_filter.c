@@ -95,6 +95,20 @@ struct bpf_map_def SEC("maps") cpus_count = {
 	.max_entries	= 1,
 };
 
+struct bpf_map_def SEC("maps") tx_peer = {
+	.type = BPF_MAP_TYPE_DEVMAP,
+	.key_size = sizeof(int),
+	.value_size = sizeof(int),
+	.max_entries = 1,
+};
+
+struct bpf_map_def SEC("maps") tx_peer_int = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(int),
+	.value_size = sizeof(int),
+	.max_entries = 1,
+};
+
 static __always_inline int get_sport(void *trans_data, void *data_end,
         uint8_t protocol)
 {
@@ -149,6 +163,8 @@ static int filter_ipv4(void *data, __u64 nh_off, void *data_end)
     int cpu_dest;
     uint32_t key0 = 0;
     uint32_t *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
+    int *iface_peer;
+    int tx_port = 0;
 
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
@@ -187,7 +203,12 @@ static int filter_ipv4(void *data, __u64 nh_off, void *data_end)
         value->packets++;
         value->bytes += data_end - data;
 
-        return XDP_DROP;
+        iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
+        if (!iface_peer) {
+            return XDP_DROP;
+        } else {
+            return bpf_redirect_map(&tx_peer, tx_port, 0);
+        }
     }
 
     if (cpu_max && *cpu_max) {
@@ -208,6 +229,8 @@ static int filter_ipv6(void *data, __u64 nh_off, void *data_end)
     int cpu_dest;
     uint32_t key0 = 0;
     int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
+    int tx_port = 0;
+    int *iface_peer;
 
     if ((void *)(ip6h + 1) > data_end)
         return 0;
@@ -237,7 +260,13 @@ static int filter_ipv6(void *data, __u64 nh_off, void *data_end)
         value->packets++;
         value->bytes += data_end - data;
         value->time = bpf_ktime_get_ns();
-        return XDP_DROP;
+
+        iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
+        if (!iface_peer) {
+            return XDP_DROP;
+        } else {
+            return bpf_redirect_map(&tx_peer, tx_port, 0);
+        }
     }
     if (cpu_max && *cpu_max) {
         cpu_dest = (tuple.src[0] + tuple.dst[0] + tuple.src[3] + tuple.dst[3]) % *cpu_max;
