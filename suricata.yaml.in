@@ -421,7 +421,54 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
-  # output module to store extracted files to disk
+  # Output module for storing files on disk. Files are stored in a
+  # directory names consisting of the first 2 characaters of the
+  # SHA256 of the file. Each file is given its SHA256 as a filename.
+  #
+  # When a duplicate file is found, the existing file is touched to
+  # have its timestamps updated.
+  #
+  # Unlike the older filestore, metadata is not written out by default
+  # as each file should already have a "fileinfo" record in the
+  # eve.log. If write-fileinfo is set to yes, the each file will have
+  # one more associated .json files that consists of the fileinfo
+  # record. A fileinfo file will be written for each occurrence of the
+  # file seen using a filename suffix to ensure uniqueness.
+  #
+  # To prune the filestore directory see the "suricatactl filestore
+  # prune" command which can delete files over a certain age.
+  - file-store:
+      version: 2
+      enabled: no
+
+      # Set the directory for the filestore. If the path is no
+      # absolute will be be relative to the default-log-dir.
+      #dir: filestore
+
+      # Write out a fileinfo record for each occurrence of a
+      # file. Disabled by default as each occurrence is already logged
+      # as a fileinfo record to the main eve-log.
+      #write-fileinfo: yes
+
+      # Force storing of all files. Default: no.
+      #force-filestore: yes
+
+      # Override the global stream-depth for sessions in which we want
+      # to perform file extraction. Set to 0 for unlimited.
+      #stream-depth: 0
+
+      # Uncomment the following variable to define how many files can
+      # remain open for filestore by Suricata. Default value is 0 which
+      # means files get closed after each write
+      #max-open-files: 1000
+
+      # Force logging of checksums, available hash functions are md5,
+      # sha1 and sha256. Note that SHA256 is automatically forced by
+      # the use of this output module as it uses the SHA256 as the
+      # file naming scheme.
+      #force-hash: [md5]
+
+  # output module to store extracted files to disk (old style, deprecated)
   #
   # The files are stored to the log-dir in a format "file.<id>" where <id> is
   # an incrementing number starting at 1. For each file "file.<id>" a meta
@@ -454,13 +501,6 @@ outputs:
       # means files get closed after each write
       #max-open-files: 1000
       include-pid: no # set to yes to include pid in file names
-
-  - file-store:
-      version: 2
-      enabled: no
-
-      # Force storing of all files. Default: no.
-      #force-filestore: yes
 
   # output module to log files tracked in a easily parsable json format
   - file-log:
