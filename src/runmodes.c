@@ -51,6 +51,7 @@
 
 #include "tmqh-flow.h"
 #include "flow-manager.h"
+#include "flow-bypass.h"
 #include "counters.h"
 
 int debuglog_enabled = 0;
@@ -379,9 +380,26 @@ void RunModeDispatch(int runmode, const char *custom_mode)
         /* spawn management threads */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
+        if (RunModeNeedsBypassManager()) {
+            BypassedFlowManagerThreadSpawn();
+        }
         StatsSpawnThreads();
     }
 }
+
+static int g_runmode_needs_pypass = 0;
+
+void RunModeAsksBypassManager(void)
+{
+    g_runmode_needs_pypass = 1;
+}
+
+int RunModeNeedsBypassManager(void)
+{
+    return g_runmode_needs_pypass;
+}
+
+
 
 /**
  * \brief Registers a new runmode.
