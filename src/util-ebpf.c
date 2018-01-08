@@ -46,6 +46,7 @@
 #include "util-device.h"
 
 #include "device-storage.h"
+#include "flow-storage.h"
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
@@ -57,6 +58,7 @@
 #define BYPASSED_FLOW_TIMEOUT   60
 
 static int g_livedev_storage_id = -1;
+static int g_flow_storage_id = -1;
 
 struct bpf_map_item {
     char * name;
@@ -68,6 +70,11 @@ struct bpf_maps_info {
     int last;
 };
 
+typedef struct BypassedIfaceList_ { 
+    LiveDevice *dev;
+    struct BypassedIfaceList_ *next;
+} BypassedIfaceList;
+
 static void BpfMapsInfoFree(void *bpf)
 {
     struct bpf_maps_info *bpfinfo = (struct bpf_maps_info *)bpf;
@@ -78,6 +85,17 @@ static void BpfMapsInfoFree(void *bpf)
         }
     }
     SCFree(bpfinfo);
+}
+
+static void BypassedListFree(void *ifl)
+{
+    BypassedIfaceList *mifl = (BypassedIfaceList *)ifl;
+    BypassedIfaceList *nifl;
+    while (mifl) {
+        nifl = mifl->next;
+        SCFree(mifl);
+        mifl = nifl;
+    }
 }
 
 static void EBPFDeleteKey(int fd, void *key)
@@ -517,6 +535,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
 void EBPFRegisterExtension(void)
 {
     g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
+    g_flow_storage_id = FlowStorageRegister("bypassedlist", sizeof(void *), NULL, BypassedListFree);
 }
 
 
@@ -583,6 +602,74 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface)
             iface);
     bpf_map_update_elem(mapfd, &key0, &g_redirect_iface_cpu_counter,
                         BPF_ANY);
+}
+
+int EBPFSetPeerIface(const char *iface, const char *out_iface)
+{
+    int mapfd = EBPFGetMapFDByName(iface, "tx_peer");
+    if (mapfd < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to find 'tx_peer' map");
+        return -1;
+    }
+    int intmapfd = EBPFGetMapFDByName(iface, "tx_peer_int");
+    if (intmapfd < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to find 'tx_peer_int' map");
+        return -1;
+    }
+
+    int key0 = 0;
+    unsigned int peer_index = if_nametoindex(out_iface);
+    if (peer_index == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "No iface '%s'", out_iface);
+        return -1;
+    }
+    int ret = bpf_map_update_elem(mapfd, &key0, &peer_index, BPF_ANY);
+    if (ret) {
+        SCLogError(SC_ERR_AFP_CREATE, "Create peer entry failed (err:%d)", ret);
+        return -1;
+    }
+    ret = bpf_map_update_elem(intmapfd, &key0, &peer_index, BPF_ANY);
+    if (ret) {
+        SCLogError(SC_ERR_AFP_CREATE, "Create peer entry failed (err:%d)", ret);
+        return -1;
+    }
+    return 0;
+}
+
+int EBPFUpdateFlow(Flow *f, Packet *p)
+{
+    BypassedIfaceList *ifl = (BypassedIfaceList *)FlowGetStorageById(f, g_flow_storage_id);
+    if (ifl == NULL) {
+        ifl = SCCalloc(1, sizeof(*ifl));
+        if (ifl == NULL) {
+            return 0;
+        }
+        ifl->dev = p->livedev;
+        FlowSetStorageById(f, g_flow_storage_id, ifl);
+        return 1;
+    }
+    /* Look for packet iface in the list */
+    BypassedIfaceList *ldev = ifl;
+    while (ldev) {
+        if (p->livedev == ldev->dev) {
+            return 1;
+        }
+        ldev = ldev->next;
+    }
+    /* Call bypass function if ever not in the list */ 
+    p->BypassPacketsFlow(p);
+
+    /* Add iface to the list */
+    BypassedIfaceList *nifl = SCCalloc(1, sizeof(*nifl));
+    if (nifl == NULL) {
+        return 0;
+    }
+    nifl->dev = p->livedev;
+    nifl->next = ifl;
+    FlowSetStorageById(f, g_flow_storage_id, nifl);
+    return 1;
 }
 
 #endif /* HAVE_PACKET_XDP */
