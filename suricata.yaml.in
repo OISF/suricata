@@ -1748,6 +1748,16 @@ pfring:
     #  checksum off-loading is used. (default)
     # Warning: 'checksum-validation' must be set to yes to have any validation
     #checksum-checks: auto
+    # You can use the following variables to activate PF_RING tap or IPS mode.
+    # If copy-mode is set to ips or tap, the traffic coming to the current
+    # interface will be copied to the copy-iface interface. If 'tap' is set, the
+    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+    # will not be copied.
+    #copy-mode: ips
+    #copy-iface: eth1
+    # If set to no, you will decrease your CPU usage but at the cost
+    # of sending packets in trains and thus at larger latency
+    #flush-packet: yes
   # Second interface
   #- interface: eth1
   #  threads: 3

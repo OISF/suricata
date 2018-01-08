@@ -197,6 +197,9 @@ static void *ParsePfringConfig(const char *iface)
     int getctype = 0;
     const char *bpf_filter = NULL;
     int bool_val;
+    const char *out_ifacestr = NULL;
+    const char *copymodestr = NULL;
+    const char *flushpacketstr = NULL;
 
     if (unlikely(pfconf == NULL)) {
         return NULL;
@@ -379,6 +382,50 @@ static void *ParsePfringConfig(const char *iface)
         }
     }
 
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_ifacestr) == 1) {
+        if (strlen(out_ifacestr) > 0) {
+            pfconf->out_interface = (char *)out_ifacestr;
+        }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+        if (pfconf->out_interface == NULL) {
+            SCLogError(SC_ERR_PF_RING_NO_OUT_IFACE,
+                      "Copy mode activated but no destination"
+                      " iface. Disabling feature");
+            SCFree(pfconf);
+            return NULL;
+        } else if (strlen(copymodestr) <= 0) {
+            pfconf->out_interface = NULL;
+        } else if (strcmp(copymodestr, "ips") == 0) {
+            SCLogInfo("PF_RING IPS mode activated %s->%s",
+                    iface,
+                    pfconf->out_interface);
+            pfconf->copy_mode = PFRING_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            SCLogInfo("PF_RING TAP mode activated %s->%s",
+                    iface,
+                    pfconf->out_interface);
+            pfconf->copy_mode = PFRING_COPY_MODE_TAP;
+        } else {
+            SCLogError(SC_ERR_PF_RING_INVALID_COPY_MODE,
+                      "Invalid mode (not in tap, ips)");
+            SCFree(pfconf);
+            return NULL;
+        }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "flush-packet", &flushpacketstr) == 1) {
+        if (strcmp(flushpacketstr, "yes") == 0) {
+            pfconf->flush_packet = TRUE;
+        } else if (strcmp(flushpacketstr, "no") == 0) {
+            pfconf->flush_packet = FALSE;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for flush-packet for %s: %s",
+                                                pfconf->iface, flushpacketstr);
+        }
+    }
+
     if (LiveGetOffload() == 0) {
         if (GetIfaceOffloading(iface, 0, 1) == 1) {
             SCLogWarning(SC_ERR_NIC_OFFLOADING,
@@ -387,6 +434,7 @@ static void *ParsePfringConfig(const char *iface)
     } else {
         DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
     }
+
     return pfconf;
 }
 
