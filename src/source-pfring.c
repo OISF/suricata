@@ -45,6 +45,7 @@
 #include "util-host-info.h"
 #include "runmodes.h"
 #include "util-profiling.h"
+#include "util-ioctl.h"
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
@@ -147,6 +148,7 @@ struct PfringThreadVars_
     char out_iface[PFRING_IFACE_NAME_LENGTH];
     int copy_mode;
     bool flush_packet;
+    PfringPeer *mpeer;
 
     cluster_type ctype;
 
@@ -160,6 +162,14 @@ struct PfringThreadVars_
 
     bool vlan_hdr_warned;
 };
+
+typedef struct PfringPeersList {
+    TAILQ_HEAD(, PfringPeer_) peers;
+    int cnt;
+    int peered;
+    int turn;
+    SC_ATOMIC_DECLARE(int, reached);
+} PfringPeersList;
 
 /**
  * \brief Registration Function for RecievePfring.
@@ -191,6 +201,117 @@ void TmModuleDecodePfringRegister (void)
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = DecodePfringThreadDeinit;
     tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPFRING].flags = TM_FLAG_DECODE_TM;
+}
+
+static void PfringPeerClean(PfringPeer *peer)
+{
+    if (peer->flags & PFRING_RING_PROTECT) {
+        SCMutexDestroy(&peer->ring_protect);
+    }
+
+    SCFree(peer);
+}
+
+PfringPeersList pfpeerslist;
+
+TmEcode PfringPeersListInit()
+{
+    SCEnter();
+    TAILQ_INIT(&pfpeerslist.peers);
+    pfpeerslist.peered = 0;
+    pfpeerslist.cnt = 0;
+    pfpeerslist.turn = 0;
+
+    return TM_ECODE_OK;
+}
+
+TmEcode PfringPeersListCheck()
+{
+#define PFRING_PEERS_MAX_TRY 4
+#define PFRING_PEERS_WAIT 20000
+    SCEnter();
+    int try = 0;
+
+    while (try < PFRING_PEERS_MAX_TRY) {
+        if (pfpeerslist.cnt != pfpeerslist.peered) {
+            usleep(PFRING_PEERS_WAIT);
+        } else {
+            return TM_ECODE_OK;
+        }
+        try++;
+    }
+    SCLogError(SC_ERR_PF_RING_CREATE, "Threads number not equals");
+
+    return TM_ECODE_FAILED;
+}
+
+static TmEcode PfringPeersListAdd(PfringThreadVars *ptv)
+{
+    SCEnter();
+    PfringPeer *peer = SCMalloc(sizeof(PfringPeer));
+    PfringPeer *pitem;
+    int mtu, out_mtu;
+
+    if (unlikely(peer == NULL))
+        return TM_ECODE_FAILED;
+    memset(peer, 0, sizeof(PfringPeer));
+
+    if (peer->flags & PFRING_RING_PROTECT) {
+        SCMutexInit(&peer->ring_protect, NULL);
+    }
+
+    strlcpy(peer->iface, ptv->interface, PFRING_IFACE_NAME_LENGTH);
+    peer->turn = pfpeerslist.turn++;
+    peer->pd = ptv->pd;
+    ptv->mpeer = peer;
+    TAILQ_INSERT_TAIL(&pfpeerslist.peers, peer, next);
+
+    if (ptv->copy_mode != PFRING_COPY_MODE_NONE) {
+        pfpeerslist.cnt++;
+
+        TAILQ_FOREACH(pitem, &pfpeerslist.peers, next) {
+            if (pitem->peer) continue;
+            if (strcmp(pitem->iface, ptv->out_iface)) continue;
+            peer->peer = pitem;
+            pitem->peer = peer;
+            mtu = GetIfaceMTU(ptv->interface);
+            out_mtu = GetIfaceMTU(ptv->out_iface);
+            if (mtu != out_mtu) {
+                SCLogError(SC_ERR_PF_RING_CREATE,
+                        "MTU on %s (%d) and %s (%d) are not equal, "
+                        "transmission of packets bigger than %d will fail.",
+                        ptv->interface, mtu,
+                        ptv->out_iface, out_mtu,
+                        (out_mtu > mtu) ? mtu : out_mtu);
+            }
+            pfpeerslist.peered += 2;
+            break;
+        }
+    }
+
+    return TM_ECODE_OK;
+}
+
+static void PfringPeersListReachedInc(void)
+{
+    if (pfpeerslist.turn == 0)
+        return;
+
+    if (SC_ATOMIC_ADD(pfpeerslist.reached, 1) == pfpeerslist.turn) {
+        SCLogInfo("All PF_RING capture threads are running.");
+        (void)SC_ATOMIC_SET(pfpeerslist.reached, 0);
+        pfpeerslist.turn = 0;
+    }
+}
+
+void PfringPeersListClean()
+{
+    PfringPeer *pitem;
+
+    while ((pitem = TAILQ_FIRST(&pfpeerslist.peers))) {
+        TAILQ_REMOVE(&pfpeerslist.peers, pitem, next);
+        PfringPeerClean(pitem);
+    }
 }
 
 static inline void PfringDumpCounters(PfringThreadVars *ptv)
@@ -372,6 +493,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    PfringPeersListReachedInc();
+
     while(1) {
         if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);
@@ -530,6 +653,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
     /* enable zero-copy mode for workers runmode */
     if (active_runmode && strcmp("workers", active_runmode) == 0) {
         ptv->flags |= PFRING_FLAGS_ZERO_COPY;
+        ptv->flags |= PFRING_RING_PROTECT;
         SCLogPerf("Enabling zero-copy for %s", ptv->interface);
     }
 
@@ -639,6 +763,12 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, const void *initdata, void **dat
             SCLogWarning(SC_WARN_UNCOMMON, "Enabling a BPF filter in IPS mode result"
                       " in dropping all non matching packets.");
         }
+    }
+
+    if (PfringPeersListAdd(ptv) == TM_ECODE_FAILED) {
+        SCFree(ptv);
+        pfconf->DerefFunc(pfconf);
+        return TM_ECODE_FAILED;
     }
 
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
