@@ -198,18 +198,18 @@ static uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
-static void SSLSetTxLogged(void *state, void *tx, uint32_t logger)
+static void SSLSetTxLogged(void *state, void *tx, LoggerId logged)
 {
     SSLState *ssl_state = (SSLState *)state;
     if (ssl_state)
-        ssl_state->logged |= logger;
+        ssl_state->logged = logged;
 }
 
-static int SSLGetTxLogged(void *state, void *tx, uint32_t logger)
+static LoggerId SSLGetTxLogged(void *state, void *tx)
 {
     SSLState *ssl_state = (SSLState *)state;
-    if (ssl_state && (ssl_state->logged & logger))
-        return 1;
+    if (ssl_state)
+        return (ssl_state->logged);
 
     return 0;
 }

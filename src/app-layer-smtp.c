@@ -1560,19 +1560,16 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
-static void SMTPStateSetTxLogged(void *state, void *vtx, uint32_t logger)
+static void SMTPStateSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
     SMTPTransaction *tx = vtx;
-    tx->logged |= logger;
+    tx->logged = logged;
 }
 
-static int SMTPStateGetTxLogged(void *state, void *vtx, uint32_t logger)
+static LoggerId SMTPStateGetTxLogged(void *state, void *vtx)
 {
     SMTPTransaction *tx = vtx;
-    if (tx->logged & logger)
-        return 1;
-
-    return 0;
+    return tx->logged;
 }
 
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {

@@ -2671,20 +2671,20 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
         return NULL;
 }
 
-static void HTPStateSetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static void HTPStateSetTxLogged(void *alstate, void *vtx, LoggerId bits)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (tx_ud)
-        tx_ud->logged |= logger;
+        tx_ud->logged = bits;
 }
 
-static int HTPStateGetTxLogged(void *alstate, void *vtx, uint32_t logger)
+static LoggerId HTPStateGetTxLogged(void *alstate, void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-    if (tx_ud && (tx_ud->logged & logger))
-        return 1;
+    if (tx_ud != NULL)
+        return tx_ud->logged;
 
     return 0;
 }

@@ -182,14 +182,14 @@ static void *NFSTCPGetTx(void *state, uint64_t tx_id)
     return rs_nfs3_state_get_tx(state, tx_id);
 }
 
-static void NFSTCPSetTxLogged(void *state, void *vtx, uint32_t logger)
+static void NFSTCPSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
-    rs_nfs3_tx_set_logged(state, vtx, logger);
+    rs_nfs3_tx_set_logged(state, vtx, logged);
 }
 
-static int NFSTCPGetTxLogged(void *state, void *vtx, uint32_t logger)
+static LoggerId NFSTCPGetTxLogged(void *state, void *vtx)
 {
-    return rs_nfs3_tx_get_logged(state, vtx, logger);
+    return rs_nfs3_tx_get_logged(state, vtx);
 }
 
 /**

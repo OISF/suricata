@@ -83,14 +83,14 @@ static void *RustDNSGetTx(void *alstate, uint64_t tx_id)
     return rs_dns_state_get_tx(alstate, tx_id);
 }
 
-static void RustDNSSetTxLogged(void *alstate, void *tx, uint32_t logger)
+static void RustDNSSetTxLogged(void *alstate, void *tx, LoggerId logged)
 {
-    rs_dns_tx_set_logged(alstate, tx, logger);
+    rs_dns_tx_set_logged(alstate, tx, logged);
 }
 
-static int RustDNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
+static LoggerId RustDNSGetTxLogged(void *alstate, void *tx)
 {
-    return rs_dns_tx_get_logged(alstate, tx, logger);
+    return rs_dns_tx_get_logged(alstate, tx);
 }
 
 static void RustDNSStateTransactionFree(void *state, uint64_t tx_id)
