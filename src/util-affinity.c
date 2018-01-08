@@ -95,7 +95,9 @@ static void AffinitySetupInit(void)
     return;
 }
 
-static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
+void BuildCpusetWithCallback(const char *name, ConfNode *node,
+                             void (*Callback)(int i, void * data),
+                             void *data)
 {
     ConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
@@ -152,11 +154,21 @@ static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
             b = a;
         }
         for (i = a; i<= b; i++) {
-            CPU_SET(i, cpu);
+            Callback(i, data);
         }
         if (stop)
             break;
     }
+}
+
+static void AffinityCallback(int i, void *data)
+{
+    CPU_SET(i, (cpu_set_t *)data);
+}
+
+static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
+{
+    BuildCpusetWithCallback(name, node, AffinityCallback, (void *) cpu);
 }
 #endif /* OS_WIN32 and __OpenBSD__ */
 
