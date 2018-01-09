@@ -43,6 +43,7 @@
 #include "flow-timeout.h"
 #include "flow-manager.h"
 #include "flow-storage.h"
+#include "flow-bypass.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -341,6 +342,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             SCLogDebug("Downgrading flow to local bypass");
             COPY_TIMESTAMP(&p->ts, &f->lastts);
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
+        } else {
+            /* In IPS mode the packet could come from the over interface so it would
+             * need to be bypassed */
+            if (EngineModeIsIPS()) {
+                BypassedFlowUpdate(f, p);
+            }
         }
     }
 
