@@ -32,6 +32,7 @@ struct flows_stats {
 
 typedef int (*BypassedCheckFunc)(struct flows_stats *bypassstats,
                                  struct timespec *curtime);
+typedef int (*BypassedUpdateFunc)(Flow *f, Packet *p);
 
 void FlowAddToBypassed(Flow *f);
 
@@ -39,6 +40,9 @@ void BypassedFlowManagerThreadSpawn(void);
 void TmModuleBypassedFlowManagerRegister(void);
 
 int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc);
+int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc);
+
+void BypassedFlowUpdate(Flow *f, Packet *p);
 
 #endif
 
