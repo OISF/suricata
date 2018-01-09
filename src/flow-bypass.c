@@ -40,6 +40,9 @@ typedef struct BypassedFlowManagerThreadData_ {
 int g_bypassed_func_max_index = 0;
 BypassedCheckFunc BypassedFuncList[BYPASSFUNCMAX];
 
+int g_bypassed_update_max_index = 0;
+BypassedUpdateFunc UpdateFuncList[BYPASSFUNCMAX];
+
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
 #ifdef HAVE_PACKET_EBPF
@@ -82,6 +85,16 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
+void BypassedFlowUpdate(Flow *f, Packet *p)
+{
+    int i;
+
+    for (i = 0; i < g_bypassed_update_max_index; i++) {
+        if (UpdateFuncList[i](f, p)) {
+            return;
+        }
+    }
+}
 
 static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
@@ -135,6 +148,20 @@ int BypassedFlowManagerRegisterCheckFunc(BypassedCheckFunc CheckFunc)
     if (g_bypassed_func_max_index < BYPASSFUNCMAX) {
         BypassedFuncList[g_bypassed_func_max_index] = CheckFunc;
         g_bypassed_func_max_index++;
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
+int BypassedFlowManagerRegisterUpdateFunc(BypassedUpdateFunc UpdateFunc)
+{
+    if (!UpdateFunc) {
+        return -1;
+    }
+    if (g_bypassed_update_max_index < BYPASSFUNCMAX) {
+        UpdateFuncList[g_bypassed_update_max_index] = UpdateFunc;
+        g_bypassed_update_max_index++;
     } else {
         return -1;
     }
