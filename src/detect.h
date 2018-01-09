@@ -672,6 +672,9 @@ typedef struct DetectEngineCtx_ {
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_context;
 
+    /* max flowbit id that is used */
+    uint32_t max_fb_id;
+
     uint32_t max_fp_id;
 
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
@@ -1246,6 +1249,8 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    const Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s, const uint8_t);
+
+void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx);
 
 #include "detect-engine-build.h"
 #include "detect-engine-register.h"
