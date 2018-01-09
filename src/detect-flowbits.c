@@ -465,6 +465,8 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         if (varname == NULL)
             continue;
 
+        bool to_state = false;
+
         if (array[i].cnts[DETECT_FLOWBITS_CMD_ISSET] &&
             array[i].cnts[DETECT_FLOWBITS_CMD_TOGGLE] == 0 &&
             array[i].cnts[DETECT_FLOWBITS_CMD_SET] == 0) {
@@ -479,11 +481,15 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
         {
             SCLogDebug("flowbit %s/%u: isset in state, set not in state", varname, i);
         }
+
+        /* if signature depends on 'stateful' flowbits, then turn the
+         * sig into a stateful sig itself */
         if (array[i].cnts[DETECT_FLOWBITS_CMD_ISSET] > 0 &&
             array[i].state_cnts[DETECT_FLOWBITS_CMD_ISSET] == 0 &&
             array[i].state_cnts[DETECT_FLOWBITS_CMD_SET])
         {
             SCLogDebug("flowbit %s/%u: isset not in state, set in state", varname, i);
+            to_state = true;
         }
 
         SCLogDebug("ALL flowbit %s/%u: sets %u toggles %u unsets %u isnotsets %u issets %u", varname, i,
@@ -499,8 +505,14 @@ void DetectFlowbitsAnalyze(DetectEngineCtx *de_ctx)
                     de_ctx->sig_array[array[i].set_sids[x]]->id);
         }
         for (uint32_t x = 0; x < array[i].isset_sids_idx; x++) {
-            SCLogDebug("GET flowbit %s/%u: SID %u", varname, i,
-                    de_ctx->sig_array[array[i].isset_sids[x]]->id);
+            Signature *s = de_ctx->sig_array[array[i].isset_sids[x]];
+            SCLogDebug("GET flowbit %s/%u: SID %u", varname, i, s->id);
+
+            if (to_state) {
+                s->flags |= SIG_FLAG_STATE_MATCH;
+                SCLogDebug("made SID %u stateful because it depends on "
+                        "stateful rules that set flowbit %s", s->id, varname);
+            }
         }
         SCFree(varname);
     }
