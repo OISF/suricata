@@ -1606,7 +1606,7 @@ static void SMTPStateTruncate(void *state, uint8_t direction)
     if (fc != NULL) {
         SCLogDebug("truncating stream, closing files in %s direction (container %p)",
                 direction & STREAM_TOCLIENT ? "STREAM_TOCLIENT" : "STREAM_TOSERVER", fc);
-        FileTruncateAllOpenFiles(fc);
+        FileTruncateAllOpenFiles(fc, direction);
     }
 }
 

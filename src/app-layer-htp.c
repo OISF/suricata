@@ -2714,7 +2714,7 @@ static void HTPStateTruncate(void *state, uint8_t direction)
 {
     FileContainer *fc = HTPStateGetFiles(state, direction);
     if (fc != NULL) {
-        FileTruncateAllOpenFiles(fc);
+        FileTruncateAllOpenFiles(fc, direction);
     }
 }
 

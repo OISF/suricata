@@ -873,9 +873,6 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
     }
 
     if ((flags & FILE_TRUNCATED) || (ff->flags & FILE_HAS_GAPS)) {
-        ff->state = FILE_STATE_TRUNCATED;
-        SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
-
         if (flags & FILE_NOSTORE) {
             SCLogDebug("not storing this file");
             ff->flags |= FILE_NOSTORE;
@@ -1271,7 +1268,7 @@ void FileStoreAllFiles(FileContainer *fc)
     }
 }
 
-void FileTruncateAllOpenFiles(FileContainer *fc)
+void FileTruncateAllOpenFiles(FileContainer *fc, uint8_t flags)
 {
     File *ptr = NULL;
 
@@ -1281,6 +1278,9 @@ void FileTruncateAllOpenFiles(FileContainer *fc)
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->state == FILE_STATE_OPENED) {
                 FileCloseFilePtr(ptr, NULL, 0, FILE_TRUNCATED);
+            }
+            if (flags & STREAM_GAP) {
+                ptr->flags |= FILE_HAS_GAPS;
             }
         }
     }
