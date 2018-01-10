@@ -52,20 +52,20 @@
 /* per sig flags */
 #define DE_STATE_FLAG_FULL_INSPECT              BIT_U32(0)
 #define DE_STATE_FLAG_SIG_CANT_MATCH            BIT_U32(1)
-
-#define DE_STATE_FLAG_FILE_TC_INSPECT           BIT_U32(2)
-#define DE_STATE_FLAG_FILE_TS_INSPECT           BIT_U32(3)
+/* flag set if file inspecting sig did not match, but might need to be
+ * re-evaluated for a new file in a tx */
+#define DE_STATE_ID_FILE_INSPECT                2UL
+#define DE_STATE_FLAG_FILE_INSPECT              BIT_U32(DE_STATE_ID_FILE_INSPECT)
 
 /* first bit position after the built-ins */
-#define DE_STATE_FLAG_BASE                      4UL
+#define DE_STATE_FLAG_BASE                      3UL
 
 /* state flags
  *
  * Used by app-layer-parsers to notify us that new files
  * are available in the tx.
  */
-#define DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW    BIT_U8(0)
-#define DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW    BIT_U8(1)
+#define DETECT_ENGINE_STATE_FLAG_FILE_NEW       BIT_U8(0)
 
 /* We have 2 possible state values to be used by ContinueDetection() while
  * trying to figure if we have fresh state to install or not.

@@ -1180,13 +1180,14 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 
 static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
 {
+    SCEnter();
     if (tx && tx->de_state) {
         if (dir == STREAM_TOSERVER) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         } else if (STREAM_TOCLIENT) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW set");
-            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
     }
 }

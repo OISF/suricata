@@ -1176,8 +1176,8 @@ static int DeStateSigTest02(void)
     DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP, tx);
     FAIL_IF_NULL(tx_de_state);
     FAIL_IF(tx_de_state->dir_state[0].cnt != 1);
-    /* http_header(mpm): 6, uri: 4, method: 7, cookie: 8 */
-    uint32_t expected_flags = (BIT_U32(6) | BIT_U32(4) | BIT_U32(7) |BIT_U32(8));
+    /* http_header(mpm): 5, uri: 3, method: 6, cookie: 7 */
+    uint32_t expected_flags = (BIT_U32(5) | BIT_U32(3) | BIT_U32(6) |BIT_U32(7));
     FAIL_IF(tx_de_state->dir_state[0].head->store[0].flags != expected_flags);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP,
@@ -1609,6 +1609,375 @@ static int DeStateSigTest07(void)
     PASS;
 }
 
+/**
+ * \test multiple files in a tx
+ */
+static int DeStateSigTest08(void)
+{
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 440\r\n"
+                         "\r\n"
+                         "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"AAAApicture1.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "file";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "content\r\n"
+                         "-----------------------------277531038314945\r\n";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"BBBBpicture2.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n"
+                         "filecontent2\r\n"
+                         "-----------------------------277531038314945--";
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+
+    ThreadVars th_v;
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&ssn, 0, sizeof(ssn));
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"BBBBpicture\"; filestore; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->flow = f;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* HTTP request with 1st part of the multipart body */
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf2, httplen2);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    File *file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF(file->flags & FILE_STORE);
+
+    /* 2nd multipart body file */
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf3, httplen3);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF_NOT(file->flags & FILE_STORE);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreeFlow(f);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+    PASS;
+}
+
+/**
+ * \test multiple files in a tx. Both files should match
+ */
+static int DeStateSigTest09(void)
+{
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 440\r\n"
+                         "\r\n"
+                         "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "file";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "content\r\n"
+                         "-----------------------------277531038314945\r\n";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n"
+                         "filecontent2\r\n"
+                         "-----------------------------277531038314945--";
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+
+    ThreadVars th_v;
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&ssn, 0, sizeof(ssn));
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filename:\"somepicture\"; filestore; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->flow = f;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* HTTP request with 1st part of the multipart body */
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf2, httplen2);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    File *file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF_NOT(file->flags & FILE_STORE);
+
+    /* 2nd multipart body file */
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf3, httplen3);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF_NOT(file->flags & FILE_STORE);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreeFlow(f);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+    PASS;
+}
+
+/**
+ * \test multiple files in a tx. Both files should match. No other matches.
+ */
+static int DeStateSigTest10(void)
+{
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 440\r\n"
+                         "\r\n"
+                         "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "file";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint8_t httpbuf3[] = "content\r\n"
+                         "-----------------------------277531038314945\r\n";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+
+    uint8_t httpbuf4[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n"
+                         "filecontent2\r\n"
+                         "-----------------------------277531038314945--";
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+
+    ThreadVars th_v;
+    TcpSession ssn;
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&ssn, 0, sizeof(ssn));
+
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (filename:\"somepicture\"; filestore; sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    Packet *p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    FAIL_IF_NULL(p);
+    p->flow = f;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    /* HTTP request with 1st part of the multipart body */
+
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf2, httplen2);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    File *file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF_NOT(file->flags & FILE_STORE);
+
+    /* 2nd multipart body file */
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER, httpbuf3, httplen3);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_EOF, httpbuf4, httplen4);
+    FAIL_IF(r != 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
+
+    files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
+                                                  p->flow->alstate, STREAM_TOSERVER);
+    FAIL_IF_NULL(files);
+    file = files->head;
+    FAIL_IF_NULL(file);
+    FAIL_IF_NOT(file->flags & FILE_STORE);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    UTHFreeFlow(f);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    StreamTcpFreeConfig(TRUE);
+    PASS;
+}
+
 #endif
 
 void DeStateRegisterTests(void)
@@ -1624,6 +1993,9 @@ void DeStateRegisterTests(void)
     UtRegisterTest("DeStateSigTest05", DeStateSigTest05);
     UtRegisterTest("DeStateSigTest06", DeStateSigTest06);
     UtRegisterTest("DeStateSigTest07", DeStateSigTest07);
+    UtRegisterTest("DeStateSigTest08", DeStateSigTest08);
+    UtRegisterTest("DeStateSigTest09", DeStateSigTest09);
+    UtRegisterTest("DeStateSigTest10", DeStateSigTest10);
 #endif
 
     return;

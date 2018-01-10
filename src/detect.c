@@ -1257,12 +1257,28 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         TRACE_SID_TXS(s->id, tx, "start inspect flags %08x", inspect_flags);
         if (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
             if (file_no_match) {
-                DetectRunStoreStateTxFileOnly(scratch->sgh, f, tx->tx_ptr, tx->tx_id,
-                        flow_flags, file_no_match);
+                /* if we have a mismatch on a file sig, we need to keep state.
+                 * We may get another file on the same tx (for http and smtp
+                 * at least), so for a new file we need to re-eval the sig.
+                 * Thoughts / TODO:
+                 *  - not for some protos that have 1 file per tx (e.g. nfs)
+                 *  - maybe we only need this for file sigs that mix with
+                 *    other matches? E.g. 'POST + filename', is different than
+                 *    just 'filename'.
+                 */
+                DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
+                        inspect_flags, flow_flags, file_no_match);
             }
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) && mpm_before_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store match sig, "
                     "mpm won't trigger for it anymore");
+
+            if (inspect_flags & DE_STATE_FLAG_FILE_INSPECT) {
+                TRACE_SID_TXS(s->id, tx, "except that for new files, "
+                        "we may have to revisit anyway");
+                DetectRunStoreStateTx(scratch->sgh, f, tx->tx_ptr, tx->tx_id, s,
+                        inspect_flags, flow_flags, file_no_match);
+            }
         } else if ((inspect_flags & DE_STATE_FLAG_FULL_INSPECT) == 0 && mpm_in_progress) {
             TRACE_SID_TXS(s->id, tx, "no need to store no-match sig, "
                     "mpm will revisit it");
@@ -1397,6 +1413,15 @@ static void DetectRunTx(ThreadVars *tv,
         if (tx.de_state != NULL) {
             const uint32_t old = array_idx;
 
+            /* if tx.de_state->flags has 'new file' set and sig below has
+             * 'file inspected' flag, reset the file part of the state */
+            const bool have_new_file = (tx.de_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_NEW);
+            if (have_new_file) {
+                SCLogDebug("%p/%"PRIu64" destate: need to consider new file",
+                        tx.tx_ptr, tx_id);
+                tx.de_state->flags &= ~DETECT_ENGINE_STATE_FLAG_FILE_NEW;
+            }
+
             SigIntId state_cnt = 0;
             DeStateStore *tx_store = tx.de_state->head;
             for (; tx_store != NULL; tx_store = tx_store->next) {
@@ -1409,6 +1434,12 @@ static void DetectRunTx(ThreadVars *tv,
                 {
                     DeStateStoreItem *item = &tx_store->store[store_cnt];
                     SCLogDebug("rule id %u, inspect_flags %u", item->sid, item->flags);
+                    if (have_new_file && (item->flags & DE_STATE_FLAG_FILE_INSPECT)) {
+                        /* remove part of the state. File inspect engine will now
+                         * be able to run again */
+                        item->flags &= ~(DE_STATE_FLAG_SIG_CANT_MATCH|DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_FILE_INSPECT);
+                        SCLogDebug("rule id %u, post file reset inspect_flags %u", item->sid, item->flags);
+                    }
                     det_ctx->tx_candidates[array_idx].s = de_ctx->sig_array[item->sid];
                     det_ctx->tx_candidates[array_idx].id = item->sid;
                     det_ctx->tx_candidates[array_idx].flags = &item->flags;
