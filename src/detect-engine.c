@@ -195,6 +195,10 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 }
 
+/**
+ *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
+ *        is assigned.
+ */
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
     const int nlists = DetectBufferTypeMaxId();
@@ -204,6 +208,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
     const int mpm_list = s->init_data->mpm_sm ?
         SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) :
         -1;
+
+    const int files_id = DetectBufferTypeGetByName("files");
 
     /* convert lists to SigMatchData arrays */
     int i = 0;
@@ -254,13 +260,23 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
-            last_id = new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            }
 
         /* prepend engine if forced or if our engine has a lower progress. */
         } else if (prepend || (!head_is_mpm && s->app_inspect->progress > new_engine->progress)) {
             new_engine->next = s->app_inspect;
             s->app_inspect = new_engine;
-            new_engine->id = ++last_id;
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = ++last_id;
+            }
 
         } else {
             DetectEngineAppInspectionEngine *a = s->app_inspect;
@@ -274,8 +290,14 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             new_engine->next = a->next;
             a->next = new_engine;
-            new_engine->id = ++last_id;
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = ++last_id;
+            }
         }
+
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
         s->flags |= SIG_FLAG_STATE_MATCH;

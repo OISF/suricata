@@ -390,12 +390,12 @@ static void SMTPPruneFiles(FileContainer *files)
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
     if (tx && tx->de_state) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
     } else if (tx == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX");
     } else if (tx->de_state == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX DESTATE");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX DESTATE");
     }
 }
 
