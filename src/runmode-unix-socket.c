@@ -34,6 +34,7 @@
 #include "flow-timeout.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
+#include "source-pcap-file-directory-helper.h"
 #include "host.h"
 #include "defrag.h"
 #include "defrag-hash.h"
@@ -200,8 +201,7 @@ static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *da
 {
     json_int_t epoch_millis;
     SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
-    epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000L +
-                        unix_manager_pcap_last_processed.tv_nsec / 100000L;
+    epoch_millis = AsEpochMillis(&unix_manager_pcap_last_processed);
     SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
 
     json_object_set_new(answer, "message",

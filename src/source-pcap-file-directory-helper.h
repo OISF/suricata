@@ -52,6 +52,13 @@ typedef struct PcapFileDirectoryVars_
 } PcapFileDirectoryVars;
 
 /**
+ * Convert a timespec into milliseconds since epoch
+ * @param timespec
+ * @return time
+ */
+long AsEpochMillis(struct timespec *tm);
+
+/**
  * Cleanup resources associated with a PendingFile object
  * @param pending Object to be cleaned up
  */

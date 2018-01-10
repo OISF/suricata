@@ -41,12 +41,17 @@ static TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *ptv,
 static TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                                                  struct timespec *older_than);
 
+long AsEpochMillis(struct timespec *tm)
+{
+    return tm->tv_sec * 1000L + tm->tv_nsec / 1000000L;
+}
+
 void GetTime(struct timespec *tm)
 {
     struct timeval now;
     if(gettimeofday(&now, NULL) == 0) {
         tm->tv_sec  = now.tv_sec;
-        tm->tv_nsec = now.tv_usec * 1000;
+        tm->tv_nsec = now.tv_usec * 1000L;
     }
 }
 
@@ -245,14 +250,13 @@ int PcapDirectoryGetModifiedTime(char const *file, struct timespec *out)
 #endif
 
 #ifdef OS_DARWIN
-    *out = buf.st_mtimespec;
+    out->tv_sec = buf.st_mtimespec.tv_sec;
+    out->tv_nsec = buf.st_mtimespec.tv_nsec;
 #elif OS_WIN32
-    struct timespec ts;
-    memset(&ts, 0, sizeof(ts));
-    ts.tv_sec = buf.st_mtime;
-    *out = ts;
+    out->tv_sec = buf.st_mtime;
 #else
-    *out = buf.st_mtim;
+    out->tv_sec = buf.st_mtim.tv_sec;
+    out->tv_nsec = buf.st_mtim.tv_nsec;
 #endif
 
     return ret;
@@ -343,8 +347,11 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
             memset(&temp_time, 0, sizeof(struct timespec));
 
             if (PcapDirectoryGetModifiedTime(pathbuff, &temp_time) == 0) {
-                SCLogDebug("%lu < %lu (%s) < %lu)", newer_than->tv_sec,
-                           temp_time.tv_sec, pathbuff, older_than->tv_sec);
+                SCLogDebug("%" PRIuMAX " < %" PRIuMAX "(%s) < %" PRIuMAX ")",
+                           (uintmax_t)AsEpochMillis(&pv->shared->last_processed),
+                           (uintmax_t)AsEpochMillis(&temp_time),
+                           pathbuff,
+                           (uintmax_t)AsEpochMillis(older_than));
 
                 // Skip files outside of our time range
                 if (CompareTimes(&temp_time, &pv->shared->last_processed) <= 0) {
@@ -378,7 +385,8 @@ TmEcode PcapDirectoryPopulateBuffer(PcapFileDirectoryVars *pv,
             memset(&file_to_add->modified_time, 0, sizeof(struct timespec));
             CopyTime(&temp_time, &file_to_add->modified_time);
 
-            SCLogDebug("Found \"%s\"", file_to_add->filename);
+            SCLogInfo("Found \"%s\" at %" PRIuMAX, file_to_add->filename,
+                       (uintmax_t)AsEpochMillis(&file_to_add->modified_time));
 
             if (PcapDirectoryInsertFile(pv, file_to_add) == TM_ECODE_FAILED) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to add file");
@@ -460,8 +468,9 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
                         SCReturnInt(status);
                     }
 
-                    SCLogDebug("Processed file %s, processed up to %ld",
-                               current_file->filename, current_file->modified_time.tv_sec);
+                    SCLogInfo("Processed file %s, processed up to %" PRIuMAX,
+                               current_file->filename,
+                               (uintmax_t)AsEpochMillis(&current_file->modified_time));
 
                     if(CompareTimes(&current_file->modified_time, &last_time_seen) > 0) {
                         CopyTime(&current_file->modified_time, &last_time_seen);
@@ -476,6 +485,8 @@ TmEcode PcapDirectoryDispatchForTimeRange(PcapFileDirectoryVars *pv,
         }
 
         if(CompareTimes(&last_time_seen, &pv->shared->last_processed) > 0) {
+            SCLogInfo("Updating processed to %" PRIuMAX,
+                      (uintmax_t)AsEpochMillis(&last_time_seen));
             CopyTime(&last_time_seen, &pv->shared->last_processed);
             status = PcapRunStatus(pv);
         }
@@ -506,7 +517,8 @@ TmEcode PcapDirectoryDispatch(PcapFileDirectoryVars *ptv)
     while (status == TM_ECODE_OK) {
         //loop while directory is ok
         SCLogInfo("Processing pcaps directory %s, files must be newer than %" PRIuMAX " and older than %" PRIuMAX,
-                  ptv->filename, (uintmax_t)ptv->shared->last_processed.tv_sec, (uintmax_t)older_than.tv_sec);
+                  ptv->filename, (uintmax_t)AsEpochMillis(&ptv->shared->last_processed),
+                  (uintmax_t)AsEpochMillis(&older_than));
         status = PcapDirectoryDispatchForTimeRange(ptv, &older_than);
         if (ptv->should_loop && status == TM_ECODE_OK) {
             sleep(poll_seconds);
