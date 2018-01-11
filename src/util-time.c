@@ -301,10 +301,17 @@ struct tm *SCLocalTime(time_t timep, struct tm *result)
     int mru_seconds = timep - cached_minute_start[mru];
     int lru_seconds = timep - cached_minute_start[lru];
     int new_seconds;
-    if (mru_seconds >= 0 && mru_seconds <= 59) {
+    if (cached_minute_start[mru]==0 && cached_minute_start[lru]==0) {
+        localtime_r(&timep, &cached_local_tm[lru]);
+        /* Subtract seconds to get back to the start of the minute. */
+        new_seconds = cached_local_tm[lru].tm_sec;
+        cached_minute_start[lru] = timep - new_seconds;
+        mru = lru;
+        mru_tm_slot = mru;
+    } else if (lru_seconds > 0 && (mru_seconds >= 0 && mru_seconds <= 59)) {
         /* Use most-recently cached time, adjusting the seconds. */
         new_seconds = mru_seconds;
-    } else if (lru_seconds >= 0 && lru_seconds <= 59) {
+    } else if (mru_seconds > 0 && (lru_seconds >= 0 && lru_seconds <= 59)) {
         /* Use least-recently cached time, update to most recently used. */
         new_seconds = lru_seconds;
         mru = lru;
@@ -313,7 +320,6 @@ struct tm *SCLocalTime(time_t timep, struct tm *result)
         /* Update least-recent cached time. */
         if (localtime_r(&timep, &cached_local_tm[lru]) == NULL)
             return NULL;
-
         /* Subtract seconds to get back to the start of the minute. */
         new_seconds = cached_local_tm[lru].tm_sec;
         cached_minute_start[lru] = timep - new_seconds;
@@ -360,7 +366,11 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     int lru = 1 - mru;
     int mru_seconds = time - last_local_time[mru];
     int lru_seconds = time - last_local_time[lru];
-    if (mru_seconds >= 0 && mru_seconds <= 59) {
+    if (last_local_time[mru]==0 && last_local_time[lru]==0) {
+        /* First time here, update both caches */
+        UpdateCachedTime(mru, time);
+        seconds = UpdateCachedTime(lru, time);
+    } else if (mru_seconds >= 0 && mru_seconds <= 59) {
         /* Use most-recently cached time. */
         seconds = mru_seconds;
     } else if (lru_seconds >= 0 && lru_seconds <= 59) {
