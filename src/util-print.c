@@ -99,8 +99,13 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
-                             "%c", buf[u]);
+            if (buf[u] == '\\') {
+                PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                                "\\\\");
+            } else {
+                PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                                "%c", buf[u]);
+            }
         } else {
             PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
                             "\\x%02X", buf[u]);
