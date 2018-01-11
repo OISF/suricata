@@ -377,37 +377,40 @@ static void OutputFlowLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "flow.json"
-static OutputCtx *OutputFlowLogInit(ConfNode *conf)
+static OutputInitResult OutputFlowLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = file_ctx;
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinit;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
@@ -417,18 +420,19 @@ static void OutputFlowLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(flow_ctx);
-        return NULL;
+        return result;
     }
 
     flow_ctx->file_ctx = ojc->file_ctx;
@@ -436,7 +440,9 @@ static OutputCtx *OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinitSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

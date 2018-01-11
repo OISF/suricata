@@ -38,8 +38,13 @@
 #include "output-streaming.h"
 #include "output-stats.h"
 
-typedef OutputCtx *(*OutputInitFunc)(ConfNode *);
-typedef OutputCtx *(*OutputInitSubFunc)(ConfNode *, OutputCtx *);
+typedef struct OutputInitResult_ {
+    OutputCtx *ctx;
+    bool ok;
+} OutputInitResult;
+
+typedef OutputInitResult (*OutputInitFunc)(ConfNode *);
+typedef OutputInitResult (*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *);
 
 typedef struct OutputModule_ {

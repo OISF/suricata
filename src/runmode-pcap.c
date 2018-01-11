@@ -20,8 +20,8 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pcap.h"
-#include "log-httplog.h"
 #include "output.h"
+#include "log-httplog.h"
 
 #include "util-debug.h"
 #include "util-time.h"

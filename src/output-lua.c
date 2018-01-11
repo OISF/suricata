@@ -664,20 +664,21 @@ static void LogLuaSubFree(OutputCtx *oc) {
  *
  *  Runs script 'setup' function.
  */
-static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     if (conf == NULL)
-        return NULL;
+        return result;
 
     LogLuaCtx *lua_ctx = SCMalloc(sizeof(LogLuaCtx));
     if (unlikely(lua_ctx == NULL))
-        return NULL;
+        return result;
     memset(lua_ctx, 0x00, sizeof(*lua_ctx));
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(lua_ctx);
-        return NULL;
+        return result;
     }
 
     SCMutexInit(&lua_ctx->m, NULL);
@@ -707,12 +708,14 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = lua_ctx;
     output_ctx->DeInit = LogLuaSubFree;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 error:
     SCMutexDestroy(&lua_ctx->m);
     SCFree(lua_ctx);
     SCFree(output_ctx);
-    return NULL;
+    return result;
 }
 
 static void LogLuaMasterFree(OutputCtx *oc)
@@ -734,8 +737,9 @@ static void LogLuaMasterFree(OutputCtx *oc)
  *  inspect, then fills the OutputCtx::submodules list with the
  *  proper Logger function for the data type the script needs.
  */
-static OutputCtx *OutputLuaLogInit(ConfNode *conf)
+static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     const char *dir = ConfNodeLookupChildValue(conf, "scripts-dir");
     if (dir == NULL)
         dir = "";
@@ -744,19 +748,19 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     if (scripts == NULL) {
         /* No "outputs" section in the configuration. */
         SCLogInfo("scripts not defined");
-        return NULL;
+        return result;
     }
 
     /* global output ctx setup */
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     output_ctx->DeInit = LogLuaMasterFree;
     output_ctx->data = SCCalloc(1, sizeof(LogLuaMasterCtx));
     if (unlikely(output_ctx->data == NULL)) {
         SCFree(output_ctx);
-        return NULL;
+        return result;
     }
     LogLuaMasterCtx *master_config = output_ctx->data;
     strlcpy(master_config->path, dir, sizeof(master_config->path));
@@ -853,12 +857,14 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
     }
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
     if (output_ctx->DeInit)
         output_ctx->DeInit(output_ctx);
-    return NULL;
+    return result;
 }
 
 /** \internal

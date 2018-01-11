@@ -572,11 +572,12 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFilestoreCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
+static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
-        return NULL;
+        return result;
 
     output_ctx->data = NULL;
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
@@ -660,7 +661,9 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("enabling pid as a part of all file names");
     }
 
-    SCReturnPtr(output_ctx, "OutputCtx");
+    result.ctx = output_ctx;
+    result.ok = true;
+    SCReturnCT(result, "OutputInitResult");
 }
 
 

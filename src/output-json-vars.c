@@ -184,31 +184,32 @@ static void JsonVarsLogDeInitCtxSub(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputCtx *JsonVarsLogInitCtx(ConfNode *conf)
+static OutputInitResult JsonVarsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     VarsJsonOutputCtx *json_output_ctx = NULL;
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("VarsFastLogInitCtx2: Could not create new LogFileCtx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(logfile_ctx);
-        return NULL;
+        return result;
     }
 
     json_output_ctx = SCMalloc(sizeof(VarsJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
         LogFileFreeCtx(logfile_ctx);
         SCFree(output_ctx);
-        return NULL;
+        return result;
     }
     memset(json_output_ctx, 0, sizeof(VarsJsonOutputCtx));
 
@@ -217,7 +218,9 @@ static OutputCtx *JsonVarsLogInitCtx(ConfNode *conf)
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonVarsLogDeInitCtx;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 /**
@@ -225,14 +228,15 @@ static OutputCtx *JsonVarsLogInitCtx(ConfNode *conf)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputCtx *JsonVarsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonVarsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
     VarsJsonOutputCtx *json_output_ctx = NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
-        return NULL;
+        return result;
 
     json_output_ctx = SCMalloc(sizeof(VarsJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
@@ -245,7 +249,9 @@ static OutputCtx *JsonVarsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonVarsLogDeInitCtxSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
     if (json_output_ctx != NULL) {
@@ -255,7 +261,7 @@ error:
         SCFree(output_ctx);
     }
 
-    return NULL;
+    return result;
 }
 
 void JsonVarsLogRegister (void)

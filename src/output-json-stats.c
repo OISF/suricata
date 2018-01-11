@@ -378,23 +378,24 @@ static void OutputStatsLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "stats.json"
-static OutputCtx *OutputStatsLogInit(ConfNode *conf)
+static OutputInitResult OutputStatsLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     stats_ctx->flags = JSON_STATS_TOTALS;
 
@@ -420,7 +421,7 @@ static OutputCtx *OutputStatsLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(stats_ctx);
-        return NULL;
+        return result;
     }
 
     stats_ctx->file_ctx = file_ctx;
@@ -428,7 +429,9 @@ static OutputCtx *OutputStatsLogInit(ConfNode *conf)
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinit;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
@@ -438,13 +441,13 @@ static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
-
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
-        return NULL;
+        return result;
 
     stats_ctx->flags = JSON_STATS_TOTALS;
 
@@ -459,7 +462,7 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             SCFree(stats_ctx);
             SCLogError(SC_ERR_JSON_STATS_LOG_NEGATED,
                     "Cannot disable both totals and threads in stats logging");
-            return NULL;
+            return result;
         }
 
         if (totals != NULL && ConfValIsFalse(totals)) {
@@ -477,7 +480,7 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(stats_ctx);
-        return NULL;
+        return result;
     }
 
     stats_ctx->file_ctx = ajt->file_ctx;
@@ -485,7 +488,9 @@ static OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinitSub;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonStatsLogRegister(void) {

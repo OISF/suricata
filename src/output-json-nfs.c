@@ -133,21 +133,22 @@ static void OutputNFSLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputNFSLogInitSub(ConfNode *conf,
+static OutputInitResult OutputNFSLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
 
     LogNFSFileCtx *nfslog_ctx = SCCalloc(1, sizeof(*nfslog_ctx));
     if (unlikely(nfslog_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     nfslog_ctx->file_ctx = ajt->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(nfslog_ctx);
-        return NULL;
+        return result;
     }
     output_ctx->data = nfslog_ctx;
     output_ctx->DeInit = OutputNFSLogDeInitCtxSub;
@@ -157,7 +158,9 @@ static OutputCtx *OutputNFSLogInitSub(ConfNode *conf,
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_NFS);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_NFS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

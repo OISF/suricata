@@ -151,30 +151,31 @@ static void OutputSmtpLogDeInitCtxSub(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "smtp.json"
-static OutputCtx *OutputSmtpLogInit(ConfNode *conf)
+static OutputInitResult OutputSmtpLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_SMTP_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
     if (unlikely(email_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(email_ctx);
-        return NULL;
+        return result;
     }
 
     email_ctx->file_ctx = file_ctx;
@@ -185,21 +186,24 @@ static OutputCtx *OutputSmtpLogInit(ConfNode *conf)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
-static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
     if (unlikely(email_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(email_ctx);
-        return NULL;
+        return result;
     }
 
     email_ctx->file_ctx = ojc->file_ctx;
@@ -212,7 +216,9 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

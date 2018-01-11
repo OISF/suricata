@@ -374,12 +374,12 @@ static void LogTlsStoreLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFilestoreCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogTlsStoreLogInitCtx(ConfNode *conf)
+static OutputInitResult LogTlsStoreLogInitCtx(ConfNode *conf)
 {
-
+    OutputInitResult result = { NULL, false };
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
-        return NULL;
+        return result;
 
     output_ctx->data = NULL;
     output_ctx->DeInit = LogTlsStoreLogDeInitCtx;
@@ -408,7 +408,9 @@ static OutputCtx *LogTlsStoreLogInitCtx(ConfNode *conf)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
-    SCReturnPtr(output_ctx, "OutputCtx");
+    result.ctx = output_ctx;
+    result.ok = true;
+    SCReturnCT(result, "OutputInitResult");
 }
 
 void LogTlsStoreRegister (void)

@@ -315,24 +315,25 @@ static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogDnsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
 
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
@@ -342,7 +343,7 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(dnslog_ctx);
-        return NULL;
+        return result;
     }
 
     output_ctx->data = dnslog_ctx;
@@ -353,7 +354,9 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #endif /* !HAVE_RUST */

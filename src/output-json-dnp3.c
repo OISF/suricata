@@ -362,20 +362,21 @@ static void OutputDNP3LogDeInitCtxSub(OutputCtx *output_ctx)
 
 #define DEFAULT_LOG_FILENAME "dnp3.json"
 
-static OutputCtx *OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
 
     LogDNP3FileCtx *dnp3log_ctx = SCCalloc(1, sizeof(*dnp3log_ctx));
     if (unlikely(dnp3log_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     dnp3log_ctx->file_ctx = ajt->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(dnp3log_ctx);
-        return NULL;
+        return result;
     }
     output_ctx->data = dnp3log_ctx;
     output_ctx->DeInit = OutputDNP3LogDeInitCtxSub;
@@ -384,7 +385,9 @@ static OutputCtx *OutputDNP3LogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNP3);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

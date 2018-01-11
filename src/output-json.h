@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+#include "output.h"
 
 void OutputJsonRegister(void);
 
@@ -46,7 +47,7 @@ void JsonFiveTuple(const Packet *, int, json_t *);
 json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
 json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
-OutputCtx *OutputJsonInitCtx(ConfNode *);
+OutputInitResult OutputJsonInitCtx(ConfNode *);
 
 /*
  * Global configuration context data
