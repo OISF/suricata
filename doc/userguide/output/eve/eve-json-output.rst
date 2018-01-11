@@ -92,6 +92,9 @@ The most common way to use this is through 'EVE', which is a firehose approach w
             # force logging of checksums, available hash functions are md5,
             # sha1 and sha256
             #force-hash: [md5]
+            # force hash calculation for truncated files
+            #force-hash-truncated: yes
+
         #- drop:
         #    alerts: yes      # log alerts that caused drops
         #    flows: all       # start or all: 'start' logs only a single drop
