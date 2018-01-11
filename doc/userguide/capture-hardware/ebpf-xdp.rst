@@ -242,6 +242,9 @@ also use the ``/etc/suricata/ebpf/xdp_filter.bpf`` (in our example TCP offloadin
     ring-size: 200000
 
 
+XDP bypass is compatible with AF_PACKET IPS mode. Packets from bypassed flows will be send directly 
+from one card to the second card without going by the kernel network stack.
+
 Setup symmetric hashing on the NIC
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
