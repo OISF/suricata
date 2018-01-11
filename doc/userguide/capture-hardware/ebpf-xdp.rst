@@ -276,6 +276,18 @@ Try to use the network's card balancing as much as possible ::
  	/sbin/ethtool -N eth3 rx-flow-hash $proto sdfn
  done
 
+The XDP CPU redirect case
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If ever your hardware is not able to do a symetric load balancing but support XDP in driver mode, you
+can then use the CPU redirect map support available in the xdp_filter.bpf file. In this mode, the load
+balancinf will be done by the XDP filter and each CPU will handle the whole packet treatment including
+the creation of the skb structure in kernel.
+
+To do so set the `cpu-set` variable in af-packet interface configuration to a set of CPUs.
+Then use the `cluster_cpu` as load balancing function. You will also need to set the affinity
+accordingly.
+
 Start Suricata with XDP
 ~~~~~~~~~~~~~~~~~~~~~~~
 
