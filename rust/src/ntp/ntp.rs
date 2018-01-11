@@ -268,21 +268,17 @@ pub extern "C" fn rs_ntp_tx_get_alstate_progress(_tx: *mut libc::c_void,
 #[no_mangle]
 pub extern "C" fn rs_ntp_tx_set_logged(_state: &mut NTPState,
                                        tx: &mut NTPTransaction,
-                                       logger: libc::uint32_t)
+                                       logged: libc::uint32_t)
 {
-    tx.logged.set_logged(logger);
+    tx.logged.set(logged);
 }
 
 #[no_mangle]
 pub extern "C" fn rs_ntp_tx_get_logged(_state: &mut NTPState,
-                                       tx: &mut NTPTransaction,
-                                       logger: libc::uint32_t)
-                                       -> i8
+                                       tx: &mut NTPTransaction)
+                                       -> u32
 {
-    if tx.logged.is_logged(logger) {
-        return 1;
-    }
-    return 0;
+    return tx.logged.get();
 }
 
 
