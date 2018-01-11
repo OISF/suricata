@@ -264,14 +264,15 @@ static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogTlsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx* file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_TLS_LOG_GENERIC, "LogTlsLogInitCtx: Couldn't "
         "create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
@@ -325,7 +326,9 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     /* enable the logger for the app layer */
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 parser_error:
     SCLogError(SC_ERR_INVALID_ARGUMENT,"Syntax error in custom tls log format string.");
 tlslog_error:
@@ -333,7 +336,7 @@ tlslog_error:
     SCFree(tlslog_ctx);
 filectx_error:
     LogFileFreeCtx(file_ctx);
-    return NULL;
+    return result;
 }
 
 /* Custom format logging */

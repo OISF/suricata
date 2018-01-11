@@ -170,7 +170,7 @@ static int PcapLog(ThreadVars *, void *, const Packet *);
 static TmEcode PcapLogDataInit(ThreadVars *, const void *, void **);
 static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
-static OutputCtx *PcapLogInitCtx(ConfNode *);
+static OutputInitResult PcapLogInitCtx(ConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
 static int PcapLogCondition(ThreadVars *, const Packet *);
 
@@ -931,8 +931,9 @@ error:
  *  \param conf The configuration node for this output.
  *  \retval output_ctx
  * */
-static OutputCtx *PcapLogInitCtx(ConfNode *conf)
+static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     const char *pcre_errbuf;
     int pcre_erroffset;
 
@@ -1162,7 +1163,9 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
     output_ctx->DeInit = PcapLogFileDeInitCtx;
     g_pcap_data = pl;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)

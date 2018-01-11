@@ -532,8 +532,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-OutputCtx *OutputJsonInitCtx(ConfNode *conf)
+OutputInitResult OutputJsonInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
 
     /* First lookup a sensor-name value in this outputs configuration
@@ -550,14 +551,14 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 
     if (unlikely(json_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
-        return NULL;
+        return result;
     }
 
     json_ctx->file_ctx = LogFileNewCtx();
     if (unlikely(json_ctx->file_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
         SCFree(json_ctx);
-        return NULL;
+        return result;
     }
 
     if (sensor_name) {
@@ -565,7 +566,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         if (json_ctx->file_ctx->sensor_name  == NULL) {
             LogFileFreeCtx(json_ctx->file_ctx);
             SCFree(json_ctx);
-            return NULL;
+            return result;
         }
     } else {
         json_ctx->file_ctx->sensor_name = NULL;
@@ -575,7 +576,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(json_ctx->file_ctx);
         SCFree(json_ctx);
-        return NULL;
+        return result;
     }
 
     output_ctx->data = json_ctx;
@@ -637,7 +638,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
-                return NULL;
+                return result;
             }
             OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
         } else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
@@ -681,14 +682,14 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
-                return NULL;
+                return result;
             }
 
             if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
-                return NULL;
+                return result;
             }
         }
 #endif
@@ -707,7 +708,10 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
     }
 
     SCLogDebug("returning output_ctx %p", output_ctx);
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputJsonDeInitCtx(OutputCtx *output_ctx)

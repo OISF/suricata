@@ -412,22 +412,23 @@ static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
+static OutputInitResult LogFileLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("Could not create new LogFileCtx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
-        return NULL;
+        return result;
 
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = LogFileLogDeInitCtx;
@@ -446,7 +447,10 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 
     FileForceHashParseCfg(conf);
     FileForceTrackingEnable();
-    SCReturnPtr(output_ctx, "OutputCtx");
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    SCReturnCT(result, "OutputInitResult");
 }
 
 void LogFileLogRegister (void)

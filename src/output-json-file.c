@@ -274,18 +274,19 @@ static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputFileCtx *output_file_ctx = SCMalloc(sizeof(OutputFileCtx));
     if (unlikely(output_file_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(output_file_ctx);
-        return NULL;
+        return result;
     }
 
     output_file_ctx->file_ctx = ojc->file_ctx;
@@ -310,7 +311,9 @@ static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->DeInit = OutputFileLogDeinitSub;
 
     FileForceTrackingEnable();
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonFileLogRegister (void)
