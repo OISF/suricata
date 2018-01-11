@@ -37,12 +37,4 @@ impl LoggerFlags {
         self.flags = bits;
     }
 
-    pub fn set_logged(&mut self, logger: u32) {
-        self.flags |= logger;
-    }
-
-    pub fn is_logged(&self, logger: u32) -> bool {
-        self.flags & logger != 0
-    }
-
 }
