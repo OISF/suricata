@@ -57,6 +57,7 @@
 #include "output-json-alert.h"
 #include "output-json-dnp3.h"
 #include "output-json-http.h"
+#include "output-json-ja3.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
@@ -70,6 +71,7 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
+#include "util-ja3.h"
 #include "util-crypt.h"
 #include "util-validate.h"
 
@@ -91,8 +93,9 @@
 #define LOG_JSON_FLOW              BIT_U16(11)
 #define LOG_JSON_HTTP_BODY         BIT_U16(12)
 #define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_JA3               BIT_U16(14)
 
-#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW|LOG_JSON_JA3)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -149,6 +152,23 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
         JsonSshLogJSON(tjs, ssh_state);
 
         json_object_set_new(js, "ssh", tjs);
+    }
+
+    return;
+}
+
+static void AlertJsonJa3(const Flow *f, json_t *js)
+{
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
+    if (ssl_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonJa3LogHash(tjs, ssl_state, "hash");
+        JsonJa3LogStr(tjs, ssl_state, "str");
+
+        json_object_set_new(js, "ja3", tjs);
     }
 
     return;
@@ -408,6 +428,16 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* ssh alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_JA3) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* ja3 alert */
+                if (proto == ALPROTO_TLS)
+                    AlertJsonJa3(p->flow, js);
             }
         }
 
@@ -791,6 +821,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
         SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
         SetFlag(conf, "ssh",  LOG_JSON_SSH,  &json_output_ctx->flags);
+        SetFlag(conf, "ja3",  LOG_JSON_JA3,  &json_output_ctx->flags);
         SetFlag(conf, "smtp", LOG_JSON_SMTP, &json_output_ctx->flags);
         SetFlag(conf, "dnp3", LOG_JSON_DNP3, &json_output_ctx->flags);
 
@@ -802,6 +833,12 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
+
+        if ((json_output_ctx->flags & LOG_JSON_JA3) &&
+                Ja3IsDisabled("JA3 from alert metadata")) {
+            /* JA3 is disabled, so remove JA3 from alert metadata */
+            json_output_ctx->flags &= ~LOG_JSON_JA3;
+        }
 
         if (payload_buffer_value != NULL) {
             uint32_t value;
