@@ -67,24 +67,6 @@
  */
 #define DETECT_ENGINE_STATE_FLAG_FILE_NEW       BIT_U8(0)
 
-/* We have 2 possible state values to be used by ContinueDetection() while
- * trying to figure if we have fresh state to install or not.
- *
- * For tx based alprotos, we don't need to indicate the below values on a
- * per sig basis, but for non-tx based alprotos we do, since we might have
- * new alstate coming in, and some sigs might have already matchced in
- * de_state and ContinueDetection needs to inform the detection filter that
- * it no longer needs to inspect this sig, since ContinueDetection would
- * handle it.
- *
- * Wrt tx based alprotos, if we have a new tx available apart from the one
- * currently being inspected(and also added to de_state), we continue with
- * the HAS_NEW_STATE flag, while if we don't have a new tx, we set
- * NO_NEW_STATE, to avoid getting the sig reinspected for the already
- * inspected tx. */
-//#define DE_STATE_MATCH_HAS_NEW_STATE 0x00
-//#define DE_STATE_MATCH_NO_NEW_STATE  0x80
-
 typedef struct DeStateStoreItem_ {
     uint32_t flags;
     SigIntId sid;
@@ -133,51 +115,6 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void DetectEngineStateFree(DetectEngineState *state);
-
-/**
- * \brief Check if a flow already contains(newly updated as well) de state.
- *
- * \param f Pointer to the flow.
- * \param flags direction
- *
- * \retval 1 Has state.
- * \retval 0 Has no state.
- */
-int DeStateFlowHasInspectableState(const Flow *f, const uint8_t flags);
-
-/**
- * \brief Match app layer sig list against app state and store relevant match
- *        information.
- *
- * \param tv Pointer to the threadvars.
- * \param de_ctx DetectEngineCtx instance.
- * \param det_ctx DetectEngineThreadCtx instance.
- * \param s Pointer to the signature.
- * \param f Pointer to the flow.
- * \param flags Flags.
- * \param alproto App protocol.
- *
- * \retval bool true is sig matched, false if it didn't
- */
-bool DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                DetectEngineThreadCtx *det_ctx,
-                                const Signature *s, Packet *p, Flow *f,
-                                const uint8_t flags, const AppProto alproto);
-
-/**
- * \brief Continue DeState detection of the signatures stored in the state.
- *
- * \param tv Pointer to the threadvars.
- * \param de_ctx DetectEngineCtx instance.
- * \param det_ctx DetectEngineThreadCtx instance.
- * \param f Pointer to the flow.
- * \param flags Flags.
- * \param alproto App protocol.
- */
-void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
-                                    DetectEngineThreadCtx *det_ctx,
-                                    Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto);
 
 /**
  *  \brief Update the inspect id.
