@@ -346,6 +346,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_RENAMING_FILE);
         CASE_CODE (SC_ERR_PF_RING_VLAN);
         CASE_CODE (SC_ERR_CREATE_DIRECTORY);
+        CASE_CODE (SC_ERR_MAX);
     }
 
     return "UNKNOWN_ERROR";
