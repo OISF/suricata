@@ -29,10 +29,22 @@
 struct ThreadVars_;
 
 /**
+ * \brief These are modifiers that, regardless of the counter type,
+ *        change the behavior of the counter or the way it is written in the
+ *        output.
+ */
+enum {
+    STATS_FLAGS_RESETTING = 0x001,      // reset at every output
+};
+
+/**
  * \brief Container to hold the counter variable
  */
 typedef struct StatsCounter_ {
     int type;
+
+    /* LL: modifier flags for the counter type */
+    uint32_t flags;
 
     /* local id for this counter in this thread */
     uint16_t id;
@@ -43,6 +55,9 @@ typedef struct StatsCounter_ {
     /* counter value(s): copies from the 'private' counter */
     uint64_t value;     /**< sum of updates/increments, or 'set' value */
     uint64_t updates;   /**< number of updates (for avg) */
+
+    /* need backsync */
+    uint8_t backsync;
 
     /* when using type STATS_TYPE_Q_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
@@ -118,10 +133,13 @@ uint16_t StatsRegisterAvgCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterMaxCounter(const char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(const char *cname, uint64_t (*Func)(void));
 
+void StatsSetFlags(struct ThreadVars_ *, uint16_t, uint32_t);
+
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
+void StatsReset(struct ThreadVars_ *, uint16_t);
 
 /* utility functions */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
