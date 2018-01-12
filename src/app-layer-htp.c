@@ -1180,13 +1180,14 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 
 static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
 {
+    SCEnter();
     if (tx && tx->de_state) {
         if (dir == STREAM_TOSERVER) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         } else if (STREAM_TOCLIENT) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW set");
-            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
     }
 }
@@ -2748,26 +2749,37 @@ static int HTPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static uint64_t HTPGetTxMpmIDs(void *vtx)
+static uint64_t HTPGetTxDetectFlags(void *vtx, uint8_t dir)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    return tx_ud ? tx_ud->mpm_ids : 0;
+    if (tx_ud) {
+        if (dir & STREAM_TOSERVER) {
+            return tx_ud->detect_flags_ts;
+        } else {
+            return tx_ud->detect_flags_tc;
+        }
+    }
+    return 0;
 }
 
-static int HTPSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
+static void HTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
-            return -ENOMEM;
+            return;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx, tx_ud);
     }
-    tx_ud->mpm_ids = mpm_ids;
-    return 0;
+    if (dir & STREAM_TOSERVER) {
+        tx_ud->detect_flags_ts = detect_flags;
+    } else {
+        tx_ud->detect_flags_tc = detect_flags;
+    }
+    return;
 }
 
 static int HTPRegisterPatternsForProtocolDetection(void)
@@ -2858,8 +2870,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPStateHasTxDetectState,
                                                HTPGetTxDetectState, HTPSetTxDetectState);
-        AppLayerParserRegisterMpmIDsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
-                                               HTPGetTxMpmIDs, HTPSetTxMpmIDs);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
+                                               HTPGetTxDetectFlags, HTPSetTxDetectFlags);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
                                      HTPHandleRequestData);
@@ -3238,10 +3250,7 @@ end:
  *        properly parsed them and also keeps them separated. */
 static int HTPParserTest05(void)
 {
-    int result = 0;
-    Flow *f = NULL;
-    HtpState *http_state = NULL;
-    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\nContent-Length: 17\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint8_t httpbuf2[] = "Post D";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
@@ -3254,111 +3263,70 @@ static int HTPParserTest05(void)
     uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
     uint8_t httpbuf6[] = "esults are tha bomb!";
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
-    TcpSession ssn;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
+    TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                                 STREAM_TOSERVER | STREAM_START, httpbuf1,
                                 httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                             STREAM_TOCLIENT | STREAM_START, httpbuf4,
                             httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT,
                             httpbuf5, httplen5);
-    if (r != 0) {
-        printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
                             httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                             STREAM_TOSERVER | STREAM_EOF, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
+    FAIL_IF(r != 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                             STREAM_TOCLIENT | STREAM_EOF, httpbuf6, httplen6);
-    if (r != 0) {
-        printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != 0);
 
-    http_state = f->alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_POST ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_0)
-    {
-        printf("expected method M_POST and got %s: , expected protocol "
-                "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
+    FAIL_IF_NOT(tx->request_method_number == HTP_M_POST);
+    FAIL_IF_NOT(tx->request_protocol_number == HTP_PROTOCOL_1_0);
 
-    if (tx->response_status_number != 200) {
-        printf("expected response 200 OK and got %"PRId32" %s: , expected protocol "
-                "HTTP/1.0 and got %s \n", tx->response_status_number,
-               bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
-        goto end;
-    }
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF_NOT(tx->response_status_number == 200);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test proper chunked encoded response body
  */
 static int HTPParserTest06(void)
 {
-    int result = 0;
-    Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
                          "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
                          "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
@@ -3402,73 +3370,48 @@ static int HTPParserTest06(void)
                          "aHA=\r\n0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    HtpState *http_state = NULL;
+
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&ssn, 0, sizeof(ssn));
 
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
 
-    FLOWLOCK_WRLOCK(f);
     int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                                 STREAM_TOSERVER | STREAM_START, httpbuf1,
                                 httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-
+    FAIL_IF(r != 0);
     r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
                             STREAM_TOCLIENT | STREAM_START, httpbuf2,
                             httplen2);
-    if (r != 0) {
-        printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF(r != 0);
 
-    http_state = f->alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    HtpState *http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
 
     htp_tx_t *tx = HTPStateGetTx(http_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (tx->request_method_number != HTP_M_GET ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
-    {
-        printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
 
-    if (tx->response_status_number != 200 ||
-        h == NULL || tx->request_protocol_number != HTP_PROTOCOL_1_1)
-    {
-        printf("expected response 200 OK and got %"PRId32" %s: , expected proto"
-                "col HTTP/1.1 and got %s \n", tx->response_status_number,
-                bstr_util_strdup_to_c(tx->response_message),
-                bstr_util_strdup_to_c(tx->response_protocol));
-        goto end;
-    }
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    FAIL_IF(tx->response_status_number != 200);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
+
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test

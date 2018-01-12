@@ -326,9 +326,6 @@ int DetectEngineInspectStream(ThreadVars *tv,
     if (ssn == NULL)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
 
-    if (det_ctx->stream_already_inspected)
-        return det_ctx->stream_last_result;
-
     uint64_t unused;
     struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
     int match = StreamReassembleRaw(f->protoctx, p,
@@ -349,19 +346,15 @@ int DetectEngineInspectStream(ThreadVars *tv,
     SCLogDebug("%s ran stream for sid %u on packet %"PRIu64" and we %s",
             is_last? "LAST:" : "normal:", s->id, p->pcap_cnt,
             match ? "matched" : "didn't match");
-    det_ctx->stream_already_inspected = true;
 
     if (match) {
-        det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_MATCH;
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
         if (is_last) {
-            det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
             //SCLogNotice("last, so DETECT_ENGINE_INSPECT_SIG_CANT_MATCH");
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         }
         /* TODO maybe we can set 'CANT_MATCH' for EOF too? */
-        det_ctx->stream_last_result = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 }

@@ -19,7 +19,7 @@
 #define __DETECT_ENGINE_BUILD_H__
 
 void PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
-        bool has_state, bool app_decoder_events);
+        bool app_decoder_events);
 
 int SignatureIsFilestoring(const Signature *);
 int SignatureIsFilemagicInspecting(const Signature *);

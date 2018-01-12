@@ -65,7 +65,6 @@
 
 static int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHeaderRegisterTests(void);
-static void DetectHttpHeaderSetupCallback(Signature *);
 static int g_http_header_buffer_id = 0;
 static int g_keyword_thread_id = 0;
 
@@ -367,12 +366,6 @@ static int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   ALPROTO_HTTP);
 }
 
-static void DetectHttpHeaderSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -400,9 +393,6 @@ void DetectHttpHeaderRegister(void)
 
     DetectBufferTypeSetDescriptionByName("http_header",
             "http headers");
-
-    DetectBufferTypeRegisterSetupCallback("http_header",
-            DetectHttpHeaderSetupCallback);
 
     g_http_header_buffer_id = DetectBufferTypeGetByName("http_header");
 

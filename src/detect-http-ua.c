@@ -62,7 +62,6 @@
 static int DetectHttpUASetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpUARegisterTests(void);
 static void DetectHttpUAFree(void *);
-static void DetectHttpUASetupCallback(Signature *);
 static int g_http_ua_buffer_id = 0;
 
 /**
@@ -90,9 +89,6 @@ void DetectHttpUARegister(void)
     DetectBufferTypeSetDescriptionByName("http_user_agent",
             "http user agent");
 
-    DetectBufferTypeRegisterSetupCallback("http_user_agent",
-            DetectHttpUASetupCallback);
-
     g_http_ua_buffer_id = DetectBufferTypeGetByName("http_user_agent");
 }
 
@@ -115,12 +111,6 @@ int DetectHttpUASetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
                                                   DETECT_AL_HTTP_USER_AGENT,
                                                   g_http_ua_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpUASetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /**

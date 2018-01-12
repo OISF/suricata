@@ -390,12 +390,12 @@ static void SMTPPruneFiles(FileContainer *files)
 static void FlagDetectStateNewFile(SMTPTransaction *tx)
 {
     if (tx && tx->de_state) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
     } else if (tx == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX");
     } else if (tx->de_state == NULL) {
-        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX DESTATE");
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW NOT set, no TX DESTATE");
     }
 }
 
@@ -1631,6 +1631,26 @@ static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
     return 0;
 }
 
+static uint64_t SMTPGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+static void SMTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = flags;
+    } else {
+        tx->detect_flags_tc = flags;
+    }
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1660,6 +1680,9 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, NULL,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
+                                               SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);
+
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);

@@ -67,7 +67,6 @@ static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-static void DetectHttpRequestLineSetupCallback(Signature *s);
 static int g_http_request_line_buffer_id = 0;
 
 /**
@@ -94,9 +93,6 @@ void DetectHttpRequestLineRegister(void)
     DetectBufferTypeSetDescriptionByName("http_request_line",
             "http request line");
 
-    DetectBufferTypeRegisterSetupCallback("http_request_line",
-            DetectHttpRequestLineSetupCallback);
-
     g_http_request_line_buffer_id = DetectBufferTypeGetByName("http_request_line");
 }
 
@@ -118,12 +114,6 @@ static int DetectHttpRequestLineSetup(DetectEngineCtx *de_ctx, Signature *s, con
     s->init_data->list = g_http_request_line_buffer_id;
     s->alproto = ALPROTO_HTTP;
     return 0;
-}
-
-static void DetectHttpRequestLineSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 /** \brief HTTP request line Mpm prefilter callback
