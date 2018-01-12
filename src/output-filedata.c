@@ -124,44 +124,10 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     return file_logged;
 }
 
-static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
+static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
+        Packet *p, FileContainer *ffc, const uint8_t call_flags,
+        const bool file_close, const bool file_trunc)
 {
-    BUG_ON(thread_data == NULL);
-
-    if (list == NULL) {
-        /* No child loggers. */
-        return TM_ECODE_OK;
-    }
-
-    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
-    OutputFiledataLogger *logger = list;
-    OutputLoggerThreadStore *store = op_thread_data->store;
-
-    BUG_ON(logger == NULL && store != NULL);
-    BUG_ON(logger != NULL && store == NULL);
-    BUG_ON(logger == NULL && store == NULL);
-
-    uint8_t call_flags = 0;
-    Flow * const f = p->flow;
-
-    /* no flow, no files */
-    if (f == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (p->flowflags & FLOW_PKT_TOCLIENT)
-        call_flags |= STREAM_TOCLIENT;
-    else
-        call_flags |= STREAM_TOSERVER;
-
-    int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
-    int file_trunc = 0;
-
-    file_trunc = StreamTcpReassembleDepthReached(p);
-
-    FileContainer *ffc = AppLayerParserGetFiles(p->proto, f->alproto,
-                                                f->alstate, call_flags);
-    SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
@@ -193,7 +159,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 
             /* store */
 
-            /* if file_id == 0, this is the first store of this file */
+            /* if file_store_id == 0, this is the first store of this file */
             if (ff->file_store_id == 0) {
                 /* new file */
                 ff->file_store_id = SC_ATOMIC_ADD(g_file_store_id, 1);
@@ -220,7 +186,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
                     &data, &data_len,
                     ff->content_stored);
 
-            int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags);
+            const int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags);
             if (file_logged) {
                 ff->content_stored += data_len;
 
@@ -233,6 +199,40 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 
         FilePrune(ffc);
     }
+}
+
+static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
+{
+    BUG_ON(thread_data == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
+
+    OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
+    OutputLoggerThreadStore *store = op_thread_data->store;
+
+    /* no flow, no files */
+    Flow * const f = p->flow;
+    if (f == NULL || f->alstate == NULL) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    const bool file_close_ts = ((p->flags & PKT_PSEUDO_STREAM_END) &&
+            (p->flowflags & FLOW_PKT_TOSERVER));
+    const bool file_close_tc = ((p->flags & PKT_PSEUDO_STREAM_END) &&
+            (p->flowflags & FLOW_PKT_TOCLIENT));
+    const bool file_trunc = StreamTcpReassembleDepthReached(p);
+
+    FileContainer *ffc_ts = AppLayerParserGetFiles(p->proto, f->alproto,
+                                                   f->alstate, STREAM_TOSERVER);
+    FileContainer *ffc_tc = AppLayerParserGetFiles(p->proto, f->alproto,
+                                                   f->alstate, STREAM_TOCLIENT);
+    SCLogDebug("ffc_ts %p", ffc_ts);
+    OutputFiledataLogFfc(tv, store, p, ffc_ts, STREAM_TOSERVER, file_close_ts, file_trunc);
+    SCLogDebug("ffc_tc %p", ffc_tc);
+    OutputFiledataLogFfc(tv, store, p, ffc_tc, STREAM_TOCLIENT, file_close_tc, file_trunc);
 
     return TM_ECODE_OK;
 }
