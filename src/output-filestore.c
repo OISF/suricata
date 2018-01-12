@@ -57,7 +57,19 @@ typedef struct OutputFilestoreLogThread_ {
     OutputFilestoreCtx *ctx;
     uint32_t file_cnt;
     uint16_t counter_max_hits;
+    uint16_t fs_error_counter;
 } OutputFilestoreLogThread;
+
+/* For WARN_ONCE, a record of warnings that have already been
+ * issued. */
+static __thread bool once_errs[SC_ERR_MAX];
+
+#define WARN_ONCE(err_code, ...)  do {                   \
+        if (!once_errs[err_code]) {                      \
+            once_errs[err_code] = true;                  \
+            SCLogWarning(err_code, __VA_ARGS__);         \
+        }                                                \
+    } while (0)
 
 static uint64_t OutputFilestoreOpenFilesCounter(void)
 {
@@ -110,7 +122,8 @@ static void OutputFilestoreUpdateFileTime(const char *src_filename,
     }
 }
 
-static void OutputFilestoreFinalizeFiles(const OutputFilestoreCtx *ctx,
+static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
+        const OutputFilestoreLogThread *oft, const OutputFilestoreCtx *ctx,
         const Packet *p, File *ff) {
     /* Stringify the SHA256 which will be used in the final
      * filename. */
@@ -129,17 +142,19 @@ static void OutputFilestoreFinalizeFiles(const OutputFilestoreCtx *ctx,
     if (SCPathExists(final_filename)) {
         OutputFilestoreUpdateFileTime(tmp_filename, final_filename);
         if (unlink(tmp_filename) != 0) {
-            SCLogWarning(SC_WARN_REMOVE_FILE,
+            StatsIncr(tv, oft->fs_error_counter);
+            WARN_ONCE(SC_WARN_REMOVE_FILE,
                     "Failed to remove temporary file %s: %s", tmp_filename,
                     strerror(errno));
         }
     } else if (rename(tmp_filename, final_filename) != 0) {
-        SCLogWarning(SC_WARN_RENAMING_FILE, "Failed to rename %s to %s: %s",
+        StatsIncr(tv, oft->fs_error_counter);
+        WARN_ONCE(SC_WARN_RENAMING_FILE, "Failed to rename %s to %s: %s",
                 tmp_filename, final_filename, strerror(errno));
         if (unlink(tmp_filename) != 0) {
-            SCLogWarning(SC_WARN_REMOVE_FILE,
-                    "Failed to remove temporary file %s: %s", tmp_filename,
-                    strerror(errno));
+            /* Just increment, don't log as has_fs_errors would
+             * already be set above. */
+            StatsIncr(tv, oft->fs_error_counter);
         }
         return;
     }
@@ -188,20 +203,20 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
+        file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY,
+                0644);
+        if (file_fd == -1) {
+            StatsIncr(tv, aft->fs_error_counter);
+            SCLogWarning(SC_ERR_OPENING_FILE,
+                    "Filestore (v2) failed to create %s: %s", filename,
+                    strerror(errno));
+            return -1;
+        }
+
         if (SC_ATOMIC_GET(filestore_open_file_cnt) < FileGetMaxOpenFiles()) {
             SC_ATOMIC_ADD(filestore_open_file_cnt, 1);
-            ff->fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-            if (ff->fd == -1) {
-                SCLogNotice("failed to create file");
-                return -1;
-            }
-            file_fd = ff->fd;
+            ff->fd = file_fd;
         } else {
-            file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-            if (file_fd == -1) {
-                SCLogNotice("failed to create file");
-                return -1;
-            }
             if (FileGetMaxOpenFiles() > 0) {
                 StatsIncr(tv, aft->counter_max_hits);
             }
@@ -211,7 +226,10 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
         if (ff->fd == -1) {
             file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
             if (file_fd == -1) {
-                SCLogNotice("failed to open file %s: %s", filename, strerror(errno));
+                StatsIncr(tv, aft->fs_error_counter);
+                WARN_ONCE(SC_ERR_OPENING_FILE,
+                        "Filestore (v2) failed to open file %s: %s",
+                        filename, strerror(errno));
                 return -1;
             }
         } else {
@@ -222,7 +240,10 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
     if (file_fd != -1) {
         ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
-            SCLogDebug("write failed: %s", strerror(errno));
+            StatsIncr(tv, aft->fs_error_counter);
+            WARN_ONCE(SC_ERR_FWRITE,
+                    "Filestore (v2) failed to write to %s: %s",
+                    filename, strerror(errno));
             if (ff->fd != -1) {
                 SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
             }
@@ -239,7 +260,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             ff->fd = -1;
             SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
         }
-        OutputFilestoreFinalizeFiles(ctx, p, ff);
+        OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff);
     }
 
     return 0;
@@ -264,6 +285,11 @@ static TmEcode OutputFilestoreLogThreadInit(ThreadVars *t, const void *initdata,
 
     aft->counter_max_hits =
         StatsRegisterCounter("file_store.open_files_max_hit", t);
+
+    /* File system type errors (open, write, rename) will only be
+     * logged once. But this stat will be incremented for every
+     * occurence. */
+    aft->fs_error_counter = StatsRegisterCounter("file_store.fs_errors", t);
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -481,6 +507,5 @@ void OutputFilestoreRegister(void)
 
     SC_ATOMIC_INIT(filestore_open_file_cnt);
     SC_ATOMIC_SET(filestore_open_file_cnt, 0);
-    SCLogDebug("registered");
 #endif
 }
