@@ -584,6 +584,13 @@ static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
+    if (RunModeOutputFiledataEnabled()) {
+        SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                "A file data logger is already enabled. Filestore (v1) "
+                "will not be enabled.");
+        return result;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return result;

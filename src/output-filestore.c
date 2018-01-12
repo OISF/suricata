@@ -387,6 +387,13 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
         return result;
     }
 
+    if (RunModeOutputFiledataEnabled()) {
+        SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                "A file data logger is already enabled. Filestore (v2) "
+                "will not be enabled.");
+        return result;
+    }
+
     char log_directory[PATH_MAX] = "";
     GetLogDirectory(conf, log_directory, sizeof(log_directory));
     if (!InitFilestoreDirectory(log_directory)) {
