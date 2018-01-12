@@ -670,17 +670,13 @@ static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("enabling pid as a part of all file names");
     }
 
+    StatsRegisterGlobalCounter("file_store.open_files",
+            LogFilestoreOpenFilesCounter);
+
     result.ctx = output_ctx;
     result.ok = true;
     SCReturnCT(result, "OutputInitResult");
 }
-
-
-void LogFilestoreInitConfig(void)
-{
-    StatsRegisterGlobalCounter("file_store.open_files", LogFilestoreOpenFilesCounter);
-}
-
 
 void LogFilestoreRegister (void)
 {
