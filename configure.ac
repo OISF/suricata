@@ -401,12 +401,28 @@
 
     if test "x$enable_ebpf_build" = "xyes"; then
         if echo $CC | grep clang; then
-            AC_MSG_CHECKING([llc binary for clang version])
-            llc_version_line=$($CC --version|$GREP version)
-            llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
-            AC_MSG_RESULT($llc_version)
-            LLC="llc-$llc_version"
-            AC_SUBST(LLC)
+            if test "x$CC" = "xclang"; then
+                AC_MSG_CHECKING([llc binary])
+                AC_PATH_PROG(HAVE_LLC, llc, "yes", "no")
+                if test "$HAVE_LLC" = "yes"; then
+                    LLC="llc"
+                    AC_SUBST(LLC)
+                else
+                    AC_MSG_CHECKING([llc binary for clang version])
+                    llc_version_line=$($CC --version|$GREP version)
+                    llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+                    AC_MSG_RESULT($llc_version)
+                    LLC="llc-$llc_version"
+                    AC_SUBST(LLC)
+                fi
+            else
+                AC_MSG_CHECKING([llc binary for clang version])
+                llc_version_line=$($CC --version|$GREP version)
+                llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+                AC_MSG_RESULT($llc_version)
+                LLC="llc-$llc_version"
+                AC_SUBST(LLC)
+            fi
         else
             echo "clang needed to build ebpf files"
             exit 1        
