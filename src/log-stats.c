@@ -92,9 +92,11 @@ static int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
             "--------------------------------------\n");
     MemBufferWriteString(aft->buffer, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds)\n",
+            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds) "
+            "Timestamp %"PRIu64"\n",
             tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec, days, hours, min, sec);
+            tms->tm_min, tms->tm_sec, days, hours, min, sec,
+            (uint64_t) tval.tv_sec);
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
             "--------------------------------------\n");
     MemBufferWriteString(aft->buffer, "%-42s | %-25s | %-s\n", "Counter", "TM Name",

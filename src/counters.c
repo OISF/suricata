@@ -99,6 +99,7 @@ static uint32_t stats_tts = STATS_MGMTT_TTS;
 static char stats_enabled = TRUE;
 
 static int StatsOutput(ThreadVars *tv);
+static void StatsOutputPostProcess(void);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
 void StatsReleaseCounters(StatsCounter *head);
 
@@ -127,6 +128,33 @@ static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 }
 
 /**
+ * \brief This method is internally called before updating the local value
+ *        of a counter, and checks if if the need_backsync flag has been set.
+ *        In such case, it syncs back the the global performance counter
+ *        value to the local counter. This is mostly used in resetting counters.
+ *
+ * \param pcae     Pointer to the SCPerfCounterArray which holds the local
+ *                 versions of the counters
+ */
+static void StatsCheckBackSync(StatsLocalCounter *pcae) {
+    StatsCounter *pc = pcae->pc;
+
+    if (pc == NULL) {
+        // not yet initialized
+        return;
+    }
+
+    if (pc->backsync == TRUE) {
+        // sync back the global value to the local one
+        pcae->value = pc->value;
+        // reset the number of syncs (for AVG counters)
+        pcae->updates = 0;
+    }
+    // unset the flag anyway
+    pc->backsync = FALSE;
+}
+
+/**
  * \brief Adds a value of type uint64_t to the local counter.
  *
  * \param id  ID of the counter as set by the API
@@ -143,6 +171,7 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 #ifdef DEBUG
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
+    StatsCheckBackSync(&(pca->head[id]));
     pca->head[id].value += x;
     pca->head[id].updates++;
     return;
@@ -164,6 +193,7 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
 #ifdef DEBUG
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
+    StatsCheckBackSync(&(pca->head[id]));
     pca->head[id].value++;
     pca->head[id].updates++;
     return;
@@ -187,6 +217,7 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
 
+    StatsCheckBackSync(&(pca->head[id]));
     if ((pca->head[id].pc->type == STATS_TYPE_MAXIMUM) &&
             (x > pca->head[id].value)) {
         pca->head[id].value = x;
@@ -196,6 +227,27 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 
     pca->head[id].updates++;
 
+    return;
+}
+
+/**
+ * \brief Resets  a counter to zero. It's very similar to set value, but it
+ * ignores the maximum check
+ *
+ * \param id  Index of the local counter in the counter array
+ * \param pca Pointer to the StatsPrivateThreadContext
+ */
+void StatsReset(ThreadVars *tv, uint16_t id) {
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
+#ifdef UNITTESTS
+    if (pca->initialized == 0)
+        return;
+#endif
+#ifdef DEBUG
+    BUG_ON ((id < 1) || (id > pca->size));
+#endif
+    pca->head[id].value = 0;
+    pca->head[id].updates = 0;
     return;
 }
 
@@ -580,6 +632,17 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
     return pc->id;
 }
 
+void StatsSetFlags(ThreadVars * tv, uint16_t id, uint32_t flags) {
+    StatsCounter * ctr = tv->perf_public_ctx.head;
+    while (ctr != NULL) {
+        if (ctr->id == id)
+            break;
+        ctr = ctr->next;
+    }
+    BUG_ON (ctr == NULL);
+    ctr->flags |= flags;
+}
+
 /**
  * \brief Copies the StatsCounter value from the local counter present in the
  *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
@@ -591,7 +654,13 @@ static uint16_t StatsRegisterQualifiedCounter(const char *name, const char *tm_n
 static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 {
     StatsCounter *pc = pcae->pc;
-
+    if (pc->backsync == TRUE) {
+        /* a backsync is pending, we can't copy the value
+         * because it's stale. The SCPerfCounter value is more
+         * up to date */
+        SCLogDebug("CopyCounter was called on a stale counter");
+        return;
+    }
     pc->value = pcae->value;
     pc->updates = pcae->updates;
     return;
@@ -778,6 +847,7 @@ static int StatsOutput(ThreadVars *tv)
     if (stats_loggers_active) {
         OutputStatsLog(tv, td, &stats_table);
     }
+    StatsOutputPostProcess();
     return 1;
 }
 
@@ -800,9 +870,44 @@ TmEcode StatsOutputCounterSocket(json_t *cmd,
     SCMutexUnlock(&stats_table_mutex);
 
     json_object_set_new(answer, "message", message);
+    StatsOutputPostProcess();
     return r;
 }
 #endif /* BUILD_UNIX_SOCKET */
+
+ /**
+ * \brief Perform any post-operation on counters after having performed
+ *        all the logging. This is for now the point in which we reset
+ *        the resetting counters.
+ *
+ */
+static void StatsOutputPostProcess()
+{
+    StatsThreadStore *sts = NULL;
+    StatsCounter *pc = NULL;
+    /* Loop through the thread counter stores. */
+    sts = stats_ctx->sts;
+    SCLogDebug("sts %p", sts);
+    while (sts != NULL) {
+        SCLogDebug("Name %s ctx %p", sts->name, sts->ctx);
+        SCMutexLock(&sts->ctx->m);
+        pc = sts->ctx->head;
+        while (pc != NULL) {
+            // perform here any flag-based opearation on the perf counter
+            if (pc->flags & STATS_FLAGS_RESETTING) {
+                /* Reset the counter to 0 and mark the need for a backsync:
+                 * this is needed to propagate the reset back to the local
+                 * pcaelement.
+                 */
+                pc->value = 0;
+                pc->backsync = TRUE;
+            }
+            pc = pc->next;
+        }
+        SCMutexUnlock(&sts->ctx->m);
+        sts = sts->next;
+    }
+}
 
 static void StatsLogSummary(void)
 {
@@ -1539,6 +1644,146 @@ static int StatsTestCounterValues11(void)
     return result;
 }
 
+static int StatsTestCounterOperations12(void)
+{
+    ThreadVars tv;
+    int id1, id2;
+    int result = 1;
+    StatsPrivateThreadContext *pca = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
+    id2 = RegisterCounter("t2", "c2", &tv.perf_public_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    pca = &tv.perf_private_ctx;
+
+    StatsIncr(&tv, id1);
+    StatsAddUI64(&tv, id1, 100);
+    StatsIncr(&tv, id2);
+    StatsAddUI64(&tv, id2, 100);
+    StatsReset(&tv, id2);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+
+    result &= (101 == tv.perf_public_ctx.head->value);
+    result &= (0 == tv.perf_public_ctx.head->next->value);
+
+    StatsReleaseCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
+
+    return result;
+}
+
+static int StatsTestAverageQual13(void)
+{
+    ThreadVars tv;
+    StatsPrivateThreadContext *pca = NULL;
+
+    int result = 1;
+    uint16_t id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = StatsRegisterQualifiedCounter("t1", "c1", &tv.perf_public_ctx,
+            STATS_TYPE_AVERAGE, NULL);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    pca = &tv.perf_private_ctx;
+
+    StatsAddUI64(&tv, id1, 11);
+    StatsAddUI64(&tv, id1, 12);
+    StatsAddUI64(&tv, id1, 13);
+    StatsAddUI64(&tv, id1, 14);
+    StatsAddUI64(&tv, id1, 15);
+    StatsAddUI64(&tv, id1, 16);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+
+    result &= (81 == pca->head[id1].value);
+    result &= (6 == pca->head[id1].updates);
+    result &= (81 == tv.perf_public_ctx.head->value);
+
+    StatsReleaseCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
+
+    return result;
+}
+
+static int StatsTestMaxQual14(void)
+{
+    ThreadVars tv;
+    StatsPrivateThreadContext *pca = NULL;
+
+    int result = 1;
+    uint16_t id1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    id1 = StatsRegisterQualifiedCounter("t1", "c1", &tv.perf_public_ctx,
+            STATS_TYPE_MAXIMUM, NULL);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    pca = &tv.perf_private_ctx;
+
+    StatsSetUI64(&tv, id1, 1);
+    StatsSetUI64(&tv, id1, 5);
+    StatsSetUI64(&tv, id1, 4);
+    StatsSetUI64(&tv, id1, 5);
+    StatsSetUI64(&tv, id1, 1);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+    result &= (5 == tv.perf_public_ctx.head->value);
+
+    StatsSetUI64(&tv, id1, 8);
+    StatsSetUI64(&tv, id1, 7);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+    result &= (8 == tv.perf_public_ctx.head->value);
+
+    StatsSetUI64(&tv, id1, 6);
+    StatsSetUI64(&tv, id1, 10);
+    StatsSetUI64(&tv, id1, 9);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+    result &= (10 == tv.perf_public_ctx.head->value);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
+
+    return result;
+}
+
+static int StatsTestResetting15(void)
+{
+    ThreadVars tv;
+    StatsPrivateThreadContext *pca = NULL;
+    int result = 1;
+    uint16_t id1;
+    memset(&tv, 0, sizeof(ThreadVars));
+    id1 = StatsRegisterQualifiedCounter("t1", "c1", &tv.perf_public_ctx,
+            STATS_TYPE_MAXIMUM, NULL);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    pca = &tv.perf_private_ctx;
+
+    StatsSetFlags(&tv, id1, STATS_FLAGS_RESETTING);
+    StatsSetUI64(&tv, id1, 1);
+    StatsSetUI64(&tv, id1, 5);
+    StatsSetUI64(&tv, id1, 4);
+
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+    result &= (5 == tv.perf_public_ctx.head->value);
+
+    // manually trigger the reset (the output context is not initialized)
+    StatsCounter * pc = tv.perf_public_ctx.head;
+    pc->value = 0;
+    pc->backsync = TRUE;
+
+    StatsSetUI64(&tv, id1, 2);
+    StatsUpdateCounterArray(&tv.perf_private_ctx, &tv.perf_public_ctx);
+
+    result &= (2 == tv.perf_public_ctx.head->value);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
+    return result;
+}
 #endif
 
 void StatsRegisterTests(void)
@@ -1555,5 +1800,10 @@ void StatsRegisterTests(void)
     UtRegisterTest("StatsTestUpdateGlobalCounter10",
                    StatsTestUpdateGlobalCounter10);
     UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11);
+    UtRegisterTest("StatsTestCounterOperations12",
+            StatsTestCounterOperations12);
+    UtRegisterTest("StatsTestAverageQual13", StatsTestAverageQual13);
+    UtRegisterTest("StatsTestMaxQual14", StatsTestMaxQual14);
+    UtRegisterTest("StatsTestResetting15", StatsTestResetting15);
 #endif
 }
