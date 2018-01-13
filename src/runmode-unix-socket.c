@@ -589,6 +589,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
         case TM_ECODE_OK:
             if (unix_manager_pcap_task_interrupted == 1) {
                 SCLogInfo("Interrupting current run mode");
+                unix_manager_pcap_task_interrupted = 0;
                 return TM_ECODE_DONE;
             } else {
                 return TM_ECODE_OK;
