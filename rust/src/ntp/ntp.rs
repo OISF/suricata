@@ -377,12 +377,13 @@ pub extern "C" fn ntp_probing_parser(_flow: *const Flow, input:*const u8, input_
     }
 }
 
+const PARSER_NAME : &'static [u8] = b"ntp\0";
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_ntp_parser() {
-    let name = CString::new("ntp").unwrap();
     let default_port = CString::new("123").unwrap();
     let parser = RustParser {
-        name              : name.as_ptr(),
+        name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
         ipproto           : libc::IPPROTO_UDP,
         probe_ts          : ntp_probing_parser,
