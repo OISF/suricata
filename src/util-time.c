@@ -593,3 +593,8 @@ uint64_t SCGetSecondsUntil (const char *str, time_t epoch)
 
     return seconds;
 }
+
+uint64_t SCTimespecAsEpochMillis(const struct timespec* ts)
+{
+    return ts->tv_sec * 1000L + ts->tv_nsec / 1000000L;
+}
