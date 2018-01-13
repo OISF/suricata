@@ -418,7 +418,7 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
         continuous = json_is_true(cont_arg);
     }
 
-    UnixSocketAddPcapFileImpl(cmd, answer, data, continuous);
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, continuous);
 }
 
 /**
@@ -430,7 +430,7 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
  */
 static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t* answer, void *data)
 {
-    UnixSocketAddPcapFileImpl(cmd, answer, data, true);
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, true);
 }
 
 /**
