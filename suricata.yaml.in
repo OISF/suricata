@@ -208,6 +208,23 @@ outputs:
             # custom allows additional http fields to be included in eve-log
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
+            # HTTP X-Forwarded-For support by adding an extra field or overwriting
+            # the source or destination IP address (depending on flow direction)
+            # with the one reported in the X-Forwarded-For HTTP header. This is
+            # helpful when reviewing alerts for traffic that is being reverse
+            # or forward proxied.
+            xff:
+              enabled: no
+              # Two operation modes are available, "extra-data" and "overwrite".
+              mode: extra-data
+              # Two proxy deployments are supported, "reverse" and "forward". In
+              # a "reverse" deployment the IP address used is the last one, in a
+              # "forward" deployment the first IP address is used.
+              deployment: reverse
+              # Header name where the actual IP address will be reported, if more
+              # than one IP address is present, the last IP address will be the
+              # one taken into consideration.
+              header: X-Forwarded-For
         - dns:
             # This configuration uses the new DNS logging format,
             # the old configuration is still available:
@@ -251,6 +268,23 @@ outputs:
             # force logging of checksums, available hash functions are md5,
             # sha1 and sha256
             #force-hash: [md5]
+            # HTTP X-Forwarded-For support by adding an extra field or overwriting
+            # the source or destination IP address (depending on flow direction)
+            # with the one reported in the X-Forwarded-For HTTP header. This is
+            # helpful when reviewing alerts for traffic that is being reverse
+            # or forward proxied.
+            xff:
+              enabled: no
+              # Two operation modes are available, "extra-data" and "overwrite".
+              mode: extra-data
+              # Two proxy deployments are supported, "reverse" and "forward". In
+              # a "reverse" deployment the IP address used is the last one, in a
+              # "forward" deployment the first IP address is used.
+              deployment: reverse
+              # Header name where the actual IP address will be reported, if more
+              # than one IP address is present, the last IP address will be the
+              # one taken into consideration.
+              header: X-Forwarded-For
         #- drop:
         #    alerts: yes      # log alerts that caused drops
         #    flows: all       # start or all: 'start' logs only a single drop
@@ -515,6 +549,24 @@ outputs:
       # the use of this output module as it uses the SHA256 as the
       # file naming scheme.
       #force-hash: [sha1, md5]
+      # NOTE: X-Forwarded configuration is ignored if write-fileinfo is disabled
+      # HTTP X-Forwarded-For support by adding an extra field or overwriting
+      # the source or destination IP address (depending on flow direction)
+      # with the one reported in the X-Forwarded-For HTTP header. This is
+      # helpful when reviewing alerts for traffic that is being reverse
+      # or forward proxied.
+      xff:
+        enabled: no
+        # Two operation modes are available, "extra-data" and "overwrite".
+        mode: extra-data
+        # Two proxy deployments are supported, "reverse" and "forward". In
+        # a "reverse" deployment the IP address used is the last one, in a
+        # "forward" deployment the first IP address is used.
+        deployment: reverse
+        # Header name where the actual IP address will be reported, if more
+        # than one IP address is present, the last IP address will be the
+        # one taken into consideration.
+        header: X-Forwarded-For
 
   # output module to store extracted files to disk (old style, deprecated)
   #
