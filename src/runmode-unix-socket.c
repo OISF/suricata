@@ -188,7 +188,7 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 {
     PcapCommand *this = (PcapCommand *) data;
 
-    if (this->current_file && this->current_file->filename) {
+    if (this->current_file != NULL && this->current_file->filename != NULL) {
         json_object_set_new(answer, "message",
                             json_string(this->current_file->filename));
     } else {
@@ -470,6 +470,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         this->current_file = NULL;
     }
+
     if (TAILQ_EMPTY(&this->files)) {
         // nothing to do
         return TM_ECODE_OK;
