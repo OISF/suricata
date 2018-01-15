@@ -19,6 +19,7 @@
 
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "app-layer-smtp.h"
 
 #include "output.h"
@@ -49,6 +50,7 @@ typedef struct OutputFilestoreCtx_ {
     char prefix[FILESTORE_PREFIX_MAX];
     char tmpdir[FILESTORE_PREFIX_MAX];
     bool fileinfo;
+    HttpXFFCfg *xff_cfg;
 } OutputFilestoreCtx;
 
 typedef struct OutputFilestoreLogThread_ {
@@ -162,7 +164,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         snprintf(js_metadata_filename, sizeof(js_metadata_filename),
                 "%s.%"PRIuMAX".%u.json", final_filename,
                 (uintmax_t)p->ts.tv_sec, ff->file_store_id);
-        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true);
+        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, ctx->xff_cfg);
         if (likely(js_fileinfo != NULL)) {
             json_dump_file(js_fileinfo, js_metadata_filename, 0);
             json_decref(js_fileinfo);
@@ -307,6 +309,9 @@ static TmEcode OutputFilestoreLogThreadDeinit(ThreadVars *t, void *data)
 static void OutputFilestoreLogDeInitCtx(OutputCtx *output_ctx)
 {
     OutputFilestoreCtx *ctx = (OutputFilestoreCtx *)output_ctx->data;
+    if (ctx->xff_cfg != NULL) {
+        SCFree(ctx->xff_cfg);
+    }
     SCFree(ctx);
     SCFree(output_ctx);
 }
@@ -403,6 +408,11 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     }
     strlcpy(ctx->prefix, log_directory, sizeof(ctx->prefix));
     snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp", log_directory);
+
+    ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+    if (ctx->xff_cfg != NULL) {
+        HttpXFFGetCfg(conf, ctx->xff_cfg);
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
