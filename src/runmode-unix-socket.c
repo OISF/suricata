@@ -34,6 +34,7 @@
 #include "flow-timeout.h"
 #include "stream-tcp.h"
 #include "stream-tcp-reassemble.h"
+#include "source-pcap-file-directory-helper.h"
 #include "host.h"
 #include "defrag.h"
 #include "defrag-hash.h"
@@ -132,6 +133,7 @@ static int unix_manager_pcap_task_running = 0;
 static int unix_manager_pcap_task_failed = 0;
 static int unix_manager_pcap_task_interrupted = 0;
 static struct timespec unix_manager_pcap_last_processed;
+static SCCtrlMutex unix_manager_pcap_last_processed_mutex;
 
 /**
  * \brief return list of files in the queue
@@ -186,7 +188,7 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 {
     PcapCommand *this = (PcapCommand *) data;
 
-    if (this->current_file && this->current_file->filename) {
+    if (this->current_file != NULL && this->current_file->filename != NULL) {
         json_object_set_new(answer, "message",
                             json_string(this->current_file->filename));
     } else {
@@ -197,8 +199,11 @@ static TmEcode UnixSocketPcapCurrent(json_t *cmd, json_t* answer, void *data)
 
 static TmEcode UnixSocketPcapLastProcessed(json_t *cmd, json_t *answer, void *data)
 {
-    uint64_t epoch_millis = unix_manager_pcap_last_processed.tv_sec * 1000l +
-                        unix_manager_pcap_last_processed.tv_nsec / 100000l;
+    json_int_t epoch_millis;
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
+    epoch_millis = AsEpochMillis(&unix_manager_pcap_last_processed);
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
+
     json_object_set_new(answer, "message",
                         json_integer(epoch_millis));
 
@@ -291,15 +296,14 @@ static TmEcode UnixListAddFile(
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
  */
-static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data, bool continuous)
 {
     PcapCommand *this = (PcapCommand *) data;
     const char *filename;
     const char *output_dir;
     int tenant_id = 0;
-    bool continuous = false;
-    time_t delay = 30;
-    time_t poll_interval = 5;
+    time_t delay = 2;
+    time_t poll_interval = 1;
 #ifdef OS_WIN32
     struct _stat st;
 #else
@@ -362,11 +366,6 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
         tenant_id = json_number_value(targ);
     }
 
-    json_t *cont_arg = json_object_get(cmd, "continuous");
-    if (cont_arg != NULL) {
-        continuous = json_is_true(cont_arg);
-    }
-
     json_t *delay_arg = json_object_get(cmd, "delay");
     if (delay_arg != NULL) {
         if (!json_is_integer(delay_arg)) {
@@ -407,6 +406,37 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
 }
 
 /**
+ * \brief Command to add a file to treatment list
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+{
+    bool continuous = false;
+
+    json_t *cont_arg = json_object_get(cmd, "continuous");
+    if (cont_arg != NULL) {
+        continuous = json_is_true(cont_arg);
+    }
+
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, continuous);
+}
+
+/**
+ * \brief Command to add a file to treatment list, forcing continuous mode
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t* answer, void *data)
+{
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, true);
+}
+
+/**
  * \brief Handle the file queue
  *
  * This function check if there is currently a file
@@ -440,6 +470,7 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         this->current_file = NULL;
     }
+
     if (TAILQ_EMPTY(&this->files)) {
         // nothing to do
         return TM_ECODE_OK;
@@ -546,8 +577,10 @@ void RunModeUnixSocketRegister(void)
 TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
 {
 #ifdef BUILD_UNIX_SOCKET
+    SCCtrlMutexLock(&unix_manager_pcap_last_processed_mutex);
     unix_manager_pcap_last_processed.tv_sec = last_processed->tv_sec;
     unix_manager_pcap_last_processed.tv_nsec = last_processed->tv_nsec;
+    SCCtrlMutexUnlock(&unix_manager_pcap_last_processed_mutex);
     switch (tm) {
         case TM_ECODE_DONE:
             SCLogInfo("Marking current task as done");
@@ -562,6 +595,7 @@ TmEcode UnixSocketPcapFile(TmEcode tm, struct timespec *last_processed)
         case TM_ECODE_OK:
             if (unix_manager_pcap_task_interrupted == 1) {
                 SCLogInfo("Interrupting current run mode");
+                unix_manager_pcap_task_interrupted = 0;
                 return TM_ECODE_DONE;
             } else {
                 return TM_ECODE_OK;
@@ -1371,7 +1405,12 @@ static int RunModeUnixSocketMaster(void)
     pcapcmd->running = 0;
     pcapcmd->current_file = NULL;
 
+    memset(&unix_manager_pcap_last_processed, 0, sizeof(struct timespec));
+
+    SCCtrlMutexInit(&unix_manager_pcap_last_processed_mutex, NULL);
+
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("pcap-file-continuous", UnixSocketAddPcapFileContinuous, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-last-processed", UnixSocketPcapLastProcessed, pcapcmd, 0);

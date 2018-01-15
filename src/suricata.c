@@ -2245,8 +2245,10 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     FlowDisableFlowRecyclerThread();
 
     /* kill the stats threads */
-    TmThreadKillThreadsFamily(TVT_MGMT);
-    TmThreadClearThreadsFamily(TVT_MGMT);
+    if (!RunModeUnixSocketIsActive()) {
+        TmThreadKillThreadsFamily(TVT_MGMT);
+        TmThreadClearThreadsFamily(TVT_MGMT);
+    }
 
     /* kill packet threads -- already in 'disabled' state */
     TmThreadKillThreadsFamily(TVT_PPT);
@@ -2263,6 +2265,7 @@ void PostRunDeinit(const int runmode, struct timeval *start_time)
     HostCleanup();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     DefragDestroy();
+
     TmqResetQueues();
 #ifdef PROFILING
     if (profiling_rules_enabled)

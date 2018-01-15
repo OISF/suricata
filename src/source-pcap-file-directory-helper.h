@@ -31,6 +31,7 @@
 typedef struct PendingFile_
 {
     char *filename;
+    struct timespec modified_time;
     TAILQ_ENTRY(PendingFile_) next;
 } PendingFile;
 /**
@@ -49,6 +50,13 @@ typedef struct PcapFileDirectoryVars_
 
     PcapFileSharedVars *shared;
 } PcapFileDirectoryVars;
+
+/**
+ * Convert a timespec into milliseconds since epoch
+ * @param timespec
+ * @return time
+ */
+long AsEpochMillis(struct timespec *tm);
 
 /**
  * Cleanup resources associated with a PendingFile object

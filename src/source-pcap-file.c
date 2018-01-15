@@ -193,6 +193,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
     if (unlikely(ptv == NULL))
         SCReturnInt(TM_ECODE_FAILED);
     memset(ptv, 0, sizeof(PcapFileThreadVars));
+    memset(&ptv->shared.last_processed, 0, sizeof(struct timespec));
 
     intmax_t tenant = 0;
     if (ConfGetInt("pcap-file.tenant-id", &tenant) == 1) {

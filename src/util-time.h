@@ -62,6 +62,7 @@ int SCTimeToStringPattern (time_t epoch, const char *pattern, char *str,
                            size_t size);
 uint64_t SCParseTimeSizeString (const char *str);
 uint64_t SCGetSecondsUntil (const char *str, time_t epoch);
+uint64_t SCTimespecAsEpochMillis(const struct timespec *ts);
 
 #endif /* __UTIL_TIME_H__ */
 
