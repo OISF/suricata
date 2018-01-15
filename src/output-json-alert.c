@@ -598,9 +598,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
 
