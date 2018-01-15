@@ -1673,15 +1673,17 @@ void TmThreadDisablePacketThreads(void)
     ThreadVars *tv = NULL;
     struct timeval start_ts;
     struct timeval cur_ts;
-    gettimeofday(&start_ts, NULL);
 
     /* first drain all packet threads of their packets */
     TmThreadDrainPacketThreads();
+
+    gettimeofday(&start_ts, NULL);
 again:
     gettimeofday(&cur_ts, NULL);
     if ((cur_ts.tv_sec - start_ts.tv_sec) > 60) {
         FatalError(SC_ERR_FATAL, "Engine unable to disable detect "
-                "thread - \"%s\". Killing engine", tv->name);
+                "thread - \"%s\". Killing engine",
+                tv ? tv->name : "<unknown>");
     }
 
     SCMutexLock(&tv_root_lock);
