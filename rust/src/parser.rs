@@ -117,7 +117,7 @@ macro_rules! cast_pointer {
 
 pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
-                                       pstate: *const c_void,
+                                       pstate: *mut c_void,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void) -> i8;

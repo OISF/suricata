@@ -192,7 +192,7 @@ pub extern "C" fn rs_ntp_state_free(state: *mut libc::c_void) {
 #[no_mangle]
 pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
-                                       _pstate: *const libc::c_void,
+                                       _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void) -> i8 {
@@ -204,7 +204,7 @@ pub extern "C" fn rs_ntp_parse_request(_flow: *const core::Flow,
 #[no_mangle]
 pub extern "C" fn rs_ntp_parse_response(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
-                                       _pstate: *const libc::c_void,
+                                       _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
                                        _data: *const libc::c_void) -> i8 {
