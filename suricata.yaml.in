@@ -376,6 +376,14 @@ outputs:
       # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
       max-files: 2000
 
+      # Compression algorithm for pcap files. Possible values: none, lz4.
+      # Note that on Windows, enabling compression will *increase* disk I/O.
+      compression: none
+
+      # Further options for lz4 compression. The compression level can be set to a value between 0 and 16, where higher values mean higher compression, with 0 the default.
+      #lz4-checksum: no
+      #lz4-compression-level: 0
+
       mode: normal # normal, multi or sguil.
 
       # Directory to place pcap files. If not provided the default log
