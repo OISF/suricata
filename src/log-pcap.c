@@ -26,6 +26,9 @@
  */
 
 #include "suricata-common.h"
+#include "util-fmemopen.h"
+
+#include <lz4frame.h>
 
 #if defined(HAVE_DIRENT_H) && defined(HAVE_FNMATCH_H)
 #define INIT_RING_BUFFER
@@ -65,6 +68,7 @@
 #define MIN_LIMIT                       1 * 1024 * 1024
 #define DEFAULT_LIMIT                   100 * 1024 * 1024
 #define DEFAULT_FILE_LIMIT              0
+#define DEFAULT_COMPRESSION_FORMAT      "none"
 
 #define LOGMODE_NORMAL                  0
 #define LOGMODE_SGUIL                   1
@@ -108,6 +112,24 @@ typedef struct PcapLogProfileData_ {
 #define MAX_TOKS 9
 #define MAX_FILENAMELEN 513
 
+enum PcapLogCompressionFormat {
+    COMPRESSION_FORMAT_NONE,
+    COMPRESSION_FORMAT_LZ4,
+};
+
+typedef struct PcapLogCompressionData_ {
+    enum PcapLogCompressionFormat format;
+    unsigned char *buffer;
+    size_t buffer_size;
+    LZ4F_compressionContext_t lz4f_context;
+    LZ4F_preferences_t lz4f_prefs;
+    FILE *file;
+    char *pcap_buf;
+    size_t pcap_buf_size;
+    FILE *pcap_buf_wrapper;
+    size_t bytes_in_block;
+} PcapLogCompressionData;
+
 /**
  * PcapLog thread vars
  *
@@ -125,6 +147,7 @@ typedef struct PcapLogData_ {
     int prev_day;               /**< last day, for finding out when */
     uint64_t size_current;      /**< file current size */
     uint64_t size_limit;        /**< file size limit */
+    PcapLogCompressionData compression;
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
@@ -213,14 +236,49 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
     if (pl != NULL) {
         PCAPLOG_PROFILE_START;
 
-        if (pl->pcap_dumper != NULL)
+        PcapLogCompressionData *comp = &pl->compression;
+        if (pl->pcap_dumper != NULL) {
             pcap_dump_close(pl->pcap_dumper);
+            if (comp->format == COMPRESSION_FORMAT_LZ4) {
+                /* pcap_dump_close() has closed its output ``file'',
+                 * so the buffer has been freed - allocate it again. */
+                comp->pcap_buf = SCMalloc(comp->pcap_buf_size);
+                comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
+                    comp->pcap_buf_size, "w");
+                if (pl->compression.pcap_buf == NULL ||
+                    pl->compression.pcap_buf_wrapper == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "SCFmemopen failed: %s",
+                        strerror(errno));
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
         pl->size_current = 0;
         pl->pcap_dumper = NULL;
 
         if (pl->pcap_dead_handle != NULL)
             pcap_close(pl->pcap_dead_handle);
         pl->pcap_dead_handle = NULL;
+
+        if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+            /* pcap_dump_close did not write any data because we call
+             * pcap_dump_flush() after every write when writing
+	         * compressed output. */
+            size_t bytes_written = LZ4F_compressEnd(comp->lz4f_context,
+                comp->buffer, comp->buffer_size, NULL);
+            if (LZ4F_isError(bytes_written)) {
+                SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressEnd: %s",
+                    LZ4F_getErrorName(bytes_written));
+                return TM_ECODE_FAILED;
+            }
+            if (fwrite(comp->buffer, 1, bytes_written, comp->file) <
+                bytes_written) {
+                SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
+                return TM_ECODE_FAILED;
+            }
+            fclose(comp->file);
+            comp->bytes_in_block = 0;
+        }
 
         PCAPLOG_PROFILE_END(pl->profile_close);
     }
@@ -327,10 +385,41 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     }
 
     if (pl->pcap_dumper == NULL) {
-        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                        pl->filename)) == NULL) {
-            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
-            return TM_ECODE_FAILED;
+        if (pl->compression.format == COMPRESSION_FORMAT_NONE) {
+            if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
+                            pl->filename)) == NULL) {
+                SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+                return TM_ECODE_FAILED;
+            }
+        }
+        else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+            PcapLogCompressionData *comp = &pl->compression;
+            if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle,
+                comp->pcap_buf_wrapper)) == NULL) {
+                SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
+                    pcap_geterr(pl->pcap_dead_handle));
+                return TM_ECODE_FAILED;
+            }
+            comp->file = fopen(pl->filename, "w");
+            if (comp->file == NULL){
+                SCLogError(SC_ERR_OPENING_FILE,
+                    "Error opening file for compressed output: %s",
+                    strerror(errno));
+                return TM_ECODE_FAILED;
+            }
+
+            size_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
+                comp->buffer, comp->buffer_size, NULL);
+            if (LZ4F_isError(bytes_written)) {
+                SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressBegin: %s",
+                    LZ4F_getErrorName(bytes_written));
+                return TM_ECODE_FAILED;
+            }
+            if (fwrite(comp->buffer, 1, bytes_written, comp->file)
+                < bytes_written) {
+                SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
+                return TM_ECODE_FAILED;
+            }
         }
     }
 
@@ -421,11 +510,30 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
         }
     }
 
-    if ((pl->size_current + len) > pl->size_limit || rotate) {
-        if (PcapLogRotateFile(t,pl) < 0) {
-            PcapLogUnlock(pl);
-            SCLogDebug("rotation of pcap failed");
-            return TM_ECODE_FAILED;
+    PcapLogCompressionData *comp = &pl->compression;
+    if (comp->format == COMPRESSION_FORMAT_NONE) {
+        if ((pl->size_current + len) > pl->size_limit || rotate) {
+            if (PcapLogRotateFile(t,pl) < 0) {
+                PcapLogUnlock(pl);
+                SCLogDebug("rotation of pcap failed");
+                    return TM_ECODE_FAILED;
+            }
+        }
+    }
+    else if (comp->format == COMPRESSION_FORMAT_LZ4) {
+        /* When writing compressed pcap logs, we have no way of knowing
+         * for sure whether adding this packet would cause the current
+         * file to exceed the size limit. Thus, we record the number of
+         * bytes that have been fed into lz4 since the last write, and
+         * act as if they would be written uncompressed. */
+
+        if ((pl->size_current + comp->bytes_in_block + len) > pl->size_limit ||
+                rotate) {
+            if (PcapLogRotateFile(t,pl) < 0) {
+                PcapLogUnlock(pl);
+                SCLogDebug("rotation of pcap failed");
+                    return TM_ECODE_FAILED;
+            }
         }
     }
 
@@ -440,7 +548,35 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     PCAPLOG_PROFILE_START;
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
-    pl->size_current += len;
+    if (pl->compression.format == COMPRESSION_FORMAT_NONE) {
+        pl->size_current += len;
+    }
+    else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+        pcap_dump_flush(pl->pcap_dumper);
+        size_t in_size = (size_t)ftell(comp->pcap_buf_wrapper);
+        size_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
+            comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
+        if (LZ4F_isError(len)) {
+            SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s",
+                LZ4F_getErrorName(len));
+            return TM_ECODE_FAILED;
+        }
+        if (fseek(pl->compression.pcap_buf_wrapper, 0, SEEK_SET) != 0) {
+            SCLogError(SC_ERR_FSEEK, "fseek failed: %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        if (fwrite(comp->buffer, 1, out_size, comp->file) < out_size) {
+            SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        if (out_size > 0) {
+            pl->size_current += out_size;
+            comp->bytes_in_block = len;
+        } else {
+            comp->bytes_in_block += len;
+        }
+    }
+
     PCAPLOG_PROFILE_END(pl->profile_write);
     pl->profile_data_size += len;
 
@@ -1077,6 +1213,94 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             }
             SCLogInfo("Using log dir %s", pl->dir);
         }
+
+        const char *compression_str = NULL;
+        compression_str = ConfNodeLookupChildValue(conf, "compression");
+        if (compression_str == NULL) {
+            compression_str = DEFAULT_COMPRESSION_FORMAT;
+        }
+
+        PcapLogCompressionData *comp = &pl->compression;
+        if (strcmp(compression_str, "none") == 0) {
+            comp->format = COMPRESSION_FORMAT_NONE;
+            comp->buffer = NULL;
+            comp->buffer_size = 0;
+            comp->file = NULL;
+            comp->pcap_buf_wrapper = NULL;
+        }
+#ifdef HAVE_LIBLZ4
+        else if (strcmp(compression_str, "lz4") == 0) {
+            pl->compression.format = COMPRESSION_FORMAT_LZ4;
+
+            /* Use SCFmemopen so we can make pcap_dump write to a buffer. */
+
+            comp->pcap_buf_size = sizeof(struct pcap_file_header) +
+                sizeof(struct pcap_pkthdr) + PCAP_SNAPLEN;
+            comp->pcap_buf = SCMalloc(comp->pcap_buf_size);
+            comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
+                comp->pcap_buf_size, "w");
+            if (pl->compression.pcap_buf == NULL ||
+                pl->compression.pcap_buf_wrapper == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "SCFmemopen failed: %s",
+                    strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+
+            /* Set lz4 preferences. */
+
+            memset(&comp->lz4f_prefs, '\0', sizeof(comp->lz4f_prefs));
+            comp->lz4f_prefs.frameInfo.blockSizeID = max4MB;
+            comp->lz4f_prefs.frameInfo.blockMode = LZ4F_blockLinked;
+            if (ConfNodeChildValueIsTrue(conf, "lz4-checksum")) {
+                comp->lz4f_prefs.frameInfo.contentChecksumFlag = 1;
+            }
+            else {
+                comp->lz4f_prefs.frameInfo.contentChecksumFlag = 0;
+            }
+            intmax_t lvl = 0;
+            if (ConfGetChildValueInt(conf, "lz4-compression-level", &lvl)) {
+                if (lvl > 16) {
+                    lvl = 16;
+                }
+                else if (lvl < 0) {
+                    lvl = 0;
+                }
+            }
+            else {
+                lvl = 0;
+            }
+            comp->lz4f_prefs.compressionLevel = lvl;
+
+            /* Allocate resources for lz4. */
+
+            LZ4F_errorCode_t errcode =
+                LZ4F_createCompressionContext(&pl->compression.lz4f_context, 1);
+
+            if (LZ4F_isError(errcode)) {
+                SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_createCompressionContext failed: %s",
+                    LZ4F_getErrorName(errcode));
+                exit(EXIT_FAILURE);
+            }
+
+            /* Calculate the size of the lz4 output buffer. */
+
+            comp->buffer_size = LZ4F_compressBound(comp->pcap_buf_size,
+                &comp->lz4f_prefs);
+
+            comp->buffer = SCMalloc(comp->buffer_size);
+            if (unlikely(comp->buffer == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for "
+                    "lz4 output buffer.");
+            }
+        }
+#endif /* HAVE_LIBLZ4 */
+        else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Unsupported pcap-log "
+                "compression format: %s", compression_str);
+            exit(EXIT_FAILURE);
+        }
+
+        SCLogInfo("Selected pcap-log compression method: %s", compression_str);
     }
 
     SCLogInfo("using %s logging", pl->mode == LOGMODE_SGUIL ?
