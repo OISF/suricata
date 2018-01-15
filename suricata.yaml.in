@@ -509,6 +509,9 @@ logging:
   # This value is overriden by the SC_LOG_LEVEL env var.
   default-log-level: notice
 
+  # enforce the timezone to UTC
+  utc-timestamps: yes
+
   # The default output format.  Optional parameter, should default to
   # something reasonable if not provided.  Can be overriden in an
   # output section.  You can leave this out to get the default.

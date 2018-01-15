@@ -74,6 +74,16 @@ void TimeInit(void)
     tzset();
 }
 
+void TimeConfig(void) {
+    int use_utc_ts = 0;
+    if (ConfGetBool("logging.utc-timestamps", &use_utc_ts) == 1 &&
+            use_utc_ts == 1) {
+        setenv("TZ", "UTC", 1);
+        /* ReInit Time Zone settings. */
+        tzset();
+    }
+}
+
 void TimeDeinit(void)
 {
     SCSpinDestroy(&current_time_spinlock);
