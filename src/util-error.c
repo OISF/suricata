@@ -350,6 +350,9 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_SMB_CONFIG);
         CASE_CODE (SC_WARN_NO_JA3_SUPPORT);
         CASE_CODE (SC_WARN_JA3_DISABLED);
+        CASE_CODE (SC_ERR_PCAP_LOG_COMPRESS);
+        CASE_CODE (SC_ERR_FSEEK);
+
         CASE_CODE (SC_ERR_MAX);
     }
 

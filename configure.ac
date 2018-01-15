@@ -2052,6 +2052,9 @@
         fi
     fi
 
+# Check for lz4
+AC_CHECK_LIB(lz4, LZ4F_createCompressionContext, , )
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
