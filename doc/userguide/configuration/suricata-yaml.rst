@@ -1581,6 +1581,16 @@ The last three, f, l and n are mainly convenient for developers.
 The log-format can be overridden in the command line by the
 environment variable: SC_LOG_FORMAT
 
+
+Utc-timestamps
+~~~~~~~~~~~~~~
+
+By default, suricata will use the default timezone. It's possible to enforce
+the use of UTC timestamp by setting the appropriate boolean utc-timestamps.
+This parameter, when enabled, will reset the environment variable TZ to UTC and
+trigger the reinitialization of the Time configuration.
+
+
 Output-filter
 ~~~~~~~~~~~~~
 

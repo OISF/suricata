@@ -2819,6 +2819,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    TimeConfig();
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig(suricata.daemon, suricata.verbose);

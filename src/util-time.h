@@ -35,6 +35,7 @@ typedef struct SCTimeval32_ {
 } SCTimeval32;
 
 void TimeInit(void);
+void TimeConfig(void);
 void TimeDeinit(void);
 
 void TimeSetByThread(const int thread_id, const struct timeval *tv);
