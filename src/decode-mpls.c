@@ -45,7 +45,7 @@
 #define MPLS_PROTO_IPV6         6
 
 int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
-    uint16_t len, PacketQueue *pq)
+    uint32_t len, PacketQueue *pq)
 {
     uint32_t shim;
     int label;
@@ -65,6 +65,9 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
 
     label = MPLS_LABEL(shim);
     if (label == MPLS_LABEL_IPV4) {
+        if (len > USHRT_MAX) {
+            return TM_ECODE_FAILED;
+        }
         return DecodeIPV4(tv, dtv, p, pkt, len, pq);
     }
     else if (label == MPLS_LABEL_ROUTER_ALERT) {
@@ -72,6 +75,9 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
         event = MPLS_BAD_LABEL_ROUTER_ALERT;
     }
     else if (label == MPLS_LABEL_IPV6) {
+        if (len > USHRT_MAX) {
+            return TM_ECODE_FAILED;
+        }
         return DecodeIPV6(tv, dtv, p, pkt, len, pq);
     }
     else if (label == MPLS_LABEL_NULL) {
@@ -89,9 +95,15 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     /* Best guess at inner packet. */
     switch (pkt[0] >> 4) {
     case MPLS_PROTO_IPV4:
+        if (len > USHRT_MAX) {
+            return TM_ECODE_FAILED;
+        }
         DecodeIPV4(tv, dtv, p, pkt, len, pq);
         break;
     case MPLS_PROTO_IPV6:
+        if (len > USHRT_MAX) {
+            return TM_ECODE_FAILED;
+        }
         DecodeIPV6(tv, dtv, p, pkt, len, pq);
         break;
     case MPLS_PROTO_ETHERNET_PW:
