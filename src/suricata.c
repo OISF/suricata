@@ -2146,7 +2146,6 @@ static int InitSignalHandler(SCInstance *suri)
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
 #ifndef OS_WIN32
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
     UtilSignalHandlerSetup(SIGHUP, SignalHandlerSigHup);
     UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
     UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
@@ -2459,8 +2458,10 @@ static void PostRunStartedDetectSetup(SCInstance *suri)
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
     if (DetectEngineEnabled() && suri->sig_file == NULL &&
-            suri->delayed_detect == 0)
+            suri->delayed_detect == 0) {
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        UtilSignalUnblock(SIGUSR2);
+    }
 #endif
     if (suri->delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
@@ -2777,6 +2778,18 @@ int main(int argc, char **argv)
     SCLogInitLogModule(NULL);
 
     (void)SCSetThreadName("Suricata-Main");
+
+    /* Ignore SIGUSR2 as early as possble. We redeclare interest
+     * once we're done launching threads. The goal is to either die
+     * completely or handle any and all SIGUSR2s correctly.
+     */
+#ifndef OS_WIN32
+    UtilSignalHandlerSetup(SIGUSR2, SIG_IGN);
+    if (UtilSignalBlock(SIGUSR2)) {
+        SCLogError(SC_ERR_INITIALIZATION, "SIGUSR2 initialization error");
+        exit(EXIT_FAILURE);
+    }
+#endif
 
     ParseSizeInit();
     RunModeRegisterRunModes();
