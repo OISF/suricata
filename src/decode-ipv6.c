@@ -145,14 +145,14 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
 }
 
 static void
-DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     SCEnter();
 
     uint8_t *orig_pkt = pkt;
     uint8_t nh = 0; /* careful, 0 is actually a real type */
-    uint16_t hdrextlen = 0;
-    uint16_t plen;
+    uint32_t hdrextlen = 0;
+    uint32_t plen;
     char dstopts = 0;
     char exthdr_fh_done = 0;
     int hh = 0;
@@ -581,7 +581,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     return 0;
 }
 
-int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     int ret;
 

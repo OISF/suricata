@@ -47,12 +47,12 @@
     (dst).len  = (src).len; \
     (dst).data = (src).data
 
-static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint32_t len)
 {
     uint8_t tcp_opt_cnt = 0;
     TCPOpt tcp_opts[TCP_OPTMAX];
 
-    uint16_t plen = len;
+    uint32_t plen = len;
     while (plen)
     {
         /* single byte options */
@@ -160,7 +160,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint32_t len)
 {
     if (unlikely(len < TCP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, TCP_PKT_TOO_SMALL);
@@ -196,7 +196,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
     return 0;
 }
 
-int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_tcp);
 

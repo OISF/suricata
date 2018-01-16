@@ -40,7 +40,7 @@
 #include "flow.h"
 #include "app-layer.h"
 
-static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint32_t len)
 {
     if (unlikely(len < UDP_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, UDP_HLEN_TOO_SMALL);
@@ -70,7 +70,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_udp);
 
