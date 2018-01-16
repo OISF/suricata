@@ -250,6 +250,9 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                         state = CONF_INCLUDE;
                         goto next;
                     }
+                    if (value[0] == '\0') {
+                        goto next;
+                    }
 
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
