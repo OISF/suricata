@@ -231,6 +231,12 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, const void *initdata, void **d
         }
     }
 
+    int should_delete = 0;
+    ptv->shared.should_delete = false;
+    if (ConfGetBool("pcap-file.delete-when-done", &should_delete) == 1) {
+        ptv->shared.should_delete = should_delete == 1;
+    }
+
     DIR *directory = NULL;
     SCLogInfo("Checking file or directory %s", (char*)initdata);
     if(PcapDetermineDirectoryOrFile((char *)initdata, &directory) == TM_ECODE_FAILED) {
