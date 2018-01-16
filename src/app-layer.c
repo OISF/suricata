@@ -152,8 +152,8 @@ static inline void FlagPacketFlow(Packet *p, Flow *f, uint8_t flags)
 
 static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
 {
-    SCLogDebug("disable app layer for flow %p alproto %u ts %u tc %u",
-            f, f->alproto, f->alproto_ts, f->alproto_tc);
+    SCLogInfo("disable app layer for flow %p alproto %u ts %u tc %u pkt %"PRIu64,
+            f, f->alproto, f->alproto_ts, f->alproto_tc, p->pcap_cnt);
     FlowCleanupAppLayer(f);
     StreamTcpDisableAppLayer(f);
     TcpSession *ssn = f->protoctx;
@@ -173,7 +173,7 @@ static void DisableAppLayer(ThreadVars *tv, Flow *f, Packet *p)
         }
         FlagPacketFlow(p, f, STREAM_TOSERVER);
     }
-    SCLogDebug("disabled app layer for flow %p alproto %u ts %u tc %u",
+    SCLogInfo("disabled app layer for flow %p alproto %u ts %u tc %u",
             f, f->alproto, f->alproto_ts, f->alproto_tc);
 }
 
@@ -201,7 +201,7 @@ static void TCPProtoDetectCheckBailConditions(ThreadVars *tv,
 {
     uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
     uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
-    SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
+    SCLogInfo("size_ts %u, size_tc %u", size_ts, size_tc);
 
 #ifdef DEBUG_VALIDATION
     if (!(ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP))
@@ -283,7 +283,7 @@ static int TCPProtoDetectTriggerOpposingSide(ThreadVars *tv,
     /* if the opposing side is not going to work, then
      * we just have to give up. */
     if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
-        SCLogDebug("opposing dir has STREAMTCP_STREAM_FLAG_NOREASSEMBLY set");
+        SCLogInfo("opposing dir has STREAMTCP_STREAM_FLAG_NOREASSEMBLY set");
         return -1;
     }
 
@@ -312,7 +312,7 @@ static int TCPProtoDetect(ThreadVars *tv,
         alproto_otherdir = &f->alproto_ts;
     }
 
-    SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
+    SCLogInfo("Stream initializer (len %" PRIu32 ")", data_len);
 #ifdef PRINT
     if (data_len > 0) {
         printf("=> Init Stream Data (app layer) -- start %s%s\n",
@@ -369,7 +369,7 @@ static int TCPProtoDetect(ThreadVars *tv,
         if ((ssn->data_first_seen_dir & (STREAM_TOSERVER | STREAM_TOCLIENT)) &&
                 !(flags & ssn->data_first_seen_dir))
         {
-            SCLogDebug("protocol %s needs first data in other direction",
+            SCLogInfo("protocol %s needs first data in other direction",
                     AppProtoToString(*alproto));
 
             if (TCPProtoDetectTriggerOpposingSide(tv, ra_ctx,
@@ -453,7 +453,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                 !(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK))
         {
             if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
-                SCLogDebug("midstream end pd %p", ssn);
+                SCLogInfo("midstream end pd %p", ssn);
                 /* midstream and toserver detection failed: give up */
                 DisableAppLayer(tv, f, p);
                 goto end;
@@ -509,7 +509,7 @@ static int TCPProtoDetect(ThreadVars *tv,
                             AppLayerParserGetStreamDepth(f));
 
                     *alproto = *alproto_otherdir;
-                    SCLogDebug("packet %"PRIu64": pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
+                    SCLogInfo("packet %"PRIu64": pd done(us %u them %u), parser called (r==%d), APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION set",
                             p->pcap_cnt, *alproto, *alproto_otherdir, r);
                     if (r < 0)
                         goto failure;
@@ -551,9 +551,9 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     AppProto alproto;
     int r = 0;
 
-    SCLogDebug("data_len %u flags %02X", data_len, flags);
+    SCLogInfo("data_len %u flags %02X", data_len, flags);
     if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
-        SCLogDebug("STREAMTCP_FLAG_APP_LAYER_DISABLED is set");
+        SCLogInfo("STREAMTCP_FLAG_APP_LAYER_DISABLED is set");
         goto end;
     }
 
@@ -568,7 +568,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (flags & STREAM_GAP) {
         if (alproto == ALPROTO_UNKNOWN) {
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
-            SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
+            SCLogInfo("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
         } else {
             PACKET_PROFILING_APP_START(app_tctx, f->alproto);
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto,
@@ -590,15 +590,15 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
     } else if (alproto != ALPROTO_UNKNOWN && FlowChangeProto(f)) {
         f->alproto_orig = f->alproto;
-        SCLogDebug("protocol change, old %s", AppProtoToString(f->alproto_orig));
+        SCLogInfo("protocol change, old %s", AppProtoToString(f->alproto_orig));
         AppLayerProtoDetectReset(f);
         /* rerun protocol detection */
         if (TCPProtoDetect(tv, ra_ctx, app_tctx, p, f, ssn, stream,
                            data, data_len, flags) != 0) {
-            SCLogDebug("proto detect failure");
+            SCLogInfo("proto detect failure");
             goto failure;
         }
-        SCLogDebug("protocol change, old %s, new %s",
+        SCLogInfo("protocol change, old %s, new %s",
                 AppProtoToString(f->alproto_orig), AppProtoToString(f->alproto));
 
         if (f->alproto_expect != ALPROTO_UNKNOWN &&
@@ -614,7 +614,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             }
         }
     } else {
-        SCLogDebug("stream data (len %" PRIu32 " alproto "
+        SCLogInfo("stream data (len %" PRIu32 " alproto "
                    "%"PRIu16" (flow %p)", data_len, f->alproto, f);
 #ifdef PRINT
         if (data_len > 0) {
@@ -672,7 +672,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
     /* if the protocol is still unknown, run detection */
     } else if (f->alproto == ALPROTO_UNKNOWN) {
-        SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
+        SCLogInfo("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                    p->payload_len);
 
         PACKET_PROFILING_APP_PD_START(tctx);
@@ -692,14 +692,14 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         } else {
             f->alproto = ALPROTO_FAILED;
             AppLayerIncFlowCounter(tv, f);
-            SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+            SCLogInfo("ALPROTO_UNKNOWN flow %p", f);
         }
         /* we do only inspection in one direction, so flag both
          * sides as done here */
         FlagPacketFlow(p, f, STREAM_TOSERVER);
         FlagPacketFlow(p, f, STREAM_TOCLIENT);
     } else {
-        SCLogDebug("data (len %" PRIu32 " ), alproto "
+        SCLogInfo("data (len %" PRIu32 " ), alproto "
                    "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
 
         /* run the parser */

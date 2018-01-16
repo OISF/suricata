@@ -40,7 +40,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_ppp);
 
@@ -53,7 +53,7 @@ int DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
     if (unlikely(p->ppph == NULL))
         return TM_ECODE_FAILED;
 
-    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRId32 "",
+    SCLogDebug("p %p pkt %p PPP protocol %04x Len: %" PRIu32 "",
         p, pkt, SCNtohs(p->ppph->protocol), len);
 
     switch (SCNtohs(p->ppph->protocol))
