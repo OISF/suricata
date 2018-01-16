@@ -34,7 +34,23 @@ int UtilSignalBlock(int signum)
         return -1;
     if (sigaddset(&x, signum) < 0)
         return -1;
-    if (sigprocmask(SIG_BLOCK, &x, NULL) < 0)
+    /* don't use sigprocmask(), as it's undefined for
+     * multithreaded programs. Use phtread_sigmask().
+     */
+    if (pthread_sigmask(SIG_BLOCK, &x, NULL) != 0)
+        return -1;
+
+    return 0;
+}
+
+int UtilSignalUnblock(int signum)
+{
+    sigset_t x;
+    if (sigemptyset(&x) < 0)
+        return -1;
+    if (sigaddset(&x, signum) < 0)
+        return -1;
+    if (pthread_sigmask(SIG_UNBLOCK, &x, NULL) != 0)
         return -1;
 #endif
     return 0;

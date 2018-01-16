@@ -25,6 +25,7 @@
 #define __UTIL_SIGNAL_H__
 
 int UtilSignalBlock(int);
+int UtilSignalUnblock(int);
 void UtilSignalHandlerSetup(int, void (*handler)(int));
 #if 0
 int UtilSignalIsHandler(int sig, void (*handler)(int));
