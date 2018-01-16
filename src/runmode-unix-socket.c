@@ -290,14 +290,15 @@ static TmEcode UnixListAddFile(
  * \param cmd the content of command Arguments as a json_t object
  * \param answer the json_t object that has to be used to answer
  * \param data pointer to data defining the context here a PcapCommand::
+ * \param continuous If this should run in continuous mode
  */
-static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data,
+                                         bool continuous)
 {
     PcapCommand *this = (PcapCommand *) data;
     const char *filename;
     const char *output_dir;
     int tenant_id = 0;
-    bool continuous = false;
     time_t delay = 30;
     time_t poll_interval = 5;
 #ifdef OS_WIN32
@@ -362,11 +363,6 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
         tenant_id = json_number_value(targ);
     }
 
-    json_t *cont_arg = json_object_get(cmd, "continuous");
-    if (cont_arg != NULL) {
-        continuous = json_is_true(cont_arg);
-    }
-
     json_t *delay_arg = json_object_get(cmd, "delay");
     if (delay_arg != NULL) {
         if (!json_is_integer(delay_arg)) {
@@ -404,6 +400,37 @@ static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
             return TM_ECODE_OK;
     }
     return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to add a file to treatment list
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+static TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
+{
+    bool continuous = false;
+
+    json_t *cont_arg = json_object_get(cmd, "continuous");
+    if (cont_arg != NULL) {
+        continuous = json_is_true(cont_arg);
+    }
+
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, continuous);
+}
+
+/**
+ * \brief Command to add a file to treatment list
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+static TmEcode UnixSocketAddPcapFileContinuous(json_t *cmd, json_t* answer, void *data)
+{
+    return UnixSocketAddPcapFileImpl(cmd, answer, data, true);
 }
 
 /**
@@ -1372,6 +1399,7 @@ static int RunModeUnixSocketMaster(void)
     pcapcmd->current_file = NULL;
 
     UnixManagerRegisterCommand("pcap-file", UnixSocketAddPcapFile, pcapcmd, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("pcap-file-continuous", UnixSocketAddPcapFileContinuous, pcapcmd, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-last-processed", UnixSocketPcapLastProcessed, pcapcmd, 0);
