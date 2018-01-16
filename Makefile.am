@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml.in \
              classification.config threshold.config \
              reference.config
-SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib scripts etc
+SUBDIRS = $(HTP_DIR) rust src qa rules doc contrib scripts etc python
 
 CLEANFILES = stamp-h[0-9]*
 

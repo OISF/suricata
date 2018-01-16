@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,10 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Tom DeCanio <td@npulsetech.com>
- */
+#ifndef __OUTPUT_FILESTORE_H__
+#define __OUTPUT_FILESTORE_H__
 
-#ifndef __OUTPUT_JSON_FILE_H__
-#define __OUTPUT_JSON_FILE_H__
+void OutputFilestoreRegister(void);
+void OutputFilestoreInitConfig(void);
 
-void JsonFileLogRegister(void);
-
-#ifdef HAVE_LIBJANSSON
-json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff);
-#endif
-
-#endif /* __OUTPUT_JSON_FILE_H__ */
+#endif /* __OUTPUT_FILESTORE_H__ */

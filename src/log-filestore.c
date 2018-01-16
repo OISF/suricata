@@ -574,6 +574,14 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  * */
 static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 {
+    intmax_t version = 0;
+    if (ConfGetChildValueInt(conf, "version", &version)) {
+        if (version > 1) {
+            SCLogNotice("This configuration for filestore v2.");
+            return NULL;
+        }
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
