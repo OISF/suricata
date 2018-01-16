@@ -413,6 +413,7 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
         /* flow is initialized (recylced) but *unlocked* */
     }
 
+    FlowMgrIncreaseParflowsCtr();
     FLOWLOCK_WRLOCK(f);
     FlowUpdateCounter(tv, dtv, p->proto);
     return f;

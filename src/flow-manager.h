@@ -49,4 +49,9 @@ void FlowDisableFlowRecyclerThread(void);
 void TmModuleFlowManagerRegister (void);
 void TmModuleFlowRecyclerRegister (void);
 
+/** Increase and Decrease counter of parallel flows active. Needed
+ *  because we create and destroy flows in different places. */
+void FlowMgrIncreaseParflowsCtr(void);
+void FlowMgrDecreaseParflowsCtr(void);
+
 #endif /* __FLOW_MANAGER_H__ */
