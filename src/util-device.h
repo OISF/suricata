@@ -50,7 +50,13 @@ typedef struct LiveDevice_ {
     uint32_t offload_orig;  /**< original offload settings to restore @exit */
 } LiveDevice;
 
+typedef struct PreLiveDevice_ {
+    char *dev;  /**< the device (e.g. "eth0") */
+    TAILQ_ENTRY(PreLiveDevice_) next;
+} PreLiveDevice;
+
 int LiveRegisterDevice(const char *dev);
+int LiveRegisterDeviceFull(const char *dev);
 int LiveGetDeviceCount(void);
 const char *LiveGetDeviceName(int number);
 LiveDevice *LiveGetDevice(const char *dev);
@@ -59,6 +65,10 @@ int LiveBuildDeviceList(const char *base);
 void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
 int LiveBuildDeviceListCustom(const char *base, const char *itemname);
+
+LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev);
+
+void LiveDeviceFinalize(void);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
