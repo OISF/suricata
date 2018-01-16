@@ -43,7 +43,7 @@
 #include "host.h"
 
 
-int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_raw);
 
@@ -53,10 +53,18 @@ int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         return TM_ECODE_FAILED;
     }
 
+
+
     if (IP_GET_RAW_VER(pkt) == 4) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("IPV4 Packet");
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else if (IP_GET_RAW_VER(pkt) == 6) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("IPV6 Packet");
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {

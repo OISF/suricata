@@ -68,7 +68,7 @@
 #include "output-flow.h"
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+        uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -203,7 +203,7 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
+inline int PacketCopyDataOffset(Packet *p, uint32_t offset, uint8_t *data, uint32_t datalen)
 {
     if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
         /* too big */
@@ -212,7 +212,11 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
 
     /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
-        if (offset + datalen <= (int)default_packet_size) {
+        uint32_t newsize = offset + datalen;
+        // check overflow
+        if (newsize < offset)
+            return -1;
+        if (newsize <= default_packet_size) {
             /* data will fit in memory allocated with packet */
             memcpy(GET_PKT_DIRECT_DATA(p) + offset, data, datalen);
         } else {
@@ -240,7 +244,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
  *  \param Pointer to the data to copy
  *  \param Length of the data to copy
  */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketCopyData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
@@ -257,7 +261,7 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             uint8_t *pkt, uint16_t len, enum DecodeTunnelProto proto,
+                             uint8_t *pkt, uint32_t len, enum DecodeTunnelProto proto,
                              PacketQueue *pq)
 {
     int ret;
@@ -326,7 +330,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
  *
  *  \retval p the pseudo packet or NULL if out of memory
  */
-Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
+Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint32_t len, uint8_t proto)
 {
     SCEnter();
 
@@ -537,7 +541,7 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
  *  \param Pointer to the data
  *  \param Length of the data
  */
-inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
+inline int PacketSetData(Packet *p, uint8_t *pktdata, uint32_t pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
     if (unlikely(!pktdata)) {
