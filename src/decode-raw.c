@@ -43,7 +43,7 @@
 #include "host.h"
 
 
-int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_raw);
 
