@@ -160,7 +160,10 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
 
     prev = NULL;
     while (tmp != NULL) {
-        if ((tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
+        /* check if the 'check' timestamp is not before the creation ts.
+         * This can happen due to the async nature of the host timeout
+         * code that also calls this code from a management thread. */
+        if (((uint32_t)tv->tv_sec < tmp->tv_sec1) || (tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
             prev = tmp;
             tmp = tmp->next;
             retval = 0;
