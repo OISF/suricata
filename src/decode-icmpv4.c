@@ -152,7 +152,7 @@ static int DecodePartialIPV4(Packet* p, uint8_t* partial_packet, uint16_t len)
 /** DecodeICMPV4
  *  \brief Main ICMPv4 decoding function
  */
-int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_icmpv4);
 
@@ -205,8 +205,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
+                if (len >= ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET  );
+                }
             }
             break;
 
@@ -215,8 +219,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
@@ -233,8 +241,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
@@ -243,8 +255,12 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len > ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
+                    if (unlikely(len > ICMPV4_HEADER_PKT_OFFSET + USHRT_MAX)) {
+                        return TM_ECODE_FAILED;
+                    }
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
+                }
             }
             break;
 
