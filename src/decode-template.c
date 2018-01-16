@@ -50,7 +50,7 @@
  */
 
 int DecodeTEMPLATE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   const uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   const uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     /* TODO add counter for your type of packet to DecodeThreadVars,
      * and register it in DecodeRegisterPerfCounters */

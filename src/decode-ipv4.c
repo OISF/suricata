@@ -485,7 +485,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
     return 0;
 }
 
-static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint32_t len)
 {
     if (unlikely(len < IPV4_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, IPV4_PKT_TOO_SMALL);
@@ -530,11 +530,11 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
     return 0;
 }
 
-int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_ipv4);
 
-    SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
+    SCLogDebug("pkt %p len %"PRIu32"", pkt, len);
 
     /* do the actual decoding */
     if (unlikely(DecodeIPV4Packet (p, pkt, len) < 0)) {

@@ -39,7 +39,7 @@
 #include "util-debug.h"
 
 int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
+                   uint8_t *pkt, uint32_t len, PacketQueue *pq)
 {
     StatsIncr(tv, dtv->counter_eth);
 
