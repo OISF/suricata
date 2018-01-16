@@ -45,6 +45,8 @@ typedef struct PcapFileSharedVars_
 
     struct timespec last_processed;
 
+    bool should_delete;
+
     ThreadVars *tv;
     TmSlot *slot;
 
