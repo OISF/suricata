@@ -270,10 +270,6 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
 
 static void *TmThreadsSlotPktAcqLoop(void *td)
 {
-#ifndef OS_WIN32
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-#endif
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
     char run = 1;
@@ -522,10 +518,6 @@ error:
  */
 static void *TmThreadsSlotVar(void *td)
 {
-#ifndef OS_WIN32
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-#endif
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
@@ -684,10 +676,6 @@ error:
 
 static void *TmThreadsManagement(void *td)
 {
-#ifndef OS_WIN32
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-#endif
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     TmEcode r = TM_ECODE_OK;
