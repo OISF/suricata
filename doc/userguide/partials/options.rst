@@ -25,15 +25,22 @@
 
 .. option:: -r <path>
 
-   Run in pcap offline mode reading files from pcap file. If <path> specifies
-   a directory, all files in that directory will be processed in order of
-   modified time maintaining flow state between files.
+   Run in pcap offline mode (replay mode) reading files from pcap file. If
+   <path> specifies a directory, all files in that directory will be processed
+   in order of modified time maintaining flow state between files.
 
 .. option:: --pcap-file-continuous
 
    Used with the -r option to indicate that the mode should stay alive until
    interrupted. This is useful with directories to add new files and not reset
    flow state between files.
+
+.. option:: --pcap-file-delete
+
+   Used with the -r option to indicate that the mode should delete pcap files
+   after they have been processed. This is useful with pcap-file-continuous to
+   continuously feed files to a directory and have them cleaned up when done. If
+   this option is not set, pcap files will not be deleted after processing.
 
 .. option::  -i <interface>
 
