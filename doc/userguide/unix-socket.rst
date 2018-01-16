@@ -256,9 +256,37 @@ In pcap-file mode, this gives:
   SND: {"command": "pcap-file-list"}
   RCV: {"message": {"count": 1, "files": ["/home/eric/git/oisf/benches/sandnet.pcap"]}, "return": "OK"}
   Success: {'count': 1, 'files': ['/home/eric/git/oisf/benches/sandnet.pcap']}
+  >>> pcap-file-continuous /home/eric/git/oisf/benches /tmp/bench 0 true
+  SND: {"command": "pcap-file", "arguments": {"output-dir": "/tmp/bench", "filename": "/home/eric/git/oisf/benches/sandnet.pcap", "tenant": 0, "delete-when-done": true}}
+  RCV: {"message": "Successfully added file to list", "return": "OK"}
+  Success: Successfully added file to list
 
 There is one thing to be careful about: a Suricata message is sent in
 multiple send operations. This result in possible incomplete read on
 client side. The worse workaround is to sleep a bit before trying a
 recv call. An other solution is to use non blocking socket and retry a
 recv if the previous one has failed.
+
+Pcap-file json format is:
+
+::
+
+  {
+    "command": "pcap-file",
+    "arguments": {
+      "output-dir": "path to output dir",
+      "filename": "path to file or directory to run",
+      "tenant": 0,
+      "continuous": false,
+      "delete-when-done": false
+    }
+  }
+
+`output-dir` and `filename` are required. `tenant` is optional and should be a
+number, indicating which tenant the file or directory should run under. `continuous`
+is optional and should be true/false, indicating that file or directory should be
+run until `pcap-interrupt` is sent or ctrl-c is invoked. `delete-when-done` is
+optional and should be true/false, indicating that the file or files under the
+directory specified by `filename` should be deleted when processing is complete.
+`delete-when-done` defaults to false, indicating files will be kept after
+processing.
