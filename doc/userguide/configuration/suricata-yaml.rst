@@ -265,6 +265,8 @@ appearance of a single fast.log-file line:
      append: yes/no         #If this option is set to yes, the last filled fast.log-file will not be
                             #overwritten while restarting Suricata.
 
+.. _suricata-yaml-outputs-eve:
+
 Eve (Extensible Event Format)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -678,6 +680,52 @@ a Netfilter log format.
        filename: drop.log        #The log-name of the file for dropped packets.
        append: yes               #If this option is set to yes, the last filled drop.log-file will not be
                                   #overwritten while restarting Suricata. If set to 'no' the last filled drop.log file will be overwritten.
+
+.. _suricata-yaml-file-store:
+
+File-store (File Extraction)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `file-store` output enables storing of extracted files to disk and
+configures where they are stored.
+
+The following shows the configuration options for version 2 of the
+`file-store` output.
+
+.. code-block:: yaml
+
+  - file-store:
+      # This configures version 2 of the file-store.
+      version: 2
+
+      enabled: no
+
+      # Set the directory for the filestore. If the path is not
+      # absolute will be be relative to the default-log-dir.
+      #dir: filestore
+
+      # Write out a fileinfo record for each occurrence of a
+      # file. Disabled by default as each occurrence is already logged
+      # as a fileinfo record to the main eve-log.
+      #write-fileinfo: yes
+
+      # Force storing of all files. Default: no.
+      #force-filestore: yes
+
+      # Override the global stream-depth for sessions in which we want
+      # to perform file extraction. Set to 0 for unlimited.
+      #stream-depth: 0
+
+      # Uncomment the following variable to define how many files can
+      # remain open for filestore by Suricata. Default value is 0 which
+      # means files get closed after each write
+      #max-open-files: 1000
+
+      # Force logging of checksums, available hash functions are md5,
+      # sha1 and sha256. Note that SHA256 is automatically forced by
+      # the use of this output module as it uses the SHA256 as the
+      # file naming scheme.
+      #force-hash: [sha1, md5]
 
 Detection engine
 ----------------
