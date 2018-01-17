@@ -68,6 +68,8 @@ struct bpf_map_item {
 
 struct bpf_maps_info {
     struct bpf_map_item array[BPF_MAP_MAX_COUNT];
+    SC_ATOMIC_DECLARE(uint64_t, ipv4_hash_count);
+    SC_ATOMIC_DECLARE(uint64_t, ipv6_hash_count);
     int last;
 };
 
@@ -245,6 +247,8 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
         SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate bpf map array");
         return -1;
     }
+    SC_ATOMIC_INIT(bpf_map_data->ipv4_hash_count);
+    SC_ATOMIC_INIT(bpf_map_data->ipv6_hash_count);
 
     /* Store the maps in bpf_maps_info:: */
     bpf_map__for_each(map, bpfobj) {
@@ -383,11 +387,11 @@ static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key,
  * This function iterates on all the flows of the IPv4 table
  * looking for timeouted flow to delete from the flow table.
  */
-static int EBPFForEachFlowV4Table(const char *iface, const char *name,
+static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime)
 {
-    int mapfd = EBPFGetMapFDByName(iface, name);
+    int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv4_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
@@ -397,10 +401,12 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
         return 0;
     }
 
+    uint64_t hash_cnt = 0;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
         bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
+        hash_cnt++;
         /* We use a per CPU structure so we will get a array of values. */
         struct pair values_array[nr_cpus];
         memset(values_array, 0, sizeof(values_array));
@@ -432,10 +438,16 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
             flowstats->count++;
             flowstats->packets += pkts_cnt;
             flowstats->bytes += bytes_cnt;
+            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             found = 1;
             EBPFDeleteKey(mapfd, &key);
         }
         key = next_key;
+    }
+
+    struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
+    if (bpfdata) {
+        SC_ATOMIC_SET(bpfdata->ipv4_hash_count, hash_cnt);
     }
 
     return found;
@@ -447,11 +459,11 @@ static int EBPFForEachFlowV4Table(const char *iface, const char *name,
  * This function iterates on all the flows of the IPv4 table
  * looking for timeouted flow to delete from the flow table.
  */
-static int EBPFForEachFlowV6Table(const char *iface, const char *name,
+static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
                                   struct timespec *ctime)
 {
-    int mapfd = EBPFGetMapFDByName(iface, name);
+    int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv6_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
@@ -461,10 +473,12 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
         return 0;
     }
 
+    uint64_t hash_cnt = 0;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
         bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
+        hash_cnt++;
         struct pair values_array[nr_cpus];
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
@@ -487,12 +501,17 @@ static int EBPFForEachFlowV6Table(const char *iface, const char *name,
             flowstats->count++;
             flowstats->packets += pkts_cnt;
             flowstats->bytes += bytes_cnt;
+            SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
             found = 1;
             EBPFDeleteKey(mapfd, &key);
         }
         key = next_key;
     }
 
+    struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
+    if (bpfdata) {
+        SC_ATOMIC_SET(bpfdata->ipv6_hash_count, hash_cnt);
+    }
     return found;
 }
 
@@ -512,7 +531,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     LiveDevice *ldev = NULL, *ndev;
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
-        tcount = EBPFForEachFlowV4Table(ldev->dev, "flow_table_v4",
+        tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
                                         &l_bypassstats, curtime);
         if (tcount) {
             bypassstats->count = l_bypassstats.count;
@@ -521,7 +540,7 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
             ret = 1;
         }
         memset(&l_bypassstats, 0, sizeof(l_bypassstats));
-        tcount = EBPFForEachFlowV6Table(ldev->dev, "flow_table_v6",
+        tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
                                         &l_bypassstats, curtime);
         if (tcount) {
             bypassstats->count += l_bypassstats.count;
