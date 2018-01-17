@@ -77,6 +77,10 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface);
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 
 int EBPFUpdateFlow(Flow *f, Packet *p);
+  
+#ifdef BUILD_UNIX_SOCKET
+TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data);
+#endif
 
 #endif
 
