@@ -248,6 +248,26 @@ LoggerId DNSGetTxLogged(void *alstate, void *tx)
     return dns_tx->logged;
 }
 
+uint64_t DNSGetTxDetectFlags(void *vtx, uint8_t dir)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        return tx->detect_flags_ts;
+    } else {
+        return tx->detect_flags_tc;
+    }
+}
+
+void DNSSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    if (dir & STREAM_TOSERVER) {
+        tx->detect_flags_ts = detect_flags;
+    } else {
+        tx->detect_flags_tc = detect_flags;
+    }
+}
+
 /** \brief get value for 'complete' status in DNS
  *
  *  For DNS we use a simple bool. 1 means done.
