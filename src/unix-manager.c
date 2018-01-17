@@ -34,6 +34,7 @@
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-device.h"
+#include "util-ebpf.h"
 #include "util-signal.h"
 #include "util-buffer.h"
 
@@ -1190,6 +1191,9 @@ void UnixManagerThreadSpawnNonRunmode(void)
                     UNIX_CMD_TAKE_ARGS);
             UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
             UnixManagerThreadSpawn(0);
+#ifdef HAVE_PACKET_EBPF
+            UnixManagerRegisterCommand("ebpf-bypassed-stats", EBPFGetBypassedStats, NULL, 0);
+#endif
         }
     }
 }

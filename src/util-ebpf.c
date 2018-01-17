@@ -552,6 +552,42 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
     return ret;
 }
 
+#ifdef BUILD_UNIX_SOCKET
+TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data)
+{
+    LiveDevice *ldev = NULL, *ndev;
+
+    json_t *ifaces = NULL;
+    while(LiveDeviceForEach(&ldev, &ndev)) {
+        struct bpf_maps_info *bpfdata = LiveDevGetStorageById(ldev, g_livedev_storage_id);
+        if (bpfdata) {
+            uint64_t ipv4_hash_count = SC_ATOMIC_GET(bpfdata->ipv4_hash_count);
+            uint64_t ipv6_hash_count = SC_ATOMIC_GET(bpfdata->ipv6_hash_count);
+            json_t *iface = json_object();
+            if (ifaces == NULL) {
+                ifaces = json_object();
+                if (ifaces == NULL) {
+                    json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+                    return TM_ECODE_FAILED;
+                }
+            }
+            json_object_set_new(iface, "ipv4_count", json_integer(ipv4_hash_count));
+            json_object_set_new(iface, "ipv6_count", json_integer(ipv6_hash_count));
+            json_object_set_new(ifaces, ldev->dev, iface);
+        }
+    }
+    if (ifaces) {
+        json_object_set_new(answer, "message", ifaces);
+        SCReturnInt(TM_ECODE_OK);
+    }
+
+    json_object_set_new(answer, "message",
+                        json_string("No interface using eBPF bypass"));
+    SCReturnInt(TM_ECODE_FAILED);
+}
+#endif
+
 void EBPFRegisterExtension(void)
 {
     g_livedev_storage_id = LiveDevStorageRegister("bpfmap", sizeof(void *), NULL, BpfMapsInfoFree);
