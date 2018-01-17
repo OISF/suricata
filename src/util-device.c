@@ -373,6 +373,8 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
                                 json_integer(SC_ATOMIC_GET(pd->invalid_checksums)));
             json_object_set_new(jdata, "drop",
                                 json_integer(SC_ATOMIC_GET(pd->drop)));
+            json_object_set_new(jdata, "bypassed",
+                                json_integer(SC_ATOMIC_GET(pd->bypassed)));
             json_object_set_new(answer, "message", jdata);
             SCReturnInt(TM_ECODE_OK);
         }
