@@ -338,3 +338,8 @@ Confirm you have the XDP filter engaged in the output (example)::
  (util-runmodes.c:296) <Info> (RunModeSetLiveCaptureWorkersForDevice) -- Going to use 8 thread(s)
  ...
  ...
+
+You can get information about bypass via the stats event and through the unix socket.
+`ìface-stat` will return the number of bypassed packets (adding packets for a flow when it timeout).
+`ebpf-bypassed-stats` command will return the number of element in IPv4 and IPv6 flow tables for
+each interfaces.
