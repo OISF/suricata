@@ -68,7 +68,7 @@
 #include "output-flow.h"
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+        uint8_t *pkt, uint32_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
