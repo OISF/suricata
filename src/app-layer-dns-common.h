@@ -202,6 +202,10 @@ typedef struct DNSTransaction_ {
     uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
     uint8_t recursion_desired;                      /**< server said "recursion desired" */
 
+    /** detection engine flags */
+    uint64_t detect_flags_ts;
+    uint64_t detect_flags_tc;
+
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */
     TAILQ_HEAD(, DNSAnswerEntry_) authority_list;   /**< list for authority records */
@@ -278,6 +282,8 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
 int DNSStateHasTxDetectState(void *alstate);
 DetectEngineState *DNSGetTxDetectState(void *vtx);
 int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s);
+uint64_t DNSGetTxDetectFlags(void *vtx, uint8_t dir);
+void DNSSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags);
 
 void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
