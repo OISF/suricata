@@ -2170,7 +2170,7 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
     if ((ssn->flags & STREAMTCP_FLAG_MIDSTREAM) &&
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED))
     {
-        ssn->server.window = TCP_GET_WINDOW(p);
+        ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
         ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
         ssn->flags &= ~STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
         SCLogDebug("ssn %p: adjusted midstream ssn->server.next_win to "
