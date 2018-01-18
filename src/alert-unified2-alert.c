@@ -38,6 +38,8 @@
 #include "threadvars.h"
 #include "tm-threads.h"
 
+#include "output.h"
+
 #include "util-unittest.h"
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
@@ -58,7 +60,6 @@
 #include "app-layer.h"
 #include "app-layer-htp-xff.h"
 
-#include "output.h"
 #include "util-privs.h"
 
 #include "stream.h"
@@ -1218,8 +1219,9 @@ error:
  *  \param conf The configuration node for this output.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
+OutputInitResult Unified2AlertInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     int ret = 0;
     LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
@@ -1341,7 +1343,9 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     SC_ATOMIC_INIT(unified2_event_id);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 
 error:
     if (xff_cfg != NULL) {
@@ -1351,7 +1355,7 @@ error:
         SCFree(output_ctx);
     }
 
-    return NULL;
+    return result;
 }
 
 static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
@@ -1444,7 +1448,7 @@ static int Unified2Test01(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1483,17 +1487,17 @@ static int Unified2Test01(void)
 
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == TM_ECODE_FAILED) {
         goto end;
     }
@@ -1506,7 +1510,7 @@ static int Unified2Test01(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1533,7 +1537,7 @@ static int Unified2Test02(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1573,17 +1577,17 @@ static int Unified2Test02(void)
     DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1596,7 +1600,7 @@ static int Unified2Test02(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1624,7 +1628,7 @@ static int Unified2Test03(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1670,17 +1674,17 @@ static int Unified2Test03(void)
     DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1693,7 +1697,7 @@ static int Unified2Test03(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     pkt = PacketDequeue(&pq);
     while (pkt != NULL) {
@@ -1733,7 +1737,7 @@ static int Unified2Test04(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1767,17 +1771,17 @@ static int Unified2Test04(void)
     DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp), &pq);
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1790,7 +1794,7 @@ static int Unified2Test04(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1817,7 +1821,7 @@ static int Unified2Test05(void)
     DecodeThreadVars dtv;
     PacketQueue pq;
     void *data = NULL;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     Signature s;
@@ -1857,17 +1861,17 @@ static int Unified2Test05(void)
     p->action = ACTION_DROP;
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL) {
+    if (oc.ctx == NULL) {
         goto end;
     }
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
     if(lf == NULL) {
         goto end;
     }
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if(ret == -1) {
         goto end;
     }
@@ -1880,7 +1884,7 @@ static int Unified2Test05(void)
         goto end;
     }
 
-    Unified2AlertDeInitCtx(oc);
+    Unified2AlertDeInitCtx(oc.ctx);
 
     PACKET_RECYCLE(p);
     SCFree(p);
@@ -1905,16 +1909,16 @@ static int Unified2TestRotate01(void)
     int ret = 0;
     int r = 0;
     ThreadVars tv;
-    OutputCtx *oc;
+    OutputInitResult oc;
     LogFileCtx *lf;
     Unified2AlertFileCtx *uaf = NULL;
     void *data = NULL;
     char *filename = NULL;
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc.ctx == NULL)
         return 0;
-    uaf = oc->data;
+    uaf = oc.ctx->data;
     if (uaf == NULL)
         return 0;
     lf = uaf->file_ctx;
@@ -1926,7 +1930,7 @@ static int Unified2TestRotate01(void)
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    ret = Unified2AlertThreadInit(&tv, oc, &data);
+    ret = Unified2AlertThreadInit(&tv, oc.ctx, &data);
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
         if (filename != NULL)
@@ -1953,8 +1957,8 @@ error:
     if(ret == TM_ECODE_FAILED) {
         printf("Unified2AlertThreadDeinit error");
     }
-    if (oc != NULL)
-        Unified2AlertDeInitCtx(oc);
+    if (oc.ctx != NULL)
+        Unified2AlertDeInitCtx(oc.ctx);
     if (filename != NULL)
         SCFree(filename);
     return r;

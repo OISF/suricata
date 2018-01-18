@@ -26,6 +26,7 @@
 #include "suricata.h"
 #include "debug.h"
 #include "util-debug.h"
+#include "util-path.h"
 
 /**
  *  \brief Check if a path is absolute
@@ -63,4 +64,76 @@ int PathIsAbsolute(const char *path)
 int PathIsRelative(const char *path)
 {
     return PathIsAbsolute(path) ? 0 : 1;
+}
+
+/**
+ * \brief Wrapper around SCMkDir with default mode arguments.
+ */
+int SCDefaultMkDir(const char *path)
+{
+    return SCMkDir(path, S_IRWXU | S_IRGRP | S_IXGRP);
+}
+
+/**
+ * \brief Recursively create a directory.
+ *
+ * \param path Path to create
+ * \param final true will create the final path component, false will not
+ *
+ * \retval 0 on success
+ * \retval -1 on error
+ */
+int SCCreateDirectoryTree(const char *path, const bool final)
+{
+    char pathbuf[PATH_MAX];
+    char *p;
+    size_t len = strlen(path);
+
+    if (len > PATH_MAX - 1) {
+        return -1;
+    }
+
+    strlcpy(pathbuf, path, sizeof(pathbuf));
+
+    for (p = pathbuf + 1; *p; p++) {
+        if (*p == '/') {
+            /* Truncate, while creating directory */
+            *p = '\0';
+
+            if (SCDefaultMkDir(pathbuf) != 0) {
+                if (errno != EEXIST) {
+                    return -1;
+                }
+            }
+
+            *p = '/';
+        }
+    }
+
+    if (final) {
+        if (SCDefaultMkDir(pathbuf) != 0) {
+            if (errno != EEXIST) {
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Check if a path exists.
+ *
+ * \param Path to check for existence
+ *
+ * \retval true if path exists
+ * \retval false if path does not exist
+ */
+bool SCPathExists(const char *path)
+{
+    struct stat sb;
+    if (stat(path, &sb) == 0) {
+        return true;
+    }
+    return false;
 }

@@ -88,8 +88,9 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A OutputCtx pointer on success, NULL on failure.
  */
-static OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
+static OutputInitResult AlertSyslogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
         facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
@@ -98,7 +99,7 @@ static OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("AlertSyslogInitCtx: Could not create new LogFileCtx");
-        return NULL;
+        return result;
     }
 
     int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
@@ -126,7 +127,7 @@ static OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCLogDebug("AlertSyslogInitCtx: Could not create new OutputCtx");
-        return NULL;
+        return result;
     }
     memset(output_ctx, 0x00, sizeof(OutputCtx));
 
@@ -135,7 +136,9 @@ static OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
 
     SCLogInfo("Syslog output initialized");
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 /**

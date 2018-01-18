@@ -135,34 +135,37 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
+static OutputInitResult LogDropLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
             "can be enabled");
-        return NULL;
+        return result;
     }
 
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("LogDropLogInitCtx: Could not create new LogFileCtx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(logfile_ctx);
-        return NULL;
+        return result;
     }
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = LogDropLogDeInitCtx;
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 /**

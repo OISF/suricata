@@ -78,19 +78,12 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
-/**
- *  \internal
- *  \brief Write meta data on a single line json record
- */
-static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
+json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff)
 {
     json_t *js = CreateJSONHeader((Packet *)p, 0, "fileinfo"); //TODO const
     json_t *hjs = NULL;
     if (unlikely(js == NULL))
-        return;
-
-    /* reset */
-    MemBufferReset(aft->buffer);
+        return NULL;
 
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
@@ -124,7 +117,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_t *fjs = json_object();
     if (unlikely(fjs == NULL)) {
         json_decref(js);
-        return;
+        return NULL;
     }
 
     char *s = BytesToString(ff->name, ff->name_len);
@@ -158,15 +151,6 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
                 }
                 json_object_set_new(fjs, "sha1", json_string(str));
             }
-            if (ff->flags & FILE_SHA256) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
-                }
-                json_object_set_new(fjs, "sha256", json_string(str));
-            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -179,6 +163,19 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             json_object_set_new(fjs, "state", json_string("UNKNOWN"));
             break;
     }
+
+#ifdef HAVE_NSS
+    if (ff->flags & FILE_SHA256) {
+        size_t x;
+        int i;
+        char str[256];
+        for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
+            i += snprintf(&str[i], 255-i, "%02x", ff->sha256[x]);
+        }
+        json_object_set_new(fjs, "sha256", json_string(str));
+    }
+#endif
+
     json_object_set_new(fjs, "stored",
                         (ff->flags & FILE_STORED) ? json_true() : json_false());
     if (ff->flags & FILE_STORED) {
@@ -189,20 +186,23 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
 
     /* originally just 'file', but due to bug 1127 naming it fileinfo */
     json_object_set_new(js, "fileinfo", fjs);
-    OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, &aft->buffer);
-    json_object_del(js, "fileinfo");
 
-    switch (p->flow->alproto) {
-        case ALPROTO_HTTP:
-            json_object_del(js, "http");
-            break;
-        case ALPROTO_SMTP:
-            json_object_del(js, "smtp");
-            json_object_del(js, "email");
-            break;
+    return js;
+}
+
+/**
+ *  \internal
+ *  \brief Write meta data on a single line json record
+ */
+static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
+{
+    json_t *js = JsonBuildFileInfoRecord(p, ff);
+    if (unlikely(js == NULL)) {
+        return;
     }
 
-    json_object_clear(js);
+    MemBufferReset(aft->buffer);
+    OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, &aft->buffer);
     json_decref(js);
 }
 
@@ -274,18 +274,19 @@ static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputFileCtx *output_file_ctx = SCMalloc(sizeof(OutputFileCtx));
     if (unlikely(output_file_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(output_file_ctx);
-        return NULL;
+        return result;
     }
 
     output_file_ctx->file_ctx = ojc->file_ctx;
@@ -310,7 +311,9 @@ static OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->DeInit = OutputFileLogDeinitSub;
 
     FileForceTrackingEnable();
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonFileLogRegister (void)

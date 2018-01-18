@@ -250,33 +250,34 @@ static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "drop.json"
-static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
+static OutputInitResult JsonDropLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
             "can be enabled");
-        return NULL;
+        return result;
     }
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
-        return NULL;
+        return result;
 
     drop_ctx->file_ctx = LogFileNewCtx();
     if (drop_ctx->file_ctx == NULL) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (conf) {
@@ -301,27 +302,31 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtx;
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
-static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     if (OutputDropLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'drop' logger "
             "can be enabled");
-        return NULL;
+        return result;
     }
 
     OutputJsonCtx *ajt = parent_ctx->data;
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         JsonDropOutputCtxFree(drop_ctx);
-        return NULL;
+        return result;
     }
 
     if (conf) {
@@ -348,7 +353,10 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 /**

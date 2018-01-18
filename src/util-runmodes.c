@@ -30,8 +30,8 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-af-packet.h"
-#include "log-httplog.h"
 #include "output.h"
+#include "log-httplog.h"
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"

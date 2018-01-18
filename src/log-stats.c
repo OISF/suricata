@@ -210,23 +210,24 @@ TmEcode LogStatsLogThreadDeinit(ThreadVars *t, void *data)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
+static OutputInitResult LogStatsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogStatsFileCtx *statslog_ctx = SCMalloc(sizeof(LogStatsFileCtx));
     if (unlikely(statslog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     memset(statslog_ctx, 0x00, sizeof(LogStatsFileCtx));
 
@@ -244,7 +245,7 @@ static OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
             SCFree(statslog_ctx);
             SCLogError(SC_ERR_STATS_LOG_NEGATED,
                     "Cannot disable both totals and threads in stats logging");
-            return NULL;
+            return result;
         }
 
         if (totals != NULL && ConfValIsFalse(totals)) {
@@ -265,7 +266,7 @@ static OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(statslog_ctx);
-        return NULL;
+        return result;
     }
 
     output_ctx->data = statslog_ctx;
@@ -273,7 +274,9 @@ static OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
 
     SCLogDebug("STATS log output initialized");
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)

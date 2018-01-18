@@ -503,30 +503,31 @@ static OutputTlsCtx *OutputTlsInitCtx(ConfNode *conf)
     return tls_ctx;
 }
 
-static OutputCtx *OutputTlsLogInit(ConfNode *conf)
+static OutputInitResult OutputTlsLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_TLS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputTlsCtx *tls_ctx = OutputTlsInitCtx(conf);
     if (unlikely(tls_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(tls_ctx);
-        return NULL;
+        return result;
     }
 
     tls_ctx->file_ctx = file_ctx;
@@ -536,7 +537,9 @@ static OutputCtx *OutputTlsLogInit(ConfNode *conf)
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
@@ -546,18 +549,19 @@ static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputTlsCtx *tls_ctx = OutputTlsInitCtx(conf);
     if (unlikely(tls_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(tls_ctx);
-        return NULL;
+        return result;
     }
 
     tls_ctx->file_ctx = ojc->file_ctx;
@@ -575,7 +579,9 @@ static OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonTlsLogRegister (void)

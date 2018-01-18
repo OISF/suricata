@@ -335,6 +335,8 @@ typedef enum {
     SC_ERR_BYPASS_NOT_SUPPORTED,
     SC_WARN_RENAMING_FILE,
     SC_ERR_PF_RING_VLAN,
+    SC_ERR_CREATE_DIRECTORY,
+    SC_ERR_MAX,
 } SCError;
 
 const char *SCErrorToString(SCError);

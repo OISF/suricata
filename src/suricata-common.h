@@ -367,12 +367,6 @@
 
 #define WARN_UNUSED __attribute__((warn_unused_result))
 
-#ifndef HAVE_NON_POSIX_MKDIR
-    #define SCMkDir(a, b) mkdir(a, b)
-#else
-    #define SCMkDir(a, b) mkdir(a)
-#endif
-
 #define SCNtohl(x) (uint32_t)ntohl((x))
 #define SCNtohs(x) (uint16_t)ntohs((x))
 

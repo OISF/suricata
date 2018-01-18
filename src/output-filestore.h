@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,19 +15,10 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- */
+#ifndef __OUTPUT_FILESTORE_H__
+#define __OUTPUT_FILESTORE_H__
 
-#ifndef __LOG_HTTPLOG_H__
-#define __LOG_HTTPLOG_H__
+void OutputFilestoreRegister(void);
+void OutputFilestoreInitConfig(void);
 
-void LogHttpLogRegister(void);
-void TmModuleLogHttpLogIPv4Register (void);
-void TmModuleLogHttpLogIPv6Register (void);
-OutputInitResult LogHttpLogInitCtx(ConfNode *);
-
-#endif /* __LOG_HTTPLOG_H__ */
-
+#endif /* __OUTPUT_FILESTORE_H__ */

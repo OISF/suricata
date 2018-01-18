@@ -182,30 +182,31 @@ static void OutputSshLogDeinit(OutputCtx *output_ctx)
 }
 
 #define DEFAULT_LOG_FILENAME "ssh.json"
-static OutputCtx *OutputSshLogInit(ConfNode *conf)
+static OutputInitResult OutputSshLogInit(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_SSH_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputSshCtx *ssh_ctx = SCMalloc(sizeof(OutputSshCtx));
     if (unlikely(ssh_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(ssh_ctx);
-        return NULL;
+        return result;
     }
 
     ssh_ctx->file_ctx = file_ctx;
@@ -214,7 +215,10 @@ static OutputCtx *OutputSshLogInit(ConfNode *conf)
     output_ctx->DeInit = OutputSshLogDeinit;
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
@@ -224,18 +228,19 @@ static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputSshCtx *ssh_ctx = SCMalloc(sizeof(OutputSshCtx));
     if (unlikely(ssh_ctx == NULL))
-        return NULL;
+        return result;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(ssh_ctx);
-        return NULL;
+        return result;
     }
 
     ssh_ctx->file_ctx = ojc->file_ctx;
@@ -244,7 +249,10 @@ static OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->DeInit = OutputSshLogDeinitSub;
 
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SSH);
-    return output_ctx;
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 void JsonSshLogRegister (void)

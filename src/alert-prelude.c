@@ -778,7 +778,7 @@ static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
  *
  * \return A newly allocated AlertPreludeCtx structure, or NULL
  */
-static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
+static OutputInitResult AlertPreludeInitCtx(ConfNode *conf)
 {
     int ret;
     prelude_client_t *client;
@@ -786,6 +786,7 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     const char *prelude_profile_name;
     const char *log_packet_content;
     const char *log_packet_header;
+    OutputInitResult result = { NULL, false };
     OutputCtx *output_ctx;
 
     SCEnter();
@@ -793,7 +794,7 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     ret = prelude_init(0, NULL);
     if (unlikely(ret < 0)) {
         prelude_perror(ret, "unable to initialize the prelude library");
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     prelude_profile_name = ConfNodeLookupChildValue(conf, "profile");
@@ -807,35 +808,35 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     if ( unlikely(ret < 0 || client == NULL )) {
         prelude_perror(ret, "Unable to create a prelude client object");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     ret = prelude_client_set_flags(client, prelude_client_get_flags(client) | PRELUDE_CLIENT_FLAGS_ASYNC_TIMER|PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
     if (unlikely(ret < 0)) {
         SCLogDebug("Unable to set asynchronous send and timer.");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     ret = SetupAnalyzer(prelude_client_get_analyzer(client));
     if (ret < 0) {
         SCLogDebug("Unable to setup prelude client analyzer.");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     ret = prelude_client_start(client);
     if (unlikely(ret < 0)) {
         prelude_perror(ret, "Unable to start prelude client");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     ctx = SCMalloc(sizeof(AlertPreludeCtx));
     if (unlikely(ctx == NULL)) {
         prelude_perror(ret, "Unable to allocate memory");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     ctx->client = client;
@@ -851,13 +852,15 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
         SCFree(ctx);
         prelude_perror(ret, "Unable to allocate memory");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-        SCReturnPtr(NULL, "AlertPreludeCtx");
+        SCReturnCT(result, "OutputInitResult");
     }
 
     output_ctx->data = ctx;
     output_ctx->DeInit = AlertPreludeDeinitCtx;
 
-    SCReturnPtr((void*)output_ctx, "OutputCtx");
+    result.ctx = output_ctx;
+    result.ok = true;
+    SCReturnCT(result, "OutputInitResult");
 }
 
 static int AlertPreludeCondition(ThreadVars *tv, const Packet *p)

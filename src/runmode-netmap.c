@@ -36,8 +36,8 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-netmap.h"
-#include "log-httplog.h"
 #include "output.h"
+#include "log-httplog.h"
 #include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"

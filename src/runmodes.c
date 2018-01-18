@@ -39,14 +39,14 @@
 #include "util-unittest.h"
 #include "util-misc.h"
 
+#include "output.h"
+
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 
 #include "log-httplog.h"
-
-#include "output.h"
 
 #include "source-pfring.h"
 
@@ -611,16 +611,15 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                 // sub_output_config may be NULL if no config
 
                 /* pass on parent output_ctx */
-                OutputCtx *sub_output_ctx =
-                    sub_module->InitSubFunc(sub_output_config,
-                            parent_ctx);
-                if (sub_output_ctx == NULL) {
+                OutputInitResult result =
+                    sub_module->InitSubFunc(sub_output_config, parent_ctx);
+                if (!result.ok || result.ctx == NULL) {
                     continue;
                 }
 
-                AddOutputToFreeList(sub_module, sub_output_ctx);
+                AddOutputToFreeList(sub_module, result.ctx);
                 SetupOutput(sub_module->name, sub_module,
-                        sub_output_ctx);
+                        result.ctx);
             }
         }
 
@@ -656,15 +655,13 @@ static void RunModeInitializeLuaOutput(ConfNode *conf, OutputCtx *parent_ctx)
         BUG_ON(script == NULL);
 
         /* pass on parent output_ctx */
-        OutputCtx *sub_output_ctx =
-            m->InitSubFunc(script, parent_ctx);
-        if (sub_output_ctx == NULL) {
-            SCLogInfo("sub_output_ctx NULL, skipping");
+        OutputInitResult result = m->InitSubFunc(script, parent_ctx);
+        if (!result.ok || result.ctx == NULL) {
             continue;
         }
 
-        AddOutputToFreeList(m, sub_output_ctx);
-        SetupOutput(m->name, m, sub_output_ctx);
+        AddOutputToFreeList(m, result.ctx);
+        SetupOutput(m->name, m, result.ctx);
     }
 }
 
@@ -756,12 +753,15 @@ void RunModeInitializeOutputs(void)
 
             OutputCtx *output_ctx = NULL;
             if (module->InitFunc != NULL) {
-                output_ctx = module->InitFunc(output_config);
-                if (output_ctx == NULL) {
+                OutputInitResult r = module->InitFunc(output_config);
+                if (!r.ok) {
                     FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
                         "output module setup failed");
                     continue;
+                } else if (r.ctx == NULL) {
+                    continue;
                 }
+                output_ctx = r.ctx;
             } else if (module->InitSubFunc != NULL) {
                 SCLogInfo("skipping submodule");
                 continue;
@@ -814,10 +814,15 @@ void RunModeInitializeOutputs(void)
 
                 OutputCtx *output_ctx = NULL;
                 if (module->InitFunc != NULL) {
-                    output_ctx = module->InitFunc(output_config);
-                    if (output_ctx == NULL) {
+                    OutputInitResult r = module->InitFunc(output_config);
+                    if (!r.ok) {
+                        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                                "output module setup failed");
+                        continue;
+                    } else if (r.ctx == NULL) {
                         continue;
                     }
+                    output_ctx = r.ctx;
                 }
 
                 AddOutputToFreeList(module, output_ctx);

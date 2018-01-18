@@ -851,13 +851,14 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
     }
 }
 
-static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
@@ -866,7 +867,7 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(dnslog_ctx);
-        return NULL;
+        return result;
     }
 
     output_ctx->data = dnslog_ctx;
@@ -879,7 +880,9 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define DEFAULT_LOG_FILENAME "dns.json"
@@ -887,24 +890,25 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
+static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
     LogFileCtx *file_ctx = LogFileNewCtx();
 
     if(file_ctx == NULL) {
         SCLogError(SC_ERR_DNS_LOG_GENERIC, "couldn't create new file_ctx");
-        return NULL;
+        return result;
     }
 
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
-        return NULL;
+        return result;
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
@@ -914,7 +918,7 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
         SCFree(dnslog_ctx);
-        return NULL;
+        return result;
     }
 
     output_ctx->data = dnslog_ctx;
@@ -927,7 +931,9 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
     AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 

@@ -572,11 +572,28 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFilestoreCtx* to the file_ctx if succesful
  * */
-static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
+static OutputInitResult LogFilestoreLogInitCtx(ConfNode *conf)
 {
+    OutputInitResult result = { NULL, false };
+
+    intmax_t version = 0;
+    if (ConfGetChildValueInt(conf, "version", &version)) {
+        if (version > 1) {
+            result.ok = true;
+            return result;
+        }
+    }
+
+    if (RunModeOutputFiledataEnabled()) {
+        SCLogWarning(SC_ERR_NOT_SUPPORTED,
+                "A file data logger is already enabled. Filestore (v1) "
+                "will not be enabled.");
+        return result;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
-        return NULL;
+        return result;
 
     output_ctx->data = NULL;
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
@@ -660,15 +677,13 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("enabling pid as a part of all file names");
     }
 
-    SCReturnPtr(output_ctx, "OutputCtx");
+    StatsRegisterGlobalCounter("file_store.open_files",
+            LogFilestoreOpenFilesCounter);
+
+    result.ctx = output_ctx;
+    result.ok = true;
+    SCReturnCT(result, "OutputInitResult");
 }
-
-
-void LogFilestoreInitConfig(void)
-{
-    StatsRegisterGlobalCounter("file_store.open_files", LogFilestoreOpenFilesCounter);
-}
-
 
 void LogFilestoreRegister (void)
 {

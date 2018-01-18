@@ -32,14 +32,70 @@ Settings
 Output
 ~~~~~~
 
-For file extraction two separate output modules were created:
-"file-log" and "file-store". They need to be enabled in the
-:doc:`../configuration/suricata-yaml`. For "file-store", the "files"
-drop dir must be configured.
+File-Store and Eve Fileinfo
+---------------------------
 
+There are two output modules for logging information about files
+extracted. The first is ``eve.files`` which is an ``eve`` sub-logger
+that logs ``fileinfo`` records. These ``fileinfo`` records provide
+metadata about the file, but not the actual file contents.
+
+This must be enabled in the ``eve`` output::
+
+  - outputs:
+      - eve-log:
+          types:
+	    - files:
+	        force-magic: no
+	        force-hash: [md5,sha256]
+
+See :ref:`suricata-yaml-outputs-eve` for more details on working
+with the `eve` output.
+
+The other output module, ``file-store`` stores the actual files to
+disk.
+
+The ``file-store`` uses its own log directory (default: `filestore` in
+the default logging directory) and logs files using the SHA256 of the
+contents as the filename. Each file is then placed in a directory
+named `00` to `ff` where the directory shares the first 2 characters
+of the filename. For example, if the SHA256 hex string of an extracted
+file starts with "f9bc6d..." the file we be placed in the directory
+`filestore/f9`.
+
+Using the SHA256 for file names allows for automatic de-duplication of
+extracted files. However, the timestamp of a pre-existing file will be
+updated if the same files is extracted again, similar to the `touch`
+command.
+
+Optionally a ``fileinfo`` record can be written to its own file
+sharing the same SHA256 as the file it references. To handle recording
+the metadata of each occurrence of an extracted file, these filenames
+include some extra fields to ensure uniqueness. Currently the format
+is::
+
+  <SHA256>.<SECONDS>.<ID>.json
+
+where ``<SECONDS>`` is the seconds from the packet that triggered the
+stored file to be closed and ``<ID>`` is a unique ID for the runtime
+of the Suricata instance. These values should not be depended on, and
+are simply used to ensure uniqueness.
+
+These ``fileinfo`` records are idential to the ``fileinfo`` records
+logged to the ``eve`` output.
+
+See :ref:`suricata-yaml-file-store` for more information on
+configuring the file-store output.
+
+.. note:: This section documents version 2 of the ``file-store``.
+
+File-Store (Version 1)
+----------------------
+
+File-store version 1 has been replaced by version 2 and is no longer
+recommended.
 
 ::
-
 
   - file-store:
       enabled: yes      # set to yes to enable
@@ -54,9 +110,15 @@ drop dir must be configured.
 
 Each file that is stored will have a name "file.<id>". The id will be reset and files will be overwritten unless the waldo option is used. A "file.<id>.meta" file is generated containing file metadata if write-meta is set to yes (default). If the include-pid option is set, the files will instead have a name "file.<pid>.<id>", and metafiles will be "file.<pid>.<id>.meta". Files will additionally have the suffix ".tmp" while they are open, which is only removed when they are finalized.
 
+File-Log (Deprecated)
+---------------------
+
+The file-log is a standalone logger that logs information about files
+extracted. It is now deprecated and should not be used. It has been
+replaced by ``eve.files`` in the :ref:`suricata-yaml-outputs-eve`
+output.
 
 ::
-
 
     - file-log:
         enabled: yes
