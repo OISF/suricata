@@ -168,6 +168,7 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     }
     new_engine->alproto = ALPROTO_UNKNOWN; /* all */
     new_engine->dir = direction;
+    new_engine->stream = true;
     new_engine->sm_list = DETECT_SM_LIST_PMATCH;
     new_engine->smd = stream;
     new_engine->Callback = DetectEngineInspectStream;
@@ -194,6 +195,10 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
     SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 }
 
+/**
+ *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
+ *        is assigned.
+ */
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
     const int nlists = DetectBufferTypeMaxId();
@@ -203,6 +208,8 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
     const int mpm_list = s->init_data->mpm_sm ?
         SigMatchListSMBelongsTo(s, s->init_data->mpm_sm) :
         -1;
+
+    const int files_id = DetectBufferTypeGetByName("files");
 
     /* convert lists to SigMatchData arrays */
     int i = 0;
@@ -253,13 +260,23 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
-            last_id = new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = DE_STATE_FLAG_BASE; /* id is used as flag in stateful detect */
+            }
 
         /* prepend engine if forced or if our engine has a lower progress. */
         } else if (prepend || (!head_is_mpm && s->app_inspect->progress > new_engine->progress)) {
             new_engine->next = s->app_inspect;
             s->app_inspect = new_engine;
-            new_engine->id = ++last_id;
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = ++last_id;
+            }
 
         } else {
             DetectEngineAppInspectionEngine *a = s->app_inspect;
@@ -273,8 +290,14 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
             new_engine->next = a->next;
             a->next = new_engine;
-            new_engine->id = ++last_id;
+            if (new_engine->sm_list == files_id) {
+                SCLogDebug("sid %u: engine %p/%u is FILE ENGINE", s->id, new_engine, new_engine->id);
+                new_engine->id = DE_STATE_ID_FILE_INSPECT;
+            } else {
+                new_engine->id = ++last_id;
+            }
         }
+
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
         s->flags |= SIG_FLAG_STATE_MATCH;
@@ -1044,15 +1067,6 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
-#ifdef PROFILING
-    SCProfilingKeywordInitCounters(de_ctx);
-    de_ctx->profile_match_logging_threshold = UINT_MAX; // disabled
-
-    intmax_t v = 0;
-    if (ConfGetInt("detect.profiling.inspect-logging-threshold", &v) == 1)
-        de_ctx->profile_match_logging_threshold = (uint32_t)v;
-#endif
-
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
     SCRConfLoadReferenceConfigFile(de_ctx, NULL);
 
@@ -1140,6 +1154,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     if (de_ctx->profile_sgh_ctx != NULL) {
         SCProfilingSghDestroyCtx(de_ctx);
     }
+    SCProfilingPrefilterDestroyCtx(de_ctx);
 #endif
 
     /* Normally the hashes are freed elsewhere, but
@@ -1738,14 +1753,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 
     /* DeState */
     if (de_ctx->sig_array_len > 0) {
-        det_ctx->de_state_sig_array_len = de_ctx->sig_array_len;
-        det_ctx->de_state_sig_array = SCMalloc(det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-        if (det_ctx->de_state_sig_array == NULL) {
-            return TM_ECODE_FAILED;
-        }
-        memset(det_ctx->de_state_sig_array, 0,
-               det_ctx->de_state_sig_array_len * sizeof(uint8_t));
-
         det_ctx->match_array_len = de_ctx->sig_array_len;
         det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
@@ -1753,6 +1760,8 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         }
         memset(det_ctx->match_array, 0,
                det_ctx->match_array_len * sizeof(Signature *));
+
+        RuleMatchCandidateTxArrayInit(det_ctx, de_ctx->sig_array_len);
     }
 
     /* byte_extract storage */
@@ -1777,6 +1786,7 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
     SCProfilingKeywordThreadSetup(de_ctx->profile_keyword_ctx, det_ctx);
+    SCProfilingPrefilterThreadSetup(de_ctx->profile_prefilter_ctx, det_ctx);
     SCProfilingSghThreadSetup(de_ctx->profile_sgh_ctx, det_ctx);
 #endif
     SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
@@ -1936,6 +1946,7 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 #ifdef PROFILING
     SCProfilingRuleThreadCleanup(det_ctx);
     SCProfilingKeywordThreadCleanup(det_ctx);
+    SCProfilingPrefilterThreadCleanup(det_ctx);
     SCProfilingSghThreadCleanup(det_ctx);
 #endif
 
@@ -1957,10 +1968,10 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->non_pf_id_array != NULL)
         SCFree(det_ctx->non_pf_id_array);
 
-    if (det_ctx->de_state_sig_array != NULL)
-        SCFree(det_ctx->de_state_sig_array);
     if (det_ctx->match_array != NULL)
         SCFree(det_ctx->match_array);
+
+    RuleMatchCandidateTxArrayFree(det_ctx);
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);

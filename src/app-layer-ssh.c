@@ -559,17 +559,24 @@ static LoggerId SSHGetTxLogged(void *state, void *tx)
     return 0;
 }
 
-static uint64_t SSHGetTxMpmIDs(void *vtx)
+static uint64_t SSHGetTxDetectFlags(void *vtx, uint8_t dir)
 {
     SshState *ssh_state = (SshState *)vtx;
-    return ssh_state->mpm_ids;
+    if (dir & STREAM_TOSERVER) {
+        return ssh_state->detect_flags_ts;
+    } else {
+        return ssh_state->detect_flags_tc;
+    }
 }
 
-static int SSHSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
+static void SSHSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
 {
     SshState *ssh_state = (SshState *)vtx;
-    ssh_state->mpm_ids = mpm_ids;
-    return 0;
+    if (dir & STREAM_TOSERVER) {
+        ssh_state->detect_flags_ts = flags;
+    } else {
+        ssh_state->detect_flags_tc = flags;
+    }
 }
 
 static int SSHGetAlstateProgressCompletionStatus(uint8_t direction)
@@ -647,8 +654,8 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SSH, SSHGetAlstateProgress);
 
         AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHGetTxLogged, SSHSetTxLogged);
-        AppLayerParserRegisterMpmIDsFuncs(IPPROTO_TCP, ALPROTO_SSH,
-                SSHGetTxMpmIDs, SSHSetTxMpmIDs);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SSH,
+                SSHGetTxDetectFlags, SSHSetTxDetectFlags);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SSH,
                                                                SSHGetAlstateProgressCompletionStatus);

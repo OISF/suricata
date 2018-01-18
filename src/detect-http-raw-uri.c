@@ -121,7 +121,6 @@ static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **si
 static void DetectHttpRawUriSetupCallback(Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
     DetectUrilenApplyToContent(s, g_http_raw_uri_buffer_id);
 }
 

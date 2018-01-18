@@ -179,6 +179,8 @@ pub struct DNSTransaction {
     pub id: u64,
     pub request: Option<DNSRequest>,
     pub response: Option<DNSResponse>,
+    detect_flags_ts: u64,
+    detect_flags_tc: u64,
     pub logged: LoggerFlags,
     pub de_state: Option<*mut core::DetectEngineState>,
     pub events: *mut core::AppLayerDecoderEvents,
@@ -191,6 +193,8 @@ impl DNSTransaction {
             id: 0,
             request: None,
             response: None,
+            detect_flags_ts: 0,
+            detect_flags_tc: 0,
             logged: LoggerFlags::new(),
             de_state: None,
             events: std::ptr::null_mut(),
@@ -682,6 +686,30 @@ pub extern "C" fn rs_dns_tx_get_alstate_progress(_tx: &mut DNSTransaction,
     // means its complete.
     SCLogDebug!("rs_dns_tx_get_alstate_progress");
     return 1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_tx_set_detect_flags(tx: &mut DNSTransaction,
+                                             dir: libc::uint8_t,
+                                             flags: libc::uint64_t)
+{
+    if dir & core::STREAM_TOSERVER != 0 {
+        tx.detect_flags_ts = flags as u64;
+    } else {
+        tx.detect_flags_tc = flags as u64;
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_dns_tx_get_detect_flags(tx: &mut DNSTransaction,
+                                             dir: libc::uint8_t)
+                                       -> libc::uint64_t
+{
+    if dir & core::STREAM_TOSERVER != 0 {
+        return tx.detect_flags_ts as libc::uint64_t;
+    } else {
+        return tx.detect_flags_tc as libc::uint64_t;
+    }
 }
 
 #[no_mangle]

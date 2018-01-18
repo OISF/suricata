@@ -37,8 +37,8 @@ typedef struct SigNumArray_ {
 
 void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead);
 int IPOnlySigParseAddress(const DetectEngineCtx *, Signature *, const char *, char);
-void IPOnlyMatchPacket(ThreadVars *tv, DetectEngineCtx *,
-                       DetectEngineThreadCtx *, DetectEngineIPOnlyCtx *,
+void IPOnlyMatchPacket(ThreadVars *tv, const DetectEngineCtx *,
+                       DetectEngineThreadCtx *, const DetectEngineIPOnlyCtx *,
                        DetectEngineIPOnlyThreadCtx *, Packet *);
 void IPOnlyInit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyPrint(DetectEngineCtx *, DetectEngineIPOnlyCtx *);

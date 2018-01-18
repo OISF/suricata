@@ -24,8 +24,16 @@
 #ifndef __DETECT_ENGINE_PREFILTER_H__
 #define __DETECT_ENGINE_PREFILTER_H__
 
+#include "detect-engine-state.h"
+
+typedef struct PrefilterStore_ {
+    const char *name;
+    void (*FreeFunc)(void *);
+    uint32_t id;
+} PrefilterStore;
+
 void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
-        const uint8_t flags, const bool has_state);
+        const uint8_t flags);
 
 int PrefilterAppendEngine(SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
@@ -42,6 +50,15 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
         const AppProto alproto, const int tx_min_progress,
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
+
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh,
+        Packet *p,
+        const uint8_t ipproto,
+        const uint8_t flow_flags,
+        const AppProto alproto,
+        void *alstate,
+        DetectTransaction *tx);
 
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
 

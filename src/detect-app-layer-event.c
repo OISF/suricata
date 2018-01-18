@@ -58,7 +58,6 @@ static int DetectEngineAptEventInspect(ThreadVars *tv,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
-static void DetectAppLayerEventSetupCallback(Signature *s);
 static int g_applayer_events_list_id = 0;
 
 /**
@@ -80,9 +79,6 @@ void DetectAppLayerEventRegister(void)
     DetectAppLayerInspectEngineRegister("app-layer-events",
             ALPROTO_UNKNOWN, SIG_FLAG_TOCLIENT, 0,
             DetectEngineAptEventInspect);
-
-    DetectBufferTypeRegisterSetupCallback("app-layer-events",
-            DetectAppLayerEventSetupCallback);
 
     g_applayer_events_list_id = DetectBufferTypeGetByName("app-layer-events");
 }
@@ -144,38 +140,6 @@ static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det
 
     return AppLayerDecoderEventsIsEventSet(p->app_layer_events,
                                            aled->event_id);
-}
-
-static void DetectAppLayerEventSetupCallback(Signature *s)
-{
-    SigMatch *sm;
-    for (sm = s->init_data->smlists[g_applayer_events_list_id] ; sm != NULL; sm = sm->next) {
-        switch (sm->type) {
-            case DETECT_AL_APP_LAYER_EVENT:
-            {
-                DetectAppLayerEventData *aed = (DetectAppLayerEventData *)sm->ctx;
-                switch (aed->alproto) {
-                    case ALPROTO_HTTP:
-                        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-                        SCLogDebug("sig %u requires http app state (http event)", s->id);
-                        break;
-                    case ALPROTO_SMTP:
-                        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
-                        SCLogDebug("sig %u requires smtp app state (smtp event)", s->id);
-                        break;
-                    case ALPROTO_DNS:
-                        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
-                        SCLogDebug("sig %u requires dns app state (dns event)", s->id);
-                        break;
-                    case ALPROTO_TLS:
-                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
-                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
-                        break;
-                }
-                break;
-            }
-        }
-    }
 }
 
 static DetectAppLayerEventData *DetectAppLayerEventParsePkt(const char *arg,

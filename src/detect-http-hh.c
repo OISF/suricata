@@ -62,7 +62,6 @@
 static int DetectHttpHHSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpHHRegisterTests(void);
 static void DetectHttpHHFree(void *);
-static void DetectHttpHostSetupCallback(Signature *s);
 static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror);
 static int g_http_host_buffer_id = 0;
 
@@ -90,9 +89,6 @@ void DetectHttpHHRegister(void)
     DetectBufferTypeSetDescriptionByName("http_host",
             "http host header");
 
-    DetectBufferTypeRegisterSetupCallback("http_host",
-            DetectHttpHostSetupCallback);
-
     DetectBufferTypeRegisterValidateCallback("http_host",
             DetectHttpHostValidateCallback);
 
@@ -118,12 +114,6 @@ static int DetectHttpHHSetup(DetectEngineCtx *de_ctx, Signature *s, const char *
                                                   DETECT_AL_HTTP_HOST,
                                                   g_http_host_buffer_id,
                                                   ALPROTO_HTTP);
-}
-
-static void DetectHttpHostSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
 }
 
 static _Bool DetectHttpHostValidateCallback(const Signature *s, const char **sigerror)

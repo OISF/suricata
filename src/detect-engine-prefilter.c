@@ -55,12 +55,6 @@
 
 #include "util-profiling.h"
 
-typedef struct PrefilterStore_ {
-    const char *name;
-    void (*FreeFunc)(void *);
-    uint32_t id;
-} PrefilterStore;
-
 static int PrefilterStoreGetId(const char *name, void (*FreeFunc)(void *));
 static const PrefilterStore *PrefilterStoreGetStore(const uint32_t id);
 
@@ -88,88 +82,71 @@ static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
     QuickSortSigIntId(l, sids + n - l);
 }
 
-static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
-        const SigGroupHead *sgh, Packet *p, const uint8_t flags)
+/**
+ * \brief run prefilter engines on a transaction
+ */
+void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
+        const SigGroupHead *sgh,
+        Packet *p,
+        const uint8_t ipproto,
+        const uint8_t flow_flags,
+        const AppProto alproto,
+        void *alstate,
+        DetectTransaction *tx)
 {
-    SCEnter();
+    /* reset rule store */
+    det_ctx->pmq.rule_id_array_cnt = 0;
 
-    const AppProto alproto = p->flow->alproto;
-    const uint8_t ipproto = p->proto;
+    SCLogDebug("tx %p progress %d", tx->tx_ptr, tx->tx_progress);
 
-    if (!(AppLayerParserProtocolIsTxAware(ipproto, alproto)))
-        SCReturn;
-
-    void *alstate = p->flow->alstate;
-    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-    const uint64_t total_txs = AppLayerParserGetTxCnt(p->flow, alstate);
-
-    /* HACK test HTTP state here instead of in each engine */
-    if (alproto == ALPROTO_HTTP) {
-        HtpState *htp_state = (HtpState *)alstate;
-        if (unlikely(htp_state->connp == NULL)) {
-            SCLogDebug("no HTTP connp");
-            SCReturn;
-        }
-    }
-
-    /* run our engines against each tx */
-    for (; idx < total_txs; idx++) {
-        void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
-        if (tx == NULL)
-            continue;
-
-        uint64_t mpm_ids = AppLayerParserGetTxMpmIDs(ipproto, alproto, tx);
-        const int tx_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-        SCLogDebug("tx %p progress %d", tx, tx_progress);
-
-        PrefilterEngine *engine = sgh->tx_engines;
-        do {
-            if (engine->alproto != alproto)
+    PrefilterEngine *engine = sgh->tx_engines;
+    do {
+        if (engine->alproto != alproto)
+            goto next;
+        if (engine->tx_min_progress > tx->tx_progress)
+            goto next;
+        if (tx->tx_progress > engine->tx_min_progress) {
+            if (tx->prefilter_flags & (1<<(engine->local_id))) {
                 goto next;
-            if (engine->tx_min_progress > tx_progress)
-                goto next;
-            if (tx_progress > engine->tx_min_progress) {
-                if (mpm_ids & (1<<(engine->gid))) {
-                    goto next;
-                }
             }
-
-            PROFILING_PREFILTER_START(p);
-            engine->cb.PrefilterTx(det_ctx, engine->pectx,
-                    p, p->flow, tx, idx, flags);
-            PROFILING_PREFILTER_END(p, engine->gid);
-
-            if (tx_progress > engine->tx_min_progress) {
-                mpm_ids |= (1<<(engine->gid));
-            }
-        next:
-            if (engine->is_last)
-                break;
-            engine++;
-        } while (1);
-
-        if (mpm_ids != 0) {
-            //SCLogNotice("tx %p Mpm IDs: %"PRIx64, tx, mpm_ids);
-            AppLayerParserSetTxMpmIDs(ipproto, alproto, tx, mpm_ids);
         }
+
+        PREFILTER_PROFILING_START;
+        engine->cb.PrefilterTx(det_ctx, engine->pectx,
+                p, p->flow, tx->tx_ptr, tx->tx_id, flow_flags);
+        PREFILTER_PROFILING_END(det_ctx, engine->gid);
+
+        if (tx->tx_progress > engine->tx_min_progress) {
+            tx->prefilter_flags |= (1<<(engine->local_id));
+        }
+    next:
+        if (engine->is_last)
+            break;
+        engine++;
+    } while (1);
+
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (likely(det_ctx->pmq.rule_id_array_cnt > 1)) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
 }
 
 void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
-        Packet *p, const uint8_t flags, const bool has_state)
+        Packet *p, const uint8_t flags)
 {
     SCEnter();
-
-    PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->prefilter_maxid);
 
     if (sgh->pkt_engines) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
         /* run packet engines */
         PrefilterEngine *engine = sgh->pkt_engines;
         do {
-            PROFILING_PREFILTER_START(p);
+            PREFILTER_PROFILING_START;
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->gid);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
                 break;
@@ -186,26 +163,15 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         PrefilterEngine *engine = sgh->payload_engines;
         while (1) {
-            PROFILING_PREFILTER_START(p);
+            PREFILTER_PROFILING_START;
             engine->cb.Prefilter(det_ctx, p, engine->pectx);
-            PROFILING_PREFILTER_END(p, engine->gid);
+            PREFILTER_PROFILING_END(det_ctx, engine->gid);
 
             if (engine->is_last)
                 break;
             engine++;
         }
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PAYLOAD);
-    }
-
-    /* run tx engines */
-    if (((p->proto == IPPROTO_TCP && p->flowflags & FLOW_PKT_ESTABLISHED) || p->proto != IPPROTO_TCP) && has_state) {
-        if (sgh->tx_engines != NULL && p->flow != NULL &&
-                p->flow->alproto != ALPROTO_UNKNOWN && p->flow->alstate != NULL)
-        {
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
-            PrefilterTx(det_ctx, sgh, p, flags);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
-        }
     }
 
     /* Sort the rule list to lets look at pmq.
@@ -407,7 +373,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         PrefilterEngine *e = sgh->pkt_engines;
         for (el = sgh->init->pkt_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -432,7 +398,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         PrefilterEngine *e = sgh->payload_engines;
         for (el = sgh->init->payload_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = el->id;
             e->cb.Prefilter = el->Prefilter;
             e->pectx = el->pectx;
             el->pectx = NULL; // e now owns the ctx
@@ -455,9 +421,10 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         memset(sgh->tx_engines, 0x00, (cnt * sizeof(PrefilterEngine)));
 
+        uint32_t local_id = 0;
         PrefilterEngine *e = sgh->tx_engines;
         for (el = sgh->init->tx_engines ; el != NULL; el = el->next) {
-            e->id = el->id;
+            e->local_id = local_id++;
             e->alproto = el->alproto;
             e->tx_min_progress = el->tx_min_progress;
             e->cb.PrefilterTx = el->PrefilterTx;
@@ -469,6 +436,7 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             }
             e++;
         }
+        SCLogDebug("sgh %p max local_id %u", sgh, local_id);
     }
 }
 
@@ -503,8 +471,8 @@ static void PrefilterStoreFreeFunc(void *ptr)
 }
 
 static SCMutex g_prefilter_mutex = SCMUTEX_INITIALIZER;
-static uint32_t g_prefilter_id = 0;
-static HashListTable *g_prefilter_hash_table = NULL;
+uint32_t g_prefilter_id = 0;
+HashListTable *g_prefilter_hash_table = NULL;
 
 static void PrefilterDeinit(void)
 {

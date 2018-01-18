@@ -445,6 +445,8 @@ void RegisterDNSUDPParsers(void)
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
                                                DNSStateHasTxDetectState,
                                                DNSGetTxDetectState, DNSSetTxDetectState);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_DNS,
+                                               DNSGetTxDetectFlags, DNSSetTxDetectFlags);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DNS,
                                     DNSGetTx);

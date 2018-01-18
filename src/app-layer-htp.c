@@ -1180,13 +1180,14 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 
 static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
 {
+    SCEnter();
     if (tx && tx->de_state) {
         if (dir == STREAM_TOSERVER) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
-            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         } else if (STREAM_TOCLIENT) {
-            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW set");
-            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_NEW set");
+            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_NEW;
         }
     }
 }
@@ -2748,26 +2749,37 @@ static int HTPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
     return 0;
 }
 
-static uint64_t HTPGetTxMpmIDs(void *vtx)
+static uint64_t HTPGetTxDetectFlags(void *vtx, uint8_t dir)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    return tx_ud ? tx_ud->mpm_ids : 0;
+    if (tx_ud) {
+        if (dir & STREAM_TOSERVER) {
+            return tx_ud->detect_flags_ts;
+        } else {
+            return tx_ud->detect_flags_tc;
+        }
+    }
+    return 0;
 }
 
-static int HTPSetTxMpmIDs(void *vtx, uint64_t mpm_ids)
+static void HTPSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
         tx_ud = HTPMalloc(sizeof(*tx_ud));
         if (unlikely(tx_ud == NULL))
-            return -ENOMEM;
+            return;
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx, tx_ud);
     }
-    tx_ud->mpm_ids = mpm_ids;
-    return 0;
+    if (dir & STREAM_TOSERVER) {
+        tx_ud->detect_flags_ts = detect_flags;
+    } else {
+        tx_ud->detect_flags_tc = detect_flags;
+    }
+    return;
 }
 
 static int HTPRegisterPatternsForProtocolDetection(void)
@@ -2858,8 +2870,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPStateHasTxDetectState,
                                                HTPGetTxDetectState, HTPSetTxDetectState);
-        AppLayerParserRegisterMpmIDsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
-                                               HTPGetTxMpmIDs, HTPSetTxMpmIDs);
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
+                                               HTPGetTxDetectFlags, HTPSetTxDetectFlags);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
                                      HTPHandleRequestData);

@@ -203,7 +203,6 @@ error:
     return 0;
 }
 
-#if 0
 /** \brief Get a name from the idx.
  *  \param idx index of the variable whose name is to be fetched
  *  \param type variable type
@@ -211,7 +210,7 @@ error:
  *  \retval name of the variable if successful.
  *  \todo no alloc on lookup
  */
-static const char *VariableIdxGetName(VarNameStore *v, uint32_t idx, enum VarTypes type)
+static char *VariableIdxGetName(VarNameStore *v, uint32_t idx, enum VarTypes type)
 {
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (unlikely(fn == NULL))
@@ -239,7 +238,7 @@ error:
     VariableNameFree(fn);
     return NULL;
 }
-#endif
+
 /** \brief setup staging store. Include current store if there is one.
  */
 int VarNameStoreSetupStaging(uint32_t de_ctx_version)
@@ -325,6 +324,14 @@ uint32_t VarNameStoreSetupAdd(const char *name, const enum VarTypes type)
     id = VariableNameGetIdx(g_varnamestore_staging, name, type);
     SCMutexUnlock(&g_varnamestore_staging_m);
     return id;
+}
+
+char *VarNameStoreSetupLookup(uint32_t idx, const enum VarTypes type)
+{
+    SCMutexLock(&g_varnamestore_staging_m);
+    char *name = VariableIdxGetName(g_varnamestore_staging, idx, type);
+    SCMutexUnlock(&g_varnamestore_staging_m);
+    return name;
 }
 
 void VarNameStoreActivateStaging(void)

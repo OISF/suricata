@@ -289,12 +289,6 @@ static int DetectHttpStartSetup(DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static void DetectHttpStartSetupCallback(Signature *s)
-{
-    SCLogDebug("callback invoked by %u", s->id);
-    s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-}
-
 /**
  * \brief Registers the keyword handlers for the "http_header" keyword.
  */
@@ -321,9 +315,6 @@ void DetectHttpStartRegister(void)
 
     DetectBufferTypeSetDescriptionByName(BUFFER_NAME,
             BUFFER_DESC);
-
-    DetectBufferTypeRegisterSetupCallback(BUFFER_NAME,
-            DetectHttpStartSetupCallback);
 
     g_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 

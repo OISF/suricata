@@ -2200,6 +2200,7 @@ void PreRunInit(const int runmode)
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingKeywordsGlobalInit();
+    SCProfilingPrefilterGlobalInit();
     SCProfilingSghsGlobalInit();
     SCProfilingInit();
 #endif /* PROFILING */
@@ -2509,9 +2510,6 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
         gettimeofday(&de_ctx->last_reload, NULL);
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
-    } else {
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 }
 

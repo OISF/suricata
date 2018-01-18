@@ -242,6 +242,16 @@ static FileContainer *NFSTCPGetFiles(void *state, uint8_t direction)
     return rs_nfs3_getfiles(direction, state);
 }
 
+static void NFSTCPSetDetectFlags(void *tx, uint8_t dir, uint64_t flags)
+{
+    rs_nfs_tx_set_detect_flags(tx, dir, flags);
+}
+
+static uint64_t NFSTCPGetDetectFlags(void *tx, uint8_t dir)
+{
+    return rs_nfs_tx_get_detect_flags(tx, dir);
+}
+
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
@@ -341,6 +351,9 @@ void RegisterNFSTCPParsers(void)
                 NFSTCPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
                 NFSTCPGetEvents);
+
+        AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_NFS,
+                                               NFSTCPGetDetectFlags, NFSTCPSetDetectFlags);
 
         /* This parser accepts gaps. */
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_NFS,
