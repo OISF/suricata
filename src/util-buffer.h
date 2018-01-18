@@ -100,13 +100,13 @@ void MemBufferFree(MemBuffer *buffer);
  * \param buffer Pointer to the src MemBuffer instance to write.
  * \param fp     Pointer to the file file instance to write to.
  */
-#define MemBufferPrintToFPAsHex(buffer, fp) do {        \
+#define MemBufferPrintToFPAsHex(mem_buffer, fp) do {        \
         uint32_t i;                                     \
                                                         \
-        for (i = 0; i < (buffer)->offset; i++) {        \
-            if (((buffer)->offset % 8) == 0)            \
+        for (i = 0; i < (mem_buffer)->offset; i++) {        \
+            if (((mem_buffer)->offset % 8) == 0)            \
                 fprintf(fp, "\n");                      \
-            fprintf(fp, " %02X", (buffer)->buffer[i]);  \
+            fprintf(fp, " %02X", (mem_buffer)->buffer[i]);  \
         }                                               \
     } while (0)
 
