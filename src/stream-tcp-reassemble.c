@@ -561,19 +561,19 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
             stream->base_seq, seg_depth,
             stream_config.reassembly_depth);
 
-    if (seg_depth > (uint64_t)stream_config.reassembly_depth) {
+    if (seg_depth > (uint64_t)ssn->reassembly_depth) {
         SCLogDebug("STREAMTCP_STREAM_FLAG_DEPTH_REACHED");
         stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
         SCReturnUInt(0);
     }
     SCLogDebug("NOT STREAMTCP_STREAM_FLAG_DEPTH_REACHED");
-    SCLogDebug("%"PRIu64" <= %u", seg_depth, stream_config.reassembly_depth);
+    SCLogDebug("%"PRIu64" <= %u", seg_depth, ssn->reassembly_depth);
 #if 0
     SCLogDebug("full depth not yet reached: %"PRIu64" <= %"PRIu32,
             (stream->base_seq_offset + stream->base_seq + size),
             (stream->isn + stream_config.reassembly_depth));
 #endif
-    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + stream_config.reassembly_depth))) {
+    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + ssn->reassembly_depth))) {
         /* packet (partly?) fits the depth window */
 
         if (SEQ_LEQ((seq + size),(stream->isn + 1 + ssn->reassembly_depth))) {
