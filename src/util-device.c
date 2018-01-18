@@ -20,6 +20,8 @@
 #include "util-device.h"
 #include "util-ioctl.h"
 
+#include "device-storage.h"
+
 #define MAX_DEVNAME 10
 
 /**
@@ -33,6 +35,15 @@
 /** private device list */
 static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
+
+/** List of the name of devices
+ *
+ * As we don't know the size of the Storage on devices
+ * before the parsing we need to wait and use this list
+ * to create later the LiveDevice via LiveDeviceFinalize()
+ */
+static TAILQ_HEAD(, PreLiveDevice_) pre_live_devices =
+    TAILQ_HEAD_INITIALIZER(pre_live_devices);
 
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
@@ -60,6 +71,9 @@ int LiveGetOffload(void)
 /**
  *  \brief Add a pcap device for monitoring
  *
+ * To be used during option parsing. When a device has
+ * to be created during runmode init, use LiveRegisterDeviceFull()
+ *
  *  \param dev string with the device name
  *
  *  \retval 0 on success.
@@ -67,7 +81,38 @@ int LiveGetOffload(void)
  */
 int LiveRegisterDevice(const char *dev)
 {
-    LiveDevice *pd = SCCalloc(1, sizeof(LiveDevice));
+    PreLiveDevice *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(PreLiveDevice));
+    if (unlikely(pd == NULL)) {
+        return -1;
+    }
+
+    pd->dev = SCStrdup(dev);
+    if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
+
+    TAILQ_INSERT_TAIL(&pre_live_devices, pd, next);
+
+    SCLogDebug("Device \"%s\" registered.", dev);
+    return 0;
+}
+
+/**
+ *  \brief Add a pcap device for monitoring and create structure
+ *
+ *  \param dev string with the device name
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int LiveRegisterDeviceFull(const char *dev)
+{
+    LiveDevice *pd = NULL;
+
+    pd = SCCalloc(1, sizeof(LiveDevice) + LiveDevStorageSize());
     if (unlikely(pd == NULL)) {
         return -1;
     }
@@ -90,7 +135,7 @@ int LiveRegisterDevice(const char *dev)
     pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
-    SCLogDebug("Device \"%s\" registered.", dev);
+    SCLogDebug("Device \"%s\" registered and created.", dev);
     return 0;
 }
 
@@ -290,6 +335,7 @@ int LiveDeviceListClean()
         SC_ATOMIC_DESTROY(pd->pkts);
         SC_ATOMIC_DESTROY(pd->drop);
         SC_ATOMIC_DESTROY(pd->invalid_checksums);
+        LiveDevFreeStorage(pd);
         SCFree(pd);
     }
 
@@ -327,6 +373,8 @@ TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *answer, void *data)
                                 json_integer(SC_ATOMIC_GET(pd->invalid_checksums)));
             json_object_set_new(jdata, "drop",
                                 json_integer(SC_ATOMIC_GET(pd->drop)));
+            json_object_set_new(jdata, "bypassed",
+                                json_integer(SC_ATOMIC_GET(pd->bypassed)));
             json_object_set_new(answer, "message", jdata);
             SCReturnInt(TM_ECODE_OK);
         }
@@ -365,4 +413,41 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
     json_object_set_new(answer, "message", jdata);
     SCReturnInt(TM_ECODE_OK);
 }
+
 #endif /* BUILD_UNIX_SOCKET */
+
+LiveDevice *LiveDeviceForEach(LiveDevice **ldev, LiveDevice **ndev)
+{
+    if (*ldev == NULL) {
+        *ldev = TAILQ_FIRST(&live_devices);
+        *ndev = TAILQ_NEXT(*ldev, next);
+        return *ldev;
+    } else {
+        *ldev = *ndev;
+        if (*ldev) {
+            *ndev = TAILQ_NEXT(*ldev, next);
+        }
+        return *ldev;
+    }
+    return NULL;
+}
+
+/**
+ * Create registered devices
+ *
+ * This function creates all needed LiveDevice from
+ * the PreLiveDevice list created via LiveRegisterDevice()
+ */
+void LiveDeviceFinalize(void)
+{
+    PreLiveDevice *ld, *pld;
+    SCLogDebug("Finalize live device");
+    /* Iter on devices and register them */
+    TAILQ_FOREACH_SAFE(ld, &pre_live_devices, next, pld) {
+        if (ld->dev) {
+            LiveRegisterDeviceFull(ld->dev);
+            SCFree(ld->dev);
+        }
+        SCFree(ld);
+    }
+}
