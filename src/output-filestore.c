@@ -15,8 +15,6 @@
  * 02110-1301, USA.
  */
 
-#include <utime.h>
-
 #include "suricata-common.h"
 
 #include "app-layer-parser.h"
@@ -162,10 +160,9 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
     if (ctx->fileinfo) {
         char js_metadata_filename[PATH_MAX];
         snprintf(js_metadata_filename, sizeof(js_metadata_filename),
-                "%s.%"PRIuMAX".%d.json", final_filename, p->ts.tv_sec,
-                ff->file_store_id);
+                "%s.%"PRIuMAX".%u.json", final_filename,
+                (uintmax_t)p->ts.tv_sec, ff->file_store_id);
         json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true);
-        
         if (likely(js_fileinfo != NULL)) {
             json_dump_file(js_fileinfo, js_metadata_filename, 0);
             json_decref(js_fileinfo);
