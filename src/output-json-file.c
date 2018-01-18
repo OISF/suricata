@@ -78,7 +78,8 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
-json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff)
+json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
+        const bool stored)
 {
     json_t *js = CreateJSONHeader((Packet *)p, 0, "fileinfo"); //TODO const
     json_t *hjs = NULL;
@@ -176,8 +177,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff)
     }
 #endif
 
-    json_object_set_new(fjs, "stored",
-                        (ff->flags & FILE_STORED) ? json_true() : json_false());
+    json_object_set_new(fjs, "stored", stored ? json_true() : json_false());
     if (ff->flags & FILE_STORED) {
         json_object_set_new(fjs, "file_id", json_integer(ff->file_store_id));
     }
@@ -196,7 +196,8 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff)
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
 {
-    json_t *js = JsonBuildFileInfoRecord(p, ff);
+    json_t *js = JsonBuildFileInfoRecord(p, ff,
+            ff->flags & FILE_STORED ? true : false);
     if (unlikely(js == NULL)) {
         return;
     }
