@@ -84,20 +84,16 @@ pub extern "C" fn rs_tftp_get_tx(state: &mut TFTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_get_tx_logged(_state: &mut TFTPState,
-                                        tx: &mut TFTPTransaction,
-                                        logger: libc::uint32_t) -> i8 {
-    if tx.logged.is_logged(logger) {
-        1
-    } else {
-        0
-    }
+                                        tx: &mut TFTPTransaction)
+                                        -> u32 {
+    return tx.logged.get();
 }
 
 #[no_mangle]
 pub extern "C" fn rs_tftp_set_tx_logged(_state: &mut TFTPState,
                                         tx: &mut TFTPTransaction,
-                                        logger: libc::uint32_t) {
-    tx.logged.set_logged(logger);
+                                        logged: libc::uint32_t) {
+    tx.logged.set(logged);
 }
 
 #[no_mangle]

@@ -23,7 +23,6 @@
  * Implement JSON/eve logging app-layer TFTP.
  */
 
-//#ifdef HAVE_RUST
 
 #include "suricata-common.h"
 #include "debug.h"
