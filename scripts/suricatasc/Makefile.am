@@ -14,6 +14,6 @@ clean-local:
 
 uninstall-local:
 	[ ! -f "$(DESTDIR)$(prefix)/bin/suricatasc" ] || rm -f "$(DESTDIR)$(prefix)/bin/suricatasc"
-	find "$(DESTDIR)$(prefix)/lib" -name "suricatasc-*.egg-info" -delete ||true
+	find "$(DESTDIR)$(prefix)/lib" -name "suricatasc-*.egg-info" -print0 | xargs -0 rm -f ||true
 
 endif
