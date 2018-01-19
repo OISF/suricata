@@ -205,6 +205,18 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
 
+    if (p->flow->alproto == ALPROTO_HTTP) {
+        HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
+        if (htp_state != NULL) {
+            uint64_t tx_id = AppLayerParserGetTransactionLogId(p->flow->alparser);
+            htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,
+                                               htp_state, tx_id);
+            if (tx != NULL) {
+                AppLayerHtpUseStreamDepth(tx);
+            }
+        }
+    }
+
     if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags |= STREAM_TOCLIENT;
     else
