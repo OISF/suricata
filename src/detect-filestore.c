@@ -201,14 +201,29 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 #endif
     }
 
-    /* set filestore depth for stream reassembling */
-    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-    TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
-
     if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags |= STREAM_TOCLIENT;
     else
         flags |= STREAM_TOSERVER;
+
+    /* set filestore depth for stream reassembling */
+    TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+    TcpSessionSetReassemblyDepth(ssn, FileReassemblyDepth());
+
+    if (p->flow->alproto == ALPROTO_HTTP) {
+        HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
+        if (htp_state != NULL) {
+            uint16_t u;
+
+            for (u = 0; u < det_ctx->filestore_cnt; u++) {
+                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP,
+                                                   htp_state, det_ctx->filestore[u].tx_id);
+                if (tx != NULL) {
+                    AppLayerHtpFollowFileStreamDepth(tx, flags);
+                }
+            }
+        }
+    }
 
     FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
                                                 p->flow->alstate, flags);
