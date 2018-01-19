@@ -171,11 +171,12 @@ typedef struct HtpBody_ {
     uint64_t body_inspected;
 } HtpBody;
 
-#define HTP_CONTENTTYPE_SET     0x01    /**< We have the content type */
-#define HTP_BOUNDARY_SET        0x02    /**< We have a boundary string */
-#define HTP_BOUNDARY_OPEN       0x04    /**< We have a boundary string */
-#define HTP_FILENAME_SET        0x08   /**< filename is registered in the flow */
-#define HTP_DONTSTORE           0x10    /**< not storing this file */
+#define HTP_CONTENTTYPE_SET     BIT_U8(0)    /**< We have the content type */
+#define HTP_BOUNDARY_SET        BIT_U8(1)    /**< We have a boundary string */
+#define HTP_BOUNDARY_OPEN       BIT_U8(2)    /**< We have a boundary string */
+#define HTP_FILENAME_SET        BIT_U8(3)    /**< filename is registered in the flow */
+#define HTP_DONTSTORE           BIT_U8(4)    /**< not storing this file */
+#define HTP_STREAM_DEPTH_SET    BIT_U8(5)    /**< stream-depth is set */
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
@@ -261,6 +262,7 @@ void AppLayerHtpEnableRequestBodyCallback(void);
 void AppLayerHtpEnableResponseBodyCallback(void);
 void AppLayerHtpNeedFileInspection(void);
 void AppLayerHtpPrintStats(void);
+void AppLayerHtpFollowFileStreamDepth(htp_tx_t *tx, uint8_t flags);
 
 void HTPConfigure(void);
 

@@ -465,6 +465,34 @@ void AppLayerHtpNeedFileInspection(void)
     SCReturn;
 }
 
+void AppLayerHtpFollowFileStreamDepth(htp_tx_t *tx, uint8_t flags)
+{
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud) {
+        if (flags & STREAM_TOCLIENT) {
+            tx_ud->tcflags |= HTP_STREAM_DEPTH_SET;
+        } else {
+            tx_ud->tsflags |= HTP_STREAM_DEPTH_SET;
+        }
+    }
+}
+
+static int AppLayerHtpCheckStreamDepth(const HtpTxUserData *tx_ud)
+{
+    if (tx_ud->tcflags & HTP_STREAM_DEPTH_SET) {
+        if (tx_ud->response_body.content_len_so_far < FileReassemblyDepth() ||
+            FileReassemblyDepth() == 0) {
+            return 1;
+        }
+    } else if (tx_ud->tsflags & HTP_STREAM_DEPTH_SET) {
+        if (tx_ud->request_body.content_len_so_far < FileReassemblyDepth() ||
+            FileReassemblyDepth() == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
 struct {
     const char *msg;
@@ -1718,15 +1746,25 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("tx_ud->request_body.content_len_so_far %"PRIu64, tx_ud->request_body.content_len_so_far);
     SCLogDebug("hstate->cfg->request.body_limit %u", hstate->cfg->request.body_limit);
 
-    /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)
+    /* within limits, add the body chunk to the state.
+       if HTP_STREAM_DEPTH_SET is set, a file is being stored so stream depth is followed,
+       otherwise content length is checked against request body limit. */
+    if ((!(tx_ud->tsflags & HTP_STREAM_DEPTH_SET) &&
+        (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)) ||
+        AppLayerHtpCheckStreamDepth(tx_ud))
     {
         uint32_t len = (uint32_t)d->len;
+        uint64_t stream_depth = FileReassemblyDepth();
 
-        if (hstate->cfg->request.body_limit > 0 &&
+        if (!(tx_ud->tsflags & HTP_STREAM_DEPTH_SET) && hstate->cfg->request.body_limit > 0 &&
                 (tx_ud->request_body.content_len_so_far + len) > hstate->cfg->request.body_limit)
         {
             len = hstate->cfg->request.body_limit - tx_ud->request_body.content_len_so_far;
+            BUG_ON(len > (uint32_t)d->len);
+        } else if ((tx_ud->tsflags & HTP_STREAM_DEPTH_SET) && stream_depth > 0 &&
+                   (tx_ud->request_body.content_len_so_far + len) > stream_depth)
+        {
+            len = stream_depth - tx_ud->request_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -1810,15 +1848,26 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     SCLogDebug("tx_ud->response_body.content_len_so_far %"PRIu64, tx_ud->response_body.content_len_so_far);
     SCLogDebug("hstate->cfg->response.body_limit %u", hstate->cfg->response.body_limit);
 
-    /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)
+    /* within limits, add the body chunk to the state.
+       if HTP_STREAM_DEPTH_SET is set, a file is being stored so stream depth is followed,
+       otherwise content length is checked against response body limit. */
+    if ((!(tx_ud->tcflags & HTP_STREAM_DEPTH_SET) &&
+        (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)) ||
+        AppLayerHtpCheckStreamDepth(tx_ud))
+
     {
         uint32_t len = (uint32_t)d->len;
+        uint64_t stream_depth = FileReassemblyDepth();
 
-        if (hstate->cfg->response.body_limit > 0 &&
+        if (!(tx_ud->tcflags & HTP_STREAM_DEPTH_SET) && hstate->cfg->response.body_limit > 0 &&
                 (tx_ud->response_body.content_len_so_far + len) > hstate->cfg->response.body_limit)
         {
             len = hstate->cfg->response.body_limit - tx_ud->response_body.content_len_so_far;
+            BUG_ON(len > (uint32_t)d->len);
+        } else if ((tx_ud->tcflags & HTP_STREAM_DEPTH_SET) && stream_depth > 0 &&
+                   (tx_ud->response_body.content_len_so_far + len) > stream_depth)
+        {
+            len = stream_depth - tx_ud->response_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
