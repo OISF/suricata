@@ -35,6 +35,12 @@
    interrupted. This is useful with directories to add new files and not reset
    flow state between files.
 
+.. option:: --pcap-file-delete
+
+   Used with the -r option to indicate that the mode should delete pcap files
+   after they have been processed. This is useful with pcap-file-continuous to
+   continuously feed files to a directory and have them cleaned up when done.
+
 .. option::  -i <interface>
 
    After the -i option you can enter the interface card you would like

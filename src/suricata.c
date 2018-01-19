@@ -1453,6 +1453,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"pcap-file-continuous", 0, 0, 0},
+        {"pcap-file-delete", 0, 0, 0},
         {"simulate-ips", 0, 0 , 0},
         {"no-random", 0, &g_disable_randomness, 1},
 
@@ -1825,6 +1826,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             else if (strcmp((long_opts[option_index]).name, "pcap-file-continuous") == 0) {
                 if(ConfSetFinal("pcap-file.continuous", "true") != 1) {
                     SCLogError(SC_ERR_CMD_LINE, "Failed to set pcap-file.continuous");
+                    return TM_ECODE_FAILED;
+                }
+            }
+            else if (strcmp((long_opts[option_index]).name, "pcap-file-delete") == 0) {
+                if(ConfSetFinal("pcap-file.delete", "true") != 1) {
+                    SCLogError(SC_ERR_CMD_LINE, "Failed to set pcap-file.delete-when-done");
                     return TM_ECODE_FAILED;
                 }
             }
