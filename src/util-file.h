@@ -228,7 +228,7 @@ void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint64_t);
 void FileStoreFileById(FileContainer *fc, uint32_t);
 
-void FileTruncateAllOpenFiles(FileContainer *);
+void FileTruncateAllOpenFiles(FileContainer *, uint8_t);
 
 uint64_t FileDataSize(const File *file);
 uint64_t FileTrackedSize(const File *file);
