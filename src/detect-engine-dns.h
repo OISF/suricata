@@ -24,8 +24,13 @@
 #define __DETECT_ENGINE_DNS_H__
 
 int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxDnsResponseRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectDnsQueryName(ThreadVars *,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
+        const Signature *, const SigMatchData *smd,
+        Flow *, uint8_t, void *, void *, uint64_t);
+int DetectEngineInspectDnsResponse(ThreadVars *,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
         const Signature *, const SigMatchData *smd,
         Flow *, uint8_t, void *, void *, uint64_t);
@@ -33,7 +38,7 @@ int DetectEngineInspectDnsRequest(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
-int DetectEngineInspectDnsResponse(ThreadVars *tv,
+int DetectEngineInspectDnsResponseGeneric(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         const Signature *s, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);

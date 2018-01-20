@@ -1027,7 +1027,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, const char *st
         } else if (lua->flags & DATATYPE_DNS_REQUEST) {
             list = DetectBufferTypeGetByName("dns_request");
         } else if (lua->flags & DATATYPE_DNS_RESPONSE) {
-            list = DetectBufferTypeGetByName("dns_response");
+            list = DetectBufferTypeGetByName("dns_response_generic");
         }
     } else if (lua->alproto == ALPROTO_TLS) {
         list = DetectBufferTypeGetByName("tls_generic");

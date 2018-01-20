@@ -841,6 +841,30 @@ pub extern "C" fn rs_dns_tx_get_query_rrtype(tx: &mut DNSTransaction,
     return 0;
 }
 
+/// Get the rdata for a specific DNS answer in the response. Returns 1
+/// if rdata at index was found, otherwise 0 is returned.
+#[no_mangle]
+pub extern "C" fn rs_dns_tx_get_answer_rdata(tx: &mut DNSTransaction,
+                                             i: libc::uint16_t,
+                                             buf: *mut *const libc::uint8_t,
+                                             len: *mut libc::uint32_t)
+                                             -> libc::uint8_t
+{
+    for response in &tx.response {
+        if (i as usize) < response.answers.len() {
+            let answer = &response.answers[i as usize];
+            if answer.data.len() > 0 {
+                unsafe {
+                    *len = answer.data.len() as libc::uint32_t;
+                    *buf = answer.data.as_ptr();
+                }
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 #[no_mangle]
 pub extern "C" fn rs_dns_probe(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::uint8_t
