@@ -368,10 +368,10 @@ integration with 3rd party tools like logstash.
             #  x-originating-ip, in-reply-to, references, importance, priority,
             #  sensitivity, organization, content-md5, date
             #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
-            # output md5 of fields: body, subject
+            # output md5 of fields: body, subject, attachments
             # for the body you need to set app-layer.protocols.smtp.mime.body-md5
             # to yes
-            #md5: [body, subject]
+            #md5: [body, subject, attachments]
 
         - ssh
         - stats:
