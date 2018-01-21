@@ -446,6 +446,38 @@ int DetectAddressJoin(DetectEngineCtx *de_ctx, DetectAddress *target,
 }
 
 /**
+ * \brief Checks if two address group lists are equal.
+ *
+ * \param list1 Pointer to the first address group list.
+ * \param list2 Pointer to the second address group list.
+ *
+ * \retval true On success.
+ * \retval false On failure.
+ */
+bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2)
+{
+    DetectAddress *item = list1;
+    DetectAddress *it = list2;
+
+    // First, Check if every item of list1 presents in list2.
+    while (item != NULL && it != NULL) {
+        if (!DetectAddressLookupInList(list2, item)) {
+                return false;
+        }
+
+        item = item->next;
+        it = it->next;
+    }
+
+    // Are the lists of the same size?
+    if (!(item == NULL && it == NULL)) {
+        return false;
+    }
+
+    return true;
+}
+
+/**
  * \internal
  * \brief Creates a cidr ipv6 netblock, based on the cidr netblock value.
  *

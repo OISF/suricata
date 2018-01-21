@@ -34,8 +34,11 @@ int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);
 void DetectPortCleanupList (DetectPort *head);
 
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
+DetectPort *DetectPortLookupInList(DetectPort *head, DetectPort *gr);
 
 int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
+
+bool DetectPortListsAreEqual(DetectPort *list1, DetectPort *list2);
 
 void DetectPortPrint(DetectPort *);
 void DetectPortPrintList(DetectPort *head);
