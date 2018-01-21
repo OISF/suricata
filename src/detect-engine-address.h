@@ -44,6 +44,8 @@ void DetectAddressPrintList(DetectAddress *);
 int DetectAddressInsert(DetectEngineCtx *, DetectAddressHead *, DetectAddress *);
 int DetectAddressJoin(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
+bool DetectAddressListsAreEqual(DetectAddress *list1, DetectAddress *list2);
+
 DetectAddress *DetectAddressLookupInHead(const DetectAddressHead *, Address *);
 DetectAddress *DetectAddressLookupInList(DetectAddress *, DetectAddress *);
 int DetectAddressMatch(DetectAddress *, Address *);

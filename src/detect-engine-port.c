@@ -753,6 +753,33 @@ DetectPortLookupGroup(DetectPort *dp, uint16_t port)
 }
 
 /**
+ * \brief Used to check if a DetectPort list contains an instance with
+ *        a similar DetectPort.  The comparison done is not the one that
+ *        checks the memory for the same instance, but one that checks that the
+ *        two instances hold the same content.
+ *
+ * \param head Pointer to the DetectPort list.
+ * \param ad   Pointer to the DetectPort that has to be checked for in
+ *             the DetectPort list.
+ *
+ * \retval cur Returns a pointer to the DetectPort on a match; NULL if
+ *             no match.
+ */
+DetectPort *DetectPortLookupInList(DetectPort *head, DetectPort *gr)
+{
+    DetectPort *cur;
+
+    if (head != NULL) {
+        for (cur = head; cur != NULL; cur = cur->next) {
+             if (DetectPortCmp(cur, gr) == PORT_EQ)
+                 return cur;
+        }
+    }
+
+    return NULL;
+}
+
+/**
  * \brief Function to join the source group to the target and its members
  *
  * \param de_ctx Pointer to the current Detection Engine Context
@@ -777,6 +804,38 @@ int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target,
         target->port2 = source->port2;
 
     return 0;
+}
+
+/**
+ * \brief Checks if two port group lists are equal.
+ *
+ * \param list1 Pointer to the first port group list.
+ * \param list2 Pointer to the second port group list.
+ *
+ * \retval true On success.
+ * \retval false On failure.
+ */
+bool DetectPortListsAreEqual(DetectPort *list1, DetectPort *list2)
+{
+    DetectPort *item = list1;
+    DetectPort *it = list2;
+
+    // First, compare items one by one.
+    while (item != NULL && it != NULL) {
+        if (DetectPortCmp(item, it) != PORT_EQ) {
+            return false;
+        }
+
+        item = item->next;
+        it = it->next;
+    }
+
+    // Are the lists of the same size?
+    if (!(item == NULL && it == NULL)) {
+        return false;
+    }
+
+    return true;
 }
 
 /******************* parsing routines ************************/

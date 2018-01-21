@@ -1879,6 +1879,39 @@ error:
 }
 
 /**
+ * \brief Checks if a signature has the same source and destination
+ * \param s parsed signature
+ *
+ *  \retval true if source and destination are the same, false otherwise
+ */
+static bool SigHasSameSourceAndDestination(const Signature *s)
+{
+    if (!(s->flags & SIG_FLAG_SP_ANY) || !(s->flags & SIG_FLAG_DP_ANY)) {
+        if (!DetectPortListsAreEqual(s->sp, s->dp)) {
+            return false;
+        }
+    }
+
+    if (!(s->flags & SIG_FLAG_SRC_ANY) || !(s->flags & SIG_FLAG_DST_ANY)) {
+        DetectAddress *src = s->init_data->src->ipv4_head;
+        DetectAddress *dst = s->init_data->dst->ipv4_head;
+
+        if (!DetectAddressListsAreEqual(src, dst)) {
+            return false;
+        }
+
+        src = s->init_data->src->ipv6_head;
+        dst = s->init_data->dst->ipv6_head;
+
+        if (!DetectAddressListsAreEqual(src, dst)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * \brief Parses a signature and adds it to the Detection Engine Context.
  *
  * \param de_ctx Pointer to the Detection Engine Context.
@@ -1900,9 +1933,16 @@ Signature *SigInit(DetectEngineCtx *de_ctx, const char *sigstr)
     }
 
     if (sig->init_data->init_flags & SIG_FLAG_INIT_BIDIREC) {
-        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
-        if (sig->next == NULL) {
-            goto error;
+        if (SigHasSameSourceAndDestination(sig)) {
+            SCLogInfo("Rule with ID %u is bidirectional, but source and destination are the same, "
+                "treating the rule as unidirectional", sig->id);
+
+            sig->init_data->init_flags &= ~SIG_FLAG_INIT_BIDIREC;
+        } else {
+            sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+            if (sig->next == NULL) {
+                goto error;
+            }
         }
     }
 
@@ -3886,6 +3926,75 @@ static int SigParseTestContentGtDsize02(void)
     PASS;
 }
 
+static int SigParseBidirWithSameSrcAndDest01(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    Signature *s = SigInit(de_ctx,
+            "alert tcp any any <> any any (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    s = SigInit(de_ctx,
+            "alert tcp any [80, 81] <> any [81, 80] (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    s = SigInit(de_ctx,
+            "alert tcp [1.2.3.4, 5.6.7.8] [80, 81] <> [5.6.7.8, 1.2.3.4] [81, 80] (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NOT_NULL(s->next);
+    FAIL_IF(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    PASS;
+}
+
+static int SigParseBidirWithSameSrcAndDest02(void)
+{
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    // Source is a subset of destination
+    Signature *s = SigInit(de_ctx,
+            "alert tcp 1.2.3.4 any <> [1.2.3.4, 5.6.7.8, ::1] any (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    // Source is a subset of destinationn
+    s = SigInit(de_ctx,
+            "alert tcp [1.2.3.4, ::1] [80, 81, 82] <> [1.2.3.4, ::1] [80, 81] (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    // Source intersects with destination
+    s = SigInit(de_ctx,
+            "alert tcp [1.2.3.4, ::1, ABCD:AAAA::1] [80] <> [1.2.3.4, ::1] [80, 81] (sid:1; rev:1;)");
+    FAIL_IF_NULL(s);
+    FAIL_IF_NULL(s->next);
+    FAIL_IF_NOT(s->init_data->init_flags & SIG_FLAG_INIT_BIDIREC);
+
+    SigFree(s);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void)
@@ -3948,5 +4057,10 @@ void SigParseRegisterTests(void)
             SigParseTestContentGtDsize01);
     UtRegisterTest("SigParseTestContentGtDsize02",
             SigParseTestContentGtDsize02);
+
+    UtRegisterTest("SigParseBidirWithSameSrcAndDest01",
+            SigParseBidirWithSameSrcAndDest01);
+    UtRegisterTest("SigParseBidirWithSameSrcAndDest02",
+            SigParseBidirWithSameSrcAndDest02);
 #endif /* UNITTESTS */
 }
