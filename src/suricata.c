@@ -2450,10 +2450,10 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     return TM_ECODE_OK;
 }
 
-static void PostRunStartedDetectSetup(SCInstance *suri)
+static void PostRunStartedDetectSetup(const SCInstance *suri)
 {
 #ifndef OS_WIN32
-    /* registering signal handlers we use.  We register usr2 here, so that one
+    /* registering signal handlers we use. We setup usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
     if (DetectEngineEnabled() && suri->sig_file == NULL &&

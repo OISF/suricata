@@ -75,7 +75,7 @@ void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
-int DetectEngineReload(SCInstance *suri);
+int DetectEngineReload(const SCInstance *suri);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
 int DetectEngineMultiTenantEnabled(void);
