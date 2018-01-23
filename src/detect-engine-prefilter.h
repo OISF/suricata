@@ -69,4 +69,7 @@ void PrefilterCleanupRuleGroup(SigGroupHead *sgh);
 const char *PrefilterStoreGetName(const uint32_t id);
 #endif
 
+int PrefilterGenericMpmRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
+
 #endif

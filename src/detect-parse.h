@@ -69,6 +69,7 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...);
 SigMatch *DetectGetLastSMByListPtr(const Signature *s, SigMatch *sm_list, ...);
 SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...);
 
+int DetectSignatureAddTransform(Signature *s, int transform);
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto);
 
 /* parse regex setup and free util funcs */

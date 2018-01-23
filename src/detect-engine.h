@@ -28,11 +28,21 @@
 #include "tm-threads.h"
 #include "flow-private.h"
 
+void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size);
+void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len);
+void InspectionBufferFree(InspectionBuffer *buffer);
+void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size);
+void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len);
+void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms);
+
 int DetectBufferTypeRegister(const char *name);
 int DetectBufferTypeGetByName(const char *name);
+int DetectBufferTypeGetByIdTransforms(const int id, int *transforms, int transform_cnt);
 const char *DetectBufferTypeGetNameById(const int id);
 void DetectBufferTypeSupportsMpm(const char *name);
 void DetectBufferTypeSupportsPacket(const char *name);
+void DetectBufferTypeSupportsTransformations(const char *name);
 _Bool DetectBufferTypeSupportsMpmGetById(const int id);
 _Bool DetectBufferTypeSupportsPacketGetById(const int id);
 int DetectBufferTypeMaxId(void);
@@ -100,6 +110,12 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
                                    Flow *, const uint8_t, void *, void *,
                                    uint64_t);
 
+int DetectEngineInspectBufferGeneric(
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
+
 /**
  * \brief Registers an app inspection engine.
  *
@@ -113,6 +129,10 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
 void DetectAppLayerInspectEngineRegister(const char *name,
         AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback);
+void DetectAppLayerInspectEngineRegister2(const char *name,
+        AppProto alproto, uint32_t dir, int progress,
+        InspectEngineFuncPtr2 Callback2,
+        InspectionBufferGetDataPtr GetData);
 
 int DetectEngineAppInspectionEngine2Signature(Signature *s);
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
@@ -120,5 +140,8 @@ void DetectEngineAppInspectionEngineSignatureFree(Signature *s);
 void DetectEngineSetParseMetadata(void);
 void DetectEngineUnsetParseMetadata(void);
 int DetectEngineMustParseMetadata(void);
+
+int DetectBufferSetActiveList(Signature *s, const int list);
+int DetectBufferGetActiveList(Signature *s);
 
 #endif /* __DETECT_ENGINE_H__ */

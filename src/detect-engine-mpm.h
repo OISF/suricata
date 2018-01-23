@@ -89,6 +89,14 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
         int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
+void DetectAppLayerMpmRegister2(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+            const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress);
+void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
+        DetectEngineTransforms *transforms);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

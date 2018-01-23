@@ -1355,6 +1355,23 @@ void SigFree(Signature *s)
     SCFree(s);
 }
 
+int DetectSignatureAddTransform(Signature *s, int transform)
+{
+    /* we only support buffers */
+    if (s->init_data->list == 0) {
+        SCReturnInt(-1);
+    }
+    if (!s->init_data->list_set) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "transforms must directly follow stickybuffers");
+        SCReturnInt(-1);
+    }
+    if (s->init_data->transform_cnt >= DETECT_TRANSFORMS_MAX) {
+        SCReturnInt(-1);
+    }
+    s->init_data->transforms[s->init_data->transform_cnt++] = transform;
+    SCReturnInt(0);
+}
+
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
 {
     if (alproto == ALPROTO_UNKNOWN ||

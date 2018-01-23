@@ -54,6 +54,8 @@
 
 #define DETECT_MAX_RULE_SIZE 8192
 
+#define DETECT_TRANSFORMS_MAX 16
+
 /* forward declarations for the structures from detect-engine-sigorder.h */
 struct SCSigOrderFunc_;
 struct SCSigSignatureWrapper_;
@@ -256,6 +258,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
 #define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
 #define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 4) /** < signature has seen the first ip_proto keyword */
+#define SIG_FLAG_INIT_HAS_TRANSFORM (1<<5)
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
@@ -324,11 +327,62 @@ typedef struct SigMatchData_ {
 
 struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
 
+/* inspection buffer is a simple structure that is passed between prefilter,
+ * transformation functions and inspection functions.
+ * Initialy setup with 'orig' ptr and len, transformations can then take
+ * then and fill the 'buf'. Multiple transformations can update the buffer,
+ * both growing and shrinking it.
+ * Prefilter and inspection will only deal with 'inspect'. */
+
+typedef struct InspectionBuffer {
+    const uint8_t *inspect;     /**< active pointer, points either to ::buf or ::orig */
+    uint32_t inspect_len; /**< size of active data. See to ::len or ::orig_len */
+    uint64_t inspect_offset;
+
+    uint8_t *buf;
+    uint32_t len;   /**< how much is in use */
+    uint32_t size;  /**< size of the memory allocation */
+
+    const uint8_t *orig;
+    uint32_t orig_len;
+} InspectionBuffer;
+
+/* inspection buffers are kept per tx (in det_ctx), but some protocols
+ * need a bit more. A single TX might have multiple buffers, e.g. files in
+ * SMTP or DNS queries. Since all prefilters+transforms run before the
+ * individual rules need the same buffers, we need a place to store the
+ * transformed data. This array of arrays is that place. */
+
+typedef struct InspectionBufferMultipleForList {
+    InspectionBuffer *inspection_buffers;
+    uint32_t size;  /**< size in number of elements */
+} InspectionBufferMultipleForList;
+
+typedef struct DetectEngineTransforms {
+    int transforms[DETECT_TRANSFORMS_MAX];
+    int cnt;
+} DetectEngineTransforms;
+
+/** callback for getting the buffer we need to prefilter/inspect */
+typedef InspectionBuffer *(*InspectionBufferGetDataPtr)(
+        struct DetectEngineThreadCtx_ *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *f, const uint8_t flow_flags,
+        void *txv, const int list_id);
+
 typedef int (*InspectEngineFuncPtr)(ThreadVars *tv,
         struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
         const struct Signature_ *sig, const SigMatchData *smd,
         Flow *f, uint8_t flags, void *alstate,
         void *tx, uint64_t tx_id);
+
+struct DetectEngineAppInspectionEngine_;
+
+typedef int (*InspectEngineFuncPtr2)(
+        struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
+        const struct DetectEngineAppInspectionEngine_ *engine,
+        const struct Signature_ *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id);
 
 typedef struct DetectEngineAppInspectionEngine_ {
     AppProto alproto;
@@ -346,6 +400,13 @@ typedef struct DetectEngineAppInspectionEngine_ {
      *           filestore for the tx.
      */
     InspectEngineFuncPtr Callback;
+
+    struct {
+        InspectionBufferGetDataPtr GetData;
+        InspectEngineFuncPtr2 Callback;
+        /** pointer to the transforms in the 'DetectBuffer entry for this list */
+        const DetectEngineTransforms *transforms;
+    } v2;
 
     SigMatchData *smd;
 
@@ -379,6 +440,10 @@ typedef struct SignatureInitData_ {
 
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
+    bool list_set;
+
+    int transforms[DETECT_TRANSFORMS_MAX];
+    int transform_cnt;
 
     /** score to influence rule grouping. A higher value leads to a higher
      *  likelyhood of a rulegroup with this sig ending up as a contained
@@ -475,12 +540,25 @@ typedef struct Signature_ {
 /** \brief one time registration of keywords at start up */
 typedef struct DetectMpmAppLayerRegistery_ {
     const char *name;
+    char pname[32];             /**< name used in profiling */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int sm_list;
 
     int (*PrefilterRegister)(struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx);
 
+    int priority;
+
+    struct {
+        int (*PrefilterRegisterWithListId)(struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx,
+                const struct DetectMpmAppLayerRegistery_ *mpm_reg, int list_id);
+        InspectionBufferGetDataPtr GetData;
+        AppProto alproto;
+        int tx_min_progress;
+        DetectEngineTransforms transforms;
+    } v2;
+
     int id;                     /**< index into this array and result arrays */
+
     struct DetectMpmAppLayerRegistery_ *next;
 } DetectMpmAppLayerRegistery;
 
@@ -891,6 +969,16 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t counter_match_list;
 #endif
 
+    int inspect_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
+    InspectionBuffer *inspect_buffers;
+
+    uint32_t inspect_buffers_size;          /**< in number of elements */
+    uint32_t multi_inspect_buffers_size;    /**< in number of elements */
+
+    /* inspection buffers for more complete case. As we can inspect multiple
+     * buffers in parallel, we need this extra wrapper struct */
+    InspectionBufferMultipleForList *multi_inspect_buffers;
+
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
     uint16_t flags;
@@ -1007,6 +1095,9 @@ typedef struct SigTableElmt_ {
         DetectEngineThreadCtx *,
         Flow *,                     /**< *LOCKED* flow */
         uint8_t flags, File *, const Signature *, const SigMatchCtx *);
+
+    /** InspectionBuffer transformation callback */
+    void (*Transform)(InspectionBuffer *);
 
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, const char *);
