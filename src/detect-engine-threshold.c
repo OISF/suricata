@@ -217,28 +217,27 @@ int ThresholdIPPairTimeoutCheck(IPPair *pair, struct timeval *tv)
     return new_head == NULL;
 }
 
-static inline DetectThresholdEntry *
+static DetectThresholdEntry *
 DetectThresholdEntryAlloc(const DetectThresholdData *td, Packet *p,
                           uint32_t sid, uint32_t gid)
 {
     SCEnter();
 
-    DetectThresholdEntry *ste = SCMalloc(sizeof(DetectThresholdEntry));
+    DetectThresholdEntry *ste = SCCalloc(1, sizeof(DetectThresholdEntry));
     if (unlikely(ste == NULL)) {
         SCReturnPtr(NULL, "DetectThresholdEntry");
     }
-    memset(ste, 0, sizeof(*ste));
 
     ste->sid = sid;
     ste->gid = gid;
-
     ste->track = td->track;
     ste->seconds = td->seconds;
 
     SCReturnPtr(ste, "DetectThresholdEntry");
 }
 
-static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h,
+        uint32_t sid, uint32_t gid)
 {
     DetectThresholdEntry *e;
 
@@ -250,7 +249,8 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
     return e;
 }
 
-static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair, uint32_t sid, uint32_t gid)
+static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair,
+        uint32_t sid, uint32_t gid)
 {
     DetectThresholdEntry *e;
 
@@ -262,7 +262,8 @@ static DetectThresholdEntry *ThresholdIPPairLookupEntry(IPPair *pair, uint32_t s
     return e;
 }
 
-static int ThresholdHandlePacketSuppress(Packet *p, const DetectThresholdData *td, uint32_t sid, uint32_t gid)
+static int ThresholdHandlePacketSuppress(Packet *p,
+        const DetectThresholdData *td, uint32_t sid, uint32_t gid)
 {
     int ret = 0;
     DetectAddress *m = NULL;
