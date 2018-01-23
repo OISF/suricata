@@ -32,6 +32,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "detect-parse.h"
@@ -55,6 +56,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-content-inspection.h"
 
 #include "detect-engine-loader.h"
 
@@ -121,13 +123,19 @@ SCEnumCharMap det_ctx_event_table[ ] = {
     { NULL,                         -1 },
 };
 
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
 void DetectAppLayerInspectEngineRegister(const char *name,
         AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback)
 {
     DetectBufferTypeRegister(name);
-    int sm_list = DetectBufferTypeGetByName(name);
-    BUG_ON(sm_list == -1);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+            "failed to register inspect engine %s", name);
+    }
 
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
@@ -166,6 +174,92 @@ void DetectAppLayerInspectEngineRegister(const char *name,
         }
 
         t->next = new_engine;
+    }
+}
+
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
+void DetectAppLayerInspectEngineRegister2(const char *name,
+        AppProto alproto, uint32_t dir, int progress,
+        InspectEngineFuncPtr2 Callback2,
+        InspectionBufferGetDataPtr GetData)
+{
+    DetectBufferTypeRegister(name);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+            "failed to register inspect engine %s", name);
+    }
+
+    if ((alproto >= ALPROTO_FAILED) ||
+        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
+        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
+        (progress < 0 || progress >= SHRT_MAX) ||
+        (Callback2 == NULL))
+    {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        BUG_ON(1);
+    } else if (Callback2 == DetectEngineInspectBufferGeneric && GetData == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments: must register "
+                "GetData with DetectEngineInspectBufferGeneric");
+        BUG_ON(1);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(new_engine, 0, sizeof(*new_engine));
+    new_engine->alproto = alproto;
+    new_engine->dir = direction;
+    new_engine->sm_list = sm_list;
+    new_engine->progress = progress;
+    new_engine->v2.Callback = Callback2;
+    new_engine->v2.GetData = GetData;
+
+    if (g_app_inspect_engines == NULL) {
+        g_app_inspect_engines = new_engine;
+    } else {
+        DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = new_engine;
+    }
+}
+
+/* copy an inspect engine to a new list id. */
+static void DetectAppLayerInspectEngineCopy(int sm_list, int new_list,
+        const DetectEngineTransforms *transforms)
+{
+    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t) {
+        if (t->sm_list == sm_list) {
+            DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            new_engine->alproto = t->alproto;
+            new_engine->dir = t->dir;
+            new_engine->sm_list = new_list;
+            new_engine->progress = t->progress;
+            new_engine->Callback = t->Callback;
+            new_engine->v2 = t->v2;
+            new_engine->v2.transforms = transforms;
+            new_engine->next = t->next;
+            t->next = new_engine;
+            t = new_engine;
+        }
+        t = t->next;
     }
 }
 
@@ -239,6 +333,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             continue;
 
         ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
+        SCLogDebug("ptrs[%d] is set", i);
     }
 
     bool head_is_mpm = false;
@@ -249,6 +344,9 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
 
         if (ptrs[t->sm_list] == NULL)
             goto next;
+
+        SCLogDebug("ptrs[%d] is set", t->sm_list);
+
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
         } else if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
@@ -278,6 +376,10 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
         new_engine->progress = t->progress;
+        new_engine->v2 = t->v2;
+        SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p",
+                new_engine->sm_list, new_engine->v2.Callback,
+                new_engine->v2.GetData, new_engine->v2.transforms);
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
@@ -406,17 +508,23 @@ static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
+static DetectEngineTransforms no_transforms = { .transforms = { 0 }, .cnt = 0, };
+
 typedef struct DetectBufferType_ {
     const char *string;
     const char *description;
     int id;
+    int parent_id;
     _Bool mpm;
     _Bool packet; /**< compat to packet matches */
+    bool supports_transforms;
     void (*SetupCallback)(Signature *);
     _Bool (*ValidateCallback)(const Signature *, const char **sigerror);
+    DetectEngineTransforms transforms;
 } DetectBufferType;
 
 static DetectBufferType **g_buffer_type_map = NULL;
+static uint32_t g_buffer_type_map_elements = 0;
 
 int DetectBufferTypeMaxId(void)
 {
@@ -429,6 +537,7 @@ static uint32_t DetectBufferTypeHashFunc(HashListTable *ht, void *data, uint16_t
     uint32_t hash = 0;
 
     hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
     hash %= ht->array_size;
 
     return hash;
@@ -441,6 +550,7 @@ static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
     DetectBufferType *map2 = (DetectBufferType *)data2;
 
     int r = (strcmp(map1->string, map2->string) == 0);
+    r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
     return r;
 }
 
@@ -491,7 +601,7 @@ static int DetectBufferTypeAdd(const char *string)
 
 static DetectBufferType *DetectBufferTypeLookupByName(const char *string)
 {
-    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, NULL, NULL };
+    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, NULL, NULL, no_transforms };
 
     DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
     return res;
@@ -529,6 +639,16 @@ void DetectBufferTypeSupportsMpm(const char *name)
     BUG_ON(!exists);
     exists->mpm = TRUE;
     SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
+}
+
+void DetectBufferTypeSupportsTransformations(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->supports_transforms = true;
+    SCLogDebug("%p %s -- %d supports transformations", exists, name, exists->id);
 }
 
 int DetectBufferTypeGetByName(const char *name)
@@ -641,6 +761,114 @@ _Bool DetectBufferRunValidateCallback(const int id, const Signature *s, const ch
     return TRUE;
 }
 
+int DetectBufferSetActiveList(Signature *s, const int list)
+{
+    BUG_ON(s->init_data == NULL);
+
+    if (s->init_data->list && s->init_data->transform_cnt) {
+        return -1;
+    }
+    s->init_data->list = list;
+    s->init_data->list_set = true;
+
+    return 0;
+}
+
+int DetectBufferGetActiveList(Signature *s)
+{
+    BUG_ON(s->init_data == NULL);
+
+    if (s->init_data->list && s->init_data->transform_cnt) {
+        SCLogDebug("buffer %d has transform(s) registered: %d",
+                s->init_data->list, s->init_data->transforms[0]);
+        int new_list = DetectBufferTypeGetByIdTransforms(s->init_data->list,
+                s->init_data->transforms, s->init_data->transform_cnt);
+        if (new_list == -1) {
+            return -1;
+        }
+        SCLogDebug("new_list %d", new_list);
+        s->init_data->list = new_list;
+        s->init_data->list_set = false;
+        // reset transforms now that we've set up the list
+        s->init_data->transform_cnt = 0;
+    }
+
+    return 0;
+}
+
+void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
+{
+    memset(buffer, 0, sizeof(*buffer));
+    buffer->buf = SCCalloc(initial_size, sizeof(uint8_t));
+    if (buffer->buf != NULL) {
+        buffer->size = initial_size;
+    }
+}
+
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+{
+    buffer->inspect = buffer->orig = data;
+    buffer->inspect_len = buffer->orig_len = data_len;
+    buffer->len = 0;
+}
+
+void InspectionBufferFree(InspectionBuffer *buffer)
+{
+    if (buffer->buf != NULL) {
+        SCFree(buffer->buf);
+    }
+    memset(buffer, 0, sizeof(*buffer));
+}
+
+/**
+ * \brief make sure that the buffer has at least 'min_size' bytes
+ * Expand the buffer if necessary
+ */
+void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
+{
+    if (likely(buffer->size >= min_size))
+        return;
+
+    uint32_t new_size = (buffer->size == 0) ? 4096 : buffer->size;
+    while (new_size < min_size) {
+        new_size *= 2;
+    }
+
+    void *ptr = SCRealloc(buffer->buf, new_size);
+    if (ptr != NULL) {
+        buffer->buf = ptr;
+        buffer->size = new_size;
+    }
+}
+
+void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len)
+{
+    InspectionBufferCheckAndExpand(buffer, buf_len);
+
+    if (buffer->size) {
+        uint32_t copy_size = MIN(buf_len, buffer->size);
+        memcpy(buffer->buf, buf, copy_size);
+        buffer->inspect = buffer->buf;
+        buffer->inspect_len = copy_size;
+    }
+}
+
+void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms)
+{
+    if (transforms) {
+        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
+            const int id = transforms->transforms[i];
+            if (id == 0)
+                break;
+            BUG_ON(sigmatch_table[id].Transform == NULL);
+            sigmatch_table[id].Transform(buffer);
+            SCLogDebug("applied transform %s", sigmatch_table[id].name);
+        }
+    }
+}
+
 void DetectBufferTypeFinalizeRegistration(void)
 {
     BUG_ON(g_buffer_type_hash == NULL);
@@ -650,6 +878,8 @@ void DetectBufferTypeFinalizeRegistration(void)
 
     g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
     BUG_ON(!g_buffer_type_map);
+    g_buffer_type_map_elements = size;
+    SCLogDebug("g_buffer_type_map %p with %u members", g_buffer_type_map, size);
 
     SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
     HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
@@ -663,6 +893,62 @@ void DetectBufferTypeFinalizeRegistration(void)
         b = HashListTableGetListNext(b);
     }
     g_buffer_type_reg_closed = 1;
+}
+
+int DetectBufferTypeGetByIdTransforms(const int id, int *transforms, int transform_cnt)
+{
+    const DetectBufferType *base_map = DetectBufferTypeGetById(id);
+    if (!base_map) {
+        return -1;
+    }
+    if (!base_map->supports_transforms) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "buffer '%s' does not support transformations",
+                base_map->string);
+        return -1;
+    }
+
+    DetectEngineTransforms t;
+    memset(&t, 0, sizeof(t));
+    for (int i = 0; i < transform_cnt; i++) {
+        t.transforms[i] = transforms[i];
+    }
+    t.cnt = transform_cnt;
+
+    DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
+    DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &lookup_map, 0);
+
+    SCLogDebug("res %p", res);
+    if (res != NULL) {
+        return res->id;
+    }
+
+    DetectBufferType *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL)
+        return -1;
+
+    map->string = base_map->string;
+    map->id = g_buffer_type_id++;
+    map->parent_id = base_map->id;
+    map->transforms = t;
+    map->mpm = base_map->mpm;
+    map->SetupCallback = base_map->SetupCallback;
+    map->ValidateCallback = base_map->ValidateCallback;
+    DetectAppLayerMpmRegisterByParentId(map->id, map->parent_id, &map->transforms);
+
+    BUG_ON(HashListTableAdd(g_buffer_type_hash, (void *)map, 0) != 0);
+    SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
+
+    if (map->id >= 0 && (uint32_t)map->id >= g_buffer_type_map_elements) {
+        void *ptr = SCRealloc(g_buffer_type_map, (map->id + 1) * sizeof(DetectBufferType *));
+        BUG_ON(ptr == NULL);
+        SCLogDebug("g_buffer_type_map resized to %u (was %u)", (map->id + 1), g_buffer_type_map_elements);
+        g_buffer_type_map = ptr;
+        g_buffer_type_map[map->id] = map;
+        g_buffer_type_map_elements = map->id + 1;
+
+        DetectAppLayerInspectEngineCopy(map->parent_id, map->id, &map->transforms);
+    }
+    return map->id;
 }
 
 /* code to control the main thread to do a reload */
@@ -772,6 +1058,74 @@ int DetectEngineInspectGenericList(ThreadVars *tv,
 
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
+
+
+/**
+ * \brief Do the content inspection & validation for a signature
+ *
+ * \param de_ctx Detection engine context
+ * \param det_ctx Detection engine thread context
+ * \param s Signature to inspect
+ * \param f Flow
+ * \param flags app layer flags
+ * \param state App layer state
+ *
+ * \retval 0 no match.
+ * \retval 1 match.
+ * \retval 2 Sig can't match.
+ */
+int DetectEngineInspectBufferGeneric(
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    const int list_id = engine->sm_list;
+    SCLogDebug("running inspect on %d", list_id);
+
+    SCLogDebug("list %d mpm? %s transforms %p",
+            engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
+
+    /* if prefilter didn't already run, we need to consider transformations */
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
+            f, flags, txv, list_id);
+    if (buffer == NULL) {
+        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+
+    /* Inspect all the uricontents fetched on each
+     * transaction at the app layer */
+    int r = DetectEngineContentInspection(de_ctx, det_ctx,
+                                          s, engine->smd,
+                                          f,
+                                          (uint8_t *)data, data_len, offset,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+}
+
 
 /* nudge capture loops to wake up */
 static void BreakCapture(void)
@@ -1804,6 +2158,17 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         det_ctx->base64_decoded_len = 0;
     }
 
+    det_ctx->inspect_buffers_size = (uint32_t)DetectBufferTypeMaxId();
+    det_ctx->inspect_buffers = SCCalloc(det_ctx->inspect_buffers_size, sizeof(InspectionBuffer));
+    if (det_ctx->inspect_buffers == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    det_ctx->multi_inspect_buffers_size = (uint32_t)DetectBufferTypeMaxId();
+    det_ctx->multi_inspect_buffers = SCCalloc(det_ctx->multi_inspect_buffers_size, sizeof(InspectionBufferMultipleForList));
+    if (det_ctx->multi_inspect_buffers == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
 #ifdef PROFILING
@@ -2014,16 +2379,28 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->hcbd);
     }
 
-    /* file data */
-    if (det_ctx->file_data != NULL) {
-        SCLogDebug("det_ctx file_data %u", det_ctx->file_data_buffers_size);
-        SCFree(det_ctx->file_data);
-    }
-
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {
         SCFree(det_ctx->base64_decoded);
     }
+
+    if (det_ctx->inspect_buffers) {
+        for (uint32_t i = 0; i < det_ctx->inspect_buffers_size; i++) {
+            InspectionBufferFree(&det_ctx->inspect_buffers[i]);
+        }
+        SCFree(det_ctx->inspect_buffers);
+    }
+    if (det_ctx->multi_inspect_buffers) {
+        for (uint32_t i = 0; i < det_ctx->multi_inspect_buffers_size; i++) {
+            InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[i];
+            for (uint32_t x = 0; x < fb->size; x++) {
+                InspectionBufferFree(&fb->inspection_buffers[x]);
+            }
+            SCFree(fb->inspection_buffers);
+        }
+        SCFree(det_ctx->multi_inspect_buffers);
+    }
+
 
     DetectEngineThreadCtxDeinitGlobalKeywords(det_ctx);
     if (det_ctx->de_ctx != NULL) {

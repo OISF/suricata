@@ -575,3 +575,74 @@ const char *PrefilterStoreGetName(const uint32_t id)
     return name;
 }
 #endif
+
+#include "util-print.h"
+
+typedef struct PrefilterMpmCtx {
+    int list_id;
+    InspectionBufferGetDataPtr GetData;
+    const MpmCtx *mpm_ctx;
+    const DetectEngineTransforms *transforms;
+} PrefilterMpmCtx;
+
+/** \brief Generic Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterMpm(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const PrefilterMpmCtx *ctx = (const PrefilterMpmCtx *)pectx;
+    const MpmCtx *mpm_ctx = ctx->mpm_ctx;
+    SCLogDebug("running on list %d", ctx->list_id);
+
+    InspectionBuffer *buffer = ctx->GetData(det_ctx, ctx->transforms,
+            f, flags, txv, ctx->list_id);
+    if (buffer == NULL)
+        return;
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+
+    SCLogDebug("mpm'ing buffer:");
+    //PrintRawDataFp(stdout, data, data_len);
+
+    if (data != NULL && data_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, data, data_len);
+    }
+}
+
+static void PrefilterGenericMpmFree(void *ptr)
+{
+    SCFree(ptr);
+}
+
+int PrefilterGenericMpmRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id)
+{
+    SCEnter();
+    PrefilterMpmCtx *pectx = SCCalloc(1, sizeof(*pectx));
+    if (pectx == NULL)
+        return -1;
+    pectx->list_id = list_id;
+    pectx->GetData = mpm_reg->v2.GetData;
+    pectx->mpm_ctx = mpm_ctx;
+    pectx->transforms = &mpm_reg->v2.transforms;
+
+    int r = PrefilterAppendTxEngine(sgh, PrefilterMpm,
+        mpm_reg->v2.alproto, mpm_reg->v2.tx_min_progress,
+        pectx, PrefilterGenericMpmFree, mpm_reg->pname);
+    if (r != 0) {
+        SCFree(pectx);
+    }
+    return r;
+}

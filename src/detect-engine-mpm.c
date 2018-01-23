@@ -36,6 +36,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter.h"
 #include "util-mpm.h"
 #include "util-memcmp.h"
 #include "util-memcpy.h"
@@ -90,10 +91,69 @@ const char *builtin_mpms[] = {
 static DetectMpmAppLayerRegistery *g_app_mpms_list = NULL;
 static int g_app_mpms_list_cnt = 0;
 
+/** \brief register a MPM engine
+ *
+ *  \note to be used at start up / registration only. Errors are fatal.
+ */
+void DetectAppLayerMpmRegister2(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx,
+            const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress)
+{
+    SCLogDebug("registering %s/%d/%d/%p/%p/%u/%d", name, direction, priority,
+            PrefilterRegister, GetData, alproto, tx_min_progress);
+
+    if (PrefilterRegister == PrefilterGenericMpmRegister && GetData == NULL) {
+        // must register GetData with PrefilterGenericMpmRegister
+        abort();
+    }
+
+    DetectBufferTypeSupportsMpm(name);
+    DetectBufferTypeSupportsTransformations(name);
+    int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+                "MPM engine registration for %s failed", name);
+    }
+
+    DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
+    BUG_ON(am == NULL);
+    am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
+    am->direction = direction;
+    am->sm_list = sm_list;
+    am->priority = priority;
+
+    am->v2.PrefilterRegisterWithListId = PrefilterRegister;
+    am->v2.GetData = GetData;
+    am->v2.alproto = alproto;
+    am->v2.tx_min_progress = tx_min_progress;
+
+    if (g_app_mpms_list == NULL) {
+        g_app_mpms_list = am;
+    } else {
+        DetectMpmAppLayerRegistery *t = g_app_mpms_list;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = am;
+        am->id = t->id + 1;
+    }
+    g_app_mpms_list_cnt++;
+
+    SupportFastPatternForSigMatchList(sm_list, priority);
+}
+
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
         int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx))
 {
+    SCLogDebug("registering %s/%d/%d/%p",
+            name, direction, priority, PrefilterRegister);
+
     DetectBufferTypeSupportsMpm(name);
     int sm_list = DetectBufferTypeGetByName(name);
     BUG_ON(sm_list == -1);
@@ -101,8 +161,10 @@ void DetectAppLayerMpmRegister(const char *name,
     DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
     BUG_ON(am == NULL);
     am->name = name;
+    snprintf(am->pname, sizeof(am->pname), "%s", am->name);
     am->direction = direction;
     am->sm_list = sm_list;
+    am->priority = priority;
     am->PrefilterRegister = PrefilterRegister;
 
     if (g_app_mpms_list == NULL) {
@@ -119,6 +181,42 @@ void DetectAppLayerMpmRegister(const char *name,
     g_app_mpms_list_cnt++;
 
     SupportFastPatternForSigMatchList(sm_list, priority);
+}
+
+void DetectAppLayerMpmRegisterByParentId(const int id, const int parent_id,
+        DetectEngineTransforms *transforms)
+{
+    SCLogDebug("registering %d/%d", id, parent_id);
+
+    DetectMpmAppLayerRegistery *t = g_app_mpms_list;
+    while (t) {
+        if (t->sm_list == parent_id) {
+            DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
+            BUG_ON(am == NULL);
+            am->name = t->name;
+            snprintf(am->pname, sizeof(am->pname), "%s#%d", am->name, id);
+            am->direction = t->direction;
+            am->sm_list = id;           // use new id
+            am->PrefilterRegister = t->PrefilterRegister;
+            am->v2.PrefilterRegisterWithListId = t->v2.PrefilterRegisterWithListId;
+            am->v2.GetData = t->v2.GetData;
+            am->v2.alproto = t->v2.alproto;
+            am->v2.tx_min_progress = t->v2.tx_min_progress;
+            am->priority = t->priority;
+            am->next = t->next;
+            if (transforms) {
+                memcpy(&am->v2.transforms, transforms, sizeof(*transforms));
+            }
+            am->id = g_app_mpms_list_cnt++;
+
+            SupportFastPatternForSigMatchList(am->sm_list, am->priority);
+            t->next = am;
+            SCLogDebug("copied mpm registration for %s id %u with parent %u and GetData %p",
+                    t->name, id, parent_id, am->v2.GetData);
+            t = am;
+        }
+        t = t->next;
+    }
 }
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
@@ -1285,10 +1383,22 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 sh->init->app_mpms[a->reg->id] = mpm_store->mpm_ctx;
 
+                SCLogDebug("a->reg->PrefilterRegister %p mpm_store->mpm_ctx %p",
+                        a->reg->PrefilterRegister, mpm_store->mpm_ctx);
+                SCLogDebug("a %p a->reg->name %s a->reg->PrefilterRegisterWithListId %p "
+                        "mpm_store->mpm_ctx %p", a, a->reg->name,
+                        a->reg->v2.PrefilterRegisterWithListId, mpm_store->mpm_ctx);
+
                 /* if we have just certain types of negated patterns,
                  * mpm_ctx can be NULL */
-                if (a->reg->PrefilterRegister && mpm_store->mpm_ctx) {
+                if (a->reg->v2.PrefilterRegisterWithListId && mpm_store->mpm_ctx) {
+                    BUG_ON(a->reg->v2.PrefilterRegisterWithListId(sh, mpm_store->mpm_ctx,
+                                a->reg, a->reg->sm_list) != 0);
+                    SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
+                }
+                else if (a->reg->PrefilterRegister && mpm_store->mpm_ctx) {
                     BUG_ON(a->reg->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+                    SCLogDebug("mpm %s %d set up", a->reg->name, a->reg->sm_list);
                 }
             }
         }
