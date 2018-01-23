@@ -239,6 +239,7 @@ outputs:
 
         #- dnp3
         @rust_config_comment@- nfs
+        @rust_config_comment@- tftp
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -750,6 +751,8 @@ app-layer:
     # Note: NFS parser depends on Rust support: pass --enable-rust
     # to configure.
     nfs:
+      enabled: @rust_config_enabled@
+    tftp:
       enabled: @rust_config_enabled@
     dns:
       # memcaps. Globally and per flow/state.
