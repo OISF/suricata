@@ -23,7 +23,6 @@
  * Implement JSON/eve logging app-layer TFTP.
  */
 
-//#ifdef HAVE_RUST
 
 #include "suricata-common.h"
 #include "debug.h"
@@ -103,21 +102,22 @@ static void OutputTFTPLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *OutputTFTPLogInitSub(ConfNode *conf,
+static OutputInitResult OutputTFTPLogInitSub(ConfNode *conf,
     OutputCtx *parent_ctx)
 {
+    OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
 
     LogTFTPFileCtx *tftplog_ctx = SCCalloc(1, sizeof(*tftplog_ctx));
     if (unlikely(tftplog_ctx == NULL)) {
-        return NULL;
+        return result;
     }
     tftplog_ctx->file_ctx = ajt->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
         SCFree(tftplog_ctx);
-        return NULL;
+        return result;
     }
     output_ctx->data = tftplog_ctx;
     output_ctx->DeInit = OutputTFTPLogDeInitCtxSub;
@@ -126,7 +126,9 @@ static OutputCtx *OutputTFTPLogInitSub(ConfNode *conf,
 
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_TFTP);
 
-    return output_ctx;
+    result.ctx = output_ctx;
+    result.ok = true;
+    return result;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535

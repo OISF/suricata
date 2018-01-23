@@ -120,7 +120,7 @@ static int TFTPHasEvents(void *state)
 static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
     uint32_t *offset)
 {
-    /* Very simple test - if there is input, this is echo.
+    /* Very simple test - if there is input, this is tftp.
      * Also check if it's starting by a zero */
     if (input_len >= TFTP_MIN_FRAME_LEN && *input == 0) {
         SCLogDebug("Detected as ALPROTO_TFTP.");
@@ -176,9 +176,9 @@ static void TFTPSetTxLogged(void *state, void *vtx, uint32_t logger)
     rs_tftp_set_tx_logged(state, vtx, logger);
 }
 
-static int TFTPGetTxLogged(void *state, void *vtx, uint32_t logger)
+static LoggerId TFTPGetTxLogged(void *state, void *vtx)
 {
-    return rs_tftp_get_tx_logged(state, vtx, logger);
+    return rs_tftp_get_tx_logged(state, vtx);
 }
 
 /**
