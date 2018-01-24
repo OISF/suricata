@@ -63,7 +63,7 @@
 #include "util-buffer.h"
 #include "util-crypt.h"
 
-#define MODULE_NAME "JsonVarsLog"
+#define MODULE_NAME "JsonMetadataLog"
 
 #ifdef HAVE_LIBJANSSON
 
@@ -82,13 +82,13 @@ typedef struct JsonVarsLogThread_ {
 
 static int VarsJson(ThreadVars *tv, JsonVarsLogThread *aft, const Packet *p)
 {
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "vars");
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "metadata");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
-    JsonAddVars(p, p->flow, js);
+    JsonAddMetadata(p, p->flow, js);
     OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
-    json_object_del(js, "vars");
+    json_object_del(js, "metadata");
     json_object_clear(js);
     json_decref(js);
 
@@ -177,7 +177,7 @@ static void JsonVarsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-#define DEFAULT_LOG_FILENAME "vars.json"
+#define DEFAULT_LOG_FILENAME "metadata.json"
 
 /**
  * \brief Create a new LogFileCtx for "fast" output style.
@@ -266,10 +266,22 @@ error:
 
 void JsonVarsLogRegister (void)
 {
-    OutputRegisterPacketModule(LOGGER_JSON_VARS, MODULE_NAME, "vars-json-log",
-        JsonVarsLogInitCtx, JsonVarsLogger, JsonVarsLogCondition,
-        JsonVarsLogThreadInit, JsonVarsLogThreadDeinit, NULL);
-    OutputRegisterPacketSubModule(LOGGER_JSON_VARS, "eve-log", MODULE_NAME,
+    /* Kept for compatibility. */
+    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
+        "metadata-json-log", JsonVarsLogInitCtx, JsonVarsLogger,
+        JsonVarsLogCondition, JsonVarsLogThreadInit,
+        JsonVarsLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
+        "eve-log.metadata", JsonVarsLogInitCtxSub, JsonVarsLogger,
+        JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
+        NULL);
+
+    /* Kept for compatibility. */
+    OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
+        "vars-json-log", JsonVarsLogInitCtx, JsonVarsLogger,
+        JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
+        NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
         "eve-log.vars", JsonVarsLogInitCtxSub, JsonVarsLogger,
         JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
         NULL);
