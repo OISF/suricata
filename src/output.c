@@ -72,7 +72,7 @@
 #include "output-json-template.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
-#include "output-json-vars.h"
+#include "output-json-metadata.h"
 #include "output-filestore.h"
 
 typedef struct RootLogger_ {
@@ -1085,7 +1085,7 @@ void OutputRegisterLoggers(void)
 
     /* DNP3. */
     JsonDNP3LogRegister();
-    JsonVarsLogRegister();
+    JsonMetadataLogRegister();
 
     /* NFS JSON logger. */
     JsonNFSLogRegister();
