@@ -4739,6 +4739,10 @@ error:
     }
 
     if (StreamTcpInlineDropInvalid()) {
+        /* disable payload inspection as we're dropping this packet
+         * anyway. Doesn't disable all detection, so we can still
+         * match on the stream event that was set. */
+        DecodeSetNoPayloadInspectionFlag(p);
         PACKET_DROP(p);
     }
     SCReturnInt(-1);

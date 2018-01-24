@@ -1610,10 +1610,7 @@ static void DetectFlow(ThreadVars *tv,
                        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                        Packet *p)
 {
-    /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
-        (PACKET_TEST_ACTION(p, ACTION_DROP)))
-    {
+    if (p->flags & PKT_NOPACKET_INSPECTION) {
         /* hack: if we are in pass the entire flow mode, we need to still
          * update the inspect_id forward. So test for the condition here,
          * and call the update code if necessary. */
@@ -1629,6 +1626,8 @@ static void DetectFlow(ThreadVars *tv,
             flags = FlowGetDisruptionFlags(p->flow, flags);
             DeStateUpdateInspectTransactionId(p->flow, flags, true);
         }
+        SCLogDebug("p->pcap %"PRIu64": no detection on packet, "
+                "PKT_NOPACKET_INSPECTION is set", p->pcap_cnt);
         return;
     }
 
