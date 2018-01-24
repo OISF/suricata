@@ -2467,6 +2467,8 @@ static void PostRunStartedDetectSetup(SCInstance *suri)
         /* force 'reload', this will load the rules and swap engines */
         DetectEngineReload(suri);
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        UtilSignalUnblock(SIGUSR2);
     }
 }
 
