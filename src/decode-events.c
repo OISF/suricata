@@ -196,6 +196,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "stream.3whs_syn_resend_diff_seq_on_syn_recv", STREAM_3WHS_SYN_RESEND_DIFF_SEQ_ON_SYN_RECV, },
     { "stream.3whs_syn_toclient_on_syn_recv", STREAM_3WHS_SYN_TOCLIENT_ON_SYN_RECV, },
     { "stream.3whs_wrong_seq_wrong_ack", STREAM_3WHS_WRONG_SEQ_WRONG_ACK, },
+    { "stream.3whs_ack_data_inject", STREAM_3WHS_ACK_DATA_INJECT, },
     { "stream.4whs_synack_with_wrong_ack", STREAM_4WHS_SYNACK_WITH_WRONG_ACK, },
     { "stream.4whs_synack_with_wrong_syn", STREAM_4WHS_SYNACK_WITH_WRONG_SYN, },
     { "stream.4whs_wrong_seq", STREAM_4WHS_WRONG_SEQ, },
