@@ -1789,6 +1789,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             return 0;
         }
 
+        bool ack_indicates_missed_3whs_ack_packet = false;
         /* Check if the ACK received is in right direction. But when we have
          * picked up a mid stream session after missing the initial SYN pkt,
          * in this case the ACK packet can arrive from either client (normal
@@ -1801,12 +1802,25 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: ACK received on midstream SYN/ACK "
                         "pickup session",ssn);
                 /* fall through */
-            } else {
-                SCLogDebug("ssn %p: ACK received in the wrong direction",
-                        ssn);
 
-                StreamTcpSetEvent(p, STREAM_3WHS_ACK_IN_WRONG_DIR);
-                return -1;
+            } else {
+                /* if we missed traffic between the S/SA and the current
+                 * 'wrong direction' ACK, we could end up here. In IPS
+                 * reject it. But in IDS mode we continue.
+                 *
+                 * IPS rejects as it should see all packets, so pktloss
+                 * should lead to retransmissions. As this can also be
+                 * pattern for MOTS/MITM injection attacks, we need to be
+                 * careful.
+                 */
+                if (StreamTcpInlineMode()) {
+                    SCLogDebug("ssn %p: ACK received in the wrong direction",
+                            ssn);
+
+                    StreamTcpSetEvent(p, STREAM_3WHS_ACK_IN_WRONG_DIR);
+                    return -1;
+                }
+                ack_indicates_missed_3whs_ack_packet = true;
             }
         }
 
@@ -1940,6 +1954,25 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
+
+        /* toclient packet: after having missed the 3whs's final ACK */
+        } else if (ack_indicates_missed_3whs_ack_packet &&
+                SEQ_EQ(TCP_GET_ACK(p), ssn->client.last_ack) &&
+                SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
+        {
+            SCLogDebug("ssn %p: packet fits perfectly after a missed 3whs-ACK", ssn);
+
+            StreamTcpUpdateNextSeq(ssn, &ssn->server, (TCP_GET_SEQ(p) + p->payload_len));
+
+            ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
+            ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
+
+            StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
+            SCLogDebug("ssn %p: =~ ssn state is now TCP_ESTABLISHED", ssn);
+
+            StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                    &ssn->server, p, pq);
+
         } else {
             SCLogDebug("ssn %p: wrong seq nr on packet", ssn);
 
