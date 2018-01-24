@@ -20,13 +20,13 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Logs alerts in JSON format.
+ * Logs metadata in JSON/eve format.
  *
  */
 
-#ifndef __OUTPUT_JSON_VARS_H__
-#define __OUTPUT_JSON_VARS_H__
+#ifndef __OUTPUT_JSON_METADATA_H__
+#define __OUTPUT_JSON_METADATA_H__
 
-void JsonVarsLogRegister(void);
+void JsonMetadataLogRegister(void);
 
-#endif /* __OUTPUT_JSON_VARS_H__ */
+#endif /* __OUTPUT_JSON_METADATA_H__ */
