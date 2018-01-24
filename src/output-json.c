@@ -155,13 +155,10 @@ static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
 }
 
 /**
- * \brief "New" Add flow variables to a json object.
+ * \brief Add flow variables to a json object.
  *
  * Adds "flowvars" (map), "flowints" (map) and "flowbits" (array) to
  * the json object provided as js_root.
- *
- * This is the "new" method for doing this as flowbits is an array of
- * strings instead of a map of boolean values.
  */
 static void JsonAddFlowVars(const Flow *f, json_t *js_root)
 {
@@ -256,115 +253,6 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root)
     }
     if (js_flowvars) {
         json_object_set_new(js_root, "flowvars", js_flowvars);
-    }
-}
-
-static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
-{
-    if (f == NULL || f->flowvar == NULL) {
-        return;
-    }
-    json_t *js_flowvars = NULL;
-    json_t *js_flowints = NULL;
-    json_t *js_flowbits = NULL;
-    GenericVar *gv = f->flowvar;
-    while (gv != NULL) {
-        if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
-            FlowVar *fv = (FlowVar *)gv;
-            if (fv->datatype == FLOWVAR_TYPE_STR && fv->key == NULL) {
-                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_VAR);
-                if (varname) {
-                    if (js_flowvars == NULL) {
-                        js_flowvars = json_object();
-                        if (js_flowvars == NULL)
-                            break;
-                    }
-
-                    uint32_t len = fv->data.fv_str.value_len;
-                    uint8_t printable_buf[len + 1];
-                    uint32_t offset = 0;
-                    PrintStringsToBuffer(printable_buf, &offset,
-                            sizeof(printable_buf),
-                            fv->data.fv_str.value, fv->data.fv_str.value_len);
-
-                    json_object_set_new(js_flowvars, varname,
-                            json_string((char *)printable_buf));
-                }
-            } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
-                if (js_flowvars == NULL) {
-                    js_flowvars = json_object();
-                    if (js_flowvars == NULL)
-                        break;
-                }
-
-                uint8_t keybuf[fv->keylen + 1];
-                uint32_t offset = 0;
-                PrintStringsToBuffer(keybuf, &offset,
-                        sizeof(keybuf),
-                        fv->key, fv->keylen);
-
-                uint32_t len = fv->data.fv_str.value_len;
-                uint8_t printable_buf[len + 1];
-                offset = 0;
-                PrintStringsToBuffer(printable_buf, &offset,
-                        sizeof(printable_buf),
-                        fv->data.fv_str.value, fv->data.fv_str.value_len);
-
-                json_object_set_new(js_flowvars, (const char *)keybuf,
-                        json_string((char *)printable_buf));
-
-            } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_INT);
-                if (varname) {
-                    if (js_flowints == NULL) {
-                        js_flowints = json_object();
-                        if (js_flowints == NULL)
-                            break;
-                    }
-
-                    json_object_set_new(js_flowints, varname, json_integer(fv->data.fv_int.value));
-                }
-
-            }
-        } else if (gv->type == DETECT_FLOWBITS) {
-            FlowBit *fb = (FlowBit *)gv;
-            const char *varname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
-            if (varname) {
-                if (js_flowbits == NULL) {
-                    js_flowbits = json_object();
-                    if (js_flowbits == NULL)
-                        break;
-                }
-                json_object_set_new(js_flowbits, varname, json_boolean(1));
-            }
-        }
-        gv = gv->next;
-    }
-    if (js_flowbits) {
-        json_object_set_new(js_vars, "flowbits", js_flowbits);
-    }
-    if (js_flowints) {
-        json_object_set_new(js_vars, "flowints", js_flowints);
-    }
-    if (js_flowvars) {
-        json_object_set_new(js_vars, "flowvars", js_flowvars);
-    }
-}
-
-void JsonAddVars(const Packet *p, const Flow *f, json_t *js)
-{
-    if ((p && p->pktvar) || (f && f->flowvar)) {
-        json_t *js_vars = json_object();
-        if (js_vars) {
-            if (f && f->flowvar) {
-                JsonAddFlowvars(f, js_vars);
-            }
-            if (p && p->pktvar) {
-                JsonAddPacketvars(p, js_vars);
-            }
-
-            json_object_set_new(js, "vars", js_vars);
-        }
     }
 }
 
