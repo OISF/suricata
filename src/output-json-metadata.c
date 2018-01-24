@@ -53,7 +53,7 @@
 
 #include "output.h"
 #include "output-json.h"
-#include "output-json-vars.h"
+#include "output-json-metadata.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -69,18 +69,18 @@
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
-typedef struct VarsJsonOutputCtx_ {
+typedef struct MetadataJsonOutputCtx_ {
     LogFileCtx* file_ctx;
-} VarsJsonOutputCtx;
+} MetadataJsonOutputCtx;
 
-typedef struct JsonVarsLogThread_ {
+typedef struct JsonMetadataLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
     MemBuffer *json_buffer;
-    VarsJsonOutputCtx* json_output_ctx;
-} JsonVarsLogThread;
+    MetadataJsonOutputCtx* json_output_ctx;
+} JsonMetadataLogThread;
 
-static int VarsJson(ThreadVars *tv, JsonVarsLogThread *aft, const Packet *p)
+static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet *p)
 {
     json_t *js = CreateJSONHeader((Packet *)p, 0, "metadata");
     if (unlikely(js == NULL))
@@ -95,14 +95,14 @@ static int VarsJson(ThreadVars *tv, JsonVarsLogThread *aft, const Packet *p)
     return TM_ECODE_OK;
 }
 
-static int JsonVarsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+static int JsonMetadataLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
-    JsonVarsLogThread *aft = thread_data;
+    JsonMetadataLogThread *aft = thread_data;
 
-    return VarsJson(tv, aft, p);
+    return MetadataJson(tv, aft, p);
 }
 
-static int JsonVarsLogCondition(ThreadVars *tv, const Packet *p)
+static int JsonMetadataLogCondition(ThreadVars *tv, const Packet *p)
 {
     if (p->pktvar) {
         return TRUE;
@@ -111,15 +111,15 @@ static int JsonVarsLogCondition(ThreadVars *tv, const Packet *p)
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
-static TmEcode JsonVarsLogThreadInit(ThreadVars *t, const void *initdata, void **data)
+static TmEcode JsonMetadataLogThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
-    JsonVarsLogThread *aft = SCMalloc(sizeof(JsonVarsLogThread));
+    JsonMetadataLogThread *aft = SCMalloc(sizeof(JsonMetadataLogThread));
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
-    memset(aft, 0, sizeof(JsonVarsLogThread));
+    memset(aft, 0, sizeof(JsonMetadataLogThread));
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for EveLogVars.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogMetadata.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -131,7 +131,7 @@ static TmEcode JsonVarsLogThreadInit(ThreadVars *t, const void *initdata, void *
     }
 
     /** Use the Output Context (file pointer and mutex) */
-    VarsJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
+    MetadataJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
     aft->file_ctx = json_output_ctx->file_ctx;
     aft->json_output_ctx = json_output_ctx;
 
@@ -139,9 +139,9 @@ static TmEcode JsonVarsLogThreadInit(ThreadVars *t, const void *initdata, void *
     return TM_ECODE_OK;
 }
 
-static TmEcode JsonVarsLogThreadDeinit(ThreadVars *t, void *data)
+static TmEcode JsonMetadataLogThreadDeinit(ThreadVars *t, void *data)
 {
-    JsonVarsLogThread *aft = (JsonVarsLogThread *)data;
+    JsonMetadataLogThread *aft = (JsonMetadataLogThread *)data;
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
@@ -149,15 +149,15 @@ static TmEcode JsonVarsLogThreadDeinit(ThreadVars *t, void *data)
     MemBufferFree(aft->json_buffer);
 
     /* clear memory */
-    memset(aft, 0, sizeof(JsonVarsLogThread));
+    memset(aft, 0, sizeof(JsonMetadataLogThread));
 
     SCFree(aft);
     return TM_ECODE_OK;
 }
 
-static void JsonVarsLogDeInitCtx(OutputCtx *output_ctx)
+static void JsonMetadataLogDeInitCtx(OutputCtx *output_ctx)
 {
-    VarsJsonOutputCtx *json_output_ctx = (VarsJsonOutputCtx *) output_ctx->data;
+    MetadataJsonOutputCtx *json_output_ctx = (MetadataJsonOutputCtx *) output_ctx->data;
     if (json_output_ctx != NULL) {
         LogFileFreeCtx(json_output_ctx->file_ctx);
         SCFree(json_output_ctx);
@@ -165,11 +165,11 @@ static void JsonVarsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static void JsonVarsLogDeInitCtxSub(OutputCtx *output_ctx)
+static void JsonMetadataLogDeInitCtxSub(OutputCtx *output_ctx)
 {
     SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
 
-    VarsJsonOutputCtx *json_output_ctx = (VarsJsonOutputCtx *) output_ctx->data;
+    MetadataJsonOutputCtx *json_output_ctx = (MetadataJsonOutputCtx *) output_ctx->data;
 
     if (json_output_ctx != NULL) {
         SCFree(json_output_ctx);
@@ -184,13 +184,13 @@ static void JsonVarsLogDeInitCtxSub(OutputCtx *output_ctx)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonVarsLogInitCtx(ConfNode *conf)
+static OutputInitResult JsonMetadataLogInitCtx(ConfNode *conf)
 {
     OutputInitResult result = { NULL, false };
-    VarsJsonOutputCtx *json_output_ctx = NULL;
+    MetadataJsonOutputCtx *json_output_ctx = NULL;
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
-        SCLogDebug("VarsFastLogInitCtx2: Could not create new LogFileCtx");
+        SCLogDebug("MetadataFastLogInitCtx2: Could not create new LogFileCtx");
         return result;
     }
 
@@ -205,18 +205,18 @@ static OutputInitResult JsonVarsLogInitCtx(ConfNode *conf)
         return result;
     }
 
-    json_output_ctx = SCMalloc(sizeof(VarsJsonOutputCtx));
+    json_output_ctx = SCMalloc(sizeof(MetadataJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
         LogFileFreeCtx(logfile_ctx);
         SCFree(output_ctx);
         return result;
     }
-    memset(json_output_ctx, 0, sizeof(VarsJsonOutputCtx));
+    memset(json_output_ctx, 0, sizeof(MetadataJsonOutputCtx));
 
     json_output_ctx->file_ctx = logfile_ctx;
 
     output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonVarsLogDeInitCtx;
+    output_ctx->DeInit = JsonMetadataLogDeInitCtx;
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -228,26 +228,26 @@ static OutputInitResult JsonVarsLogInitCtx(ConfNode *conf)
  * \param conf The configuration node for this output.
  * \return A LogFileCtx pointer on success, NULL on failure.
  */
-static OutputInitResult JsonVarsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static OutputInitResult JsonMetadataLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ajt = parent_ctx->data;
-    VarsJsonOutputCtx *json_output_ctx = NULL;
+    MetadataJsonOutputCtx *json_output_ctx = NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return result;
 
-    json_output_ctx = SCMalloc(sizeof(VarsJsonOutputCtx));
+    json_output_ctx = SCMalloc(sizeof(MetadataJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
         goto error;
     }
-    memset(json_output_ctx, 0, sizeof(VarsJsonOutputCtx));
+    memset(json_output_ctx, 0, sizeof(MetadataJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
 
     output_ctx->data = json_output_ctx;
-    output_ctx->DeInit = JsonVarsLogDeInitCtxSub;
+    output_ctx->DeInit = JsonMetadataLogDeInitCtxSub;
 
     result.ctx = output_ctx;
     result.ok = true;
@@ -264,32 +264,32 @@ error:
     return result;
 }
 
-void JsonVarsLogRegister (void)
+void JsonMetadataLogRegister (void)
 {
     /* Kept for compatibility. */
     OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "metadata-json-log", JsonVarsLogInitCtx, JsonVarsLogger,
-        JsonVarsLogCondition, JsonVarsLogThreadInit,
-        JsonVarsLogThreadDeinit, NULL);
+        "metadata-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
+        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
+        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
-        "eve-log.metadata", JsonVarsLogInitCtxSub, JsonVarsLogger,
-        JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
-        NULL);
+        "eve-log.metadata", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
+        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
+        JsonMetadataLogThreadDeinit, NULL);
 
     /* Kept for compatibility. */
     OutputRegisterPacketModule(LOGGER_JSON_METADATA, MODULE_NAME,
-        "vars-json-log", JsonVarsLogInitCtx, JsonVarsLogger,
-        JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
-        NULL);
+        "vars-json-log", JsonMetadataLogInitCtx, JsonMetadataLogger,
+        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
+        JsonMetadataLogThreadDeinit, NULL);
     OutputRegisterPacketSubModule(LOGGER_JSON_METADATA, "eve-log", MODULE_NAME,
-        "eve-log.vars", JsonVarsLogInitCtxSub, JsonVarsLogger,
-        JsonVarsLogCondition, JsonVarsLogThreadInit, JsonVarsLogThreadDeinit,
-        NULL);
+        "eve-log.vars", JsonMetadataLogInitCtxSub, JsonMetadataLogger,
+        JsonMetadataLogCondition, JsonMetadataLogThreadInit,
+        JsonMetadataLogThreadDeinit, NULL);
 }
 
 #else
 
-void JsonVarsLogRegister (void)
+void JsonMetadataLogRegister (void)
 {
 }
 
