@@ -87,9 +87,17 @@ void OutputJsonRegister (void)
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 
+static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
+static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
+static size_t traffic_id_prefix_len = 0;
+static size_t traffic_label_prefix_len = 0;
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
+
+    traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
+    traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
 }
 
 json_t *SCJsonBool(int val)
@@ -155,17 +163,35 @@ static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
 }
 
 /**
+ * \brief Check if string s has prefix prefix.
+ *
+ * \retval true if string has prefix
+ * \retval false if string does not have prefix
+ *
+ * TODO: Move to file with other string handling functions.
+ */
+static bool SCStringHasPrefix(const char *s, const char *prefix)
+{
+    if (strncmp(s, prefix, strlen(prefix)) == 0) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * \brief Add flow variables to a json object.
  *
  * Adds "flowvars" (map), "flowints" (map) and "flowbits" (array) to
  * the json object provided as js_root.
  */
-static void JsonAddFlowVars(const Flow *f, json_t *js_root)
+static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
 {
     if (f == NULL || f->flowvar == NULL) {
         return;
     }
     json_t *js_flowvars = NULL;
+    json_t *js_traffic_id = NULL;
+    json_t *js_traffic_label = NULL;
     json_t *js_flowints = NULL;
     json_t *js_flowbits = NULL;
     GenericVar *gv = f->flowvar;
@@ -235,12 +261,32 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root)
             const char *varname = VarNameStoreLookupById(fb->idx,
                     VAR_TYPE_FLOW_BIT);
             if (varname) {
-                if (js_flowbits == NULL) {
-                    js_flowbits = json_array();
-                    if (js_flowbits == NULL)
-                        break;
+                if (SCStringHasPrefix(varname, TRAFFIC_ID_PREFIX)) {
+                    if (js_traffic_id == NULL) {
+                        js_traffic_id = json_array();
+                        if (unlikely(js_traffic_id == NULL)) {
+                            break;
+                        }
+                    }
+                    json_array_append(js_traffic_id,
+                            json_string(&varname[traffic_id_prefix_len]));
+                } else if (SCStringHasPrefix(varname, TRAFFIC_LABEL_PREFIX)) {
+                    if (js_traffic_label == NULL) {
+                        js_traffic_label = json_array();
+                        if (unlikely(js_traffic_label == NULL)) {
+                            break;
+                        }
+                    }
+                    json_array_append(js_traffic_label,
+                            json_string(&varname[traffic_label_prefix_len]));
+                } else {
+                    if (js_flowbits == NULL) {
+                        js_flowbits = json_array();
+                        if (js_flowbits == NULL)
+                            break;
+                    }
+                    json_array_append(js_flowbits, json_string(varname));
                 }
-                json_array_append(js_flowbits, json_string(varname));
             }
         }
         gv = gv->next;
@@ -254,6 +300,18 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root)
     if (js_flowvars) {
         json_object_set_new(js_root, "flowvars", js_flowvars);
     }
+
+    if (js_traffic_id != NULL || js_traffic_label != NULL) {
+        *js_traffic = json_object();
+        if (likely(*js_traffic != NULL)) {
+            if (js_traffic_id != NULL) {
+                json_object_set_new(*js_traffic, "id", js_traffic_id);
+            }
+            if (js_traffic_label != NULL) {
+                json_object_set_new(*js_traffic, "label", js_traffic_label);
+            }
+        }
+    }
 }
 
 /**
@@ -263,9 +321,13 @@ void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         json_t *js_vars = json_object();
+        json_t *js_traffic = NULL;
         if (js_vars) {
             if (f && f->flowvar) {
-                JsonAddFlowVars(f, js_vars);
+                JsonAddFlowVars(f, js_vars, &js_traffic);
+                if (js_traffic != NULL) {
+                    json_object_set_new(js, "traffic", js_traffic);
+                }
             }
             if (p && p->pktvar) {
                 JsonAddPacketvars(p, js_vars);
