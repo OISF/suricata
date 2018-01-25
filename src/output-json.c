@@ -87,9 +87,17 @@ void OutputJsonRegister (void)
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 
+static const char *TRAFFIC_ID_PREFIX = "traffic/id/";
+static const char *TRAFFIC_LABEL_PREFIX = "traffic/label/";
+static size_t traffic_id_prefix_len = 0;
+static size_t traffic_label_prefix_len = 0;
+
 void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
+
+    traffic_id_prefix_len = strlen(TRAFFIC_ID_PREFIX);
+    traffic_label_prefix_len = strlen(TRAFFIC_LABEL_PREFIX);
 }
 
 json_t *SCJsonBool(int val)
@@ -154,12 +162,36 @@ static void JsonAddPacketvars(const Packet *p, json_t *js_vars)
     }
 }
 
-static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
+/**
+ * \brief Check if string s has prefix prefix.
+ *
+ * \retval true if string has prefix
+ * \retval false if string does not have prefix
+ *
+ * TODO: Move to file with other string handling functions.
+ */
+static bool SCStringHasPrefix(const char *s, const char *prefix)
+{
+    if (strncmp(s, prefix, strlen(prefix)) == 0) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * \brief Add flow variables to a json object.
+ *
+ * Adds "flowvars" (map), "flowints" (map) and "flowbits" (array) to
+ * the json object provided as js_root.
+ */
+static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
 {
     if (f == NULL || f->flowvar == NULL) {
         return;
     }
     json_t *js_flowvars = NULL;
+    json_t *js_traffic_id = NULL;
+    json_t *js_traffic_label = NULL;
     json_t *js_flowints = NULL;
     json_t *js_flowbits = NULL;
     GenericVar *gv = f->flowvar;
@@ -167,10 +199,11 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
         if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
             FlowVar *fv = (FlowVar *)gv;
             if (fv->datatype == FLOWVAR_TYPE_STR && fv->key == NULL) {
-                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_VAR);
+                const char *varname = VarNameStoreLookupById(fv->idx,
+                        VAR_TYPE_FLOW_VAR);
                 if (varname) {
                     if (js_flowvars == NULL) {
-                        js_flowvars = json_object();
+                        js_flowvars = json_array();
                         if (js_flowvars == NULL)
                             break;
                     }
@@ -182,12 +215,17 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
                             sizeof(printable_buf),
                             fv->data.fv_str.value, fv->data.fv_str.value_len);
 
-                    json_object_set_new(js_flowvars, varname,
+                    json_t *js_flowvar = json_object();
+                    if (unlikely(js_flowvar == NULL)) {
+                        break;
+                    }
+                    json_object_set_new(js_flowvar, varname,
                             json_string((char *)printable_buf));
+                    json_array_append_new(js_flowvars, js_flowvar);
                 }
             } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
                 if (js_flowvars == NULL) {
-                    js_flowvars = json_object();
+                    js_flowvars = json_array();
                     if (js_flowvars == NULL)
                         break;
                 }
@@ -205,11 +243,16 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
                         sizeof(printable_buf),
                         fv->data.fv_str.value, fv->data.fv_str.value_len);
 
-                json_object_set_new(js_flowvars, (const char *)keybuf,
+                json_t *js_flowvar = json_object();
+                if (unlikely(js_flowvar == NULL)) {
+                    break;
+                }
+                json_object_set_new(js_flowvar, (const char *)keybuf,
                         json_string((char *)printable_buf));
-
+                json_array_append_new(js_flowvars, js_flowvar);
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                const char *varname = VarNameStoreLookupById(fv->idx, VAR_TYPE_FLOW_INT);
+                const char *varname = VarNameStoreLookupById(fv->idx,
+                        VAR_TYPE_FLOW_INT);
                 if (varname) {
                     if (js_flowints == NULL) {
                         js_flowints = json_object();
@@ -217,48 +260,89 @@ static void JsonAddFlowvars(const Flow *f, json_t *js_vars)
                             break;
                     }
 
-                    json_object_set_new(js_flowints, varname, json_integer(fv->data.fv_int.value));
+                    json_object_set_new(js_flowints, varname,
+                            json_integer(fv->data.fv_int.value));
                 }
 
             }
         } else if (gv->type == DETECT_FLOWBITS) {
             FlowBit *fb = (FlowBit *)gv;
-            const char *varname = VarNameStoreLookupById(fb->idx, VAR_TYPE_FLOW_BIT);
+            const char *varname = VarNameStoreLookupById(fb->idx,
+                    VAR_TYPE_FLOW_BIT);
             if (varname) {
-                if (js_flowbits == NULL) {
-                    js_flowbits = json_object();
-                    if (js_flowbits == NULL)
-                        break;
+                if (SCStringHasPrefix(varname, TRAFFIC_ID_PREFIX)) {
+                    if (js_traffic_id == NULL) {
+                        js_traffic_id = json_array();
+                        if (unlikely(js_traffic_id == NULL)) {
+                            break;
+                        }
+                    }
+                    json_array_append(js_traffic_id,
+                            json_string(&varname[traffic_id_prefix_len]));
+                } else if (SCStringHasPrefix(varname, TRAFFIC_LABEL_PREFIX)) {
+                    if (js_traffic_label == NULL) {
+                        js_traffic_label = json_array();
+                        if (unlikely(js_traffic_label == NULL)) {
+                            break;
+                        }
+                    }
+                    json_array_append(js_traffic_label,
+                            json_string(&varname[traffic_label_prefix_len]));
+                } else {
+                    if (js_flowbits == NULL) {
+                        js_flowbits = json_array();
+                        if (js_flowbits == NULL)
+                            break;
+                    }
+                    json_array_append(js_flowbits, json_string(varname));
                 }
-                json_object_set_new(js_flowbits, varname, json_boolean(1));
             }
         }
         gv = gv->next;
     }
     if (js_flowbits) {
-        json_object_set_new(js_vars, "flowbits", js_flowbits);
+        json_object_set_new(js_root, "flowbits", js_flowbits);
     }
     if (js_flowints) {
-        json_object_set_new(js_vars, "flowints", js_flowints);
+        json_object_set_new(js_root, "flowints", js_flowints);
     }
     if (js_flowvars) {
-        json_object_set_new(js_vars, "flowvars", js_flowvars);
+        json_object_set_new(js_root, "flowvars", js_flowvars);
+    }
+
+    if (js_traffic_id != NULL || js_traffic_label != NULL) {
+        *js_traffic = json_object();
+        if (likely(*js_traffic != NULL)) {
+            if (js_traffic_id != NULL) {
+                json_object_set_new(*js_traffic, "id", js_traffic_id);
+            }
+            if (js_traffic_label != NULL) {
+                json_object_set_new(*js_traffic, "label", js_traffic_label);
+            }
+        }
     }
 }
 
-void JsonAddVars(const Packet *p, const Flow *f, json_t *js)
+/**
+ * \brief Add top-level metadata to the eve json object.
+ */
+void JsonAddMetadata(const Packet *p, const Flow *f, json_t *js)
 {
     if ((p && p->pktvar) || (f && f->flowvar)) {
         json_t *js_vars = json_object();
+        json_t *js_traffic = NULL;
         if (js_vars) {
             if (f && f->flowvar) {
-                JsonAddFlowvars(f, js_vars);
+                JsonAddFlowVars(f, js_vars, &js_traffic);
+                if (js_traffic != NULL) {
+                    json_object_set_new(js, "traffic", js_traffic);
+                }
             }
             if (p && p->pktvar) {
                 JsonAddPacketvars(p, js_vars);
             }
 
-            json_object_set_new(js, "vars", js_vars);
+            json_object_set_new(js, "metadata", js_vars);
         }
     }
 }
@@ -396,6 +480,7 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
                          const char *event_type)
 {
     char timebuf[64];
+    const Flow *f = (const Flow *)p->flow;
 
     json_t *js = json_object();
     if (unlikely(js == NULL))
@@ -406,7 +491,7 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     /* time & tx */
     json_object_set_new(js, "timestamp", json_string(timebuf));
 
-    CreateJSONFlowId(js, (const Flow *)p->flow);
+    CreateJSONFlowId(js, f);
 
     /* sensor id */
     if (sensor_id >= 0)
@@ -702,6 +787,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                            "invalid sensor-is: %s", sensor_id_s);
                 exit(EXIT_FAILURE);
             }
+        }
+
+        /* Check if top-level metadata should be logged. */
+        const ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
+        if (metadata && metadata->val && ConfValIsFalse(metadata->val)) {
+            SCLogConfig("Disabling eve metadata logging.");
+            json_ctx->include_metadata = false;
+        } else {
+            json_ctx->include_metadata = true;
         }
 
         json_ctx->file_ctx->type = json_ctx->json_out;
