@@ -803,6 +803,14 @@ static int LuaCallbackFileStatePushToStackFromFile(lua_State *luastate, const Fi
         case FILE_STATE_ERROR:
             state = "ERROR";
             break;
+        case FILE_STATE_OPENED:
+            state = "OPENED";
+            break;
+        case FILE_STATE_NONE:
+            state = "NONE";
+            break;
+        case FILE_STATE_MAX:
+            break;
     }
 
     lua_pushstring (luastate, state);
