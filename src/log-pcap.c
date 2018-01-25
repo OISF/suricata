@@ -65,7 +65,7 @@
 
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"
-#define MIN_LIMIT                       1 * 1024 * 1024
+#define MIN_LIMIT                       4 * 1024 * 1024
 #define DEFAULT_LIMIT                   100 * 1024 * 1024
 #define DEFAULT_FILE_LIMIT              0
 #define DEFAULT_COMPRESSION_FORMAT      "none"
