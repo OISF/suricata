@@ -64,7 +64,7 @@ typedef enum FileState_ {
 typedef struct File_ {
     uint16_t flags;
     uint16_t name_len;
-    int16_t state;
+    FileState state;
     StreamingBuffer *sb;
     uint64_t txid;                  /**< tx this file is part of */
     uint32_t file_track_id;         /**< id used by protocol parser. Optional
