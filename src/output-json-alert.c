@@ -86,13 +86,12 @@
 #define LOG_JSON_SMTP              BIT_U16(6)
 #define LOG_JSON_TAGGED_PACKETS    BIT_U16(7)
 #define LOG_JSON_DNP3              BIT_U16(8)
-#define LOG_JSON_VARS              BIT_U16(9)
-#define LOG_JSON_APP_LAYER         BIT_U16(10)
-#define LOG_JSON_FLOW              BIT_U16(11)
-#define LOG_JSON_HTTP_BODY         BIT_U16(12)
-#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(13)
+#define LOG_JSON_APP_LAYER         BIT_U16(9)
+#define LOG_JSON_FLOW              BIT_U16(10)
+#define LOG_JSON_HTTP_BODY         BIT_U16(11)
+#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(12)
 
-#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_VARS|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_FLOW)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -101,6 +100,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
+    bool include_metadata;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -356,6 +356,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
+    if (json_output_ctx->include_metadata) {
+        JsonAddMetadata(p, p->flow, js);
+    }
+
     for (i = 0; i < p->alerts.cnt; i++) {
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -454,10 +458,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     AlertJsonDnp3(p->flow, js);
                 }
             }
-        }
-
-        if (json_output_ctx->flags & LOG_JSON_VARS) {
-            JsonAddVars(p, p->flow, js);
         }
 
         if (p->flow) {
@@ -786,7 +786,6 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     if (conf != NULL) {
         SetFlag(conf, "metadata", LOG_JSON_METADATA_ALL, &json_output_ctx->flags);
         SetFlag(conf, "flow", LOG_JSON_FLOW, &json_output_ctx->flags);
-        SetFlag(conf, "vars", LOG_JSON_VARS, &json_output_ctx->flags);
 
         SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
         SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
@@ -888,6 +887,7 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
 
     json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->include_metadata = ajt->include_metadata;
 
     XffSetup(json_output_ctx, conf);
 

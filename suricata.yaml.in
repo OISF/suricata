@@ -163,6 +163,10 @@ outputs:
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+
+      # Include top level metadata. Default yes.
+      #metadata: no
+
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
@@ -248,8 +252,11 @@ outputs:
         - flow
         # uni-directional flows
         #- netflow
-        # Vars log flowbits and other packet and flow vars
-        #- vars
+
+        # Metadata event type. Triggered whenever a pktvar is saved
+        # and will include the pktvars, flowvars, flowbits and
+        # flowints.
+        #- metadata
 
   # alert output for use with Barnyard2
   - unified2-alert:

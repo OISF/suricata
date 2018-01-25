@@ -54,6 +54,7 @@
 typedef struct LogNFSFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t    flags;
+    bool        include_metadata;
 } LogNFSFileCtx;
 
 typedef struct LogNFSLogThread_ {
@@ -103,6 +104,10 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
         return TM_ECODE_FAILED;
     }
 
+    if (thread->nfslog_ctx->include_metadata) {
+        JsonAddMetadata(p, f, js);
+    }
+
     json_t *rpcjs = rs_rpc_log_json_response(tx);
     if (unlikely(rpcjs == NULL)) {
         goto error;
@@ -144,6 +149,7 @@ static OutputInitResult OutputNFSLogInitSub(ConfNode *conf,
         return result;
     }
     nfslog_ctx->file_ctx = ajt->file_ctx;
+    nfslog_ctx->include_metadata = ajt->include_metadata;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(*output_ctx));
     if (unlikely(output_ctx == NULL)) {
