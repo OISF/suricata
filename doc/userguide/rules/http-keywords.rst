@@ -680,6 +680,26 @@ in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
 
+If the HTTP body is a flash file compressed with 'deflate' or 'lzma',
+it can be decompressed and ``file_data`` can match on the decompress data.
+Flash decompression must be enabled under ``libhtp`` configuration:
+
+::
+
+    # Decompress SWF files.
+    # 2 types: 'deflate', 'lzma', 'both' will decompress deflate and lzma
+    # compress-depth:
+    # Specifies the maximum amount of data to decompress,
+    # set 0 for unlimited.
+    # decompress-depth:
+    # Specifies the maximum amount of decompressed data to obtain,
+    # set 0 for unlimited.
+    swf-decompression:
+      enabled: yes
+      type: both
+      compress-depth: 0
+      decompress-depth: 0
+
 Notes
 ~~~~~
 
