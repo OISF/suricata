@@ -1169,6 +1169,16 @@ impl NFSState {
 
                 tdf.chunk_count += 1;
                 let cs = tdf.file_tracker.update(files, flags, data, gap_size);
+                /* see if we need to close the tx */
+                if tdf.file_tracker.is_done() {
+                    if direction == STREAM_TOCLIENT {
+                        tx.response_done = true;
+                        SCLogDebug!("TX {} response is done now that the file track is ready", tx.id);
+                    } else {
+                        tx.request_done = true;
+                        SCLogDebug!("TX {} request is done now that the file track is ready", tx.id);
+                    }
+                }
                 cs
             },
             None => { 0 },
@@ -1230,6 +1240,9 @@ impl NFSState {
 
         }
 
+        let is_partial = reply.data.len() < reply.count as usize;
+        SCLogDebug!("partial data? {}", is_partial);
+
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
             Some((tx, files, flags)) => {
                 let ref mut tdf = match tx.type_data {
@@ -1246,7 +1259,13 @@ impl NFSState {
                     tx.nfs_response_status = reply.status;
                     tx.is_last = true;
                     tx.request_done = true;
-                    tx.response_done = true;
+
+                    /* if this is a partial record we will close the tx
+                     * when we've received the final data */
+                    if !is_partial {
+                        tx.response_done = true;
+                        SCLogDebug!("TX {} is DONE", tx.id);
+                    }
                 }
                 true
             },
@@ -1270,7 +1289,13 @@ impl NFSState {
                 tx.nfs_response_status = reply.status;
                 tx.is_last = true;
                 tx.request_done = true;
-                tx.response_done = true;
+
+                /* if this is a partial record we will close the tx
+                 * when we've received the final data */
+                if !is_partial {
+                    tx.response_done = true;
+                    SCLogDebug!("TX {} is DONE", tx.id);
+                }
             }
         }
 
