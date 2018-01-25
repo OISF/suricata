@@ -203,7 +203,7 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
                         VAR_TYPE_FLOW_VAR);
                 if (varname) {
                     if (js_flowvars == NULL) {
-                        js_flowvars = json_object();
+                        js_flowvars = json_array();
                         if (js_flowvars == NULL)
                             break;
                     }
@@ -215,12 +215,17 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
                             sizeof(printable_buf),
                             fv->data.fv_str.value, fv->data.fv_str.value_len);
 
-                    json_object_set_new(js_flowvars, varname,
+                    json_t *js_flowvar = json_object();
+                    if (unlikely(js_flowvar == NULL)) {
+                        break;
+                    }
+                    json_object_set_new(js_flowvar, varname,
                             json_string((char *)printable_buf));
+                    json_array_append_new(js_flowvars, js_flowvar);
                 }
             } else if (fv->datatype == FLOWVAR_TYPE_STR && fv->key != NULL) {
                 if (js_flowvars == NULL) {
-                    js_flowvars = json_object();
+                    js_flowvars = json_array();
                     if (js_flowvars == NULL)
                         break;
                 }
@@ -238,9 +243,13 @@ static void JsonAddFlowVars(const Flow *f, json_t *js_root, json_t **js_traffic)
                         sizeof(printable_buf),
                         fv->data.fv_str.value, fv->data.fv_str.value_len);
 
-                json_object_set_new(js_flowvars, (const char *)keybuf,
+                json_t *js_flowvar = json_object();
+                if (unlikely(js_flowvar == NULL)) {
+                    break;
+                }
+                json_object_set_new(js_flowvar, (const char *)keybuf,
                         json_string((char *)printable_buf));
-
+                json_array_append_new(js_flowvars, js_flowvar);
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
                 const char *varname = VarNameStoreLookupById(fv->idx,
                         VAR_TYPE_FLOW_INT);
