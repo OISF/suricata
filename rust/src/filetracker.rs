@@ -89,6 +89,10 @@ impl FileTransferTracker {
         }
     }
 
+    pub fn is_done(&self) -> bool {
+        self.file_open == false
+    }
+
     fn open(&mut self, config: &'static SuricataFileContext,
             files: &mut FileContainer, flags: u16, name: &[u8]) -> i32
     {
