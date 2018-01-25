@@ -160,7 +160,13 @@ static int NFSTCPParseRequest(Flow *f, void *state,
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs3_setfileflags(0, state, file_flags);
 
-    return rs_nfs3_parse_request(f, state, pstate, input, input_len, local_data);
+    int res;
+    if (input == NULL && input_len > 0) {
+        res = rs_nfs_parse_request_tcp_gap(state, input_len);
+    } else {
+        res = rs_nfs_parse_request(f, state, pstate, input, input_len, local_data);
+    }
+    return res;
 }
 
 static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
@@ -169,7 +175,13 @@ static int NFSTCPParseResponse(Flow *f, void *state, AppLayerParserState *pstate
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs3_setfileflags(1, state, file_flags);
 
-    return rs_nfs3_parse_response(f, state, pstate, input, input_len, local_data);
+    int res;
+    if (input == NULL && input_len > 0) {
+        res = rs_nfs_parse_response_tcp_gap(state, input_len);
+    } else {
+        res = rs_nfs_parse_response(f, state, pstate, input, input_len, local_data);
+    }
+    return res;
 }
 
 static uint64_t NFSTCPGetTxCnt(void *state)

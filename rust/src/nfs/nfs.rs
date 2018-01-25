@@ -1720,9 +1720,9 @@ pub extern "C" fn rs_nfs3_state_free(state: *mut libc::c_void) {
     nfs3_state.free();
 }
 
-/// C binding parse a DNS request. Returns 1 on success, -1 on failure.
+/// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_request(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
@@ -1733,13 +1733,6 @@ pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
 
-    if buf.as_ptr().is_null() && input_len > 0 {
-        if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
-            return 1
-        }
-        return -1
-    }
-
     if state.parse_tcp_data_ts(buf) == 0 {
         1
     } else {
@@ -1748,7 +1741,19 @@ pub extern "C" fn rs_nfs3_parse_request(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_request_tcp_gap(
+                                        state: &mut NFSState,
+                                        input_len: libc::uint32_t)
+                                        -> libc::int8_t
+{
+    if state.parse_tcp_data_ts_gap(input_len as u32) == 0 {
+        return 1;
+    }
+    return -1;
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_parse_response(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
@@ -1759,18 +1764,23 @@ pub extern "C" fn rs_nfs3_parse_response(_flow: *mut Flow,
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
 
-    if buf.as_ptr().is_null() && input_len > 0 {
-        if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
-            return 1
-        }
-        return -1
-    }
-
     if state.parse_tcp_data_tc(buf) == 0 {
         1
     } else {
         -1
     }
+}
+
+#[no_mangle]
+pub extern "C" fn rs_nfs_parse_response_tcp_gap(
+                                        state: &mut NFSState,
+                                        input_len: libc::uint32_t)
+                                        -> libc::int8_t
+{
+    if state.parse_tcp_data_tc_gap(input_len as u32) == 0 {
+        return 1;
+    }
+    return -1;
 }
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
