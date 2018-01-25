@@ -826,17 +826,21 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
     SCReturnPtr(ff, "File");
 }
-File *FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
+
+/**
+ *  \retval 0 ok
+ *  \retval -1 failed */
+int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
     File *ff = FileOpenFile(ffc, sbcfg, name, name_len, data, data_len, flags);
     if (ff == NULL)
-        return NULL;
+        return -1;
 
     ff->file_track_id = track_id;
     ff->flags |= FILE_USE_TRACKID;
-    return ff;
+    return 0;
 }
 
 static int FileCloseFilePtr(File *ff, const uint8_t *data,

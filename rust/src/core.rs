@@ -70,7 +70,7 @@ pub type SCFileOpenFileWithId = extern "C" fn (
         track_id: u32,
         name: *const u8, name_len: u16,
         data: *const u8, data_len: u32,
-        flags: u16) -> File;
+        flags: u16) -> i32;
 pub type SCFileCloseFileById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,

@@ -49,12 +49,11 @@ impl FileContainer {
             None => panic!("BUG no suricata_config"),
             Some(c) => {
                 SCLogDebug!("FILE {:p} OPEN flags {:04X}", &self, flags);
-                //let ref res =
 
-                (c.FileOpenFile)(&self, cfg.files_sbcfg, *track_id,
+                let res = (c.FileOpenFile)(&self, cfg.files_sbcfg, *track_id,
                         name.as_ptr(), name.len() as u16,
                         ptr::null(), 0u32, flags);
-                0
+                res
             }
         }
     }
