@@ -301,16 +301,20 @@ integration with 3rd party tools like logstash.
       #  pipelining:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
+
+      # Include top level metadata. Default yes.
+      #metadata: no
+
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
+
+            # http-body: yes           # enable dumping of http body in Base64
+            # http-body-printable: yes # enable dumping of http body in printable format
+            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
@@ -382,6 +386,9 @@ integration with 3rd party tools like logstash.
         - flow
         # uni-directional flows
         #- netflow
+        # An event for logging metadata, specifically pktvars when
+        # they are set, but will also include the full metadata object.
+	#- metadata
 
 For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-output>`.
 
