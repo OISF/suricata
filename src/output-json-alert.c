@@ -80,18 +80,13 @@
 #define LOG_JSON_PAYLOAD           BIT_U16(0)
 #define LOG_JSON_PACKET            BIT_U16(1)
 #define LOG_JSON_PAYLOAD_BASE64    BIT_U16(2)
-#define LOG_JSON_HTTP              BIT_U16(3)
-#define LOG_JSON_TLS               BIT_U16(4)
-#define LOG_JSON_SSH               BIT_U16(5)
-#define LOG_JSON_SMTP              BIT_U16(6)
-#define LOG_JSON_TAGGED_PACKETS    BIT_U16(7)
-#define LOG_JSON_DNP3              BIT_U16(8)
-#define LOG_JSON_APP_LAYER         BIT_U16(9)
-#define LOG_JSON_FLOW              BIT_U16(10)
-#define LOG_JSON_HTTP_BODY         BIT_U16(11)
-#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(12)
+#define LOG_JSON_TAGGED_PACKETS    BIT_U16(3)
+#define LOG_JSON_APP_LAYER         BIT_U16(4)
+#define LOG_JSON_FLOW              BIT_U16(5)
+#define LOG_JSON_HTTP_BODY         BIT_U16(6)
+#define LOG_JSON_HTTP_BODY_BASE64  BIT_U16(7)
 
-#define LOG_JSON_METADATA_ALL  (LOG_JSON_APP_LAYER|LOG_JSON_HTTP|LOG_JSON_TLS|LOG_JSON_SSH|LOG_JSON_SMTP|LOG_JSON_DNP3|LOG_JSON_FLOW)
+#define LOG_JSON_METADATA (LOG_JSON_APP_LAYER | LOG_JSON_FLOW)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -375,66 +370,48 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             AlertJsonTunnel(p, js);
         }
 
-        if (json_output_ctx->flags & LOG_JSON_HTTP) {
-            if (p->flow != NULL) {
-                uint16_t proto = FlowGetAppProtocol(p->flow);
+        if (json_output_ctx->flags & LOG_JSON_APP_LAYER && p->flow != NULL) {
+            uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
-                if (proto == ALPROTO_HTTP) {
-                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
-                    if (hjs) {
-                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
-                            JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
-                        }
-                        if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
-                            JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
-                        }
-                        json_object_set_new(js, "http", hjs);
+            /* http alert */
+            if (proto == ALPROTO_HTTP) {
+                hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
+                if (hjs) {
+                    if (json_output_ctx->flags & LOG_JSON_HTTP_BODY) {
+                        JsonHttpLogJSONBodyPrintable(hjs, p->flow, pa->tx_id);
                     }
+                    if (json_output_ctx->flags & LOG_JSON_HTTP_BODY_BASE64) {
+                        JsonHttpLogJSONBodyBase64(hjs, p->flow, pa->tx_id);
+                    }
+                    json_object_set_new(js, "http", hjs);
                 }
             }
-        }
 
-        if (json_output_ctx->flags & LOG_JSON_TLS) {
-            if (p->flow != NULL) {
-                uint16_t proto = FlowGetAppProtocol(p->flow);
-
-                /* tls alert */
-                if (proto == ALPROTO_TLS)
-                    AlertJsonTls(p->flow, js);
+            /* tls alert */
+            if (proto == ALPROTO_TLS) {
+                AlertJsonTls(p->flow, js);
             }
-        }
 
-        if (json_output_ctx->flags & LOG_JSON_SSH) {
-            if (p->flow != NULL) {
-                uint16_t proto = FlowGetAppProtocol(p->flow);
-
-                /* ssh alert */
-                if (proto == ALPROTO_SSH)
-                    AlertJsonSsh(p->flow, js);
+            /* ssh alert */
+            if (proto == ALPROTO_SSH) {
+                AlertJsonSsh(p->flow, js);
             }
-        }
 
-        if (json_output_ctx->flags & LOG_JSON_SMTP) {
-            if (p->flow != NULL) {
-                uint16_t proto = FlowGetAppProtocol(p->flow);
+            /* smtp alert */
+            if (proto == ALPROTO_SMTP) {
+                hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
+                if (hjs) {
+                    json_object_set_new(js, "smtp", hjs);
+                }
 
-                /* smtp alert */
-                if (proto == ALPROTO_SMTP) {
-                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
-                    if (hjs)
-                        json_object_set_new(js, "smtp", hjs);
-
-                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
-                    if (hjs)
-                        json_object_set_new(js, "email", hjs);
+                hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
+                if (hjs) {
+                    json_object_set_new(js, "email", hjs);
                 }
             }
-        }
-        if ((json_output_ctx->flags & LOG_JSON_APP_LAYER) && p->flow != NULL) {
-            uint16_t alproto = FlowGetAppProtocol(p->flow);
+
 #ifdef HAVE_RUST
-            if (alproto == ALPROTO_NFS) {
+            if (proto == ALPROTO_NFS) {
                 hjs = JsonNFSAddMetadataRPC(p->flow, pa->tx_id);
                 if (hjs)
                     json_object_set_new(js, "rpc", hjs);
@@ -443,21 +420,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     json_object_set_new(js, "nfs", hjs);
             }
 #endif
-            if (alproto == ALPROTO_FTPDATA) {
+            if (proto == ALPROTO_FTPDATA) {
                 hjs = JsonFTPDataAddMetadata(p->flow);
                 if (hjs)
                     json_object_set_new(js, "ftp-data", hjs);
             }
-        }
-        if (json_output_ctx->flags & LOG_JSON_DNP3) {
-            if (p->flow != NULL) {
-                uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* dnp3 alert */
-                if (proto == ALPROTO_DNP3) {
-                    AlertJsonDnp3(p->flow, js);
-                }
+            /* dnp3 alert */
+            if (proto == ALPROTO_DNP3) {
+                AlertJsonDnp3(p->flow, js);
             }
+
         }
 
         if (p->flow) {
@@ -782,23 +755,27 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     json_output_ctx->xff_cfg = xff_cfg;
 
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
+    uint16_t flags = 0;
 
-    if (conf != NULL) {
-        SetFlag(conf, "metadata", LOG_JSON_METADATA_ALL, &json_output_ctx->flags);
-        SetFlag(conf, "flow", LOG_JSON_FLOW, &json_output_ctx->flags);
+    if (conf == NULL) {
+        /* Enable metadata by default. */
+        flags |= LOG_JSON_METADATA;
+    } else {
+        /* If metadata not set, default to yes. */
+        if (ConfNodeLookupChildValue(conf, "metadata") == NULL) {
+            flags |= LOG_JSON_METADATA;
+        } else {
+            SetFlag(conf, "metadata", LOG_JSON_METADATA, &flags);
+            SetFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
+            SetFlag(conf, "flow", LOG_JSON_FLOW, &flags);
+        }
 
-        SetFlag(conf, "http", LOG_JSON_HTTP, &json_output_ctx->flags);
-        SetFlag(conf, "tls",  LOG_JSON_TLS,  &json_output_ctx->flags);
-        SetFlag(conf, "ssh",  LOG_JSON_SSH,  &json_output_ctx->flags);
-        SetFlag(conf, "smtp", LOG_JSON_SMTP, &json_output_ctx->flags);
-        SetFlag(conf, "dnp3", LOG_JSON_DNP3, &json_output_ctx->flags);
-
-        SetFlag(conf, "payload", LOG_JSON_PAYLOAD_BASE64, &json_output_ctx->flags);
-        SetFlag(conf, "packet", LOG_JSON_PACKET, &json_output_ctx->flags);
-        SetFlag(conf, "tagged-packets", LOG_JSON_TAGGED_PACKETS, &json_output_ctx->flags);
-        SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &json_output_ctx->flags);
-        SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &json_output_ctx->flags);
-        SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &json_output_ctx->flags);
+        SetFlag(conf, "payload", LOG_JSON_PAYLOAD_BASE64, &flags);
+        SetFlag(conf, "packet", LOG_JSON_PACKET, &flags);
+        SetFlag(conf, "tagged-packets", LOG_JSON_TAGGED_PACKETS, &flags);
+        SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
+        SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
+        SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
@@ -817,6 +794,8 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         json_output_ctx->payload_buffer_size = payload_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
     }
+
+    json_output_ctx->flags |= flags;
 }
 
 /**
