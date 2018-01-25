@@ -1286,6 +1286,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
                 SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for "
                     "lz4 output buffer.");
             }
+
+            comp->bytes_in_block = 0;
         }
 #endif /* HAVE_LIBLZ4 */
         else {
