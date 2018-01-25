@@ -126,7 +126,7 @@ void FileContainerAdd(FileContainer *, File *);
 File *FileOpenFile(FileContainer *, const StreamingBufferConfig *,
         const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
-File *FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
+int FileOpenFileWithId(FileContainer *, const StreamingBufferConfig *,
         uint32_t track_id, const uint8_t *name, uint16_t name_len,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
 
