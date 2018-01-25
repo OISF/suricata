@@ -31,7 +31,12 @@
 #include <linux/udp.h>
 #include "bpf_helpers.h"
 
+#include "hash_func01.h"
+
 #define LINUX_VERSION_CODE 263682
+
+/* Hashing initval */
+#define INITVAL 15485863
 
 #define CPUMAP_MAX_CPUS     64
 
@@ -171,6 +176,7 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     uint32_t key0 = 0;
     uint32_t *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     uint32_t *cpu_selected;
+    uint32_t cpu_hash;
     int *iface_peer;
     int tx_port = 0;
 
@@ -219,8 +225,12 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
         }
     }
 
+    /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
+    cpu_hash = tuple.src + tuple.dst;
+    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, INITVAL + iph->protocol);
+
     if (cpu_max && *cpu_max) {
-        cpu_dest = (tuple.src + tuple.dst) % *cpu_max;
+        cpu_dest = cpu_hash % *cpu_max;
         cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
         if (!cpu_selected)
             return XDP_ABORTED;
@@ -242,6 +252,7 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     uint32_t key0 = 0;
     int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     uint32_t *cpu_selected;
+    uint32_t cpu_hash;
     int tx_port = 0;
     int *iface_peer;
 
@@ -281,8 +292,16 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
             return bpf_redirect_map(&tx_peer, tx_port, 0);
         }
     }
+
+    /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
+    cpu_hash  = tuple.src[0] + tuple.dst[0];
+    cpu_hash += tuple.src[1] + tuple.dst[1];
+    cpu_hash += tuple.src[2] + tuple.dst[2];
+    cpu_hash += tuple.src[3] + tuple.dst[3];
+    cpu_hash = SuperFastHash((char *)&cpu_hash, 4, ip6h->nexthdr);
+
     if (cpu_max && *cpu_max) {
-        cpu_dest = (tuple.src[0] + tuple.dst[0] + tuple.src[3] + tuple.dst[3]) % *cpu_max;
+        cpu_dest = cpu_hash % *cpu_max;
         cpu_selected = bpf_map_lookup_elem(&cpus_available, &cpu_dest);
         if (!cpu_selected)
             return XDP_ABORTED;
