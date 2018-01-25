@@ -64,9 +64,6 @@ pub type AppLayerDecoderEventsFreeEventsFunc =
 
 pub struct SuricataStreamingBufferConfig;
 
-//File *(*FileOpenFile)(FileContainer *, const StreamingBufferConfig *,
-//       const uint8_t *name, uint16_t name_len,
-//       const uint8_t *data, uint32_t data_len, uint16_t flags);
 pub type SCFileOpenFileWithId = extern "C" fn (
         file_container: &FileContainer,
         sbcfg: &SuricataStreamingBufferConfig,
@@ -74,13 +71,11 @@ pub type SCFileOpenFileWithId = extern "C" fn (
         name: *const u8, name_len: u16,
         data: *const u8, data_len: u32,
         flags: u16) -> File;
-//int (*FileCloseFile)(FileContainer *, const uint8_t *data, uint32_t data_len, uint16_t flags);
 pub type SCFileCloseFileById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,
         data: *const u8, data_len: u32,
         flags: u16) -> i32;
-//int (*FileAppendData)(FileContainer *, const uint8_t *data, uint32_t data_len);
 pub type SCFileAppendDataById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,
@@ -89,10 +84,8 @@ pub type SCFileAppendGAPById = extern "C" fn (
         file_container: &FileContainer,
         track_id: u32,
         data: *const u8, data_len: u32) -> i32;
-// void FilePrune(FileContainer *ffc)
 pub type SCFilePrune = extern "C" fn (
         file_container: &FileContainer);
-// void FileContainerRecycle(FileContainer *ffc)
 pub type SCFileContainerRecycle = extern "C" fn (
         file_container: &FileContainer);
 
