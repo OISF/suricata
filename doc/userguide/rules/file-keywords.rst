@@ -115,6 +115,50 @@ Each MD5 uses 16 bytes of memory. 20 Million MD5's use about 310 MiB of memory.
 
 See also: http://blog.inliniac.net/2012/06/09/suricata-md5-blacklisting/
 
+filesha1
+--------
+
+Match file SHA1 against list of SHA1 checksums.
+
+Syntax::
+
+  filesha1:[!]filename;
+
+The filename is expanded to include the rule dir. In the default case
+it will become /etc/suricata/rules/filename. Use the exclamation mark
+to get a negated match. This allows for white listing.
+
+Examples::
+
+  filesha1:sha1-blacklist;
+  filesha1:!sha1-whitelist;
+
+*File format*
+
+Same as md5 file format.
+
+filesha256
+----------
+
+Match file SHA256 against list of SHA256 checksums.
+
+Syntax::
+
+  filesha256:[!]filename;
+
+The filename is expanded to include the rule dir. In the default case
+it will become /etc/suricata/rules/filename. Use the exclamation mark
+to get a negated match. This allows for white listing.
+
+Examples::
+
+  filesha256:sha256-blacklist;
+  filesha256:!sha256-whitelist;
+
+*File format*
+
+Same as md5 file format.
+
 filesize
 --------
 

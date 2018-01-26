@@ -449,7 +449,7 @@ Negated Content Match Special Case
 File Extraction
 ---------------
 
--  Suricata has the ability to match on files from HTTP and SMTP streams and
+-  Suricata has the ability to match on files from FTP, HTTP and SMTP streams and
    log them to disk.
 
 -  Snort has the "file" preprocessor that can do something similar
