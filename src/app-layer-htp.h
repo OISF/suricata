@@ -202,7 +202,6 @@ typedef struct HtpTxUserData_ {
     uint8_t tcflags;
 
     uint8_t request_body_type;
-    uint8_t response_body_type;
 
     DetectEngineState *de_state;
 } HtpTxUserData;
