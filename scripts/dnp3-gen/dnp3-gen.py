@@ -705,6 +705,12 @@ def preprocess_object(obj):
 
 def main():
 
+    # Require Jinja2 2.10 or greater.
+    jv = jinja2.__version__.split(".")
+    if int(jv[0]) < 2 or (int(jv[0]) == 2 and int(jv[1]) < 10):
+        print("error: jinja2 v2.10 or great required")
+        return 1
+
     definitions = yaml.load(open("scripts/dnp3-gen/dnp3-objects.yaml"))
     print("Loaded %s objects." % (len(definitions["objects"])))
     definitions["objects"] = map(preprocess_object, definitions["objects"])
