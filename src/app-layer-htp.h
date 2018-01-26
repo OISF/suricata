@@ -62,14 +62,6 @@
                                              connection is closed */
 #define HTP_FLAG_STATE_CLOSED_TC    0x0004    /**< Flag to indicate that HTTP
                                              connection is closed */
-#define HTP_FLAG_STATE_DATA         0x0008    /**< Flag to indicate that HTTP
-                                             connection needs more data */
-#define HTP_FLAG_STATE_ERROR        0x0010    /**< Flag to indicate that an error
-                                             has been occured on HTTP
-                                             connection */
-#define HTP_FLAG_NEW_BODY_SET       0x0020    /**< Flag to indicate that HTTP
-                                             has parsed a new body (for
-                                             pcre) */
 #define HTP_FLAG_STORE_FILES_TS     0x0040
 #define HTP_FLAG_STORE_FILES_TC     0x0080
 #define HTP_FLAG_STORE_FILES_TX_TS  0x0100

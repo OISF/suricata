@@ -341,9 +341,6 @@ void HTPStateFree(void *state)
         SCReturn;
     }
 
-    /* Unset the body inspection */
-    s->flags &=~ HTP_FLAG_NEW_BODY_SET;
-
     /* free the connection parser memory used by HTP library */
     if (s->connp != NULL) {
         SCLogDebug("freeing HTP state");
@@ -740,10 +737,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
-    /* Unset the body inspection (the callback should
-     * reactivate it if necessary) */
-    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
-
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
     if (input_len > 0) {
@@ -751,22 +744,14 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
         switch(r) {
             case HTP_STREAM_ERROR:
-
-                hstate->flags |= HTP_FLAG_STATE_ERROR;
-                hstate->flags &= ~HTP_FLAG_STATE_DATA;
-                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
                 ret = -1;
                 break;
             case HTP_STREAM_DATA:
             case HTP_STREAM_DATA_OTHER:
-
-                hstate->flags |= HTP_FLAG_STATE_DATA;
-                break;
             case HTP_STREAM_TUNNEL:
                 break;
             default:
-                hstate->flags &= ~HTP_FLAG_STATE_DATA;
-                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+                break;
         }
         HTPHandleError(hstate);
     }
@@ -821,29 +806,19 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     }
     DEBUG_VALIDATE_BUG_ON(hstate->connp == NULL);
 
-    /* Unset the body inspection (the callback should
-     * reactivate it if necessary) */
-    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
-
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     if (input_len > 0) {
         r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
         switch(r) {
             case HTP_STREAM_ERROR:
-                hstate->flags = HTP_FLAG_STATE_ERROR;
-                hstate->flags &= ~HTP_FLAG_STATE_DATA;
-                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
                 ret = -1;
                 break;
             case HTP_STREAM_DATA:
             case HTP_STREAM_DATA_OTHER:
-                hstate->flags |= HTP_FLAG_STATE_DATA;
-                break;
             case HTP_STREAM_TUNNEL:
                 break;
             default:
-                hstate->flags &= ~HTP_FLAG_STATE_DATA;
-                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+                break;
         }
         HTPHandleError(hstate);
     }
@@ -1803,9 +1778,6 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
 end:
-    /* set the new chunk flag */
-    hstate->flags |= HTP_FLAG_NEW_BODY_SET;
-
     SCReturnInt(HTP_OK);
 }
 
@@ -1877,9 +1849,6 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
             tx_ud->tcflags &= ~HTP_FILENAME_SET;
         }
     }
-
-    /* set the new chunk flag */
-    hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
     SCReturnInt(HTP_OK);
 }
@@ -2001,9 +1970,6 @@ static int HTPCallbackResponse(htp_tx_t *tx)
 
     /* we have one whole transaction now */
     hstate->transaction_cnt++;
-
-    /* Unset the body inspection (if any) */
-    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
     if (htud != NULL) {
