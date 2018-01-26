@@ -68,15 +68,6 @@
 #define HTP_FLAG_STORE_FILES_TX_TC  0x0200
 
 enum {
-    HTP_BODY_NONE = 0,                  /**< Flag to indicate the current
-                                             operation */
-    HTP_BODY_REQUEST,                   /**< Flag to indicate that the
-                                             current operation is a request */
-    HTP_BODY_RESPONSE                   /**< Flag to indicate that the current
-                                          * operation is a response */
-};
-
-enum {
     HTP_BODY_REQUEST_NONE = 0,
     HTP_BODY_REQUEST_MULTIPART, /* POST, MP */
     HTP_BODY_REQUEST_POST,      /* POST, no MP */
@@ -209,8 +200,6 @@ typedef struct HtpTxUserData_ {
 
     uint8_t tsflags;
     uint8_t tcflags;
-
-    int16_t operation;
 
     uint8_t request_body_type;
     uint8_t response_body_type;

@@ -1697,7 +1697,6 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
     if (!tx_ud->response_body_init) {
         tx_ud->response_body_init = 1;
-        tx_ud->operation = HTP_BODY_REQUEST;
 
         if (d->tx->request_method_number == HTP_M_POST) {
             SCLogDebug("POST");
@@ -1805,7 +1804,6 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
-        tx_ud->operation = HTP_BODY_RESPONSE;
     }
 
     /* see if we can get rid of htp body chunks */
