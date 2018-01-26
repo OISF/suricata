@@ -158,7 +158,32 @@ Or rather all actual pdf files?
 
   alert http any any -> any any (msg:"FILE pdf detected"; filemagic:"PDF document"; filestore; sid:3; rev:1;)
 
+Or rather only store files from black list checksum md5 ?
+
+
+::
+
+
+  alert http any any -> any any (msg:"Black list checksum match and extract MD5"; filemd5:fileextraction-chksum.list; filestore; sid:4; rev:1;)
+
+Or only store files from black list checksum sha1 ?
+
+
+::
+
+
+  alert http any any -> any any (msg:"Black list checksum match and extract SHA1"; filesha1:fileextraction-chksum.list; filestore; sid:5; rev:1;)
+
+Or finally store files from black list checksum sha256 ?
+
+
+::
+
+
+  alert http any any -> any any (msg:"Black list checksum match and extract SHA256"; filesha256:fileextraction-chksum.list; filestore; sid:6; rev:1;)
+
 Bundled with the Suricata download is a file with more example rules. In the archive, go to the rules/ directory and check the files.rules file.
+
 
 MD5
 ~~~
