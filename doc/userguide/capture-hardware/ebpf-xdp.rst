@@ -40,7 +40,7 @@ card that support XDP in the driver.
 Suricata XDP code has been tested with 4.13.10 but 4.15 or later is necessary to have all
 features like the CPU redirect map.
 
-If yu are using an Intel netword card, you will need to stay with in tree kernel NIC drivers.
+If you are using an Intel netword card, you will need to stay with in tree kernel NIC drivers.
 The out of tree drivers do not contain the XDP support.
 
 Having a network card with support for RSS symmetric hashing is a good point or you will have to
@@ -62,7 +62,7 @@ Disable irqbalance
 Kernel
 ~~~~~~
 
-Install kernel 4.13.+ and reboot.
+You need to run a kernel 4.13 or newer.
 
 Clang
 ~~~~~
@@ -96,7 +96,7 @@ Now, you can build and install the library ::
 Compile and install Suricata
 ----------------------------
 
-If ever you don't have the source ::
+To get Suricata source, you can use the usual ::
 
  git clone  https://github.com/OISF/suricata.git
  cd suricata && git clone https://github.com/OISF/libhtp.git -b 0.5.x
@@ -144,9 +144,13 @@ in the app-layer tls section ::
 Setup eBPF filter
 -----------------
 
-Copy the resulting ebpf fiter as needed ::
+The file `ebpf/vlan_filter.c` contains a list of vlan id in a switch
+that you need to edit to get something adapted to your network.
 
- cp src/ebpf/vlan_filter.bpf /etc/suricata/ebpf/
+Once modifications and build via `make` are done, you can copy the resulting
+eBPF filter as needed ::
+
+ cp ebpf/vlan_filter.bpf /etc/suricata/ebpf/
 
 Then setup the `ebpf-filter-file` variable in af-packet section ::
 
@@ -165,6 +169,9 @@ You can then run suricata normally ::
 
  /usr/bin/suricata --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv 
 
+Setup eBPF bypass
+-----------------
+
 You can also use eBPF bypass. To do that load the `bypass_filter.bpf` file and
 update af-packet configuration to set bypass to yes ::
 
@@ -173,9 +180,6 @@ update af-packet configuration to set bypass to yes ::
     cluster-id: 97
     cluster-type: cluster_qm # symmetric hashing is a must!
     defrag: yes
-    # eBPF file containing a 'loadbalancer' function that will be inserted into the
-    # kernel and used as load balancing function
-    #ebpf-lb-file:  /etc/suricata/ebpf/lb.bpf
     # eBPF file containing a 'filter' function that will be inserted into the
     # kernel and used as packet filter function
     # eBPF file containing a 'xdp' function that will be inserted into the
@@ -191,7 +195,7 @@ Setup eBPF load balancing
 
 Copy the resulting ebpf fiter as needed ::
 
- cp src/ebpf/lb.bpf /etc/suricata/
+ cp ebpf/lb.bpf /etc/suricata/
 
 We will use ``cluster_ebpf`` in the interface section of af-packet ::
 
@@ -206,12 +210,20 @@ We will use ``cluster_ebpf`` in the interface section of af-packet ::
     use-mmap: yes
     ring-size: 200000
 
-Setup XDP
----------
+Setup XDP bypass
+----------------
 
-Copy the resulting xdp fiter as needed::
+XDP bypass will allow Suricata to tell the kernel that packets for some
+flows have to be dropped via the XDP mechanism. This is a really early
+drop that occurs before the datagram is reaching the Linux kernel
+network stack.
 
- cp src/ebpf/xdp_filter.bpf /etc/suricata/ebpf/
+Linux 4.15 or newer are recommended to use that feature. You can use it
+on older kernel if you set ``BUILD_CPUMAP`` to 0 in ``ebpf/xdp_filter.c``.
+
+Copy the resulting xdp filter as needed::
+
+ cp ebpf/xdp_filter.bpf /etc/suricata/ebpf/
 
 Setup af-packet section/interface in ``suricata.yaml``.
 
@@ -223,14 +235,6 @@ also use the ``/etc/suricata/ebpf/xdp_filter.bpf`` (in our example TCP offloadin
     cluster-id: 97
     cluster-type: cluster_qm # symmetric hashing is a must!
     defrag: yes
-    # eBPF file containing a 'loadbalancer' function that will be inserted into the
-    # kernel and used as load balancing function
-    #ebpf-lb-file:  /etc/suricata/ebpf/lb.bpf
-    # eBPF file containing a 'filter' function that will be inserted into the
-    # kernel and used as packet filter function
-    # eBPF file containing a 'xdp' function that will be inserted into the
-    # kernel and used as XDP packet filter function
-    #ebpf-filter-file:  /etc/suricata/ebpf/filter.bpf
     # Xdp mode, "soft" for skb based version, "driver" for network card based
     # and "hw" for card supporting eBPF.
     xdp-mode: driver
@@ -257,10 +261,10 @@ Follow these instructions closely for desired result::
 
 Use in tree kernel drivers: XDP support is not available in Intel drivers available on Intel website.
 
-Enable symmetric hashing::
+Enable symmetric hashing ::
 
  ifconfig eth3 down 
- ethtool -L eth3 combined 16
+ ethtool -L eth3 combined 16 # if you have at least 16 cores
  ethtool -K eth3 rxhash on 
  ethtool -K eth3 ntuple on
  ifconfig eth3 up
@@ -299,6 +303,8 @@ If ever your hardware is not able to do a symetric load balancing but support XD
 can then use the CPU redirect map support available in the xdp_filter.bpf file. In this mode, the load
 balancinf will be done by the XDP filter and each CPU will handle the whole packet treatment including
 the creation of the skb structure in kernel.
+
+You will need Linux 4.15 or newer to use that feature.
 
 To do so set the `xdp-cpu-redirect` variable in af-packet interface configuration to a set of CPUs.
 Then use the `cluster_cpu` as load balancing function. You will also need to set the affinity
