@@ -527,6 +527,10 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
         object->{{field.len_field}} = prefix - (offset - *len);
 {% endif %}
         if (object->{{field.len_field}} > 0) {
+            if (*len < object->{{field.len_field}}) {
+                /* Not enough data. */
+                goto error;
+            }
             memcpy(object->{{field.name}}, *buf, object->{{field.len_field}});
             *buf += object->{{field.len_field}};
             *len -= object->{{field.len_field}};
@@ -538,20 +542,20 @@ static int DNP3DecodeObjectG{{object.group}}V{{object.variation}}(const uint8_t 
             if (!DNP3ReadUint8(buf, len, &octet)) {
                 goto error;
             }
-{% set shift = 0 %}
+{% set ns = namespace(shift=0) %}
 {% for field in field.fields %}
 {% if field.width == 1 %}
-            object->{{field.name}} = (octet >> {{shift}}) & 0x1;
+            object->{{field.name}} = (octet >> {{ns.shift}}) & 0x1;
 {% elif field.width == 2 %}
-            object->{{field.name}} = (octet >> {{shift}}) & 0x3;
+            object->{{field.name}} = (octet >> {{ns.shift}}) & 0x3;
 {% elif field.width == 4 %}
-            object->{{field.name}} = (octet >> {{shift}}) & 0xf;
+            object->{{field.name}} = (octet >> {{ns.shift}}) & 0xf;
 {% elif field.width == 7 %}
-            object->{{field.name}} = (octet >> {{shift}}) & 0x7f;
+            object->{{field.name}} = (octet >> {{ns.shift}}) & 0x7f;
 {% else %}
 {{ raise("Unhandled width of %d." % (field.width)) }}
 {% endif %}
-{% set shift = shift + field.width %}
+{% set ns.shift = ns.shift + field.width %}
 {% endfor %}
         }
 {% else %}
