@@ -40,7 +40,7 @@ card that support XDP in the driver.
 Suricata XDP code has been tested with 4.13.10 but 4.15 or later is necessary to have all
 features like the CPU redirect map.
 
-If yu are using an Intel netword card, you will need to stay with in tree kernel NIC drivers.
+If you are using an Intel netword card, you will need to stay with in tree kernel NIC drivers.
 The out of tree drivers do not contain the XDP support.
 
 Having a network card with support for RSS symmetric hashing is a good point or you will have to
@@ -165,6 +165,9 @@ You can then run suricata normally ::
 
  /usr/bin/suricata --pidfile /var/run/suricata.pid  --af-packet=eth3 -vvv 
 
+Setup eBPF bypass
+-----------------
+
 You can also use eBPF bypass. To do that load the `bypass_filter.bpf` file and
 update af-packet configuration to set bypass to yes ::
 
@@ -206,8 +209,15 @@ We will use ``cluster_ebpf`` in the interface section of af-packet ::
     use-mmap: yes
     ring-size: 200000
 
-Setup XDP
----------
+Setup XDP bypass
+----------------
+
+XDP bypass will allow Suricata to tell the kernel that packets for some
+flows have to be dropped via the XDP mechanism. This is a really early
+drop that occurs before the datagram is reaching the ne
+
+Linux 4.15 or newer are recommended to use that feature. You can use it
+on older kernel if you set ``BUILD_CPUMAP`` to 0 in ``src/ebpf/xdp_filter.c``.
 
 Copy the resulting xdp fiter as needed::
 
@@ -299,6 +309,8 @@ If ever your hardware is not able to do a symetric load balancing but support XD
 can then use the CPU redirect map support available in the xdp_filter.bpf file. In this mode, the load
 balancinf will be done by the XDP filter and each CPU will handle the whole packet treatment including
 the creation of the skb structure in kernel.
+
+You will need Linux 4.15 or newer to use that feature.
 
 To do so set the `xdp-cpu-redirect` variable in af-packet interface configuration to a set of CPUs.
 Then use the `cluster_cpu` as load balancing function. You will also need to set the affinity
