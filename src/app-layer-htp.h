@@ -66,10 +66,6 @@
 #define HTP_FLAG_STORE_FILES_TC     0x0080
 #define HTP_FLAG_STORE_FILES_TX_TS  0x0100
 #define HTP_FLAG_STORE_FILES_TX_TC  0x0200
-/** flag the state that a new file has been set in this tx */
-#define HTP_FLAG_NEW_FILE_TX_TS     0x0400
-/** flag the state that a new file has been set in this tx */
-#define HTP_FLAG_NEW_FILE_TX_TC     0x0800
 
 enum {
     HTP_BODY_NONE = 0,                  /**< Flag to indicate the current
