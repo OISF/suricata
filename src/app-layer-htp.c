@@ -721,9 +721,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 void *local_data)
 {
     SCEnter();
-    int r = -1;
     int ret = 1;
-
     HtpState *hstate = (HtpState *)htp_state;
 
     /* On the first invocation, create the connection parser structure to
@@ -740,15 +738,10 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
     if (input_len > 0) {
-        r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
-
-        switch(r) {
+        const int r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
+        switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
-                break;
-            case HTP_STREAM_DATA:
-            case HTP_STREAM_DATA_OTHER:
-            case HTP_STREAM_TUNNEL:
                 break;
             default:
                 break;
@@ -791,10 +784,9 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
                                  void *local_data)
 {
     SCEnter();
-    int r = -1;
     int ret = 1;
-
     HtpState *hstate = (HtpState *)htp_state;
+
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
      * tree.  Failing that, the default HTP config is used.
@@ -808,14 +800,10 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     if (input_len > 0) {
-        r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
-        switch(r) {
+        const int r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
+        switch (r) {
             case HTP_STREAM_ERROR:
                 ret = -1;
-                break;
-            case HTP_STREAM_DATA:
-            case HTP_STREAM_DATA_OTHER:
-            case HTP_STREAM_TUNNEL:
                 break;
             default:
                 break;
