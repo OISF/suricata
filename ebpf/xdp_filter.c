@@ -38,6 +38,10 @@
 /* Hashing initval */
 #define INITVAL 15485863
 
+/* Set BUILD_CPUMAP to 0 if you want to run XDP bypass on kernel
+ * older than 4.15 */
+#define BUILD_CPUMAP        1
+/* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
 #define CPUMAP_MAX_CPUS     64
 
 struct vlan_hdr {
@@ -85,6 +89,7 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
     .max_entries = 32768,
 };
 
+#if BUILD_CPUMAP
 /* Special map type that can XDP_REDIRECT frames to another CPU */
 struct bpf_map_def SEC("maps") cpu_map = {
 	.type		= BPF_MAP_TYPE_CPUMAP,
@@ -106,6 +111,7 @@ struct bpf_map_def SEC("maps") cpus_count = {
 	.value_size	= sizeof(__u32),
 	.max_entries	= 1,
 };
+#endif
 
 struct bpf_map_def SEC("maps") tx_peer = {
 	.type = BPF_MAP_TYPE_DEVMAP,
@@ -172,11 +178,13 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv4_keys tuple;
     struct pair *value;
-    uint32_t cpu_dest;
     uint32_t key0 = 0;
+#if BUILD_CPUMAP
+    uint32_t cpu_dest;
     uint32_t *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     uint32_t *cpu_selected;
     uint32_t cpu_hash;
+#endif
     int *iface_peer;
     int tx_port = 0;
 
@@ -225,6 +233,7 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
         }
     }
 
+#if BUILD_CPUMAP
     /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
     cpu_hash = tuple.src + tuple.dst;
     cpu_hash = SuperFastHash((char *)&cpu_hash, 4, INITVAL + iph->protocol);
@@ -239,6 +248,9 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     } else {
         return XDP_PASS;
     }
+#else
+        return XDP_PASS;
+#endif
 }
 
 static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
@@ -248,11 +260,13 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv6_keys tuple;
     struct pair *value;
-    uint32_t cpu_dest;
     uint32_t key0 = 0;
+#if BUILD_CPUMAP
+    uint32_t cpu_dest;
     int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
     uint32_t *cpu_selected;
     uint32_t cpu_hash;
+#endif
     int tx_port = 0;
     int *iface_peer;
 
@@ -293,6 +307,7 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
         }
     }
 
+#if BUILD_CPUMAP
     /* IP-pairs + protocol (UDP/TCP/ICMP) hit same CPU */
     cpu_hash  = tuple.src[0] + tuple.dst[0];
     cpu_hash += tuple.src[1] + tuple.dst[1];
@@ -310,6 +325,9 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     } else {
         return XDP_PASS;
     }
+#else
+    return XDP_PASS;
+#endif
 }
 
 int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
