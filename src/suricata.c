@@ -1901,7 +1901,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 return TM_ECODE_FAILED;
             }
-            if (ConfigCheckLogDirectory(optarg) != TM_ECODE_OK) {
+            if (ConfigCheckFileExists(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
@@ -2612,7 +2612,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
      * from suricata.yaml.  If not found, shut the engine down */
     suri->log_dir = ConfigGetLogDirectory();
 
-    if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
+    if (ConfigCheckFileExists(suri->log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
                 "Shutting down the engine", suri->log_dir, suri->conf_filename);
