@@ -28,6 +28,14 @@
 #include "runmodes.h"
 #include "util-conf.h"
 
+#ifndef OS_WIN32
+
+#include "util-privs.h"
+
+extern SCInstance suricata;
+
+#endif /* OS_WIN32 */
+
 TmEcode ConfigSetLogDirectory(char *name)
 {
     return ConfSetFinal("default-log-dir", name) ? TM_ECODE_OK : TM_ECODE_FAILED;
@@ -65,6 +73,76 @@ TmEcode ConfigCheckLogDirectory(const char *log_dir)
     }
     SCReturnInt(TM_ECODE_OK);
 }
+
+#ifndef OS_WIN32
+/**
+ * \brief   Check if requested file is writable after privilege drop.
+ *          (Or now if we won't drop privs)
+ *
+ * \param   filename        Name of file to check
+ * \param   suricata    	Pointer to suricata instance, necesarry for priv drop details
+ *
+ * \retval  TmEcode. TM_ECODE_DONE if writable. TM_ECODE_FAILED otherwise. Never TM_ECODE_OK
+ */
+TmEcode ConfigCheckFileWritablePrivDrop(const char * const filename)
+{
+    struct stat file_stat_struct;
+
+    if (stat(filename, &file_stat_struct) != 0) {
+        FatalError(SC_ERR_FATAL, "Checking writeability of logfile dir failed with following error message: %s",
+                   strerror(errno));
+    }
+
+    if (suricata.do_setgid || suricata.do_setuid) { /* We will drop privs */
+
+        if (SCCheckArbitraryFileAccess((uid_t)     suricata.userid,      /* future uid */
+                                       (gid_t *) &(suricata.groupid),  /* future gid */
+                                       1, /* only one future gid because alle supplementary
+                                           * gids will be purged while dropping privs  */
+                                       &file_stat_struct,
+                                       W_OK /* check for write access */ )) {
+            return TM_ECODE_DONE; /* log dir will stay writable */
+        }
+        return TM_ECODE_FAILED; /* Dir not writeable */
+
+    } else { /* We will stay the user and group(s) we are */
+        /* Step 1: getting and preparing data */
+        int supplementary_gid_count;
+
+        /* With 0 as first arg getgroups returns the number of existing supplementary gids */
+        if ( -1 == (supplementary_gid_count = getgroups(0 , NULL)) ) {
+            FatalError(SC_ERR_FATAL, "Getting group IDs of suricata process failed with following error message: %s",
+                       strerror(errno));
+        }
+
+        /* Using a variable length array here, available since C99, recommended in
+         * "21st Century C" O'Reilly Book */
+        /* +1 is for the primary group id we will add later */
+        gid_t gids[supplementary_gid_count+1];
+
+        /* get supplementary gids */
+        if (supplementary_gid_count != getgroups(supplementary_gid_count, gids)) {
+            FatalError(SC_ERR_FATAL, "Getting group IDs of suricata process failed with following error message: %s",
+                       strerror(errno));
+        }
+
+        /* It's undefinded whether getgroups() also returns our primary gid
+         * or only the supplementary gids. So to be safe here we manually
+         * add our primary group id to the last slot of the array.
+         * If it's already in there this does not break correctness,
+         * because the following SCCheckArbitrartyFileAcees()
+         * then simply does the check for this gid twice. */
+        gids[supplementary_gid_count] = getegid();
+
+        /* Step 2: Calling the low level permission bit check function */
+        if (SCCheckArbitraryFileAccess(getuid(), gids, supplementary_gid_count+1,
+                                       &file_stat_struct, W_OK)) {
+            return TM_ECODE_DONE;
+        }
+        return TM_ECODE_FAILED;
+    }
+}
+#endif /* OS_WIN32 */
 
 /**
  * \brief Find the configuration node for a specific device.
