@@ -59,7 +59,7 @@ const char *ConfigGetLogDirectory()
     return log_dir;
 }
 
-TmEcode ConfigCheckLogDirectory(const char *log_dir)
+TmEcode ConfigCheckFileExists(const char *filename)
 {
     SCEnter();
 #ifdef OS_WIN32
@@ -67,7 +67,7 @@ TmEcode ConfigCheckLogDirectory(const char *log_dir)
     if (_stat(log_dir, &buf) != 0) {
 #else
     struct stat buf;
-    if (stat(log_dir, &buf) != 0) {
+    if (stat(filename, &buf) != 0) {
 #endif /* OS_WIN32 */
             SCReturnInt(TM_ECODE_FAILED);
     }
