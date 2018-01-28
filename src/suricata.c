@@ -2039,6 +2039,54 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         }
     }
 
+#ifndef OS_WIN32
+    /* Get the suricata user ID to given user ID */
+    if (suri->do_setuid == TRUE) {
+        if (SCGetUserID(suri->user_name, suri->group_name,
+                        &suri->userid, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
+            return TM_ECODE_FAILED;
+        }
+    /* Get the suricata group ID to given group ID */
+    } else if (suri->do_setgid == TRUE) {
+        if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (set_log_directory
+        && ConfigCheckFileWritablePrivDrop(ConfigGetLogDirectory(), suri) != TM_ECODE_DONE ) {
+
+        if (suri->do_setuid || suri->do_setgid) { /* We will drop privileges */
+            SCLogError(SC_ERR_LOGDIR_CMDLINE,
+                       "I will drop privileges and change my user and/or group id."
+                       " After this the logfile directory \"%s\" supplied at the "
+                       " commandline (-l %s) will no longer be wrietable for me."
+                       " This means I will no longer be able to create logfiles in"
+                       " there. This may not be a problem now, but will become a "
+                       " problem as soon as I will have to rotate log files. "
+                       "So for me to work properly, please make the directory"
+                       " writable for the user/group I will become."
+                       " Thanks, I will exit now.",
+                       ConfigGetLogDirectory(),
+                       ConfigGetLogDirectory());
+        } else { /* We will not drop privileges */
+            SCLogError(SC_ERR_LOGDIR_CMDLINE,
+                       "The logfile directory \"%s\" supplied at the commandline"
+                       " (-l %s) is not writeable. This means I can not create logfiles"
+                       " in there. This may not be a problem now, if there exist"
+                       " logfiles to open, but will become a problem as soon as I will"
+                       " have to rotate log files. So for me to work properly"
+                       " please make the directory writable or start me as another user."
+                       " Thanks, I will exit now.",
+                       ConfigGetLogDirectory(),
+                       ConfigGetLogDirectory());
+        }
+        return TM_ECODE_FAILED;
+    }
+#endif /* OS_WIN32 */
+
     if (suri->disabled_detect && suri->sig_file != NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
         return TM_ECODE_FAILED;
@@ -2667,6 +2715,37 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
+#ifndef OS_WIN32
+    if (ConfigCheckFileWritablePrivDrop(suri->log_dir, suri) != TM_ECODE_DONE) {
+        if (sc_set_caps) { /* We will drop privileges */
+            SCLogError(SC_ERR_LOGDIR_CONFIG,
+                       "I will drop privileges and change my user and/or group id."
+                       " After this the logfile directory \"%s\" "
+                       "supplied by %s (default-log-dir) will no longer be writeable for me."
+                       " This means I will no longer be able to create logfiles in"
+                       " there. This may not be a problem now, but will become a "
+                       " problem as soon as I will have to rotate log files. "
+                       " So for me to work properly, please make the directory"
+                       " writable for the user/group I will become."
+                       " Thanks, I will exit now.",
+                       suri->log_dir,
+                       suri->conf_filename);
+        } else { /* We will not drop privileges */
+            SCLogError(SC_ERR_LOGDIR_CONFIG,
+                       "The logfile directory \"%s\" "
+                       " supplied by %s (default-log-dir) is not writeable. "
+                       " This means I can not create logfiles"
+                       " in there. This may not be a problem now, if there exist"
+                       " logfiles to open, but will become a problem as soon as I will"
+                       " have to rotate log files. So for me to work properly"
+                       " please make the directory writable or start me as another user."
+                       " Thanks, I will exit now.",
+                       suri->log_dir,
+                       suri->conf_filename);
+        }
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+#endif /* OS_WIN32 */
 
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
