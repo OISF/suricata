@@ -62,12 +62,6 @@ else
 vendor:
 endif
 
-else # HAVE_RUST
-
-all-local clean-local check vendor:
-
-endif # HAVE_RUST
-
 # Can only include the headers if we have Python to generate them.
 if HAVE_PYTHON
 EXTRA_DIST +=	gen/c-headers
@@ -76,3 +70,8 @@ gen/c-headers:
 else
 gen/c-headers:
 endif
+else # HAVE_RUST
+
+all-local clean-local check vendor gen/c-headers:
+
+endif # HAVE_RUST
