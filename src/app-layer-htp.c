@@ -2616,10 +2616,13 @@ static uint64_t HTPStateGetTxCnt(void *alstate)
 {
     HtpState *http_state = (HtpState *)alstate;
 
-    if (http_state != NULL && http_state->conn != NULL)
-        return (uint64_t)htp_list_size(http_state->conn->transactions);
-    else
+    if (http_state != NULL && http_state->conn != NULL) {
+        const uint64_t size = (uint64_t)htp_list_size(http_state->conn->transactions);
+        SCLogDebug("size %"PRIu64, size);
+        return size;
+    } else {
         return 0ULL;
+    }
 }
 
 static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
