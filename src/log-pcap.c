@@ -612,6 +612,49 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
     copy->use_stream_depth = pl->use_stream_depth;
     copy->size_limit = pl->size_limit;
 
+    const PcapLogCompressionData *comp = &pl->compression;
+    PcapLogCompressionData *copy_comp = &copy->compression;
+    if (comp->format == COMPRESSION_FORMAT_LZ4) {
+        /* First copy the things that can simply be copied. */
+
+        copy_comp->format = comp->format;
+        copy_comp->buffer_size = comp->buffer_size;
+        copy_comp->pcap_buf_size = comp->pcap_buf_size;
+        copy_comp->lz4f_prefs = comp->lz4f_prefs;
+
+        /* Allocate the buffers. */
+
+        copy_comp->buffer = SCMalloc(copy_comp->buffer_size);
+        copy_comp->pcap_buf = SCMalloc(copy_comp->pcap_buf_size);
+        if (copy_comp->buffer == NULL || copy_comp->pcap_buf == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
+                    strerror(errno));
+            return NULL;
+        }
+        copy_comp->pcap_buf_wrapper = SCFmemopen(copy_comp->pcap_buf,
+                copy_comp->pcap_buf_size, "w");
+        if (copy_comp->pcap_buf_wrapper == NULL) {
+            SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s", strerror(errno));
+            return NULL;
+        }
+
+        /* Initialize a new compression context. */
+
+        LZ4F_errorCode_t errcode =
+               LZ4F_createCompressionContext(&copy_comp->lz4f_context, 1);
+        if (LZ4F_isError(errcode)) {
+            SCLogError(SC_ERR_PCAP_LOG_COMPRESS,
+                    "LZ4F_createCompressionContext failed: %s",
+                    LZ4F_getErrorName(errcode));
+            return NULL;
+        }
+
+        /* Initialize the rest. */
+
+        copy_comp->file = NULL;
+        copy_comp->bytes_in_block = 0;
+    }
+
     TAILQ_INIT(&copy->pcap_file_list);
     SCMutexInit(&copy->plog_lock, NULL);
 
@@ -920,6 +963,16 @@ static void PcapLogDataFree(PcapLogData *pl)
     SCFree(pl->h);
     SCFree(pl->filename);
     SCFree(pl->prefix);
+
+    if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+        SCFree(pl->compression.buffer);
+        fclose(pl->compression.pcap_buf_wrapper); /* frees pcap_buf */
+        LZ4F_errorCode_t errcode =
+                LZ4F_freeCompressionContext(pl->compression.lz4f_context);
+        if (LZ4F_isError(errcode)) {
+            SCLogWarning(SC_ERR_MEM_ALLOC, "Error freeing lz4 context.");
+        }
+    }
     SCFree(pl);
 }
 
