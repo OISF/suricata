@@ -243,12 +243,15 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
                 /* pcap_dump_close() has closed its output ``file'',
                  * so the buffer has been freed - allocate it again. */
                 comp->pcap_buf = SCMalloc(comp->pcap_buf_size);
+                if (pl->compression.pcap_buf == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
+                            strerror(errno));
+                }
                 comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
                         comp->pcap_buf_size, "w");
-                if (pl->compression.pcap_buf == NULL ||
-                        pl->compression.pcap_buf_wrapper == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "SCFmemopen failed: %s",
-                        strerror(errno));
+                if (pl->compression.pcap_buf_wrapper == NULL) {
+                    SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s",
+                            strerror(errno));
                     exit(EXIT_FAILURE);
                 }
             }
