@@ -223,19 +223,23 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, const Signature *s,
                 uint8_t x;
                 for (x = 0; x < pe->idx; x++) {
                     SCLogDebug("capturing %u", x);
-                    const char *str_ptr;
+                    const char *str_ptr = NULL;
                     ret = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, x+1, &str_ptr);
-                    if (unlikely(ret == 0))
+                    if (unlikely(ret == 0)) {
+                        pcre_free_substring(str_ptr);
                         continue;
+                    }
 
                     SCLogDebug("data %p/%u, type %u id %u p %p",
                             str_ptr, ret, pe->captypes[x], pe->capids[x], p);
 
                     if (pe->captypes[x] == VAR_TYPE_PKT_VAR_KV) {
                         /* get the value, as first capture is the key */
-                        const char *str_ptr2;
+                        const char *str_ptr2 = NULL;
                         int ret2 = pcre_get_substring((char *)ptr, ov, MAX_SUBSTRINGS, x+2, &str_ptr2);
                         if (unlikely(ret2 == 0)) {
+                            pcre_free_substring(str_ptr);
+                            pcre_free_substring(str_ptr2);
                             break;
                         }
                         /* key length is limited to 256 chars */
