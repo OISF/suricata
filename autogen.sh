@@ -11,4 +11,9 @@ else
   exit 1
 fi;
 autoreconf -fv --install || exit 1
+if which cargo > /dev/null; then
+    if [ -f rust/Cargo.lock ] ; then
+        rm -f rust/Cargo.lock
+    fi
+fi;
 echo "You can now run \"./configure\" and then \"make\"."
