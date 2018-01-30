@@ -168,10 +168,13 @@ format of priority is::
 
 metadata
 --------
-Suricata ignores the words behind meta data.  Suricata supports this
-keyword because it is part of the signature language.  The format is::
 
-  metadata:......;
+Suricata ignores the words behind meta data at functional level but they can
+be used to add information to the signature. The format is:
+
+::
+
+  metadata: key value without comma[, key value]*;
 
 target
 ------

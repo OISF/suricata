@@ -783,6 +783,25 @@ void ConfDump(void)
 }
 
 /**
+ * \brief Check if a node has any children.
+ *
+ * Checks if the provided node has any children. Any node that is a
+ * YAML map or array will have children.
+ *
+ * \param node The node to check.
+ *
+ * \retval true if node has children
+ * \retval false if node does not have children
+ */
+bool ConfNodeHasChildren(const ConfNode *node)
+{
+    if (TAILQ_EMPTY(&node->head)) {
+        return false;
+    }
+    return true;
+}
+
+/**
  * \brief Lookup a child configuration node by name.
  *
  * Given a ConfNode this function will lookup an immediate child
@@ -1419,6 +1438,29 @@ static int ConfSetFromStringTest(void)
     PASS;
 }
 
+static int ConfNodeHasChildrenTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    /* Set a plain key with value. */
+    ConfSet("no-children", "value");
+    ConfNode *n = ConfGetNode("no-children");
+    FAIL_IF_NULL(n);
+    FAIL_IF(ConfNodeHasChildren(n));
+
+    /* Set a key with a sub key to a value. This makes the first key a
+     * map. */
+    ConfSet("parent.child", "value");
+    n = ConfGetNode("parent");
+    FAIL_IF_NULL(n);
+    FAIL_IF(!ConfNodeHasChildren(n));
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    PASS;
+}
+
 void ConfRegisterTests(void)
 {
     UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant);
@@ -1442,6 +1484,7 @@ void ConfRegisterTests(void)
     UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);
     UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest);
+    UtRegisterTest("ConfNodeHasChildrenTest", ConfNodeHasChildrenTest);
 }
 
 #endif /* UNITTESTS */

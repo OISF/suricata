@@ -47,34 +47,35 @@ Output types::
 Alerts
 ~~~~~~
 
-Alerts are event records for rule matches. They can be ammended with metadata,
-such as the HTTP record an alert was generated for.
+Alerts are event records for rule matches. They can be ammended with
+metadata, such as the application layer record (HTTP, DNS, etc) an
+alert was generated for, and elements of the rule.
 
 Metadata::
 
         - alert:
-            # payload: yes             # enable dumping payload in Base64
-            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
-            # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # packet: yes              # enable dumping of packet (without stream segments)
-            # http-body: yes           # enable dumping of http body in Base64
-            # http-body-printable: yes # enable dumping of http body in printable format
-            metadata: yes              # add L7/applayer fields, flowbit and other vars to the alert
+            #payload: yes             # enable dumping payload in Base64
+            #payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
+            #payload-printable: yes   # enable dumping payload in printable (lossy) format
+            #packet: yes              # enable dumping of packet (without stream segments)
+            #http-body: yes           # enable dumping of http body in Base64
+            #http-body-printable: yes # enable dumping of http body in printable format
 
-Alternatively to the `metadata` key it is also possible to select the application
-layer metadata to output on a per application layer basis ::
+            # metadata:
 
-        - alert:
-            http: yes                # enable dumping of http fields
-            tls: yes                 # enable dumping of tls fields
-            ssh: yes                 # enable dumping of ssh fields
-            smtp: yes                # enable dumping of smtp fields
-            dnp3: yes                # enable dumping of dnp3 fields
-            flow: yes                # enable dumping of a partial flow entry
-            vars: yes                # enable dumping of flowbits and other vars
+              # Include the decoded application layer (ie. http, dns)
+              #app-layer: true
 
-The `vars` will enable dumping of a set of key/value based on flowbits and other vars
-such as named groups in regular expression.
+              # Log the the current state of the flow record.
+              #flow: true
+
+              #rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                #metadata: true
+
+                # Log the raw rule text.
+                #raw: false
 
 DNS
 ~~~

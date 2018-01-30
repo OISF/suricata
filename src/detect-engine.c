@@ -1063,6 +1063,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     ThresholdHashInit(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
+    DetectMetadataHashInit(de_ctx);
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -1185,6 +1186,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     DetectEngineCtxFreeFailedSigs(de_ctx);
 
     DetectAddressMapFree(de_ctx);
+    DetectMetadataHashFree(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {
@@ -3053,6 +3055,23 @@ int DetectEngineMTApply(void)
 
     SCLogDebug("old_de_ctx should have been freed");
     return 0;
+}
+
+static int g_parse_metadata = 0;
+
+void DetectEngineSetParseMetadata(void)
+{
+    g_parse_metadata = 1;
+}
+
+void DetectEngineUnsetParseMetadata(void)
+{
+    g_parse_metadata = 0;
+}
+
+int DetectEngineMustParseMetadata(void)
+{
+    return g_parse_metadata;
 }
 
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)

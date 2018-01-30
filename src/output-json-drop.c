@@ -163,14 +163,14 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
-                AlertJsonHeader(p, pa, js);
+                AlertJsonHeader(NULL, p, pa, js, 0);
                 logged = 1;
             }
         }
         if (logged == 0) {
             if (p->alerts.drop.action != 0) {
                 const PacketAlert *pa = &p->alerts.drop;
-                AlertJsonHeader(p, pa, js);
+                AlertJsonHeader(NULL, p, pa, js, 0);
             }
         }
     }

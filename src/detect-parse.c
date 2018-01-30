@@ -1110,7 +1110,10 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t 
     SignatureParser parser;
     memset(&parser, 0x00, sizeof(parser));
 
-    s->sig_str = sigstr;
+    s->sig_str = SCStrdup(sigstr);
+    if (unlikely(s->sig_str == NULL)) {
+        SCReturnInt(-1);
+    }
 
     int ret = SigParseBasics(de_ctx, s, sigstr, &parser, addrs_direction);
     if (ret < 0) {
@@ -1138,8 +1141,6 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, const char *sigstr, uint8_t 
 
         } while (ret == 1);
     }
-
-    s->sig_str = NULL;
 
     DetectIPProtoRemoveAllSMs(s);
 
@@ -1182,6 +1183,36 @@ Signature *SigAlloc (void)
 
     sig->init_data->list = DETECT_SM_LIST_NOTSET;
     return sig;
+}
+
+/**
+ * \internal
+ * \brief Free Medadata list
+ *
+ * \param s Pointer to the signature
+ */
+static void SigMetadataFree(Signature *s)
+{
+    SCEnter();
+
+    DetectMetadata *mdata = NULL;
+    DetectMetadata *next_mdata = NULL;
+
+    if (s == NULL) {
+        SCReturn;
+    }
+
+    SCLogDebug("s %p, s->metadata %p", s, s->metadata);
+
+    for (mdata = s->metadata; mdata != NULL;)   {
+        next_mdata = mdata->next;
+        DetectMetadataFree(mdata);
+        mdata = next_mdata;
+    }
+
+    s->metadata = NULL;
+
+    SCReturn;
 }
 
 /**
@@ -1292,8 +1323,12 @@ void SigFree(Signature *s)
     if (s->addr_dst_match6 != NULL) {
         SCFree(s->addr_dst_match6);
     }
+    if (s->sig_str != NULL) {
+        SCFree(s->sig_str);
+    }
 
     SigRefFree(s);
+    SigMetadataFree(s);
 
     DetectEngineAppInspectionEngineSignatureFree(s);
 
