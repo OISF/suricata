@@ -56,6 +56,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-file-decompression.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-mem.h"
@@ -93,6 +94,7 @@ static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
     for (i = det_ctx->hsbd_buffers_list_len; i < ((uint16_t)size); i++) {
         det_ctx->hsbd[i].buffer_len = 0;
         det_ctx->hsbd[i].offset = 0;
+        det_ctx->hsbd[i].decompressed_buffer_len = 0;
     }
 
     return 0;
@@ -103,6 +105,7 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
                                                uint8_t flags,
+                                               int *hsbd_index,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {
@@ -122,11 +125,13 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         index = (tx_id - base_inspect_id);
         det_ctx->hsbd_start_tx_id = base_inspect_id;
         det_ctx->hsbd_buffers_list_len = txs;
+        *hsbd_index = index;
     } else {
         if ((tx_id - det_ctx->hsbd_start_tx_id) < det_ctx->hsbd_buffers_list_len) {
             if (det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer_len != 0) {
                 *buffer_len = det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer_len;
                 *stream_start_offset = det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].offset;
+                *hsbd_index = (tx_id - det_ctx->hsbd_start_tx_id);
                 return det_ctx->hsbd[(tx_id - det_ctx->hsbd_start_tx_id)].buffer;
             }
         } else {
@@ -137,6 +142,7 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
             det_ctx->hsbd_buffers_list_len = txs;
         }
         index = (tx_id - det_ctx->hsbd_start_tx_id);
+        *hsbd_index = index;
     }
 
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
@@ -237,14 +243,37 @@ static void PrefilterTxHttpResponseBody(DetectEngineThreadCtx *det_ctx,
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpState *htp_state = f->alstate;
+    int ret = 0;
+    int hsbd_index = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
     const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, idx,
                                                      NULL, det_ctx,
                                                      f, htp_state,
                                                      flags,
+                                                     &hsbd_index,
                                                      &buffer_len,
                                                      &stream_start_offset);
+
+    if (htp_state->cfg->swf_decompression_enabled) {
+        int swf_file_type = FileIsSwfFile(buffer, buffer_len);
+        if (swf_file_type == FILE_SWF_ZLIB_COMPRESSION ||
+            swf_file_type == FILE_SWF_LZMA_COMPRESSION)
+        {
+            ret = FileSwfDecompression(buffer, buffer_len,
+                                       det_ctx,
+                                       hsbd_index,
+                                       htp_state->cfg->swf_compression_type,
+                                       htp_state->cfg->swf_decompress_depth,
+                                       htp_state->cfg->swf_compress_depth);
+
+            if (ret == 1 && det_ctx->hsbd &&
+                det_ctx->hsbd[hsbd_index].decompressed_buffer_len != 0) {
+                buffer = det_ctx->hsbd[hsbd_index].decompressed_buffer;
+                buffer_len = det_ctx->hsbd[hsbd_index].decompressed_buffer_len;
+            }
+        }
+    }
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -268,14 +297,24 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
         Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)alstate;
+    int hsbd_index = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
     const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, tx_id,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
                                                      flags,
+                                                     &hsbd_index,
                                                      &buffer_len,
                                                      &stream_start_offset);
+
+    if (htp_state->cfg->swf_decompression_enabled) {
+        if (det_ctx->hsbd && det_ctx->hsbd[hsbd_index].decompressed_buffer_len != 0) {
+            buffer = det_ctx->hsbd[hsbd_index].decompressed_buffer;
+            buffer_len = det_ctx->hsbd[hsbd_index].decompressed_buffer_len;
+        } 
+    }
+
     if (buffer_len == 0)
         goto end;
 
@@ -4392,6 +4431,8 @@ libhtp:\n\
     const char *sig = "alert http any any -> any any (file_data; content:\"bccd\"; depth:4; sid:1;)";
     return RunTest(steps, sig, yaml);
 }
+
+#include "tests/detect-engine-hsbd.c"
 #endif /* UNITTESTS */
 
 void DetectEngineHttpServerBodyRegisterTests(void)
@@ -4480,6 +4521,7 @@ void DetectEngineHttpServerBodyRegisterTests(void)
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest18",
                    DetectEngineHttpServerBodyFileDataTest18);
 
+    DetectEngineHttpServerBodyFileRegisterTests();
 #endif /* UNITTESTS */
 
     return;
