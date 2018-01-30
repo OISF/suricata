@@ -102,43 +102,6 @@ s/TemplateBuffer/${protoname}${buffername}/
 w
 EOF
 
-    filename="src/detect-engine-build.c"
-    echo "Patching ${filename}."
-
-    ed -s ${filename} > /dev/null <<EOF
-/case ALPROTO_TEMPLATE
-.,+3t-
--3
-s/ALPROTO_TEMPLATE/ALPROTO_${protoname_upper}/g
-+
-s/template/${protoname_lower}/g
-+
-s/TEMPLATE/${protoname_upper}/g
-+2
-/ALPROTO_TEMPLATE
-.,+3t-
--3
-.,+s/TEMPLATE/${protoname_upper}/g
-+
-s/template/${protoname_lower}/g
-+3
-/SIG_MASK_REQUIRE_TEMPLATE_STATE
-.t-
-s/TEMPLATE/${protoname_upper}/g
-w
-EOF
-
-    filename="src/detect.h"
-    echo "Patching ${filename}."
-    if [ $(grep -c SIG_MASK_REQUIRE_${protoname_upper}_STATE ${filename}) -eq 0 ]; then
-        ed -s ${filename} > /dev/null <<EOF
-/SIG_MASK_REQUIRE_TEMPLATE_STATE
-t-
-s/TEMPLATE/${protoname_upper}/
-w
-EOF
-    fi
-
     filename="src/detect-engine-register.h"
     echo "Patching ${filename}."
     ed -s ${filename} > /dev/null <<EOF
