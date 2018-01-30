@@ -176,11 +176,6 @@ outputs:
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
 
-            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
-              enabled: no              # set to yes to enable
-
-            # rule: yes                # enable dumping of signature definition
-
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
