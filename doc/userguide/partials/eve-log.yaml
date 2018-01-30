@@ -38,28 +38,30 @@ outputs:
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
 
-            # rule: yes                # enable dumping of signature definition
-
-            # Include extra data in alert records like the app-layer
-            # information and flow records. Default: yes.
-            #metadata: yes
-
-            # If metadata is false this will enable logging of the
-            # associated app-layer with the alert record.
-            #app-layer: yes
-
-            # If metadata is false this will enable logging of the flow
-            # record with the alert record.
-            #flow: yes
-
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
             tagged-packets: yes
 
-            rule-metadata:             # dumping of key/value pairs defined by metadata keyword of rule
-              enabled: no              # set to yes to enable
-              output-array: no         # output value of key as an array
-              array-keys: [tag]        # comma separated array of keys to output as array
+            # Configure the metadata to be logged along with an
+            # alert. The following shows the default configuration
+            # which is used if this field is not provided or simply
+            # set to a truthful value. Setting of this section is only
+            # required if you wish to enable/disable specific fields.
+            #metadata:
+
+              # Include the decoded application layer (ie. http, dns)
+              app-layer: true
+
+              # Log the the current state of the flow record.
+              flow: true
+
+              rule:
+                # Log the metadata field from the rule in a structured
+                # format.
+                metadata: true
+
+                # Log the raw rule text.
+                raw: false
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
