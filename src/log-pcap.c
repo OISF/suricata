@@ -28,7 +28,9 @@
 #include "suricata-common.h"
 #include "util-fmemopen.h"
 
+#ifdef HAVE_LIBLZ4
 #include <lz4frame.h>
+#endif /* HAVE_LIBLZ4 */
 
 #if defined(HAVE_DIRENT_H) && defined(HAVE_FNMATCH_H)
 #define INIT_RING_BUFFER
@@ -121,8 +123,10 @@ typedef struct PcapLogCompressionData_ {
     enum PcapLogCompressionFormat format;
     unsigned char *buffer;
     size_t buffer_size;
+#ifdef HAVE_LIBLZ4
     LZ4F_compressionContext_t lz4f_context;
     LZ4F_preferences_t lz4f_prefs;
+#endif /* HAVE_LIBLZ4 */
     FILE *file;
     char *pcap_buf;
     size_t pcap_buf_size;
@@ -147,7 +151,6 @@ typedef struct PcapLogData_ {
     int prev_day;               /**< last day, for finding out when */
     uint64_t size_current;      /**< file current size */
     uint64_t size_limit;        /**< file size limit */
-    PcapLogCompressionData compression;
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
     uint64_t profile_data_size; /**< track in bytes how many bytes we wrote */
@@ -173,6 +176,8 @@ typedef struct PcapLogData_ {
     int threads;                /**< number of threads (only set in the global) */
     char *filename_parts[MAX_TOKS];
     int filename_part_cnt;
+
+    PcapLogCompressionData compression;
 } PcapLogData;
 
 typedef struct PcapLogThreadData_ {
@@ -236,9 +241,10 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
     if (pl != NULL) {
         PCAPLOG_PROFILE_START;
 
-        PcapLogCompressionData *comp = &pl->compression;
         if (pl->pcap_dumper != NULL) {
             pcap_dump_close(pl->pcap_dumper);
+#ifdef HAVE_LIBLZ4
+            PcapLogCompressionData *comp = &pl->compression;
             if (comp->format == COMPRESSION_FORMAT_LZ4) {
                 /* pcap_dump_close() has closed its output ``file'',
                  * so the buffer has been freed - allocate it again. */
@@ -255,6 +261,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
                     exit(EXIT_FAILURE);
                 }
             }
+#endif /* HAVE_LIBLZ4 */
         }
         pl->size_current = 0;
         pl->pcap_dumper = NULL;
@@ -263,6 +270,8 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
             pcap_close(pl->pcap_dead_handle);
         pl->pcap_dead_handle = NULL;
 
+#ifdef HAVE_LIBLZ4
+        PcapLogCompressionData *comp = &pl->compression;
         if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
             /* pcap_dump_close did not write any data because we call
              * pcap_dump_flush() after every write when writing
@@ -281,6 +290,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
             fclose(comp->file);
             comp->bytes_in_block = 0;
         }
+#endif /* HAVE_LIBLZ4 */
 
         PCAPLOG_PROFILE_END(pl->profile_close);
     }
@@ -393,7 +403,9 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                 SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
                 return TM_ECODE_FAILED;
             }
-        } else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+        }
+#ifdef HAVE_LIBLZ4
+        else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
             PcapLogCompressionData *comp = &pl->compression;
             if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle,
                     comp->pcap_buf_wrapper)) == NULL) {
@@ -421,6 +433,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                 return TM_ECODE_FAILED;
             }
         }
+#endif /* HAVE_LIBLZ4 */
     }
 
     PCAPLOG_PROFILE_END(pl->profile_handles);
@@ -519,7 +532,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
                     return TM_ECODE_FAILED;
             }
         }
-    } else if (comp->format == COMPRESSION_FORMAT_LZ4) {
+    }
+#ifdef HAVE_LIBLZ4
+    else if (comp->format == COMPRESSION_FORMAT_LZ4) {
         /* When writing compressed pcap logs, we have no way of knowing
          * for sure whether adding this packet would cause the current
          * file to exceed the size limit. Thus, we record the number of
@@ -535,6 +550,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             }
         }
     }
+#endif /* HAVE_LIBLZ4 */
 
     /* XXX pcap handles, nfq, pfring, can only have one link type ipfw? we do
      * this here as we don't know the link type until we get our first packet */
@@ -549,7 +565,9 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     if (pl->compression.format == COMPRESSION_FORMAT_NONE) {
         pl->size_current += len;
-    } else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
+    }
+#ifdef HAVE_LIBLZ4
+    else if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
         pcap_dump_flush(pl->pcap_dumper);
         size_t in_size = (size_t)ftell(comp->pcap_buf_wrapper);
         size_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
@@ -574,6 +592,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             comp->bytes_in_block += len;
         }
     }
+#endif /* HAVE_LIBLZ4 */
 
     PCAPLOG_PROFILE_END(pl->profile_write);
     pl->profile_data_size += len;
@@ -617,10 +636,11 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 
     const PcapLogCompressionData *comp = &pl->compression;
     PcapLogCompressionData *copy_comp = &copy->compression;
+    copy_comp->format = comp->format;
+#ifdef HAVE_LIBLZ4
     if (comp->format == COMPRESSION_FORMAT_LZ4) {
         /* First copy the things that can simply be copied. */
 
-        copy_comp->format = comp->format;
         copy_comp->buffer_size = comp->buffer_size;
         copy_comp->pcap_buf_size = comp->pcap_buf_size;
         copy_comp->lz4f_prefs = comp->lz4f_prefs;
@@ -657,6 +677,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
         copy_comp->file = NULL;
         copy_comp->bytes_in_block = 0;
     }
+#endif /* HAVE_LIBLZ4 */
 
     TAILQ_INIT(&copy->pcap_file_list);
     SCMutexInit(&copy->plog_lock, NULL);
@@ -967,6 +988,7 @@ static void PcapLogDataFree(PcapLogData *pl)
     SCFree(pl->filename);
     SCFree(pl->prefix);
 
+#ifdef HAVE_LIBLZ4
     if (pl->compression.format == COMPRESSION_FORMAT_LZ4) {
         SCFree(pl->compression.buffer);
         fclose(pl->compression.pcap_buf_wrapper); /* frees pcap_buf */
@@ -976,6 +998,7 @@ static void PcapLogDataFree(PcapLogData *pl)
             SCLogWarning(SC_ERR_MEM_ALLOC, "Error freeing lz4 context.");
         }
     }
+#endif /* HAVE_LIBLZ4 */
     SCFree(pl);
 }
 
@@ -1278,9 +1301,8 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             comp->buffer_size = 0;
             comp->file = NULL;
             comp->pcap_buf_wrapper = NULL;
-        }
+        } else if (strcmp(compression_str, "lz4") == 0) {
 #ifdef HAVE_LIBLZ4
-        else if (strcmp(compression_str, "lz4") == 0) {
             pl->compression.format = COMPRESSION_FORMAT_LZ4;
 
             /* Use SCFmemopen so we can make pcap_dump write to a buffer. */
@@ -1344,11 +1366,16 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             }
 
             comp->bytes_in_block = 0;
-        }
+#else
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "lz4 compression was selected "
+                    "in pcap-log, but suricata was not compiled with lz4 "
+                    "support.");
+            exit(EXIT_FAILURE);
 #endif /* HAVE_LIBLZ4 */
+        }
         else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Unsupported pcap-log "
-                "compression format: %s", compression_str);
+                    "compression format: %s", compression_str);
             exit(EXIT_FAILURE);
         }
 
