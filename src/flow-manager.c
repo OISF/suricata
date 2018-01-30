@@ -125,6 +125,51 @@ typedef struct FlowTimeoutCounters_ {
 } FlowTimeoutCounters;
 
 /**
+ * Counter for keeping track of the max number of parallel flows Suricata is
+ * tracking in every single moment.
+ * There is a simple counter for the number of tracks, and a PerfCounter
+ * registered as MaxCounter (update value with set). MaxCounter will be updated
+ * in the flow manager main thread, while the counter is increased & decreased
+ * in an exposed function.
+ */
+struct {
+    SC_ATOMIC_DECLARE(uint64_t, num_parallel_flows);
+    uint16_t perfctr_id;
+    struct timeval tv;
+} parflows_ctr;
+
+/**
+ * \brief This function will increase the number of parallel_flows. It's called
+ * only by FlowGetNew function in flow-hash.c file.
+ */
+void FlowMgrIncreaseParflowsCtr() {
+    SC_ATOMIC_ADD(parflows_ctr.num_parallel_flows, 1);
+}
+
+/**
+ * \brief This function will decrease the number of parallel_flows. It's called
+ * only by FlowManagerHashRowTimeout function in flow-manager.c file.
+ */
+void FlowMgrDecreaseParflowsCtr() {
+    //if num_parallel_flows would drop below zero throw an epic failure
+    BUG_ON(SC_ATOMIC_GET(parflows_ctr.num_parallel_flows) == 0);
+    SC_ATOMIC_SUB(parflows_ctr.num_parallel_flows, 1);
+}
+
+/**
+ * \brief Initialization for parallel flow counter. Through the resetting flag,
+ * the counter is set to reset itself at every stats dump.
+ *
+ * \param th_v  ThreadVars used to associate the counter to the thread
+ */
+static void InitializeParallelFlowCounter(ThreadVars * th_v) {
+    parflows_ctr.perfctr_id = StatsRegisterMaxCounter(
+            "flow.max_parallel_flows", th_v);
+    StatsSetFlags(th_v, parflows_ctr.perfctr_id, STATS_FLAGS_RESETTING);
+    SC_ATOMIC_INIT(parflows_ctr.num_parallel_flows);
+}
+
+/**
  * \brief Used to disable flow manager thread(s).
  *
  * \todo Kinda hackish since it uses the tv name to identify flow manager
@@ -379,6 +424,10 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
             cnt++;
 
+            /* if the flow is to be discarded, decrease counter of
+             * parallel flows. */
+            FlowMgrDecreaseParflowsCtr();
+
             switch (state) {
                 case FLOW_STATE_NEW:
                 default:
@@ -625,6 +674,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, const void *initdata, void *
     ftd->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
     ftd->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
     ftd->flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", t);
+    InitializeParallelFlowCounter(t);
 
     ftd->flow_mgr_flows_checked = StatsRegisterCounter("flow_mgr.flows_checked", t);
     ftd->flow_mgr_flows_notimeout = StatsRegisterCounter("flow_mgr.flows_notimeout", t);
@@ -726,6 +776,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_est, (uint64_t)counters.est);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_byp, (uint64_t)counters.byp);
         StatsAddUI64(th_v, ftd->flow_tcp_reuse, (uint64_t)counters.tcp_reuse);
+        StatsSetUI64(th_v, parflows_ctr.perfctr_id,
+                SC_ATOMIC_GET(parflows_ctr.num_parallel_flows));
 
         StatsSetUI64(th_v, ftd->flow_mgr_flows_checked, (uint64_t)counters.flows_checked);
         StatsSetUI64(th_v, ftd->flow_mgr_flows_notimeout, (uint64_t)counters.flows_notimeout);
