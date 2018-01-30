@@ -89,7 +89,9 @@
 #define LOG_JSON_RULE_METADATA     BIT_U16(8)
 #define LOG_JSON_RULE              BIT_U16(9)
 
-#define LOG_JSON_METADATA (LOG_JSON_APP_LAYER | LOG_JSON_FLOW)
+#define METADATA_DEFAULTS ( LOG_JSON_FLOW |                        \
+            LOG_JSON_APP_LAYER  |                                  \
+            LOG_JSON_RULE_METADATA)
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -801,41 +803,48 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     json_output_ctx->xff_cfg = xff_cfg;
 
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
-    uint16_t flags = 0;
+    uint16_t flags = METADATA_DEFAULTS;
 
-    if (conf == NULL) {
-        /* Enable metadata by default. */
-        flags |= LOG_JSON_METADATA;
-    } else {
-        /* If metadata not set, default to yes. */
-        if (ConfNodeLookupChildValue(conf, "metadata") == NULL) {
-            flags |= LOG_JSON_METADATA;
-        } else {
-            SetFlag(conf, "metadata", LOG_JSON_METADATA, &flags);
-            SetFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
-            SetFlag(conf, "flow", LOG_JSON_FLOW, &flags);
+    if (conf != NULL) {
+        /* Check for metadata to enable/disable. */
+        ConfNode *metadata = ConfNodeLookupChild(conf, "metadata");
+        if (metadata != NULL) {
+            if (metadata->val != NULL && ConfValIsFalse(metadata->val)) {
+                flags &= ~METADATA_DEFAULTS;
+            } else if (ConfNodeHasChildren(metadata)) {
+                ConfNode *rule_metadata = ConfNodeLookupChild(metadata, "rule");
+                if (rule_metadata) {
+                    SetFlag(rule_metadata, "raw", LOG_JSON_RULE, &flags);
+                    SetFlag(rule_metadata, "metadata", LOG_JSON_RULE_METADATA,
+                            &flags);
+                }
+                SetFlag(metadata, "flow", LOG_JSON_FLOW, &flags);
+                SetFlag(metadata, "app-layer", LOG_JSON_APP_LAYER, &flags);
+            }
         }
 
+        /* Non-metadata toggles. */
         SetFlag(conf, "payload", LOG_JSON_PAYLOAD_BASE64, &flags);
         SetFlag(conf, "packet", LOG_JSON_PACKET, &flags);
         SetFlag(conf, "tagged-packets", LOG_JSON_TAGGED_PACKETS, &flags);
         SetFlag(conf, "payload-printable", LOG_JSON_PAYLOAD, &flags);
         SetFlag(conf, "http-body-printable", LOG_JSON_HTTP_BODY, &flags);
         SetFlag(conf, "http-body", LOG_JSON_HTTP_BODY_BASE64, &flags);
-        SetFlag(conf, "rule", LOG_JSON_RULE, &flags);
 
-        ConfNode *rmetadata = ConfNodeLookupChild(conf, "rule-metadata");
-        if (rmetadata != NULL) {
-            int enabled = 0, ret;
-            ret = ConfGetChildValueBool(rmetadata, "enabled", &enabled);
-            if (ret && enabled) {
-                json_output_ctx->flags |= LOG_JSON_RULE_METADATA;
-            }
-        }
+        /* Check for obsolete configuration flags to enable specific
+         * protocols. These are now just aliases for enabling
+         * app-layer logging. */
+        SetFlag(conf, "http", LOG_JSON_APP_LAYER, &flags);
+        SetFlag(conf, "tls",  LOG_JSON_APP_LAYER,  &flags);
+        SetFlag(conf, "ssh",  LOG_JSON_APP_LAYER,  &flags);
+        SetFlag(conf, "smtp", LOG_JSON_APP_LAYER, &flags);
+        SetFlag(conf, "dnp3", LOG_JSON_APP_LAYER, &flags);
 
-        if (json_output_ctx->flags & LOG_JSON_RULE_METADATA) {
-            DetectEngineSetParseMetadata();
-        }
+        /* And check for obsolete configuration flags for enabling
+         * app-layer and flow as these have been moved under the
+         * metadata key. */
+        SetFlag(conf, "app-layer", LOG_JSON_APP_LAYER, &flags);
+        SetFlag(conf, "flow", LOG_JSON_FLOW, &flags);
 
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
 
@@ -853,6 +862,10 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
 
         json_output_ctx->payload_buffer_size = payload_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
+    }
+
+    if (flags & LOG_JSON_RULE_METADATA) {
+        DetectEngineSetParseMetadata();
     }
 
     json_output_ctx->flags |= flags;
