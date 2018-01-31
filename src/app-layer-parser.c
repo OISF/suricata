@@ -64,6 +64,7 @@
 #include "app-layer-nfs-udp.h"
 #include "app-layer-ntp.h"
 #include "app-layer-tftp.h"
+#include "app-layer-ikev2.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1450,6 +1451,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterNFSUDPParsers();
     RegisterNTPParsers();
     RegisterTFTPParsers();
+    RegisterIKEV2Parsers();
     RegisterTemplateParsers();
 
     /** IMAP */

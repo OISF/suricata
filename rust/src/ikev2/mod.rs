@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,42 +15,9 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+// written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
-extern crate libc;
+extern crate ipsec_parser;
 
-#[macro_use]
-extern crate nom;
-
-extern crate crc;
-
-extern crate der_parser;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-
-#[cfg(feature = "experimental")]
 pub mod ikev2;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
-pub mod tftp;
+pub mod state;
