@@ -1375,6 +1375,13 @@
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
   ])
 
+  # suricata-update
+  AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
+      SURICATA_UPDATE_DIR="suricata-update"
+      AC_SUBST(SURICATA_UPDATE_DIR)
+      AC_OUTPUT(suricata-update/Makefile)
+  ])
+
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
            AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),,[enable_non_bundled_htp=no])
