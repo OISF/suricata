@@ -317,6 +317,9 @@ static int AFPGetDevFlags(int fd, const char *ifname);
 static int AFPDerefSocket(AFPPeer* peer);
 static int AFPRefSocket(AFPPeer* peer);
 
+
+static unsigned int nr_cpus;
+
 /**
  * \brief Registration Function for RecieveAFP.
  * \todo Unit tests are needed for this module.
@@ -333,6 +336,8 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEAFP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
+
+    nr_cpus = UtilCpuGetNumProcessorsConfigured();
 }
 
 
@@ -2268,7 +2273,6 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
-    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
     struct pair value[nr_cpus];
     unsigned int i;
 
