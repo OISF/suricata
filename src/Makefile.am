@@ -46,6 +46,7 @@ app-layer-nfs-udp.c app-layer-nfs-udp.h \
 app-layer-ntp.c app-layer-ntp.h \
 app-layer-register.c app-layer-register.h \
 app-layer-tftp.c app-layer-tftp.h \
+app-layer-ikev2.c app-layer-ikev2.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
