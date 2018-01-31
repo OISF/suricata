@@ -140,6 +140,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
 
     Flow * const f = p->flow;
+    const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
@@ -164,14 +165,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     int logged = 0;
     int gap = 0;
 
-    for (; tx_id < total_txs; tx_id++)
-    {
-        void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging");
-            continue;
-        }
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
 
+    void *tx;
+    while ((tx = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &tx_id, &state)) != NULL)
+    {
         LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
