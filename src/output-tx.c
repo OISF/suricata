@@ -140,6 +140,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
         return TM_ECODE_OK;
 
     Flow * const f = p->flow;
+    const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
@@ -164,20 +165,23 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
     int logged = 0;
     int gap = 0;
 
-    for (; tx_id < total_txs; tx_id++)
-    {
-        void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging");
-            continue;
-        }
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
+
+    while (1) {
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+        void * const tx = ires.tx_ptr;
+        tx_id = ires.tx_id;
 
         LoggerId tx_logged = AppLayerParserGetTxLogged(f, alstate, tx);
         const LoggerId tx_logged_old = tx_logged;
         SCLogDebug("logger: expect %08x, have %08x", logger_expectation, tx_logged);
         if (tx_logged == logger_expectation) {
             /* tx already fully logged */
-            continue;
+            goto next_tx;
         }
 
         int tx_progress_ts = AppLayerParserGetStateProgress(p->proto, alproto,
@@ -211,17 +215,17 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                         int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
                         if (r == FALSE) {
                             SCLogDebug("conditions not met, not logging");
-                            goto next;
+                            goto next_logger;
                         }
                     } else {
                         if (tx_progress_tc < logger->tc_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            goto next;
+                            goto next_logger;
                         }
 
                         if (tx_progress_ts < logger->ts_log_progress) {
                             SCLogDebug("progress not far enough, not logging");
-                            goto next;
+                            goto next_logger;
                         }
                     }
                 }
@@ -235,7 +239,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
                 tx_logged |= (1<<logger->logger_id);
             }
 
-next:
+next_logger:
             logger = logger->next;
             store = store->next;
 #ifdef DEBUG_VALIDATION
@@ -263,6 +267,9 @@ next:
         } else {
             gap = 1;
         }
+next_tx:
+        if (!ires.has_next)
+            break;
     }
 
     /* Update the the last ID that has been logged with all

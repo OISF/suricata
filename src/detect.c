@@ -1302,15 +1302,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
  *  \brief get a DetectTransaction object
  *  \retval struct filled with relevant info or all nulls/0s
  */
-static DetectTransaction GetTx(const uint8_t ipproto, const AppProto alproto,
-        void *alstate, const uint64_t tx_id, const int tx_end_state,
+static DetectTransaction GetDetectTx(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, const uint64_t tx_id, void *tx_ptr, const int tx_end_state,
         const uint8_t flow_flags)
 {
-    void *tx_ptr = AppLayerParserGetTx(ipproto, alproto, alstate, tx_id);
-    if (tx_ptr == NULL) {
-        DetectTransaction no_tx = { NULL, 0, NULL, 0, 0, 0, 0, 0, };
-        return no_tx;
-    }
     const uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx_ptr, flow_flags);
     if (detect_flags & APP_LAYER_TX_INSPECTED_FLAG) {
         SCLogDebug("%"PRIu64" tx already fully inspected for %s. Flags %016"PRIx64,
@@ -1356,13 +1351,21 @@ static void DetectRunTx(ThreadVars *tv,
     uint64_t tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flow_flags);
     const int tx_end_state = AppLayerParserGetStateProgressCompletionStatus(alproto, flow_flags);
 
-    for ( ; tx_id < total_txs; tx_id++) {
-        DetectTransaction tx = GetTx(ipproto, alproto,
-                alstate, tx_id, tx_end_state, flow_flags);
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
+
+    while (1) {
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, tx_id, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+
+        DetectTransaction tx = GetDetectTx(ipproto, alproto,
+                alstate, ires.tx_id, ires.tx_ptr, tx_end_state, flow_flags);
         if (tx.tx_ptr == NULL) {
             SCLogDebug("%p/%"PRIu64" no transaction to inspect",
                     tx.tx_ptr, tx_id);
-            continue;
+            goto next;
         }
 
         uint32_t array_idx = 0;
@@ -1571,6 +1574,9 @@ static void DetectRunTx(ThreadVars *tv,
             AppLayerParserSetTxDetectFlags(ipproto, alproto, tx.tx_ptr,
                     flow_flags, new_detect_flags);
         }
+next:
+        if (!ires.has_next)
+            break;
     }
 }
 

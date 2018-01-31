@@ -34,6 +34,8 @@
 #include "detect-pcre.h"
 #include "detect-nfs-version.h"
 
+#include "app-layer-parser.h"
+
 #include "flow.h"
 #include "flow-util.h"
 #include "flow-var.h"
