@@ -116,6 +116,8 @@ struct bpf_program {
 
 extern int max_pending_packets;
 
+static unsigned int nr_cpus;
+
 #ifndef HAVE_AF_PACKET
 
 TmEcode NoAFPSupportExit(ThreadVars *, const void *, void **);
@@ -333,6 +335,8 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEAFP].cap_flags = SC_CAP_NET_RAW;
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
+
+    nr_cpus = UtilCpuGetNumProcessorsConfigured();
 }
 
 
@@ -2268,7 +2272,6 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
  */
 static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
-    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
     struct pair value[nr_cpus];
     unsigned int i;
 
