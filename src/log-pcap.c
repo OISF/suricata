@@ -115,7 +115,7 @@ typedef struct PcapLogProfileData_ {
 #define MAX_FILENAMELEN 513
 
 enum PcapLogCompressionFormat {
-    COMPRESSION_FORMAT_NONE,
+    COMPRESSION_FORMAT_NO,
     COMPRESSION_FORMAT_LZ4,
 };
 
@@ -397,7 +397,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     }
 
     if (pl->pcap_dumper == NULL) {
-        if (pl->compression.format == COMPRESSION_FORMAT_NONE) {
+        if (pl->compression.format == COMPRESSION_FORMAT_NO) {
             if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
                             pl->filename)) == NULL) {
                 SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
@@ -524,7 +524,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
     }
 
     PcapLogCompressionData *comp = &pl->compression;
-    if (comp->format == COMPRESSION_FORMAT_NONE) {
+    if (comp->format == COMPRESSION_FORMAT_NO) {
         if ((pl->size_current + len) > pl->size_limit || rotate) {
             if (PcapLogRotateFile(t,pl) < 0) {
                 PcapLogUnlock(pl);
@@ -563,7 +563,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 
     PCAPLOG_PROFILE_START;
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
-    if (pl->compression.format == COMPRESSION_FORMAT_NONE) {
+    if (pl->compression.format == COMPRESSION_FORMAT_NO) {
         pl->size_current += len;
     }
 #ifdef HAVE_LIBLZ4
@@ -1296,7 +1296,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
 
         PcapLogCompressionData *comp = &pl->compression;
         if (strcmp(compression_str, "none") == 0) {
-            comp->format = COMPRESSION_FORMAT_NONE;
+            comp->format = COMPRESSION_FORMAT_NO;
             comp->buffer = NULL;
             comp->buffer_size = 0;
             comp->file = NULL;
