@@ -10,7 +10,7 @@ debug = true
 
 [features]
 lua = []
-experimental = ["ntp-parser"]
+experimental = ["ntp-parser", "ipsec-parser"]
 strict = []
 
 [dependencies]
@@ -19,3 +19,4 @@ libc = "^0.2.36"
 crc = "~1.7.0"
 
 ntp-parser = { version = "^0", optional = true }
+ipsec-parser = { version = "0.3", optional = true }
