@@ -525,27 +525,27 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
                                         struct timespec *curtime)
 {
-    struct flows_stats l_bypassstats = { 0, 0, 0};
+    struct flows_stats local_bypassstats = { 0, 0, 0};
     int ret = 0;
     int tcount = 0;
     LiveDevice *ldev = NULL, *ndev;
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
         tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
-                                        &l_bypassstats, curtime);
+                                        &local_bypassstats, curtime);
         if (tcount) {
-            bypassstats->count = l_bypassstats.count;
-            bypassstats->packets = l_bypassstats.packets ;
-            bypassstats->bytes = l_bypassstats.bytes;
+            bypassstats->count = local_bypassstats.count;
+            bypassstats->packets = local_bypassstats.packets ;
+            bypassstats->bytes = local_bypassstats.bytes;
             ret = 1;
         }
-        memset(&l_bypassstats, 0, sizeof(l_bypassstats));
+        memset(&local_bypassstats, 0, sizeof(local_bypassstats));
         tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
-                                        &l_bypassstats, curtime);
+                                        &local_bypassstats, curtime);
         if (tcount) {
-            bypassstats->count += l_bypassstats.count;
-            bypassstats->packets += l_bypassstats.packets ;
-            bypassstats->bytes += l_bypassstats.bytes;
+            bypassstats->count += local_bypassstats.count;
+            bypassstats->packets += local_bypassstats.packets ;
+            bypassstats->bytes += local_bypassstats.bytes;
             ret = 1;
         }
     }
