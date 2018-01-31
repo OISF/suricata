@@ -105,6 +105,7 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
     void *(*StateGetTx)(void *alstate, uint64_t tx_id);
+    AppLayerGetTxIteratorFunc StateGetTxIterator;
     int (*StateGetProgressCompletionStatus)(uint8_t direction);
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
@@ -518,6 +519,14 @@ void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterGetTxIterator(uint8_t ipproto, AppProto alproto,
+                      AppLayerGetTxIteratorFunc Func)
+{
+    SCEnter();
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTxIterator = Func;
+    SCReturn;
+}
+
 void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
     int (*StateGetProgressCompletionStatus)(uint8_t direction))
 {
@@ -609,6 +618,49 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
     SCReturn;
 }
 
+/** \brief default tx iterator
+ *
+ *  Used if the app layer parser doesn't register its own iterator.
+ *  Simply walks the tx_id space until it finds a tx. Uses 'state' to
+ *  keep track of where it left off.
+ *
+ *  \retval txptr or NULL if no more txs in list
+ */
+static AppLayerGetTxIterTuple AppLayerDefaultGetTxIterator(
+        const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+        AppLayerGetTxIterState *state)
+{
+    uint64_t ustate = *(uint64_t *)state;
+    uint64_t tx_id = MAX(min_tx_id, ustate);
+    for ( ; tx_id < max_tx_id; tx_id++) {
+        void *tx_ptr = AppLayerParserGetTx(ipproto, alproto, alstate, tx_id);
+        if (tx_ptr != NULL) {
+            ustate = tx_id + 1;
+            *state = *(AppLayerGetTxIterState *)&ustate;
+            AppLayerGetTxIterTuple tuple = {
+                .tx_ptr = tx_ptr,
+                .tx_id = tx_id,
+                .has_next = (tx_id + 1 < max_tx_id),
+            };
+            SCLogDebug("tulpe: %p/%"PRIu64"/%s", tuple.tx_ptr, tuple.tx_id,
+                    tuple.has_next ? "true" : "false");
+            return tuple;
+        }
+    }
+
+    AppLayerGetTxIterTuple no_tuple = { NULL, 0, false };
+    return no_tuple;
+}
+
+AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
+        const AppProto alproto)
+{
+    AppLayerGetTxIteratorFunc Func =
+        alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetTxIterator;
+    return Func ? Func : AppLayerDefaultGetTxIterator;
+}
+
 void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto,
                                void *alstate, void *tx, LoggerId logger)
 {
@@ -677,28 +729,37 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     const uint8_t ipproto = f->proto;
     const AppProto alproto = f->alproto;
 
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
+
     SCLogDebug("called: %s, tag_txs_as_inspected %s",direction==0?"toserver":"toclient",
             tag_txs_as_inspected?"true":"false");
 
     /* mark all txs as inspected if the applayer progress is
      * at the 'end state'. */
-    for (; idx < total_txs; idx++) {
-        void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
-        if (tx == NULL)
-            continue;
+    while (1) {
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, idx, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+
+        void *tx = ires.tx_ptr;
+        idx = ires.tx_id;
+
         int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-        if (state_progress >= state_done_progress) {
-            if (tag_txs_as_inspected) {
-                uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
-                if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
-                    detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
-                    AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
-                    SCLogDebug("%p/%"PRIu64" in-order tx is done for direction %s. Flag %016"PRIx64,
-                            tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
-                }
+        if (state_progress < state_done_progress)
+            break;
+
+        if (tag_txs_as_inspected) {
+            uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
+            if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
+                detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
+                AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
+                SCLogDebug("%p/%"PRIu64" in-order tx is done for direction %s. Flag %016"PRIx64,
+                        tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
             }
-            continue;
-        } else
+        }
+        if (!ires.has_next)
             break;
     }
     pstate->inspect_id[direction] = idx;
@@ -707,29 +768,39 @@ void AppLayerParserSetTransactionInspectId(const Flow *f, AppLayerParserState *p
     /* if necessary we flag all txs that are complete as 'inspected'
      * also move inspect_id forward. */
     if (tag_txs_as_inspected) {
-        for (; idx < total_txs; idx++) {
-            bool check_inspect_id = false;
-            void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
-            if (tx == NULL) {
-                check_inspect_id = true;
-            } else {
-                int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
-                if (state_progress >= state_done_progress) {
-                    uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
-                    if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
-                        detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
-                        AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
-                        SCLogDebug("%p/%"PRIu64" out of order tx is done for direction %s. Flag %016"PRIx64,
-                                tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
-                        check_inspect_id = true;
-                    }
-                }
+        /* continue at idx */
+        while (1) {
+            AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, idx, total_txs, &state);
+            if (ires.tx_ptr == NULL)
+                break;
+
+            void *tx = ires.tx_ptr;
+            /* if we got a higher id than the minimum we requested, we
+             * skipped a bunch of 'null-txs'. Lets see if we can up the
+             * inspect tracker */
+            if (ires.tx_id > idx && pstate->inspect_id[direction] == idx) {
+                pstate->inspect_id[direction] = ires.tx_id;
             }
-            if (check_inspect_id) {
-                SCLogDebug("%p/%"PRIu64" out of order tx. Update inspect_id? %"PRIu64, tx, idx, pstate->inspect_id[direction]);
+            idx = ires.tx_id;
+
+            const int state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
+            if (state_progress < state_done_progress)
+                break;
+
+            uint64_t detect_flags = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, flags);
+            if ((detect_flags & APP_LAYER_TX_INSPECTED_FLAG) == 0) {
+                detect_flags |= APP_LAYER_TX_INSPECTED_FLAG;
+                AppLayerParserSetTxDetectFlags(ipproto, alproto, tx, flags, detect_flags);
+                SCLogDebug("%p/%"PRIu64" out of order tx is done for direction %s. Flag %016"PRIx64,
+                        tx, idx, flags & STREAM_TOSERVER ? "toserver" : "toclient", detect_flags);
+
+                SCLogDebug("%p/%"PRIu64" out of order tx. Update inspect_id? %"PRIu64,
+                        tx, idx, pstate->inspect_id[direction]);
                 if (pstate->inspect_id[direction]+1 == idx)
                     pstate->inspect_id[direction] = idx;
             }
+            if (!ires.has_next)
+                break;
         }
     }
 
@@ -808,31 +879,38 @@ void AppLayerParserTransactionsCleanup(Flow *f)
     const int tx_end_state_ts = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOSERVER);
     const int tx_end_state_tc = AppLayerParserGetStateProgressCompletionStatus(alproto, STREAM_TOCLIENT);
 
-    SCLogDebug("checking %"PRIu64" txs from offset %"PRIu64, total_txs, min);
-    for (uint64_t i = min ; i < total_txs; i++) {
-        void * const tx = AppLayerParserGetTx(ipproto, alproto, alstate, i);
-        if (tx == NULL) {
-            SCLogDebug("%p/%"PRIu64" skipping: no tx", tx, i);
-            goto wrap_up;
-        }
+    AppLayerGetTxIteratorFunc IterFunc = AppLayerGetTxIterator(ipproto, alproto);
+    AppLayerGetTxIterState state;
+    memset(&state, 0, sizeof(state));
+    uint64_t i = min;
+    uint64_t new_min = min;
+
+    while (1) {
+        AppLayerGetTxIterTuple ires = IterFunc(ipproto, alproto, alstate, i, total_txs, &state);
+        if (ires.tx_ptr == NULL)
+            break;
+
+        void *tx = ires.tx_ptr;
+        i = ires.tx_id;
+
         SCLogDebug("%p/%"PRIu64" checking", tx, i);
 
         const int tx_progress_tc = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOCLIENT);
         if (tx_progress_tc < tx_end_state_tc) {
             SCLogDebug("%p/%"PRIu64" skipping: tc parser not done", tx, i);
-            continue;
+            goto next;
         }
         const int tx_progress_ts = AppLayerParserGetStateProgress(ipproto, alproto, tx, STREAM_TOSERVER);
         if (tx_progress_ts < tx_end_state_ts) {
             SCLogDebug("%p/%"PRIu64" skipping: ts parser not done", tx, i);
-            continue;
+            goto next;
         }
         if (f->sgh_toserver != NULL) {
             uint64_t detect_flags_ts = AppLayerParserGetTxDetectFlags(ipproto, alproto, tx, STREAM_TOSERVER);
             if (!(detect_flags_ts & APP_LAYER_TX_INSPECTED_FLAG)) {
                 SCLogDebug("%p/%"PRIu64" skipping: TS inspect not done: ts:%"PRIx64,
                         tx, i, detect_flags_ts);
-                continue;
+                goto next;
             }
         }
         if (f->sgh_toclient != NULL) {
@@ -840,7 +918,7 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (!(detect_flags_tc & APP_LAYER_TX_INSPECTED_FLAG)) {
                 SCLogDebug("%p/%"PRIu64" skipping: TC inspect not done: tc:%"PRIx64,
                         tx, i, detect_flags_tc);
-                continue;
+                goto next;
             }
         }
         if (logger_expectation != 0) {
@@ -848,25 +926,32 @@ void AppLayerParserTransactionsCleanup(Flow *f)
             if (tx_logged != logger_expectation) {
                 SCLogDebug("%p/%"PRIu64" skipping: logging not done: want:%"PRIx32", have:%"PRIx32,
                         tx, i, logger_expectation, tx_logged);
-                continue;
+                goto next;
             }
         }
 
         /* if we are here, the tx can be freed. */
         p->StateTransactionFree(alstate, i);
         SCLogDebug("%p/%"PRIu64" freed", tx, i);
-    wrap_up:
-        /* see if this tx is actually in order. If so, we need to bring all
-         * trackers up to date. */
-        SCLogDebug("%p/%"PRIu64" update f->alparser->min_id? %"PRIu64, tx, i, alparser->min_id);
-        if (i == alparser->min_id) {
-            uint64_t next_id = i + 1;
-            alparser->min_id = next_id;
-            alparser->inspect_id[0] = MAX(alparser->inspect_id[0], next_id);
-            alparser->inspect_id[1] = MAX(alparser->inspect_id[1], next_id);
-            alparser->log_id = MAX(alparser->log_id, next_id);
-            SCLogDebug("%p/%"PRIu64" updated f->alparser->min_id %"PRIu64, tx, i, alparser->min_id);
-        }
+
+        /* if this tx was the minimum, up the minimum */
+        if (i == new_min)
+            new_min = i + 1;
+
+next:
+        if (!ires.has_next)
+            break;
+    }
+
+    /* see if we need to bring all trackers up to date. */
+    SCLogDebug("update f->alparser->min_id? %"PRIu64, alparser->min_id);
+    if (new_min > alparser->min_id) {
+        const uint64_t next_id = new_min;
+        alparser->min_id = next_id;
+        alparser->inspect_id[0] = MAX(alparser->inspect_id[0], next_id);
+        alparser->inspect_id[1] = MAX(alparser->inspect_id[1], next_id);
+        alparser->log_id = MAX(alparser->log_id, next_id);
+        SCLogDebug("updated f->alparser->min_id %"PRIu64, alparser->min_id);
     }
 }
 

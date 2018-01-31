@@ -92,6 +92,25 @@ typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         uint8_t *buf, uint32_t buf_len,
         void *local_storage);
 
+typedef struct AppLayerGetTxIterTuple {
+    void *tx_ptr;
+    uint64_t tx_id;
+    bool has_next;
+} AppLayerGetTxIterTuple;
+
+typedef struct AppLayerGetTxIterState {
+    union {
+        void *ptr;
+        uint64_t u64;
+    } un;
+} AppLayerGetTxIterState;
+
+/** \brief tx iterator prototype */
+typedef AppLayerGetTxIterTuple (*AppLayerGetTxIteratorFunc)
+       (const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+        AppLayerGetTxIterState *state);
+
 /***** Parser related registration *****/
 
 /**
@@ -135,6 +154,8 @@ void AppLayerParserRegisterGetTxCnt(uint8_t ipproto, AppProto alproto,
                          uint64_t (*StateGetTxCnt)(void *alstate));
 void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
                       void *(StateGetTx)(void *alstate, uint64_t tx_id));
+void AppLayerParserRegisterGetTxIterator(uint8_t ipproto, AppProto alproto,
+                      AppLayerGetTxIteratorFunc Func);
 void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
     int (*StateGetStateProgressCompletionStatus)(uint8_t direction));
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
@@ -155,6 +176,9 @@ void AppLayerParserRegisterDetectFlagsFuncs(uint8_t ipproto, AppProto alproto,
         void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t));
 
 /***** Get and transaction functions *****/
+
+AppLayerGetTxIteratorFunc AppLayerGetTxIterator(const uint8_t ipproto,
+         const AppProto alproto);
 
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto);
 void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto,

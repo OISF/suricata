@@ -88,6 +88,8 @@ type_map = {
     "core::AppLayerDecoderEvents": "AppLayerDecoderEvents",
     "AppLayerDecoderEvents": "AppLayerDecoderEvents",
     "core::AppLayerEventType": "AppLayerEventType",
+    "applayer::AppLayerGetTxIterTuple": "AppLayerGetTxIterTuple",
+    "AppLayerGetTxIterTuple": "AppLayerGetTxIterTuple",
     "AppLayerEventType": "AppLayerEventType",
     "CLuaState": "lua_State",
     "Store": "Store",

@@ -28,6 +28,7 @@ use nom;
 use nom::IResult;
 
 use log::*;
+use applayer;
 use applayer::LoggerFlags;
 use core::*;
 use filetracker::*;
@@ -420,6 +421,28 @@ impl NFSState {
             }
         }
         SCLogDebug!("Failed to find NFS TX with XID {}", tx_xid);
+        return None;
+    }
+
+    // for use with the C API call StateGetTxIterator
+    pub fn get_tx_iterator(&mut self, min_tx_id: u64, state: &mut u64) ->
+        Option<(&NFSTransaction, u64, bool)>
+    {
+        let mut index = *state as usize;
+        let len = self.transactions.len();
+
+        // find tx that is >= min_tx_id
+        while index < len {
+            let tx = &self.transactions[index];
+            if tx.id < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+            *state = index as u64 + 1;
+            SCLogDebug!("returning tx_id {} has_next? {} (len {} index {}), tx {:?}",
+                    tx.id - 1, (len - index) > 1, len, index, tx);
+            return Some((tx, tx.id - 1, (len - index) > 1));
+        }
         return None;
     }
 
@@ -1846,6 +1869,26 @@ pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFSState,
         }
         None => {
             return std::ptr::null_mut();
+        }
+    }
+}
+
+// for use with the C API call StateGetTxIterator
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_get_tx_iterator(
+                                      state: &mut NFSState,
+                                      min_tx_id: libc::uint64_t,
+                                      istate: &mut libc::uint64_t)
+                                      -> applayer::AppLayerGetTxIterTuple
+{
+    match state.get_tx_iterator(min_tx_id, istate) {
+        Some((tx, out_tx_id, has_next)) => {
+            let c_tx = unsafe { transmute(tx) };
+            let ires = applayer::AppLayerGetTxIterTuple::with_values(c_tx, out_tx_id, has_next);
+            return ires;
+        }
+        None => {
+            return applayer::AppLayerGetTxIterTuple::not_found();
         }
     }
 }
