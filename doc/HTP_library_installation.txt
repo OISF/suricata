@@ -9,7 +9,7 @@ except you can not use 'sudo' with Debian and FreeBSD. Using Debian or FreeBSD
 you have to Make sure you enter all following commands as root/super-user.
 To download and build HTP, enter the following:
 
-  wget http://www.openinfosecfoundation.org/download/libhtp-0.2.3.tar.gz
+  wget https://www.openinfosecfoundation.org/download/libhtp-0.2.3.tar.gz
   tar -xzvf libhtp-0.2.3.tar.gz
   cd libhtp-0.2.3
   ./configure

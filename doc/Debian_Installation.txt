@@ -39,7 +39,7 @@ Suricata
 
 To download and build Suricata, enter the following:
 
-  wget http://www.openinfosecfoundation.org/download/suricata-1.3.3.tar.gz
+  wget https://www.openinfosecfoundation.org/download/suricata-1.3.3.tar.gz
   tar -xvzf suricata-1.3.3.tar.gz
   cd suricata-1.3.3
 

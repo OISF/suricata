@@ -113,7 +113,7 @@ Just MD5's are good as well::
 
 Each MD5 uses 16 bytes of memory. 20 Million MD5's use about 310 MiB of memory.
 
-See also: http://blog.inliniac.net/2012/06/09/suricata-md5-blacklisting/
+See also: https://blog.inliniac.net/2012/06/09/suricata-md5-blacklisting/
 
 filesha1
 --------

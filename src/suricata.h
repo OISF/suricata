@@ -83,7 +83,7 @@
 #define DEFAULT_PID_BASENAME "suricata.pid"
 #define DEFAULT_PID_FILENAME DEFAULT_PID_DIR DEFAULT_PID_BASENAME
 
-#define DOC_URL "http://suricata.readthedocs.io/en/"
+#define DOC_URL "https://suricata.readthedocs.io/en/"
 
 #if defined RELEASE
 #define DOC_VERSION PROG_VER
