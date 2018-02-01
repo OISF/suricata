@@ -620,12 +620,34 @@ af-packet:
     #  Requires at least Linux 3.14.
     #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
     #  to the next. Requires at least Linux 3.10.
+    #  * cluster_ebpf: kernel rotates between sockets following an extended BPF function loaded
+    #  from a file. User needs to use ebpf-lb-file option to set the path to the file
+    #  to load. Requires at least Linux 4.2.
     # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
     # with capture card using RSS (require cpu affinity tuning and system irq tuning)
     cluster-type: cluster_flow
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
+    # eBPF file containing a 'loadbalancer' function that will be inserted into the
+    # kernel and used as load balancing function
+    #ebpf-lb-file:  @e_sysconfdir@/ebpf/lb.bpf
+    # eBPF file containing a 'filter' function that will be inserted into the
+    # kernel and used as packet filter function
+    #ebpf-filter-file:  @e_sysconfdir@/ebpf/filter.bpf
+    # eBPF file containing a 'xdp' function that will be inserted into the
+    # kernel and used as XDP packet filter function
+    #ebpf-filter-file:  @e_sysconfdir@filter.bpf
+    # Xdp mode, "soft" for skb based version, "driver" for network card based
+    # and "hw" for card supporting eBPF.
+    #xdp-mode: driver
+    #xdp-filter-file:  @e_sysconfdir@xdp_filter.bpf
+    # if the ebpf filter implements a bypass function, you can set 'bypass' to
+    # yes and benefit from these feature
+    #bypass: yes
+    # if the ebpf implements CPU redirect map, you have to define the CPU set here
+    # you can use a single integer or a range 
+    #xdp-cpu-redirect:  ["0-7"]
     # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
     # full then kernel will send the packet on the next socket with room available. This option
     # can minimize packet drop and increase the treated bandwidth on single intensive flow.

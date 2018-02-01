@@ -100,6 +100,7 @@
 #include "flow.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
+#include "flow-bypass.h"
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
@@ -126,6 +127,7 @@
 #include "app-layer-dnp3.h"
 
 #include "util-decode-der.h"
+#include "util-ebpf.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
@@ -855,6 +857,7 @@ void RegisterAllModules(void)
     /* managers */
     TmModuleFlowManagerRegister();
     TmModuleFlowRecyclerRegister();
+    TmModuleBypassedFlowManagerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -2566,6 +2569,9 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     StorageInit();
+#ifdef HAVE_PACKET_EBPF
+    EBPFRegisterExtension();
+#endif
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
@@ -2844,6 +2850,8 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    LiveDeviceFinalize();
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);

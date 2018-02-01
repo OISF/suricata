@@ -407,7 +407,7 @@ static int GetDevAndParser(const char **live_dev, ConfigIfaceParserFunc *parser)
         if (*live_dev == NULL) {
             if (ConfGet("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
-                LiveRegisterDevice(*live_dev);
+                LiveRegisterDeviceFull(*live_dev);
             } else {
                 SCLogInfo("No interface found, problem incoming");
                 *live_dev = NULL;

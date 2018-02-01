@@ -109,7 +109,7 @@ static int NapatechRegisterDeviceStreams(void)
         snprintf(plive_dev_buf, 9, "nt%d", stream_config[inst].stream_id);
         SCLogInfo("registering Napatech device: %s - active stream%sfound.",
                         plive_dev_buf, stream_config[inst].is_active ? " " : " NOT ");
-        LiveRegisterDevice(plive_dev_buf);
+        LiveRegisterDeviceFull(plive_dev_buf);
     }
 
     /* Napatech stats come from a separate thread.  This will surpress
