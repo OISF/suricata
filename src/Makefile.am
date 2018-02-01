@@ -101,6 +101,8 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dnp3.c detect-dnp3.h \
 detect-dns-query.c detect-dns-query.h \
+detect-tls-ja3-hash.c detect-tls-ja3-hash.h \
+detect-tls-ja3-str.c detect-tls-ja3-str.h \
 detect-tls-sni.c detect-tls-sni.h \
 detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-tls-cert-subject.c detect-tls-cert-subject.h \
@@ -308,6 +310,7 @@ output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
+output-json-ja3.c output-json-ja3.h \
 output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-template.c output-json-template.h \
@@ -410,6 +413,7 @@ util-host-info.c util-host-info.h \
 util-hyperscan.c util-hyperscan.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
+util-ja3.h util-ja3.c \
 util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-log-redis.h util-log-redis.c \
@@ -420,6 +424,7 @@ util-lua-dnp3.c util-lua-dnp3.h \
 util-lua-dnp3-objects.c util-lua-dnp3-objects.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
+util-lua-ja3.c util-lua-ja3.h \
 util-lua-tls.c util-lua-tls.h \
 util-lua-ssh.c util-lua-ssh.h \
 util-lua-smtp.c util-lua-smtp.h \
