@@ -1096,7 +1096,7 @@
             fi
 
             # see if we have the patched libnet 1.1
-            # http://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
+            # https://www.inliniac.net/blog/2007/10/16/libnet-11-ipv6-fixes-and-additions.html
             #
             # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
             # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful

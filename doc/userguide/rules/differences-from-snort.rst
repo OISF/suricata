@@ -387,7 +387,7 @@ IP Reputation and ``iprep`` Keyword
 -  :doc:`../reputation/ipreputation/ip-reputation-config`
 -  :doc:`ip-reputation-rules`
 -  :doc:`../reputation/ipreputation/ip-reputation-format`
--  `http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/ <http://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/>`_
+-  `https://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/ <https://blog.inliniac.net/2012/11/21/ip-reputation-in-suricata/>`_
 
 Flowbits
 --------
@@ -482,8 +482,8 @@ File Extraction
 
 -  :doc:`file-keywords`
 -  :doc:`../file-extraction/file-extraction`
--  `http://blog.inliniac.net/2011/11/29/file-extraction-in-suricata/ <http://blog.inliniac.net/2011/11/29/file-extraction-in-suricata/>`_
--  `http://blog.inliniac.net/2014/11/11/smtp-file-extraction-in-suricata/ <http://blog.inliniac.net/2014/11/11/smtp-file-extraction-in-suricata/>`_
+-  `https://blog.inliniac.net/2011/11/29/file-extraction-in-suricata/ <https://blog.inliniac.net/2011/11/29/file-extraction-in-suricata/>`_
+-  `https://blog.inliniac.net/2014/11/11/smtp-file-extraction-in-suricata/ <https://blog.inliniac.net/2014/11/11/smtp-file-extraction-in-suricata/>`_
 
 Lua Scripting
 -------------

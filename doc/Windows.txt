@@ -9,7 +9,7 @@ A new instruction set for Suricata installation (and/or compilation from
 scratch) can be found here:
 https://redmine.openinfosecfoundation.org/projects/suricata/files
 also a windows binary - self extracting auto install package is available here:
-http://www.openinfosecfoundation.org/index.php/download-suricata
+https://www.openinfosecfoundation.org/index.php/download-suricata
 
 Preparing the build environment
 

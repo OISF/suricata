@@ -76,4 +76,4 @@ make install-full
 would combine everything mentioned above (install-conf and install-rules) - and
 will present you with a ready to run (configured and set up) Suricata
 Next, continue with the Basic_Setup.
-Source: http://home.regit.org/?p=478
+Source: https://home.regit.org/?p=478
