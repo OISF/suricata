@@ -1076,30 +1076,14 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
 
 #if HAVE_RUST
-    /* Log answers. */
-    for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_json_answer(txptr, i,
+    if (td->dnslog_ctx->version == DNS_VERSION_2) {
+        json_t *answer = rs_dns_log_json_answer(txptr,
                 td->dnslog_ctx->flags);
-        if (answer == NULL) {
-            break;
+        if (answer != NULL) {
+            json_object_set_new(js, "dns", answer);
+            MemBufferReset(td->buffer);
+            OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
         }
-        json_object_set_new(js, "dns", answer);
-        MemBufferReset(td->buffer);
-        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-        json_object_del(js, "dns");
-    }
-
-    /* Log authorities. */
-    for (uint16_t i = 0; i < 0xffff; i++) {
-        json_t *answer = rs_dns_log_json_authority(txptr, i,
-                td->dnslog_ctx->flags);
-        if (answer == NULL) {
-            break;
-        }
-        json_object_set_new(js, "dns", answer);
-        MemBufferReset(td->buffer);
-        OutputJSONBuffer(js, td->dnslog_ctx->file_ctx, &td->buffer);
-        json_object_del(js, "dns");
     }
 #else
     DNSTransaction *tx = txptr;
@@ -1230,34 +1214,43 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
     }
 }
 
+static DnsVersion JsonDnsParseVersion(ConfNode *conf)
+{
+    if (conf == NULL) {
+        return DNS_VERSION_1;
+    }
+
+    DnsVersion version = DNS_VERSION_1;
+    intmax_t config_version;
+    if (ConfGetChildValueInt(conf, "version", &config_version)) {
+        switch(config_version) {
+            case 1:
+                version = DNS_VERSION_1;
+                break;
+            case 2:
+                version = DNS_VERSION_2;
+                break;
+            default:
+                SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                        "Invalid version option: %ji, "
+                        "forcing it to version 1", config_version);
+                version = DNS_VERSION_1;
+                break;
+        }
+    } else {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                "Version not found, forcing it to version 1");
+        version = DNS_VERSION_1;
+    }
+
+    return version;
+}
+
 static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
     dnslog_ctx->flags = ~0UL;
 
     if (conf) {
-        intmax_t version;
-        int ret = ConfGetChildValueInt(conf, "version", &version);
-        if (ret) {
-            switch(version) {
-                case 1:
-                    dnslog_ctx->version = DNS_VERSION_1;
-                    break;
-                case 2:
-                    dnslog_ctx->version = DNS_VERSION_2;
-                    break;
-                default:
-                    SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                 "Invalid version option: %ji, "
-                                 "forcing it to version 1", version);
-                    dnslog_ctx->version = DNS_VERSION_1;
-                    break;
-            }
-        } else {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                         "Version not found, forcing it to version 1");
-            dnslog_ctx->version = DNS_VERSION_1;
-        }
-
         if (dnslog_ctx->version == DNS_VERSION_1) {
             JsonDnsLogParseConfig(dnslog_ctx, conf, "query", "answer", "custom");
         } else {
@@ -1288,8 +1281,18 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     OutputInitResult result = { NULL, false };
     const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
     if (enabled != NULL && !ConfValIsTrue(enabled)) {
+        result.ok = true;
         return result;
     }
+
+    DnsVersion version = JsonDnsParseVersion(conf);
+#ifdef HAVE_RUST
+    if (version != 2) {
+        SCLogError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
+                "by Rust builds.", version);
+        exit(1);
+    }
+#endif
 
     OutputJsonCtx *ojc = parent_ctx->data;
 
@@ -1311,6 +1314,7 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtxSub;
 
+    dnslog_ctx->version = version;
     JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log sub-module initialized");
@@ -1335,6 +1339,15 @@ static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
     if (enabled != NULL && !ConfValIsTrue(enabled)) {
         return result;
     }
+
+    DnsVersion version = JsonDnsParseVersion(conf);
+#ifdef HAVE_RUST
+    if (version != 2) {
+        SCLogError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
+                "by Rust builds.", version);
+        exit(1);
+    }
+#endif
 
     LogFileCtx *file_ctx = LogFileNewCtx();
 
@@ -1367,6 +1380,7 @@ static OutputInitResult JsonDnsLogInitCtx(ConfNode *conf)
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtx;
 
+    dnslog_ctx->version = version;
     JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log output initialized");
