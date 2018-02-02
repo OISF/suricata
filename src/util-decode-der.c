@@ -144,6 +144,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
 
     /* refuse excessive recursion */
     if (unlikely(depth == 255)) {
+        *errcode = ERR_DER_RECURSION_LIMIT;
         return NULL;
     }
 
