@@ -58,6 +58,7 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
     switch (errcode) {
         case ERR_DER_ELEMENT_SIZE_TOO_BIG:
         case ERR_DER_INVALID_SIZE:
+        case ERR_DER_RECURSION_LIMIT:
             SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
             break;
