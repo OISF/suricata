@@ -516,9 +516,14 @@ static json_t *DnsParseSshFpType(DNSAnswerEntry *entry, uint8_t *ptr)
     return hjs;
 }
 
-static void OutputAnswerDetailed(DNSAnswerEntry *entry, json_t *js)
+static void OutputAnswerDetailed(DNSAnswerEntry *entry, json_t *js,
+        uint64_t flags)
 {
     do {
+        if (!DNSRRTypeEnabled(entry->type, flags)) {
+            continue;
+        }
+
         json_t *jdata = json_object();
         if (jdata == NULL) {
             return;
@@ -814,8 +819,7 @@ static void OutputAnswerV1(LogDnsLogThread *aft, json_t *djs,
     return;
 }
 
-static json_t *BuildAnswer(DNSTransaction *tx, DNSAnswerEntry *entry,
-                           uint64_t tx_id, uint64_t flags,
+static json_t *BuildAnswer(DNSTransaction *tx, uint64_t tx_id, uint64_t flags,
                            DnsVersion version)
 {
     json_t *js = json_object();
@@ -855,32 +859,51 @@ static json_t *BuildAnswer(DNSTransaction *tx, DNSAnswerEntry *entry,
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
 
-    if (flags & LOG_FORMAT_DETAILED) {
-        json_t *jarray = json_array();
-        if (jarray == NULL) {
-            json_decref(js);
-            return NULL;
+    /* Log the query rrname. Mostly useful on error, but still
+     * useful. */
+    DNSQueryEntry *query = TAILQ_FIRST(&tx->query_list);
+    if (query != NULL) {
+        char *c;
+        c = BytesToString((uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry)),
+                query->len);
+        if (c != NULL) {
+            json_object_set_new(js, "rrname", json_string(c));
+            SCFree(c);
         }
-
-        OutputAnswerDetailed(entry, jarray);
-        json_object_set_new(js, "answers", jarray);
     }
 
-    if (flags & LOG_FORMAT_GROUPED) {
-        OutputAnswerGrouped(entry, js);
+    if (flags & LOG_FORMAT_DETAILED) {
+        if (!TAILQ_EMPTY(&tx->answer_list)) {
+            json_t *jarray = json_array();
+            if (jarray == NULL) {
+                json_decref(js);
+                return NULL;
+            }
+            OutputAnswerDetailed(TAILQ_FIRST(&tx->answer_list), jarray, flags);
+            json_object_set_new(js, "answers", jarray);
+        }
+
+        if (!TAILQ_EMPTY(&tx->authority_list)) {
+            json_t *js_authorities = json_array();
+            if (likely(js_authorities != NULL)) {
+                OutputAnswerDetailed(TAILQ_FIRST(&tx->authority_list),
+                        js_authorities, flags);
+                json_object_set_new(js, "authorities", js_authorities);
+            }
+        }
+    }
+
+    if (!TAILQ_EMPTY(&tx->answer_list) && (flags & LOG_FORMAT_GROUPED)) {
+        OutputAnswerGrouped(TAILQ_FIRST(&tx->answer_list), js);
     }
 
     return js;
 }
 
 static void OutputAnswerV2(LogDnsLogThread *aft, json_t *djs,
-        DNSTransaction *tx, DNSAnswerEntry *entry)
+        DNSTransaction *tx)
 {
-    if (!DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
-        return;
-    }
-
-    json_t *dnsjs = BuildAnswer(tx, entry, tx->tx_id, aft->dnslog_ctx->flags,
+    json_t *dnsjs = BuildAnswer(tx, tx->tx_id, aft->dnslog_ctx->flags,
                                 aft->dnslog_ctx->version);
     if (dnsjs != NULL) {
         /* reset */
@@ -896,7 +919,7 @@ json_t *JsonDNSLogAnswer(DNSTransaction *tx, uint64_t tx_id)
     json_t *js = NULL;
 
     if (entry) {
-        js = BuildAnswer(tx, entry, tx_id, LOG_FORMAT_DETAILED, DNS_VERSION_2);
+        js = BuildAnswer(tx, tx_id, LOG_FORMAT_DETAILED, DNS_VERSION_2);
     }
 
     return js;
@@ -954,32 +977,28 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
     SCLogDebug("got a DNS response and now logging !!");
 
-    /* rcode != noerror */
-    if (tx->rcode) {
-        /* Most DNS servers do not support multiple queries because
-         * the rcode in response is not per-query.  Multiple queries
-         * are likely to lead to FORMERR, so log this. */
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            OutputFailure(aft, js, tx, query);
-        }
-    }
-
-    DNSAnswerEntry *entry = NULL;
     if (aft->dnslog_ctx->version == DNS_VERSION_2) {
-        entry = TAILQ_FIRST(&tx->answer_list);
-        if (entry) {
-            OutputAnswerV2(aft, js, tx, entry);
-        }
+        OutputAnswerV2(aft, js, tx);
     } else {
+        DNSAnswerEntry *entry = NULL;
+
+        /* rcode != noerror */
+        if (tx->rcode) {
+            /* Most DNS servers do not support multiple queries because
+             * the rcode in response is not per-query.  Multiple queries
+             * are likely to lead to FORMERR, so log this. */
+            DNSQueryEntry *query = NULL;
+            TAILQ_FOREACH(query, &tx->query_list, next) {
+                OutputFailure(aft, js, tx, query);
+            }
+        }
+
         TAILQ_FOREACH(entry, &tx->answer_list, next) {
             OutputAnswerV1(aft, js, tx, entry);
         }
-    }
-
-    entry = NULL;
-    TAILQ_FOREACH(entry, &tx->authority_list, next) {
-        OutputAnswerV1(aft, js, tx, entry);
+        TAILQ_FOREACH(entry, &tx->authority_list, next) {
+            OutputAnswerV1(aft, js, tx, entry);
+        }
     }
 
 }
