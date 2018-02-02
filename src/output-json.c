@@ -108,6 +108,15 @@ json_t *SCJsonBool(int val)
     return (val ? json_true() : json_false());
 }
 
+/**
+ * Wrap json_decref. This is mainly to expose this function to Rust as its
+ * defined in the Jansson header file as an inline function.
+ */
+void SCJsonDecref(json_t *json)
+{
+    json_decref(json);
+}
+
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
