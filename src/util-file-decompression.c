@@ -165,17 +165,16 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     } else if ((swf_type == HTTP_SWF_COMPRESSION_LZMA || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
                compression_type == FILE_SWF_LZMA_COMPRESSION)
     {
+#ifndef HAVE_LIBLZMA
+        goto error;
+#else
         /* we need to setup the lzma header */
         /*
          * | 5 bytes         | 8 bytes             | n bytes         |
          * | LZMA properties | Uncompressed length | Compressed data |
          */
         compressed_data_len += 13;
-        uint8_t *compressed_data = SCMalloc(compressed_data_len);
-        if (compressed_data == NULL) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
-            goto error;
-        }
+        uint8_t compressed_data[compressed_data_len];
         /* put lzma properties */
         memcpy(compressed_data, buffer + 12, 5);
         /* put lzma end marker */
@@ -189,9 +188,9 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
         r = FileSwfLzmaDecompression(det_ctx,
                                      compressed_data, compressed_data_len,
                                      out_buffer->buf + 8, out_buffer->len - 8);
-        SCFree(compressed_data);
         if (r == 0)
             goto error;
+#endif
     } else {
         goto error;
     }
