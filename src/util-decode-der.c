@@ -44,53 +44,56 @@
  */
 
 #include "suricata-common.h"
-
 #include "util-decode-der.h"
+#include "util-validate.h"
 
 #define MAX_OID_LENGTH 256
 
 static Asn1Generic * DecodeAsn1DerBitstring(const unsigned char *buffer,
                                             uint32_t size, uint8_t depth,
-                                            uint32_t *errcode);
+                                            uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerBoolean(const unsigned char *buffer,
                                           uint32_t size, uint8_t depth,
-                                          uint32_t *errcode);
+                                          uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer,
                                             uint32_t size, uint8_t depth,
-                                            uint32_t *errcode);
+                                            uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer,
                                           uint32_t size, uint8_t depth,
-                                          uint32_t *errcode);
+                                          uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer,
                                        uint32_t size, uint8_t depth,
-                                       uint32_t *errcode);
+                                       uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer,
                                               uint32_t size, uint8_t depth,
-                                              uint32_t *errcode);
+                                              uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerUTF8String(const unsigned char *buffer,
                                              uint32_t max_size, uint8_t depth,
-                                             uint32_t *errcode);
+                                             uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer,
                                       uint32_t size, uint8_t depth,
-                                      uint32_t *errcode);
+                                      uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer,
                                                   uint32_t size, uint8_t depth,
-                                                  uint32_t *errcode);
+                                                  uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
                                            uint32_t size, uint8_t depth,
-                                           uint32_t *errcode);
+                                           uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer,
                                       uint32_t size, uint8_t depth,
-                                      uint32_t *errcode);
+                                      uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerT61String(const unsigned char *buffer,
                                             uint32_t size, uint8_t depth,
-                                            uint32_t *errcode);
+                                            uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerUTCTime(const unsigned char *buffer,
                                           uint32_t size, uint8_t depth,
-                                          uint32_t *errcode);
+                                          uint32_t *errcode) __attribute__((nonnull));
 static Asn1Generic * DecodeAsn1DerGeneralizedTime(const unsigned char *buffer,
                                                   uint32_t size, uint8_t depth,
-                                                  uint32_t *errcode);
+                                                  uint32_t *errcode) __attribute__((nonnull));
+static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
+                                          uint32_t max_size, uint8_t depth,
+                                          int seq_index, uint32_t *errcode) __attribute__((nonnull));
 
 static Asn1Generic * Asn1GenericNew(void)
 {
@@ -254,8 +257,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
                 numbytes = c & 0x7f;
                 if (numbytes > el_max_size) {
                     SCFree(child);
-                    if (errcode)
-                        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+                    *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
                     return NULL;
                 }
                 child->length = 0;
@@ -304,8 +306,7 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer,
     numbytes = d_ptr[1];
 
     if (numbytes > size) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
@@ -354,8 +355,7 @@ static int DecodeAsn1BuildValue(const unsigned char **d_ptr, uint32_t *val,
     uint32_t value = 0;
 
     if (numbytes > 4) {
-        if (errcode)
-            *errcode = ERR_DER_INVALID_SIZE;
+        *errcode = ERR_DER_INVALID_SIZE;
 
         /* too big won't fit: set it to 0xffffffff by convention */
         value = 0xffffffff;
@@ -570,8 +570,7 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer,
     }
 
     if (length == UINT32_MAX || length > max_size) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
@@ -623,8 +622,7 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer,
     }
 
     if (length == UINT32_MAX || length > max_size) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
@@ -690,8 +688,7 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer,
     }
 
     if (length == UINT32_MAX || length > max_size) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
@@ -751,8 +748,7 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
     }
     node->length = d_length + (d_ptr - buffer);
     if (node->length > max_size || node->length < d_length /* wrap */) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         SCFree(node);
         return NULL;
     }
@@ -767,7 +763,7 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
         Asn1Generic *child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth,
                                                   seq_index, errcode);
         if (child == NULL) {
-            if (errcode && *errcode != 0) {
+            if (*errcode != 0) {
                 DerFree(node);
                 return NULL;
             }
@@ -826,8 +822,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer,
     node->length = d_length + (d_ptr - buffer);
 
     if (node->length > max_size || node->length < d_length /* wrap */) {
-        if (errcode)
-            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         SCFree(node);
         return NULL;
     }
@@ -887,6 +882,9 @@ static Asn1Generic * DecodeAsn1DerGeneralizedTime(const unsigned char *buffer,
     return a;
 }
 
+/**
+ *  \param errcode pointer to error code variable. May not be NULL.
+ */
 Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
                         uint32_t *errcode)
 {
@@ -894,6 +892,8 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
     uint32_t d_length, numbytes;
     Asn1Generic *cert;
     uint8_t c;
+
+    DEBUG_VALIDATE_BUG_ON(errcode == NULL);
 
     if (size < 2)
         return NULL;
@@ -915,9 +915,7 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
     if (d_length+(d_ptr-buffer) != size)
         return NULL;
 
-    if (errcode)
-        *errcode = 0;
-
+    *errcode = 0;
     cert = DecodeAsn1DerGeneric(buffer, size, 0 /* depth */, 0, errcode);
 
     return cert;
