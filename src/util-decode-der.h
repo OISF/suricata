@@ -91,7 +91,7 @@ typedef struct Asn1Generic_ {
 /* Missing field or element */
 #define ERR_DER_MISSING_ELEMENT       0x06
 
-Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size, uint32_t *errcode);
+Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size, uint32_t *errcode) __attribute__((nonnull));
 void DerFree(Asn1Generic *a);
 
 #ifdef AFLFUZZ_DER
