@@ -520,10 +520,6 @@ static void OutputAnswerDetailed(DNSAnswerEntry *entry, json_t *js,
         uint64_t flags)
 {
     do {
-        if (!DNSRRTypeEnabled(entry->type, flags)) {
-            continue;
-        }
-
         json_t *jdata = json_object();
         if (jdata == NULL) {
             return;
@@ -978,6 +974,10 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
     SCLogDebug("got a DNS response and now logging !!");
 
     if (aft->dnslog_ctx->version == DNS_VERSION_2) {
+        DNSQueryEntry *query = TAILQ_FIRST(&tx->query_list);
+        if (query && !DNSRRTypeEnabled(query->type, aft->dnslog_ctx->flags)) {
+            return;
+        }
         OutputAnswerV2(aft, js, tx);
     } else {
         DNSAnswerEntry *entry = NULL;
