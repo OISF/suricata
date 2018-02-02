@@ -35,8 +35,10 @@ uint32_t FileGetSwfDecompressedLen(const uint8_t *buffer, uint32_t buffr_len);
 int FileSwfZlibDecompression(DetectEngineThreadCtx *det_ctx,
                              uint8_t *compressed_data, uint32_t compressed_data_len,
                              uint8_t *decompressed_data, uint32_t decompressed_data_len);
+#ifdef HAVE_LIBLZMA
 int FileSwfLzmaDecompression(DetectEngineThreadCtx *det_ctx,
                              uint8_t *compressed_data, uint32_t compressed_data_len,
                              uint8_t *decompressed_data, uint32_t decompressed_data_len);
+#endif
 
 #endif /* __UTIL_FILE_SWF_DECOMPRESSION_H__ */
