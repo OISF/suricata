@@ -29,7 +29,14 @@
 
 TmEcode ConfigSetLogDirectory(char *name);
 const char *ConfigGetLogDirectory(void);
-TmEcode ConfigCheckLogDirectory(const char *log_dir);
+TmEcode ConfigCheckFileExists(const char *filename);
+
+/* This forward declaration for SCInstance is necesarry because
+ * we can not include it's definition suricata.h since this would mean a
+ * circular inclusion, since suricata.h includes this file. */
+typedef struct SCInstance_ SCInstance;
+TmEcode ConfigCheckFileWritablePrivDrop(const char * const filename,
+                                        SCInstance const * const suri);
 
 ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface);
 

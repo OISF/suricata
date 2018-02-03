@@ -33,6 +33,10 @@
 #define SC_CAP_NET_BIND_SERVICE 0x40
 #define SC_CAP_NET_BROADCAST    0x80
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #ifndef HAVE_LIBCAP_NG
 #define SCDropCaps(...)
 #define SCDropMainThreadCaps(...)
@@ -93,6 +97,12 @@ void SCDropMainThreadCaps(uint32_t , uint32_t );
 
 int SCGetUserID(const char *, const char *, uint32_t *, uint32_t *);
 int SCGetGroupID(const char *, uint32_t *);
+
+bool SCCheckArbitraryFileAccess(const uid_t asked_uid,
+                                const gid_t * const asked_gids,
+                                const int gid_count,
+                                struct stat const * const file_stat_struct,
+                                const int requested_permissions);
 
 #endif	/* _UTIL_PRIVS_H */
 

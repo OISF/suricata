@@ -28,6 +28,8 @@
 
 #include <grp.h>
 #include <pwd.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include "suricata-common.h"
 #include "util-debug.h"
 #include "suricata.h"
@@ -235,4 +237,86 @@ int SCGetGroupID(const char *group_name, uint32_t *gid)
 
     return 0;
 }
+
+/**
+ * \brief   Check if requested file access is allowed for arbitrary user, file and access mode
+ *          (pure, no side effects)
+ *
+ * \param   asked_uid      The uid to check for
+ * \param   asked_gids     Array of the gids to check for
+ * \param   gid_count      The number gids at the supplied gid array address
+ * \param   file_stat_struct   Pointer to the stat() return struct of the file to check for
+ * \param   requested_access   The requested access mode
+ *                             Use access type macro symbols from unistd.h, like in man 2 access
+ *
+ * \retval  Boolean. True if requested access is allowed. False otherwise
+ */
+bool SCCheckArbitraryFileAccess(const uid_t asked_uid,
+                                const gid_t * const asked_gids,
+                                const int gid_count,
+                                struct stat const * const file_stat_struct,
+                                const int requested_permissions)
+{
+    /* Step 1: Prepare Bitmasks for permission checks */
+    /* This is necesarry because the requested_permission bitfield is
+     * in another format (no notion of group/user/other) than the stat() return mode bit field */
+    int requested_user_permissions_bitmask   = 0;
+    int requested_group_permissions_bitmask  = 0;
+    int requested_others_permissions_bitmask = 0;
+
+    if (requested_permissions & R_OK) {
+        requested_user_permissions_bitmask   |= S_IRUSR;
+        requested_group_permissions_bitmask  |= S_IRGRP;
+        requested_others_permissions_bitmask |= S_IROTH;
+    }
+    if (requested_permissions & W_OK) {
+        requested_user_permissions_bitmask   |= S_IWUSR;
+        requested_group_permissions_bitmask  |= S_IWGRP;
+        requested_others_permissions_bitmask |= S_IWOTH;
+    }
+    if (requested_permissions & X_OK) {
+        requested_user_permissions_bitmask   |= S_IXUSR;
+        requested_group_permissions_bitmask  |= S_IXGRP;
+        requested_others_permissions_bitmask |= S_IXOTH;
+    }
+
+    /* Step 2: Check the permission flags */
+
+    /* if we are file owner... */
+    if (asked_uid == file_stat_struct->st_uid) { /* check owner permissions */
+
+        /* Here we check multiple flags at once by first querying all the
+         * relevant bits with AND and than checking if all the relevant bits
+         * are there. (They only are if the result is equal to the mask
+         * i.e same bits set). Same happens for group and others */
+        int const relevant_bits = file_stat_struct->st_mode
+                                  & requested_user_permissions_bitmask;
+
+        if (relevant_bits == requested_user_permissions_bitmask)
+            return true;
+    }
+
+    /* for groups the process is in */
+    for (int i = 0; i < gid_count; i++) {
+        gid_t const gid_to_check = asked_gids[i];
+
+        /* if it matches file group */
+        if (gid_to_check == file_stat_struct->st_gid) {
+            int const relevant_bits = file_stat_struct->st_mode
+                                      & requested_group_permissions_bitmask;
+            if (relevant_bits == requested_group_permissions_bitmask)
+                return true;
+         }
+    }
+
+    /* check "others" permissions */
+    int const relevant_bits = file_stat_struct->st_mode
+                              & requested_others_permissions_bitmask;
+    if (relevant_bits == requested_others_permissions_bitmask) {
+        return true;
+    }
+
+    return false;  /* none matched */
+}
+
 #endif /* OS_WIN32 */
