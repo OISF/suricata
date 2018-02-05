@@ -34,14 +34,6 @@
 
 #include "util-unittest.h"
 
-#define PARSE_REGEX "^\\s*([^\\s]+)\\s+([^\\s]+)(?:,\\s*([^\\s]+)\\s+([^\\s]+))*$"
-#define PARSE_TAG_REGEX "\\s*([^\\s]+)\\s+([^,]+)\\s*"
-
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
-static pcre *parse_tag_regex;
-static pcre_extra *parse_tag_regex_study;
-
 static int DetectMetadataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectMetadataRegisterTests(void);
 
@@ -54,9 +46,6 @@ void DetectMetadataRegister (void)
     sigmatch_table[DETECT_METADATA].Setup = DetectMetadataSetup;
     sigmatch_table[DETECT_METADATA].Free  = NULL;
     sigmatch_table[DETECT_METADATA].RegisterTests = DetectMetadataRegisterTests;
-
-    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
-    DetectSetupParseRegexes(PARSE_TAG_REGEX, &parse_tag_regex, &parse_tag_regex_study);
 }
 
 /**
@@ -142,85 +131,58 @@ static const char *DetectMedatataHashAdd(DetectEngineCtx *de_ctx, const char *st
 
 static int DetectMetadataParse(DetectEngineCtx *de_ctx, Signature *s, const char *metadatastr)
 {
-#define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
-
-    ret = pcre_exec(parse_regex, parse_regex_study, metadatastr,
-                    strlen(metadatastr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 2) {
-        /* Only warn user that the metadata are not parsed due
-         * to invalid format */
-        SCLogInfo("signature metadata not in key value format, ret %" PRId32
-                    ", string %s", ret, metadatastr);
-        return 0;
-    }
-
-    size_t metadatalen = strlen(metadatastr)+1;
-    char rawstr[metadatalen];
-    strlcpy(rawstr, metadatastr, metadatalen);
-    const char *key = NULL;
-    const char *value = NULL;
-    char pkey[256];
-    char pvalue[256];
-
-    char *saveptr = NULL;
-    char *kv = strtok_r(rawstr, ",", &saveptr);
-    if (kv == NULL) {
-        goto error;
-    }
-
-    /* now check key value */
-    do {
-        DetectMetadata *dkv;
-
-        ret = pcre_exec(parse_tag_regex, parse_tag_regex_study, kv, strlen(kv), 0, 0, ov, MAX_SUBSTRINGS);
-        if (ret < 2) {
-            SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32
-                    ", string %s", ret, rawstr);
-            goto error;
+    char copy[strlen(metadatastr)+1];
+    strlcpy(copy, metadatastr, sizeof(copy));
+    char *xsaveptr = NULL;
+    char *key = strtok_r(copy, ",", &xsaveptr);
+    while (key != NULL) {
+        while (*key != '\0' && isblank(*key)) {
+            key++;
+        }
+        char *val = strchr(key, ' ');
+        if (val != NULL) {
+            *val++ = '\0';
+            while (*val != '\0' && isblank(*val)) {
+                val++;
+            }
+        } else {
+            /* Skip metadata without a value. */
+            goto next;
         }
 
-        res =  pcre_copy_substring(kv, ov, MAX_SUBSTRINGS, 1, pkey, sizeof(pkey));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-            goto error;
+        /* Also skip metadata if the key or value is empty. */
+        if (strlen(key) == 0 || strlen(val) == 0) {
+            goto next;
         }
-        key = DetectMedatataHashAdd(de_ctx, pkey);
-        if (key == NULL) {
+
+        const char *hkey = DetectMedatataHashAdd(de_ctx, key);
+        if (hkey == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata key");
-            goto error;
+            continue;
         }
 
-        res =  pcre_copy_substring(kv, ov, MAX_SUBSTRINGS, 2, pvalue, sizeof(pvalue));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-            goto error;
-        }
-        value = DetectMedatataHashAdd(de_ctx, pvalue);
-        if (value == NULL) {
+        const char *hval = DetectMedatataHashAdd(de_ctx, val);
+        if (hval == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "can't create metadata value");
-            goto error;
+            goto next;
         }
 
-        SCLogDebug("key: %s, value: %s", key, value);
+        SCLogDebug("key: %s, value: %s", hkey, hval);
 
-        dkv = SCMalloc(sizeof(DetectMetadata));
+        DetectMetadata *dkv = SCMalloc(sizeof(DetectMetadata));
         if (dkv == NULL) {
-            goto error;
+            goto next;
         }
-        dkv->key = key;
-        dkv->value = value;
+        dkv->key = hkey;
+        dkv->value = hval;
         dkv->next = s->metadata;
         s->metadata = dkv;
 
-        kv = strtok_r(NULL, ",", &saveptr);
-    } while (kv);
+    next:
+        key = strtok_r(NULL, ",", &xsaveptr);
+    }
 
     return 0;
-
-error:
-    return -1;
 }
 
 static int DetectMetadataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
