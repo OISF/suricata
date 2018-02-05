@@ -100,6 +100,7 @@
 #include "flow.h"
 #include "flow-timeout.h"
 #include "flow-manager.h"
+#include "flow-bypass.h"
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
@@ -126,6 +127,7 @@
 #include "app-layer-dnp3.h"
 
 #include "util-decode-der.h"
+#include "util-ebpf.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
@@ -855,6 +857,7 @@ void RegisterAllModules(void)
     /* managers */
     TmModuleFlowManagerRegister();
     TmModuleFlowRecyclerRegister();
+    TmModuleBypassedFlowManagerRegister();
     /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
@@ -1100,7 +1103,7 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_AFP_DEV;
         if (in_arg) {
-            LiveRegisterDevice(in_arg);
+            LiveRegisterDeviceName(in_arg);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
             strlcpy(suri->pcap_dev, in_arg, sizeof(suri->pcap_dev));
         }
@@ -1108,7 +1111,7 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *in_arg)
         SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                 "multiple devices to get packets is experimental.");
         if (in_arg) {
-            LiveRegisterDevice(in_arg);
+            LiveRegisterDeviceName(in_arg);
         } else {
             SCLogInfo("Multiple af-packet option without interface on each is useless");
         }
@@ -1152,7 +1155,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_PCAP_DEV;
         if (in_arg) {
-            LiveRegisterDevice(suri->pcap_dev);
+            LiveRegisterDeviceName(suri->pcap_dev);
         }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
@@ -1162,7 +1165,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *in_arg)
 #else
         SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                 "multiple pcap devices to get packets is experimental.");
-        LiveRegisterDevice(suri->pcap_dev);
+        LiveRegisterDeviceName(suri->pcap_dev);
 #endif
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -1555,7 +1558,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     strlcpy(suri->pcap_dev, optarg,
                             ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                              (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDevice(optarg);
+                    LiveRegisterDeviceName(optarg);
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
@@ -1597,7 +1600,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDeviceName(optarg);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1607,7 +1610,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple devices to get packets is experimental.");
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDeviceName(optarg);
                     } else {
                         SCLogInfo("Multiple netmap option without interface on each is useless");
                         break;
@@ -1756,7 +1759,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     PrintUsage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
-                LiveRegisterDevice(optarg);
+                LiveRegisterDeviceName(optarg);
 #else
                 SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receive packets using --dag.");
@@ -1796,7 +1799,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDeviceName(optarg);
                     }
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
@@ -2566,6 +2569,9 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
     StorageInit();
+#ifdef HAVE_PACKET_EBPF
+    EBPFRegisterExtension();
+#endif
     AppLayerSetup();
 
     /* Check for the existance of the default logging directory which we pick
@@ -2844,6 +2850,8 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    LiveDeviceFinalize();
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
