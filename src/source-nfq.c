@@ -55,6 +55,12 @@
 
 #include "source-nfq.h"
 
+
+
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
  *
@@ -141,6 +147,8 @@ static NFQQueueVars g_nfq_q[NFQ_MAX_QUEUE];
 static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
+
+
 TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, const void *, void **);
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
@@ -225,6 +233,9 @@ void NFQInitConfig(char quiet)
     intmax_t value = 0;
     const char *nfq_mode = NULL;
     int boolval;
+#ifdef NFQ_MEMSEG
+    int shmid;
+#endif
 
     SCLogDebug("Initializing NFQ");
 
@@ -286,7 +297,7 @@ void NFQInitConfig(char quiet)
             nfq_config.batchcount = (uint8_t) (value - 1);
 #else
         SCLogWarning(SC_ERR_NFQ_NOSUPPORT,
-                   "nfq.%s set but NFQ library has no support for it.", "batchcount");
+	    "nfq.%s set but NFQ library has no support for it.", "batchcount");
 #endif
     }
 
@@ -306,6 +317,21 @@ void NFQInitConfig(char quiet)
         }
     }
 
+#ifdef NFQ_MEMSEG
+    /* create memseg */
+    if ((shmid = shmget(0xdeadbeef, SHM_SIZE, 0644 | IPC_CREAT)) == -1) {
+      perror("shmget");
+      exit(1);
+    }
+    /* attach to the segment to get a pointer to it: */
+    memseg = shmat(shmid, (void *)0, 0);
+    if ((long)memseg == (-1)) {
+      perror("shmat");
+      exit(1);
+    }
+	memseg->shmid = shmid;
+#endif 
+    
 }
 
 static uint8_t NFQVerdictCacheLen(NFQQueueVars *t)
@@ -681,7 +707,7 @@ static TmEcode NFQInitThread(NFQThreadVars *t, uint32_t queue_maxlen)
     }
 #endif
     /* Don't send error about no buffer space available but drop the
-	packets instead */
+ 	packets instead */
 #ifdef NETLINK_NO_ENOBUFS
     if (setsockopt(q->fd, SOL_NETLINK,
                    NETLINK_NO_ENOBUFS, &opt, sizeof(int)) == -1) {
@@ -997,6 +1023,10 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data)
  */
 TmEcode NFQSetVerdict(Packet *p)
 {
+
+#ifdef NFQ_MEMSEG
+    int idmod;
+#endif
     int iter = 0;
     int ret = 0;
     uint32_t verdict = NF_ACCEPT;
@@ -1053,6 +1083,19 @@ TmEcode NFQSetVerdict(Packet *p)
 #endif /* COUNTERS */
     }
 
+#ifdef NFQ_MEMSEG
+		
+    if(memseg->reader_attached){
+    	  idmod = p->nfq_v.id % NFQ_TIMEVALS;
+	  memseg->pkttimes[idmod].pktrcvd.tv_sec = p->ts.tv_sec;
+	  memseg->pkttimes[idmod].pktrcvd.tv_usec = p->ts.tv_usec;
+	  memseg->pkttimes[idmod].id = p->nfq_v.id;
+	  gettimeofday(&memseg->pkttimes[idmod].pktsent, NULL);
+	  memseg->updated = p->nfq_v.id;
+    }
+
+#endif	
+    
     ret = NFQVerdictCacheAdd(t, p, verdict);
     if (ret == 0) {
         NFQMutexUnlock(t);
