@@ -51,6 +51,8 @@
 #define AFP_TPACKET_V3 (1<<4)
 #define AFP_VLAN_DISABLED (1<<5)
 #define AFP_MMAP_LOCKED (1<<6)
+#define AFP_BYPASS   (1<<7)
+#define AFP_XDPBYPASS   (1<<8)
 
 #define AFP_COPY_MODE_NONE  0
 #define AFP_COPY_MODE_TAP   1
@@ -88,6 +90,13 @@ typedef struct AFPIfaceConfig_
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     const char *bpf_filter;
+    const char *ebpf_lb_file;
+    int ebpf_lb_fd;
+    const char *ebpf_filter_file;
+    int ebpf_filter_fd;
+    const char *xdp_filter_file;
+    int xdp_filter_fd;
+    uint8_t xdp_mode;
     const char *out_iface;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
@@ -126,6 +135,8 @@ typedef struct AFPPacketVars_
      */
     AFPPeer *mpeer;
     uint8_t copy_mode;
+    int v4_map_fd;
+    int v6_map_fd;
 } AFPPacketVars;
 
 #define AFPV_CLEANUP(afpv) do {           \
@@ -133,6 +144,8 @@ typedef struct AFPPacketVars_
     (afpv)->copy_mode = 0;                \
     (afpv)->peer = NULL;                  \
     (afpv)->mpeer = NULL;                 \
+    (afpv)->v4_map_fd = -1;               \
+    (afpv)->v6_map_fd = -1;               \
 } while(0)
 
 /**

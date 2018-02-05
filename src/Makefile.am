@@ -258,8 +258,10 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
+device-storage.c device-storage.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
+flow-bypass.c flow-bypass.h \
 flow-hash.c flow-hash.h \
 flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
@@ -395,6 +397,7 @@ util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
 util-detect.c util-detect.h \
 util-device.c util-device.h \
+util-ebpf.c util-ebpf.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
 util-file.c util-file.h \

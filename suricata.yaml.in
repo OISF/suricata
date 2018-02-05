@@ -620,6 +620,8 @@ af-packet:
     #  Requires at least Linux 3.14.
     #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
     #  to the next. Requires at least Linux 3.10.
+    #  * cluster_ebpf: eBPF file load balancing. See doc/userguide/capture/ebpf-xdt.rst for
+    #  more info.
     # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
     # with capture card using RSS (require cpu affinity tuning and system irq tuning)
     cluster-type: cluster_flow
@@ -678,6 +680,8 @@ af-packet:
     # will not be copied.
     #copy-mode: ips
     #copy-iface: eth1
+    #  For eBPF and XDP setup including bypass, filter and load balancing, please
+    #  see doc/userguide/capture/ebpf-xdt.rst for more info.
 
   # Put default values here. These will be used for an interface that is not
   # in the list above.
