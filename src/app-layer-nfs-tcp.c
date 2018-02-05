@@ -194,6 +194,13 @@ static void *NFSTCPGetTx(void *state, uint64_t tx_id)
     return rs_nfs3_state_get_tx(state, tx_id);
 }
 
+static void *RustNFSTCPGetTxIterator(const uint8_t ipproto, const AppProto alproto,
+        void *alstate, uint64_t min_tx_id, uint64_t max_tx_id,
+        uint64_t *ret_tx_id, AppLayerGetTxIterState *istate)
+{
+    return rs_nfs_state_get_tx_iterator(alstate, min_tx_id, ret_tx_id, (uint64_t *)istate);
+}
+
 static void NFSTCPSetTxLogged(void *state, void *vtx, LoggerId logged)
 {
     rs_nfs3_tx_set_logged(state, vtx, logged);
@@ -348,6 +355,8 @@ void RegisterNFSTCPParsers(void)
             ALPROTO_NFS, NFSTCPGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_NFS,
             NFSTCPGetTx);
+        AppLayerParserRegisterGetTxIterator(IPPROTO_TCP, ALPROTO_NFS,
+                RustNFSTCPGetTxIterator);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_NFS, NFSTCPGetFiles);
 

@@ -423,6 +423,29 @@ impl NFSState {
         return None;
     }
 
+    // for use with the C API call StateGetTxIterator
+    pub fn get_tx_iterator(&mut self, min_tx_id: u64,
+            ret_tx_id: &mut u64, state: &mut u64) ->
+        Option<&NFSTransaction>
+    {
+        let mut index = *state as usize;
+        let len = self.transactions.len();
+
+        // find tx that is >= min_tx_id
+        while index < len {
+            let tx = &self.transactions[index];
+            if tx.id < min_tx_id + 1 {
+                index += 1;
+                continue;
+            }
+
+            *ret_tx_id = tx.id - 1;
+            *state = index as u64 + 1;
+            return Some(tx);
+        }
+        return None;
+    }
+
     /// Set an event. The event is set on the most recent transaction.
     pub fn set_event(&mut self, event: NFSEvent) {
         let len = self.transactions.len();
@@ -1841,6 +1864,25 @@ pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFSState,
                                       -> *mut NFSTransaction
 {
     match state.get_tx_by_id(tx_id) {
+        Some(tx) => {
+            return unsafe{transmute(tx)};
+        }
+        None => {
+            return std::ptr::null_mut();
+        }
+    }
+}
+
+// for use with the C API call StateGetTxIterator
+#[no_mangle]
+pub extern "C" fn rs_nfs_state_get_tx_iterator(
+                                      state: &mut NFSState,
+                                      min_tx_id: libc::uint64_t,
+                                      out_tx_id: &mut libc::uint64_t,
+                                      istate: &mut libc::uint64_t)
+                                      -> *mut NFSTransaction
+{
+    match state.get_tx_iterator(min_tx_id, out_tx_id, istate) {
         Some(tx) => {
             return unsafe{transmute(tx)};
         }
