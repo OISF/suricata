@@ -443,7 +443,6 @@ void RegisterDNSUDPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
-                                               DNSStateHasTxDetectState,
                                                DNSGetTxDetectState, DNSSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_DNS,
                                                DNSGetTxDetectFlags, DNSSetTxDetectFlags);

@@ -113,9 +113,8 @@ typedef struct AppLayerParserProtoCtx_
     LoggerId (*StateGetTxLogged)(void *alstate, void *tx);
     void (*StateSetTxLogged)(void *alstate, void *tx, LoggerId logger);
 
-    int (*StateHasTxDetectState)(void *alstate);
     DetectEngineState *(*GetTxDetectState)(void *tx);
-    int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
+    int (*SetTxDetectState)(void *tx, DetectEngineState *);
 
     uint64_t (*GetTxDetectFlags)(void *tx, uint8_t dir);
     void (*SetTxDetectFlags)(void *tx, uint8_t dir, uint64_t);
@@ -551,13 +550,11 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
 }
 
 void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
-        int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
-        int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *))
+        int (*SetTxDetectState)(void *tx, DetectEngineState *))
 {
     SCEnter();
 
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState = StateHasTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
 
@@ -1057,16 +1054,6 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
-int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate)
-{
-    int r;
-    SCEnter();
-    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState == NULL)
-        return -ENOSYS;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState(alstate);
-    SCReturnInt(r);
-}
-
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
@@ -1076,13 +1063,13 @@ DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alpr
 }
 
 int AppLayerParserSetTxDetectState(const Flow *f,
-                                   void *alstate, void *tx, DetectEngineState *s)
+                                   void *tx, DetectEngineState *s)
 {
     int r;
     SCEnter();
     if ((alp_ctx.ctxs[f->protomap][f->alproto].GetTxDetectState(tx) != NULL))
         SCReturnInt(-EBUSY);
-    r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(alstate, tx, s);
+    r = alp_ctx.ctxs[f->protomap][f->alproto].SetTxDetectState(tx, s);
     SCReturnInt(r);
 }
 
@@ -1381,7 +1368,6 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("- StateGetProgress %p StateGetProgressCompletionStatus %p\n", ctx->StateGetProgress, ctx_def->StateGetProgressCompletionStatus);
     printf("- GetTxDetectState %p SetTxDetectState %p\n", ctx->GetTxDetectState, ctx->SetTxDetectState);
     printf("Optional:\n");
-    printf("- StateHasTxDetectState %p\n", ctx->StateHasTxDetectState);
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
     printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
     printf("- StateGetEvents %p StateHasEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateHasEvents, ctx->StateGetEventInfo);

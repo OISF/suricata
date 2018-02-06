@@ -217,6 +217,18 @@ impl NFSTransaction {
     }
 }
 
+impl Drop for NFSTransaction {
+    fn drop(&mut self) {
+        match self.de_state {
+            Some(state) => {
+                sc_detect_engine_state_free(state);
+            }
+            _ => {}
+        }
+        self.free();
+    }
+}
+
 #[derive(Debug)]
 pub struct NFSRequestXidMap {
     progver: u32,
@@ -323,8 +335,6 @@ pub struct NFSState {
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
-
-    pub de_state_count: u64,
 }
 
 impl NFSState {
@@ -349,7 +359,6 @@ impl NFSState {
             nfs_version:0,
             events:0,
             tx_id:0,
-            de_state_count:0,
         }
     }
     pub fn free(&mut self) {
@@ -378,18 +387,7 @@ impl NFSState {
         }
         if found {
             SCLogDebug!("freeing TX with ID {} at index {}", tx_id, index);
-            self.free_tx_at_index(index);
-        }
-    }
-
-    fn free_tx_at_index(&mut self, index: usize) {
-        let tx = self.transactions.remove(index);
-        match tx.de_state {
-            Some(state) => {
-                sc_detect_engine_state_free(state);
-                self.de_state_count -= 1;
-            }
-            _ => {}
+            self.transactions.remove(index);
         }
     }
 
@@ -1927,21 +1925,10 @@ pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_has_detect_state(state: &mut NFSState) -> u8
-{
-    if state.de_state_count > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_nfs3_state_set_tx_detect_state(
-    state: &mut NFSState,
     tx: &mut NFSTransaction,
     de_state: &mut DetectEngineState)
 {
-    state.de_state_count += 1;
     tx.de_state = Some(de_state);
 }
 
@@ -1952,9 +1939,11 @@ pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
 {
     match tx.de_state {
         Some(ds) => {
+            SCLogDebug!("{}: getting de_state", tx.id);
             return ds;
         },
         None => {
+            SCLogDebug!("{}: getting de_state: have none", tx.id);
             return std::ptr::null_mut();
         }
     }

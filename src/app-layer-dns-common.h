@@ -225,8 +225,6 @@ typedef struct DNSState_ {
     uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
     uint32_t memuse;                        /**< state memuse, for comparing with
                                                  state-memcap settings */
-    uint64_t tx_with_detect_state_cnt;
-
     struct timeval last_req;      /**< Timestamp of last request. */
     struct timeval last_resp;     /**< Timestamp of last response. */
 
@@ -279,9 +277,8 @@ int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
 
-int DNSStateHasTxDetectState(void *alstate);
 DetectEngineState *DNSGetTxDetectState(void *vtx);
-int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s);
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s);
 uint64_t DNSGetTxDetectFlags(void *vtx, uint8_t dir);
 void DNSSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t detect_flags);
 

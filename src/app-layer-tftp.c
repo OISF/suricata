@@ -213,7 +213,7 @@ static DetectEngineState *TFTPGetTxDetectState(void *vtx)
     return NULL;
 }
 
-static int TFTPSetTxDetectState(void *state, void *vtx,
+static int TFTPSetTxDetectState(void *vtx,
     DetectEngineState *s)
 {
     return 0;
@@ -301,7 +301,7 @@ void RegisterTFTPParsers(void)
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,
-                                               NULL, TFTPGetTxDetectState,
+                                               TFTPGetTxDetectState,
                                                TFTPSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_TFTP,

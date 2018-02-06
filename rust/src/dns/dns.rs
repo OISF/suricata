@@ -244,8 +244,6 @@ pub struct DNSState {
     // Transactions.
     pub transactions: Vec<DNSTransaction>,
 
-    pub de_state_count: u64,
-
     pub events: u16,
 
     pub request_buffer: Vec<u8>,
@@ -260,7 +258,6 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            de_state_count: 0,
             events: 0,
             request_buffer: Vec::new(),
             response_buffer: Vec::new(),
@@ -274,7 +271,6 @@ impl DNSState {
         return DNSState{
             tx_id: 0,
             transactions: Vec::new(),
-            de_state_count: 0,
             events: 0,
             request_buffer: Vec::with_capacity(0xffff),
             response_buffer: Vec::with_capacity(0xffff),
@@ -321,7 +317,6 @@ impl DNSState {
         match tx.de_state {
             Some(state) => {
                 core::sc_detect_engine_state_free(state);
-                self.de_state_count -= 1;
             }
             _ => {}
         }
@@ -752,21 +747,10 @@ pub extern "C" fn rs_dns_state_get_tx(state: &mut DNSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_has_detect_state(state: &mut DNSState) -> u8
-{
-    if state.de_state_count > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dns_state_set_tx_detect_state(
-    state: &mut DNSState,
     tx: &mut DNSTransaction,
     de_state: &mut core::DetectEngineState)
 {
-    state.de_state_count += 1;
     tx.de_state = Some(de_state);
 }
 

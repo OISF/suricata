@@ -613,17 +613,9 @@ static void FTPStateFree(void *s)
 #endif
 }
 
-static int FTPStateHasTxDetectState(void *state)
+static int FTPSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    FtpState *ftp_state = (FtpState *)state;
-    if (ftp_state->de_state)
-        return 1;
-    return 0;
-}
-
-static int FTPSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
-{
-    FtpState *ftp_state = (FtpState *)state;
+    FtpState *ftp_state = (FtpState *)vtx;
     ftp_state->de_state = de_state;
     return 0;
 }
@@ -846,17 +838,9 @@ static void FTPDataStateFree(void *s)
 #endif
 }
 
-static int FTPDataStateHasTxDetectState(void *state)
+static int FTPDataSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    FtpDataState *ftp_state = (FtpDataState *)state;
-    if (ftp_state->de_state)
-        return 1;
-    return 0;
-}
-
-static int FTPDataSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
-{
-    FtpDataState *ftp_state = (FtpDataState *)state;
+    FtpDataState *ftp_state = (FtpDataState *)vtx;
     ftp_state->de_state = de_state;
     return 0;
 }
@@ -925,8 +909,8 @@ void RegisterFTPParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTP, FTPStateTransactionFree);
 
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateHasTxDetectState,
-                                               FTPGetTxDetectState, FTPSetTxDetectState);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTP,
+                FTPGetTxDetectState, FTPSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_FTP, FTPGetTx);
 
@@ -946,7 +930,7 @@ void RegisterFTPParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateAlloc, FTPDataStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTPDATA, STREAM_TOSERVER | STREAM_TOCLIENT);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateTransactionFree);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateHasTxDetectState,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_FTPDATA,
                 FTPDataGetTxDetectState, FTPDataSetTxDetectState);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_FTPDATA, FTPDataStateGetFiles);

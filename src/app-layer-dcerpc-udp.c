@@ -823,17 +823,9 @@ static void DCERPCUDPStateFree(void *s)
     SCFree(s);
 }
 
-static int DCERPCUDPStateHasTxDetectState(void *state)
+static int DCERPCUDPSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    DCERPCUDPState *dce_state = (DCERPCUDPState *)state;
-    if (dce_state->de_state)
-        return 1;
-    return 0;
-}
-
-static int DCERPCUDPSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
-{
-    DCERPCUDPState *dce_state = (DCERPCUDPState *)state;
+    DCERPCUDPState *dce_state = (DCERPCUDPState *)vtx;
     dce_state->de_state = de_state;
     return 0;
 }
@@ -907,7 +899,7 @@ void RegisterDCERPCUDPParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_DCERPC, DCERPCUDPStateTransactionFree);
 
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DCERPC, DCERPCUDPStateHasTxDetectState,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DCERPC,
                                                DCERPCUDPGetTxDetectState, DCERPCUDPSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DCERPC, DCERPCUDPGetTx);

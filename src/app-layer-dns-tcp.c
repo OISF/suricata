@@ -750,7 +750,6 @@ void RegisterDNSTCPParsers(void)
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNS, DNSGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_DNS, DNSHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNS,
-                                               DNSStateHasTxDetectState,
                                                DNSGetTxDetectState, DNSSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_DNS,
                                                DNSGetTxDetectFlags, DNSSetTxDetectFlags);
