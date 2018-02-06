@@ -318,11 +318,6 @@ static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
         if (htud->de_state != NULL) {
-            if (likely(state != NULL)) { // should be impossible that it's null
-                BUG_ON(state->tx_with_detect_state_cnt == 0);
-                state->tx_with_detect_state_cnt--;
-            }
-
             DetectEngineStateFree(htud->de_state);
         }
         HTPFree(htud, sizeof(HtpTxUserData));
@@ -360,7 +355,6 @@ void HTPStateFree(void *state)
         }
         htp_connp_destroy_all(s->connp);
     }
-    BUG_ON(s->tx_with_detect_state_cnt > 0);
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
@@ -2728,12 +2722,6 @@ static void HTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
-static int HTPStateHasTxDetectState(void *alstate)
-{
-    HtpState *htp_state = (HtpState *)alstate;
-    return (htp_state->tx_with_detect_state_cnt > 0);
-}
-
 static DetectEngineState *HTPGetTxDetectState(void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
@@ -2741,9 +2729,8 @@ static DetectEngineState *HTPGetTxDetectState(void *vtx)
     return tx_ud ? tx_ud->de_state : NULL;
 }
 
-static int HTPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
+static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    HtpState *htp_state = (HtpState *)alstate;
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
@@ -2753,7 +2740,6 @@ static int HTPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx, tx_ud);
     }
-    htp_state->tx_with_detect_state_cnt++;
     tx_ud->de_state = s;
     return 0;
 }
@@ -2877,7 +2863,6 @@ void RegisterHTPParsers(void)
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
-                                               HTPStateHasTxDetectState,
                                                HTPGetTxDetectState, HTPSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_HTTP,
                                                HTPGetTxDetectFlags, HTPSetTxDetectFlags);

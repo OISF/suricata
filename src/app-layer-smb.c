@@ -1458,17 +1458,9 @@ static void SMBStateFree(void *s)
     SCReturn;
 }
 
-static int SMBStateHasTxDetectState(void *state)
+static int SMBSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    SMBState *smb_state = (SMBState *)state;
-    if (smb_state->ds.de_state)
-        return 1;
-    return 0;
-}
-
-static int SMBSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
-{
-    SMBState *smb_state = (SMBState *)state;
+    SMBState *smb_state = (SMBState *)vtx;
     smb_state->ds.de_state = de_state;
     return 0;
 }
@@ -1603,7 +1595,7 @@ void RegisterSMBParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMB, SMBStateTransactionFree);
 
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB, SMBStateHasTxDetectState,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMB,
                                                SMBGetTxDetectState, SMBSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMB, SMBGetTx);

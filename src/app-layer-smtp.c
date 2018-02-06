@@ -1624,7 +1624,7 @@ static DetectEngineState *SMTPGetTxDetectState(void *vtx)
     return tx->de_state;
 }
 
-static int SMTPSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
+static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
     SMTPTransaction *tx = (SMTPTransaction *)vtx;
     tx->de_state = s;
@@ -1678,7 +1678,7 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP, NULL,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectState, SMTPSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_TCP, ALPROTO_SMTP,
                                                SMTPGetTxDetectFlags, SMTPSetTxDetectFlags);

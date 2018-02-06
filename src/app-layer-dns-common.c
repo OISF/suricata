@@ -342,8 +342,6 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 
     if (tx->de_state != NULL) {
         DetectEngineStateFree(tx->de_state);
-        BUG_ON(state->tx_with_detect_state_cnt == 0);
-        state->tx_with_detect_state_cnt--;
     }
 
     if (state->iter == tx)
@@ -419,23 +417,15 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
     return NULL;
 }
 
-int DNSStateHasTxDetectState(void *alstate)
-{
-    DNSState *state = (DNSState *)alstate;
-    return (state->tx_with_detect_state_cnt > 0);
-}
-
 DetectEngineState *DNSGetTxDetectState(void *vtx)
 {
     DNSTransaction *tx = (DNSTransaction *)vtx;
     return tx->de_state;
 }
 
-int DNSSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    DNSState *state = (DNSState *)alstate;
     DNSTransaction *tx = (DNSTransaction *)vtx;
-    state->tx_with_detect_state_cnt++;
     tx->de_state = s;
     return 0;
 }
@@ -473,8 +463,6 @@ void DNSStateFree(void *s)
                                                *  in a smarter way */
             SCFree(dns_state->buffer);
         }
-
-        BUG_ON(dns_state->tx_with_detect_state_cnt > 0);
 
         DNSDecrMemcap(sizeof(DNSState), dns_state);
         BUG_ON(dns_state->memuse > 0);

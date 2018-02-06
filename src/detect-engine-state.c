@@ -231,7 +231,7 @@ void DetectRunStoreStateTx(
         destate = DetectEngineStateAlloc();
         if (destate == NULL)
             return;
-        if (AppLayerParserSetTxDetectState(f, f->alstate, tx, destate) < 0) {
+        if (AppLayerParserSetTxDetectState(f, tx, destate) < 0) {
             DetectEngineStateFree(destate);
             return;
         }

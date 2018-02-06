@@ -442,7 +442,7 @@ static DetectEngineState *TemplateGetTxDetectState(void *vtx)
 /**
  * \brief ???
  */
-static int TemplateSetTxDetectState(void *state, void *vtx,
+static int TemplateSetTxDetectState(void *vtx,
     DetectEngineState *s)
 {
     TemplateTransaction *tx = vtx;
@@ -541,7 +541,7 @@ void RegisterTemplateParsers(void)
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            NULL, TemplateGetTxDetectState, TemplateSetTxDetectState);
+            TemplateGetTxDetectState, TemplateSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateGetEventInfo);

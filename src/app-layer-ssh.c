@@ -505,17 +505,9 @@ static void SSHStateFree(void *state)
     SCFree(s);
 }
 
-static int SSHStateHasTxDetectState(void *state)
+static int SSHSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
-    SshState *ssh_state = (SshState *)state;
-    if (ssh_state->de_state)
-        return 1;
-    return 0;
-}
-
-static int SSHSetTxDetectState(void *state, void *vtx, DetectEngineState *de_state)
-{
-    SshState *ssh_state = (SshState *)state;
+    SshState *ssh_state = (SshState *)vtx;
     ssh_state->de_state = de_state;
     return 0;
 }
@@ -644,7 +636,7 @@ void RegisterSSHParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SSH, SSHStateTransactionFree);
 
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateHasTxDetectState,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SSH,
                                                SSHGetTxDetectState, SSHSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SSH, SSHGetTx);

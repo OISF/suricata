@@ -250,10 +250,9 @@ static DetectEngineState *NFSTCPGetTxDetectState(void *vtx)
 /**
  * \brief set store tx detect state
  */
-static int NFSTCPSetTxDetectState(void *state, void *vtx,
-    DetectEngineState *s)
+static int NFSTCPSetTxDetectState(void *vtx, DetectEngineState *s)
 {
-    rs_nfs3_state_set_tx_detect_state(state, vtx, s);
+    rs_nfs3_state_set_tx_detect_state(vtx, s);
     return 0;
 }
 
@@ -367,7 +366,7 @@ void RegisterNFSTCPParsers(void)
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_NFS,
-            NULL, NFSTCPGetTxDetectState, NFSTCPSetTxDetectState);
+            NFSTCPGetTxDetectState, NFSTCPSetTxDetectState);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_NFS,
                 NFSTCPStateGetEventInfo);

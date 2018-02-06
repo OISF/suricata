@@ -52,8 +52,7 @@ typedef struct AppLayerParser {
     void (*StateSetTxLogged)(void *alstate, void *tx, uint32_t logger);
 
     DetectEngineState *(*GetTxDetectState)(void *tx);
-    int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
-    int (*StateHasTxDetectState)(void *alstate);
+    int (*SetTxDetectState)(void *tx, DetectEngineState *);
 
     int (*StateHasEvents)(void *);
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t);
