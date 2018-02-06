@@ -325,11 +325,6 @@ pub struct NFSState {
     tx_id: u64,
 
     pub de_state_count: u64,
-
-    // HACK flag state if tx has been marked complete in a direction
-    // this way we can skip a lot of looping in output-tx.c
-    //pub ts_txs_updated: bool,
-    //pub tc_txs_updated: bool,
 }
 
 impl NFSState {
@@ -355,8 +350,6 @@ impl NFSState {
             events:0,
             tx_id:0,
             de_state_count:0,
-            //ts_txs_updated:false,
-            //tc_txs_updated:false,
         }
     }
     pub fn free(&mut self) {
@@ -477,8 +470,6 @@ impl NFSState {
                 //SCLogNotice!("process_reply_record: not TX found for XID {}", r.hdr.xid);
             },
         }
-
-        //self.tc_txs_updated = true;
     }
 
     fn process_request_record_lookup<'b>(&mut self, r: &RpcPacket<'b>, xidmap: &mut NFSRequestXidMap) {
@@ -656,7 +647,6 @@ impl NFSState {
                         },
                         None => { },
                     }
-                    //self.ts_txs_updated = true;
                 },
                 IResult::Incomplete(_) => {
                     self.set_event(NFSEvent::MalformedData);
@@ -676,7 +666,6 @@ impl NFSState {
             tx.file_name = xidmap.file_name.to_vec();
             tx.nfs_version = r.progver as u16;
             tx.file_handle = xidmap.file_handle.to_vec();
-            //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
                 tx.type_data = Some(NFSTransactionTypeData::RENAME(aux_file_name));
@@ -768,7 +757,6 @@ impl NFSState {
             tx.file_name = xidmap.file_name.to_vec();
             tx.file_handle = xidmap.file_handle.to_vec();
             tx.nfs_version = r.progver as u16;
-            //self.ts_txs_updated = true;
 
             if r.procedure == NFSPROC3_RENAME {
                 tx.type_data = Some(NFSTransactionTypeData::RENAME(aux_file_name));
@@ -1327,9 +1315,6 @@ impl NFSState {
             }
         }
 
-        //if is_last {
-        //    self.tc_txs_updated = true;
-        //}
         if !self.is_udp {
             self.tc_chunk_xid = r.hdr.xid;
             self.tc_chunk_left = (reply.count as u32 + fill_bytes) - reply.data.len() as u32;
@@ -1924,30 +1909,6 @@ pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFSTransaction,
         return 0;
     }
 }
-
-/*
-#[no_mangle]
-pub extern "C" fn rs_nfs3_get_txs_updated(state: &mut NFSState,
-                                          direction: u8) -> bool
-{
-    if direction == STREAM_TOSERVER {
-        return state.ts_txs_updated;
-    } else {
-        return state.tc_txs_updated;
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn rs_nfs3_reset_txs_updated(state: &mut NFSState,
-                                            direction: u8)
-{
-    if direction == STREAM_TOSERVER {
-        state.ts_txs_updated = false;
-    } else {
-        state.tc_txs_updated = false;
-    }
-}
-*/
 
 #[no_mangle]
 pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFSState,
