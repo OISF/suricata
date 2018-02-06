@@ -214,17 +214,17 @@ impl NFSTransaction {
         if self.events != std::ptr::null_mut() {
             sc_app_layer_decoder_events_free_events(&mut self.events);
         }
-    }
-}
-
-impl Drop for NFSTransaction {
-    fn drop(&mut self) {
         match self.de_state {
             Some(state) => {
                 sc_detect_engine_state_free(state);
             }
             _ => {}
         }
+    }
+}
+
+impl Drop for NFSTransaction {
+    fn drop(&mut self) {
         self.free();
     }
 }

@@ -205,6 +205,12 @@ impl DNSTransaction {
         if self.events != std::ptr::null_mut() {
             core::sc_app_layer_decoder_events_free_events(&mut self.events);
         }
+        match self.de_state {
+            Some(state) => {
+                core::sc_detect_engine_state_free(state);
+            }
+            None => { },
+        }
     }
 
     /// Get the DNS transactions ID (not the internal tracking ID).
@@ -278,15 +284,6 @@ impl DNSState {
         };
     }
 
-    pub fn free(&mut self) {
-        SCLogDebug!("Freeing {} transactions left in state.",
-                    self.transactions.len());
-        while self.transactions.len() > 0 {
-            self.free_tx_at_index(0);
-        }
-        assert!(self.transactions.len() == 0);
-    }
-
     pub fn new_tx(&mut self) -> DNSTransaction {
         let mut tx = DNSTransaction::new();
         self.tx_id += 1;
@@ -308,17 +305,7 @@ impl DNSState {
             }
         }
         if found {
-            self.free_tx_at_index(index);
-        }
-    }
-
-    fn free_tx_at_index(&mut self, index: usize) {
-        let tx = self.transactions.remove(index);
-        match tx.de_state {
-            Some(state) => {
-                core::sc_detect_engine_state_free(state);
-            }
-            _ => {}
+            self.transactions.remove(index);
         }
     }
 
@@ -335,7 +322,7 @@ impl DNSState {
                 return;
             }
             SCLogDebug!("Purging DNS TX with ID {}", self.transactions[0].id);
-            self.free_tx_at_index(0);
+            self.transactions.remove(0);
         }
     }
 
@@ -530,14 +517,6 @@ impl DNSState {
             self.response_buffer.clear();
             self.gap = true;
         }
-    }
-}
-
-/// Implement Drop for DNSState as transactions need to do some
-/// explicit cleanup.
-impl Drop for DNSState {
-    fn drop(&mut self) {
-        self.free();
     }
 }
 
