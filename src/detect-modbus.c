@@ -221,6 +221,10 @@ static DetectModbus *DetectModbusAccessParse(const char *str)
                     }
 
                     /* We have a correct address option */
+                    if (modbus->type == MODBUS_TYP_READ)
+                        /* Value access is only possible in write access. */
+                        goto error;
+
                     modbus->data = (DetectModbusValue *) SCCalloc(1, sizeof(DetectModbusValue));
                     if (unlikely(modbus->data == NULL))
                         goto error;
@@ -415,9 +419,6 @@ void DetectModbusRegister(void)
 
     DetectAppLayerInspectEngineRegister("modbus",
             ALPROTO_MODBUS, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectModbus);
-    DetectAppLayerInspectEngineRegister("modbus",
-            ALPROTO_MODBUS, SIG_FLAG_TOCLIENT, 0,
             DetectEngineInspectModbus);
 
     g_modbus_buffer_id = DetectBufferTypeGetByName("modbus");
