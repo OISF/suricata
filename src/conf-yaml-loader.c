@@ -206,6 +206,14 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             char *tag = (char *)event.data.scalar.tag;
             SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
                 "tag=%s; inseq=%d", state, value, tag, inseq);
+
+            /* Skip over empty scalar values while in KEY state. This
+             * tends to only happen on an empty file, where a scalar
+             * event probably shouldn't fire anyways. */
+            if (state == CONF_KEY && strlen(value) == 0) {
+                goto next;
+            }
+
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
