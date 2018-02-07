@@ -16,8 +16,6 @@
  */
 
 #define KBUILD_MODNAME "foo"
-#include <stdint.h>
-#include <string.h>
 #include <stddef.h>
 #include <linux/bpf.h>
 
@@ -70,9 +68,9 @@ struct flowv6_keys {
 } __attribute__((__aligned__(8)));
 
 struct pair {
-    uint64_t time;
-    uint64_t packets;
-    uint64_t bytes;
+    __u64 time;
+    __u64 packets;
+    __u64 bytes;
 } __attribute__((__aligned__(8)));
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
@@ -128,7 +126,7 @@ struct bpf_map_def SEC("maps") tx_peer_int = {
 };
 
 static __always_inline int get_sport(void *trans_data, void *data_end,
-        uint8_t protocol)
+        __u8 protocol)
 {
     struct tcphdr *th;
     struct udphdr *uh;
@@ -150,7 +148,7 @@ static __always_inline int get_sport(void *trans_data, void *data_end,
 }
 
 static __always_inline int get_dport(void *trans_data, void *data_end,
-        uint8_t protocol)
+        __u8 protocol)
 {
     struct tcphdr *th;
     struct udphdr *uh;
@@ -178,12 +176,12 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv4_keys tuple;
     struct pair *value;
-    uint32_t key0 = 0;
+    __u32 key0 = 0;
 #if BUILD_CPUMAP
-    uint32_t cpu_dest;
-    uint32_t *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
-    uint32_t *cpu_selected;
-    uint32_t cpu_hash;
+    __u32 cpu_dest;
+    __u32 *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
+    __u32 *cpu_selected;
+    __u32 cpu_hash;
 #endif
     int *iface_peer;
     int tx_port = 0;
@@ -191,7 +189,7 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     if ((void *)(iph + 1) > data_end)
         return XDP_PASS;
 
-    tuple.ip_proto = (uint32_t) iph->protocol;
+    tuple.ip_proto = (__u32) iph->protocol;
     tuple.src = iph->saddr;
     tuple.dst = iph->daddr;
 
@@ -203,8 +201,8 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
     if (sport == -1)
         return XDP_PASS;
 
-    tuple.port16[0] = (uint16_t)sport;
-    tuple.port16[1] = (uint16_t)dport;
+    tuple.port16[0] = (__u16)sport;
+    tuple.port16[1] = (__u16)dport;
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
     {
@@ -260,12 +258,12 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     int sport;
     struct flowv6_keys tuple;
     struct pair *value;
-    uint32_t key0 = 0;
+    __u32 key0 = 0;
 #if BUILD_CPUMAP
-    uint32_t cpu_dest;
+    __u32 cpu_dest;
     int *cpu_max = bpf_map_lookup_elem(&cpus_count, &key0);
-    uint32_t *cpu_selected;
-    uint32_t cpu_hash;
+    __u32 *cpu_selected;
+    __u32 cpu_hash;
 #endif
     int tx_port = 0;
     int *iface_peer;
@@ -336,8 +334,8 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     void *data = (void *)(long)ctx->data;
     struct ethhdr *eth = data;
     int rc = XDP_PASS;
-    uint16_t h_proto;
-	uint64_t nh_off;
+    __u16 h_proto;
+    __u64 nh_off;
 
 	nh_off = sizeof(*eth);
 	if (data + nh_off > data_end)
@@ -376,4 +374,4 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
 
 char __license[] SEC("license") = "GPL";
 
-uint32_t __version SEC("version") = LINUX_VERSION_CODE;
+__u32 __version SEC("version") = LINUX_VERSION_CODE;

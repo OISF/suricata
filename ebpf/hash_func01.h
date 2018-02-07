@@ -4,12 +4,12 @@
  * From: http://www.azillionmonkeys.com/qed/hash.html
  */
 
-#define get16bits(d) (*((const uint16_t *) (d)))
+#define get16bits(d) (*((const __u16 *) (d)))
 
 static __always_inline
-uint32_t SuperFastHash (const char *data, int len, uint32_t initval) {
-	uint32_t hash = initval;
-	uint32_t tmp;
+__u32 SuperFastHash (const char *data, int len, __u32 initval) {
+	__u32 hash = initval;
+	__u32 tmp;
 	int rem;
 
 	if (len <= 0 || data == NULL) return 0;
@@ -23,7 +23,7 @@ uint32_t SuperFastHash (const char *data, int len, uint32_t initval) {
 		hash  += get16bits (data);
 		tmp    = (get16bits (data+2) << 11) ^ hash;
 		hash   = (hash << 16) ^ tmp;
-		data  += 2*sizeof (uint16_t);
+		data  += 2*sizeof (__u16);
 		hash  += hash >> 11;
 	}
 
@@ -31,7 +31,7 @@ uint32_t SuperFastHash (const char *data, int len, uint32_t initval) {
 	switch (rem) {
         case 3: hash += get16bits (data);
                 hash ^= hash << 16;
-                hash ^= ((signed char)data[sizeof (uint16_t)]) << 18;
+                hash ^= ((signed char)data[sizeof (__u16)]) << 18;
                 hash += hash >> 11;
                 break;
         case 2: hash += get16bits (data);
