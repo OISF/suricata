@@ -49,9 +49,11 @@ With the **access** setting, you can match on:
 Syntax::
 
   modbus: access <read | write>
-  modbus: access <read | write> <discretes | coils | input | holding>
-  modbus: access <read | write> <discretes | coils | input | holding>, address <value>
-  modbus: access <read | write> <discretes | coils | input | holding>, address <value>, value <value>
+  modbus: access read <discretes | coils | input | holding>
+  modbus: access read <discretes | coils | input | holding>, address <value>
+  modbus: access write < coils | holding>
+  modbus: access write < coils | holding>, address <value>
+  modbus: access write < coils | holding>, address <value>, value <value>
 
 With _<value>_ setting matches on the address or value as it is being
 accessed or written as follows::
