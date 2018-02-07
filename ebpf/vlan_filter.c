@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-#include <stdint.h>
 #include <stddef.h>
 #include <linux/bpf.h>
 
@@ -24,7 +23,7 @@
 #define LINUX_VERSION_CODE 263682
 
 int SEC("filter") hashfilter(struct __sk_buff *skb) {
-    uint16_t vlan_id = skb->vlan_tci & 0x0fff;
+    __u16 vlan_id = skb->vlan_tci & 0x0fff;
     /* accept VLAN 2 and 4 and drop the rest */
     switch (vlan_id) {
         case 2:
@@ -38,4 +37,4 @@ int SEC("filter") hashfilter(struct __sk_buff *skb) {
 
 char __license[] SEC("license") = "GPL";
 
-uint32_t __version SEC("version") = LINUX_VERSION_CODE;
+__u32 __version SEC("version") = LINUX_VERSION_CODE;

@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-#include <stdint.h>
 #include <stddef.h>
 #include <linux/bpf.h>
 
@@ -51,9 +50,9 @@ struct flowv6_keys {
 } __attribute__((__aligned__(8)));
 
 struct pair {
-    uint64_t time;
-    uint64_t packets;
-    uint64_t bytes;
+    __u64 time;
+    __u64 packets;
+    __u64 bytes;
 } __attribute__((__aligned__(8)));
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
@@ -77,10 +76,10 @@ struct bpf_map_def SEC("maps") flow_table_v6 = {
  */
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
 {
-    uint32_t nhoff, verlen;
+    __u32 nhoff, verlen;
     struct flowv4_keys tuple;
     struct pair *value;
-    uint16_t port;
+    __u16 port;
 
     nhoff = skb->cb[0];
 
@@ -107,8 +106,8 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
     {
-        uint16_t sp = tuple.port16[0];
-        //uint16_t dp = tuple.port16[1];
+        __u16 sp = tuple.port16[0];
+        //__u16 dp = tuple.port16[1];
         char fmt[] = "Parsed SSH flow: %u %d -> %u\n";
         bpf_trace_printk(fmt, sizeof(fmt), tuple.src, sp, tuple.dst);
     }
@@ -118,8 +117,8 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
     if (value) {
 #if 0
         {
-            uint16_t sp = tuple.port16[0];
-            //uint16_t dp = tuple.port16[1];
+            __u16 sp = tuple.port16[0];
+            //__u16 dp = tuple.port16[1];
             char bfmt[] = "Found flow: %u %d -> %u\n";
             bpf_trace_printk(bfmt, sizeof(bfmt), tuple.src, sp, tuple.dst);
         }
@@ -139,11 +138,11 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
  */
 static __always_inline int ipv6_filter(struct __sk_buff *skb)
 {
-    uint32_t nhoff;
-    uint8_t nhdr;
+    __u32 nhoff;
+    __u8 nhdr;
     struct flowv6_keys tuple;
     struct pair *value;
-    uint16_t port;
+    __u16 port;
 
     nhoff = skb->cb[0];
 
@@ -223,4 +222,4 @@ int SEC("filter") hashfilter(struct __sk_buff *skb) {
 
 char __license[] SEC("license") = "GPL";
 
-uint32_t __version SEC("version") = LINUX_VERSION_CODE;
+__u32 __version SEC("version") = LINUX_VERSION_CODE;

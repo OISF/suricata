@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-#include <stdint.h>
 #include <stddef.h>
 #include <linux/bpf.h>
 
@@ -36,8 +35,8 @@
 
 static __always_inline int ipv4_hash(struct __sk_buff *skb)
 {
-    uint32_t nhoff;
-    uint32_t src, dst;
+    __u32 nhoff;
+    __u32 src, dst;
 
     nhoff = skb->cb[0];
     src = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
@@ -54,8 +53,8 @@ static __always_inline int ipv4_hash(struct __sk_buff *skb)
 
 static __always_inline int ipv6_hash(struct __sk_buff *skb)
 {
-    uint32_t nhoff;
-    uint32_t src, dst, hash;
+    __u32 nhoff;
+    __u32 src, dst, hash;
 
     nhoff = skb->cb[0];
     hash = 0;
@@ -107,4 +106,4 @@ char __license[] __section("license") = "GPL";
 
 /* libbpf needs version section to check sync of eBPF code and kernel
  * but socket filter don't need it */
-uint32_t __version __section("version") = LINUX_VERSION_CODE;
+__u32 __version __section("version") = LINUX_VERSION_CODE;
