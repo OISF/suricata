@@ -42,6 +42,7 @@ TmEcode UnixSocketHostbitList(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data);
 TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data);
+TmEcode UnixSocketIpReputationAdd(json_t *cmd, json_t* answer, void *data);
 #endif
 
 #endif /* __RUNMODE_UNIX_SOCKET_H__ */
