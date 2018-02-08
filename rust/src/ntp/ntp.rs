@@ -45,9 +45,6 @@ pub struct NTPState {
     /// List of transactions for this session
     transactions: Vec<NTPTransaction>,
 
-    /// Detection engine states counter
-    de_state_count: u64,
-
     /// Events counter
     events: u16,
 
@@ -78,7 +75,6 @@ impl NTPState {
     pub fn new() -> NTPState {
         NTPState{
             transactions: Vec::new(),
-            de_state_count: 0,
             events: 0,
             tx_id: 0,
         }
@@ -284,13 +280,10 @@ pub extern "C" fn rs_ntp_tx_get_logged(_state: &mut NTPState,
 
 #[no_mangle]
 pub extern "C" fn rs_ntp_state_set_tx_detect_state(
-    state: *mut libc::c_void,
     tx: *mut libc::c_void,
     de_state: &mut core::DetectEngineState) -> libc::c_int
 {
-    let state = cast_pointer!(state,NTPState);
     let tx = cast_pointer!(tx,NTPTransaction);
-    state.de_state_count += 1;
     tx.de_state = Some(de_state);
     0
 }
@@ -403,7 +396,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         set_tx_logged     : None,
         get_de_state      : rs_ntp_state_get_tx_detect_state,
         set_de_state      : rs_ntp_state_set_tx_detect_state,
-        has_de_state      : None,
         has_events        : Some(rs_ntp_state_has_events),
         get_events        : Some(rs_ntp_state_get_events),
         get_eventinfo     : Some(rs_ntp_state_get_event_info),
