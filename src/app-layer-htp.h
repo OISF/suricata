@@ -216,6 +216,8 @@ typedef struct HtpTxUserData_ {
     uint8_t request_body_type;
 
     DetectEngineState *de_state;
+
+    bool use_stream_depth;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
@@ -259,6 +261,7 @@ void AppLayerHtpEnableRequestBodyCallback(void);
 void AppLayerHtpEnableResponseBodyCallback(void);
 void AppLayerHtpNeedFileInspection(void);
 void AppLayerHtpPrintStats(void);
+void AppLayerHtpUseStreamDepth(htp_tx_t *tx);
 
 void HTPConfigure(void);
 

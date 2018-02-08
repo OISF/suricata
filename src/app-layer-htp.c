@@ -465,6 +465,14 @@ void AppLayerHtpNeedFileInspection(void)
     SCReturn;
 }
 
+void AppLayerHtpUseStreamDepth(htp_tx_t *tx)
+{
+    HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+    if (tx_ud) {
+        tx_ud->use_stream_depth = TRUE;
+    }
+}
+
 /* below error messages updated up to libhtp 0.5.7 (git 379632278b38b9a792183694a4febb9e0dbd1e7a) */
 struct {
     const char *msg;
@@ -1715,7 +1723,9 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->request.body_limit %u", hstate->cfg->request.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)
+    if ((hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit) ||
+        (tx_ud->use_stream_depth && tx_ud->request_body.content_len_so_far < FileReassemblyDepth()) ||
+        (tx_ud->use_stream_depth && FileReassemblyDepth() == 0))
     {
         uint32_t len = (uint32_t)d->len;
 
@@ -1807,7 +1817,10 @@ static int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->cfg->response.body_limit %u", hstate->cfg->response.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)
+    if ((hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit) ||
+        (tx_ud->use_stream_depth && tx_ud->response_body.content_len_so_far < FileReassemblyDepth()) ||
+        (tx_ud->use_stream_depth && FileReassemblyDepth() == 0))
+
     {
         uint32_t len = (uint32_t)d->len;
 
