@@ -85,6 +85,7 @@ detect-app-layer-protocol.c detect-app-layer-protocol.h \
 detect-asn1.c detect-asn1.h \
 detect-base64-data.c detect-base64-data.h \
 detect-base64-decode.c detect-base64-decode.h \
+detect-bsize.c detect-bsize.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
@@ -250,6 +251,9 @@ detect-tls.c detect-tls.h \
 detect-tls-cert-validity.c detect-tls-cert-validity.h \
 detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
+detect-transform-compress-whitespace.c detect-transform-compress-whitespace.h \
+detect-transform-strip-whitespace.c detect-transform-strip-whitespace.h \
+detect-transform-sha256.c detect-transform-sha256.h \
 detect-ttl.c detect-ttl.h \
 detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \

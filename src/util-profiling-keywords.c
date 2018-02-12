@@ -158,7 +158,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
     if (profiling_keyword_enabled == 0)
         return;
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = de_ctx->buffer_type_id;
     gettimeofday(&tval, NULL);
     tms = SCLocalTime(tval.tv_sec, &local_tm);
 
@@ -198,7 +198,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
             if (i < DETECT_SM_LIST_DYNAMIC_START) {
                 name = DetectSigmatchListEnumToString(i);
             } else {
-                name = DetectBufferTypeGetNameById(i);
+                name = DetectBufferTypeGetNameById(de_ctx, i);
             }
 
             DoDump(de_ctx->profile_keyword_ctx_per_list[i], fp, name);
@@ -282,7 +282,7 @@ void SCProfilingKeywordDestroyCtx(DetectEngineCtx *de_ctx)
 
         DetroyCtx(de_ctx->profile_keyword_ctx);
 
-        const int nlists = DetectBufferTypeMaxId();
+        const int nlists = de_ctx->buffer_type_id;
         int i;
         for (i = 0; i < nlists; i++) {
             DetroyCtx(de_ctx->profile_keyword_ctx_per_list[i]);
@@ -302,7 +302,7 @@ void SCProfilingKeywordThreadSetup(SCProfileKeywordDetectCtx *ctx, DetectEngineT
         det_ctx->keyword_perf_data = a;
     }
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = det_ctx->de_ctx->buffer_type_id;
     det_ctx->keyword_perf_data_per_list = SCCalloc(nlists, sizeof(SCProfileKeywordData *));
     BUG_ON(det_ctx->keyword_perf_data_per_list == NULL);
 
@@ -334,7 +334,7 @@ static void SCProfilingKeywordThreadMerge(DetectEngineCtx *de_ctx, DetectEngineT
             de_ctx->profile_keyword_ctx->data[i].max = det_ctx->keyword_perf_data[i].max;
     }
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = det_ctx->de_ctx->buffer_type_id;
     int j;
     for (j = 0; j < nlists; j++) {
         for (i = 0; i < DETECT_TBLSIZE; i++) {
@@ -360,7 +360,7 @@ void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *det_ctx)
     SCFree(det_ctx->keyword_perf_data);
     det_ctx->keyword_perf_data = NULL;
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = det_ctx->de_ctx->buffer_type_id;
     int i;
     for (i = 0; i < nlists; i++) {
         SCFree(det_ctx->keyword_perf_data_per_list[i]);
@@ -380,7 +380,7 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
     if (profiling_keyword_enabled == 0)
         return;
 
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = de_ctx->buffer_type_id;
 
     de_ctx->profile_keyword_ctx = SCProfilingKeywordInitCtx();
     BUG_ON(de_ctx->profile_keyword_ctx == NULL);

@@ -83,11 +83,12 @@ static void PrefilterTxSshRequestProtocol(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshRequestProtocolRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshRequestProtocolRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshRequestProtocol,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshRequestProtocol,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -123,11 +124,12 @@ static void PrefilterTxSshResponseProtocol(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxSshResponseProtocolRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxSshResponseProtocolRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxSshResponseProtocol,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSshResponseProtocol,
         ALPROTO_SSH, SSH_STATE_BANNER_DONE,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -159,7 +161,7 @@ static int InspectEngineSshProtocol(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

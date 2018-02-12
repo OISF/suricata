@@ -81,11 +81,12 @@ static void PrefilterTxUri(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxUriRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxUri,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxUri,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
         mpm_ctx, NULL, "http_uri");
 }
@@ -134,7 +135,7 @@ int DetectEngineInspectHttpUri(ThreadVars *tv,
                                           f,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

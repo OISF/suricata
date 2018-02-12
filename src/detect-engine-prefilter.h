@@ -35,15 +35,15 @@ typedef struct PrefilterStore_ {
 void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
         const uint8_t flags);
 
-int PrefilterAppendEngine(SigGroupHead *sgh,
+int PrefilterAppendEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
-int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
+int PrefilterAppendPayloadEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
-int PrefilterAppendTxEngine(SigGroupHead *sgh,
+int PrefilterAppendTxEngine(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
@@ -63,10 +63,17 @@ void DetectRunPrefilterTx(DetectEngineThreadCtx *det_ctx,
 void PrefilterFreeEnginesList(PrefilterEngineList *list);
 
 void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
-void PrefilterCleanupRuleGroup(SigGroupHead *sgh);
+void PrefilterCleanupRuleGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #ifdef PROFILING
 const char *PrefilterStoreGetName(const uint32_t id);
 #endif
+
+void PrefilterInit(DetectEngineCtx *de_ctx);
+void PrefilterDeinit(DetectEngineCtx *de_ctx);
+
+int PrefilterGenericMpmRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx,
+        const DetectMpmAppLayerRegistery *mpm_reg, int list_id);
 
 #endif

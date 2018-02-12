@@ -27,6 +27,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#include "detect-engine.h"
 #include "app-layer-htp.h"
 
 #include "util-file-decompression.h"
@@ -69,7 +70,7 @@ int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len)
  */
 int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
                          DetectEngineThreadCtx *det_ctx,
-                         int index,
+                         InspectionBuffer *out_buffer,
                          int swf_type,
                          uint32_t decompress_depth,
                          uint32_t compress_depth)
@@ -129,60 +130,51 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
     uint32_t decompressed_data_len = (decompress_depth == 0) ? decompressed_swf_len : decompress_depth;
     decompressed_data_len += 8;
 
-    if (det_ctx->hsbd[index].decompressed_buffer_len == 0 ||
-        det_ctx->hsbd[index].decompressed_buffer_len < decompressed_data_len) {
-        void *ptmp = NULL;
-        ptmp = SCRealloc(det_ctx->hsbd[index].decompressed_buffer,
-                         decompressed_data_len);
-        if (ptmp == NULL) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
-            return 0;
-        }
-        det_ctx->hsbd[index].decompressed_buffer = ptmp;
+    /* make sure the inspection buffer has enough space */
+    InspectionBufferCheckAndExpand(out_buffer, decompressed_data_len);
+    if (out_buffer->size < decompressed_data_len) {
+        DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
+        return 0;
     }
-
-    det_ctx->hsbd[index].decompressed_buffer_len = decompressed_data_len;
-    memset(det_ctx->hsbd[index].decompressed_buffer, 0x00,
-           det_ctx->hsbd[index].decompressed_buffer_len);
+    out_buffer->len = decompressed_data_len;
 
     /*
      * FWS format
      * | 4 bytes         | 4 bytes    | n bytes |
      * | 'FWS' + version | script len | data    |
      */
-    det_ctx->hsbd[index].decompressed_buffer[0] = 'F';
-    det_ctx->hsbd[index].decompressed_buffer[1] = 'W';
-    det_ctx->hsbd[index].decompressed_buffer[2] = 'S';
-    det_ctx->hsbd[index].decompressed_buffer[3] = swf_version;
-    memcpy(det_ctx->hsbd[index].decompressed_buffer  + 4, &decompressed_swf_len, 4);
+    out_buffer->buf[0] = 'F';
+    out_buffer->buf[1] = 'W';
+    out_buffer->buf[2] = 'S';
+    out_buffer->buf[3] = swf_version;
+    memcpy(out_buffer->buf + 4, &decompressed_swf_len, 4);
+    memset(out_buffer->buf + 8, 0, decompressed_data_len - 8);
 
     if ((swf_type == HTTP_SWF_COMPRESSION_ZLIB || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
-        compression_type == FILE_SWF_ZLIB_COMPRESSION)
+            compression_type == FILE_SWF_ZLIB_COMPRESSION)
     {
         /* the first 8 bytes represents the fws header, see 'FWS format' above.
          * data will start from 8th bytes
          */
         r = FileSwfZlibDecompression(det_ctx,
                                      (uint8_t *)buffer + offset, compressed_data_len,
-                                     det_ctx->hsbd[index].decompressed_buffer + 8,
-                                     det_ctx->hsbd[index].decompressed_buffer_len - 8);
+                                     out_buffer->buf + 8, out_buffer->len - 8);
         if (r == 0)
             goto error;
 
     } else if ((swf_type == HTTP_SWF_COMPRESSION_LZMA || swf_type == HTTP_SWF_COMPRESSION_BOTH) &&
                compression_type == FILE_SWF_LZMA_COMPRESSION)
     {
+#ifndef HAVE_LIBLZMA
+        goto error;
+#else
         /* we need to setup the lzma header */
         /*
          * | 5 bytes         | 8 bytes             | n bytes         |
          * | LZMA properties | Uncompressed length | Compressed data |
          */
         compressed_data_len += 13;
-        uint8_t *compressed_data = SCMalloc(compressed_data_len);
-        if (compressed_data == NULL) {
-            DetectEngineSetEvent(det_ctx, FILE_DECODER_EVENT_NO_MEM);
-            goto error;
-        }
+        uint8_t compressed_data[compressed_data_len];
         /* put lzma properties */
         memcpy(compressed_data, buffer + 12, 5);
         /* put lzma end marker */
@@ -195,20 +187,21 @@ int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
          */
         r = FileSwfLzmaDecompression(det_ctx,
                                      compressed_data, compressed_data_len,
-                                     det_ctx->hsbd[index].decompressed_buffer + 8,
-                                     det_ctx->hsbd[index].decompressed_buffer_len - 8);
-        SCFree(compressed_data);
+                                     out_buffer->buf + 8, out_buffer->len - 8);
         if (r == 0)
             goto error;
+#endif
     } else {
         goto error;
     }
 
+    /* all went well so switch the buffer's inspect pointer/size
+     * to use the new data. */
+    out_buffer->inspect = out_buffer->buf;
+    out_buffer->inspect_len = out_buffer->len;
+
     return 1;
 
 error:
-    det_ctx->hsbd[index].decompressed_buffer_len = 0;
-    memset(det_ctx->hsbd[index].decompressed_buffer, 0x00,
-           det_ctx->hsbd[index].decompressed_buffer_len);
     return 0;
 }

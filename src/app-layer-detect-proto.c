@@ -1468,7 +1468,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
         }
         temp_dp = temp_dp->next;
     }
-    DetectPortCleanupList(head);
+    DetectPortCleanupList(NULL,head);
 
     SCReturn;
 }

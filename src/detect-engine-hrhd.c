@@ -91,16 +91,17 @@ static void PrefilterTxRequestHeadersRaw(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxRequestHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxRequestHeadersRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS+1, /* inspect when headers complete */
         mpm_ctx, NULL, "http_raw_header (request)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxRequestHeadersRaw,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER+1, /* inspect when trailer complete */
         mpm_ctx, NULL, "http_raw_header (request)");
 }
@@ -135,16 +136,17 @@ static void PrefilterTxResponseHeadersRaw(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxResponseHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxResponseHeadersRawRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS+1, /* inspect when headers complete */
         mpm_ctx, NULL, "http_raw_header (response)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxResponseHeadersRaw,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER+1, /* inspect when trailer complete */
         mpm_ctx, NULL, "http_raw_header (response)");
 }
@@ -199,7 +201,7 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
                                           f,
                                           headers_raw,
                                           headers_raw_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

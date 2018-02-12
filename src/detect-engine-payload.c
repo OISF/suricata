@@ -103,9 +103,11 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterPktStreamRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendPayloadEngine(sgh, PrefilterPktStream, mpm_ctx, NULL, "stream");
+    return PrefilterAppendPayloadEngine(de_ctx, sgh,
+            PrefilterPktStream, mpm_ctx, NULL, "stream");
 }
 
 static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
@@ -122,9 +124,11 @@ static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
             p->payload, p->payload_len);
 }
 
-int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterPktPayloadRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendPayloadEngine(sgh, PrefilterPktPayload, mpm_ctx, NULL, "payload");
+    return PrefilterAppendPayloadEngine(de_ctx, sgh,
+            PrefilterPktPayload, mpm_ctx, NULL, "payload");
 }
 
 
@@ -159,7 +163,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->replist = NULL;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_arrays[DETECT_SM_LIST_PMATCH],
-                                      f, p->payload, p->payload_len, 0,
+                                      f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
                                       DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
     if (r == 1) {
         SCReturnInt(1);
@@ -201,7 +205,7 @@ static int DetectEngineInspectStreamUDPPayload(DetectEngineCtx *de_ctx,
     det_ctx->replist = NULL;
 
     r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-            f, p->payload, p->payload_len, 0,
+            f, p->payload, p->payload_len, 0, DETECT_CI_FLAGS_SINGLE,
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
     if (r == 1) {
         SCReturnInt(1);
@@ -231,7 +235,7 @@ static int StreamContentInspectFunc(void *cb_data, const uint8_t *data, const ui
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->s->sm_arrays[DETECT_SM_LIST_PMATCH],
-            smd->f, (uint8_t *)data, data_len, 0,
+            smd->f, (uint8_t *)data, data_len, 0, 0, //TODO
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
     if (r == 1) {
         SCReturnInt(1);
@@ -289,7 +293,7 @@ static int StreamContentInspectEngineFunc(void *cb_data, const uint8_t *data, co
 
     r = DetectEngineContentInspection(smd->de_ctx, smd->det_ctx,
             smd->s, smd->smd,
-            smd->f, (uint8_t *)data, data_len, 0,
+            smd->f, (uint8_t *)data, data_len, 0, 0, // TODO
             DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
     if (r == 1) {
         SCReturnInt(1);

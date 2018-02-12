@@ -1033,14 +1033,19 @@ static void DetectRunCleanup(DetectEngineThreadCtx *det_ctx,
     PacketPatternCleanup(det_ctx);
 
     if (pflow != NULL) {
+        // TODO clean this up
+        const int nlists = det_ctx->de_ctx->buffer_type_id;
+        for (int i = 0; i < nlists; i++) {
+            InspectionBuffer *buffer = &det_ctx->inspect_buffers[i];
+            buffer->inspect = NULL;
+        }
+
         /* update inspected tracker for raw reassembly */
         if (p->proto == IPPROTO_TCP && pflow->protoctx != NULL) {
             StreamReassembleRawUpdateProgress(pflow->protoctx, p,
                     det_ctx->raw_stream_progress);
 
             DetectEngineCleanHCBDBuffers(det_ctx);
-            DetectEngineCleanHSBDBuffers(det_ctx);
-            DetectEngineCleanFiledataBuffers(det_ctx);
         }
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
@@ -1206,8 +1211,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
                 continue;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                match = engine->Callback(tv, de_ctx, det_ctx,
-                        s, engine->smd, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                if (engine->Callback) {
+                    match = engine->Callback(tv, de_ctx, det_ctx,
+                            s, engine->smd, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                } else {
+                    BUG_ON(engine->v2.Callback == NULL);
+                    match = engine->v2.Callback(de_ctx, det_ctx, engine,
+                            s, f, flow_flags, alstate, tx->tx_ptr, tx->tx_id);
+                }
                 TRACE_SID_TXS(s->id, tx, "engine %p match %d", engine, match);
                 if (engine->stream) {
                     can->stream_stored = true;

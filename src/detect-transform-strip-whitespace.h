@@ -15,30 +15,16 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ * \file
  *
- * \author Giuseppe Longo <giuseppe@glongo.it>
- *
- *
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_FILE_DECOMPRESSION_H__
-#define __UTIL_FILE_DECOMPRESSION_H__
+#ifndef __DETECT_TRANSFORM_STRIPWHITESPACE_H__
+#define __DETECT_TRANSFORM_STRIPWHITESPACE_H__
 
-#include "detect.h"
+/* prototypes */
+void DetectTransformStripWhitespaceRegister (void);
 
-enum {
-    FILE_IS_NOT_SWF = 0,
-    FILE_SWF_NO_COMPRESSION,
-    FILE_SWF_ZLIB_COMPRESSION,
-    FILE_SWF_LZMA_COMPRESSION,
-};
-
-int FileIsSwfFile(const uint8_t *buffer, uint32_t buffer_len);
-int FileSwfDecompression(const uint8_t *buffer, uint32_t buffer_len,
-                         DetectEngineThreadCtx *det_ctx,
-                         InspectionBuffer *out_buffer,
-                         int swf_type,
-                         uint32_t decompress_depth, uint32_t compress_depth);
-
-#endif /* __UTIL_FILE_DECOMPRESSION_H__ */
+#endif /* __DETECT_TRANSFORM_STRIPWHITESPACE_H__ */

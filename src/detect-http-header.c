@@ -215,16 +215,17 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeadersRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeaders,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_header (request)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestTrailers,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestTrailers,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER,
         mpm_ctx, NULL, "http_header (request trailer)");
 }
@@ -295,16 +296,17 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeadersRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeaders,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, "http_header (response)");
     if (r != 0)
         return r;
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseTrailers,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseTrailers,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER,
         mpm_ctx, NULL, "http_header (response trailer)");
 }
@@ -329,7 +331,7 @@ static int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                           f,
                                           buffer,
                                           buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

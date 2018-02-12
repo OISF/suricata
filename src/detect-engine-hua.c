@@ -97,11 +97,12 @@ static void PrefilterTxUA(DetectEngineThreadCtx *det_ctx, const void *pectx,
     }
 }
 
-int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxUARegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxUA,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxUA,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, "http_user_agent");
 }
@@ -139,7 +140,7 @@ int DetectEngineInspectHttpUA(ThreadVars *tv,
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),
                                           bstr_len(h->value),
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
