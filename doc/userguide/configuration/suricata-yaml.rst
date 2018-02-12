@@ -1814,6 +1814,30 @@ address, you should enter 'any'.
     ORACLE_PORTS: 1521
     SSH_PORTS: 22
 
+Network information
+~~~~~~~~~~~~~~~~~~~
+
+Networks can be structured with names which means that a label
+can be added either for a single or a group of hosts or
+even for the entire network.
+The structure is defined using JSON syntax in the file below:
+
+::
+
+ network-info: /etc/suricata/network.json
+
+The following is an example of a network structure:
+
+::
+
+ [{"name": "Data Center", "children": [{"name":"Italy", "addresses":["192.168.1.0/24", "192.168.2.0/24"],
+   "children":[{"name":"Suricata", "addresses":["192.168.1.3"]}]}]}]
+
+The JSON structure is made up of three labels:
+* name: it represents the label
+* addresses: the IP addresses which belogs to that label, multiple address can be specified and this field is not mandatory
+* children: sub-networks can be specified in this field. It is not mandatory.
+
 .. _host-os-policy:
 
 Host-os-policy

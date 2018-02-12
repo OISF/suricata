@@ -5,7 +5,8 @@ Introduction
 ------------
 
 Multi tenancy support allows for different rule sets with different
-rule vars.
+rule vars and network information, specifying a different network
+information file for each tenant.
 
 YAML
 ----
@@ -91,6 +92,10 @@ configuration:
       SHELLCODE_PORTS: "!80"
 
       ...
+
+  # Information about your networks can be defined in the file
+  # below using a JSON syntax and added when an event is generated.
+  #network-info: /etc/suricata/network.json
 
 Unix Socket
 -----------
