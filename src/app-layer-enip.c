@@ -128,11 +128,6 @@ static AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id)
     return NULL;
 }
 
-static int ENIPHasEvents(void *state)
-{
-    return (((ENIPState *) state)->events > 0);
-}
-
 static int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, enip_decoder_event_table);
@@ -433,7 +428,6 @@ void RegisterENIPUDPParsers(void)
                 ENIPStateAlloc, ENIPStateFree);
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPHasEvents);
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_ENIP,
                 ENIPGetTxDetectState, ENIPSetTxDetectState);
@@ -513,7 +507,6 @@ void RegisterENIPTCPParsers(void)
                 ENIPStateAlloc, ENIPStateFree);
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPHasEvents);
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPGetTxDetectState, ENIPSetTxDetectState);

@@ -1976,14 +1976,6 @@ pub extern "C" fn rs_nfs_tx_get_detect_flags(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_state_has_events(state: &mut NFSState) -> u8 {
-    if state.events > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_nfs_state_get_events(state: &mut NFSState,
                                           tx_id: libc::uint64_t)
                                           -> *mut AppLayerDecoderEvents

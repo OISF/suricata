@@ -214,11 +214,6 @@ static AppLayerDecoderEvents *ModbusGetEvents(void *state, uint64_t id)
     return NULL;
 }
 
-static int ModbusHasEvents(void *state)
-{
-    return (((ModbusState *) state)->events > 0);
-}
-
 static int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction)
 {
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
@@ -1526,7 +1521,6 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateAlloc, ModbusStateFree);
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS,
                                                ModbusGetTxDetectState, ModbusSetTxDetectState);
 

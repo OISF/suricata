@@ -286,7 +286,6 @@ void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
 void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
-int DNSHasEvents(void *state);
 
 int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
 int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);

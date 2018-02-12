@@ -77,8 +77,6 @@ pub struct RustParser {
     /// Function called to set a detection state
     pub set_de_state:      SetDetectStateFn,
 
-    /// Function to check if there are events
-    pub has_events:        Option<HasEventsFn>,
     /// Function to get events
     pub get_events:        Option<GetEventsFn>,
     /// Function to get an event description
@@ -135,7 +133,6 @@ pub type GetDetectStateFn   = extern "C" fn (*mut c_void) -> *mut DetectEngineSt
 pub type SetDetectStateFn   = extern "C" fn (*mut c_void, &mut DetectEngineState) -> c_int;
 pub type GetEventInfoFn     = extern "C" fn (*const c_char, *mut c_int, *mut AppLayerEventType) -> c_int;
 pub type GetEventsFn        = extern "C" fn (*mut c_void, u64) -> *mut AppLayerDecoderEvents;
-pub type HasEventsFn        = extern "C" fn (*mut c_void) -> c_int;
 pub type GetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void) -> u32;
 pub type SetTxLoggedFn      = extern "C" fn (*mut c_void, *mut c_void, u32);
 pub type LocalStorageNewFn  = extern "C" fn () -> *mut c_void;

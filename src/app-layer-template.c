@@ -189,12 +189,6 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *state, uint64_t tx_id)
     return NULL;
 }
 
-static int TemplateHasEvents(void *state)
-{
-    TemplateState *echo = state;
-    return echo->events;
-}
-
 /**
  * \brief Probe the input to see if it looks like echo.
  *
@@ -534,10 +528,6 @@ void RegisterTemplateParsers(void)
             ALPROTO_TEMPLATE, TemplateGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTx);
-
-        /* Application layer event handling. */
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
-            TemplateHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,

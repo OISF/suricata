@@ -257,12 +257,6 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
     SCLogDebug("couldn't set event %u", e);
 }
 
-static int HTPHasEvents(void *state)
-{
-    HtpState *htp_state = (HtpState *)state;
-    return (htp_state->events > 0);
-}
-
 static AppLayerDecoderEvents *HTPGetEvents(void *state, uint64_t tx_id)
 {
     SCLogDebug("get HTTP events for TX %"PRIu64, tx_id);
@@ -2857,7 +2851,6 @@ void RegisterHTPParsers(void)
                                           HTPStateSetTxLogged);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_HTTP,
                                                                HTPStateGetAlstateProgressCompletionStatus);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPHasEvents);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPGetEvents);
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
 
