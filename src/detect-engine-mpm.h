@@ -33,6 +33,7 @@
 #include "stream.h"
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
+void DetectMpmSetupAppMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx);
 void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx);
 int DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
@@ -60,7 +61,7 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
-void RetrieveFPForSig(Signature *s);
+void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s);
 
 int MpmStoreInit(DetectEngineCtx *);
 void MpmStoreFree(DetectEngineCtx *);
@@ -88,7 +89,19 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
  */
 void DetectAppLayerMpmRegister(const char *name,
         int direction, int priority,
-        int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx));
+void DetectAppLayerMpmRegister2(const char *name,
+        int direction, int priority,
+        int (*PrefilterRegister)(DetectEngineCtx *de_ctx,
+            SigGroupHead *sgh, MpmCtx *mpm_ctx,
+            const DetectMpmAppLayerRegistery *mpm_reg, int list_id),
+        InspectionBufferGetDataPtr GetData,
+        AppProto alproto, int tx_min_progress);
+void DetectAppLayerMpmRegisterByParentId(
+        DetectEngineCtx *de_ctx,
+        const int id, const int parent_id,
+        DetectEngineTransforms *transforms);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

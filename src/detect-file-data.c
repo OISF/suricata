@@ -54,8 +54,6 @@ static void DetectFiledataRegisterTests(void);
 static void DetectFiledataSetupCallback(Signature *s);
 static int g_file_data_buffer_id = 0;
 
-static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
 /**
  * \brief Registration function for keyword: file_data
  */
@@ -70,18 +68,20 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOSERVER, 2,
-            PrefilterTxSmtpFiledataRegister);
-    DetectAppLayerMpmRegister("file_data", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxHttpResponseBodyRegister);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMTP, 0);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister,
+            HttpServerBodyGetDataCallback,
+            ALPROTO_HTTP, HTP_RESPONSE_BODY);
 
-    DetectAppLayerInspectEngineRegister("file_data",
+    DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
-            DetectEngineInspectFiledata);
-    DetectAppLayerInspectEngineRegister("file_data",
+            DetectEngineInspectBufferGeneric, HttpServerBodyGetDataCallback);
+    DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_SMTP, SIG_FLAG_TOSERVER, 0,
-            DetectEngineInspectFiledata);
-
+            DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
 
@@ -89,15 +89,6 @@ void DetectFiledataRegister(void)
             "http response body or smtp attachments data");
 
     g_file_data_buffer_id = DetectBufferTypeGetByName("file_data");
-}
-
-static int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(sgh, PrefilterTxFiledata,
-        ALPROTO_SMTP, 0,
-        mpm_ctx, NULL, "file_data (smtp)");
 }
 
 #define FILEDATA_CONTENT_LIMIT 100000
@@ -161,7 +152,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
         return -1;
     }
 
-    s->init_data->list = DetectBufferTypeGetByName("file_data");
+    DetectBufferSetActiveList(s, DetectBufferTypeGetByName("file_data"));
 
     SetupDetectEngineConfig(de_ctx);
     return 0;

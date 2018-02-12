@@ -25,7 +25,8 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxUARegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpUA(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,

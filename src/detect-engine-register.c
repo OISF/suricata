@@ -137,6 +137,7 @@
 #include "detect-dce-opnum.h"
 #include "detect-dce-stub-data.h"
 #include "detect-urilen.h"
+#include "detect-bsize.h"
 #include "detect-detection-filter.h"
 #include "detect-http-client-body.h"
 #include "detect-http-server-body.h"
@@ -178,6 +179,10 @@
 #include "detect-bypass.h"
 #include "detect-ftpdata.h"
 #include "detect-engine-content-inspection.h"
+
+#include "detect-transform-compress-whitespace.h"
+#include "detect-transform-strip-whitespace.h"
+#include "detect-transform-sha256.h"
 
 #include "util-rule-vars.h"
 
@@ -458,6 +463,7 @@ void SigTableSetup(void)
     DetectNfsProcedureRegister();
     DetectNfsVersionRegister();
     DetectUrilenRegister();
+    DetectBsizeRegister();
     DetectDetectionFilterRegister();
     DetectAsn1Register();
     DetectSshProtocolRegister();
@@ -479,8 +485,12 @@ void SigTableSetup(void)
     DetectTemplateBufferRegister();
     DetectBypassRegister();
 
+    DetectTransformCompressWhitespaceRegister();
+    DetectTransformStripWhitespaceRegister();
+    DetectTransformSha256Register();
+
     /* close keyword registration */
-    DetectBufferTypeFinalizeRegistration();
+    DetectBufferTypeCloseRegistration();
 }
 
 void SigTableRegisterTests(void)

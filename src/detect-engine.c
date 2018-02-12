@@ -32,6 +32,7 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
 #include "detect-parse.h"
@@ -40,6 +41,7 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
+#include "detect-engine-prefilter.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
@@ -55,6 +57,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-content-inspection.h"
 
 #include "detect-engine-loader.h"
 
@@ -121,13 +124,19 @@ SCEnumCharMap det_ctx_event_table[ ] = {
     { NULL,                         -1 },
 };
 
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
 void DetectAppLayerInspectEngineRegister(const char *name,
         AppProto alproto, uint32_t dir,
         int progress, InspectEngineFuncPtr Callback)
 {
     DetectBufferTypeRegister(name);
-    int sm_list = DetectBufferTypeGetByName(name);
-    BUG_ON(sm_list == -1);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+            "failed to register inspect engine %s", name);
+    }
 
     if ((alproto >= ALPROTO_FAILED) ||
         (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
@@ -166,6 +175,133 @@ void DetectAppLayerInspectEngineRegister(const char *name,
         }
 
         t->next = new_engine;
+    }
+}
+
+/** \brief register inspect engine at start up time
+ *
+ *  \note errors are fatal */
+void DetectAppLayerInspectEngineRegister2(const char *name,
+        AppProto alproto, uint32_t dir, int progress,
+        InspectEngineFuncPtr2 Callback2,
+        InspectionBufferGetDataPtr GetData)
+{
+    DetectBufferTypeRegister(name);
+    const int sm_list = DetectBufferTypeGetByName(name);
+    if (sm_list == -1) {
+        FatalError(SC_ERR_INITIALIZATION,
+            "failed to register inspect engine %s", name);
+    }
+
+    if ((alproto >= ALPROTO_FAILED) ||
+        (!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT)) ||
+        (sm_list < DETECT_SM_LIST_MATCH) || (sm_list >= SHRT_MAX) ||
+        (progress < 0 || progress >= SHRT_MAX) ||
+        (Callback2 == NULL))
+    {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments");
+        BUG_ON(1);
+    } else if (Callback2 == DetectEngineInspectBufferGeneric && GetData == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments: must register "
+                "GetData with DetectEngineInspectBufferGeneric");
+        BUG_ON(1);
+    }
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEngineAppInspectionEngine *new_engine = SCMalloc(sizeof(DetectEngineAppInspectionEngine));
+    if (unlikely(new_engine == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(new_engine, 0, sizeof(*new_engine));
+    new_engine->alproto = alproto;
+    new_engine->dir = direction;
+    new_engine->sm_list = sm_list;
+    new_engine->progress = progress;
+    new_engine->v2.Callback = Callback2;
+    new_engine->v2.GetData = GetData;
+
+    if (g_app_inspect_engines == NULL) {
+        g_app_inspect_engines = new_engine;
+    } else {
+        DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = new_engine;
+    }
+}
+
+/* copy an inspect engine with transforms to a new list id. */
+static void DetectAppLayerInspectEngineCopy(
+        DetectEngineCtx *de_ctx,
+        int sm_list, int new_list,
+        const DetectEngineTransforms *transforms)
+{
+    const DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t) {
+        if (t->sm_list == sm_list) {
+            DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+            if (unlikely(new_engine == NULL)) {
+                exit(EXIT_FAILURE);
+            }
+            new_engine->alproto = t->alproto;
+            new_engine->dir = t->dir;
+            new_engine->sm_list = new_list;         /* use new list id */
+            new_engine->progress = t->progress;
+            new_engine->Callback = t->Callback;
+            new_engine->v2 = t->v2;
+            new_engine->v2.transforms = transforms; /* assign transforms */
+
+            if (de_ctx->app_inspect_engines == NULL) {
+                de_ctx->app_inspect_engines = new_engine;
+            } else {
+                DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
+                while (list->next != NULL) {
+                    list = list->next;
+                }
+
+                list->next = new_engine;
+            }
+        }
+        t = t->next;
+    }
+}
+
+/* copy inspect engines from global registrations to de_ctx list */
+static void DetectAppLayerInspectEngineCopyListToDetectCtx(DetectEngineCtx *de_ctx)
+{
+    const DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    while (t) {
+        DetectEngineAppInspectionEngine *new_engine = SCCalloc(1, sizeof(DetectEngineAppInspectionEngine));
+        if (unlikely(new_engine == NULL)) {
+            exit(EXIT_FAILURE);
+        }
+        new_engine->alproto = t->alproto;
+        new_engine->dir = t->dir;
+        new_engine->sm_list = t->sm_list;
+        new_engine->progress = t->progress;
+        new_engine->Callback = t->Callback;
+        new_engine->v2 = t->v2;
+
+        if (de_ctx->app_inspect_engines == NULL) {
+            de_ctx->app_inspect_engines = new_engine;
+        } else {
+            DetectEngineAppInspectionEngine *list = de_ctx->app_inspect_engines;
+            while (list->next != NULL) {
+                list = list->next;
+            }
+
+            list->next = new_engine;
+        }
+
+        t = t->next;
     }
 }
 
@@ -220,9 +356,9 @@ static void AppendStreamInspectEngine(Signature *s, SigMatchData *stream, int di
  *  \note for the file inspect engine, the id DE_STATE_ID_FILE_INSPECT
  *        is assigned.
  */
-int DetectEngineAppInspectionEngine2Signature(Signature *s)
+int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
@@ -239,16 +375,23 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             continue;
 
         ptrs[i] = SigMatchList2DataArray(s->init_data->smlists[i]);
+        SCLogDebug("ptrs[%d] is set", i);
     }
 
     bool head_is_mpm = false;
     uint32_t last_id = DE_STATE_FLAG_BASE;
-    DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
+    const DetectEngineAppInspectionEngine *t = de_ctx->app_inspect_engines;
     while (t != NULL) {
         bool prepend = false;
 
+        if (t->sm_list >= nlists)
+            goto next;
+
         if (ptrs[t->sm_list] == NULL)
             goto next;
+
+        SCLogDebug("ptrs[%d] is set", t->sm_list);
+
         if (t->alproto == ALPROTO_UNKNOWN) {
             /* special case, inspect engine applies to all protocols */
         } else if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
@@ -266,7 +409,7 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
             exit(EXIT_FAILURE);
         }
         if (mpm_list == t->sm_list) {
-            SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(t->sm_list));
+            SCLogDebug("%s is mpm", DetectBufferTypeGetNameById(de_ctx, t->sm_list));
             prepend = true;
             head_is_mpm = true;
             new_engine->mpm = true;
@@ -278,6 +421,10 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
         new_engine->smd = ptrs[new_engine->sm_list];
         new_engine->Callback = t->Callback;
         new_engine->progress = t->progress;
+        new_engine->v2 = t->v2;
+        SCLogDebug("sm_list %d new_engine->v2 %p/%p/%p",
+                new_engine->sm_list, new_engine->v2.Callback,
+                new_engine->v2.GetData, new_engine->v2.transforms);
 
         if (s->app_inspect == NULL) {
             s->app_inspect = new_engine;
@@ -341,10 +488,10 @@ next:
     }
 
 #ifdef DEBUG
-    DetectEngineAppInspectionEngine *iter = s->app_inspect;
+    const DetectEngineAppInspectionEngine *iter = s->app_inspect;
     while (iter) {
         SCLogDebug("%u: engine %s id %u progress %d %s", s->id,
-                DetectBufferTypeGetNameById(iter->sm_list), iter->id,
+                DetectBufferTypeGetNameById(de_ctx, iter->sm_list), iter->id,
                 iter->progress,
                 iter->sm_list == mpm_list ? "MPM":"");
         iter = iter->next;
@@ -364,12 +511,22 @@ next:
  */
 void DetectEngineAppInspectionEngineSignatureFree(Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    int nlists = 0;
+
+    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    while (ie) {
+        nlists = MAX(ie->sm_list, nlists);
+        ie = ie->next;
+    }
+    if (nlists == 0)
+        return;
+    nlists++;
+
     SigMatchData *ptrs[nlists];
     memset(&ptrs, 0, (nlists * sizeof(SigMatchData *)));
 
     /* free engines and put smd in the array */
-    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    ie = s->app_inspect;
     while (ie) {
         DetectEngineAppInspectionEngine *next = ie->next;
         BUG_ON(ptrs[ie->sm_list] != NULL && ptrs[ie->sm_list] != ie->smd);
@@ -406,17 +563,7 @@ static HashListTable *g_buffer_type_hash = NULL;
 static int g_buffer_type_id = DETECT_SM_LIST_DYNAMIC_START;
 static int g_buffer_type_reg_closed = 0;
 
-typedef struct DetectBufferType_ {
-    const char *string;
-    const char *description;
-    int id;
-    _Bool mpm;
-    _Bool packet; /**< compat to packet matches */
-    void (*SetupCallback)(Signature *);
-    _Bool (*ValidateCallback)(const Signature *, const char **sigerror);
-} DetectBufferType;
-
-static DetectBufferType **g_buffer_type_map = NULL;
+static DetectEngineTransforms no_transforms = { .transforms = { 0 }, .cnt = 0, };
 
 int DetectBufferTypeMaxId(void)
 {
@@ -429,6 +576,7 @@ static uint32_t DetectBufferTypeHashFunc(HashListTable *ht, void *data, uint16_t
     uint32_t hash = 0;
 
     hash = hashlittle_safe(map->string, strlen(map->string), 0);
+    hash += hashlittle_safe((uint8_t *)&map->transforms, sizeof(map->transforms), 0);
     hash %= ht->array_size;
 
     return hash;
@@ -441,6 +589,7 @@ static char DetectBufferTypeCompareFunc(void *data1, uint16_t len1, void *data2,
     DetectBufferType *map2 = (DetectBufferType *)data2;
 
     int r = (strcmp(map1->string, map2->string) == 0);
+    r &= (memcmp((uint8_t *)&map1->transforms, (uint8_t *)&map2->transforms, sizeof(map2->transforms)) == 0);
     return r;
 }
 
@@ -491,7 +640,7 @@ static int DetectBufferTypeAdd(const char *string)
 
 static DetectBufferType *DetectBufferTypeLookupByName(const char *string)
 {
-    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, NULL, NULL };
+    DetectBufferType map = { (char *)string, NULL, 0, 0, 0, 0, false, NULL, NULL, no_transforms };
 
     DetectBufferType *res = HashListTableLookup(g_buffer_type_hash, &map, 0);
     return res;
@@ -531,6 +680,16 @@ void DetectBufferTypeSupportsMpm(const char *name)
     SCLogDebug("%p %s -- %d supports mpm", exists, name, exists->id);
 }
 
+void DetectBufferTypeSupportsTransformations(const char *name)
+{
+    BUG_ON(g_buffer_type_reg_closed);
+    DetectBufferTypeRegister(name);
+    DetectBufferType *exists = DetectBufferTypeLookupByName(name);
+    BUG_ON(!exists);
+    exists->supports_transforms = true;
+    SCLogDebug("%p %s -- %d supports transformations", exists, name, exists->id);
+}
+
 int DetectBufferTypeGetByName(const char *name)
 {
     DetectBufferType *exists = DetectBufferTypeLookupByName(name);
@@ -540,23 +699,23 @@ int DetectBufferTypeGetByName(const char *name)
     return exists->id;
 }
 
-const char *DetectBufferTypeGetNameById(const int id)
+const char *DetectBufferTypeGetNameById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || id >= g_buffer_type_id);
-    BUG_ON(g_buffer_type_map == NULL);
+    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
+    BUG_ON(de_ctx->buffer_type_map == NULL);
 
-    if (g_buffer_type_map[id] == NULL)
+    if (de_ctx->buffer_type_map[id] == NULL)
         return NULL;
 
-    return g_buffer_type_map[id]->string;
+    return de_ctx->buffer_type_map[id]->string;
 }
 
-static const DetectBufferType *DetectBufferTypeGetById(const int id)
+static const DetectBufferType *DetectBufferTypeGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    BUG_ON(id < 0 || id >= g_buffer_type_id);
-    BUG_ON(g_buffer_type_map == NULL);
+    BUG_ON(id < 0 || (uint32_t)id >= de_ctx->buffer_type_map_elements);
+    BUG_ON(de_ctx->buffer_type_map == NULL);
 
-    return g_buffer_type_map[id];
+    return de_ctx->buffer_type_map[id];
 }
 
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
@@ -568,9 +727,9 @@ void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc)
     exists->description = desc;
 }
 
-const char *DetectBufferTypeGetDescriptionById(const int id)
+const char *DetectBufferTypeGetDescriptionById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *exists = DetectBufferTypeGetById(id);
+    const DetectBufferType *exists = DetectBufferTypeGetById(de_ctx, id);
     if (!exists) {
         return NULL;
     }
@@ -586,18 +745,18 @@ const char *DetectBufferTypeGetDescriptionByName(const char *name)
     return exists->description;
 }
 
-_Bool DetectBufferTypeSupportsPacketGetById(const int id)
+bool DetectBufferTypeSupportsPacketGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
         return FALSE;
     SCLogDebug("map %p id %d packet? %d", map, id, map->packet);
     return map->packet;
 }
 
-_Bool DetectBufferTypeSupportsMpmGetById(const int id)
+bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int id)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map == NULL)
         return FALSE;
     SCLogDebug("map %p id %d mpm? %d", map, id, map->mpm);
@@ -614,9 +773,10 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
     exists->SetupCallback = SetupCallback;
 }
 
-void DetectBufferRunSetupCallback(const int id, Signature *s)
+void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx,
+        const int id, Signature *s)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map && map->SetupCallback) {
         map->SetupCallback(s);
     }
@@ -632,37 +792,248 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
     exists->ValidateCallback = ValidateCallback;
 }
 
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, const char **sigerror)
+bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx,
+        const int id, const Signature *s, const char **sigerror)
 {
-    const DetectBufferType *map = DetectBufferTypeGetById(id);
+    const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map && map->ValidateCallback) {
         return map->ValidateCallback(s, sigerror);
     }
     return TRUE;
 }
 
-void DetectBufferTypeFinalizeRegistration(void)
+int DetectBufferSetActiveList(Signature *s, const int list)
 {
-    BUG_ON(g_buffer_type_hash == NULL);
+    BUG_ON(s->init_data == NULL);
 
+    if (s->init_data->list && s->init_data->transform_cnt) {
+        return -1;
+    }
+    s->init_data->list = list;
+    s->init_data->list_set = true;
+
+    return 0;
+}
+
+int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
+{
+    BUG_ON(s->init_data == NULL);
+
+    if (s->init_data->list && s->init_data->transform_cnt) {
+        SCLogDebug("buffer %d has transform(s) registered: %d",
+                s->init_data->list, s->init_data->transforms[0]);
+        int new_list = DetectBufferTypeGetByIdTransforms(de_ctx, s->init_data->list,
+                s->init_data->transforms, s->init_data->transform_cnt);
+        if (new_list == -1) {
+            return -1;
+        }
+        SCLogDebug("new_list %d", new_list);
+        s->init_data->list = new_list;
+        s->init_data->list_set = false;
+        // reset transforms now that we've set up the list
+        s->init_data->transform_cnt = 0;
+    }
+
+    return 0;
+}
+
+void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
+{
+    memset(buffer, 0, sizeof(*buffer));
+    buffer->buf = SCCalloc(initial_size, sizeof(uint8_t));
+    if (buffer->buf != NULL) {
+        buffer->size = initial_size;
+    }
+}
+
+/** \brief setup the buffer with our initial data */
+void InspectionBufferSetup(InspectionBuffer *buffer, const uint8_t *data, const uint32_t data_len)
+{
+    buffer->inspect = buffer->orig = data;
+    buffer->inspect_len = buffer->orig_len = data_len;
+    buffer->len = 0;
+}
+
+void InspectionBufferFree(InspectionBuffer *buffer)
+{
+    if (buffer->buf != NULL) {
+        SCFree(buffer->buf);
+    }
+    memset(buffer, 0, sizeof(*buffer));
+}
+
+/**
+ * \brief make sure that the buffer has at least 'min_size' bytes
+ * Expand the buffer if necessary
+ */
+void InspectionBufferCheckAndExpand(InspectionBuffer *buffer, uint32_t min_size)
+{
+    if (likely(buffer->size >= min_size))
+        return;
+
+    uint32_t new_size = (buffer->size == 0) ? 4096 : buffer->size;
+    while (new_size < min_size) {
+        new_size *= 2;
+    }
+
+    void *ptr = SCRealloc(buffer->buf, new_size);
+    if (ptr != NULL) {
+        buffer->buf = ptr;
+        buffer->size = new_size;
+    }
+}
+
+void InspectionBufferCopy(InspectionBuffer *buffer, uint8_t *buf, uint32_t buf_len)
+{
+    InspectionBufferCheckAndExpand(buffer, buf_len);
+
+    if (buffer->size) {
+        uint32_t copy_size = MIN(buf_len, buffer->size);
+        memcpy(buffer->buf, buf, copy_size);
+        buffer->inspect = buffer->buf;
+        buffer->inspect_len = copy_size;
+    }
+}
+
+void InspectionBufferApplyTransforms(InspectionBuffer *buffer,
+        const DetectEngineTransforms *transforms)
+{
+    if (transforms) {
+        for (int i = 0; i < DETECT_TRANSFORMS_MAX; i++) {
+            const int id = transforms->transforms[i];
+            if (id == 0)
+                break;
+            BUG_ON(sigmatch_table[id].Transform == NULL);
+            sigmatch_table[id].Transform(buffer);
+            SCLogDebug("applied transform %s", sigmatch_table[id].name);
+        }
+    }
+}
+
+static void DetectBufferTypeSetupDetectEngine(DetectEngineCtx *de_ctx)
+{
     const int size = g_buffer_type_id;
     BUG_ON(!(size > 0));
 
-    g_buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
-    BUG_ON(!g_buffer_type_map);
+    de_ctx->buffer_type_map = SCCalloc(size, sizeof(DetectBufferType *));
+    BUG_ON(!de_ctx->buffer_type_map);
+    de_ctx->buffer_type_map_elements = size;
+    SCLogDebug("de_ctx->buffer_type_map %p with %u members", de_ctx->buffer_type_map, size);
 
     SCLogDebug("DETECT_SM_LIST_DYNAMIC_START %u", DETECT_SM_LIST_DYNAMIC_START);
     HashListTableBucket *b = HashListTableGetListHead(g_buffer_type_hash);
     while (b) {
         DetectBufferType *map = HashListTableGetListData(b);
-        g_buffer_type_map[map->id] = map;
+        de_ctx->buffer_type_map[map->id] = map;
         SCLogDebug("name %s id %d mpm %s packet %s -- %s. "
                 "Callbacks: Setup %p Validate %p", map->string, map->id,
                 map->mpm ? "true" : "false", map->packet ? "true" : "false",
                 map->description, map->SetupCallback, map->ValidateCallback);
         b = HashListTableGetListNext(b);
     }
+
+    de_ctx->buffer_type_hash = HashListTableInit(256,
+            DetectBufferTypeHashFunc,
+            DetectBufferTypeCompareFunc,
+            DetectBufferTypeFreeFunc);
+    if (de_ctx->buffer_type_hash == NULL) {
+        BUG_ON(1);
+    }
+    de_ctx->buffer_type_id = g_buffer_type_id;
+
+    PrefilterInit(de_ctx);
+    DetectMpmInitializeAppMpms(de_ctx);
+    DetectAppLayerInspectEngineCopyListToDetectCtx(de_ctx);
+}
+
+static void DetectBufferTypeFreeDetectEngine(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx) {
+        if (de_ctx->buffer_type_map)
+            SCFree(de_ctx->buffer_type_map);
+        if (de_ctx->buffer_type_hash)
+            HashListTableFree(de_ctx->buffer_type_hash);
+
+        DetectEngineAppInspectionEngine *ilist = de_ctx->app_inspect_engines;
+        while (ilist) {
+            DetectEngineAppInspectionEngine *next = ilist->next;
+            SCFree(ilist);
+            ilist = next;
+        }
+        DetectMpmAppLayerRegistery *mlist = de_ctx->app_mpms_list;
+        while (mlist) {
+            DetectMpmAppLayerRegistery *next = mlist->next;
+            SCFree(mlist);
+            mlist = next;
+        }
+        PrefilterDeinit(de_ctx);
+    }
+}
+
+void DetectBufferTypeCloseRegistration(void)
+{
+    BUG_ON(g_buffer_type_hash == NULL);
+
     g_buffer_type_reg_closed = 1;
+}
+
+int DetectBufferTypeGetByIdTransforms(DetectEngineCtx *de_ctx, const int id,
+        int *transforms, int transform_cnt)
+{
+    const DetectBufferType *base_map = DetectBufferTypeGetById(de_ctx, id);
+    if (!base_map) {
+        return -1;
+    }
+    if (!base_map->supports_transforms) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "buffer '%s' does not support transformations",
+                base_map->string);
+        return -1;
+    }
+
+    DetectEngineTransforms t;
+    memset(&t, 0, sizeof(t));
+    for (int i = 0; i < transform_cnt; i++) {
+        t.transforms[i] = transforms[i];
+    }
+    t.cnt = transform_cnt;
+
+    DetectBufferType lookup_map = { (char *)base_map->string, NULL, 0, 0, 0, 0, false, NULL, NULL, t };
+    DetectBufferType *res = HashListTableLookup(de_ctx->buffer_type_hash, &lookup_map, 0);
+
+    SCLogDebug("res %p", res);
+    if (res != NULL) {
+        return res->id;
+    }
+
+    DetectBufferType *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL)
+        return -1;
+
+    map->string = base_map->string;
+    map->id = de_ctx->buffer_type_id++;
+    map->parent_id = base_map->id;
+    map->transforms = t;
+    map->mpm = base_map->mpm;
+    map->SetupCallback = base_map->SetupCallback;
+    map->ValidateCallback = base_map->ValidateCallback;
+    DetectAppLayerMpmRegisterByParentId(de_ctx,
+            map->id, map->parent_id, &map->transforms);
+
+    BUG_ON(HashListTableAdd(de_ctx->buffer_type_hash, (void *)map, 0) != 0);
+    SCLogDebug("buffer %s registered with id %d, parent %d", map->string, map->id, map->parent_id);
+
+    if (map->id >= 0 && (uint32_t)map->id >= de_ctx->buffer_type_map_elements) {
+        void *ptr = SCRealloc(de_ctx->buffer_type_map, (map->id + 1) * sizeof(DetectBufferType *));
+        BUG_ON(ptr == NULL);
+        SCLogDebug("de_ctx->buffer_type_map resized to %u (was %u)", (map->id + 1), de_ctx->buffer_type_map_elements);
+        de_ctx->buffer_type_map = ptr;
+        de_ctx->buffer_type_map[map->id] = map;
+        de_ctx->buffer_type_map_elements = map->id + 1;
+
+        DetectAppLayerInspectEngineCopy(de_ctx, map->parent_id, map->id,
+                &map->transforms);
+    }
+    return map->id;
 }
 
 /* code to control the main thread to do a reload */
@@ -772,6 +1143,74 @@ int DetectEngineInspectGenericList(ThreadVars *tv,
 
     return DETECT_ENGINE_INSPECT_SIG_MATCH;
 }
+
+
+/**
+ * \brief Do the content inspection & validation for a signature
+ *
+ * \param de_ctx Detection engine context
+ * \param det_ctx Detection engine thread context
+ * \param s Signature to inspect
+ * \param f Flow
+ * \param flags app layer flags
+ * \param state App layer state
+ *
+ * \retval 0 no match.
+ * \retval 1 match.
+ * \retval 2 Sig can't match.
+ */
+int DetectEngineInspectBufferGeneric(
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        const DetectEngineAppInspectionEngine *engine,
+        const Signature *s,
+        Flow *f, uint8_t flags, void *alstate, void *txv, uint64_t tx_id)
+{
+    const int list_id = engine->sm_list;
+    SCLogDebug("running inspect on %d", list_id);
+
+    SCLogDebug("list %d mpm? %s transforms %p",
+            engine->sm_list, engine->mpm ? "true" : "false", engine->v2.transforms);
+
+    /* if prefilter didn't already run, we need to consider transformations */
+    const DetectEngineTransforms *transforms = NULL;
+    if (!engine->mpm) {
+        transforms = engine->v2.transforms;
+    }
+
+    const InspectionBuffer *buffer = engine->v2.GetData(det_ctx, transforms,
+            f, flags, txv, list_id);
+    if (buffer == NULL) {
+        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+
+    const uint32_t data_len = buffer->inspect_len;
+    const uint8_t *data = buffer->inspect;
+    const uint64_t offset = buffer->inspect_offset;
+
+    det_ctx->discontinue_matching = 0;
+    det_ctx->buffer_offset = 0;
+    det_ctx->inspection_recursion_counter = 0;
+
+    /* Inspect all the uricontents fetched on each
+     * transaction at the app layer */
+    int r = DetectEngineContentInspection(de_ctx, det_ctx,
+                                          s, engine->smd,
+                                          f,
+                                          (uint8_t *)data, data_len, offset, DETECT_CI_FLAGS_SINGLE,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
+    if (r == 1) {
+        return DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else {
+        if (AppLayerParserGetStateProgress(f->proto, f->alproto, txv, flags) > engine->progress)
+            return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        else
+            return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+    }
+}
+
 
 /* nudge capture loops to wake up */
 static void BreakCapture(void)
@@ -1085,6 +1524,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     DetectParseDupSigHashInit(de_ctx);
     DetectAddressMapInit(de_ctx);
     DetectMetadataHashInit(de_ctx);
+    DetectBufferTypeSetupDetectEngine(de_ctx);
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -1221,9 +1661,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 #endif
     }
 
-    DetectPortCleanupList(de_ctx->tcp_whitelist);
-    DetectPortCleanupList(de_ctx->udp_whitelist);
+    DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
+    DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
 
+    DetectBufferTypeFreeDetectEngine(de_ctx);
     /* freed our var name hash */
     VarNameStoreFree(de_ctx->version);
 
@@ -1473,7 +1914,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         if (x->port != x->port2) {
             SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
                 "for detect.grouping.tcp-whitelist: only single ports allowed", ports);
-            DetectPortCleanupList(de_ctx->tcp_whitelist);
+            DetectPortCleanupList(de_ctx, de_ctx->tcp_whitelist);
             de_ctx->tcp_whitelist = NULL;
             break;
         }
@@ -1496,7 +1937,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         if (x->port != x->port2) {
             SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
                 "for detect.grouping.udp-whitelist: only single ports allowed", ports);
-            DetectPortCleanupList(de_ctx->udp_whitelist);
+            DetectPortCleanupList(de_ctx, de_ctx->udp_whitelist);
             de_ctx->udp_whitelist = NULL;
             break;
         }
@@ -1804,6 +2245,17 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         det_ctx->base64_decoded_len = 0;
     }
 
+    det_ctx->inspect_buffers_size = de_ctx->buffer_type_id;
+    det_ctx->inspect_buffers = SCCalloc(det_ctx->inspect_buffers_size, sizeof(InspectionBuffer));
+    if (det_ctx->inspect_buffers == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    det_ctx->multi_inspect_buffers_size = de_ctx->buffer_type_id;
+    det_ctx->multi_inspect_buffers = SCCalloc(det_ctx->multi_inspect_buffers_size, sizeof(InspectionBufferMultipleForList));
+    if (det_ctx->multi_inspect_buffers == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
 #ifdef PROFILING
@@ -1999,31 +2451,34 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
 
-    /* HSBD */
-    if (det_ctx->hsbd != NULL) {
-        if (det_ctx->hsbd->decompressed_buffer != NULL) {
-            SCFree(det_ctx->hsbd->decompressed_buffer);
-        }
-        SCLogDebug("det_ctx hsbd %u", det_ctx->hsbd_buffers_size);
-        SCFree(det_ctx->hsbd);
-    }
-
     /* HSCB */
     if (det_ctx->hcbd != NULL) {
         SCLogDebug("det_ctx hcbd %u", det_ctx->hcbd_buffers_size);
         SCFree(det_ctx->hcbd);
     }
 
-    /* file data */
-    if (det_ctx->file_data != NULL) {
-        SCLogDebug("det_ctx file_data %u", det_ctx->file_data_buffers_size);
-        SCFree(det_ctx->file_data);
-    }
-
     /* Decoded base64 data. */
     if (det_ctx->base64_decoded != NULL) {
         SCFree(det_ctx->base64_decoded);
     }
+
+    if (det_ctx->inspect_buffers) {
+        for (uint32_t i = 0; i < det_ctx->inspect_buffers_size; i++) {
+            InspectionBufferFree(&det_ctx->inspect_buffers[i]);
+        }
+        SCFree(det_ctx->inspect_buffers);
+    }
+    if (det_ctx->multi_inspect_buffers) {
+        for (uint32_t i = 0; i < det_ctx->multi_inspect_buffers_size; i++) {
+            InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[i];
+            for (uint32_t x = 0; x < fb->size; x++) {
+                InspectionBufferFree(&fb->inspection_buffers[x]);
+            }
+            SCFree(fb->inspection_buffers);
+        }
+        SCFree(det_ctx->multi_inspect_buffers);
+    }
+
 
     DetectEngineThreadCtxDeinitGlobalKeywords(det_ctx);
     if (det_ctx->de_ctx != NULL) {

@@ -58,7 +58,8 @@ SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
  * \retval 1 If supported.
  * \retval 0 If not.
  */
-int FastPatternSupportEnabledForSigMatchList(int list_id)
+int FastPatternSupportEnabledForSigMatchList(const DetectEngineCtx *de_ctx,
+        const int list_id)
 {
     if (sm_fp_support_smlist_list == NULL)
         return 0;
@@ -66,7 +67,7 @@ int FastPatternSupportEnabledForSigMatchList(int list_id)
     if (list_id == DETECT_SM_LIST_PMATCH)
         return 1;
 
-    return DetectBufferTypeSupportsMpmGetById(list_id);
+    return DetectBufferTypeSupportsMpmGetById(de_ctx, list_id);
 
 #if 0
     SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
@@ -192,9 +193,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
     int ov[MAX_SUBSTRINGS];
     char arg_substr[128] = "";
     DetectContentData *cd = NULL;
-    const int nlists = DetectBufferTypeMaxId();
 
-    SigMatch *pm1 = DetectGetLastSMFromMpmLists(s);
+    SigMatch *pm1 = DetectGetLastSMFromMpmLists(de_ctx, s);
     SigMatch *pm2 = DetectGetLastSMFromLists(s, DETECT_CONTENT, -1);
     if (pm1 == NULL && pm2 == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
@@ -235,8 +235,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, const c
             goto error;
         }
         else { /*allow only one content to have fast_pattern modifier*/
-            int list_id = 0;
-            for (list_id = 0; list_id < nlists; list_id++) {
+            uint32_t list_id = 0;
+            for (list_id = 0; list_id < s->init_data->smlists_array_size; list_id++) {
                 SigMatch *sm = NULL;
                 for (sm = s->init_data->smlists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type == DETECT_CONTENT) {

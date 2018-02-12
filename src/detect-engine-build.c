@@ -21,6 +21,7 @@
 #include "detect-parse.h"
 
 #include "detect-engine-address.h"
+#include "detect-engine-analyzer.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-siggroup.h"
@@ -197,11 +198,11 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -257,7 +258,7 @@ iponly:
  *  \retval 1 sig is dp only
  *  \retval 0 sig is not dp only
  */
-static int SignatureIsPDOnly(const Signature *s)
+static int SignatureIsPDOnly(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
@@ -266,11 +267,11 @@ static int SignatureIsPDOnly(const Signature *s)
         return 0;
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -353,11 +354,11 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, const Signature *s)
     }
 
     /* for now assume that all registered buffer types are incompatible */
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     for (int i = 0; i < nlists; i++) {
         if (s->init_data->smlists[i] == NULL)
             continue;
-        if (!(DetectBufferTypeGetNameById(i)))
+        if (!(DetectBufferTypeGetNameById(de_ctx, i)))
             continue;
 
         SCReturnInt(0);
@@ -554,7 +555,7 @@ static int SignatureCreateMask(Signature *s)
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
     DetectMpmInitializeBuiltinMpms(de_ctx);
-    DetectMpmInitializeAppMpms(de_ctx);
+    DetectMpmSetupAppMpms(de_ctx);
 
     return;
 }
@@ -974,7 +975,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         } else {
             SCLogDebug("proto group %d sgh %p is a copy", p, sgh_ts[p]);
 
-            SigGroupHeadFree(sgh_ts[p]);
+            SigGroupHeadFree(de_ctx, sgh_ts[p]);
             sgh_ts[p] = lookup_sgh;
 
             de_ctx->gh_reuse++;
@@ -1011,7 +1012,7 @@ static int RulesGroupByProto(DetectEngineCtx *de_ctx)
         } else {
             SCLogDebug("proto group %d sgh %p is a copy", p, sgh_tc[p]);
 
-            SigGroupHeadFree(sgh_tc[p]);
+            SigGroupHeadFree(de_ctx, sgh_tc[p]);
             sgh_tc[p] = lookup_sgh;
 
             de_ctx->gh_reuse++;
@@ -1216,7 +1217,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
         } else {
             SCLogDebug("port group %p sgh %p is a copy", iter, iter->sh);
 
-            SigGroupHeadFree(iter->sh);
+            SigGroupHeadFree(de_ctx, iter->sh);
             iter->sh = lookup_sgh;
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
 
@@ -1255,7 +1256,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_payload = 0;
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
-    const int nlists = DetectBufferTypeMaxId();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
@@ -1279,7 +1279,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         SCLogDebug("Signature %" PRIu32 ", internal id %" PRIu32 ", ptrs %p %p ", tmp_s->id, tmp_s->num, tmp_s, de_ctx->sig_array[tmp_s->num]);
 
         /* see if the sig is dp only */
-        if (SignatureIsPDOnly(tmp_s) == 1) {
+        if (SignatureIsPDOnly(de_ctx, tmp_s) == 1) {
             tmp_s->flags |= SIG_FLAG_PDONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"PD only\"", tmp_s->id);
 
@@ -1351,7 +1351,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             int prefilter_list = DETECT_TBLSIZE;
 
             /* get the keyword supporting prefilter with the lowest type */
-            for (i = 0; i < nlists; i++) {
+            for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
                 SigMatch *sm = tmp_s->init_data->smlists[i];
                 while (sm != NULL) {
                     if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
@@ -1365,7 +1365,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
             /* apply that keyword as prefilter */
             if (prefilter_list != DETECT_TBLSIZE) {
-                for (i = 0; i < nlists; i++) {
+                for (i = 0; i < (int)tmp_s->init_data->smlists_array_size; i++) {
                     SigMatch *sm = tmp_s->init_data->smlists[i];
                     while (sm != NULL) {
                         if (sm->type == prefilter_list) {
@@ -1382,9 +1382,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         /* run buffer type callbacks if any */
         int x;
-        for (x = 0; x < nlists; x++) {
+        for (x = 0; x < (int)tmp_s->init_data->smlists_array_size; x++) {
             if (tmp_s->init_data->smlists[x])
-                DetectBufferRunSetupCallback(x, tmp_s);
+                DetectBufferRunSetupCallback(de_ctx, x, tmp_s);
         }
 
         de_ctx->sig_cnt++;
@@ -1537,7 +1537,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
 
             /* when a group's sigs are added to the joingr, we can free it */
             gr->next = NULL;
-            DetectPortFree(gr);
+            DetectPortFree(de_ctx, gr);
             gr = NULL;
 
         /* append */
@@ -1667,7 +1667,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         SCLogDebug("cleaning up signature grouping structure...");
     }
     if (de_ctx->decoder_event_sgh)
-        SigGroupHeadFree(de_ctx->decoder_event_sgh);
+        SigGroupHeadFree(de_ctx, de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
 
     int f;
@@ -1678,9 +1678,9 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         }
 
         /* free lookup lists */
-        DetectPortCleanupList(de_ctx->flow_gh[f].tcp);
+        DetectPortCleanupList(de_ctx, de_ctx->flow_gh[f].tcp);
         de_ctx->flow_gh[f].tcp = NULL;
-        DetectPortCleanupList(de_ctx->flow_gh[f].udp);
+        DetectPortCleanupList(de_ctx, de_ctx->flow_gh[f].udp);
         de_ctx->flow_gh[f].udp = NULL;
     }
 
@@ -1691,7 +1691,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
             continue;
 
         SCLogDebug("sgh %p", sgh);
-        SigGroupHeadFree(sgh);
+        SigGroupHeadFree(de_ctx, sgh);
     }
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array = NULL;
@@ -1809,11 +1809,10 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
 {
     SCEnter();
 
-    const int nlists = DetectBufferTypeMaxId();
     Signature *s = de_ctx->sig_list;
     for (; s != NULL; s = s->next) {
         /* set up inspect engines */
-        DetectEngineAppInspectionEngine2Signature(s);
+        DetectEngineAppInspectionEngine2Signature(de_ctx, s);
 
         /* built-ins */
         int type;
@@ -1821,10 +1820,12 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
-
+#ifdef HAVE_LIBJANSSON
+        EngineAnalysisRules2(de_ctx, s);
+#endif
         /* free lists. Ctx' are xferred to sm_arrays so won't get freed */
-        int i;
-        for (i = 0; i < nlists; i++) {
+        uint32_t i;
+        for (i = 0; i < s->init_data->smlists_array_size; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
                 SigMatch *nsm = sm->next;

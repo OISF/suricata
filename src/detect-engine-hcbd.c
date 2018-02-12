@@ -248,11 +248,12 @@ static void PrefilterTxHttpRequestBody(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-int PrefilterTxHttpRequestBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+int PrefilterTxHttpRequestBodyRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestBody,
+    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestBody,
         ALPROTO_HTTP, HTP_REQUEST_BODY,
         mpm_ctx, NULL, "http_client_body");
 }
@@ -265,6 +266,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
+    const bool eof = (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY);
     const uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx, tx_id,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
@@ -274,6 +276,9 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
     if (buffer_len == 0)
         goto end;
 
+    uint8_t ci_flags = eof ? DETECT_CI_FLAGS_END : 0;
+    ci_flags |= (stream_start_offset == 0 ? DETECT_CI_FLAGS_START : 0);
+
     det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
@@ -281,14 +286,14 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
                                           f,
                                           (uint8_t *)buffer,
                                           buffer_len,
-                                          stream_start_offset,
+                                          stream_start_offset, ci_flags,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
 
  end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY)
+    if (eof)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

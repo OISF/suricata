@@ -90,15 +90,16 @@ static void PrefilterTxDceStubDataRequest(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxDceStubDataRequestRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxDceStubDataRequestRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataRequest,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDceStubDataRequest,
         ALPROTO_DCERPC, 0,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     if (r == 0) {
-        r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataRequest,
+        r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDceStubDataRequest,
                 ALPROTO_SMB, 0,
                 mpm_ctx, NULL, KEYWORD_NAME " (request)");
     }
@@ -135,15 +136,16 @@ static void PrefilterTxDceStubDataResponse(DetectEngineThreadCtx *det_ctx,
     }
 }
 
-static int PrefilterTxDceStubDataResponseRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxDceStubDataResponseRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataResponse,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDceStubDataResponse,
         ALPROTO_DCERPC, 0,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     if (r == 0) {
-        r = PrefilterAppendTxEngine(sgh, PrefilterTxDceStubDataResponse,
+        r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxDceStubDataResponse,
                 ALPROTO_SMB, 0,
                 mpm_ctx, NULL, KEYWORD_NAME " (response)");
     }
@@ -179,7 +181,7 @@ static int InspectEngineDceStubData(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
                                           dcerpc_state);
     if (r == 1)

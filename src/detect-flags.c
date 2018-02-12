@@ -64,7 +64,7 @@ static int DetectFlagsSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFlagsFree(void *);
 
 static _Bool PrefilterTcpFlagsIsPrefilterable(const Signature *s);
-static int PrefilterSetupTcpFlags(SigGroupHead *sgh);
+static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 /**
  * \brief Registration function for flags: keyword
@@ -594,9 +594,9 @@ PrefilterPacketFlagsCompare(PrefilterPacketHeaderValue v, void *smctx)
     return FALSE;
 }
 
-static int PrefilterSetupTcpFlags(SigGroupHead *sgh)
+static int PrefilterSetupTcpFlags(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_FLAGS,
+    return PrefilterSetupPacketHeader(de_ctx, sgh, DETECT_FLAGS,
             PrefilterPacketFlagsSet,
             PrefilterPacketFlagsCompare,
             PrefilterPacketFlagsMatch);

@@ -214,11 +214,12 @@ static void PrefilterTxHttpRequestTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpRequestHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpRequestHeaderNamesRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaderNames,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpRequestHeaderNames,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (request)");
     return r;
@@ -294,11 +295,12 @@ static void PrefilterTxHttpResponseTrailers(DetectEngineThreadCtx *det_ctx,
     }
 }
 #endif
-static int PrefilterTxHttpResponseHeaderNamesRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+static int PrefilterTxHttpResponseHeaderNamesRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaderNames,
+    int r = PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxHttpResponseHeaderNames,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
         mpm_ctx, NULL, KEYWORD_NAME " (response)");
     return r;
@@ -330,7 +332,7 @@ static int InspectEngineHttpHeaderNames(ThreadVars *tv,
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
                                           f,
                                           buffer, buffer_len,
-                                          0,
+                                          0, DETECT_CI_FLAGS_SINGLE,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;

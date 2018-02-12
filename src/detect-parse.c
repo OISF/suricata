@@ -280,6 +280,25 @@ static SigTableElmt *SigTableGet(char *name)
  */
 void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
 {
+    if (list > 0 && (uint32_t)list >= s->init_data->smlists_array_size)
+    {
+        uint32_t old_size = s->init_data->smlists_array_size;
+        uint32_t new_size = (uint32_t)list + 1;
+        void *ptr = SCRealloc(s->init_data->smlists, (new_size * sizeof(SigMatch *)));
+        if (ptr == NULL)
+            abort();
+        s->init_data->smlists = ptr;
+        ptr = SCRealloc(s->init_data->smlists_tail, (new_size * sizeof(SigMatch *)));
+        if (ptr == NULL)
+            abort();
+        s->init_data->smlists_tail = ptr;
+        for (uint32_t i = old_size; i < new_size; i++) {
+            s->init_data->smlists[i] = NULL;
+            s->init_data->smlists_tail[i] = NULL;
+        }
+        s->init_data->smlists_array_size = new_size;
+    }
+
     if (s->init_data->smlists[list] == NULL) {
         s->init_data->smlists[list] = new;
         s->init_data->smlists_tail[list] = new;
@@ -339,15 +358,15 @@ static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, int type)
  *  \note only supports the lists that are registered through
  *        DetectBufferTypeSupportsMpm().
  */
-SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
+SigMatch *DetectGetLastSMFromMpmLists(const DetectEngineCtx *de_ctx, const Signature *s)
 {
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
-    int sm_type;
+    uint32_t sm_type;
 
     /* if we have a sticky buffer, use that */
     if (s->init_data->list != DETECT_SM_LIST_NOTSET) {
-        if (!(DetectBufferTypeSupportsMpmGetById(s->init_data->list))) {
+        if (!(DetectBufferTypeSupportsMpmGetById(de_ctx, s->init_data->list))) {
             return NULL;
         }
 
@@ -358,9 +377,8 @@ SigMatch *DetectGetLastSMFromMpmLists(const Signature *s)
     }
 
     /* otherwise brute force it */
-    const int nlists = DetectBufferTypeMaxId();
-    for (sm_type = 0; sm_type < nlists; sm_type++) {
-        if (!DetectBufferTypeSupportsMpmGetById(sm_type))
+    for (sm_type = 0; sm_type < s->init_data->smlists_array_size; sm_type++) {
+        if (!DetectBufferTypeSupportsMpmGetById(de_ctx, sm_type))
             continue;
         SigMatch *sm_list = s->init_data->smlists_tail[sm_type];
         sm_new = SigMatchGetLastSMByType(sm_list, DETECT_CONTENT);
@@ -385,8 +403,7 @@ SigMatch *DetectGetLastSMFromLists(const Signature *s, ...)
     SigMatch *sm_new;
 
     /* otherwise brute force it */
-    const int nlists = DetectBufferTypeMaxId();
-    for (int buf_type = 0; buf_type < nlists; buf_type++) {
+    for (int buf_type = 0; buf_type < (int)s->init_data->smlists_array_size; buf_type++) {
         if (s->init_data->smlists[buf_type] == NULL)
             continue;
         if (s->init_data->list != DETECT_SM_LIST_NOTSET &&
@@ -486,7 +503,7 @@ SigMatch *DetectGetLastSMByListId(const Signature *s, int list_id, ...)
  */
 SigMatch *DetectGetLastSM(const Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     SigMatch *sm_last = NULL;
     SigMatch *sm_new;
     int i;
@@ -536,7 +553,7 @@ static void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 
 int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
     int list = 0;
 
     for (list = 0; list < nlists; list++) {
@@ -1159,16 +1176,17 @@ Signature *SigAlloc (void)
         SCFree(sig);
         return NULL;
     }
-    int lists = DetectBufferTypeMaxId();
-    SCLogDebug("smlists size %d", lists);
-    sig->init_data->smlists = SCCalloc(lists, sizeof(SigMatch *));
+
+    sig->init_data->smlists_array_size = DetectBufferTypeMaxId();
+    SCLogDebug("smlists size %u", sig->init_data->smlists_array_size);
+    sig->init_data->smlists = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
     if (sig->init_data->smlists == NULL) {
         SCFree(sig->init_data);
         SCFree(sig);
         return NULL;
     }
 
-    sig->init_data->smlists_tail = SCCalloc(lists, sizeof(SigMatch *));
+    sig->init_data->smlists_tail = SCCalloc(sig->init_data->smlists_array_size, sizeof(SigMatch *));
     if (sig->init_data->smlists_tail == NULL) {
         SCFree(sig->init_data->smlists_tail);
         SCFree(sig->init_data);
@@ -1271,8 +1289,6 @@ static void SigMatchFreeArrays(Signature *s, int ctxs)
 
 void SigFree(Signature *s)
 {
-    const int nlists = DetectBufferTypeMaxId();
-
     if (s == NULL)
         return;
 
@@ -1284,6 +1300,7 @@ void SigFree(Signature *s)
 
     int i;
     if (s->init_data) {
+        const int nlists = s->init_data->smlists_array_size;
         for (i = 0; i < nlists; i++) {
             SigMatch *sm = s->init_data->smlists[i];
             while (sm != NULL) {
@@ -1302,10 +1319,10 @@ void SigFree(Signature *s)
     }
 
     if (s->sp != NULL) {
-        DetectPortCleanupList(s->sp);
+        DetectPortCleanupList(NULL, s->sp);
     }
     if (s->dp != NULL) {
-        DetectPortCleanupList(s->dp);
+        DetectPortCleanupList(NULL, s->dp);
     }
 
     if (s->msg != NULL)
@@ -1333,6 +1350,23 @@ void SigFree(Signature *s)
     DetectEngineAppInspectionEngineSignatureFree(s);
 
     SCFree(s);
+}
+
+int DetectSignatureAddTransform(Signature *s, int transform)
+{
+    /* we only support buffers */
+    if (s->init_data->list == 0) {
+        SCReturnInt(-1);
+    }
+    if (!s->init_data->list_set) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "transforms must directly follow stickybuffers");
+        SCReturnInt(-1);
+    }
+    if (s->init_data->transform_cnt >= DETECT_TRANSFORMS_MAX) {
+        SCReturnInt(-1);
+    }
+    s->init_data->transforms[s->init_data->transform_cnt++] = transform;
+    SCReturnInt(0);
 }
 
 int DetectSignatureSetAppProto(Signature *s, AppProto alproto)
@@ -1509,7 +1543,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
     uint32_t sig_flags = 0;
     SigMatch *sm, *pm;
-    const int nlists = DetectBufferTypeMaxId();
+    const int nlists = s->init_data->smlists_array_size;
 
     SCEnter();
 
@@ -1519,13 +1553,63 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             SCReturnInt(0);
     }
 
+    struct BufferVsDir {
+        int ts;
+        int tc;
+    } bufdir[nlists];
+    memset(&bufdir, 0, nlists * sizeof(struct BufferVsDir));
+
     int x;
     for (x = 0; x < nlists; x++) {
         if (s->init_data->smlists[x]) {
-            if (DetectBufferRunValidateCallback(x, s, &de_ctx->sigerror) == FALSE) {
+            const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
+            for ( ; app != NULL; app = app->next) {
+                if (app->sm_list == x && s->alproto == app->alproto) {
+                    SCLogDebug("engine %s dir %d alproto %d",
+                            DetectBufferTypeGetNameById(de_ctx, app->sm_list),
+                            app->dir, app->alproto);
+
+                    bufdir[x].ts += (app->dir == 0);
+                    bufdir[x].tc += (app->dir == 1);
+                }
+            }
+
+            if (DetectBufferRunValidateCallback(de_ctx, x, s, &de_ctx->sigerror) == FALSE) {
                 SCReturnInt(0);
             }
         }
+    }
+
+    int ts_excl = 0;
+    int tc_excl = 0;
+    int dir_amb = 0;
+    for (x = 0; x < nlists; x++) {
+        if (bufdir[x].ts == 0 && bufdir[x].tc == 0)
+            continue;
+        ts_excl += (bufdir[x].ts > 0 && bufdir[x].tc == 0);
+        tc_excl += (bufdir[x].ts == 0 && bufdir[x].tc > 0);
+        dir_amb += (bufdir[x].ts > 0 && bufdir[x].tc > 0);
+
+        SCLogDebug("%s/%d: %d/%d", DetectBufferTypeGetNameById(de_ctx, x),
+                x, bufdir[x].ts, bufdir[x].tc);
+    }
+    if (ts_excl && tc_excl) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+        SCReturnInt(0);
+    } else if (ts_excl) {
+        SCLogDebug("%u: implied rule direction is toserver", s->id);
+        if (DetectFlowSetupImplicit(s, SIG_FLAG_TOSERVER) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCReturnInt(0);
+        }
+    } else if (tc_excl) {
+        SCLogDebug("%u: implied rule direction is toclient", s->id);
+        if (DetectFlowSetupImplicit(s, SIG_FLAG_TOCLIENT) < 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "rule %u mixes keywords with conflicting directions", s->id);
+            SCReturnInt(0);
+        }
+    } else if (dir_amb) {
+        SCLogDebug("%u: rule direction cannot be deduced from keywords", s->id);
     }
 
     if ((s->flags & SIG_FLAG_REQUIRE_PACKET) &&
@@ -1611,10 +1695,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         for (int i = 0; i < nlists; i++) {
             if (s->init_data->smlists[i] == NULL)
                 continue;
-            if (!(DetectBufferTypeGetNameById(i)))
+            if (!(DetectBufferTypeGetNameById(de_ctx, i)))
                 continue;
 
-            if (!(DetectBufferTypeSupportsPacketGetById(i))) {
+            if (!(DetectBufferTypeSupportsPacketGetById(de_ctx, i))) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                         "specific matches (like dsize, flags, ttl) with stream / "
                         "state matching by matching on app layer proto (like using "
@@ -1775,11 +1859,9 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     /* run buffer type callbacks if any */
-    const int nlists = DetectBufferTypeMaxId();
-    int x;
-    for (x = 0; x < nlists; x++) {
+    for (uint32_t x = 0; x < sig->init_data->smlists_array_size; x++) {
         if (sig->init_data->smlists[x])
-            DetectBufferRunSetupCallback(x, sig);
+            DetectBufferRunSetupCallback(de_ctx, x, sig);
     }
 
     /* validate signature, SigValidate will report the error reason */
@@ -2285,9 +2367,12 @@ static int SigParseTest02 (void)
     }
 
 end:
-    if (port != NULL) DetectPortCleanupList(port);
-    if (sig != NULL) SigFree(sig);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (port != NULL)
+        DetectPortCleanupList(de_ctx, port);
+    if (sig != NULL)
+        SigFree(sig);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 

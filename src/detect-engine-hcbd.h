@@ -27,7 +27,8 @@
 
 #include "app-layer-htp.h"
 
-int PrefilterTxHttpRequestBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxHttpRequestBodyRegister(DetectEngineCtx *de_ctx,
+        SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 int DetectEngineInspectHttpClientBody(ThreadVars *tv,
         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
