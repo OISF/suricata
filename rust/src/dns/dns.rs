@@ -242,7 +242,7 @@ pub struct DNSState {
 
     pub de_state_count: u64,
 
-    pub events: u16,
+    pub events: bool,
 
     pub request_buffer: Vec<u8>,
     pub response_buffer: Vec<u8>,
@@ -257,7 +257,7 @@ impl DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             de_state_count: 0,
-            events: 0,
+            events: false,
             request_buffer: Vec::new(),
             response_buffer: Vec::new(),
             gap: false,
@@ -271,7 +271,7 @@ impl DNSState {
             tx_id: 0,
             transactions: Vec::new(),
             de_state_count: 0,
-            events: 0,
+            events: false,
             request_buffer: Vec::with_capacity(0xffff),
             response_buffer: Vec::with_capacity(0xffff),
             gap: false,
@@ -363,7 +363,7 @@ impl DNSState {
         let tx = &mut self.transactions[len - 1];
         core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events,
                                                         event as u8);
-        self.events += 1;
+        self.events = true;
     }
 
     pub fn parse_request(&mut self, input: &[u8]) -> bool {
@@ -763,7 +763,7 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 
 #[no_mangle]
 pub extern "C" fn rs_dns_state_has_events(state: &mut DNSState) -> u8 {
-    if state.events > 0 {
+    if state.events {
         return 1;
     }
     return 0;
