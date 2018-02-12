@@ -100,7 +100,6 @@ typedef struct AppLayerParserProtoCtx_
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t);
-    int (*StateHasEvents)(void *);
 
     int (*StateGetProgress)(void *alstate, uint8_t direction);
     uint64_t (*StateGetTxCnt)(void *alstate);
@@ -416,17 +415,6 @@ void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto alproto,
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetEvents =
         StateGetEvents;
-
-    SCReturn;
-}
-
-void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
-                              int (*StateHasEvents)(void *))
-{
-    SCEnter();
-
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasEvents =
-        StateHasEvents;
 
     SCReturn;
 }
@@ -1370,7 +1358,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     printf("Optional:\n");
     printf("- LocalStorageAlloc %p LocalStorageFree %p\n", ctx->LocalStorageAlloc, ctx->LocalStorageFree);
     printf("- StateGetTxLogged %p StateSetTxLogged %p\n", ctx->StateGetTxLogged, ctx->StateSetTxLogged);
-    printf("- StateGetEvents %p StateHasEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateHasEvents, ctx->StateGetEventInfo);
+    printf("- StateGetEvents %p StateGetEventInfo %p\n", ctx->StateGetEvents, ctx->StateGetEventInfo);
 }
 
 #define BOTH_SET(a, b) ((a) != NULL && (b) != NULL)

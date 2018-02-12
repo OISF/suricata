@@ -137,12 +137,6 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->StateGetTxLogged, p->StateSetTxLogged);
     }
 
-    /* Application layer event handling. */
-    if (p->StateHasEvents) {
-        AppLayerParserRegisterHasEventsFunc(p->ip_proto, alproto,
-                p->StateHasEvents);
-    }
-
     /* What is this being registered for? */
     AppLayerParserRegisterDetectStateFuncs(p->ip_proto, alproto,
         p->GetTxDetectState, p->SetTxDetectState);

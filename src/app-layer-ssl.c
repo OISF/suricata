@@ -158,12 +158,6 @@ static AppLayerDecoderEvents *SSLGetEvents(void *state, uint64_t id)
     return ssl_state->decoder_events;
 }
 
-static int SSLHasEvents(void *state)
-{
-    SSLState *ssl_state = (SSLState *)state;
-    return (ssl_state->events > 0);
-}
-
 static int SSLSetTxDetectState(void *vtx, DetectEngineState *de_state)
 {
     SSLState *ssl_state = (SSLState *)vtx;
@@ -1850,8 +1844,6 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TLS, SSLStateTransactionFree);
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetEvents);
-
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_TLS, SSLHasEvents);
 
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_TLS,
                                                SSLGetTxDetectState, SSLSetTxDetectState);

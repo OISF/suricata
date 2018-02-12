@@ -116,12 +116,6 @@ static uint64_t RustDNSGetDetectFlags(void *tx, uint8_t dir)
     return rs_dns_tx_get_detect_flags(tx, dir);
 }
 
-
-static int RustDNSHasEvents(void *state)
-{
-    return rs_dns_state_has_events(state);
-}
-
 static AppLayerDecoderEvents *RustDNSGetEvents(void *state, uint64_t id)
 {
     return rs_dns_state_get_events(state, id);
@@ -172,8 +166,6 @@ void RegisterRustDNSUDPParsers(void)
                 RustDNSStateTransactionFree);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DNS,
                 RustDNSGetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_DNS,
-                RustDNSHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
                 RustDNSGetTxDetectState, RustDNSSetTxDetectState);
         AppLayerParserRegisterDetectFlagsFuncs(IPPROTO_UDP, ALPROTO_DNS,

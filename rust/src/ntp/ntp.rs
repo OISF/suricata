@@ -302,15 +302,6 @@ pub extern "C" fn rs_ntp_state_get_tx_detect_state(
 
 
 #[no_mangle]
-pub extern "C" fn rs_ntp_state_has_events(state: *mut libc::c_void) -> libc::c_int {
-    let state = cast_pointer!(state,NTPState);
-    if state.events > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_ntp_state_get_events(state: *mut libc::c_void,
                                           tx_id: libc::uint64_t)
                                           -> *mut core::AppLayerDecoderEvents
@@ -396,7 +387,6 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         set_tx_logged     : None,
         get_de_state      : rs_ntp_state_get_tx_detect_state,
         set_de_state      : rs_ntp_state_set_tx_detect_state,
-        has_events        : Some(rs_ntp_state_has_events),
         get_events        : Some(rs_ntp_state_get_events),
         get_eventinfo     : Some(rs_ntp_state_get_event_info),
         localstorage_new  : None,

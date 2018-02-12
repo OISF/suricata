@@ -137,8 +137,6 @@ void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
                              FileContainer *(*StateGetFiles)(void *, uint8_t));
 void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t));
-void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
-                              int (*StateHasEvents)(void *));
 void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
                          LoggerId (*StateGetTxLogged)(void *, void *),
                          void (*StateSetTxLogged)(void *, void *, LoggerId));

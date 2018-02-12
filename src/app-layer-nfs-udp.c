@@ -98,11 +98,6 @@ static int NFSStateGetEventInfo(const char *event_name, int *event_id,
     return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
-static int NFSHasEvents(void *state)
-{
-    return rs_nfs_state_has_events(state);
-}
-
 static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
 {
     return rs_nfs_state_get_events(state, id);
@@ -352,10 +347,6 @@ void RegisterNFSUDPParsers(void)
                 RustNFSGetTxIterator);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_UDP, ALPROTO_NFS, NFSGetFiles);
-
-        /* Application layer event handling. */
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_NFS,
-            NFSHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_NFS,

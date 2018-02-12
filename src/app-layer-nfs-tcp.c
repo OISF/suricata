@@ -101,11 +101,6 @@ static int NFSTCPStateGetEventInfo(const char *event_name, int *event_id,
     return rs_nfs_state_get_event_info(event_name, event_id, event_type);
 }
 
-static int NFSTCPHasEvents(void *state)
-{
-    return rs_nfs_state_has_events(state);
-}
-
 static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
 {
     return rs_nfs_state_get_events(state, id);
@@ -359,10 +354,6 @@ void RegisterNFSTCPParsers(void)
                 RustNFSTCPGetTxIterator);
 
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_NFS, NFSTCPGetFiles);
-
-        /* Application layer event handling. */
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_NFS,
-                NFSTCPHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_NFS,

@@ -172,12 +172,6 @@ AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id)
     return NULL;
 }
 
-int DNSHasEvents(void *state)
-{
-    DNSState *dns_state = (DNSState *)state;
-    return (dns_state->events > 0);
-}
-
 void *DNSGetTx(void *alstate, uint64_t tx_id)
 {
     DNSState *dns_state = (DNSState *)alstate;

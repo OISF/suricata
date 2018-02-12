@@ -106,11 +106,6 @@ static AppLayerDecoderEvents *TFTPGetEvents(void *state, uint64_t tx_id)
     return NULL;
 }
 
-static int TFTPHasEvents(void *state)
-{
-    return rs_tftp_has_event(state);
-}
-
 /**
  * \brief Probe the input to see if it looks like echo.
  *
@@ -294,10 +289,6 @@ void RegisterTFTPParsers(void)
                                                    TFTPGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_TFTP,
                                     TFTPGetTx);
-
-        /* Application layer event handling. */
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_TFTP,
-                                            TFTPHasEvents);
 
         /* What is this being registered for? */
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_TFTP,

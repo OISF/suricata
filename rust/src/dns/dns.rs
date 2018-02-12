@@ -749,14 +749,6 @@ pub extern "C" fn rs_dns_state_get_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_dns_state_has_events(state: &mut DNSState) -> u8 {
-    if state.events > 0 {
-        return 1;
-    }
-    return 0;
-}
-
-#[no_mangle]
 pub extern "C" fn rs_dns_state_get_events(state: &mut DNSState,
                                           tx_id: libc::uint64_t)
                                           -> *mut core::AppLayerDecoderEvents

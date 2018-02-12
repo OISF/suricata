@@ -1325,13 +1325,6 @@ static AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id)
     return NULL;
 }
 
-static int DNP3HasEvents(void *state)
-{
-    SCEnter();
-    uint16_t events = (((DNP3State *)state)->events);
-    SCReturnInt((events > 0));
-}
-
 static void *DNP3GetTx(void *alstate, uint64_t tx_id)
 {
     SCEnter();
@@ -1620,8 +1613,6 @@ void RegisterDNP3Parsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetEvents);
-        AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_DNP3,
-            DNP3HasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNP3,
             DNP3GetTxDetectState, DNP3SetTxDetectState);
 
@@ -2130,7 +2121,6 @@ static int DNP3ParserTestRequestResponse(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2198,7 +2188,6 @@ static int DNP3ParserTestUnsolicitedResponseConfirm(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2265,7 +2254,6 @@ static int DNP3ParserTestFlooded(void)
 
     state = flow.alstate;
     FAIL_IF(state == NULL);
-    FAIL_IF(DNP3HasEvents(state));
 
     DNP3Transaction *tx = DNP3GetTx(state, 0);
     FAIL_IF(tx == NULL);
@@ -2554,7 +2542,6 @@ static int DNP3ParserDecodeG70V3Test(void)
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
-    FAIL_IF(DNP3HasEvents(dnp3state));
     DNP3Transaction *tx = DNP3GetTx(dnp3state, 0);
     FAIL_IF_NULL(tx);
     FAIL_IF_NOT(tx->has_request);
@@ -2616,9 +2603,6 @@ static int DNP3ParserUnknownEventAlertTest(void)
     FAIL_IF_NULL(dnp3state);
     int bytes = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
     FAIL_IF(bytes != sizeof(pkt));
-
-    /* Should have an event now. */
-    FAIL_IF_NOT(DNP3HasEvents(dnp3state));
 
     DNP3StateFree(dnp3state);
     PASS;
