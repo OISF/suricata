@@ -1743,6 +1743,24 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
                 " p->payload_len %u, STREAMTCP_STREAM_FLAG_NOREASSEMBLY %s",
                 ssn, stream, p->payload_len,
                 (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ? "true" : "false");
+
+    }
+
+    /* if the STREAMTCP_STREAM_FLAG_DEPTH_REACHED is set, but not the
+     * STREAMTCP_STREAM_FLAG_NOREASSEMBLY flag, it means the DEPTH flag
+     * was *just* set. In this case we trigger the AppLayer Truncate
+     * logic, to inform the applayer no more data in this direction is
+     * to be expected. */
+    if ((stream->flags &
+                (STREAMTCP_STREAM_FLAG_DEPTH_REACHED|STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) ==
+            STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
+    {
+        SCLogDebug("STREAMTCP_STREAM_FLAG_DEPTH_REACHED, truncate applayer");
+        if (dir != UPDATE_DIR_PACKET) {
+            SCLogDebug("override: direction now UPDATE_DIR_PACKET so we "
+                    "can trigger Truncate");
+            dir = UPDATE_DIR_PACKET;
+        }
     }
 
     /* in stream inline mode even if we have no data we call the reassembly
