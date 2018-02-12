@@ -45,7 +45,7 @@
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
-} __attribute__((__aligned__(8))) ;
+};
 
 struct flowv4_keys {
     __u32 src;
