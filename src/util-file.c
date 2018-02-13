@@ -334,7 +334,7 @@ static int FilePruneFile(File *file)
     /* file is done when state is closed+, logging/storing is done (if any) */
     if (file->state >= FILE_STATE_CLOSED &&
         (!RunModeOutputFileEnabled() || (file->flags & FILE_LOGGED)) &&
-        (!RunModeOutputFiledataEnabled() || (file->flags & FILE_STORED)))
+        (!RunModeOutputFiledataEnabled() || (file->flags & (FILE_STORED|FILE_NOSTORE))))
     {
         SCReturnInt(1);
     } else {
