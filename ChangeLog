@@ -1,3 +1,19 @@
+4.0.4 -- 2018-02-14
+
+Bug #2306: suricata 4 deadlocks during failed output log reopening
+Bug #2361: rule reload hangup
+Bug #2389: BUG_ON asserts in AppLayerIncFlowCounter (4.0.x)
+Bug #2392: libhtp 0.5.26 (4.0.x)
+Bug #2422: [4.0.3] af_packet: a leak that (possibly) breaks an inline channel
+Bug #2438: various config parsing issues
+Bug #2439: Fix timestamp offline when pcap timestamp is zero (4.0.x)
+Bug #2440: stream engine bypass issue (4.0.x)
+Bug #2441: der parser: bad input consumes cpu and memory (4.0.x)
+Bug #2443: DNP3 memcpy buffer overflow (4.0.x)
+Bug #2444: rust/dns: Core Dump with malformed traffic (4.0.x)
+Bug #2445: http bodies / file_data: thread space creation writing out of bounds
+Bug #2392: libhtp 0.5.26
+
 4.0.3 -- 2017-12-06
 
 No change. Rereleasing 4.0.2 as 4.0.3 due to packaging mistake.
