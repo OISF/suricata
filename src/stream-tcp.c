@@ -911,8 +911,13 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
     /* SYN/ACK */
     } else if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
         if (stream_config.midstream == FALSE &&
-                stream_config.async_oneside == FALSE)
+                stream_config.async_oneside == FALSE) {
+            /* There will be no TCP streaming so let's bypass */
+            if (StreamTcpBypassEnabled()) {
+                PacketBypassCallback(p);
+            }
             return 0;
+        }
 
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
