@@ -39,5 +39,6 @@ The list of supported format strings is the following:
 * %p - client port number
 * %A - server IP address
 * %P - server port number
+* %C - server cipher suite description
 
 Any non printable character will be represented by its byte value in hexadecimal format (\|XX\|, where XX is the hex code)
