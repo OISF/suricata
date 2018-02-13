@@ -1,7 +1,7 @@
 Myricom
 =======
 
-From: http://blog.inliniac.net/2012/07/10/suricata-on-myricom-capture-cards/
+From: https://blog.inliniac.net/2012/07/10/suricata-on-myricom-capture-cards/
 
 In this guide I’ll describe using the Myricom libpcap support. I’m going to assume you installed the card properly, installed the Sniffer driver and made sure that all works. Make sure that in your dmesg you see that the card is in sniffer mode:
 

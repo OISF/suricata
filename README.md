@@ -15,7 +15,7 @@ https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Instal
 User Guide
 ----------
 
-You can follow the [Suricata user guide](http://suricata.readthedocs.io/en/latest/) to get started.
+You can follow the [Suricata user guide](https://suricata.readthedocs.io/en/latest/) to get started.
 
 Our deprecated (but still useful) user guide is also [available](https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_User_Guide).
 

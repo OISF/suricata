@@ -265,7 +265,7 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
 
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
-    http://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
+    https://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html.
     To avoid that, use the ``http_raw_header`` keyword.
 
 Example of a header in a HTTP request:
@@ -353,7 +353,7 @@ Notes
    comes to performance than using the ``http_header`` buffer (~10%
    better).
 
--  `http://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <http://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
+-  `https://blog.inliniac.net/2012/07/09/suricata-http\_user\_agent-vs-http\_header/ <https://blog.inliniac.net/2012/07/09/suricata-http_user_agent-vs-http_header/>`_
 
 http_accept
 -----------

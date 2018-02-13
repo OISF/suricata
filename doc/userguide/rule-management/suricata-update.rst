@@ -114,4 +114,4 @@ Finally restart Suricata.
 Further reading
 ~~~~~~~~~~~~~~~
 
-See http://suricata-update.readthedocs.io/en/latest/
+See https://suricata-update.readthedocs.io/en/latest/
