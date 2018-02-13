@@ -321,6 +321,14 @@ pub struct NFSState {
     pub de_state_count: u64,
 }
 
+/// Implement Drop for NFSState as transactions need to do some
+/// explicit cleanup.
+impl Drop for NFSState {
+    fn drop(&mut self) {
+        self.free();
+    }
+}
+
 impl NFSState {
     /// Allocation function for a new TLS parser instance
     pub fn new() -> NFSState {
@@ -347,6 +355,9 @@ impl NFSState {
         }
     }
     pub fn free(&mut self) {
+        while self.transactions.len() > 0 {
+            self.free_tx_at_index(0);
+        }
         self.files.free();
     }
 
