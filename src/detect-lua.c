@@ -112,7 +112,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].name = "lua";
     sigmatch_table[DETECT_LUA].alias = "luajit";
     sigmatch_table[DETECT_LUA].desc = "match via a lua script";
-    sigmatch_table[DETECT_LUA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
+    sigmatch_table[DETECT_LUA].url = "https://suricata.readthedocs.io/en/latest/rules/rule-lua-scripting.html";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;

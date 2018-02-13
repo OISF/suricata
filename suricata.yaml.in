@@ -3,7 +3,7 @@
 
 # Suricata configuration file. In addition to the comments describing all
 # options in this file, full documentation can be found at:
-# https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricatayaml
+# https://suricata.readthedocs.io/en/latest/configuration/suricata-yaml.html
 
 ##
 ## Step 1: inform Suricata about your network
@@ -546,7 +546,7 @@ outputs:
   # Lua Output Support - execute lua script to generate alert and event
   # output.
   # Documented at:
-  # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_Output
+  # https://suricata.readthedocs.io/en/latest/output/lua-output.html
   - lua:
       enabled: no
       #scripts-dir: /etc/suricata/lua-output/

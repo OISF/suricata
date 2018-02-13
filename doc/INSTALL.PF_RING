@@ -124,7 +124,7 @@ cd oisfnew
 ./configure --enable-pfring --with-libpfring-libraries=/opt/PF_RING/lib --with-libpfring-includes=/opt/PF_RING/include --with-libpcap-libraries=/opt/PF_RING/lib --with-libpcap-includes=/opt/PF_RING/include LD_RUN_PATH="/opt/PF_RING/lib:/usr/lib:/usr/local/lib" --prefix=/opt/PF_RING/
 make && make install
 
-#Make config and log directories for a more complete getting started see http://www.inliniac.net/blog/2010/05/10/setting-up-suricata-0-9-0-for-initial-use-on-ubuntu-lucid-10-04.html
+#Make config and log directories for a more complete getting started see https://www.inliniac.net/blog/2010/05/10/setting-up-suricata-0-9-0-for-initial-use-on-ubuntu-lucid-10-04.html
 mkdir /etc/suricata
 cp suricata.yaml /etc/suricata/
 cp classification.config /etc/suricata/

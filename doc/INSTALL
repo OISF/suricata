@@ -2,7 +2,7 @@ About
 =====
 Suricata is a multi-threaded intrusion detection/prevention engine.
 engine available from the Open Information Security Foundation 
-(http://www.openinfosecfoundation.org).
+(https://www.openinfosecfoundation.org).
 
 Suricata and the HTP library are licensed under the GPLv2. A copy of this
 license is available in this tarball, or at:
