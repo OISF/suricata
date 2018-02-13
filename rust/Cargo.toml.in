@@ -14,8 +14,8 @@ experimental = ["ntp-parser"]
 strict = []
 
 [dependencies]
-nom = "~3.0"
-libc = "~0.2.0"
-crc = "~1.4.0"
+nom = "~3.2.1"
+libc = "^0.2.36"
+crc = "~1.7.0"
 
 ntp-parser = { version = "^0", optional = true }
