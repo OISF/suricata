@@ -56,14 +56,19 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#define BUFFER_STEP 50
+#define BUFFER_GROW_STEP 50
 
-static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
+static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
 {
-    void *ptmp;
+    if (size >= (USHRT_MAX - BUFFER_GROW_STEP))
+        return -1;
+
     if (size > det_ctx->smtp_buffers_size) {
-        ptmp = SCRealloc(det_ctx->smtp,
-                         (det_ctx->smtp_buffers_size + BUFFER_STEP) * sizeof(FiledataReassembledBody));
+        uint16_t grow_by = size - det_ctx->smtp_buffers_size;
+        grow_by = MAX(grow_by, BUFFER_GROW_STEP);
+
+        void *ptmp = SCRealloc(det_ctx->smtp,
+                         (det_ctx->smtp_buffers_size + grow_by) * sizeof(FiledataReassembledBody));
         if (ptmp == NULL) {
             SCFree(det_ctx->smtp);
             det_ctx->smtp = NULL;
@@ -73,10 +78,11 @@ static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
         }
         det_ctx->smtp = ptmp;
 
-        memset(det_ctx->smtp + det_ctx->smtp_buffers_size, 0, BUFFER_STEP * sizeof(FiledataReassembledBody));
-        det_ctx->smtp_buffers_size += BUFFER_STEP;
+        memset(det_ctx->smtp + det_ctx->smtp_buffers_size, 0, grow_by * sizeof(FiledataReassembledBody));
+        det_ctx->smtp_buffers_size += grow_by;
     }
-    for (int i = det_ctx->smtp_buffers_list_len; i < (size); i++) {
+    uint16_t i;
+    for (i = det_ctx->smtp_buffers_list_len; i < det_ctx->smtp_buffers_size; i++) {
         det_ctx->smtp[i].buffer_len = 0;
         det_ctx->smtp[i].offset = 0;
     }

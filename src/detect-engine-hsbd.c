@@ -66,17 +66,19 @@
 
 #include "util-validate.h"
 
-#define BUFFER_STEP 50
+#define BUFFER_GROW_STEP 50
 
 static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
 {
-    if (size >= (USHRT_MAX - BUFFER_STEP))
+    if (size >= (USHRT_MAX - BUFFER_GROW_STEP))
         return -1;
 
-    void *ptmp;
     if (size > det_ctx->hsbd_buffers_size) {
-        ptmp = SCRealloc(det_ctx->hsbd,
-                         (det_ctx->hsbd_buffers_size + BUFFER_STEP) * sizeof(HttpReassembledBody));
+        uint16_t grow_by = size - det_ctx->hsbd_buffers_size;
+        grow_by = MAX(grow_by, BUFFER_GROW_STEP);
+
+        void *ptmp = SCRealloc(det_ctx->hsbd,
+                         (det_ctx->hsbd_buffers_size + grow_by) * sizeof(HttpReassembledBody));
         if (ptmp == NULL) {
             SCFree(det_ctx->hsbd);
             det_ctx->hsbd = NULL;
@@ -86,11 +88,11 @@ static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
         }
         det_ctx->hsbd = ptmp;
 
-        memset(det_ctx->hsbd + det_ctx->hsbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody));
-        det_ctx->hsbd_buffers_size += BUFFER_STEP;
+        memset(det_ctx->hsbd + det_ctx->hsbd_buffers_size, 0, grow_by * sizeof(HttpReassembledBody));
+        det_ctx->hsbd_buffers_size += grow_by;
     }
     uint16_t i;
-    for (i = det_ctx->hsbd_buffers_list_len; i < ((uint16_t)size); i++) {
+    for (i = det_ctx->hsbd_buffers_list_len; i < det_ctx->hsbd_buffers_size; i++) {
         det_ctx->hsbd[i].buffer_len = 0;
         det_ctx->hsbd[i].offset = 0;
     }
