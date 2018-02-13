@@ -55,6 +55,7 @@
 #include "util-crypt.h"
 #include "util-time.h"
 #include "log-cf-common.h"
+#include "util-tls.h"
 
 #define DEFAULT_LOG_FILENAME "tls.log"
 
@@ -76,6 +77,7 @@
 #define LOG_TLS_CF_SUBJECT 's'
 #define LOG_TLS_CF_ISSUER 'i'
 #define LOG_TLS_CF_EXTENDED 'E'
+#define LOG_TLS_CF_SERVER_CIPHERSUITE 'C'
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
@@ -430,6 +432,15 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
             case LOG_TLS_CF_EXTENDED:
             /* Extended format  */
                 LogTlsLogExtended(aft, ssl_state);
+                break;
+            case LOG_TLS_CF_SERVER_CIPHERSUITE:
+                if (ssl_state->server_connp.ciphersuite) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                             TlsCiphersuiteIdToName(ssl_state->server_connp.ciphersuite)
+                    );
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
                 break;
             default:
             /* NO MATCH */
