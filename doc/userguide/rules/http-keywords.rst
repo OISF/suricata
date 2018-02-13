@@ -485,7 +485,7 @@ Example rule::
 Example to make sure *only* Host is present::
 
     alert http any any -> any any (http_header_names; \
-            content:"|0d 0a 0d 0a|Host|0d 0a 0d 0a|"; sid:1;)
+            content:"|0d 0a|Host|0d 0a 0d 0a|"; sid:1;)
 
 Example to make sure *User-Agent* is directly after *Host*::
 
