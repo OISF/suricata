@@ -55,5 +55,5 @@ endif
 	@echo "'LD_LIBRARY_PATH="$(DESTDIR)$(prefix)/lib" "$(DESTDIR)$(bindir)/suricata" -c "$(DESTDIR)$(e_sysconfdir)/suricata.yaml" -i eth0'."
 	@echo ""
 	@echo "While rules are installed now, it's highly recommended to use a rule manager for maintaining rules."
-	@echo "The two most common are Oinkmaster and Pulledpork. For a guide see:"
-	@echo "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Rule_Management_with_Oinkmaster"
+	@echo "The three most common are Suricata-Update, Oinkmaster and Pulledpork. For a guide see:"
+	@echo "https://suricata.readthedocs.io/en/latest/rule-management/index.html"
