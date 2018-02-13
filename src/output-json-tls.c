@@ -46,6 +46,7 @@
 
 #include "util-logopenfile.h"
 #include "util-crypt.h"
+#include "util-tls.h"
 
 #include "output-json.h"
 #include "output-json-tls.h"
@@ -77,6 +78,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_FIELD_CERTIFICATE       (1 << 8)
 #define LOG_TLS_FIELD_CHAIN             (1 << 9)
 #define LOG_TLS_FIELD_SESSION_RESUMED   (1 << 10)
+#define LOG_TLS_FIELD_CIPHER_SUITE      (1 << 11)
 
 typedef struct {
     const char *name;
@@ -95,6 +97,7 @@ TlsFields tls_fields[] = {
     { "certificate",     LOG_TLS_FIELD_CERTIFICATE },
     { "chain",           LOG_TLS_FIELD_CHAIN },
     { "session_resumed", LOG_TLS_FIELD_SESSION_RESUMED },
+    { "cipher_suite",    LOG_TLS_FIELD_CIPHER_SUITE },
     { NULL,              -1 }
 };
 
@@ -256,6 +259,37 @@ static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
     json_object_set_new(js, "chain", chain);
 }
 
+static void JsonTlsLogCipherSuite(json_t *js, SSLState *ssl_state)
+{
+    json_t *cipher_suite_js;
+    const char *desc = NULL;
+    char number[8] = {0};
+    uint16_t value;
+
+    cipher_suite_js = json_object();
+    if (cipher_suite_js == NULL) {
+        return;
+    }
+
+    /* server cipher suite choosed */
+    if (ssl_state->server_connp.ciphersuite) {
+        value = ssl_state->server_connp.ciphersuite;
+        desc = TlsCiphersuiteIdToName(value);
+        desc = NULL;
+        if (desc == NULL) {
+            snprintf(number, 7, "0X%X", value);
+            json_object_set_new(cipher_suite_js, "server",
+                    json_string(number));
+        }
+        else {
+            json_object_set_new(cipher_suite_js, "server",
+                    json_string(desc));
+        }
+    }
+
+    json_object_set_new(js, "cipher_suite", cipher_suite_js);
+}
+
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
 {
     /* tls subject */
@@ -314,6 +348,10 @@ static void JsonTlsLogJSONCustom(OutputTlsCtx *tls_ctx, json_t *js,
     /* tls chain */
     if (tls_ctx->fields & LOG_TLS_FIELD_CHAIN)
         JsonTlsLogChain(js, ssl_state);
+
+    /* tls cipher suite */
+    if (tls_ctx->fields & LOG_TLS_FIELD_CIPHER_SUITE)
+        JsonTlsLogCipherSuite(js, ssl_state);
 }
 
 void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
