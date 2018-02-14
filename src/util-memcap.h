@@ -39,5 +39,10 @@ int MemcapListRegisterMemcap(const char *name, const char *option,
                              uint64_t (*GetMemuseFunc)(void));
 MemcapList *MemcapListGetElement(int index);
 void MemcapListFreeList(void);
+void GlobalMemcapInitConfig(void);
+bool GlobalMemcapEnabled(void);
+uint64_t GlobalMemcapGetValue(void);
+int GlobalMemcapSetValue(uint64_t size);
+void GlobalMemcapReached(uint64_t value, const char *name, bool allow_unlimited);
 
 #endif
