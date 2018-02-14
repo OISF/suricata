@@ -1045,6 +1045,13 @@ asn1-max-frames: 256
 # umask passed on by the shell.
 #umask: 022
 
+# Global memcap
+# This value represents the maximum amount of memory that can be used
+# to allocate all the memcap values.
+# The sum of all of them (stream.memcap, flow.memcap, etc.) cannot be
+# greater than the global memcap.
+#global-memcap: 128mb
+
 # Suricata core dump configuration. Limits the size of the core dump file to
 # approximately max-dump. The actual core dump size will be a multiple of the
 # page size. Core dumps that would be larger than max-dump are truncated. On
