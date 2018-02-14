@@ -32,6 +32,11 @@
 
 #include "util-memcap.h"
 
+SC_ATOMIC_DECLARE(uint64_t, global_memcap);
+
+static bool g_use_global_memcap = FALSE;
+static uint64_t g_memcaps_sum = 0;
+
 static MemcapList *memcaps = NULL;
 
 /**
@@ -94,4 +99,65 @@ MemcapList *MemcapListGetElement(int index)
         node = node->next;
     }
     return NULL;
+}
+
+void GlobalMemcapInitConfig(void)
+{
+    const char *conf_val = NULL;
+    SC_ATOMIC_INIT(global_memcap);
+
+    MemcapListRegisterMemcap("global", "global-memcap",
+                             GlobalMemcapSetValue, GlobalMemcapGetValue,
+                             NULL);
+
+    if ((ConfGet("global-memcap", &conf_val)) == 1)
+    {
+        if (conf_val == NULL) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid value for "
+                       "global-memcap: NULL");
+            exit(EXIT_FAILURE);
+        }
+        uint64_t global_memcap_copy;
+        if (ParseSizeStringU64(conf_val, &global_memcap_copy) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing global-memcap "
+                       "from conf file - %s. Killing engine",
+                       conf_val);
+            exit(EXIT_FAILURE);
+        } else {
+            SC_ATOMIC_SET(global_memcap, global_memcap_copy);
+            g_use_global_memcap = TRUE;
+            SCLogConfig("global memcap is set: %"PRIu64"", SC_ATOMIC_GET(global_memcap));
+        }
+    }
+}
+
+bool GlobalMemcapEnabled(void)
+{
+    return g_use_global_memcap;
+}
+
+uint64_t GlobalMemcapGetValue(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(global_memcap);
+    return memcapcopy;
+}
+
+int GlobalMemcapSetValue(uint64_t size)
+{
+    SC_ATOMIC_SET(global_memcap, size);
+    return 1;
+}
+
+int GlobalMemcapReached(uint64_t value)
+{
+    if (g_use_global_memcap == FALSE) {
+        return 0;
+    }
+
+    if (g_memcaps_sum + value > SC_ATOMIC_GET(global_memcap)) {
+        return 1;
+    }
+
+    g_memcaps_sum += value;
+    return 0;
 }
