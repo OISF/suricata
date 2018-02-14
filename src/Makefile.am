@@ -415,6 +415,7 @@ util-file-decompression.c util-file-decompression.h \
 util-file-swf-decompression.c util-file-swf-decompression.h \
 util-fix_checksum.c util-fix_checksum.h \
 util-fmemopen.c util-fmemopen.h \
+util-memcap.c util-memcap.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
