@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -37,5 +37,10 @@ void MemcapListRegisterMemcap(const char *name, const char *option, int (*SetFun
         uint64_t (*GetFunc)(void), uint64_t (*GetMemuseFunc)(void));
 MemcapList *MemcapListGetElement(int index);
 void MemcapListFreeList(void);
+void GlobalMemcapInitConfig(void);
+bool GlobalMemcapEnabled(void);
+uint64_t GlobalMemcapGetValue(void);
+int GlobalMemcapSetValue(uint64_t size);
+void GlobalMemcapReached(uint64_t value, const char *name, bool allow_unlimited);
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Open Information Security Foundation
+/* Copyright (C) 2020 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,6 +31,11 @@
 #include "util-misc.h"
 
 #include "util-memcap.h"
+
+SC_ATOMIC_DECLARE(uint64_t, global_memcap);
+
+static bool g_use_global_memcap = FALSE;
+static uint64_t g_memcaps_sum = 0;
 
 static MemcapList *memcaps = NULL;
 
@@ -79,13 +84,78 @@ void MemcapListFreeList(void)
 MemcapList *MemcapListGetElement(int index)
 {
     MemcapList *node = memcaps;
-    int i;
 
-    for (i = 0; node != NULL; i++) {
+    for (int i = 0; node != NULL; i++) {
         if (i == index) {
             return node;
         }
         node = node->next;
     }
     return NULL;
+}
+
+void GlobalMemcapInitConfig(void)
+{
+    const char *conf_val = NULL;
+    SC_ATOMIC_INIT(global_memcap);
+
+    MemcapListRegisterMemcap(
+            "global", "global-memcap", GlobalMemcapSetValue, GlobalMemcapGetValue, NULL);
+
+    if ((ConfGet("global-memcap", &conf_val)) == 1) {
+        if (conf_val == NULL) {
+            FatalError(SC_ERR_FATAL, "Invalid value for global-memcap: NULL");
+        }
+        uint64_t global_memcap_copy;
+        if (ParseSizeStringU64(conf_val, &global_memcap_copy) < 0) {
+            FatalError(SC_ERR_FATAL,
+                    "Error parsing global-memcap "
+                    "from conf file - %s. Killing engine",
+                    conf_val);
+        } else {
+            SC_ATOMIC_SET(global_memcap, global_memcap_copy);
+            g_use_global_memcap = TRUE;
+            SCLogConfig("global memcap is set: %" PRIu64, SC_ATOMIC_GET(global_memcap));
+        }
+    }
+}
+
+bool GlobalMemcapEnabled(void)
+{
+    return g_use_global_memcap;
+}
+
+uint64_t GlobalMemcapGetValue(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(global_memcap);
+    return memcapcopy;
+}
+
+int GlobalMemcapSetValue(uint64_t size)
+{
+    SC_ATOMIC_SET(global_memcap, size);
+    return 1;
+}
+
+void GlobalMemcapReached(uint64_t memcap_val, const char *name, bool unlimited)
+{
+    if (g_use_global_memcap == FALSE) {
+        return;
+    }
+
+    if (g_memcaps_sum + memcap_val > SC_ATOMIC_GET(global_memcap)) {
+        FatalError(SC_ERR_FATAL,
+                "Global memcap value needs to be "
+                "increased to fit \'%s\' value",
+                name);
+    } else if (memcap_val == 0 && unlimited) {
+        /* Some memcaps (http, ftp, ...) can be unlimited and
+         * in this case global memcap is ignored
+         */
+        SCLogWarning(SC_WARN_MEMCAP_UNLIMITED,
+                "%s is set to unlimited, global memcap won't be honored", name);
+        return;
+    }
+
+    g_memcaps_sum += memcap_val;
 }
