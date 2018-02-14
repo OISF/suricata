@@ -2448,6 +2448,8 @@ int PostConfLoadedSetup(SCInstance *suri)
         ConfSet("runmode", suri->runmode_custom_mode);
     }
 
+    GlobalMemcapInitConfig();
+
     StorageInit();
 #ifdef HAVE_PACKET_EBPF
     EBPFRegisterExtension();
