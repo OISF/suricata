@@ -55,6 +55,7 @@
 #include "util-device.h"
 #include "util-misc.h"
 #include "util-running-modes.h"
+#include "util-memcap.h"
 
 #include "detect-engine.h"
 #include "detect-parse.h"
@@ -379,6 +380,8 @@ static void GlobalsDestroy(SCInstance *suri)
     SCLogDeInitLogModule();
     DetectParseFreeRegexes();
     SCThresholdConfGlobalFree();
+
+    MemcapListFreeList();
 
     SCPidfileRemove(suri->pid_filename);
     SCFree(suri->pid_filename);
