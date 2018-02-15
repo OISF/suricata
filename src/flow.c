@@ -56,6 +56,7 @@
 
 #include "util-debug.h"
 #include "util-privs.h"
+#include "util-memcap.h"
 
 #include "detect.h"
 #include "detect-engine-state.h"
@@ -454,6 +455,9 @@ void FlowInitConfig(char quiet)
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(flow_config.memcap, FLOW_DEFAULT_MEMCAP);
 
+    MemcapListRegisterMemcap("flow", "flow.memcap",
+                             FlowSetMemcap, FlowGetMemcap, FlowGetMemuse);
+
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
     intmax_t val = 0;
@@ -490,6 +494,11 @@ void FlowInitConfig(char quiet)
         } else {
             SC_ATOMIC_SET(flow_config.memcap, flow_memcap_copy);
         }
+    }
+    if (GlobalMemcapReached(SC_ATOMIC_GET(flow_config.memcap))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "The value specified for global memcap "
+                   "needs to be increased for the flow.memcap value");
+        exit(EXIT_FAILURE);
     }
     if ((ConfGet("flow.hash-size", &conf_val)) == 1)
     {
