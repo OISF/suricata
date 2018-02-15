@@ -276,10 +276,10 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
              * pcap_dump_flush() after every write when writing
 	         * compressed output. */
             uint64_t bytes_written = LZ4F_compressEnd(comp->lz4f_context,
-                comp->buffer, comp->buffer_size, NULL);
+                    comp->buffer, comp->buffer_size, NULL);
             if (LZ4F_isError(bytes_written)) {
                 SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressEnd: %s",
-                    LZ4F_getErrorName(bytes_written));
+                        LZ4F_getErrorName(bytes_written));
                 return TM_ECODE_FAILED;
             }
             if (fwrite(comp->buffer, 1, bytes_written, comp->file) < bytes_written) {
@@ -389,7 +389,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 
     if (pl->pcap_dead_handle == NULL) {
         if ((pl->pcap_dead_handle = pcap_open_dead(p->datalink,
-                        PCAP_SNAPLEN)) == NULL) {
+                PCAP_SNAPLEN)) == NULL) {
             SCLogDebug("Error opening dead pcap handle");
             return TM_ECODE_FAILED;
         }
@@ -398,7 +398,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
     if (pl->pcap_dumper == NULL) {
         if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_NONE) {
             if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                            pl->filename)) == NULL) {
+                    pl->filename)) == NULL) {
                 SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
                 return TM_ECODE_FAILED;
             }
@@ -409,7 +409,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
             if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle,
                     comp->pcap_buf_wrapper)) == NULL) {
                 SCLogError(SC_ERR_OPENING_FILE, "Error opening dump file %s",
-                    pcap_geterr(pl->pcap_dead_handle));
+                        pcap_geterr(pl->pcap_dead_handle));
                 return TM_ECODE_FAILED;
             }
             comp->file = fopen(pl->filename, "w");
@@ -424,7 +424,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                     comp->buffer, comp->buffer_size, NULL);
             if (LZ4F_isError(bytes_written)) {
                 SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressBegin: %s",
-                    LZ4F_getErrorName(bytes_written));
+                        LZ4F_getErrorName(bytes_written));
                 return TM_ECODE_FAILED;
             }
             if (fwrite(comp->buffer, 1, bytes_written, comp->file) < bytes_written) {
@@ -528,7 +528,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             if (PcapLogRotateFile(t,pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
-                    return TM_ECODE_FAILED;
+                return TM_ECODE_FAILED;
             }
         }
     }
@@ -545,7 +545,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
             if (PcapLogRotateFile(t,pl) < 0) {
                 PcapLogUnlock(pl);
                 SCLogDebug("rotation of pcap failed");
-                    return TM_ECODE_FAILED;
+                return TM_ECODE_FAILED;
             }
         }
     }
@@ -570,7 +570,7 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
         pcap_dump_flush(pl->pcap_dumper);
         uint64_t in_size = (uint64_t)ftell(comp->pcap_buf_wrapper);
         uint64_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
-            comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
+                comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
         if (LZ4F_isError(len)) {
             SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s",
                     LZ4F_getErrorName(len));
@@ -653,7 +653,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
             return NULL;
         }
         copy_comp->pcap_buf = SCMalloc(copy_comp->pcap_buf_size);
-            if (copy_comp->pcap_buf == NULL) {
+        if (copy_comp->pcap_buf == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
                     strerror(errno));
             return NULL;
