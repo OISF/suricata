@@ -70,7 +70,6 @@
 #define MIN_LIMIT                       4 * 1024 * 1024
 #define DEFAULT_LIMIT                   100 * 1024 * 1024
 #define DEFAULT_FILE_LIMIT              0
-#define DEFAULT_PCAP_LOG_COMPRESSION_FORMAT      "none"
 
 #define LOGMODE_NORMAL                  0
 #define LOGMODE_SGUIL                   1
@@ -1293,14 +1292,11 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             SCLogInfo("Using log dir %s", pl->dir);
         }
 
-        const char *compression_str = NULL;
-        compression_str = ConfNodeLookupChildValue(conf, "compression");
-        if (compression_str == NULL) {
-            compression_str = DEFAULT_PCAP_LOG_COMPRESSION_FORMAT;
-        }
+        const char *compression_str = ConfNodeLookupChildValue(conf,
+                "compression");
 
         PcapLogCompressionData *comp = &pl->compression;
-        if (strcmp(compression_str, "none") == 0) {
+        if (compression_str == NULL || strcmp(compression_str, "none") == 0) {
             comp->format = PCAP_LOG_COMPRESSION_FORMAT_NONE;
             comp->buffer = NULL;
             comp->buffer_size = 0;
