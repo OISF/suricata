@@ -47,6 +47,7 @@
 
 #include "util-spm.h"
 #include "util-unittest.h"
+#include "util-memcap.h"
 
 #include "app-layer-dns-udp.h"
 
@@ -350,6 +351,13 @@ static void DNSUDPConfigure(void)
     uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
     uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
 
+    MemcapListRegisterMemcap("applayer-proto-dns-global", "app-layer.protocols.dns.global-memcap",
+                             DNSConfigSetGlobalMemcap, DNSConfigGetGlobalMemcap,
+                             DNSMemcapGetMemcapGlobalCounter);
+    MemcapListRegisterMemcap("applayer-proto-dns-state", "app-layer.protocols.dns.state-memcap",
+                             DNSConfigSetStateMemcap, DNSConfigGetStateMemcap,
+                             DNSMemcapGetMemcapStateCounter);
+
     ConfNode *p = ConfGetNode("app-layer.protocols.dns.request-flood");
     if (p != NULL) {
         uint32_t value;
@@ -368,7 +376,16 @@ static void DNSUDPConfigure(void)
         if (ParseSizeStringU32(p->val, &value) < 0) {
             SCLogError(SC_ERR_DNS_CONFIG, "invalid value for state-memcap %s", p->val);
         } else {
-            state_memcap = value;
+            if (GlobalMemcapReached(value)) {
+                SCLogError(SC_ERR_INVALID_VALUE, "The value specified for global memcap needs to be "
+                           "increased for the dns.state-memcap value specified.");
+            } else if (GlobalMemcapEnabled() && value == 0) {
+                SCLogWarning(SC_WARN_MEMCAP_UNLIMITED,
+                             "dns state memcap is set to unlimited, "
+                             "so global memcap won't be honored.");
+            } else {
+                state_memcap = value;
+            }
         }
     }
     SCLogConfig("DNS per flow memcap (state-memcap): %u", state_memcap);
@@ -380,7 +397,16 @@ static void DNSUDPConfigure(void)
         if (ParseSizeStringU64(p->val, &value) < 0) {
             SCLogError(SC_ERR_DNS_CONFIG, "invalid value for global-memcap %s", p->val);
         } else {
-            global_memcap = value;
+            if (GlobalMemcapReached(value)) {
+                SCLogError(SC_ERR_INVALID_VALUE, "The value specified for global memcap needs to be "
+                           "increased for the dns.global-memcap value specified.");
+            } else if (GlobalMemcapEnabled() && value == 0) {
+                SCLogWarning(SC_WARN_MEMCAP_UNLIMITED,
+                             "dns global memcap is set to unlimited, "
+                             "so global memcap won't be honored.");
+            } else {
+                global_memcap = value;
+            }
         }
     }
     SCLogConfig("DNS global memcap: %"PRIu64, global_memcap);
