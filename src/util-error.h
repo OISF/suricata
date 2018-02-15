@@ -340,6 +340,8 @@ typedef enum {
     SC_ERR_SMB_CONFIG,
     SC_WARN_NO_JA3_SUPPORT,
     SC_WARN_JA3_DISABLED,
+    SC_WARN_MEMCAP_UNLIMITED,
+
     SC_ERR_MAX
 } SCError;
 
