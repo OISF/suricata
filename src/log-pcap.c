@@ -121,17 +121,17 @@ enum PcapLogCompressionFormat {
 
 typedef struct PcapLogCompressionData_ {
     enum PcapLogCompressionFormat format;
-    unsigned char *buffer;
-    size_t buffer_size;
+    uint8_t *buffer;
+    uint64_t buffer_size;
 #ifdef HAVE_LIBLZ4
     LZ4F_compressionContext_t lz4f_context;
     LZ4F_preferences_t lz4f_prefs;
 #endif /* HAVE_LIBLZ4 */
     FILE *file;
-    char *pcap_buf;
-    size_t pcap_buf_size;
+    uint8_t *pcap_buf;
+    uint64_t pcap_buf_size;
     FILE *pcap_buf_wrapper;
-    size_t bytes_in_block;
+    uint64_t bytes_in_block;
 } PcapLogCompressionData;
 
 /**
@@ -276,7 +276,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
             /* pcap_dump_close did not write any data because we call
              * pcap_dump_flush() after every write when writing
 	         * compressed output. */
-            size_t bytes_written = LZ4F_compressEnd(comp->lz4f_context,
+            uint64_t bytes_written = LZ4F_compressEnd(comp->lz4f_context,
                 comp->buffer, comp->buffer_size, NULL);
             if (LZ4F_isError(bytes_written)) {
                 SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressEnd: %s",
@@ -421,7 +421,7 @@ static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
                 return TM_ECODE_FAILED;
             }
 
-            size_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
+            uint64_t bytes_written = LZ4F_compressBegin(comp->lz4f_context,
                     comp->buffer, comp->buffer_size, NULL);
             if (LZ4F_isError(bytes_written)) {
                 SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressBegin: %s",
@@ -569,8 +569,8 @@ static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 #ifdef HAVE_LIBLZ4
     else if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
         pcap_dump_flush(pl->pcap_dumper);
-        size_t in_size = (size_t)ftell(comp->pcap_buf_wrapper);
-        size_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
+        uint64_t in_size = (uint64_t)ftell(comp->pcap_buf_wrapper);
+        uint64_t out_size = LZ4F_compressUpdate(comp->lz4f_context,
             comp->buffer, comp->buffer_size, comp->pcap_buf, in_size, NULL);
         if (LZ4F_isError(len)) {
             SCLogError(SC_ERR_PCAP_LOG_COMPRESS, "LZ4F_compressUpdate: %s",
