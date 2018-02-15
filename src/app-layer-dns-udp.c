@@ -47,6 +47,7 @@
 
 #include "util-spm.h"
 #include "util-unittest.h"
+#include "util-memcap.h"
 
 #include "app-layer-dns-udp.h"
 
@@ -350,6 +351,13 @@ static void DNSUDPConfigure(void)
     uint32_t state_memcap = DNS_CONFIG_DEFAULT_STATE_MEMCAP;
     uint64_t global_memcap = DNS_CONFIG_DEFAULT_GLOBAL_MEMCAP;
 
+    MemcapListRegisterMemcap("applayer-proto-dns-global", "app-layer.protocols.dns.global-memcap",
+                             DNSConfigSetGlobalMemcap, DNSConfigGetGlobalMemcap,
+                             DNSMemcapGetMemcapGlobalCounter);
+    MemcapListRegisterMemcap("applayer-proto-dns-state", "app-layer.protocols.dns.state-memcap",
+                             DNSConfigSetStateMemcap, DNSConfigGetStateMemcap,
+                             DNSMemcapGetMemcapStateCounter);
+
     ConfNode *p = ConfGetNode("app-layer.protocols.dns.request-flood");
     if (p != NULL) {
         uint32_t value;
@@ -368,6 +376,7 @@ static void DNSUDPConfigure(void)
         if (ParseSizeStringU32(p->val, &value) < 0) {
             SCLogError(SC_ERR_DNS_CONFIG, "invalid value for state-memcap %s", p->val);
         } else {
+            GlobalMemcapReached(value, "dns.state-memcap", true);
             state_memcap = value;
         }
     }
@@ -380,6 +389,7 @@ static void DNSUDPConfigure(void)
         if (ParseSizeStringU64(p->val, &value) < 0) {
             SCLogError(SC_ERR_DNS_CONFIG, "invalid value for global-memcap %s", p->val);
         } else {
+            GlobalMemcapReached(value, "dns.global-memcap", true);
             global_memcap = value;
         }
     }
