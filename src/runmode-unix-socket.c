@@ -46,6 +46,7 @@
 
 #include "util-misc.h"
 #include "util-profiling.h"
+#include "util-memcap.h"
 
 #include "conf-yaml-loader.h"
 
@@ -70,65 +71,12 @@ typedef struct PcapCommand_ {
     PcapFiles *current_file;
 } PcapCommand;
 
-typedef struct MemcapCommand_ {
-    const char *name;
-    int (*SetFunc)(uint64_t);
-    uint64_t (*GetFunc)(void);
-    uint64_t (*GetMemuseFunc)(void);
-} MemcapCommand;
-
 const char *RunModeUnixSocketGetDefaultMode(void)
 {
     return default_mode;
 }
 
 #ifdef BUILD_UNIX_SOCKET
-
-#define MEMCAPS_MAX 7
-static MemcapCommand memcaps[MEMCAPS_MAX] = {
-    {
-        "stream",
-        StreamTcpSetMemcap,
-        StreamTcpGetMemcap,
-        StreamTcpMemuseCounter,
-    },
-    {
-        "stream-reassembly",
-        StreamTcpReassembleSetMemcap,
-        StreamTcpReassembleGetMemcap,
-        StreamTcpReassembleMemuseGlobalCounter
-    },
-    {
-        "flow",
-        FlowSetMemcap,
-        FlowGetMemcap,
-        FlowGetMemuse
-    },
-    {
-        "applayer-proto-http",
-        HTPSetMemcap,
-        HTPGetMemcap,
-        HTPMemuseGlobalCounter
-    },
-    {
-        "defrag",
-        DefragTrackerSetMemcap,
-        DefragTrackerGetMemcap,
-        DefragTrackerGetMemuse
-    },
-    {
-        "ippair",
-        IPPairSetMemcap,
-        IPPairGetMemcap,
-        IPPairGetMemuse
-    },
-    {
-        "host",
-        HostSetMemcap,
-        HostGetMemcap,
-        HostGetMemuse
-    },
-};
 
 static int RunModeUnixSocketMaster(void);
 static int unix_manager_pcap_task_running = 0;
@@ -1264,17 +1212,22 @@ static void MemcapBuildValue(uint64_t val, char *str, uint32_t str_len)
 
 TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
 {
-    char *memcap = NULL;
+    char *memcapstr = NULL;
     char *value_str = NULL;
     uint64_t value;
     int i;
+    char message[150];
+    int global = 0;
+    int updated = 0;
+    uint64_t memcapsum = 0;
+    MemcapList *memcap = NULL;
 
     json_t *jarg = json_object_get(cmd, "config");
     if (!json_is_string(jarg)) {
         json_object_set_new(answer, "message", json_string("memcap key is not a string"));
         return TM_ECODE_FAILED;
     }
-    memcap = (char *)json_string_value(jarg);
+    memcapstr = (char *)json_string_value(jarg);
 
     jarg = json_object_get(cmd, "memcap");
     if (!json_is_string(jarg)) {
@@ -1292,33 +1245,67 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
-        if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].SetFunc) {
-            int updated = memcaps[i].SetFunc(value);
-            char message[150];
+    if (strcmp("global", memcapstr) == 0) {
+        if (!GlobalMemcapEnabled()) {
+            json_object_set_new(answer, "message",
+                                json_string("Cannot update: global memcap disabled"));
+            return TM_ECODE_FAILED;
+        }
+        if (value == 0) {
+            json_object_set_new(answer, "message",
+                                json_string("unlimited value is not allowed "
+                                            "for global memcap"));
+            return TM_ECODE_FAILED;
+        }
+        global = 1;
+    }
+
+    if (GlobalMemcapEnabled()) {
+        for (i = 0; (memcap = MemcapListGetElement(i)); i++) {
+            if (strcmp(memcap->name, "global") != 0 && strcmp(memcap->name, memcapstr) != 0 && memcap->GetFunc) {
+                memcapsum += memcap->GetFunc();
+            }
+        }
+        if (global && value < memcapsum) {
+            char memuse[50];
+            MemcapBuildValue(memcapsum, memuse, sizeof(memuse));
+            snprintf(message, sizeof(message), "global memcap specified is less "
+                     "than the memory used: %s. Please try increasing it.", memuse);
+            json_object_set_new(answer, "message", json_string(message));
+            return TM_ECODE_FAILED;
+        } else if (value + memcapsum > GlobalMemcapGetValue()) {
+            json_object_set_new(answer, "message",
+                                json_string("global memcap limit reached"));
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    for (i = 0; (memcap = MemcapListGetElement(i)); i++) {
+        if (strcmp(memcap->name, memcapstr) == 0 && memcap->SetFunc) {
+            updated = memcap->SetFunc(value);
 
             if (updated) {
                 snprintf(message, sizeof(message),
                 "memcap value for '%s' updated: %"PRIu64" %s",
-                memcaps[i].name, value,
+                memcap->name, value,
                 (value == 0) ? "(unlimited)" : "");
                 json_object_set_new(answer, "message", json_string(message));
                 return TM_ECODE_OK;
             } else {
                 if (value == 0) {
                     snprintf(message, sizeof(message),
-                             "Unlimited value is not allowed for '%s'", memcaps[i].name);
+                             "Unlimited value is not allowed for '%s'", memcap->name);
                 } else {
-                    if (memcaps[i].GetMemuseFunc()) {
+                    if (memcap->GetMemuseFunc()) {
                         char memuse[50];
-                        MemcapBuildValue(memcaps[i].GetMemuseFunc(), memuse, sizeof(memuse));
+                        MemcapBuildValue(memcap->GetMemuseFunc(), memuse, sizeof(memuse));
                         snprintf(message, sizeof(message),
-                                 "memcap value specified for '%s' is less than the memory in use: %s",
-                                 memcaps[i].name, memuse);
+                                 "%s memcap value specified for '%s' is less than the memory in use: %s",
+                                 (global == 1) ? "global" : "", memcap->name, memuse);
                     } else {
                         snprintf(message, sizeof(message),
-                                 "memcap value specified for '%s' is less than the memory in use",
-                                 memcaps[i].name);
+                                 "%s memcap value specified for '%s' is less than the memory in use",
+                                 (global == 1) ? "global" : "", memcap->name);
                     }
                 }
                 json_object_set_new(answer, "message", json_string(message));
@@ -1334,7 +1321,8 @@ TmEcode UnixSocketSetMemcap(json_t *cmd, json_t* answer, void *data)
 
 TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
 {
-    char *memcap = NULL;
+    MemcapList *memcap = NULL;
+    char *memcapstr = NULL;
     int i;
 
     json_t *jarg = json_object_get(cmd, "config");
@@ -1342,12 +1330,12 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
         json_object_set_new(answer, "message", json_string("memcap name is not a string"));
         return TM_ECODE_FAILED;
     }
-    memcap = (char *)json_string_value(jarg);
+    memcapstr = (char *)json_string_value(jarg);
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
-        if (strcmp(memcaps[i].name, memcap) == 0 && memcaps[i].GetFunc) {
+    for (i = 0; (memcap = MemcapListGetElement(i)); i++) {
+        if (strcmp(memcap->name, memcapstr) == 0 && memcap->GetFunc) {
             char str[50];
-            uint64_t val = memcaps[i].GetFunc();
+            uint64_t val = memcap->GetFunc();
             json_t *jobj = json_object();
             if (jobj == NULL) {
                 json_object_set_new(answer, "message",
@@ -1355,8 +1343,10 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
                 return TM_ECODE_FAILED;
             }
 
-            if (val == 0) {
+            if (val == 0 && strcmp(memcap->name, "global") != 0) {
                 strlcpy(str, "unlimited", sizeof(str));
+            } else if (!strcmp(memcap->name, "global") && !GlobalMemcapEnabled()) {
+                strlcpy(str, "disabled", sizeof(str));
             } else {
                 MemcapBuildValue(val, str, sizeof(str));
             }
@@ -1375,6 +1365,7 @@ TmEcode UnixSocketShowMemcap(json_t *cmd, json_t *answer, void *data)
 TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
 {
     json_t *jmemcaps = json_array();
+    MemcapList *memcap = NULL;
     int i;
 
     if (jmemcaps == NULL) {
@@ -1383,7 +1374,7 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    for (i = 0; i < MEMCAPS_MAX; i++) {
+    for (i = 0; (memcap = MemcapListGetElement(i)); i++) {
         json_t *jobj = json_object();
         if (jobj == NULL) {
             json_decref(jmemcaps);
@@ -1392,15 +1383,17 @@ TmEcode UnixSocketShowAllMemcap(json_t *cmd, json_t *answer, void *data)
             return TM_ECODE_FAILED;
         }
         char str[50];
-        uint64_t val = memcaps[i].GetFunc();
+        uint64_t val = memcap->GetFunc();
 
-        if (val == 0) {
+        if (val == 0 && strcmp(memcap->name, "global") != 0) {
             strlcpy(str, "unlimited", sizeof(str));
+        } else if (!strcmp(memcap->name, "global") && !GlobalMemcapEnabled()) {
+            strlcpy(str, "disabled", sizeof(str));
         } else {
             MemcapBuildValue(val, str, sizeof(str));
         }
 
-        json_object_set_new(jobj, "name", json_string(memcaps[i].name));
+        json_object_set_new(jobj, "name", json_string(memcap->name));
         json_object_set_new(jobj, "value", json_string(str));
         json_array_append_new(jmemcaps, jobj);
     }
