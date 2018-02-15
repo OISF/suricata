@@ -41,6 +41,7 @@
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
+#include "util-memcap.h"
 
 static IPPair *IPPairGetUsedIPPair(void);
 
@@ -181,6 +182,9 @@ void IPPairInitConfig(char quiet)
     ippair_config.prealloc    = IPPAIR_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(ippair_config.memcap, IPPAIR_DEFAULT_MEMCAP);
 
+    MemcapListRegisterMemcap("ippair", "ippair.memcap",
+                             IPPairSetMemcap, IPPairGetMemcap, IPPairGetMemuse);
+
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
@@ -195,6 +199,7 @@ void IPPairInitConfig(char quiet)
                        conf_val);
             exit(EXIT_FAILURE);
         } else {
+            GlobalMemcapReached(ippair_memcap, "ippair.memcap", false);
             SC_ATOMIC_SET(ippair_config.memcap, ippair_memcap);
         }
     }
