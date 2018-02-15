@@ -251,13 +251,14 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
                 if (comp->pcap_buf == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s",
                             strerror(errno));
+                    return TM_ECODE_FAILED;
                 }
                 comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
                         comp->pcap_buf_size, "w");
                 if (comp->pcap_buf_wrapper == NULL) {
                     SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s",
                             strerror(errno));
-                    exit(EXIT_FAILURE);
+                    return TM_ECODE_FAILED;
                 }
             }
 #endif /* HAVE_LIBLZ4 */
