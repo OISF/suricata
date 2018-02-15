@@ -56,13 +56,13 @@
 #include "util-byte.h"
 #include "util-mem.h"
 #include "util-misc.h"
+#include "util-memcap.h"
 
 #ifdef HAVE_RUST
 #include "rust-ftp-mod-gen.h"
 #endif
 
-uint64_t ftp_config_memcap = 0;
-
+SC_ATOMIC_DECLARE(uint64_t, ftp_config_memcap);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memuse);
 SC_ATOMIC_DECLARE(uint64_t, ftp_memcap);
 
@@ -70,19 +70,35 @@ static void FTPParseMemcap(void)
 {
     const char *conf_val;
 
+    SC_ATOMIC_INIT(ftp_config_memcap);
+
+    MemcapListRegisterMemcap("applayer-proto-ftp", "app-layer.protocols.ftp.memcap",
+                             FTPSetMemcap, FTPGetMemcap, FTPMemuseGlobalCounter);
+
     /** set config values for memcap, prealloc and hash_size */
+    uint64_t memcap;
     if ((ConfGet("app-layer.protocols.ftp.memcap", &conf_val)) == 1)
     {
-        if (ParseSizeStringU64(conf_val, &ftp_config_memcap) < 0) {
+        if (ParseSizeStringU64(conf_val, &memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing ftp.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
         }
-        SCLogInfo("FTP memcap: %"PRIu64, ftp_config_memcap);
+        if (GlobalMemcapReached(memcap)) {
+            SCLogError(SC_ERR_INVALID_VALUE, "The value specified for global memcap needs to be "
+                       "increased for the memcap value specified.");
+            exit(EXIT_FAILURE);
+        } else if (GlobalMemcapEnabled() && memcap == 0) {
+            SCLogWarning(SC_WARN_MEMCAP_UNLIMITED,
+                         "ftp memcap is set to unlimited, so global memcap won't be honored.");
+        } else {
+            SC_ATOMIC_SET(ftp_config_memcap, memcap);
+            SCLogInfo("FTP memcap: %"PRIu64, SC_ATOMIC_GET(ftp_config_memcap));
+        }
     } else {
         /* default to unlimited */
-        ftp_config_memcap = 0;
+        SC_ATOMIC_SET(ftp_config_memcap, 0);
     }
 
     SC_ATOMIC_INIT(ftp_memuse);
@@ -121,10 +137,36 @@ uint64_t FTPMemcapGlobalCounter(void)
  */
 static int FTPCheckMemcap(uint64_t size)
 {
-    if (ftp_config_memcap == 0 || size + SC_ATOMIC_GET(ftp_memuse) <= ftp_config_memcap)
+    if (SC_ATOMIC_GET(ftp_config_memcap) == 0 ||
+        size + SC_ATOMIC_GET(ftp_memuse) <= SC_ATOMIC_GET(ftp_config_memcap))
         return 1;
     (void) SC_ATOMIC_ADD(ftp_memcap, 1);
     return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \param size new memcap value
+ */
+int FTPSetMemcap(uint64_t size)
+{
+    if (size == 0 || (uint64_t)SC_ATOMIC_GET(ftp_memuse) < size) {
+        SC_ATOMIC_SET(ftp_config_memcap, size);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ *  \brief Update memcap value
+ *
+ *  \retval memcap value
+ */
+uint64_t FTPGetMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(ftp_config_memcap);
+    return memcapcopy;
 }
 
 static void *FTPMalloc(size_t size)
