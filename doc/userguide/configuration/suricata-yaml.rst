@@ -206,6 +206,20 @@ statement it will overwrite the included file. Therefor any include
 statement at the end of the document will overwrite the already
 configured sections.
 
+Global Memcap
+-------------
+
+It represents the maximum amount of memory that can be used
+to allocate all the memcap values.
+The sum of all of them (stream.memcap, flow.memcap, etc.) cannot be
+greater than the global memcap.
+
+It can be enabled in suricata.yaml and updated through unix-socket
+using the memcap-set command.
+
+If not enabled, global memcap won't be considered when other memcaps
+are registered.
+
 Event output
 ------------
 
