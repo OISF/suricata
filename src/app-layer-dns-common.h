@@ -249,8 +249,11 @@ typedef struct DNSState_ {
 
 void DNSConfigInit(void);
 void DNSConfigSetRequestFlood(uint32_t value);
-void DNSConfigSetStateMemcap(uint32_t value);
-void DNSConfigSetGlobalMemcap(uint64_t value);
+void DNSConfigInitMemcaps(void);
+int DNSConfigSetStateMemcap(uint64_t value);
+int DNSConfigSetGlobalMemcap(uint64_t value);
+uint64_t DNSConfigGetStateMemcap(void);
+uint64_t DNSConfigGetGlobalMemcap(void);
 
 void DNSIncrMemcap(uint32_t size, DNSState *state);
 void DNSDecrMemcap(uint32_t size, DNSState *state);
