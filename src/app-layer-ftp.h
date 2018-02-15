@@ -217,6 +217,8 @@ void FTPAtExitPrintStats(void);
 void FTPParserCleanup(void);
 uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
+int FTPSetMemcap(uint64_t size);
+uint64_t FTPGetMemcap(void);
 
 uint16_t JsonGetNextLineFromBuffer(const char *buffer, const uint16_t len);
 json_t *JsonFTPDataAddMetadata(const Flow *f);
