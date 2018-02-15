@@ -35,6 +35,7 @@
 #include "conf.h"
 #include "util-mem.h"
 #include "util-misc.h"
+#include "util-memcap.h"
 
 #include "app-layer-htp-mem.h"
 
@@ -48,6 +49,9 @@ void HTPParseMemcap()
 
     SC_ATOMIC_INIT(htp_config_memcap);
 
+    MemcapListRegisterMemcap("applayer-proto-http", "app-layer.protocols.http.memcap",
+                             HTPSetMemcap, HTPGetMemcap, HTPMemuseGlobalCounter);
+
     /** set config values for memcap, prealloc and hash_size */
     uint64_t memcap;
     if ((ConfGet("app-layer.protocols.http.memcap", &conf_val)) == 1)
@@ -58,9 +62,10 @@ void HTPParseMemcap()
                        conf_val);
             exit(EXIT_FAILURE);
         } else {
+            GlobalMemcapReached(memcap, "http.memcap", true);
             SC_ATOMIC_SET(htp_config_memcap, memcap);
+            SCLogInfo("HTTP memcap: %"PRIu64, SC_ATOMIC_GET(htp_config_memcap));
         }
-        SCLogInfo("HTTP memcap: %"PRIu64, SC_ATOMIC_GET(htp_config_memcap));
     } else {
         /* default to unlimited */
         SC_ATOMIC_SET(htp_config_memcap, 0);
