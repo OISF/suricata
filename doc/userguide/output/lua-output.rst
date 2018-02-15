@@ -500,6 +500,61 @@ Example:
       end
   end
 
+TlsGetCertChain
+~~~~~~~~~~~~~~~
+
+Make certificate chain available to the script through TlsGetCertChain.
+
+The output is an array of certificate with each certificate being an hash
+with `data` and `length` keys.
+
+Example:
+
+::
+
+  -- Use debian lua-luaossl coming from https://github.com/wahern/luaossl
+  local x509 = require"openssl.x509"
+
+     chain = TlsGetCertChain()
+     for k, v in pairs(chain) do
+        -- v.length is length of data
+        -- v.data is raw binary data of certificate
+        cert = x509.new(v["data"], "DER")
+        print(cert:text() .. "\n")
+     end
+
+
+TlsGetCertNotAfter
+~~~~~~~~~~~~~~~~~~
+
+Get the Unix timestamp of end of validity of certificate.
+
+Example:
+
+::
+
+  function log (args)
+      notafter = TlsGetCertNotAfter()
+      if notafter < os.time() then
+          -- expired certificate
+      end
+  end
+
+TlsGetCertNotBefore
+~~~~~~~~~~~~~~~~~~~
+
+Get the Unix timestamp of beginning of validity of certificate.
+
+Example:
+
+::
+
+  function log (args)
+      notbefore = TlsGetCertNotBefore()
+      if notbefore > os.time() then
+          -- not yet valid certificate
+      end
+  end
 
 TlsGetCertSerial
 ~~~~~~~~~~~~~~~~
@@ -516,6 +571,23 @@ Example:
           -- do something
       end
   end
+
+TlsGetSNI
+~~~~~~~~~
+
+Get the Server name Indication from a TLS connection.
+
+Example:
+
+::
+
+  function log (args)
+      asked_domain = TlsGetSNI()
+      if string.find(asked_domain, "badguys") then
+          -- ok connection to bad guys let's do someting
+      end
+  end
+
 
 JA3
 ---
