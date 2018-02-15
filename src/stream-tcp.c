@@ -74,6 +74,7 @@
 #include "util-validate.h"
 #include "util-runmodes.h"
 #include "util-random.h"
+#include "util-memcap.h"
 
 #include "source-pcap-file.h"
 
@@ -374,6 +375,13 @@ void StreamTcpInitConfig(char quiet)
     SC_ATOMIC_INIT(stream_config.memcap);
     SC_ATOMIC_INIT(stream_config.reassembly_memcap);
 
+    MemcapListRegisterMemcap("stream", "stream.memcap",
+                             StreamTcpSetMemcap, StreamTcpGetMemcap,
+                             StreamTcpMemuseCounter);
+    MemcapListRegisterMemcap("stream-reassembly", "stream.reassembly.memcap",
+                             StreamTcpReassembleSetMemcap, StreamTcpReassembleGetMemcap,
+                             StreamTcpReassembleMemuseGlobalCounter);
+
     if ((ConfGetInt("stream.max-sessions", &value)) == 1) {
         SCLogWarning(SC_WARN_OPTION_OBSOLETE, "max-sessions is obsolete. "
             "Number of concurrent sessions is now only limited by Flow and "
@@ -408,9 +416,11 @@ void StreamTcpInitConfig(char quiet)
                        temp_stream_memcap_str);
             exit(EXIT_FAILURE);
         } else {
+            GlobalMemcapReached(stream_memcap_copy, "stream.memcap", true);
             SC_ATOMIC_SET(stream_config.memcap, stream_memcap_copy);
         }
     } else {
+        GlobalMemcapReached(STREAMTCP_DEFAULT_MEMCAP, "stream.memcap", false);
         SC_ATOMIC_SET(stream_config.memcap, STREAMTCP_DEFAULT_MEMCAP);
     }
 
@@ -521,9 +531,11 @@ void StreamTcpInitConfig(char quiet)
                        temp_stream_reassembly_memcap_str);
             exit(EXIT_FAILURE);
         } else {
+            GlobalMemcapReached(stream_reassembly_memcap_copy, "stream.reassembly.memcap", true);
             SC_ATOMIC_SET(stream_config.reassembly_memcap, stream_reassembly_memcap_copy);
         }
     } else {
+        GlobalMemcapReached(STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP, "stream.reassembly.memcap", true);
         SC_ATOMIC_SET(stream_config.reassembly_memcap , STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP);
     }
 
