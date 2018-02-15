@@ -2053,7 +2053,20 @@
     fi
 
 # Check for lz4
-AC_CHECK_LIB(lz4, LZ4F_createCompressionContext, , )
+enable_liblz4="yes"
+AC_CHECK_LIB(lz4, LZ4F_createCompressionContext, , enable_liblz4="no")
+
+if test "$enable_liblz4" = "no"; then
+    echo
+    echo "  Coompressed pcap logging is not available without liblz4."
+    echo "  If you want to enable compression, you need to install it."
+    echo
+    echo "  Ubuntu: apt-get install liblz4-dev"
+    echo "  Fedora: dnf install liblz4-devel"
+    echo "  RHEL/CentOS: yum install epel-release"
+    echo "               yum install lz4-devel"
+    echo
+fi
 
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
@@ -2299,6 +2312,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+  liblz4 support:                          ${enable_liblz4}
 
   Rust support (experimental):             ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
