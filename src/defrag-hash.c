@@ -24,6 +24,7 @@
 #include "util-byte.h"
 #include "util-misc.h"
 #include "util-hash-lookup3.h"
+#include "util-memcap.h"
 
 static DefragTracker *DefragTrackerGetUsedDefragTracker(void);
 
@@ -176,6 +177,10 @@ void DefragInitConfig(char quiet)
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(defrag_config.memcap, DEFRAG_DEFAULT_MEMCAP);
 
+    MemcapListRegisterMemcap("defrag", "defrag.memcap",
+                             DefragTrackerSetMemcap, DefragTrackerGetMemcap,
+                             DefragTrackerGetMemuse);
+
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
@@ -190,6 +195,7 @@ void DefragInitConfig(char quiet)
                        conf_val);
             exit(EXIT_FAILURE);
         } else {
+            GlobalMemcapReached(defrag_memcap, "defrag.memcap", false);
             SC_ATOMIC_SET(defrag_config.memcap, defrag_memcap);
         }
     }
