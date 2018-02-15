@@ -109,7 +109,6 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_UNIFIED_ALERT_GENERIC);
         CASE_CODE (SC_ERR_UNIFIED2_ALERT_GENERIC);
         CASE_CODE (SC_ERR_FWRITE);
-        CASE_CODE (SC_ERR_FSEEK);
         CASE_CODE (SC_ERR_FOPEN);
         CASE_CODE (SC_ERR_THREAD_NICE_PRIO);
         CASE_CODE (SC_ERR_THREAD_SPAWN);
@@ -349,6 +348,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_CREATE_DIRECTORY);
         CASE_CODE (SC_WARN_FLOWBIT);
         CASE_CODE (SC_ERR_PCAP_LOG_COMPRESS);
+        CASE_CODE (SC_ERR_FSEEK);
 
         CASE_CODE (SC_ERR_MAX);
     }
