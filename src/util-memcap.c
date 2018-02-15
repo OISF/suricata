@@ -101,6 +101,21 @@ MemcapList *MemcapListGetElement(int index)
     return NULL;
 }
 
+void DisplayMemcaps(void)
+{
+    int i;
+    MemcapList *memcap = NULL;
+
+    for (i = 0; (memcap = MemcapListGetElement(i)); i++) {
+        if (memcap->option) {
+            const char *memcapval;
+            if (ConfGetValue(memcap->option, &memcapval) == 1) {
+                printf("%s = %s\n", memcap->option, memcapval);
+            }
+        }
+    }
+}
+
 void GlobalMemcapInitConfig(void)
 {
     const char *conf_val = NULL;
