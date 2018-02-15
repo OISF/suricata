@@ -255,7 +255,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
                 }
                 comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
                         comp->pcap_buf_size, "w");
-                if (pl->compression.pcap_buf_wrapper == NULL) {
+                if (comp->pcap_buf_wrapper == NULL) {
                     SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s",
                             strerror(errno));
                     exit(EXIT_FAILURE);
@@ -272,7 +272,7 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
 
 #ifdef HAVE_LIBLZ4
         PcapLogCompressionData *comp = &pl->compression;
-        if (pl->compression.format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
+        if (comp->format == PCAP_LOG_COMPRESSION_FORMAT_LZ4) {
             /* pcap_dump_close did not write any data because we call
              * pcap_dump_flush() after every write when writing
 	         * compressed output. */
@@ -1322,7 +1322,7 @@ static OutputInitResult PcapLogInitCtx(ConfNode *conf)
             }
             comp->pcap_buf_wrapper = SCFmemopen(comp->pcap_buf,
                     comp->pcap_buf_size, "w");
-            if (pl->compression.pcap_buf_wrapper == NULL) {
+            if (comp->pcap_buf_wrapper == NULL) {
                 SCLogError(SC_ERR_FOPEN, "SCFmemopen failed: %s",
                         strerror(errno));
                 exit(EXIT_FAILURE);
