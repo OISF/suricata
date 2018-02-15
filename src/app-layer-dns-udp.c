@@ -385,6 +385,7 @@ static void DNSUDPConfigure(void)
     }
     SCLogConfig("DNS global memcap: %"PRIu64, global_memcap);
     DNSConfigSetGlobalMemcap(global_memcap);
+    DNSConfigInitMemcaps();
 }
 
 void RegisterDNSUDPParsers(void)
