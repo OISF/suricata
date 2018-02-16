@@ -734,6 +734,88 @@ SCStreamingBuffer
       hex_dump(data)
   end
 
+Flow variables
+--------------
+
+It is possible to access, define and modify Flow variables from Lua. To do so,
+you must use the functions described in this section and declare the counter in
+init function:
+
+::
+
+ function init(args)
+     local needs = {}
+     needs["tls"] tostring(true)
+     needs["flowint"] = {"tls-cnt"}
+     return needs
+ end
+
+Here we define a `tls-cnt` Flowint that can now be used in output or in a
+signature via dedicted functions. The access to the Flow variable is done by
+index so in our case we need to use 0.
+
+::
+
+ function match(args)
+     a = ScFlowintGet(0);
+     if a then
+         ScFlowintSet(0, a + 1)
+     else
+         ScFlowintSet(0, 1)
+     end 
+
+ScFlowintGet
+~~~~~~~~~~~~
+
+Get the Flowint at index given by the parameter.
+
+ScFlowintSet
+~~~~~~~~~~~~
+
+Set the Flowint at index given by the first parameter. The second parameter is the value.
+
+ScFlowintIncr
+~~~~~~~~~~~~~
+
+Increment Flowint at index given by the first parameter.
+
+ScFlowintDecr
+~~~~~~~~~~~~~
+
+Decrement Flowint at index given by the first parameter.
+
+ScFlowvarGet
+~~~~~~~~~~~~
+
+Get the Flowvar at index given by the parameter.
+
+ScFlowvarSet
+~~~~~~~~~~~~
+
+Set a Flowvar. First parameter is the index, second is the data
+and third is the length of data.
+
+You can use it to set string 
+
+::
+
+ function init (args)
+     local needs = {}
+     needs["http.request_headers"] = tostring(true)
+     needs["flowvar"] = {"cnt"}
+     return needs
+ end
+ 
+ function match(args)
+     a = ScFlowvarGet(0);
+     if a then
+         a = tostring(tonumber(a)+1)
+         ScFlowvarSet(0, a, #a)
+     else
+         a = tostring(1)
+         ScFlowvarSet(0, a, #a)
+     end 
+
 Misc
 ----
 
