@@ -29,6 +29,7 @@
 #include "host.h"
 
 #define SREP_MAX_CATS 60
+#define SREP_MAX_VAL  127
 
 typedef struct SRepCIDRTree_ {
     SCRadixTree *srepIPV4_tree[SREP_MAX_CATS];
@@ -87,6 +88,7 @@ uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint
 void SRepResetVersion(void);
 int SRepLoadCatFileFromFD(FILE *fp);
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp);
+int SRepLoadLineFromUnix(SRepCIDRTree *cidr_ctx, char *ipaddress, int cat, int val);
 
 #if 0
 /** Reputation Data */
