@@ -696,6 +696,7 @@ static int PreludePrintStreamSegmentCallback(const Packet *p, void *data, const 
  */
 static TmEcode AlertPreludeThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
+    int ret;
     AlertPreludeThread *aun;
 
     SCEnter();
@@ -715,20 +716,11 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, const void *initdata, void 
     aun->ctx = ((OutputCtx *)initdata)->data;
 
     /* Create a per-thread idmef analyzer */
-    if (unlikely(idmef_analyzer_new(&aun->analyzer) < 0)) {
+    ret = idmef_analyzer_clone(prelude_client_get_analyzer(aun->ctx->client), &aun->analyzer);
+    if (unlikely(ret < 0)) {
         SCLogError(SC_ERR_INITIALIZATION,
                    "Error creating idmef analyzer for Prelude.");
 
-        SCFree(aun);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    /* Setup the per-thread idmef analyzer */
-    if (unlikely(SetupAnalyzer(aun->analyzer) < 0)) {
-        SCLogError(SC_ERR_INITIALIZATION,
-                   "Error configuring idmef analyzer for Prelude.");
-
-        idmef_analyzer_destroy(aun->analyzer);
         SCFree(aun);
         SCReturnInt(TM_ECODE_FAILED);
     }
