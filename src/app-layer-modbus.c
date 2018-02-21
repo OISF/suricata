@@ -94,7 +94,6 @@ SCEnumCharMap modbus_decoder_event_table[ ] = {
 #define MODBUS_MAX_COUNT    250
 
 /* Modbus Function Code. */
-#define MODBUS_FUNC_NONE                0x00
 #define MODBUS_FUNC_READCOILS           0x01
 #define MODBUS_FUNC_READDISCINPUTS      0x02
 #define MODBUS_FUNC_READHOLDREGS        0x03
@@ -1301,7 +1300,8 @@ static int ModbusParseRequest(Flow                  *f,
         /* Check MODBUS Header */
         ModbusCheckHeader(modbus, &header);
 
-        /* Store Transaction ID & PDU length */
+        /* Store Unit ID, Transaction ID & PDU length */
+        tx->unit_id         = header.unitId;
         tx->transactionId   = header.transactionId;
         tx->length          = header.length;
 
@@ -1564,6 +1564,13 @@ void RegisterModbusParsers(void)
 #include "stream-tcp-private.h"
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
+static uint8_t invalidFunctionCode[] = {/* Transaction ID */    0x00, 0x00,
+                                         /* Protocol ID */       0x00, 0x01,
+                                         /* Length */            0x00, 0x02,
+                                         /* Unit ID */           0x00,
+                                         /* Function code */     0x00};
+
+/* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */
 static uint8_t readCoilsReq[] = {/* Transaction ID */    0x00, 0x00,
                                  /* Protocol ID */       0x00, 0x00,
@@ -1746,7 +1753,7 @@ static int ModbusParserTest01(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1762,50 +1769,30 @@ static int ModbusParserTest01(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
-    if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 1);
+    FAIL_IF_NOT(tx->read.address == 0x7890);
+    FAIL_IF_NOT(tx->read.quantity == 19);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsRsp,
                             sizeof(readCoilsRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Write Multiple registers request/response. */
@@ -1814,7 +1801,7 @@ static int ModbusParserTest02(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -1830,55 +1817,34 @@ static int ModbusParserTest02(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, writeMultipleRegistersReq,
                                 sizeof(writeMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 16) || (tx->write.address != 0x01) || (tx->write.quantity != 2) ||
-        (tx->write.count != 4) || (tx->data[0] != 0x000A) || (tx->data[1] != 0x0102)) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
-        printf("expected write quantity %d, got %" PRIu16 ": ", 2, tx->write.quantity);
-        printf("expected write count %d, got %" PRIu8 ": ", 4, tx->write.count);
-        printf("expected data %d, got %" PRIu16 ": ", 0x000A, tx->data[0]);
-        printf("expected data %d, got %" PRIu16 ": ", 0x0102, tx->data[1]);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 16);
+    FAIL_IF_NOT(tx->write.address == 0x01);
+    FAIL_IF_NOT(tx->write.quantity == 2);
+    FAIL_IF_NOT(tx->write.count == 4);
+    FAIL_IF_NOT(tx->data[0] == 0x000A);
+    FAIL_IF_NOT(tx->data[1] == 0x0102);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeMultipleRegistersRsp,
                             sizeof(writeMultipleRegistersRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Read/Write Multiple registers request/response with mismatch value. */
@@ -1891,7 +1857,7 @@ static int ModbusParserTest03(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -1913,8 +1879,7 @@ static int ModbusParserTest03(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -1922,8 +1887,7 @@ static int ModbusParserTest03(void) {
                                       "app-layer-event: "
                                       "modbus.value_mismatch; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -1933,74 +1897,49 @@ static int ModbusParserTest03(void) {
                                 STREAM_TOSERVER,
                                 readWriteMultipleRegistersReq,
                                 sizeof(readWriteMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 23) || (tx->read.address != 0x03) || (tx->read.quantity != 6) ||
-        (tx->write.address != 0x0E) || (tx->write.quantity != 3) || (tx->write.count != 6) ||
-        (tx->data[0] != 0x1234) || (tx->data[1] != 0x5678) || (tx->data[2] != 0x9ABC)) {
-        printf("expected function %d, got %" PRIu8 ": ", 23, tx->function);
-        printf("expected read address %d, got %" PRIu16 ": ", 0x03, tx->read.address);
-        printf("expected read quantity %d, got %" PRIu16 ": ", 6, tx->read.quantity);
-        printf("expected write address %d, got %" PRIu16 ": ", 0x0E, tx->write.address);
-        printf("expected write quantity %d, got %" PRIu16 ": ", 3, tx->write.quantity);
-        printf("expected write count %d, got %" PRIu8 ": ", 6, tx->write.count);
-        printf("expected data %d, got %" PRIu16 ": ", 0x1234, tx->data[0]);
-        printf("expected data %d, got %" PRIu16 ": ", 0x5678, tx->data[1]);
-        printf("expected data %d, got %" PRIu16 ": ", 0x9ABC, tx->data[2]);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 23);
+    FAIL_IF_NOT(tx->read.address == 0x03);
+    FAIL_IF_NOT(tx->read.quantity == 6);
+    FAIL_IF_NOT(tx->write.address == 0x0E);
+    FAIL_IF_NOT(tx->write.quantity == 3);
+    FAIL_IF_NOT(tx->write.count == 6);
+    FAIL_IF_NOT(tx->data[0] == 0x1234);
+    FAIL_IF_NOT(tx->data[1] == 0x5678);
+    FAIL_IF_NOT(tx->data[2] == 0x9ABC);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readWriteMultipleRegistersRsp,
                             sizeof(readWriteMultipleRegistersRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Force Listen Only Mode request. */
@@ -2009,7 +1948,7 @@ static int ModbusParserTest04(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2025,34 +1964,21 @@ static int ModbusParserTest04(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, forceListenOnlyMode,
                                 sizeof(forceListenOnlyMode));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 8) || (tx->subFunction != 4)) {
-        printf("expected function %d, got %" PRIu8 ": ", 8, tx->function);
-        printf("expected sub-function %d, got %" PRIu16 ": ", 0x04, tx->subFunction);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 8);
+    FAIL_IF_NOT(tx->subFunction == 4);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus invalid Protocol version in request. */
@@ -2065,7 +1991,7 @@ static int ModbusParserTest05(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2087,8 +2013,7 @@ static int ModbusParserTest05(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2096,8 +2021,7 @@ static int ModbusParserTest05(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_protocol_id; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2106,41 +2030,28 @@ static int ModbusParserTest05(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, invalidProtocolIdReq,
                                 sizeof(invalidProtocolIdReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus unsolicited response. */
@@ -2153,7 +2064,7 @@ static int ModbusParserTest06(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2175,8 +2086,7 @@ static int ModbusParserTest06(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2184,8 +2094,7 @@ static int ModbusParserTest06(void) {
                                       "app-layer-event: "
                                       "modbus.unsolicited_response; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2194,41 +2103,28 @@ static int ModbusParserTest06(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOCLIENT, readCoilsRsp,
                                 sizeof(readCoilsRsp));
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus invalid Length request. */
@@ -2241,7 +2137,7 @@ static int ModbusParserTest07(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2263,8 +2159,7 @@ static int ModbusParserTest07(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2272,8 +2167,7 @@ static int ModbusParserTest07(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2283,41 +2177,28 @@ static int ModbusParserTest07(void) {
                                 STREAM_TOSERVER,
                                 invalidLengthWriteMultipleRegistersReq,
                                 sizeof(invalidLengthWriteMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Read Coils request and error response with Exception code invalid. */
@@ -2330,7 +2211,7 @@ static int ModbusParserTest08(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2352,8 +2233,7 @@ static int ModbusParserTest08(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2361,8 +2241,7 @@ static int ModbusParserTest08(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_exception_code; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2371,66 +2250,43 @@ static int ModbusParserTest08(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, readCoilsReq,
                                 sizeof(readCoilsReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 1);
+    FAIL_IF_NOT(tx->read.address == 0x7890);
+    FAIL_IF_NOT(tx->read.quantity == 19);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, readCoilsErrorRsp,
                             sizeof(readCoilsErrorRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Modbus fragmentation - 1 ADU over 2 TCP packets. */
@@ -2442,7 +2298,7 @@ static int ModbusParserTest09(void) {
     uint32_t    input_len = sizeof(readCoilsReq), part2_len = 3;
     uint8_t     *input = readCoilsReq;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2457,35 +2313,21 @@ static int ModbusParserTest09(void) {
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, input, input_len - part2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOSERVER, input, input_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 1) || (tx->read.address != 0x7890) || (tx->read.quantity != 19)) {
-        printf("expected function %d, got %" PRIu8 ": ", 1, tx->function);
-        printf("expected address %d, got %" PRIu16 ": ", 0x7890, tx->read.address);
-        printf("expected quantity %d, got %" PRIu16 ": ", 19, tx->read.quantity);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 1);
+    FAIL_IF_NOT(tx->read.address == 0x7890);
+    FAIL_IF_NOT(tx->read.quantity == 19);
 
     input_len = sizeof(readCoilsRsp);
     part2_len = 10;
@@ -2494,33 +2336,19 @@ static int ModbusParserTest09(void) {
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, input, input_len - part2_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
 
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, input, input_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max ==1);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Modbus fragmentation - 2 ADU in 1 TCP packet. */
@@ -2532,11 +2360,10 @@ static int ModbusParserTest10(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     input  = (uint8_t *) SCMalloc (input_len * sizeof(uint8_t));
-    if (unlikely(input == NULL))
-        goto end;
+    FAIL_IF_NULL(input);
 
     memcpy(input, readCoilsReq, sizeof(readCoilsReq));
     memcpy(input + sizeof(readCoilsReq), writeMultipleRegistersReq, sizeof(writeMultipleRegistersReq));
@@ -2554,42 +2381,27 @@ static int ModbusParserTest10(void) {
     FLOWLOCK_WRLOCK(&f);
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, input, input_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
-    if (modbus_state->transaction_max !=2) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 2, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 2);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 1);
 
-    if ((tx->function != 16) || (tx->write.address != 0x01) || (tx->write.quantity != 2) ||
-        (tx->write.count != 4) || (tx->data[0] != 0x000A) || (tx->data[1] != 0x0102)) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
-        printf("expected write quantity %d, got %" PRIu16 ": ", 2, tx->write.quantity);
-        printf("expected write count %d, got %" PRIu8 ": ", 4, tx->write.count);
-        printf("expected data %d, got %" PRIu16 ": ", 0x000A, tx->data[0]);
-        printf("expected data %d, got %" PRIu16 ": ", 0x0102, tx->data[1]);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 16);
+    FAIL_IF_NOT(tx->write.address == 0x01);
+    FAIL_IF_NOT(tx->write.quantity == 2);
+    FAIL_IF_NOT(tx->write.count == 4);
+    FAIL_IF_NOT(tx->data[0] == 0x000A);
+    FAIL_IF_NOT(tx->data[1] == 0x0102);
 
     input_len = sizeof(readCoilsRsp) + sizeof(writeMultipleRegistersRsp);
 
     ptr = (uint8_t *) SCRealloc (input, input_len * sizeof(uint8_t));
-    if (unlikely(ptr == NULL))
-        goto end;
+    FAIL_IF_NULL(ptr);
     input = ptr;
 
     memcpy(input, readCoilsRsp, sizeof(readCoilsRsp));
@@ -2598,22 +2410,14 @@ static int ModbusParserTest10(void) {
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, input, sizeof(input_len));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    result = 1;
-end:
-    if (input != NULL)
-        SCFree(input);
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    SCFree(input);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus exceed Length request. */
@@ -2626,7 +2430,7 @@ static int ModbusParserTest11(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF(alp_tctx == NULL);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2648,8 +2452,7 @@ static int ModbusParserTest11(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2657,8 +2460,7 @@ static int ModbusParserTest11(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2668,41 +2470,28 @@ static int ModbusParserTest11(void) {
                                 STREAM_TOSERVER,
                                 exceededLengthWriteMultipleRegistersReq,
                                 sizeof(exceededLengthWriteMultipleRegistersReq) + 65523 * sizeof(uint8_t));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus invalid PDU Length. */
@@ -2715,7 +2504,7 @@ static int ModbusParserTest12(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(Flow));
@@ -2737,8 +2526,7 @@ static int ModbusParserTest12(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2746,8 +2534,7 @@ static int ModbusParserTest12(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2757,41 +2544,28 @@ static int ModbusParserTest12(void) {
                                 STREAM_TOSERVER,
                                 invalidLengthPDUWriteMultipleRegistersReq,
                                 sizeof(invalidLengthPDUWriteMultipleRegistersReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Mask Write register request/response. */
@@ -2800,7 +2574,7 @@ static int ModbusParserTest13(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2816,51 +2590,31 @@ static int ModbusParserTest13(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, maskWriteRegisterReq,
                                 sizeof(maskWriteRegisterReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 22) || (tx->data[0] != 0x00F2) || (tx->data[1] != 0x0025)) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        printf("expected And_Mask %d, got %" PRIu16 ": ", 0x00F2, tx->data[0]);
-        printf("expected Or_Mask %d, got %" PRIu16 ": ", 0x0025, tx->data[1]);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 22);
+    FAIL_IF_NOT(tx->data[0] == 0x00F2);
+    FAIL_IF_NOT(tx->data[1] == 0x0025);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, maskWriteRegisterRsp,
                             sizeof(maskWriteRegisterRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send Modbus Write single register request/response. */
@@ -2869,7 +2623,7 @@ static int ModbusParserTest14(void) {
     Flow f;
     TcpSession ssn;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2885,51 +2639,31 @@ static int ModbusParserTest14(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, writeSingleRegisterReq,
                                 sizeof(writeSingleRegisterReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 6) || (tx->write.address != 0x0001) || (tx->data[0] != 0x0003)) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
-        printf("expected data %d, got %" PRIu16 ": ", 0x03, tx->data[0]);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 6);
+    FAIL_IF_NOT(tx->write.address == 0x0001);
+    FAIL_IF_NOT(tx->data[0] == 0x0003);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeSingleRegisterRsp,
                             sizeof(writeSingleRegisterRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test Send invalid Modbus Mask Write register request. */
@@ -2942,7 +2676,7 @@ static int ModbusParserTest15(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(f));
@@ -2964,8 +2698,7 @@ static int ModbusParserTest15(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -2973,8 +2706,7 @@ static int ModbusParserTest15(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -2983,64 +2715,41 @@ static int ModbusParserTest15(void) {
     int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                                 STREAM_TOSERVER, invalidMaskWriteRegisterReq,
                                 sizeof(invalidMaskWriteRegisterReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if (tx->function != 22) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 22);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, maskWriteRegisterRsp,
                             sizeof(maskWriteRegisterRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /** \test Send invalid Modbus Mask Write register request. */
@@ -3053,7 +2762,7 @@ static int ModbusParserTest16(void) {
     TcpSession ssn;
     ThreadVars tv;
 
-    int result = 0;
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&f, 0, sizeof(f));
@@ -3075,8 +2784,7 @@ static int ModbusParserTest16(void) {
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
     s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
@@ -3084,8 +2792,7 @@ static int ModbusParserTest16(void) {
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
                                       "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -3095,66 +2802,42 @@ static int ModbusParserTest16(void) {
                                 STREAM_TOSERVER,
                                 invalidWriteSingleRegisterReq,
                                 sizeof(invalidWriteSingleRegisterReq));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
     ModbusState    *modbus_state = f.alstate;
-    if (modbus_state == NULL) {
-        printf("no modbus state: ");
-        goto end;
-    }
+    FAIL_IF_NULL(modbus_state);
 
     ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
 
-    if ((tx->function != 6) || (tx->write.address != 0x0001)) {
-        printf("expected function %d, got %" PRIu8 ": ", 16, tx->function);
-        printf("expected write address %d, got %" PRIu16 ": ", 0x01, tx->write.address);
-        goto end;
-    }
+    FAIL_IF_NOT(tx->function == 6);
+    FAIL_IF_NOT(tx->write.address == 0x0001);
 
     /* do detect */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match.  Should have matched: ");
-        goto end;
-    }
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
                             STREAM_TOCLIENT, writeSingleRegisterRsp,
                             sizeof(writeSingleRegisterRsp));
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        FLOWLOCK_UNLOCK(&f);
-        goto end;
-    }
+    FAIL_IF_NOT(r == 0);
     FLOWLOCK_UNLOCK(&f);
 
-    if (modbus_state->transaction_max !=1) {
-        printf("expected transaction_max %d, got %" PRIu64 ": ", 1, modbus_state->transaction_max);
-        goto end;
-    }
+    FAIL_IF_NOT(modbus_state->transaction_max == 1);
 
-    result = 1;
-end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
-}
+    PASS;}
 
 /** \test Checks if stream_depth is correct */
 static int ModbusParserTest17(void) {
@@ -3162,7 +2845,7 @@ static int ModbusParserTest17(void) {
     Flow f;
     TcpSession ssn;
 
-    FAIL_IF(alp_tctx == NULL);
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3207,7 +2890,7 @@ static int ModbusParserTest18(void) {
     uint32_t    input_len = sizeof(readCoilsReq), part2_len = 3;
     uint8_t     *input = readCoilsReq;
 
-    FAIL_IF(alp_tctx == NULL);
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -3262,6 +2945,80 @@ static int ModbusParserTest18(void) {
     FLOW_DESTROY(&f);
     PASS;
 }
+
+/** \test Send Modbus invalid function. */
+static int ModbusParserTest19(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    FAIL_IF_NULL(alp_tctx);
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Function code\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_function_code; "
+                                      "sid:1;)");
+    FAIL_IF_NULL(s);
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                invalidFunctionCode,
+                                sizeof(invalidFunctionCode));
+    FAIL_IF_NOT(r == 0);
+    FLOWLOCK_UNLOCK(&f);
+
+    ModbusState    *modbus_state = f.alstate;
+    FAIL_IF_NULL(modbus_state);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF_NOT(PacketAlertCheck(p, 1));
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    PASS;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
@@ -3302,5 +3059,7 @@ void ModbusParserRegisterTests(void) {
                    ModbusParserTest17);
     UtRegisterTest("ModbusParserTest18 - Modbus stream depth in 2 TCP packets",
                    ModbusParserTest18);
+    UtRegisterTest("ModbusParserTest19 - Modbus invalid Function code",
+                   ModbusParserTest19);
 #endif /* UNITTESTS */
 }
