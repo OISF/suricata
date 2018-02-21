@@ -248,12 +248,12 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
         idmef_assessment_set_action(assessment, action, 0);
     }
 
-    if (pa->s->class_msg) {
+    if (pa->s->msg) {
         ret = idmef_impact_new_description(impact, &str);
         if (unlikely(ret < 0))
             SCReturnInt(ret);
 
-        prelude_string_set_ref(str, pa->s->class_msg);
+        prelude_string_set_ref(str, pa->s->msg);
     }
 
     SCReturnInt(0);
@@ -1230,12 +1230,12 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (unlikely(ret < 0))
         goto err;
 
-    if (pa->s->msg) {
+    if (pa->s->class_msg) {
         ret = idmef_classification_new_text(class, &str);
         if (unlikely(ret < 0))
             goto err;
 
-        prelude_string_set_ref(str, pa->s->msg);
+        prelude_string_set_ref(str, pa->s->class_msg);
     }
 
     ret = EventToImpact(pa, p, alert);
