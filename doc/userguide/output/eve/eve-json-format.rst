@@ -106,7 +106,7 @@ In addition to these fields, if the extended logging is enabled in the suricata.
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
 * "http_refer": The referer for this action
 
-In addition to the extended logging fields one can also choose to enable/add from 47 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
+In addition to the extended logging fields one can also choose to enable/add from 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
 
 
 ::
@@ -134,7 +134,7 @@ In addition to the extended logging fields one can also choose to enable/add fro
               x-requested-with, dnt, x-forwarded-proto, accept-range, age,
               allow, connection, content-encoding, content-language,
               content-length, content-location, content-md5, content-range,
-              content-type, date, etags, last-modified, link, location,
+              content-type, date, etags, expires, last-modified, link, location,
               proxy-authenticate, referrer, refresh, retry-after, server,
               set-cookie, trailer, transfer-encoding, upgrade, vary, warning,
               www-authenticate, x-flash-version, x-authenticated-user]
@@ -195,6 +195,40 @@ Outline of fields seen in the different kinds of DNS events:
 * "rrtype": Resource Record Type (ex: A, AAAA, NS, PTR)
 * "rdata": Resource Data (ex. IP that domain name resolves to)
 * "ttl": Time-To-Live for this resource record
+
+
+One can also control which RR types are logged explicitly from additional custom field enabled in the suricata.yaml file. If custom field is not specified, all RR types are logged. More than 50 values can be specified with the custom field and can be used as following:
+
+
+::
+
+
+    - eve-log:
+        enabled: yes
+        type: file #file|syslog|unix_dgram|unix_stream
+        filename: eve.json
+        # the following are valid when type: syslog above
+        #identity: "suricata"
+        #facility: local5
+        #level: Info ## possible levels: Emergency, Alert, Critical,
+                     ## Error, Warning, Notice, Info, Debug
+        types:
+          - alert
+          - dns:
+            # control logging of queries and answers
+            # default yes, no to disable
+            query: yes     # enable logging of DNS queries
+            answer: yes    # enable logging of DNS answers
+            # control which RR types are logged
+            # all enabled if custom not specified
+            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
+            custom: [a, ns, md, mf, cname, soa, mb, mg, mr, null,
+            wks, ptr, hinfo, minfo, mx, txt, rp, afsdb, x25, isdn,
+            rt, nsap, nsapptr, sig, key, px, gpos, aaaa, loc, nxt,
+            srv, atma, naptr, kx, cert, a6, dname, opt, apl, ds,
+            sshfp, ipseckey, rrsig, nsec, dnskey, dhcid, nsec3,
+            nsec3param, tlsa, hip, cds, cdnskey, spf, tkey,
+            tsig, maila, any, uri]
 
 
 Examples
