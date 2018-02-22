@@ -863,6 +863,18 @@ static OutputInitResult OutputLuaLogInit(ConfNode *conf)
 error:
     if (output_ctx->DeInit)
         output_ctx->DeInit(output_ctx);
+
+    int failure_fatal = 0;
+    if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
+        SCLogDebug("ConfGetBool could not load the value.");
+    }
+    if (failure_fatal) {
+        SCLogError(SC_ERR_LUA_ERROR,
+                   "Error during setup of lua output. Details should be "
+                   "described in previous error messages. Shutting down...");
+        exit(EXIT_FAILURE);
+    }
+
     return result;
 }
 
