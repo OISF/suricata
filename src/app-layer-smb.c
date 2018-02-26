@@ -48,6 +48,16 @@
 #include "util-unittest.h"
 #include "util-memcmp.h"
 
+#ifdef HAVE_RUST
+#include "rust.h"
+#include "app-layer-smb-tcp-rust.h"
+void RegisterSMBParsers(void)
+{
+    RegisterRustSMBTCPParsers();
+}
+
+#else // no RUST
+
 #include "app-layer-smb.h"
 
 enum {
@@ -2803,4 +2813,5 @@ void SMBParserRegisterTests(void)
     UtRegisterTest("SMBParserTest10", SMBParserTest10);
 #endif
 }
+#endif /* HAVE_RUST */
 
