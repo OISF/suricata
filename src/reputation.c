@@ -75,7 +75,17 @@ static void SRepCIDRFreeUserData(void *data)
     return;
 }
 
-static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
+/**
+ * Add an IP address in CIDR notation
+ *
+ * \param cidr_ctx  cidr context
+ * \param ip        ip address
+ * \param cat       category
+ * \param value     value
+ *
+ * \retval 1 if success, -1 otherwise
+ */
+static int SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
 {
     SReputation *user_data = NULL;
     if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
@@ -101,6 +111,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int v
         if (SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv6 host %s", ip);
+            return -1;
         }
 
     } else {
@@ -117,8 +128,11 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int v
         if (SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv4 host %s", ip);
+            return -1;
         }
     }
+
+    return 1;
 }
 
 static uint8_t SRepCIDRGetIPv4IPRep(SRepCIDRTree *cidr_ctx, uint8_t *ipv4_addr, uint8_t cat)
@@ -316,8 +330,8 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     }
 
     if (strchr(ptrs[0], '/') != NULL) {
-        SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
-        return 1;
+        int r = SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
+        return r;
     } else {
         if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
             ip->family = AF_INET;
