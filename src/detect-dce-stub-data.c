@@ -54,6 +54,11 @@
 
 #include "stream-tcp.h"
 
+#ifdef HAVE_RUST
+#include "rust.h"
+#include "rust-smb-detect-gen.h"
+#endif
+
 #define BUFFER_NAME "dce_stub_data"
 #define KEYWORD_NAME "dce_stub_data"
 
@@ -77,13 +82,26 @@ static void PrefilterTxDceStubDataRequest(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
-    if (dcerpc_state == NULL)
-        return;
+    uint8_t *buffer;
+    uint32_t buffer_len;
 
-    uint32_t buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
-    const uint8_t *buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
+#ifdef HAVE_RUST
+    if (f->alproto == ALPROTO_SMB) {
+        if (rs_smb_tx_get_stub_data(txv, STREAM_TOSERVER, &buffer, &buffer_len) != 1) {
+            SCLogDebug("have no data!");
+            return;
+        }
+        SCLogDebug("have data!");
+    } else
+#endif
+    {
+        DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+        if (dcerpc_state == NULL)
+            return;
 
+        buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+        buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
+    }
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                 &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
@@ -122,13 +140,26 @@ static void PrefilterTxDceStubDataResponse(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    uint8_t *buffer;
+    uint32_t buffer_len;
 
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
-    if (dcerpc_state == NULL)
-        return;
+#ifdef HAVE_RUST
+    if (f->alproto == ALPROTO_SMB) {
+        if (rs_smb_tx_get_stub_data(txv, STREAM_TOCLIENT, &buffer, &buffer_len) != 1) {
+            SCLogDebug("have no data!");
+            return;
+        }
+        SCLogDebug("have data!");
+    } else
+#endif
+    {
+        DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+        if (dcerpc_state == NULL)
+            return;
 
-    uint32_t buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
-    const uint8_t *buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+        buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+        buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+    }
 
     if (buffer_len >= mpm_ctx->minlen) {
         (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
@@ -159,19 +190,29 @@ static int InspectEngineDceStubData(ThreadVars *tv,
 {
     uint32_t buffer_len = 0;
     uint8_t *buffer = NULL;
+    DCERPCState *dcerpc_state = NULL;
 
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
-    if (dcerpc_state == NULL)
-        goto end;
+#ifdef HAVE_RUST
+    if (f->alproto == ALPROTO_SMB) {
+        uint8_t dir = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
+        if (rs_smb_tx_get_stub_data(tx, dir, &buffer, &buffer_len) != 1)
+            goto end;
+        SCLogDebug("have data!");
+    } else
+#endif
+    {
+        dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+        if (dcerpc_state == NULL)
+            goto end;
 
-    if (flags & STREAM_TOSERVER) {
-        buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
-        buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-    } else if (flags & STREAM_TOCLIENT) {
-        buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
-        buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+        if (flags & STREAM_TOSERVER) {
+            buffer_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+            buffer = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
+        } else if (flags & STREAM_TOCLIENT) {
+            buffer_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+            buffer = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
+        }
     }
-
     if (buffer == NULL ||buffer_len == 0)
         goto end;
 
@@ -239,8 +280,8 @@ void DetectDceStubDataRegister(void)
 
 static int DetectDceStubDataSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-        return -1;
+//    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+//        return -1;
 
     s->init_data->list = g_dce_stub_data_buffer_id;
     return 0;
