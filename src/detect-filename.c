@@ -99,6 +99,13 @@ void DetectFilenameRegister(void)
             ALPROTO_FTPDATA, SIG_FLAG_TOCLIENT, 0,
             DetectFileInspectGeneric);
 
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectFileInspectGeneric);
+    DetectAppLayerInspectEngineRegister("files",
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectFileInspectGeneric);
+
     g_file_match_list_id = DetectBufferTypeGetByName("files");
 
 	SCLogDebug("registering filename rule option");
