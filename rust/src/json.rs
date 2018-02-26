@@ -105,6 +105,11 @@ impl Json {
             json_array_append_new(self.js, val.js);
         }
     }
+    pub fn array_append_string(&self, val: &str) {
+        unsafe {
+            json_array_append_new(self.js, json_string(to_cstring(val.as_bytes()).as_ptr()));
+        }
+    }
 }
 
 /// Convert an array of bytes into an ascii printable string replacing
