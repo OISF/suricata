@@ -82,7 +82,7 @@
 
    Normally if you run Suricata on your console, it keeps your console
    occupied. You can not use it for other purposes, and when you close
-   the window, Suricata stops running.  If you run Suricata as deamon
+   the window, Suricata stops running.  If you run Suricata as daemon
    (using the -D option), it runs at the background and you will be
    able to use the console for other tasks without disturbing the
    engine running.
