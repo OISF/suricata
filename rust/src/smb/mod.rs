@@ -23,8 +23,11 @@ pub mod ntlmssp_records;
 
 pub mod smb;
 pub mod smb1;
+pub mod smb1_session;
 pub mod smb2;
+pub mod smb2_session;
 pub mod dcerpc;
+pub mod session;
 pub mod log;
 pub mod detect;
 pub mod debug;

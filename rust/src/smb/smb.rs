@@ -45,8 +45,8 @@ use smb::smb2_records::*;
 use smb::smb1::*;
 use smb::smb2::*;
 use smb::dcerpc::*;
+use smb::session::*;
 use smb::events::*;
-use smb::auth::*;
 use smb::files::*;
 
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
@@ -311,6 +311,7 @@ pub enum SMBTransactionTypeData {
     NEGOTIATE(SMBTransactionNegotiate),
     DCERPC(SMBTransactionDCERPC),
     CREATE(SMBTransactionCreate),
+    SESSIONSETUP(SMBTransactionSessionSetup),
 }
 
 #[derive(Debug)]
@@ -600,8 +601,8 @@ pub struct SMBState<> {
     pub ts_gap: bool, // last TS update was gap
     pub tc_gap: bool, // last TC update was gap
 
-    ts_trunc: bool, // no more data for TOSERVER
-    tc_trunc: bool, // no more data for TOCLIENT
+    pub ts_trunc: bool, // no more data for TOSERVER
+    pub tc_trunc: bool, // no more data for TOCLIENT
 
     /// transactions list
     pub transactions: Vec<SMBTransaction>,
@@ -616,9 +617,6 @@ pub struct SMBState<> {
     /// dcerpc interfaces, stored here to be able to match
     /// them while inspecting DCERPC REQUEST txs
     pub dcerpc_ifaces: Option<Vec<DCERPCIface>>,
-
-    pub ntlmssp: Option<NtlmsspData>,
-    pub krb_ticket: Option<Kerberos5Ticket>,
 }
 
 impl SMBState {
@@ -652,8 +650,6 @@ impl SMBState {
             dialect_vec: None,
             dialects: None,
             dcerpc_ifaces: None,
-            ntlmssp: None,
-            krb_ticket: None,
         }
     }
 
