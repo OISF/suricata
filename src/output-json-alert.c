@@ -63,6 +63,7 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
+#include "output-json-smb.h"
 #include "output-json-flow.h"
 
 #include "util-byte.h"
@@ -460,6 +461,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 hjs = JsonNFSAddMetadata(p->flow, pa->tx_id);
                 if (hjs)
                     json_object_set_new(js, "nfs", hjs);
+            } else if (proto == ALPROTO_SMB) {
+                hjs = JsonSMBAddMetadata(p->flow, pa->tx_id);
+                if (hjs)
+                    json_object_set_new(js, "smb", hjs);
             }
 #endif
             if (proto == ALPROTO_FTPDATA) {

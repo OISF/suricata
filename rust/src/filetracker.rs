@@ -106,6 +106,7 @@ impl FileTransferTracker {
 
     pub fn close(&mut self, files: &mut FileContainer, flags: u16) {
         if !self.file_is_truncated {
+            SCLogDebug!("closing file with id {}", self.track_id);
             files.file_close(&self.track_id, flags);
         }
         self.file_open = false;

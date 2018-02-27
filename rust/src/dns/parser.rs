@@ -77,7 +77,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                 }
                 _ => {
                     return nom::IResult::Error(
-                        error_position!(nom::ErrorKind::OctDigit, input));
+                        error_position!(nom::ErrorKind::OctDigit, pos));
                 }
             }
         } else if len & 0b1100_0000 == 0b1100_0000 {
@@ -86,7 +86,7 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                     let offset = leader & 0x3fff;
                     if offset as usize > message.len() {
                         return nom::IResult::Error(
-                            error_position!(nom::ErrorKind::OctDigit, input));
+                            error_position!(nom::ErrorKind::OctDigit, pos));
                     }
                     pos = &message[offset as usize..];
                     if pivot == start {
@@ -95,19 +95,19 @@ pub fn dns_parse_name<'a, 'b>(start: &'b [u8],
                 }
                 _ => {
                     return nom::IResult::Error(
-                        error_position!(nom::ErrorKind::OctDigit, input));
+                        error_position!(nom::ErrorKind::OctDigit, pos));
                 }
             }
         } else {
             return nom::IResult::Error(
-                error_position!(nom::ErrorKind::OctDigit, input));
+                error_position!(nom::ErrorKind::OctDigit, pos));
         }
 
         // Return error if we've looped a certain number of times.
         count += 1;
         if count > 255 {
             return nom::IResult::Error(
-                error_position!(nom::ErrorKind::OctDigit, input));
+                error_position!(nom::ErrorKind::OctDigit, pos));
         }
 
     }

@@ -62,6 +62,8 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 
+#include "source-pcap-file.h"
+
 #ifndef HAVE_LIBJANSSON
 
 /** Handle the case where no JSON support is compiled in.
@@ -594,6 +596,10 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
                             json_string(file_ctx->sensor_name));
     }
 
+    if (file_ctx->is_pcap_offline) {
+        json_object_set_new(js, "pcap_filename", json_string(PcapFileGetFilename()));
+    }
+
     if (file_ctx->prefix) {
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
@@ -798,8 +804,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->include_metadata = true;
         }
 
+        const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
+        if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
+            json_ctx->file_ctx->is_pcap_offline =
+                (RunmodeGetCurrent() == RUNMODE_PCAP_FILE);
+        }
+
         json_ctx->file_ctx->type = json_ctx->json_out;
     }
+
 
     SCLogDebug("returning output_ctx %p", output_ctx);
 
