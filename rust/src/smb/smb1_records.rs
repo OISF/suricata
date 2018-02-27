@@ -400,8 +400,25 @@ named!(pub parse_smb_setup_andx_record<SmbRecordSetupAndX>,
        >> skip2: take!(8)
        >> bcc: le_u16
        >> sec_blob: take!(sec_blob_len)
-       >> skip3: rest
+       //>> skip3: rest
        >> (SmbRecordSetupAndX {
+                sec_blob:sec_blob,
+           }))
+);
+
+#[derive(Debug,PartialEq)]
+pub struct SmbResponseRecordSetupAndX<'a> {
+    pub sec_blob: &'a[u8],
+}
+
+named!(pub parse_smb_response_setup_andx_record<SmbResponseRecordSetupAndX>,
+    do_parse!(
+       skip1: take!(7)
+       >> sec_blob_len: le_u16
+       >> bcc: le_u16
+       >> sec_blob: take!(sec_blob_len)
+       //>> skip3: rest
+       >> (SmbResponseRecordSetupAndX {
                 sec_blob:sec_blob,
            }))
 );

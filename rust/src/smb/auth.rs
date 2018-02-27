@@ -306,15 +306,21 @@ fn parse_secblob_spnego_start(blob: &[u8]) -> IResult<&[u8], &[u8]>
     IResult::Done(rem, d)
 }
 
-fn parse_secblob_spnego(state: &mut SMBState, blob: &[u8])
+pub struct SpnegoRequest {
+    pub krb: Option<Kerberos5Ticket>,
+    pub ntlmssp: Option<NtlmsspData>,
+}
+
+fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
 {
-    let mut ntlmssp = false;
-    let mut kerberos = false;
+    let mut have_ntlmssp = false;
+    let mut have_kerberos = false;
     let mut kticket : Option<Kerberos5Ticket> = None;
+    let mut ntlmssp : Option<NtlmsspData> = None;
 
     let o = match der_parser::parse_der_sequence(blob) {
         IResult::Done(_, o) => o,
-        _ => { return; },
+        _ => { return None; },
     };
     for s in o {
         SCLogDebug!("s {:?}", s);
@@ -337,11 +343,11 @@ fn parse_secblob_spnego(state: &mut SMBState, blob: &[u8])
                             SCLogDebug!("OID {:?}", oid);
                             match oid.to_string().as_str() {
                                 "1.2.840.48018.1.2.2" => { SCLogDebug!("Microsoft Kerberos 5"); },
-                                "1.2.840.113554.1.2.2" => { SCLogDebug!("Kerberos 5"); kerberos = true; },
+                                "1.2.840.113554.1.2.2" => { SCLogDebug!("Kerberos 5"); have_kerberos = true; },
                                 "1.2.840.113554.1.2.2.1" => { SCLogDebug!("krb5-name"); },
                                 "1.2.840.113554.1.2.2.2" => { SCLogDebug!("krb5-principal"); },
                                 "1.2.840.113554.1.2.2.3" => { SCLogDebug!("krb5-user-to-user-mech"); },
-                                "1.3.6.1.4.1.311.2.2.10" => { SCLogDebug!("NTLMSSP"); ntlmssp = true; },
+                                "1.3.6.1.4.1.311.2.2.10" => { SCLogDebug!("NTLMSSP"); have_ntlmssp = true; },
                                 "1.3.6.1.4.1.311.2.2.30" => { SCLogDebug!("NegoEx"); },
                                 _ => { SCLogNotice!("unexpected OID {:?}", oid); },
                             }
@@ -351,7 +357,7 @@ fn parse_secblob_spnego(state: &mut SMBState, blob: &[u8])
                 }
             },
             der_parser::DerObjectContent::OctetString(ref os) => {
-                if kerberos {
+                if have_kerberos {
                     match parse_kerberos5_request(os) {
                         IResult::Done(_, t) => {
                             kticket = Some(t)
@@ -360,16 +366,20 @@ fn parse_secblob_spnego(state: &mut SMBState, blob: &[u8])
                     }
                 }
 
-                if ntlmssp && kticket == None {
+                if have_ntlmssp && kticket == None {
                     SCLogDebug!("parsing expected NTLMSSP");
-                    parse_ntlmssp_blob(state, os);
+                    ntlmssp = parse_ntlmssp_blob(os);
                 }
             },
             _ => {},
         }
     }
 
-    state.krb_ticket = kticket;
+    let s = SpnegoRequest {
+        krb: kticket,
+        ntlmssp: ntlmssp,
+    };
+    Some(s)
 }
 
 #[derive(Debug,PartialEq)]
@@ -377,11 +387,14 @@ pub struct NtlmsspData {
     pub host: Vec<u8>,
     pub user: Vec<u8>,
     pub domain: Vec<u8>,
+    pub version: Option<NTLMSSPVersion>,
 }
 
 /// take in blob, search for the header and parse it
-fn parse_ntlmssp_blob(state: &mut SMBState, blob: &[u8])
+fn parse_ntlmssp_blob(blob: &[u8]) -> Option<NtlmsspData>
 {
+    let mut ntlmssp_data : Option<NtlmsspData> = None;
+
     SCLogDebug!("NTLMSSP {:?}", blob);
     match parse_ntlmssp(blob) {
         IResult::Done(_, nd) => {
@@ -405,8 +418,9 @@ fn parse_ntlmssp_blob(state: &mut SMBState, blob: &[u8])
                                 host: host,
                                 user: user,
                                 domain: domain,
+                                version: ad.version,
                             };
-                            state.ntlmssp = Some(d);
+                            ntlmssp_data = Some(d);
                         },
                         _ => {},
                     }
@@ -415,25 +429,44 @@ fn parse_ntlmssp_blob(state: &mut SMBState, blob: &[u8])
             }
         },
         _ => {},
-    } 
+    }
+    return ntlmssp_data;
 }
 
 // if spnego parsing fails try to fall back to ntlmssp
-pub fn parse_secblob(state: &mut SMBState, blob: &[u8])
+pub fn parse_secblob(blob: &[u8]) -> Option<SpnegoRequest>
 {
     match parse_secblob_get_spnego(blob) {
         IResult::Done(_, spnego) => {
             match parse_secblob_spnego_start(spnego) {
                 IResult::Done(_, spnego_start) => {
-                    parse_secblob_spnego(state, spnego_start);
+                    parse_secblob_spnego(spnego_start)
                 },
                 _ => {
-                    parse_ntlmssp_blob(state, blob);
+                    match parse_ntlmssp_blob(blob) {
+                        Some(n) => {
+                            let s = SpnegoRequest {
+                                krb: None,
+                                ntlmssp: Some(n),
+                            };
+                            Some(s)
+                        },
+                        None => { None },
+                    }
                 },
             }
         },
         _ => {
-            parse_ntlmssp_blob(state, blob);
+            match parse_ntlmssp_blob(blob) {
+                Some(n) => {
+                    let s = SpnegoRequest {
+                        krb: None,
+                         ntlmssp: Some(n),
+                    };
+                    Some(s)
+                },
+                None => { None },
+            }
         },
     }
 }

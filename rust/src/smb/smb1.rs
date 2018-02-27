@@ -27,12 +27,13 @@ use nom::{IResult};
 use core::*;
 use log::*;
 
-use smb::smb1_records::*;
 use smb::smb::*;
 use smb::dcerpc::*;
 use smb::events::*;
-use smb::auth::*;
 use smb::files::*;
+
+use smb::smb1_records::*;
+use smb::smb1_session::*;
 
 // https://msdn.microsoft.com/en-us/library/ee441741.aspx
 pub const SMB1_COMMAND_CREATE_DIRECTORY:        u8 = 0x00;
@@ -129,10 +130,6 @@ pub fn smb1_create_new_tx(_cmd: u8) -> bool {
 pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     SCLogDebug!("record: {:?} command {}", r.greeter, r.command);
 
-    // init default tx keys
-    let mut key_ssn_id = r.ssn_id;
-    let key_tree_id = r.tree_id;
-    let key_multiplex_id = r.multiplex_id;
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;
 
@@ -229,21 +226,8 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
             SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
-            match parse_smb_setup_andx_record(r.data) {
-                IResult::Done(_, setup) => {
-                    parse_secblob(state, setup.sec_blob);
-/*
-                        _ => {
-                            events.push(SMBEvent::MalformedNtlmsspRequest);
-                        },
-*/
-                },
-                _ => {
-                    events.push(SMBEvent::MalformedData);
-                },
-            }
-            key_ssn_id = 0;
-            false
+            smb1_session_setup_request(state, r);
+            true
         },
         SMB1_COMMAND_TREE_CONNECT_ANDX => {
             SCLogDebug!("SMB1_COMMAND_TREE_CONNECT_ANDX");
@@ -353,8 +337,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     };
     if !have_tx {
         if smb1_create_new_tx(r.command) {
-            let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_GENERICTX,
-                    key_ssn_id as u64, key_tree_id as u32, key_multiplex_id as u64);
+            let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
             let tx = state.new_generic_tx(1, r.command as u16, tx_key);
             SCLogDebug!("tx {} created for {}/{}", tx.id, r.command, &smb1_command_string(r.command));
             tx.set_events(events);
@@ -510,8 +493,20 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             true
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
+/*
+            SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
+            match parse_smb_response_setup_andx_record(r.data) {
+                IResult::Done(rem, _setup) => {
+                    //parse_secblob(state, setup.sec_blob);
+                    state.response_host = Some(smb1_session_setup_response_host_info(r, rem));
+                },
+                _ => {},
+            }
             tx_sync = true;
             false
+*/
+            smb1_session_setup_response(state, r);
+            true
         },
         SMB1_COMMAND_LOGOFF_ANDX => {
             tx_sync = true;
