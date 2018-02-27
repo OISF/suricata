@@ -21,9 +21,9 @@ use nom::IResult;
 
 use smb::smb::*;
 use smb::smb2_records::*;
+use smb::smb2_session::*;
 use smb::dcerpc::*;
 use smb::events::*;
-use smb::auth::*;
 use smb::files::*;
 
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL:      u16 = 0;
@@ -324,47 +324,8 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_SESSION_SETUP => {
-            SCLogDebug!("SMB2_COMMAND_SESSION_SETUP: r.data.len() {}", r.data.len());
-            match parse_smb2_request_session_setup(r.data) {
-                IResult::Done(_, setup) => {
-                    SCLogDebug!("SMB2_COMMAND_SESSION_SETUP parsed. rd.data.len() {}", setup.data.len());
-                    parse_secblob(state, setup.data);
-/*
-                    match parse_ntlmssp(rd.data) {
-                        IResult::Done(_, nd) => {
-                            SCLogDebug!("NTLMSSP TYPE {}/{} nd {:?}",
-                                    nd.msg_type, &ntlmssp_type_string(nd.msg_type), nd);
-                            match nd.msg_type {
-                                NTLMSSP_NEGOTIATE => {
-                                    key_session_id = 0;
-                                },
-                                NTLMSSP_AUTH => {
-                                    match parse_ntlm_auth_record(nd.data) {
-                                        IResult::Done(_, ad) => {
-                                            SCLogDebug!("auth data {:?}", ad);
-                                            state.ntlmssp_host = ad.host.to_vec();
-                                            state.ntlmssp_user = ad.user.to_vec();
-                                            state.ntlmssp_domain = ad.domain.to_vec();
-                                        },
-                                        _ => {
-                                            events.push(SMBEvent::MalformedData);
-                                        },
-                                    }
-                                },
-                                _ => { },
-                            }
-                        },
-                        _ => {
-                            SCLogNotice!("error parsing ntlmssp");
-                        },
-                    }
-*/
-                },
-                _ => {
-                    events.push(SMBEvent::MalformedData);
-                },
-            }
-            false
+            smb2_session_setup_request(state, r);
+            true
         },
         SMB2_COMMAND_TREE_CONNECT => {
             match parse_smb2_request_tree_connect(r.data) {
@@ -490,34 +451,6 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     }
 }
 
-fn smb2_response_record_session_setup<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
-{
-    // first try exact match
-    let found = match state.get_generic_tx(2, r.command, &SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX)) {
-        Some(tx) => {
-            if r.nt_status != SMB_NTSTATUS_PENDING {
-                tx.response_done = true;
-            }
-            tx.set_status(r.nt_status, false);
-            true
-        },
-        None => false,
-    };
-    // if not found try with ssn id 0.
-    if !found {
-        let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_GENERICTX, 0, 0, r.message_id);
-        match state.get_generic_tx(2, r.command, &tx_key) {
-            Some(tx) => {
-                if r.nt_status != SMB_NTSTATUS_PENDING {
-                    tx.response_done = true;
-                }
-                tx.set_status(r.nt_status, false);
-            },
-            None => { },
-        }
-    }
-}
-
 pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     SCLogDebug!("SMBv2 response record, command {} status {} tree {} session {} message {}",
@@ -578,7 +511,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             have_ioctl_tx
         },
         SMB2_COMMAND_SESSION_SETUP => {
-            smb2_response_record_session_setup(state, r);
+            smb2_session_setup_response(state, r);
             true
         },
         SMB2_COMMAND_WRITE => {

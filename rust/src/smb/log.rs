@@ -90,55 +90,89 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
 
     js.set_boolean("request_done", tx.request_done);
     js.set_boolean("response_done", tx.request_done);
-
-    match state.ntlmssp {
-        Some(ref ntlmssp) => {
-            let jsd = Json::object();
-            let domain = match str::from_utf8(&ntlmssp.domain) {
-                Ok(v) => v,
-                Err(_) => "UTF8_ERROR",
-            };
-            jsd.set_string("domain", &domain);
-
-            let user = match str::from_utf8(&ntlmssp.user) {
-                Ok(v) => v,
-                Err(_) => "UTF8_ERROR",
-            };
-            jsd.set_string("user", &user);
-
-            let host = match str::from_utf8(&ntlmssp.host) {
-                Ok(v) => v,
-                Err(_) => "UTF8_ERROR",
-            };
-            jsd.set_string("host", &host);
-            js.set("ntlmssp", jsd);
-        }
-        None => {},
-    }
-
-    match state.krb_ticket {
-        Some(ref ticket) => {
-            let jsd = Json::object();
-            let realm = match str::from_utf8(&ticket.realm) {
-                Ok(v) => v,
-                Err(_) => "UTF8_ERROR",
-            };
-            jsd.set_string("realm", &realm);
-            let jsa = Json::array();
-            for sname in &ticket.snames {
-                let name = match str::from_utf8(&sname) {
+    match tx.type_data {
+        Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
+            if let Some(ref ntlmssp) = x.ntlmssp {
+                let jsd = Json::object();
+                let domain = match str::from_utf8(&ntlmssp.domain) {
                     Ok(v) => v,
                     Err(_) => "UTF8_ERROR",
                 };
-                jsa.array_append_string(&name);
-            }
-            jsd.set("snames", jsa);
-            js.set("kerberos", jsd);
-        },
-        None => { },
-    }
+                jsd.set_string("domain", &domain);
 
-    match tx.type_data {
+                let user = match str::from_utf8(&ntlmssp.user) {
+                    Ok(v) => v,
+                    Err(_) => "UTF8_ERROR",
+                };
+                jsd.set_string("user", &user);
+
+                let host = match str::from_utf8(&ntlmssp.host) {
+                    Ok(v) => v,
+                    Err(_) => "UTF8_ERROR",
+                };
+                jsd.set_string("host", &host);
+
+                if let Some(ref v) = ntlmssp.version {
+                    jsd.set_string("version", v.to_string().as_str());
+                }
+
+                js.set("ntlmssp", jsd);
+            }
+
+            if let Some(ref ticket) = x.krb_ticket {
+                let jsd = Json::object();
+                let realm = match str::from_utf8(&ticket.realm) {
+                    Ok(v) => v,
+                    Err(_) => "UTF8_ERROR",
+                };
+                jsd.set_string("realm", &realm);
+                let jsa = Json::array();
+                for sname in &ticket.snames {
+                    let name = match str::from_utf8(&sname) {
+                        Ok(v) => v,
+                        Err(_) => "UTF8_ERROR",
+                    };
+                    jsa.array_append_string(&name);
+                }
+                jsd.set("snames", jsa);
+                js.set("kerberos", jsd);
+            }
+
+            match x.request_host {
+                Some(ref r) => {
+                    let jsd = Json::object();
+                    let os = match str::from_utf8(&r.native_os) {
+                        Ok(v) => v,
+                            Err(_) => "UTF8_ERROR",
+                    };
+                    jsd.set_string("native_os", &os);
+                    let lm = match str::from_utf8(&r.native_lm) {
+                        Ok(v) => v,
+                            Err(_) => "UTF8_ERROR",
+                    };
+                    jsd.set_string("native_lm", &lm);
+                    js.set("request", jsd);
+                },
+                None => { },
+            }
+            match x.response_host {
+                Some(ref r) => {
+                    let jsd = Json::object();
+                    let os = match str::from_utf8(&r.native_os) {
+                        Ok(v) => v,
+                            Err(_) => "UTF8_ERROR",
+                    };
+                    jsd.set_string("native_os", &os);
+                    let lm = match str::from_utf8(&r.native_lm) {
+                        Ok(v) => v,
+                            Err(_) => "UTF8_ERROR",
+                    };
+                    jsd.set_string("native_lm", &lm);
+                    js.set("response", jsd);
+                },
+                None => { },
+            }
+        },
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
