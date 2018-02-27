@@ -64,6 +64,7 @@ enum PktSrcEnum {
 #include "source-af-packet.h"
 #include "source-mpipe.h"
 #include "source-netmap.h"
+#include "source-windivert.h"
 #ifdef HAVE_PF_RING_FLOW_OFFLOAD
 #include "source-pfring.h"
 #endif
@@ -462,6 +463,9 @@ typedef struct Packet_
         PfringPacketVars pfring_v;
 #endif
 #endif
+#ifdef WINDIVERT
+        WinDivertPacketVars windivert_v;
+#endif /* WINDIVERT */
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
