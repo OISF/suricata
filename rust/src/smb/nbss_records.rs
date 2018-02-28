@@ -17,11 +17,41 @@
 
 use nom::{rest};
 
+pub const NBSS_MSGTYPE_SESSION_MESSAGE:         u8 = 0x00;
+pub const NBSS_MSGTYPE_SESSION_REQUEST:         u8 = 0x81;
+pub const NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE:   u8 = 0x82;
+pub const NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE:   u8 = 0x83;
+pub const NBSS_MSGTYPE_RETARG_RESPONSE:         u8 = 0x84;
+pub const NBSS_MSGTYPE_KEEP_ALIVE:              u8 = 0x85;
+
 #[derive(Debug,PartialEq)]
 pub struct NbssRecord<'a> {
     pub message_type: u8,
     pub length: u32,
     pub data: &'a[u8],
+}
+
+impl<'a> NbssRecord<'a> {
+    pub fn is_smb(&self) -> bool {
+        let valid = match self.message_type {
+            NBSS_MSGTYPE_SESSION_MESSAGE |
+            NBSS_MSGTYPE_SESSION_REQUEST |
+            NBSS_MSGTYPE_POSITIVE_SSN_RESPONSE |
+            NBSS_MSGTYPE_NEGATIVE_SSN_RESPONSE |
+            NBSS_MSGTYPE_RETARG_RESPONSE |
+            NBSS_MSGTYPE_KEEP_ALIVE => true,
+            _ => false,
+        };
+        let smb = if self.data.len() >= 4 &&
+            self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8
+        {
+            true
+        } else {
+            false
+        };
+
+        valid && smb
+    }
 }
 
 named!(pub parse_nbss_record<NbssRecord>,
@@ -37,20 +67,13 @@ named!(pub parse_nbss_record<NbssRecord>,
         })
 ));
 
-#[derive(Debug,PartialEq)]
-pub struct NbssRecordPartial<'a> {
-    pub message_type: u8,
-    pub length: u32,
-    pub data: &'a[u8],
-}
-
-named!(pub parse_nbss_record_partial<NbssRecordPartial>,
+named!(pub parse_nbss_record_partial<NbssRecord>,
    do_parse!(
        type_and_len: bits!(tuple!(
                take_bits!(u8, 8),
                take_bits!(u32, 24)))
        >> data: rest
-       >> (NbssRecordPartial {
+       >> (NbssRecord {
             message_type:type_and_len.0,
             length:type_and_len.1,
             data:data,
