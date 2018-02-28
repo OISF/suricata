@@ -59,9 +59,6 @@ pub extern "C" fn rs_smb_init(context: &'static mut SuricataFileContext)
     }
 }
 
-pub const NBSS_MSGTYPE_SESSION_MESSAGE: u8 = 0x00;
-//const NBSS_MSGTYPE_SESSION_REQUEST: u8 = 0x81;
-
 pub const SMB_NTSTATUS_SUCCESS:                    u32 = 0;
 pub const SMB_NTSTATUS_PENDING:                    u32 = 0x00000103;
 pub const SMB_NTSTATUS_BUFFER_OVERFLOW:            u32 = 0x80000005;
@@ -1029,6 +1026,21 @@ impl SMBState {
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
+            // check for malformed data. Wireshark reports as
+            // 'NBSS continuation data'. If it's invalid we're
+            // lost so we give up.
+            if input.len() > 8 {
+                match parse_nbss_record_partial(input) {
+                    IResult::Done(_, ref hdr) => {
+                        if !hdr.is_smb() {
+                            SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
+                            self.trunc_ts();
+                            return 0;
+                        }
+                    },
+                    _ => {},
+                }
+            }
             return 0;
         }
 
@@ -1228,6 +1240,21 @@ impl SMBState {
     {
         SCLogDebug!("incomplete of size {}", input.len());
         if input.len() < 512 {
+            // check for malformed data. Wireshark reports as
+            // 'NBSS continuation data'. If it's invalid we're
+            // lost so we give up.
+            if input.len() > 8 {
+                match parse_nbss_record_partial(input) {
+                    IResult::Done(_, ref hdr) => {
+                        if !hdr.is_smb() {
+                            SCLogDebug!("partial NBSS, not SMB and no known msg type {}", hdr.message_type);
+                            self.trunc_tc();
+                            return 0;
+                        }
+                    },
+                    _ => {},
+                }
+            }
             return 0;
         }
 
@@ -1403,8 +1430,8 @@ impl SMBState {
                     }
                     cur_i = rem;
                 },
-                IResult::Incomplete(_) => {
-                    SCLogDebug!("INCOMPLETE have {}", cur_i.len());
+                IResult::Incomplete(needed) => {
+                    SCLogDebug!("INCOMPLETE have {} needed {:?}", cur_i.len(), needed);
                     let consumed = self.parse_tcp_data_tc_partial(cur_i);
                     cur_i = &cur_i[consumed ..];
 
@@ -1472,6 +1499,7 @@ impl SMBState {
     pub fn trunc_ts(&mut self) {
         SCLogDebug!("TRUNC TS");
         self.ts_trunc = true;
+        self.tcp_buffer_ts.clear();
 
         for tx in &mut self.transactions {
             if !tx.request_done {
@@ -1483,6 +1511,7 @@ impl SMBState {
     pub fn trunc_tc(&mut self) {
         SCLogDebug!("TRUNC TC");
         self.tc_trunc = true;
+        self.tcp_buffer_tc.clear();
 
         for tx in &mut self.transactions {
             if !tx.response_done {
