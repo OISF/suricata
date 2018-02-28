@@ -60,6 +60,7 @@ pub const SMB1_COMMAND_WRITE_AND_UNLOCK:        u8 = 0x14;
 pub const SMB1_COMMAND_LOCKING_ANDX:            u8 = 0x24;
 pub const SMB1_COMMAND_TRANS:                   u8 = 0x25;
 pub const SMB1_COMMAND_ECHO:                    u8 = 0x2b;
+pub const SMB1_COMMAND_WRITE_AND_CLOSE:         u8 = 0x2c;
 pub const SMB1_COMMAND_READ_ANDX:               u8 = 0x2e;
 pub const SMB1_COMMAND_WRITE_ANDX:              u8 = 0x2f;
 pub const SMB1_COMMAND_TRANS2:                  u8 = 0x32;
@@ -99,6 +100,7 @@ pub fn smb1_command_string(c: u8) -> String {
         SMB1_COMMAND_WRITE_AND_UNLOCK   => "SMB1_COMMAND_WRITE_AND_UNLOCK",
         SMB1_COMMAND_LOCKING_ANDX       => "SMB1_COMMAND_LOCKING_ANDX",
         SMB1_COMMAND_ECHO               => "SMB1_COMMAND_ECHO",
+        SMB1_COMMAND_WRITE_AND_CLOSE    => "SMB1_COMMAND_WRITE_AND_CLOSE",
         SMB1_COMMAND_READ_ANDX          => "SMB1_COMMAND_READ_ANDX",
         SMB1_COMMAND_WRITE_ANDX         => "SMB1_COMMAND_WRITE_ANDX",
         SMB1_COMMAND_TRANS              => "SMB1_COMMAND_TRANS",
@@ -127,6 +129,46 @@ pub fn smb1_create_new_tx(_cmd: u8) -> bool {
 //    }
 }
 
+fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
+{
+    // we can have created 2 txs for a FID: one for reads
+    // and one for writes. So close both.
+    match state.get_file_tx_by_guid(&fid, STREAM_TOSERVER) {
+        Some((tx, files, flags)) => {
+            SCLogDebug!("found tx {}", tx.id);
+            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                if !tx.request_done {
+                    SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
+                    tdf.file_tracker.close(files, flags);
+                    tx.request_done = true;
+                    tx.response_done = true;
+                    SCLogDebug!("tx {} is done", tx.id);
+                }
+                // as a precaution, reset guid so it can be reused
+                tdf.guid.clear(); // TODO review
+            }
+        },
+        None => { },
+    }
+    match state.get_file_tx_by_guid(&fid, STREAM_TOCLIENT) {
+        Some((tx, files, flags)) => {
+            SCLogDebug!("found tx {}", tx.id);
+            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                if !tx.request_done {
+                    SCLogDebug!("closing file tx {} FID {:?}", tx.id, fid);
+                    tdf.file_tracker.close(files, flags);
+                    tx.request_done = true;
+                    tx.response_done = true;
+                    SCLogDebug!("tx {} is done", tx.id);
+                }
+                // as a precaution, reset guid so it can be reused
+                tdf.guid.clear(); // TODO review now that fid is improved
+            }
+        },
+        None => { },
+    }
+}
+
 pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     SCLogDebug!("record: {:?} command {}", r.greeter, r.command);
 
@@ -152,11 +194,9 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             }
             false
         },
-        SMB1_COMMAND_WRITE_ANDX => {
-            smb1_write_request_record(state, r);
-            true // tx handling in func
-        },
-        SMB1_COMMAND_WRITE => {
+        SMB1_COMMAND_WRITE_ANDX |
+        SMB1_COMMAND_WRITE |
+        SMB1_COMMAND_WRITE_AND_CLOSE => {
             smb1_write_request_record(state, r);
             true // tx handling in func
         },
@@ -265,43 +305,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                     let mut fid = cd.fid.to_vec();
                     fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
                     SCLogDebug!("closing FID {:?}/{:?}", cd.fid, fid);
-
-                    // we can have created 2 txs for a FID: one for reads
-                    // and one for writes. So close both.
-                    match state.get_file_tx_by_guid(&fid, STREAM_TOSERVER) {
-                        Some((tx, files, flags)) => {
-                            SCLogDebug!("found tx {}", tx.id);
-                            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                                if !tx.request_done {
-                                    SCLogDebug!("closing file tx {} FID {:?}/{:?}", tx.id, cd.fid, fid);
-                                    tdf.file_tracker.close(files, flags);
-                                    tx.request_done = true;
-                                    tx.response_done = true;
-                                    SCLogDebug!("tx {} is done", tx.id);
-                                }
-                                // as a precaution, reset guid so it can be reused
-                                tdf.guid.clear(); // TODO review
-                            }
-                        },
-                        None => { },
-                    }
-                    match state.get_file_tx_by_guid(&fid, STREAM_TOCLIENT) {
-                        Some((tx, files, flags)) => {
-                            SCLogDebug!("found tx {}", tx.id);
-                            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                                if !tx.request_done {
-                                    SCLogDebug!("closing file tx {} FID {:?}/{:?}", tx.id, cd.fid, fid);
-                                    tdf.file_tracker.close(files, flags);
-                                    tx.request_done = true;
-                                    tx.response_done = true;
-                                    SCLogDebug!("tx {} is done", tx.id);
-                                }
-                                // as a precaution, reset guid so it can be reused
-                                tdf.guid.clear(); // TODO review now that fid is improved
-                            }
-                        },
-                        None => { },
-                    }
+                    smb1_close_file(state, &fid);
                 },
                 _ => {
                     events.push(SMBEvent::MalformedData);
@@ -656,8 +660,10 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
     let result = if r.command == SMB1_COMMAND_WRITE_ANDX {
         parse_smb1_write_andx_request_record(r.data)
-    } else {
+    } else if r.command == SMB1_COMMAND_WRITE {
         parse_smb1_write_request_record(r.data)
+    } else {
+        parse_smb1_write_and_close_request_record(r.data)
     };
     match result {
         IResult::Done(_, rd) => {
@@ -712,6 +718,11 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             state.file_ts_left = rd.len - rd.data.len() as u32;
             state.file_ts_guid = file_fid.to_vec();
             SCLogDebug!("SMBv1 WRITE RESPONSE: {} bytes left", state.file_tc_left);
+
+            if r.command == SMB1_COMMAND_WRITE_AND_CLOSE {
+                SCLogDebug!("closing FID {:?}", file_fid);
+                smb1_close_file(state, &file_fid);
+            }
         },
         _ => {
             state.set_event(SMBEvent::MalformedData);

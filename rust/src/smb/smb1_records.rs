@@ -72,6 +72,24 @@ named!(pub parse_smb1_write_andx_request_record<Smb1WriteRequestRecord>,
             }))
 );
 
+named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
+    do_parse!(
+            wct: le_u8
+        >>  fid: take!(2)
+        >>  count: le_u16
+        >>  offset: le_u32
+        >>  last_write: take!(4)
+        >>  bcc: le_u16
+        >>  padding: cond!(bcc > count, take!(bcc - count))
+        >>  file_data: take!(count)
+        >> (Smb1WriteRequestRecord {
+                offset: offset as u64,
+                len: count as u32,
+                fid:fid,
+                data:file_data,
+            }))
+);
+
 #[derive(Debug,PartialEq)]
 pub struct Smb1NegotiateProtocolResponseRecord<> {
     pub dialect_idx: u16,
