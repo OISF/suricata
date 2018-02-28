@@ -309,11 +309,9 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             }
             false
         },
-        SMB1_COMMAND_NT_CANCEL => {
-            no_response_expected = true;
-            false
-        },
-        SMB1_COMMAND_TRANS2_SECONDARY => {
+        SMB1_COMMAND_NT_CANCEL |
+        SMB1_COMMAND_TRANS2_SECONDARY |
+        SMB1_COMMAND_LOCKING_ANDX => {
             no_response_expected = true;
             false
         },
@@ -325,7 +323,6 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                r.command == SMB1_COMMAND_NT_CANCEL ||
                r.command == SMB1_COMMAND_RENAME ||
                r.command == SMB1_COMMAND_CHECK_DIRECTORY ||
-               r.command == SMB1_COMMAND_LOCKING_ANDX ||
                r.command == SMB1_COMMAND_ECHO ||
                r.command == SMB1_COMMAND_TRANS
             { } else {
