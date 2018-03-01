@@ -69,7 +69,7 @@ named!(pub get_nullterm_string<Vec<u8>>,
 
 pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> SessionSetupRequest
 {
-    if blob.len() > 1 && r.flags2 & 0x8000_u16 != 0 {
+    if blob.len() > 1 && r.has_unicode_support() {
         let offset = r.data.len() - blob.len();
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
         let (native_os, native_lm, primary_domain) = match get_unicode_string(blob) {
@@ -120,15 +120,13 @@ pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> Sessi
 
 pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> SessionSetupResponse
 {
-    if blob.len() > 1 && r.flags2 & 0x8000_u16 != 0 {
+    if blob.len() > 1 && r.has_unicode_support() {
         let offset = r.data.len() - blob.len();
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
         let (native_os, native_lm) = match get_unicode_string(blob) {
             IResult::Done(rem, n1) => {
                 match get_unicode_string(rem) {
-                    IResult::Done(_, n2) => {
-                        (n1, n2)
-                    },
+                    IResult::Done(_, n2) => (n1, n2),
                     _ => { (n1, Vec::new()) },
                 }
             },
@@ -145,9 +143,7 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
         let (native_os, native_lm) = match get_nullterm_string(blob) {
             IResult::Done(rem, n1) => {
                 match get_nullterm_string(rem) {
-                    IResult::Done(_, n2) => {
-                        (n1, n2)
-                    },
+                    IResult::Done(_, n2) => (n1, n2),
                     _ => { (n1, Vec::new()) },
                 }
             },
