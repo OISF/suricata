@@ -179,14 +179,14 @@ pub struct SmbPipeProtocolRecord<'a> {
 }
 
 named!(pub parse_smb_trans_request_record_pipe<SmbPipeProtocolRecord>,
-    dbg_dmp!(do_parse!(
+    do_parse!(
             fun: le_u16
         >>  fid: take!(2)
         >> (SmbPipeProtocolRecord {
                 function: fun,
                 fid: fid,
             })
-    ))
+    )
 );
 
 
@@ -201,7 +201,7 @@ pub struct SmbRecordTransRequestParams<> {
 }
 
 named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, Option<SmbPipeProtocolRecord>)>,
-    dbg_dmp!(do_parse!(
+    do_parse!(
           wct: le_u8
        >> total_param_cnt: le_u16
        >> total_data_count: le_u16
@@ -218,7 +218,7 @@ named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, O
        >> data_offset: le_u16
        >> setup_cnt: le_u8
        >> take!(1) // reserved
-       >> pipe: cond!(wct == 16 && setup_cnt == 2, parse_smb_trans_request_record_pipe) // reserved
+       >> pipe: cond!(wct == 16 && setup_cnt == 2, parse_smb_trans_request_record_pipe)
        >> bcc: le_u16
        >> (( SmbRecordTransRequestParams {
                 max_data_cnt:max_data_cnt,
@@ -228,7 +228,7 @@ named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, O
                 data_offset:data_offset,
                 bcc:bcc,
             },
-            pipe))))
+            pipe)))
 );
 
 #[derive(Debug,PartialEq)]
@@ -284,31 +284,21 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
 {
     let (rem, (params, pipe)) = match parse_smb_trans_request_record_params(i) {
         IResult::Done(rem, (rd, p)) => (rem, (rd, p)),
-        IResult::Incomplete(ii) => {
-            return IResult::Incomplete(ii);
-        }
-        IResult::Error(e) => {
-            return IResult::Error(e);
-        }
+        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
+        IResult::Error(e) => { return IResult::Error(e); }
     };
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
 
-    let name = if r.flags2 & 0x8000_u16 != 0 { // unicode
-        SCLogDebug!("unicode flag set");
+    let name = if r.has_unicode_support() {
         parse_smb_trans_request_tx_name_unicode(rem, offset)
     } else {
-        SCLogDebug!("unicode flag NOT set");
         parse_smb_trans_request_tx_name_ascii(rem)
     };
     let (rem2, n) = match name {
         IResult::Done(rem, rd) => (rem, rd),
-        IResult::Incomplete(ii) => {
-            return IResult::Incomplete(ii);
-        }
-        IResult::Error(e) => {
-            return IResult::Error(e);
-        }
+        IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
+        IResult::Error(e) => { return IResult::Error(e); }
     };
     offset += rem.len() - rem2.len();
     SCLogDebug!("n {:?}: offset {}", n, offset);
@@ -338,12 +328,8 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
         let d = match parse_smb_trans_request_record_data(rem2,
                 pad1, params.param_cnt, pad2, params.data_cnt) {
             IResult::Done(_, rd) => rd,
-                IResult::Incomplete(ii) => {
-                    return IResult::Incomplete(ii);
-                }
-            IResult::Error(e) => {
-                return IResult::Error(e);
-            }
+            IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
+            IResult::Error(e) => { return IResult::Error(e); }
         };
         SCLogDebug!("d {:?}", d);
         d
@@ -618,6 +604,12 @@ pub struct SmbRecord<'a> {
     pub ssn_id: u32,
 
     pub data: &'a[u8],
+}
+
+impl<'a> SmbRecord<'a> {
+    pub fn has_unicode_support(&self) -> bool {
+        self.flags2 & 0x8000_u16 != 0
+    }
 }
 
 named!(pub parse_smb_record<SmbRecord>,
