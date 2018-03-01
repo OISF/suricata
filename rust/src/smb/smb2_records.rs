@@ -43,7 +43,7 @@ pub struct Smb2Record<'a> {
 
 named!(pub parse_smb2_request_record<Smb2Record>,
     do_parse!(
-            server_component:take!(4) // fe SMB
+            server_component: tag!(b"\xfeSMB")
         >>  hlen: le_u16
         >>  credit_charge: le_u16
         >>  channel_seq: le_u16
@@ -368,7 +368,7 @@ named!(pub parse_smb2_response_write<Smb2WriteResponseRecord>,
 
 named!(pub parse_smb2_response_record<Smb2Record>,
     do_parse!(
-            server_component:take!(4) // fe SMB
+            server_component: tag!(b"\xfeSMB")
         >>  hlen: le_u16
         >>  credit_charge: le_u16
         >>  nt_status: le_u32
