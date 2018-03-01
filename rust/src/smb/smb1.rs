@@ -465,27 +465,29 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             false
         },
         SMB1_COMMAND_NT_CREATE_ANDX => {
-            match parse_smb_create_andx_response_record(r.data) {
-                IResult::Done(_, cr) => {
-                    SCLogDebug!("Create AndX {:?}", cr);
+            if r.nt_status == SMB_NTSTATUS_SUCCESS {
+                match parse_smb_create_andx_response_record(r.data) {
+                    IResult::Done(_, cr) => {
+                        SCLogDebug!("Create AndX {:?}", cr);
 
-                    let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
-                    match state.ssn2vec_map.remove(&guid_key) {
-                        Some(mut p) => {
-                            p.retain(|&i|i != 0x00);
+                        let guid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_FILENAME);
+                        match state.ssn2vec_map.remove(&guid_key) {
+                            Some(mut p) => {
+                                p.retain(|&i|i != 0x00);
 
-                            let mut fid = cr.fid.to_vec();
-                            fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
-                            SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
-                            SCLogDebug!("fid {:?} name {:?}", fid, p);
-                            state.guid2name_map.insert(fid, p);
-                        },
-                        _ => {
-                            SCLogDebug!("SMBv1 response: GUID NOT FOUND");
-                        },
-                    }
-                },
-                _ => { events.push(SMBEvent::MalformedData); },
+                                let mut fid = cr.fid.to_vec();
+                                fid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+                                SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX fid {:?}", fid);
+                                SCLogDebug!("fid {:?} name {:?}", fid, p);
+                                state.guid2name_map.insert(fid, p);
+                            },
+                            _ => {
+                                SCLogDebug!("SMBv1 response: GUID NOT FOUND");
+                            },
+                        }
+                    },
+                    _ => { events.push(SMBEvent::MalformedData); },
+                }
             }
             false
         },
@@ -494,18 +496,6 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             true
         },
         SMB1_COMMAND_SESSION_SETUP_ANDX => {
-/*
-            SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
-            match parse_smb_response_setup_andx_record(r.data) {
-                IResult::Done(rem, _setup) => {
-                    //parse_secblob(state, setup.sec_blob);
-                    state.response_host = Some(smb1_session_setup_response_host_info(r, rem));
-                },
-                _ => {},
-            }
-            tx_sync = true;
-            false
-*/
             smb1_session_setup_response(state, r);
             true
         },
