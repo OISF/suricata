@@ -168,17 +168,21 @@ script:
             --with-libnspr-includes=/usr/local/opt/nspr/include/nspr \
             --with-libnspr-libraries=/usr/local/opt/nspr/lib
     fi
-  # With debug enabled too much output is generated for Travis, so
-  # redirect stderr to a file.
   - |
     # Linux container builds have 2 cores, make use of them.
     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
         j="-j 2"
     fi
-    if [[ "$ENABLE_DEBUG" == "yes" ]]; then
-        make ${j} check 2> stderr.log
-    else
-        make ${j} check
+    make ${j}
+  - |
+    # Like "make check", but fail on first error. We redirect the output
+    # so Travis doesn't fail the build with a too much output error.
+    mkdir -p ./qa/log
+    ./src/suricata -u -l ./qa/log --fatal-unittests > unittests.log 2>&1
+    if [[ $? -ne 0 ]]; then
+        echo "Unit tests failed, last 500 lines of output are:"
+        tail -n 500 unittests.log
+        exit 1
     fi
   - |
     if [[ "$DO_DISTCHECK" == "yes" ]]; then
