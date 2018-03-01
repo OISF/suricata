@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult, AsBytes};
+use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes};
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
@@ -405,28 +405,17 @@ named!(pub parse_smb2_response_record<Smb2Record>,
 ));
 
 #[derive(Debug,PartialEq)]
-pub struct Smb2RecordPostGap<'a> {
+pub struct SmbRecordPostGap<'a> {
     pub data: &'a[u8],
 }
 
-named!(pub search_smb2_record<Smb2RecordPostGap>,
+named!(pub search_smb_record<SmbRecordPostGap>,
     do_parse!(
            alt!(take_until!([0xfe, 0x53, 0x4d, 0x42].as_bytes())|    // SMB2
-                take_until!([0xff, 0x53, 0x4d, 0x42].as_bytes()))    // SMB1
+                take_until!([0xff, 0x53, 0x4d, 0x42].as_bytes())|    // SMB1
+                take_until!([0xfd, 0x53, 0x4d, 0x42].as_bytes()))    // SMB3 transform hdr
         >> data : rest
-        >> ( Smb2RecordPostGap {
+        >> ( SmbRecordPostGap {
                 data:data,
            })
 ));
-
-pub fn search_smb2_record_f<'a>(input: &'a [u8])
-    -> IResult<&'a [u8], Smb2RecordPostGap>
-{
-    return closure!(&'a [u8], do_parse!(
-           take_until!([0xfe, 0x53, 0x4d, 0x42].as_bytes())
-        >> data : rest
-        >> ( Smb2RecordPostGap {
-                data:data,
-           })
-    ))(input);
-}
