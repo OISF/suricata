@@ -26,6 +26,7 @@ pub mod smb1;
 pub mod smb1_session;
 pub mod smb2;
 pub mod smb2_session;
+pub mod smb3;
 pub mod dcerpc;
 pub mod session;
 pub mod log;

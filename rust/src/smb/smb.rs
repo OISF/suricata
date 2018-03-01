@@ -44,6 +44,7 @@ use smb::smb2_records::*;
 
 use smb::smb1::*;
 use smb::smb2::*;
+use smb::smb3::*;
 use smb::dcerpc::*;
 use smb::session::*;
 use smb::events::*;
@@ -1053,7 +1054,7 @@ impl SMBState {
                     match parse_smb_version(&nbss_part_hdr.data) {
                         IResult::Done(_, ref smb) => {
                             SCLogDebug!("SMB {:?}", smb);
-                            if smb.version == 255u8 { // SMB1
+                            if smb.version == 0xff_u8 { // SMB1
                                 SCLogDebug!("SMBv1 record");
                                 match parse_smb_record(&nbss_part_hdr.data) {
                                     IResult::Done(_, ref r) => {
@@ -1077,7 +1078,7 @@ impl SMBState {
                                     _ => { },
 
                                 }
-                            } else if smb.version == 254u8 { // SMB2
+                            } else if smb.version == 0xfe_u8 { // SMB2
                                 SCLogDebug!("SMBv2 record");
                                 match parse_smb2_request_record(&nbss_part_hdr.data) {
                                     IResult::Done(_, ref smb_record) => {
@@ -1092,6 +1093,7 @@ impl SMBState {
                                     _ => { },
                                 }
                             }
+                            // no SMB3 here yet, will buffer full records
                         },
                         _ => { },
                     }
@@ -1151,7 +1153,7 @@ impl SMBState {
         // gap
         if self.ts_gap {
             SCLogDebug!("TODO TS trying to catch up after GAP (input {})", cur_i.len());
-            match search_smb2_record(cur_i) {
+            match search_smb_record(cur_i) {
                 IResult::Done(_, pg) => {
                     SCLogDebug!("smb record found");
                     let smb2_offset = cur_i.len() - pg.data.len();
@@ -1179,7 +1181,7 @@ impl SMBState {
                         match parse_smb_version(&nbss_hdr.data) {
                             IResult::Done(_, ref smb) => {
                                 SCLogDebug!("SMB {:?}", smb);
-                                if smb.version == 255u8 { // SMB1
+                                if smb.version == 0xff_u8 { // SMB1
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(&nbss_hdr.data) {
                                         IResult::Done(_, ref smb_record) => {
@@ -1190,7 +1192,7 @@ impl SMBState {
                                             return 1;
                                         },
                                     }
-                                } else if smb.version == 254u8 { // SMB2
+                                } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv2 record");
@@ -1199,6 +1201,20 @@ impl SMBState {
                                                 SCLogDebug!("nbss_data_rem {}", nbss_data_rem.len());
 
                                                 smb2_request_record(self, smb_record);
+                                                nbss_data = nbss_data_rem;
+                                            },
+                                            _ => {
+                                                self.set_event(SMBEvent::MalformedData);
+                                                return 1;
+                                            },
+                                        }
+                                    }
+                                } else if smb.version == 0xfd_u8 { // SMB3 transform
+                                    let mut nbss_data = nbss_hdr.data;
+                                    while nbss_data.len() > 0 {
+                                        SCLogDebug!("SMBv3 transform record");
+                                        match parse_smb3_transform_record(&nbss_data) {
+                                            IResult::Done(nbss_data_rem, ref _smb3_record) => {
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
@@ -1305,6 +1321,7 @@ impl SMBState {
                                     _ => { },
                                 }
                             }
+                            // no SMB3 here yet, will buffer full records
                         },
                         _ => { },
                     }
@@ -1361,8 +1378,8 @@ impl SMBState {
         }
         // gap
         if self.tc_gap {
-            SCLogDebug!("TODO TC trying to catch up after GAP (input {})", cur_i.len());
-            match search_smb2_record(cur_i) {
+            SCLogDebug!("TC trying to catch up after GAP (input {})", cur_i.len());
+            match search_smb_record(cur_i) {
                 IResult::Done(_, pg) => {
                     SCLogDebug!("smb record found");
                     let smb2_offset = cur_i.len() - pg.data.len();
@@ -1390,7 +1407,7 @@ impl SMBState {
                         match parse_smb_version(&nbss_hdr.data) {
                             IResult::Done(_, ref smb) => {
                                 SCLogDebug!("SMB {:?}", smb);
-                                if smb.version == 255u8 { // SMB1
+                                if smb.version == 0xff_u8 { // SMB1
                                     SCLogDebug!("SMBv1 record");
                                     match parse_smb_record(&nbss_hdr.data) {
                                         IResult::Done(_, ref smb_record) => {
@@ -1401,13 +1418,27 @@ impl SMBState {
                                             return 1;
                                         },
                                     }
-                                } else if smb.version == 254u8 { // SMB2
+                                } else if smb.version == 0xfe_u8 { // SMB2
                                     let mut nbss_data = nbss_hdr.data;
                                     while nbss_data.len() > 0 {
                                         SCLogDebug!("SMBv2 record");
                                         match parse_smb2_response_record(&nbss_data) {
                                             IResult::Done(nbss_data_rem, ref smb_record) => {
                                                 smb2_response_record(self, smb_record);
+                                                nbss_data = nbss_data_rem;
+                                            },
+                                            _ => {
+                                                self.set_event(SMBEvent::MalformedData);
+                                                return 1;
+                                            },
+                                        }
+                                    }
+                                } else if smb.version == 0xfd_u8 { // SMB3 transform
+                                    let mut nbss_data = nbss_hdr.data;
+                                    while nbss_data.len() > 0 {
+                                        SCLogDebug!("SMBv3 transform record");
+                                        match parse_smb3_transform_record(&nbss_data) {
+                                            IResult::Done(nbss_data_rem, ref _smb3_record) => {
                                                 nbss_data = nbss_data_rem;
                                             },
                                             _ => {
