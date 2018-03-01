@@ -78,13 +78,13 @@ typedef struct Asn1Generic_ {
 	struct Asn1Generic_ *next; /* only if type is sequence */
 } Asn1Generic;
 
-/* Generic error */
+/* Generic error (failed allocation, etc.) */
 #define ERR_DER_GENERIC               0x01
 /* Unknown ASN.1 element type */
 #define ERR_DER_UNKNOWN_ELEMENT       0x02
 /* One element requires to read more bytes than available */
 #define ERR_DER_ELEMENT_SIZE_TOO_BIG  0x03
-/* One element size is invalid (more than 4 bytes long) */
+/* One element size is invalid (e.g more than 4 bytes long) */
 #define ERR_DER_INVALID_SIZE          0x04
 /* Unsupported string type */
 #define ERR_DER_UNSUPPORTED_STRING    0x05
@@ -92,6 +92,10 @@ typedef struct Asn1Generic_ {
 #define ERR_DER_MISSING_ELEMENT       0x06
 /* Generic error */
 #define ERR_DER_RECURSION_LIMIT       0x07
+/* Unexpected or unknown tag */
+#define ERR_DER_INVALID_TAG           0x08
+/* Invalid element: empty object, etc. */
+#define ERR_DER_INVALID_OBJECT        0x09
 
 Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size, uint32_t *errcode) __attribute__((nonnull));
 void DerFree(Asn1Generic *a);
