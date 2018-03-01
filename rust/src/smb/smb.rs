@@ -610,9 +610,10 @@ pub struct SMBState<> {
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
+    /// SMB2 dialect or 0 if not set or SMB1
     pub dialect: u16,
+    /// contains name of SMB1 dialect
     pub dialect_vec: Option<Vec<u8>>, // used if dialect == 0
-    pub dialects: Option<Vec<Vec<u8>>>,
 
     /// dcerpc interfaces, stored here to be able to match
     /// them while inspecting DCERPC REQUEST txs
@@ -648,7 +649,6 @@ impl SMBState {
             tx_id:0,
             dialect:0,
             dialect_vec: None,
-            dialects: None,
             dcerpc_ifaces: None,
         }
     }
