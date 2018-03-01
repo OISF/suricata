@@ -588,17 +588,14 @@ named!(pub parse_smb1_close_request_record<SmbRequestCloseRecord>,
 #[derive(Debug,PartialEq)]
 pub struct SmbVersion<> {
     pub version: u8,
-//    pub data: &'a[u8],
 }
 
 named!(pub parse_smb_version<SmbVersion>,
     do_parse!(
         version: le_u8
         >> tag!("SMB")
-//        >> data: rest
         >> (SmbVersion {
                 version:version,
-//                data:data,
             }))
 );
 
@@ -625,7 +622,7 @@ pub struct SmbRecord<'a> {
 
 named!(pub parse_smb_record<SmbRecord>,
     do_parse!(
-            server_component:take!(4) // ff SMB
+            server_component: tag!(b"\xffSMB")
         >>  command:le_u8
         >>  nt_status:le_u32
         >>  flags:le_u8
