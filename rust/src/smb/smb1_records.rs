@@ -429,16 +429,40 @@ pub struct SmbResponseRecordSetupAndX<'a> {
     pub sec_blob: &'a[u8],
 }
 
-named!(pub parse_smb_response_setup_andx_record<SmbResponseRecordSetupAndX>,
+named!(response_setup_andx_record<SmbResponseRecordSetupAndX>,
     do_parse!(
        skip1: take!(7)
        >> sec_blob_len: le_u16
        >> bcc: le_u16
        >> sec_blob: take!(sec_blob_len)
-       //>> skip3: rest
        >> (SmbResponseRecordSetupAndX {
                 sec_blob:sec_blob,
            }))
+);
+
+named!(response_setup_andx_wct3_record<SmbResponseRecordSetupAndX>,
+    do_parse!(
+       skip1: take!(7)
+       >> bcc: le_u16
+       >> (SmbResponseRecordSetupAndX {
+                sec_blob:&[],
+           }))
+);
+
+named!(response_setup_andx_error_record<SmbResponseRecordSetupAndX>,
+    do_parse!(
+          wct: le_u8
+       >> bcc: le_u16
+       >> (SmbResponseRecordSetupAndX {
+                sec_blob: &[],
+           }))
+);
+
+named!(pub parse_smb_response_setup_andx_record<SmbResponseRecordSetupAndX>,
+    switch!(peek!(le_u8), // wct
+        0 => call!(response_setup_andx_error_record) |
+        3 => call!(response_setup_andx_wct3_record)  |
+        _ => call!(response_setup_andx_record))
 );
 
 #[derive(Debug,PartialEq)]
