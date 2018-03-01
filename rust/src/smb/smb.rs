@@ -955,39 +955,43 @@ impl SMBState {
 
     /* if we have marked the ssn as 'gapped' we check to see if
      * we've caught up. The check is to see if we have the last
-     * tx in our list is smaller than the max id. This means we've
-     * seen a tx that has been fully processed and removed. */
-    pub fn check_gap_resync(&mut self)
+     * tx in our list is done. This means we've seen both sides
+     * and we're back in sync. Mark older txs as 'done' */
+    fn check_gap_resync(&mut self, prior_max_id: u64)
     {
-        if self.ts_ssn_gap || self.tc_ssn_gap {
-            let max_id = self.tx_id;
-            let over = match self.transactions.last() {
-                Some(tx) => {
-                    SCLogDebug!("tx.id {} max_id {}", tx.id, max_id);
-                    tx.id < max_id
-                },
-                None => { false },
-            };
-            if over {
-                SCLogDebug!("post-GAP resync confirmed");
-                self.ts_ssn_gap = false;
-                self.tc_ssn_gap = false;
-                self.close_non_file_txs();
-            }
+        SCLogDebug!("check_gap_resync2: post-GAP resync check ({}/{})", self.ts_ssn_gap, self.tc_ssn_gap);
+        if !self.ts_ssn_gap && !self.tc_ssn_gap {
+            return;
+        }
+
+        let (last_done, id) = match self.transactions.last() {
+            Some(tx) => {
+                (tx.request_done && tx.response_done, tx.id)
+            },
+            None => (false, 0),
+        };
+        if last_done && id > 0 {
+            SCLogNotice!("check_gap_resync2: TX {} is done post-GAP, mark all older ones complete", id);
+            self.ts_ssn_gap = false;
+            self.tc_ssn_gap = false;
+            self.close_non_file_txs(prior_max_id);
         }
     }
 
     /* close all txs execpt file xfers. */
-    fn close_non_file_txs(&mut self) {
-        SCLogDebug!("checking for non-file txs to wrap up");
+    fn close_non_file_txs(&mut self, max_id: u64) {
+        SCLogDebug!("close_non_file_txs: checking for non-file txs to wrap up");
         for tx in &mut self.transactions {
-            match tx.type_data {
-                None => {
-                    SCLogDebug!("tx {} marked as done", tx.id);
-                    tx.request_done = true;
-                    tx.response_done = true;
-                },
-                     _ => { },
+            if tx.id >= max_id {
+                SCLogDebug!("close_non_file_txs: done");
+                break;
+            }
+            if let Some(SMBTransactionTypeData::FILE(_)) = tx.type_data {
+                // leaving FILE txs open as they can deal with gaps.
+            } else {
+                SCLogDebug!("ose_non_file_txs: tx {} marked as done", tx.id);
+                tx.request_done = true;
+                tx.response_done = true;
             }
         }
     }
@@ -1108,7 +1112,7 @@ impl SMBState {
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_ts<'b>(&mut self, i: &'b[u8]) -> u32
     {
-        self.check_gap_resync();
+        let max_tx_id = self.tx_id;
 
         let mut v : Vec<u8>;
         //println!("parse_tcp_data_ts ({})",i.len());
@@ -1152,7 +1156,7 @@ impl SMBState {
         }
         // gap
         if self.ts_gap {
-            SCLogDebug!("TODO TS trying to catch up after GAP (input {})", cur_i.len());
+            SCLogDebug!("TS trying to catch up after GAP (input {})", cur_i.len());
             match search_smb_record(cur_i) {
                 IResult::Done(_, pg) => {
                     SCLogDebug!("smb record found");
@@ -1249,7 +1253,8 @@ impl SMBState {
             }
         };
 
-        //self.debug_tx_stats();
+        self.check_gap_resync(max_tx_id);
+        self._debug_tx_stats();
         0
     }
 
@@ -1336,7 +1341,7 @@ impl SMBState {
     /// Parsing function, handling TCP chunks fragmentation
     pub fn parse_tcp_data_tc<'b>(&mut self, i: &'b[u8]) -> u32
     {
-        self.check_gap_resync();
+        let max_tx_id = self.tx_id;
 
         let mut v : Vec<u8>;
         // Check if TCP data is being defragmented
@@ -1478,6 +1483,7 @@ impl SMBState {
                 },
             }
         };
+        self.check_gap_resync(max_tx_id);
         0
     }
 
