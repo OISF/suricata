@@ -527,25 +527,28 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             true
         },
         SMB2_COMMAND_WRITE => {
-            match parse_smb2_response_write(r.data) {
-                IResult::Done(_, wr) => {
-                    SCLogDebug!("SMBv2: Write response => {:?}", wr);
+            if r.nt_status == SMB_NTSTATUS_SUCCESS {
+                match parse_smb2_response_write(r.data)
+                {
+                    IResult::Done(_, wr) => {
+                        SCLogDebug!("SMBv2: Write response => {:?}", wr);
 
-                    /* search key-guid map */
-                    let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
-                            r.session_id, r.tree_id, r.message_id);
-                    let guid_vec = match state.ssn2vec_map.remove(&guid_key) {
-                        Some(p) => p,
-                        None => {
-                            SCLogDebug!("SMBv2 response: GUID NOT FOUND");
-                            Vec::new()
-                        },
-                    };
-                    SCLogDebug!("SMBv2 write response for GUID {:?}", guid_vec);
+                        /* search key-guid map */
+                        let guid_key = SMBCommonHdr::new(SMBHDR_TYPE_GUID,
+                                r.session_id, r.tree_id, r.message_id);
+                        let guid_vec = match state.ssn2vec_map.remove(&guid_key) {
+                            Some(p) => p,
+                            None => {
+                                SCLogDebug!("SMBv2 response: GUID NOT FOUND");
+                                Vec::new()
+                            },
+                        };
+                        SCLogDebug!("SMBv2 write response for GUID {:?}", guid_vec);
+                    }
+                    _ => {
+                        events.push(SMBEvent::MalformedData);
+                    },
                 }
-                _ => {
-                    events.push(SMBEvent::MalformedData);
-                },
             }
             false // the request may have created a generic tx, so handle that here
         },
@@ -686,9 +689,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             tx.response_done = true;
                             true
                         },
-                        None => {
-                           false
-                        },
+                        None => { false },
                     };
                     found1 || found2
                 },
