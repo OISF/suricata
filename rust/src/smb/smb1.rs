@@ -351,7 +351,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
 }
 
 pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
-    SCLogDebug!("record: {:?} command {}", r.greeter, r.command);
+    SCLogDebug!("record: command {} status {} -> {:?}", r.command, r.nt_status, r);
 
     let key_ssn_id = r.ssn_id;
     let key_tree_id = r.tree_id;
@@ -465,6 +465,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             false
         },
         SMB1_COMMAND_NT_CREATE_ANDX => {
+            SCLogDebug!("SMB1_COMMAND_NT_CREATE_ANDX response {:08x}", r.nt_status);
             if r.nt_status == SMB_NTSTATUS_SUCCESS {
                 match parse_smb_create_andx_response_record(r.data) {
                     IResult::Done(_, cr) => {
