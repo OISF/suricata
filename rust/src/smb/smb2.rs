@@ -33,13 +33,18 @@ pub const SMB2_COMMAND_TREE_CONNECT:            u16 = 3;
 pub const SMB2_COMMAND_TREE_DISCONNECT:         u16 = 4;
 pub const SMB2_COMMAND_CREATE:                  u16 = 5;
 pub const SMB2_COMMAND_CLOSE:                   u16 = 6;
+pub const SMB2_COMMAND_FLUSH:                   u16 = 7;
 pub const SMB2_COMMAND_READ:                    u16 = 8;
 pub const SMB2_COMMAND_WRITE:                   u16 = 9;
+pub const SMB2_COMMAND_LOCK:                    u16 = 10;
 pub const SMB2_COMMAND_IOCTL:                   u16 = 11;
+pub const SMB2_COMMAND_CANCEL:                  u16 = 12;
 pub const SMB2_COMMAND_KEEPALIVE:               u16 = 13;
 pub const SMB2_COMMAND_FIND:                    u16 = 14;
+pub const SMB2_COMMAND_CHANGE_NOTIFY:           u16 = 15;
 pub const SMB2_COMMAND_GET_INFO:                u16 = 16;
 pub const SMB2_COMMAND_SET_INFO:                u16 = 17;
+pub const SMB2_COMMAND_OPLOCK_BREAK:            u16 = 18;
 
 pub fn smb2_command_string(c: u16) -> String {
     match c {
@@ -51,12 +56,17 @@ pub fn smb2_command_string(c: u16) -> String {
         SMB2_COMMAND_CREATE                 => "SMB2_COMMAND_CREATE",
         SMB2_COMMAND_CLOSE                  => "SMB2_COMMAND_CLOSE",
         SMB2_COMMAND_READ                   => "SMB2_COMMAND_READ",
+        SMB2_COMMAND_FLUSH                  => "SMB2_COMMAND_FLUSH",
         SMB2_COMMAND_WRITE                  => "SMB2_COMMAND_WRITE",
+        SMB2_COMMAND_LOCK                   => "SMB2_COMMAND_LOCK",
         SMB2_COMMAND_IOCTL                  => "SMB2_COMMAND_IOCTL",
+        SMB2_COMMAND_CANCEL                 => "SMB2_COMMAND_CANCEL",
         SMB2_COMMAND_KEEPALIVE              => "SMB2_COMMAND_KEEPALIVE",
         SMB2_COMMAND_FIND                   => "SMB2_COMMAND_FIND",
+        SMB2_COMMAND_CHANGE_NOTIFY          => "SMB2_COMMAND_CHANGE_NOTIFY",
         SMB2_COMMAND_GET_INFO               => "SMB2_COMMAND_GET_INFO",
         SMB2_COMMAND_SET_INFO               => "SMB2_COMMAND_SET_INFO",
+        SMB2_COMMAND_OPLOCK_BREAK           => "SMB2_COMMAND_OPLOCK_BREAK",
         _ => { return (c).to_string(); },
     }.to_string()
 
@@ -500,6 +510,8 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             },
                             _ => { false },
                         }
+                    } else if r.nt_status != SMB_NTSTATUS_SUCCESS {
+                        false
                     } else {
                         SCLogDebug!("parse fail {:?}", r);
                         events.push(SMBEvent::MalformedData);
