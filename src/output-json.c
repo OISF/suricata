@@ -58,6 +58,7 @@
 #include "util-logopenfile.h"
 #include "util-log-redis.h"
 #include "util-device.h"
+#include "util-validate.h"
 
 #include "flow-var.h"
 #include "flow-bit.h"
@@ -374,10 +375,10 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
  * \brief Add five tuple from packet to JSON object
  *
  * \param p Packet
- * \param direction_sensitive Indicate direction sensitivity
+ * \param dir log direction (packet or flow)
  * \param js JSON object
  */
-void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
+void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
     char srcip[46], dstip[46];
     Port sp, dp;
@@ -386,50 +387,56 @@ void JsonFiveTuple(const Packet *p, int direction_sensitive, json_t *js)
     srcip[0] = '\0';
     dstip[0] = '\0';
 
-    if (direction_sensitive) {
-        if ((PKT_IS_TOSERVER(p))) {
+    switch (dir) {
+        case LOG_DIR_FLOW:
+            if ((PKT_IS_TOSERVER(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        case LOG_DIR_PACKET:
             if (PKT_IS_IPV4(p)) {
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                          srcip, sizeof(srcip));
+                        srcip, sizeof(srcip));
                 PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                          dstip, sizeof(dstip));
+                        dstip, sizeof(dstip));
             } else if (PKT_IS_IPV6(p)) {
                 PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                          srcip, sizeof(srcip));
+                        srcip, sizeof(srcip));
                 PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                          dstip, sizeof(dstip));
+                        dstip, sizeof(dstip));
             }
             sp = p->sp;
             dp = p->dp;
-        } else {
-            if (PKT_IS_IPV4(p)) {
-                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                          srcip, sizeof(srcip));
-                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                          dstip, sizeof(dstip));
-            } else if (PKT_IS_IPV6(p)) {
-                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                          srcip, sizeof(srcip));
-                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                          dstip, sizeof(dstip));
-            }
-            sp = p->dp;
-            dp = p->sp;
-        }
-    } else {
-        if (PKT_IS_IPV4(p)) {
-            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
-                      srcip, sizeof(srcip));
-            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
-                      dstip, sizeof(dstip));
-        } else if (PKT_IS_IPV6(p)) {
-            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
-                      srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
-                      dstip, sizeof(dstip));
-        }
-        sp = p->sp;
-        dp = p->dp;
+            break;
+        default:
+            DEBUG_VALIDATE_BUG_ON(1);
+            return;
     }
 
     if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
@@ -476,7 +483,7 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     }
 }
 
-json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
+json_t *CreateJSONHeader(const Packet *p, enum OutputJsonLogDirection dir,
                          const char *event_type)
 {
     char timebuf[64];
@@ -536,7 +543,7 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     }
 
     /* 5-tuple */
-    JsonFiveTuple(p, direction_sensitive, js);
+    JsonFiveTuple(p, dir, js);
 
     /* icmp */
     switch (p->proto) {
@@ -561,10 +568,10 @@ json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
     return js;
 }
 
-json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive,
+json_t *CreateJSONHeaderWithTxId(const Packet *p, enum OutputJsonLogDirection dir,
                                  const char *event_type, uint64_t tx_id)
 {
-    json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
+    json_t *js = CreateJSONHeader(p, dir, event_type);
     if (unlikely(js == NULL))
         return NULL;
 
