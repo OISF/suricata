@@ -45,7 +45,6 @@ pub mod dns;
 pub mod nfs;
 pub mod ftp;
 
-#[cfg(feature = "experimental")]
 pub mod ikev2;
 
 #[cfg(feature = "experimental")]

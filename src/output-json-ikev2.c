@@ -47,7 +47,7 @@
 #include "app-layer-ikev2.h"
 #include "output-json-ikev2.h"
 
-#if defined(HAVE_RUST) && defined(HAVE_RUST_EXTERNAL)
+#ifdef HAVE_RUST
 #ifdef HAVE_LIBJANSSON
 
 #include "rust.h"

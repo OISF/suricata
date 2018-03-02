@@ -34,7 +34,7 @@
 
 #include "app-layer-ikev2.h"
 
-#if defined(HAVE_RUST) && defined(HAVE_RUST_EXTERNAL)
+#ifdef HAVE_RUST
 
 #include "rust-ikev2-ikev2-gen.h"
 
