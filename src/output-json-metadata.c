@@ -82,7 +82,7 @@ typedef struct JsonMetadataLogThread_ {
 
 static int MetadataJson(ThreadVars *tv, JsonMetadataLogThread *aft, const Packet *p)
 {
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "metadata");
+    json_t *js = CreateJSONHeader(p, 0, "metadata");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

@@ -70,14 +70,13 @@ static int JsonTFTPLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     LogTFTPLogThread *thread = thread_data;
-    json_t *js, *tftpjs;
 
-    js = CreateJSONHeader((Packet *)p, 0, "tftp");
+    json_t *js = CreateJSONHeader(p, 0, "tftp");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    tftpjs = rs_tftp_log_json_request(tx);
+    json_t *tftpjs = rs_tftp_log_json_request(tx);
     if (unlikely(tftpjs == NULL)) {
         goto error;
     }

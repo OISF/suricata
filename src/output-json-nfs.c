@@ -99,7 +99,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     if (rs_nfs_tx_logging_is_filtered(nfstx))
         return TM_ECODE_OK;
 
-    js = CreateJSONHeader((Packet *)p, 0, "nfs");
+    js = CreateJSONHeader(p, 0, "nfs");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }

@@ -64,7 +64,7 @@ typedef struct JsonNetFlowLogThread_ {
 } JsonNetFlowLogThread;
 
 
-static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type, int dir)
+static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type, int dir)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -303,7 +303,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0); //TODO const
+    json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
@@ -317,7 +317,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     /* reset */
     MemBufferReset(jhl->buffer);
-    js = CreateJSONHeaderFromFlow(f, "netflow", 1); //TODO const
+    js = CreateJSONHeaderFromFlow(f, "netflow", 1);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToClient(jhl, js, f);

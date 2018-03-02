@@ -71,16 +71,15 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 {
     TemplateTransaction *templatetx = tx;
     LogTemplateLogThread *thread = thread_data;
-    json_t *js, *templatejs;
 
     SCLogNotice("Logging template transaction %"PRIu64".", templatetx->tx_id);
-    
-    js = CreateJSONHeader((Packet *)p, 0, "template");
+
+    json_t *js = CreateJSONHeader(p, 0, "template");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
 
-    templatejs = json_object();
+    json_t *templatejs = json_object();
     if (unlikely(templatejs == NULL)) {
         goto error;
     }

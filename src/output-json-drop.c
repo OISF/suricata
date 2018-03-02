@@ -89,7 +89,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
     uint16_t proto = 0;
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
+    json_t *js = CreateJSONHeader(p, 0, "drop");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

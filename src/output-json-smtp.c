@@ -88,8 +88,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
 
-    json_t *sjs;
-    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "smtp", tx_id);
+    json_t *js = CreateJSONHeaderWithTxId(p, 1, "smtp", tx_id);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -100,7 +99,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
         JsonAddMetadata(p, f, js);
     }
 
-    sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
+    json_t *sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
     if (sjs) {
         json_object_set_new(js, "smtp", sjs);
     }

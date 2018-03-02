@@ -312,7 +312,7 @@ static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_request && tx->request_done) {
-        json_t *js = CreateJSONHeader((Packet *)p, 1, "dnp3");
+        json_t *js = CreateJSONHeader(p, 1, "dnp3");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -341,7 +341,7 @@ static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
 
     MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
-        json_t *js = CreateJSONHeader((Packet *)p, 1, "dnp3");
+        json_t *js = CreateJSONHeader(p, 1, "dnp3");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }

@@ -663,7 +663,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
 #ifdef HAVE_RUST
     for (uint16_t i = 0; i < 0xffff; i++) {
-        js = CreateJSONHeader((Packet *)p, 1, "dns");
+        js = CreateJSONHeader(p, 1, "dns");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -684,7 +684,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     DNSTransaction *tx = txptr;
     DNSQueryEntry *query = NULL;
     TAILQ_FOREACH(query, &tx->query_list, next) {
-        js = CreateJSONHeader((Packet *)p, 1, "dns");
+        js = CreateJSONHeader(p, 1, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
         if (dnslog_ctx->include_metadata) {
@@ -713,7 +713,7 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
         return TM_ECODE_OK;
     }
 
-    js = CreateJSONHeader((Packet *)p, 0, "dns");
+    js = CreateJSONHeader(p, 0, "dns");
 
     if (dnslog_ctx->include_metadata) {
         JsonAddMetadata(p, f, js);

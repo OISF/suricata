@@ -63,7 +63,7 @@ typedef struct JsonFlowLogThread_ {
     MemBuffer *buffer;
 } JsonFlowLogThread;
 
-static json_t *CreateJSONHeaderFromFlow(Flow *f, const char *event_type)
+static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -354,7 +354,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     /* reset */
     MemBufferReset(jhl->buffer);
 
-    json_t *js = CreateJSONHeaderFromFlow(f, "flow"); //TODO const
+    json_t *js = CreateJSONHeaderFromFlow(f, "flow");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 

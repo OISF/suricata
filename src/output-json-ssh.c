@@ -103,10 +103,10 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     }
 
     if (ssh_state->cli_hdr.software_version == NULL ||
-            ssh_state->srv_hdr.software_version == NULL)
+        ssh_state->srv_hdr.software_version == NULL)
         return 0;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "ssh");//TODO
+    json_t *js = CreateJSONHeader(p, 1, "ssh");
     if (unlikely(js == NULL))
         return 0;
 
