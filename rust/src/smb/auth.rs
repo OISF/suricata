@@ -62,17 +62,16 @@ fn parse_kerberos5_request_ticket(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket
     SCLogDebug!("parse_kerberos5_request_ticket: sname {:?}", ticket_vec[2]);
     SCLogDebug!("parse_kerberos5_request_ticket: enc-part {:?}", ticket_vec[3]);
 
-// TODO switch to parser_der_genericstring when der-parser 0.5.1 is out
-    let realm = match der_parser::parse_der(ticket_vec[1].content.as_slice().unwrap()) {
+    let gs = match ticket_vec[1].content.as_slice() {
+        Ok(s) => s,
+        Err(_) => {
+            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
+        },
+    };
+    let realm = match der_parser::parse_der_generalstring(gs) {
         IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: needed {:?}", needed);
-            return IResult::Incomplete(needed);
-        },
-        IResult::Error(err) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: err {:?}", err);
-            return IResult::Error(err);
-        },
+        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
+        IResult::Error(err) => { return IResult::Error(err); },
     };
     SCLogDebug!("parse_kerberos5_request_ticket: realm {:?}", realm);
 
