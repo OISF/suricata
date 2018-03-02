@@ -44,7 +44,7 @@ pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State, tx: &mut IK
     }
     js.set_integer("errors", tx.errors as u64);
     let payload_list : Vec<String> = tx.payload_types.iter()
-        .map(|x| format!("{:?}", x.0)) // XXX x.0 until we have a Debug trait for IkePayloadType
+        .map(|x| format!("{:?}", x))
         .collect();
     let payload_list = payload_list.join(",");
     js.set_string("payload_list", &payload_list);
