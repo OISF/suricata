@@ -322,6 +322,7 @@ output-json-tls.c output-json-tls.h \
 output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
+output-json-ikev2.c output-json-ikev2.h \
 output-json-template.c output-json-template.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
