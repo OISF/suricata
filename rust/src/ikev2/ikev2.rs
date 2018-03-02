@@ -87,6 +87,12 @@ pub struct IKEV2Transaction {
 
     pub hdr: IkeV2Header,
 
+    pub payload_types: Vec<IkePayloadType>,
+    pub notify_types: Vec<NotifyType>,
+
+    /// IKEv2 errors seen during exchange
+    pub errors: u32,
+
     /// The internal transaction id
     id: u64,
 
@@ -151,6 +157,7 @@ impl IKEV2State {
                 match parse_ikev2_payload_list(rem,hdr.next_payload) {
                     IResult::Done(_,Ok(ref p)) => {
                         for payload in p {
+                            tx.payload_types.push(payload.hdr.next_payload_type);
                             match payload.content {
                                 IkeV2PayloadContent::Dummy => (),
                                 IkeV2PayloadContent::SA(ref prop) => {
@@ -169,6 +176,10 @@ impl IKEV2State {
                                 },
                                 IkeV2PayloadContent::Notify(ref n) => {
                                     SCLogDebug!("Notify: {:?}", n);
+                                    if n.notify_type.is_error() {
+                                        tx.errors += 1;
+                                    }
+                                    tx.notify_types.push(n.notify_type);
                                 },
                                 // XXX CertificateRequest
                                 // XXX Certificate
@@ -387,6 +398,9 @@ impl IKEV2Transaction {
                 msg_id: 0,
                 length: 0,
             },
+            payload_types: Vec::new(),
+            notify_types: Vec::new(),
+            errors: 0,
             id: id,
             de_state: None,
             events: std::ptr::null_mut(),
