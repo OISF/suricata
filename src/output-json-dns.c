@@ -663,7 +663,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
 
 #ifdef HAVE_RUST
     for (uint16_t i = 0; i < 0xffff; i++) {
-        js = CreateJSONHeader(p, 1, "dns");
+        js = CreateJSONHeader(p, LOG_DIR_PACKET, "dns");
         if (unlikely(js == NULL)) {
             return TM_ECODE_OK;
         }
@@ -684,7 +684,7 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     DNSTransaction *tx = txptr;
     DNSQueryEntry *query = NULL;
     TAILQ_FOREACH(query, &tx->query_list, next) {
-        js = CreateJSONHeader(p, 1, "dns");
+        js = CreateJSONHeader(p, LOG_DIR_PACKET, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
         if (dnslog_ctx->include_metadata) {
@@ -707,13 +707,14 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
     LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
-    json_t *js;
 
     if (unlikely(dnslog_ctx->flags & LOG_ANSWERS) == 0) {
         return TM_ECODE_OK;
     }
 
-    js = CreateJSONHeader(p, 0, "dns");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "dns");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
 
     if (dnslog_ctx->include_metadata) {
         JsonAddMetadata(p, f, js);
@@ -747,8 +748,6 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     }
 #else
     DNSTransaction *tx = txptr;
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
 
     LogAnswers(td, js, tx, tx_id);
 #endif

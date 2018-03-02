@@ -94,12 +94,11 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
 {
     NFSTransaction *nfstx = tx;
     LogNFSLogThread *thread = thread_data;
-    json_t *js, *nfsjs;
 
     if (rs_nfs_tx_logging_is_filtered(nfstx))
         return TM_ECODE_OK;
 
-    js = CreateJSONHeader(p, 0, "nfs");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "nfs");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
@@ -114,7 +113,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     }
     json_object_set_new(js, "rpc", rpcjs);
 
-    nfsjs = rs_nfs_log_json_response(state, tx);
+    json_t *nfsjs = rs_nfs_log_json_response(state, tx);
     if (unlikely(nfsjs == NULL)) {
         goto error;
     }

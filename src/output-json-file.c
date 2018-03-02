@@ -81,7 +81,7 @@ typedef struct JsonFileLogThread_ {
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         const bool stored)
 {
-    json_t *js = CreateJSONHeader(p, 0, "fileinfo");
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "fileinfo");
     json_t *hjs = NULL;
     if (unlikely(js == NULL))
         return NULL;

@@ -88,8 +88,8 @@ static int g_droplog_flows_start = 1;
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     JsonDropOutputCtx *drop_ctx = aft->drop_ctx;
-    uint16_t proto = 0;
-    json_t *js = CreateJSONHeader(p, 0, "drop");
+
+    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "drop");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -106,6 +106,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     /* reset */
     MemBufferReset(aft->buffer);
 
+    uint16_t proto = 0;
     if (PKT_IS_IPV4(p)) {
         json_object_set_new(djs, "len", json_integer(IPV4_GET_IPLEN(p)));
         json_object_set_new(djs, "tos", json_integer(IPV4_GET_IPTOS(p)));
