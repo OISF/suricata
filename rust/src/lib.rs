@@ -50,7 +50,6 @@ pub mod nfs;
 pub mod ftp;
 pub mod smb;
 
-#[cfg(feature = "experimental")]
 pub mod ikev2;
 
 #[cfg(feature = "experimental")]
