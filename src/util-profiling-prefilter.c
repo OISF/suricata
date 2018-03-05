@@ -298,9 +298,9 @@ SCProfilingPrefilterInitCounters(DetectEngineCtx *de_ctx)
     for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
         PrefilterStore *ctx = HashListTableGetListData(hb);
         de_ctx->profile_prefilter_ctx->data[ctx->id].name = ctx->name;
-        SCLogNotice("prefilter %s set up", de_ctx->profile_prefilter_ctx->data[ctx->id].name);
+        SCLogDebug("prefilter %s set up", de_ctx->profile_prefilter_ctx->data[ctx->id].name);
     }
-    SCLogNotice("size alloc'd %u", (uint32_t)size * (uint32_t)sizeof(SCProfilePrefilterData));
+    SCLogDebug("size alloc'd %u", (uint32_t)size * (uint32_t)sizeof(SCProfilePrefilterData));
 
     SCLogPerf("Registered %"PRIu32" prefilter profiling counters.", size);
 }
