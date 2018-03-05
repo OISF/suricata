@@ -938,7 +938,8 @@ int DerParseDataFromFile(char *filename)
         BUG_ON(fp == NULL);
 
         size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-        DecodeDer(buffer, result, &errcode);
+        Asn1Generic *a = DecodeDer(buffer, result, &errcode);
+        DerFree(a);
         fclose(fp);
 
 #ifdef AFLFUZZ_PERSISTANT_MODE
