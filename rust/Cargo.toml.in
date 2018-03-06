@@ -12,6 +12,7 @@ debug = true
 lua = []
 experimental = ["ntp-parser"]
 strict = []
+debug = []
 
 [dependencies]
 nom = "~3.2.1"

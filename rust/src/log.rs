@@ -114,11 +114,22 @@ macro_rules!SCLogConfig {
     }
 }
 
+// Debug mode: call C SCLogDebug
+#[cfg(feature = "debug")]
 #[macro_export]
 macro_rules!SCLogDebug {
     ($($arg:tt)*) => {
         do_log!(Level::Debug, file!(), line!(), function!(), 0, $($arg)*);
     }
+}
+
+// Release mode: ignore arguments
+// Use a reference to avoid moving values.
+#[cfg(not(feature = "debug"))]
+#[macro_export]
+macro_rules!SCLogDebug {
+    ($last:expr) => { let _ = &$last; let _ = Level::Debug; };
+    ($one:expr, $($arg:tt)*) => { let _ = &$one; SCLogDebug!($($arg)*); };
 }
 
 #[no_mangle]

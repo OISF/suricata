@@ -29,6 +29,10 @@ if HAVE_RUST_EXTERNAL
 RUST_FEATURES +=	experimental
 endif
 
+if DEBUG
+RUST_FEATURES +=	debug
+endif
+
 all-local:
 if HAVE_PYTHON
 	cd $(top_srcdir)/rust && \
