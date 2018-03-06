@@ -125,6 +125,8 @@ outputs:
 
         # NFS logging. Requires Rust.
         - nfs
+        # IKEv2 logging. Requires Rust.
+        - ikev2
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
