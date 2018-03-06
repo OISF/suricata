@@ -368,7 +368,7 @@ named!(pub parse_smb2_response_write<Smb2WriteResponseRecord>,
 
 named!(pub parse_smb2_response_record<Smb2Record>,
     do_parse!(
-            server_component: tag!(b"\xfeSMB")
+            tag!(b"\xfeSMB")
         >>  hlen: le_u16
         >>  credit_charge: le_u16
         >>  nt_status: le_u32
@@ -400,7 +400,7 @@ named!(pub parse_smb2_response_record<Smb2Record>,
                 tree_id: tree_id,
                 session_id: session_id,
                 command:command,
-                data: if data_c != None { data_c.unwrap() } else { data_r.unwrap() }
+                data: data_c.or(data_r).unwrap()
            })
 ));
 

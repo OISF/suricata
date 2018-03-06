@@ -170,7 +170,7 @@ fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
 }
 
 pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
-    SCLogDebug!("record: {:?} command {}", r.greeter, r.command);
+    SCLogDebug!("record: command {}: record {:?}", r.command, r);
 
     let mut events : Vec<SMBEvent> = Vec::new();
     let mut no_response_expected = false;

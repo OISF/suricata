@@ -146,7 +146,6 @@ named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeCon
 
 #[derive(Debug,PartialEq)]
 pub struct SmbRecordTreeConnectAndX<'a> {
-    pub len: usize,
     pub share: &'a[u8],
 }
 
@@ -156,11 +155,10 @@ named!(pub parse_smb_connect_tree_andx_record<SmbRecordTreeConnectAndX>,
        >> pwlen: le_u16
        >> bcc: le_u16
        >> pw: take!(pwlen)
-       >> share: take!(bcc - (6 + pwlen))
+       >> share: cond!(bcc >= (6 + pwlen), take!(bcc - (6 + pwlen)))
        >> service: take!(6)
        >> (SmbRecordTreeConnectAndX {
-                len:bcc as usize - (6 + pwlen as usize) as usize,
-                share:share,
+                share: share.unwrap_or(&[]),
            }))
 );
 
@@ -404,7 +402,6 @@ named!(pub parse_smb_setup_andx_record<SmbRecordSetupAndX>,
        >> skip2: take!(8)
        >> bcc: le_u16
        >> sec_blob: take!(sec_blob_len)
-       //>> skip3: rest
        >> (SmbRecordSetupAndX {
                 sec_blob:sec_blob,
            }))
@@ -460,7 +457,7 @@ pub struct SmbRequestReadAndXRecord<'a> {
 
 named!(pub parse_smb_read_andx_request_record<SmbRequestReadAndXRecord>,
     do_parse!(
-            wtc: le_u8
+            wct: le_u8
         >>  andx_command: le_u8
         >>  take!(1)    // reserved
         >>  andx_offset: le_u16
@@ -470,8 +467,7 @@ named!(pub parse_smb_read_andx_request_record<SmbRequestReadAndXRecord>,
         >>  take!(2)
         >>  max_count_high: le_u32
         >>  take!(2)
-        >>  high_offset: cond!(wtc==12,le_u32) // only from wtc ==12?
-
+        >>  high_offset: cond!(wct==12,le_u32) // only from wct ==12?
         >> (SmbRequestReadAndXRecord {
                 fid:fid,
                 size: (((max_count_high as u64) << 16)|max_count_low as u64),
@@ -487,7 +483,7 @@ pub struct SmbResponseReadAndXRecord<'a> {
 
 named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
     do_parse!(
-            wtc: le_u8
+            wct: le_u8
         >>  andx_command: le_u8
         >>  take!(1)    // reserved
         >>  andx_offset: le_u16
@@ -587,9 +583,6 @@ named!(pub parse_smb_version<SmbVersion>,
 
 #[derive(Debug,PartialEq)]
 pub struct SmbRecord<'a> {
-    //pub nbss_hdr: NbssRecord<'a>,
-    pub greeter: &'a[u8],
-
     pub command: u8,
     pub is_dos_error: bool,
     pub nt_status: u32,
@@ -614,7 +607,7 @@ impl<'a> SmbRecord<'a> {
 
 named!(pub parse_smb_record<SmbRecord>,
     do_parse!(
-            server_component: tag!(b"\xffSMB")
+            tag!(b"\xffSMB")
         >>  command:le_u8
         >>  nt_status:le_u32
         >>  flags:le_u8
@@ -629,7 +622,6 @@ named!(pub parse_smb_record<SmbRecord>,
         >>  data: rest
 
         >>  (SmbRecord {
-                greeter:server_component,
                 command:command,
                 nt_status:nt_status,
                 flags:flags,

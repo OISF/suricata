@@ -497,8 +497,7 @@ impl SMBCommonHdr {
             _ => r.tree_id,
         };
         let msg_id = match rec_type {
-            SMBHDR_TYPE_TRANS_FRAG => { 0 },
-            SMBHDR_TYPE_SHARE => { 0 },
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
             _ => { r.message_id as u64 },
         };
 
@@ -516,8 +515,7 @@ impl SMBCommonHdr {
             _ => r.tree_id as u32,
         };
         let msg_id = match rec_type {
-            SMBHDR_TYPE_TRANS_FRAG => { 0 },
-            SMBHDR_TYPE_SHARE => { 0 },
+            SMBHDR_TYPE_TRANS_FRAG | SMBHDR_TYPE_SHARE => { 0 },
             _ => { r.multiplex_id as u64 },
         };
 
