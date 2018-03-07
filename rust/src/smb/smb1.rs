@@ -646,7 +646,13 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
     }
 }
 
-/// Handle WRITE and WRITE_ANDX request records
+fn smb1_write_request_record_generic_error<'b>(state: &mut SMBState, r: &SmbRecord<'b>, event: SMBEvent) {
+    let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+    let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+    tx.set_event(event);
+}
+
+/// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
 pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
     let result = if r.command == SMB1_COMMAND_WRITE_ANDX {
@@ -716,12 +722,12 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             }
         },
         _ => {
-            state.set_event(SMBEvent::MalformedData);
+            smb1_write_request_record_generic_error(state, r, SMBEvent::MalformedData);
         },
     }
 }
 
-fn smb1_read_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>) {
+fn smb1_read_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
     // see if we want a tx per READ command
     if smb1_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
@@ -731,86 +737,88 @@ fn smb1_read_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>
             tx.response_done = true;
             SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
             tx.set_status(r.nt_status, r.is_dos_error);
+            tx.set_events(events);
         }
     }
 }
 
 pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
-    smb1_read_response_record_generic(state, r);
+    let mut events : Vec<SMBEvent> = Vec::new();
 
-    if r.nt_status != SMB_NTSTATUS_SUCCESS {
-        return;
-    }
+    if r.nt_status == SMB_NTSTATUS_SUCCESS {
+        match parse_smb_read_andx_response_record(r.data) {
+            IResult::Done(_, rd) => {
+                SCLogDebug!("SMBv1: read response => {:?}", rd);
 
-    match parse_smb_read_andx_response_record(r.data) {
-        IResult::Done(_, rd) => {
-            SCLogDebug!("SMBv1: read response => {:?}", rd);
-
-            let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
-            let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
-                Some(o) => (o.offset, o.guid),
-                None => {
-                    SCLogNotice!("SMBv1 READ response: reply to unknown request: left {} {:?}",
-                            rd.len - rd.data.len() as u32, rd);
-                    state.skip_tc = rd.len - rd.data.len() as u32;
-                    return;
-                },
-            };
-            SCLogDebug!("SMBv1 READ: FID {:?} offset {}", file_fid, offset);
-
-            let tree_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_SHARE);
-            let (is_pipe, share_name) = match state.ssn2tree_map.get(&tree_key) {
-                Some(n) => (n.is_pipe, n.name.to_vec()),
-                _ => { (false, Vec::new()) },
-            };
-            if !is_pipe {
-                let file_name = match state.guid2name_map.get(&file_fid) {
-                    Some(n) => n.to_vec(),
-                    None => Vec::new(),
+                let fid_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_OFFSET);
+                let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
+                    Some(o) => (o.offset, o.guid),
+                    None => {
+                        SCLogNotice!("SMBv1 READ response: reply to unknown request: left {} {:?}",
+                                rd.len - rd.data.len() as u32, rd);
+                        state.skip_tc = rd.len - rd.data.len() as u32;
+                        return;
+                    },
                 };
-                let found = match state.get_file_tx_by_guid(&file_fid, STREAM_TOCLIENT) {
-                    Some((tx, files, flags)) => {
+                SCLogDebug!("SMBv1 READ: FID {:?} offset {}", file_fid, offset);
+
+                let tree_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_SHARE);
+                let (is_pipe, share_name) = match state.ssn2tree_map.get(&tree_key) {
+                    Some(n) => (n.is_pipe, n.name.to_vec()),
+                    _ => { (false, Vec::new()) },
+                };
+                if !is_pipe {
+                    let file_name = match state.guid2name_map.get(&file_fid) {
+                        Some(n) => n.to_vec(),
+                        None => Vec::new(),
+                    };
+                    let found = match state.get_file_tx_by_guid(&file_fid, STREAM_TOCLIENT) {
+                        Some((tx, files, flags)) => {
+                            if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                                let file_id : u32 = tx.id as u32;
+                                SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
+                                filetracker_newchunk(&mut tdf.file_tracker, files, flags,
+                                        &file_name, rd.data, offset,
+                                        rd.len, 0, false, &file_id);
+                            }
+                            true
+                        },
+                        None => { false },
+                    };
+                    if !found {
+                        let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOCLIENT);
                         if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                             let file_id : u32 = tx.id as u32;
                             SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
                             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                                     &file_name, rd.data, offset,
                                     rd.len, 0, false, &file_id);
+                            tdf.share_name = share_name;
                         }
-                        true
-                    },
-                    None => { false },
-                };
-                if !found {
-                    let (tx, files, flags) = state.new_file_tx(&file_fid, &file_name, STREAM_TOCLIENT);
-                    if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
-                        let file_id : u32 = tx.id as u32;
-                        SCLogDebug!("FID {:?} found at tx {}", file_fid, tx.id);
-                        filetracker_newchunk(&mut tdf.file_tracker, files, flags,
-                                &file_name, rd.data, offset,
-                                rd.len, 0, false, &file_id);
-                        tdf.share_name = share_name;
+                        tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
                     }
-                    tx.vercmd.set_smb1_cmd(SMB1_COMMAND_READ_ANDX);
+                } else {
+                    SCLogDebug!("SMBv1 READ response from PIPE");
+                    let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
+                    let vercmd = SMBVerCmdStat::new1(r.command);
+
+                    // hack: we store fid with ssn id mixed in, but here we want the
+                    // real thing instead.
+                    let pure_fid = if file_fid.len() > 2 { &file_fid[0..2] } else { &[] };
+                    smb_read_dcerpc_record(state, vercmd, hdr, &pure_fid, &rd.data);
                 }
-            } else {
-                SCLogDebug!("SMBv1 READ response from PIPE");
-                let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                let vercmd = SMBVerCmdStat::new1(r.command);
 
-                // hack: we store fid with ssn id mixed in, but here we want the
-                // real thing instead.
-                let pure_fid = if file_fid.len() > 2 { &file_fid[0..2] } else { &[] };
-                smb_read_dcerpc_record(state, vercmd, hdr, &pure_fid, &rd.data);
+                state.file_tc_left = rd.len - rd.data.len() as u32;
+                state.file_tc_guid = file_fid.to_vec();
+                SCLogDebug!("SMBv1 READ RESPONSE: {} bytes left", state.file_tc_left);
             }
-
-            state.file_tc_left = rd.len - rd.data.len() as u32;
-            state.file_tc_guid = file_fid.to_vec();
-            SCLogDebug!("SMBv1 READ RESPONSE: {} bytes left", state.file_tc_left);
+            _ => {
+                events.push(SMBEvent::MalformedData);
+            },
         }
-        _ => {
-            state.set_event(SMBEvent::MalformedData);
-        },
     }
+
+    // generic tx as well. Set events if needed.
+    smb1_read_response_record_generic(state, r, events);
 }
