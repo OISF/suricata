@@ -561,6 +561,8 @@ pub fn get_service_for_nameslice(nameslice: &[u8]) -> (&'static str, bool)
 
 pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
+    let mut events : Vec<SMBEvent> = Vec::new();
+
     match parse_smb_trans_request_record(r.data, r) {
         IResult::Done(_, rd) => {
             SCLogDebug!("TRANS request {:?}", rd);
@@ -597,64 +599,73 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             }
         },
         _ => {
-            state.set_event(SMBEvent::MalformedData);
+            events.push(SMBEvent::MalformedData);
         },
     }
+    smb1_request_record_generic(state, r, events);
 }
 
 pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
-    match parse_smb_trans_response_record(r.data) {
-        IResult::Done(_, rd) => {
-            SCLogDebug!("TRANS response {:?}", rd);
+    let mut events : Vec<SMBEvent> = Vec::new();
 
-            // see if we have a stored fid
-            let fid = match state.ssn2vec_map.remove(
-                    &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)) {
-                Some(f) => f,
-                None => Vec::new(),
-            };
-            SCLogDebug!("FID {:?}", fid);
+    if r.nt_status == SMB_NTSTATUS_SUCCESS || r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
+        match parse_smb_trans_response_record(r.data) {
+            IResult::Done(_, rd) => {
+                SCLogDebug!("TRANS response {:?}", rd);
 
-            // if we get status 'BUFFER_OVERFLOW' this is only a part of
-            // the data. Store it in the ssn/tree for later use.
-            if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
-                            SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
-                            rd.data.to_vec());
-            } else {
-                let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
-                let is_dcerpc = match state.ssn2vec_map.remove(&txn_hdr) {
-                    None => false,
-                    Some(s) => {
-                        let (sername, is_dcerpc) = get_service_for_nameslice(&s);
-                        SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
-                        is_dcerpc
-                    },
+                // see if we have a stored fid
+                let fid = match state.ssn2vec_map.remove(
+                        &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)) {
+                    Some(f) => f,
+                    None => Vec::new(),
                 };
-                if is_dcerpc {
-                    SCLogDebug!("SMBv1 TRANS TO PIPE");
-                    let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                    let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
-                    smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
+                SCLogDebug!("FID {:?}", fid);
+
+                // if we get status 'BUFFER_OVERFLOW' this is only a part of
+                // the data. Store it in the ssn/tree for later use.
+                if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
+                    state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
+                                SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
+                            rd.data.to_vec());
+                } else {
+                    let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
+                    let is_dcerpc = match state.ssn2vec_map.remove(&txn_hdr) {
+                        None => false,
+                        Some(s) => {
+                            let (sername, is_dcerpc) = get_service_for_nameslice(&s);
+                            SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
+                            is_dcerpc
+                        },
+                    };
+                    if is_dcerpc {
+                        SCLogDebug!("SMBv1 TRANS TO PIPE");
+                        let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
+                        let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
+                        smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
+                    }
                 }
-            }
-        },
-        _ => {
-            state.set_event(SMBEvent::MalformedData);
-        },
+            },
+            _ => {
+               events.push(SMBEvent::MalformedData);
+            },
+        }
     }
+    // generic tx as well. Set events if needed.
+    smb1_response_record_generic(state, r, events);
 }
 
-fn smb1_write_request_record_generic_error<'b>(state: &mut SMBState, r: &SmbRecord<'b>, event: SMBEvent) {
+fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
     let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
     let tx = state.new_generic_tx(1, r.command as u16, tx_key);
-    tx.set_event(event);
+    tx.set_events(events);
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
 pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
+    let mut events : Vec<SMBEvent> = Vec::new();
+
     let result = if r.command == SMB1_COMMAND_WRITE_ANDX {
         parse_smb1_write_andx_request_record(r.data)
     } else if r.command == SMB1_COMMAND_WRITE {
@@ -722,12 +733,13 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             }
         },
         _ => {
-            smb1_write_request_record_generic_error(state, r, SMBEvent::MalformedData);
+            events.push(SMBEvent::MalformedData);
         },
     }
+    smb1_request_record_generic(state, r, events);
 }
 
-fn smb1_read_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
+fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
     // see if we want a tx per READ command
     if smb1_create_new_tx(r.command) {
         let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
@@ -820,5 +832,5 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
     }
 
     // generic tx as well. Set events if needed.
-    smb1_read_response_record_generic(state, r, events);
+    smb1_response_record_generic(state, r, events);
 }
