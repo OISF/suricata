@@ -1252,7 +1252,6 @@ impl SMBState {
         };
 
         self.check_gap_resync(max_tx_id);
-        self._debug_tx_stats();
         0
     }
 
@@ -1482,6 +1481,7 @@ impl SMBState {
             }
         };
         self.check_gap_resync(max_tx_id);
+        self._debug_tx_stats();
         0
     }
 

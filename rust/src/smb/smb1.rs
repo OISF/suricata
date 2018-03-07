@@ -122,11 +122,13 @@ pub fn smb1_command_string(c: u8) -> String {
 // later we'll use this to determine if we need to
 // track a ssn per type
 pub fn smb1_create_new_tx(_cmd: u8) -> bool {
-//    if _cmd == SMB1_COMMAND_READ_ANDX {
-//        false
-//    } else {
-        true
-//    }
+    match _cmd {
+        SMB1_COMMAND_READ_ANDX |
+        SMB1_COMMAND_WRITE_ANDX |
+        SMB1_COMMAND_TRANS |
+        SMB1_COMMAND_TRANS2 => { false },
+        _ => { true },
+    }
 }
 
 fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
@@ -609,56 +611,49 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
 
-    if r.nt_status == SMB_NTSTATUS_SUCCESS || r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-        match parse_smb_trans_response_record(r.data) {
-            IResult::Done(_, rd) => {
-                SCLogDebug!("TRANS response {:?}", rd);
+    match parse_smb_trans_response_record(r.data) {
+        IResult::Done(_, rd) => {
+            SCLogDebug!("TRANS response {:?}", rd);
 
-                // see if we have a stored fid
-                let fid = match state.ssn2vec_map.remove(
-                        &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)) {
-                    Some(f) => f,
-                    None => Vec::new(),
+            // see if we have a stored fid
+            let fid = match state.ssn2vec_map.remove(
+                    &SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID)) {
+                Some(f) => f,
+                None => Vec::new(),
+            };
+            SCLogDebug!("FID {:?}", fid);
+
+            // if we get status 'BUFFER_OVERFLOW' this is only a part of
+            // the data. Store it in the ssn/tree for later use.
+            if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
+                state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
+                            SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
+                        rd.data.to_vec());
+            } else {
+                let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
+                let is_dcerpc = match state.ssn2vec_map.remove(&txn_hdr) {
+                    None => false,
+                    Some(s) => {
+                        let (sername, is_dcerpc) = get_service_for_nameslice(&s);
+                        SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
+                        is_dcerpc
+                    },
                 };
-                SCLogDebug!("FID {:?}", fid);
-
-                // if we get status 'BUFFER_OVERFLOW' this is only a part of
-                // the data. Store it in the ssn/tree for later use.
-                if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
-                    state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
-                                SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
-                            rd.data.to_vec());
-                } else {
-                    let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
-                    let is_dcerpc = match state.ssn2vec_map.remove(&txn_hdr) {
-                        None => false,
-                        Some(s) => {
-                            let (sername, is_dcerpc) = get_service_for_nameslice(&s);
-                            SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
-                            is_dcerpc
-                        },
-                    };
-                    if is_dcerpc {
-                        SCLogDebug!("SMBv1 TRANS TO PIPE");
-                        let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                        let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
-                        smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
-                    }
+                if is_dcerpc {
+                    SCLogDebug!("SMBv1 TRANS TO PIPE");
+                    let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
+                    let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
+                    smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
                 }
-            },
+            }
+        },
             _ => {
-               events.push(SMBEvent::MalformedData);
+                events.push(SMBEvent::MalformedData);
             },
-        }
     }
+
     // generic tx as well. Set events if needed.
     smb1_response_record_generic(state, r, events);
-}
-
-fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
-    let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-    let tx = state.new_generic_tx(1, r.command as u16, tx_key);
-    tx.set_events(events);
 }
 
 /// Handle WRITE, WRITE_ANDX, WRITE_AND_CLOSE request records
@@ -737,21 +732,6 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
         },
     }
     smb1_request_record_generic(state, r, events);
-}
-
-fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
-    // see if we want a tx per READ command
-    if smb1_create_new_tx(r.command) {
-        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
-        let tx = state.get_generic_tx(1, r.command as u16, &tx_key);
-        if let Some(tx) = tx {
-            tx.request_done = true;
-            tx.response_done = true;
-            SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
-            tx.set_status(r.nt_status, r.is_dos_error);
-            tx.set_events(events);
-        }
-    }
 }
 
 pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
@@ -833,4 +813,43 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 
     // generic tx as well. Set events if needed.
     smb1_response_record_generic(state, r, events);
+}
+
+/// create a tx for a command / response pair if we're
+/// configured to do so, or if this is a tx especially
+/// for setting an event.
+fn smb1_request_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
+    if smb1_create_new_tx(r.command) || events.len() > 0 {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        tx.set_events(events);
+    }
+}
+
+/// update or create a tx for a command / reponse pair based
+/// on the response. We only create a tx for the response side
+/// if we didn't already update a tx, and we have to set events
+fn smb1_response_record_generic<'b>(state: &mut SMBState, r: &SmbRecord<'b>, events: Vec<SMBEvent>) {
+    // see if we want a tx per command
+    if smb1_create_new_tx(r.command) {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.get_generic_tx(1, r.command as u16, &tx_key);
+        if let Some(tx) = tx {
+            tx.request_done = true;
+            tx.response_done = true;
+            SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
+            tx.set_status(r.nt_status, r.is_dos_error);
+            tx.set_events(events);
+            return;
+        }
+    }
+    if events.len() > 0 {
+        let tx_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+        let tx = state.new_generic_tx(1, r.command as u16, tx_key);
+        tx.request_done = true;
+        tx.response_done = true;
+        SCLogDebug!("tx {} cmd {} is done", tx.id, r.command);
+        tx.set_status(r.nt_status, r.is_dos_error);
+        tx.set_events(events);
+    }
 }
