@@ -40,6 +40,7 @@ enum RunModes {
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
     RUNMODE_UNIX_SOCKET,
+    RUNMODE_WINDIVERT,
     RUNMODE_USER_MAX, /* Last standard running mode */
     RUNMODE_LIST_KEYWORDS,
     RUNMODE_LIST_APP_LAYERS,
@@ -106,6 +107,7 @@ int RunModeNeedsBypassManager(void);
 #include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
+#include "runmode-windivert.h"
 
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
