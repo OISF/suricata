@@ -78,6 +78,9 @@ enum {
 #define MODBUS_TYP_WRITE_MULTIPLE       (MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
 #define MODBUS_TYP_READ_WRITE_MULTIPLE  (MODBUS_TYP_READ | MODBUS_TYP_WRITE | MODBUS_TYP_MULTIPLE)
 
+/* Modbus Function Code. */
+#define MODBUS_FUNC_NONE                0x00
+
 /* Modbus Transaction Structure, request/response. */
 typedef struct ModbusTransaction_ {
     struct ModbusState_ *modbus;
@@ -86,6 +89,7 @@ typedef struct ModbusTransaction_ {
     uint32_t    logged;         /**< flags indicating which loggers have logged */
     uint16_t    transactionId;
     uint16_t    length;
+    uint8_t     unit_id;
     uint8_t     function;
     uint8_t     category;
     uint8_t     type;

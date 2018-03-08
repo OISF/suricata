@@ -94,7 +94,6 @@ SCEnumCharMap modbus_decoder_event_table[ ] = {
 #define MODBUS_MAX_COUNT    250
 
 /* Modbus Function Code. */
-#define MODBUS_FUNC_NONE                0x00
 #define MODBUS_FUNC_READCOILS           0x01
 #define MODBUS_FUNC_READDISCINPUTS      0x02
 #define MODBUS_FUNC_READHOLDREGS        0x03
@@ -1301,7 +1300,8 @@ static int ModbusParseRequest(Flow                  *f,
         /* Check MODBUS Header */
         ModbusCheckHeader(modbus, &header);
 
-        /* Store Transaction ID & PDU length */
+        /* Store Unit ID, Transaction ID & PDU length */
+        tx->unit_id         = header.unitId;
         tx->transactionId   = header.transactionId;
         tx->length          = header.length;
 
@@ -1562,6 +1562,13 @@ void RegisterModbusParsers(void)
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
+
+/* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
+static uint8_t invalidFunctionCode[] = {/* Transaction ID */    0x00, 0x00,
+                                         /* Protocol ID */       0x00, 0x01,
+                                         /* Length */            0x00, 0x02,
+                                         /* Unit ID */           0x00,
+                                         /* Function code */     0x00};
 
 /* Modbus Application Protocol Specification V1.1b3 6.1: Read Coils */
 /* Example of a request to read discrete outputs 20-38 */
@@ -3262,6 +3269,95 @@ static int ModbusParserTest18(void) {
     FLOW_DESTROY(&f);
     PASS;
 }
+
+/** \test Send Modbus invalid function. */
+static int ModbusParserTest19(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    int result = 0;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.alproto   = ALPROTO_MODBUS;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Function code\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_function_code; "
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    FLOWLOCK_WRLOCK(&f);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_MODBUS,
+                                STREAM_TOSERVER,
+                                invalidFunctionCode,
+                                sizeof(invalidFunctionCode));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        FLOWLOCK_UNLOCK(&f);
+        goto end;
+    }
+    FLOWLOCK_UNLOCK(&f);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
@@ -3302,5 +3398,7 @@ void ModbusParserRegisterTests(void) {
                    ModbusParserTest17);
     UtRegisterTest("ModbusParserTest18 - Modbus stream depth in 2 TCP packets",
                    ModbusParserTest18);
+    UtRegisterTest("ModbusParserTest19 - Modbus invalid Function code",
+                   ModbusParserTest19);
 #endif /* UNITTESTS */
 }
