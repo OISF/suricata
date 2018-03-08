@@ -23,7 +23,7 @@ command in an elevated command prompt or terminal:
 
 ::
   
-  suricata --windivert [filter string]
+  suricata -c suricata.yaml --windivert [filter string]
 
 For information on the WinDivert filter language, see
 https://www.reqrypt.org/windivert-doc.html#filter_language
@@ -34,14 +34,14 @@ be achieved using the following command:
 
 ::
 
-  suricata --windivert-forward [filter string]
+  suricata -c suricata.yaml --windivert-forward [filter string]
 
 A quick start is to examine all traffic, in which case you can use the following
 command:
 
 ::
   
-  suricata --windivert[-forward] true
+  suricata -c suricata.yaml --windivert[-forward] true
 
 The filter is automatically stopped and normal traffic resumes when Suricata is
 stopped.
