@@ -75,6 +75,14 @@ void DetectFiledataRegister(void)
             PrefilterGenericMpmRegister,
             HttpServerBodyGetDataCallback,
             ALPROTO_HTTP, HTP_RESPONSE_BODY);
+#ifdef HAVE_RUST
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOSERVER, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMB, 0);
+    DetectAppLayerMpmRegister2("file_data", SIG_FLAG_TOCLIENT, 2,
+            PrefilterMpmFiledataRegister, NULL,
+            ALPROTO_SMB, 0);
+#endif
 
     DetectAppLayerInspectEngineRegister2("file_data",
             ALPROTO_HTTP, SIG_FLAG_TOCLIENT, HTP_RESPONSE_BODY,
@@ -84,6 +92,14 @@ void DetectFiledataRegister(void)
             DetectEngineInspectFiledata, NULL);
     DetectBufferTypeRegisterSetupCallback("file_data",
             DetectFiledataSetupCallback);
+#ifdef HAVE_RUST
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
+            DetectEngineInspectFiledata, NULL);
+    DetectAppLayerInspectEngineRegister2("file_data",
+            ALPROTO_SMB, SIG_FLAG_TOCLIENT, 0,
+            DetectEngineInspectFiledata, NULL);
+#endif
 
     DetectBufferTypeSetDescriptionByName("file_data",
             "http response body or smtp attachments data");
@@ -133,7 +149,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
 
     if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
         (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
-        s->alproto != ALPROTO_SMTP)) {
+        s->alproto != ALPROTO_SMTP && s->alproto != ALPROTO_SMB)) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }

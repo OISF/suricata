@@ -47,6 +47,11 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp.h"
 
+#ifdef HAVE_RUST
+#include "rust.h"
+#include "rust-smb-detect-gen.h"
+#endif
+
 #define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
 
 static pcre *parse_regex = NULL;
@@ -55,6 +60,12 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectDceIfaceMatch(ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, void *, void *,
         const Signature *, const SigMatchCtx *);
+#ifdef HAVE_RUST
+static int DetectDceIfaceMatchRust(ThreadVars *t,
+        DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m);
+#endif
 static int DetectDceIfaceSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectDceIfaceFree(void *);
 static void DetectDceIfaceRegisterTests(void);
@@ -73,7 +84,11 @@ void DetectDceIfaceRegister(void)
 {
     sigmatch_table[DETECT_DCE_IFACE].name = "dce_iface";
     sigmatch_table[DETECT_DCE_IFACE].Match = NULL;
+#ifdef HAVE_RUST
+    sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatchRust;
+#else
     sigmatch_table[DETECT_DCE_IFACE].AppLayerTxMatch = DetectDceIfaceMatch;
+#endif
     sigmatch_table[DETECT_DCE_IFACE].Setup = DetectDceIfaceSetup;
     sigmatch_table[DETECT_DCE_IFACE].Free  = DetectDceIfaceFree;
     sigmatch_table[DETECT_DCE_IFACE].RegisterTests = DetectDceIfaceRegisterTests;
@@ -231,6 +246,28 @@ static DetectDceIfaceData *DetectDceIfaceArgParse(const char *arg)
     return NULL;
 }
 
+#include "app-layer-smb.h"
+DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
+{
+#ifdef HAVE_RUST
+    return alstate;
+#else
+    switch (alproto) {
+        case ALPROTO_DCERPC:
+            return alstate;
+        case ALPROTO_SMB: {
+            SMBState *smb_state = (SMBState *)alstate;
+            return &smb_state->ds;
+        }
+        case ALPROTO_SMB2:
+            // not implemented
+            return NULL;
+    }
+
+    return NULL;
+#endif
+}
+
 /**
  * \internal
  * \brief Internal function that compares the dce interface version for this
@@ -258,24 +295,6 @@ static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
     }
 }
 
-#include "app-layer-smb.h"
-DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
-{
-    switch(alproto) {
-        case ALPROTO_DCERPC:
-            return alstate;
-        case ALPROTO_SMB: {
-            SMBState *smb_state = (SMBState *)alstate;
-            return &smb_state->ds;
-        }
-        case ALPROTO_SMB2:
-            // not implemented
-            return NULL;
-    }
-
-    return NULL;
-}
-
 /**
  * \brief App layer match function for the "dce_iface" keyword.
  *
@@ -297,9 +316,10 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int ret = 0;
+    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
+
     DCERPCUuidEntry *item = NULL;
     int i = 0;
-    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
     DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
@@ -353,6 +373,33 @@ end:
     SCReturnInt(ret);
 }
 
+#ifdef HAVE_RUST
+static int DetectDceIfaceMatchRust(ThreadVars *t,
+        DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, void *txv,
+        const Signature *s, const SigMatchCtx *m)
+{
+    SCEnter();
+
+    if (f->alproto == ALPROTO_DCERPC) {
+        return DetectDceIfaceMatch(t, det_ctx, f, flags,
+                                   state, txv, s, m);
+    }
+
+    int ret = 0;
+    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
+
+    if (rs_smb_tx_get_dce_iface(f->alstate, txv, dce_data->uuid, 16, dce_data->op, dce_data->version) != 1) {
+        SCLogDebug("rs_smb_tx_get_dce_iface: didn't match");
+    } else {
+        SCLogDebug("rs_smb_tx_get_dce_iface: matched!");
+        ret = 1;
+        // TODO validate frag
+    }
+    SCReturnInt(ret);
+}
+#endif
+
 /**
  * \brief Creates a SigMatch for the "dce_iface" keyword being sent as argument,
  *        and appends it to the Signature(s).
@@ -370,8 +417,8 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char
     DetectDceIfaceData *did = NULL;
     SigMatch *sm = NULL;
 
-    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-        return -1;
+//    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
+//        return -1;
 
     did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {

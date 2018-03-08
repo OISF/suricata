@@ -26,6 +26,7 @@
 #include "source-pcap-file-helper.h"
 #include "util-checksum.h"
 #include "util-profiling.h"
+#include "source-pcap-file.h"
 
 extern int max_pending_packets;
 extern PcapFileGlobalVars pcap_g;
@@ -98,6 +99,13 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
     SCReturn;
 }
 
+char pcap_filename[PATH_MAX] = "unknown";
+
+const char *PcapFileGetFilename(void)
+{
+    return pcap_filename;
+}
+
 /**
  *  \brief Main PCAP file reading Loop function
  */
@@ -108,6 +116,7 @@ TmEcode PcapFileDispatch(PcapFileFileVars *ptv)
     int packet_q_len = 64;
     int r;
     TmEcode loop_result = TM_ECODE_OK;
+    strlcpy(pcap_filename, ptv->filename, sizeof(pcap_filename));
 
     while (loop_result == TM_ECODE_OK) {
         if (suricata_ctl_flags & SURICATA_STOP) {

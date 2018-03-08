@@ -167,6 +167,8 @@ outputs:
       # Include top level metadata. Default yes.
       #metadata: no
 
+      pcap-file: false
+
       types:
         - alert:
             # payload: yes             # enable dumping payload in Base64
@@ -798,13 +800,12 @@ app-layer:
       enabled: detection-only
     msn:
       enabled: detection-only
+    # Note: --enable-rust is required for full SMB1/2 support. W/o rust
+    # only minimal SMB1 support is available.
     smb:
       enabled: yes
       detection-ports:
         dp: 139, 445
-    # smb2 detection is disabled internally inside the engine.
-    #smb2:
-    #  enabled: yes
     # Note: NFS parser depends on Rust support: pass --enable-rust
     # to configure.
     nfs:

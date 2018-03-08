@@ -39,6 +39,7 @@ app-layer-parser.c app-layer-parser.h \
 app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
+app-layer-smb-tcp-rust.c app-layer-smb-tcp-rust.h \
 app-layer-smtp.c app-layer-smtp.h \
 app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
 app-layer-nfs-udp.c app-layer-nfs-udp.h \
@@ -238,6 +239,7 @@ detect-ssh-proto.c detect-ssh-proto.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software.c detect-ssh-software.h \
 detect-ssh-software-version.c detect-ssh-software-version.h \
+detect-smb-share.c detect-smb-share.h \
 detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
@@ -316,6 +318,7 @@ output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
+output-json-smb.c output-json-smb.h \
 output-json-template.c output-json-template.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
