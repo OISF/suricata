@@ -74,6 +74,7 @@
 #include "util-signal.h"
 #include "util-spm.h"
 
+#include "util-network-tree.h"
 #include "util-var-name.h"
 
 #include "tm-threads.h"
@@ -2776,6 +2777,8 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
         goto error;
     }
 
+    NetworkTreeLoadConfigMultiTenant(de_ctx);
+
     DetectEngineAddToMaster(de_ctx);
 
     return 0;
@@ -2957,6 +2960,8 @@ int DetectEngineMultiTenantSetup(void)
 
         SCMutexLock(&master->lock);
         master->multi_tenant_enabled = 1;
+
+        NetworkTreeInit();
 
         const char *handler = NULL;
         if (ConfGet("multi-detect.selector", &handler) == 1) {
@@ -3459,6 +3464,10 @@ int DetectEngineReload(const SCInstance *suri)
     /* update the threads */
     DetectEngineReloadThreads(new_de_ctx);
     SCLogDebug("threads now run new_de_ctx %p", new_de_ctx);
+
+    /* the config may have changed, so reload it */
+    NetworkTreeDeInit();
+    NetworkTreeInit();
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();

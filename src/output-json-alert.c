@@ -39,6 +39,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#include "decode.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -73,6 +74,7 @@
 #include "util-buffer.h"
 #include "util-crypt.h"
 #include "util-validate.h"
+#include "util-network-tree.h"
 
 #define MODULE_NAME "JsonAlertLog"
 
@@ -198,6 +200,9 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
         return;
     }
 
+    json_t *src_net_info = NULL;
+    json_t *dst_net_info = NULL;
+
     if (pa->s->flags & SIG_FLAG_DEST_IS_TARGET) {
         json_object_set(sjs, "ip", json_object_get(js, "src_ip"));
         json_object_set(tjs, "ip", json_object_get(js, "dest_ip"));
@@ -211,6 +216,25 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                 json_object_set(sjs, "port", json_object_get(js, "src_port"));
                 json_object_set(tjs, "port", json_object_get(js, "dest_port"));
                 break;
+        }
+        if (PKT_IS_IPV4(p)) {
+            src_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)GET_IPV4_SRC_ADDR_PTR(p), p->tenant_id);
+            dst_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)GET_IPV4_DST_ADDR_PTR(p), p->tenant_id);
+        } else if (PKT_IS_IPV6(p)) {
+            src_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)GET_IPV6_SRC_ADDR(p), p->tenant_id);
+            dst_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)GET_IPV6_DST_ADDR(p), p->tenant_id);
+        }
+        if (src_net_info != NULL) {
+            json_t * jsrc = json_copy(src_net_info);
+            if (jsrc != NULL) {
+                json_object_set_new(sjs, "net_info", src_net_info);
+            }
+        }
+        if (dst_net_info != NULL) {
+            json_t *jdest = json_copy(dst_net_info);
+            if (jdest != NULL) {
+                json_object_set_new(tjs, "net_info", dst_net_info);
+            }
         }
     } else if (pa->s->flags & SIG_FLAG_SRC_IS_TARGET) {
         json_object_set(sjs, "ip", json_object_get(js, "dest_ip"));
@@ -226,6 +250,20 @@ static void AlertJsonSourceTarget(const Packet *p, const PacketAlert *pa,
                 json_object_set(tjs, "port", json_object_get(js, "src_port"));
                 break;
         }
+        if (PKT_IS_IPV4(p)) {
+            src_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)GET_IPV4_DST_ADDR_PTR(p), p->tenant_id);
+            dst_net_info = NetworkTreeGetIPv4InfoAsJSON((uint8_t *)GET_IPV4_SRC_ADDR_PTR(p), p->tenant_id);
+        } else if (PKT_IS_IPV6(p)) {
+            src_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)GET_IPV6_DST_ADDR(p), p->tenant_id);
+            dst_net_info = NetworkTreeGetIPv6InfoAsJSON((uint8_t *)GET_IPV6_SRC_ADDR(p), p->tenant_id);
+        }
+        if (src_net_info != NULL) {
+            json_object_set_new(sjs, "net_info", src_net_info);
+        }
+        if (dst_net_info != NULL) {
+            json_object_set_new(tjs, "net_info", dst_net_info);
+        }
+
     }
     json_object_set_new(ajs, "source", sjs);
     json_object_set_new(ajs, "target", tjs);

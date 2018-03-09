@@ -347,6 +347,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PF_RING_VLAN);
         CASE_CODE (SC_ERR_CREATE_DIRECTORY);
         CASE_CODE (SC_WARN_FLOWBIT);
+        CASE_CODE (SC_ERR_JSON_FILE_NOT_LOADED);
 
         CASE_CODE (SC_ERR_MAX);
     }

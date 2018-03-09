@@ -121,6 +121,7 @@
 
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
+#include "util-network-tree.h"
 
 #ifdef HAVE_NSS
 #include <prinit.h>
@@ -218,6 +219,7 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+    NetworkTreeRegisterTests();
 }
 #endif
 
