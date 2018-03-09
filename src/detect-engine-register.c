@@ -68,6 +68,8 @@
 #include "detect-engine-event.h"
 #include "decode.h"
 
+#include "detect-smb-share.h"
+
 #include "detect-base64-decode.h"
 #include "detect-base64-data.h"
 #include "detect-ipopts.h"
@@ -457,6 +459,8 @@ void SigTableSetup(void)
     DetectDceIfaceRegister();
     DetectDceOpnumRegister();
     DetectDceStubDataRegister();
+    DetectSmbNamedPipeRegister();
+    DetectSmbShareRegister();
     DetectTlsRegister();
     DetectTlsValidityRegister();
     DetectTlsVersionRegister();

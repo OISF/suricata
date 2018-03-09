@@ -15,39 +15,10 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+#ifndef __APP_LAYER_SMB_TCP_RUST_H__
+#define __APP_LAYER_SMB_TCP_RUST_H__
 
-extern crate libc;
+void RegisterRustSMBTCPParsers(void);
+void RegisterSMBParsers(void);
 
-#[macro_use]
-extern crate nom;
-
-extern crate crc;
-
-extern crate der_parser;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-
-#[cfg(feature = "experimental")]
-pub mod ntp;
-pub mod tftp;
+#endif /* !__APP_LAYER_SMB_TCP_RUST_H__ */
