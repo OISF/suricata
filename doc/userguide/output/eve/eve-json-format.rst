@@ -283,11 +283,15 @@ If extended logging is enabled the following fields are also included:
 * "version": The SSL/TLS version used
 * "notbefore": The NotBefore field from the TLS certificate
 * "notafter": The NotAfter field from the TLS certificate
+* "subject_public_key_algorithm": The algorithm used with the public key
+* "certificate_signature_algorithm": The algorithm identifier used by the CA
+* "signature_algorithm": The algorithm identifier used by the CA, it must be the same as the field above.
 
 In addition to this, custom logging also allows the following fields:
 
 * "certificate": The TLS certificate base64 encoded
 * "chain": The entire TLS certificate chain base64 encoded
+* "extensions": The TLS extensions in the certificate
 
 Examples
 ~~~~~~~~
@@ -322,9 +326,13 @@ Example of extended TLS logging:
       "version": "TLS 1.2",
       "notbefore": "2017-01-04T10:48:43",
       "notafter": "2017-03-29T10:18:00"
+      "notafter": "2017-03-29T10:18:00",
+      "subject_public_key_algorithm": "1.2.840.10045.2.1",
+      "certificate_signature_algorithm": "PKCS #1 SHA-256 With RSA Encryption",
+      "signature_algorithm": "PKCS #1 SHA-256 With RSA Encryption"
   }
 
-Example of certificate logging using TLS custom logging (subject, sni, certificate):
+Example of certificate logging using TLS custom logging (subject, sni, certificate, extensions):
 
 ::
 
@@ -332,6 +340,15 @@ Example of certificate logging using TLS custom logging (subject, sni, certifica
       "subject": "C=US, ST=California, L=Mountain View, O=Google Inc, CN=*.googleapis.com
       "sni": "www.googleapis.com",
       "certificate": "MIIE3TCCA8WgAwIBAgIIQPsvobRZN0gwDQYJKoZIhvcNAQELBQAwSTELMA [...]"
+      "extensions": {
+        "extended_key_usage": {
+          "id": "2.5.29.37",
+          "critical": 0,
+          "value": [
+            "TLS WWW Server Authentication"
+          ]
+        },
+      },
    }
 
 Event type: TFTP

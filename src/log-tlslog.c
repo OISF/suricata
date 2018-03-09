@@ -55,6 +55,7 @@
 #include "util-crypt.h"
 #include "util-time.h"
 #include "log-cf-common.h"
+#include "util-tls.h"
 
 #define DEFAULT_LOG_FILENAME "tls.log"
 
@@ -76,6 +77,7 @@
 #define LOG_TLS_CF_SUBJECT 's'
 #define LOG_TLS_CF_ISSUER 'i'
 #define LOG_TLS_CF_EXTENDED 'E'
+#define LOG_TLS_CF_SERVER_CIPHERSUITE 'C'
 
 typedef struct LogTlsFileCtx_ {
     LogFileCtx *file_ctx;
@@ -159,6 +161,16 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
     if (state->server_connp.cert0_not_after != 0) {
         LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
         LogTlsLogDate(aft->buffer, "NOTAFTER", &state->server_connp.cert0_not_after);
+    }
+    if (state->server_connp.cert0_subject_pk_algo != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "SUBJECT_PUBLIC_KEY_ALGORITHM",
+                        state->server_connp.cert0_subject_pk_algo);
+    }
+    if (state->server_connp.cert0_signature_algo != NULL) {
+        LOG_CF_WRITE_SPACE_SEPARATOR(aft->buffer);
+        LogTlsLogString(aft->buffer, "CERTIFICATE_SIGNATURE_ALGORITHM",
+                        state->server_connp.cert0_signature_algo);
     }
 }
 
@@ -430,6 +442,15 @@ static void LogTlsLogCustom(LogTlsLogThread *aft, SSLState *ssl_state, const str
             case LOG_TLS_CF_EXTENDED:
             /* Extended format  */
                 LogTlsLogExtended(aft, ssl_state);
+                break;
+            case LOG_TLS_CF_SERVER_CIPHERSUITE:
+                if (ssl_state->server_connp.ciphersuite) {
+                    MemBufferWriteString(aft->buffer, "%s",
+                             TlsCiphersuiteIdToName(ssl_state->server_connp.ciphersuite)
+                    );
+                } else {
+                    LOG_CF_WRITE_UNKNOWN_VALUE(aft->buffer);
+                }
                 break;
             default:
             /* NO MATCH */

@@ -33,14 +33,155 @@
  */
 
 #include "suricata-common.h"
+#include "app-layer-ssl.h"
 
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
 
+#include "output-json.h"
+
+/* number of extensions supported */
+#define EXTN_MAX 15
+
+typedef struct AsnExtension_ {
+    const char *extn_id;
+    const char *extn_name;
+#ifdef HAVE_LIBJANSSON
+    json_t *(*ExtnGetValueAsJson)(SSLCertExtension *);
+#endif
+} AsnExtension;
+
+#ifdef HAVE_LIBJANSSON
+static json_t *Asn1KeyUsageToJSON(SSLCertExtension *);
+static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *);
+static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *);
+static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *);
+static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *);
+static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *);
+static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn);
+static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *);
+static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *);
+static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *);
+static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *);
+static json_t *Asn1IssuerAlternativeName(SSLCertExtension *);
+static json_t *Asn1NameContraintsToJSON(SSLCertExtension *);
+static json_t *Asn1PrivateKeyUsagePeriod(SSLCertExtension *);
+#endif
+
 static const uint8_t SEQ_IDX_SERIAL[] = { 0, 0 };
+static const uint8_t SEQ_IDX_CERT_SIGNATURE_ALGO[] = { 0, 1 };
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
+static const uint8_t SEQ_IDX_SUBJECT_PK[] = { 0, 5 };
+static const uint8_t SEQ_IDX_SIGNATURE_ALGO[] = { 1, 0 };
+
+static AsnExtension asn_extns[EXTN_MAX] = {
+    { .extn_id = "2.5.29.19", .extn_name = "basic_contraints",
+#ifdef HAVE_LIBJANSSON
+        Asn1BasicContraintsToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.30", .extn_name = "name_contraints",
+#ifdef HAVE_LIBJANSSON
+        Asn1NameContraintsToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.36", .extn_name = "policy_contraints",
+#ifdef HAVE_LIBJANSSON
+        Asn1PolicyContraintsToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.15", .extn_name = "key_usage",
+#ifdef HAVE_LIBJANSSON
+        Asn1KeyUsageToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.37", .extn_name = "extended_key_usage",
+#ifdef HAVE_LIBJANSSON
+        Asn1ExtKeyUsageToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.14", .extn_name = "subject_key_identifier",
+#ifdef HAVE_LIBJANSSON
+        Asn1SubjectKeyIdentifierToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.35", .extn_name = "authority_key_identifier",
+#ifdef HAVE_LIBJANSSON
+        Asn1AuthorityKeyIdentifierToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.17", .extn_name = "subject_alternative_name",
+#ifdef HAVE_LIBJANSSON
+        Asn1SubjectAltNameToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.18", .extn_name = "issuer_alternative_name",
+#ifdef HAVE_LIBJANSSON
+        Asn1IssuerAlternativeName
+#endif
+    },
+    { .extn_id = "2.5.29.9", .extn_name = "subject_directory_attributes",
+#ifdef HAVE_LIBJANSSON
+        NULL
+#endif
+    },
+    { .extn_id = "2.5.29.31", .extn_name = "crl_distribution_points",
+#ifdef HAVE_LIBJANSSON
+        Asn1CRLDistributionPointsToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.16", .extn_name = "private_key_usage_period",
+#ifdef HAVE_LIBJANSSON
+        Asn1PrivateKeyUsagePeriod
+#endif
+    },
+    { .extn_id = "2.5.29.32", .extn_name = "certificate_policies",
+#ifdef HAVE_LIBJANSSON
+        Asn1CertificatePoliciesToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.33", .extn_name = "policy_mappings",
+#ifdef HAVE_LIBJANSSON
+        Asn1PolicyMappingsToJSON
+#endif
+    },
+    { .extn_id = "2.5.29.54", .extn_name = "inhibit_any_policy",
+#ifdef HAVE_LIBJANSSON
+        Asn1InhibitAnyPolicyToJSON
+#endif
+    },
+};
+
+static int GetAsnExtension(SSLCertExtension *extn)
+{
+    int i;
+
+    if (extn->extn_id == NULL) {
+        return -1;
+    }
+
+    for (i = 0; i < EXTN_MAX; i++) {
+        if (!strcmp(extn->extn_id, asn_extns[i].extn_id))
+            return i;
+    }
+
+    return -1;
+}
+
+static const char *Oid2ExtensionName(const char *oid)
+{
+    int i;
+
+    for (i = 0; i < EXTN_MAX; i++) {
+        if (strcmp(oid, asn_extns[i].extn_id) == 0) {
+            return asn_extns[i].extn_name;
+        }
+    }
+
+    return "unknown";
+}
 
 static const char *Oid2ShortStr(const char *oid)
 {
@@ -70,6 +211,44 @@ static const char *Oid2ShortStr(const char *oid)
 
     if (strcmp(oid, "0.9.2342.19200300.100.1.25") == 0)
         return "DC";
+
+    return "unknown";
+}
+
+static const char *Oid2SignatureAlgoStr(const char *oid)
+{
+    if (strcmp(oid, "1.2.840.113549.1.1.11") == 0)
+        return "PKCS #1 SHA-256 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.12") == 0)
+        return "PKCS #1 SHA-348 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.13") == 0)
+        return "PKCS #1 SHA-512 With RSA Encryption";
+
+    if (strcmp(oid, "1.2.840.10040.4.3") == 0)
+        return "PKCS #1 DSA With SHA-1";
+
+    if (strcmp(oid, "2.16.840.1.101.3.4.3.2") == 0)
+        return "PKCS #1 DSA With SHA-256";
+
+    if (strcmp(oid, "1.2.840.10045.4.1") == 0)
+        return "PKCS #1 ECDSA With SHA-1";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.2") == 0)
+        return "PKCS #1 ECDSA With SHA-256";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.3") == 0)
+        return "PKCS #1 ECDSA With SHA-384";
+
+    if (strcmp(oid, "1.2.840.10045.4.3.4") == 0)
+        return "PKCS #1 ECDSA With SHA-512";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.10") == 0)
+        return "PKCS #1 RSASSA-PSS With default parameters";
+
+    if (strcmp(oid, "1.2.840.113549.1.1.10") == 0)
+        return "PKCS #1 RSASSA-PSS With SHA-256";
 
     return "unknown";
 }
@@ -438,4 +617,1106 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length,
 subject_dn_error:
     return rc;
 }
+
+int Asn1DerGetSubjectPublicKeyAlgo(const Asn1Generic *cert, char *buffer,
+                                   uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_SUBJECT_PK, sizeof(SEQ_IDX_SUBJECT_PK), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto subject_pk_error;
+
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto subject_pk_error;
+
+    /* we're looking for the OID, but actually 'node'
+     * points to a SEQUENCE, so we need to access
+     * and get the first element which is the OID. */
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto subject_pk_error;
+
+    if (node->length > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+        goto subject_pk_error;
+    }
+
+    strlcat(buffer, node->str, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+subject_pk_error:
+    return rc;
+}
+
+int Asn1DerGetCertSignatureAlgo(const Asn1Generic *cert, char *buffer,
+                                uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    const char *signature_algorithm;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_CERT_SIGNATURE_ALGO,
+                     sizeof(SEQ_IDX_CERT_SIGNATURE_ALGO), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto cert_signature_error;
+
+    node = node->data;
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto cert_signature_error;
+
+    signature_algorithm = Oid2SignatureAlgoStr(node->str);
+    if (strlen(signature_algorithm) > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+
+        goto cert_signature_error;
+    }
+    strlcat(buffer, signature_algorithm, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+cert_signature_error:
+    return rc;
+}
+
+int Asn1DerGetSignatureAlgo(const Asn1Generic *cert, char *buffer,
+                            uint32_t length, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    const char *signature_algorithm;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    buffer[0] = '\0';
+
+    node = Asn1DerGet(cert, SEQ_IDX_SIGNATURE_ALGO, sizeof(SEQ_IDX_SIGNATURE_ALGO), errcode);
+    if ((node == NULL) || node->type != ASN1_OID)
+        goto signature_error;
+
+    signature_algorithm = Oid2SignatureAlgoStr(node->str);
+    if (strlen(signature_algorithm) > length) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
+
+         goto signature_error;
+    }
+    strlcat(buffer, signature_algorithm, length);
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+
+signature_error:
+    return rc;
+}
+
+int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp,
+                         uint32_t *errcode)
+{
+    const Asn1Generic *node = cert->data->next;
+    const Asn1Generic *it;
+    const Asn1Generic *extns_node;
+    const Asn1Generic *extn;
+    const Asn1Generic *extn_node;
+    int rc = -1;
+
+    if (node == NULL || node->data == NULL)
+        return rc;
+
+    /* get the sequence of extensions */
+    while (node->data->header.cls != ASN1_CLASS_CONTEXTSPEC) {
+        node = node->next;
+        if (node == NULL || node->data == NULL) {
+            SCLogInfo("node == NULL || node->data == NULL");
+            return rc;
+        }
+    }
+
+    /* extensions field */
+    extns_node = node->data;
+    if (extns_node == NULL || extns_node->header.cls != ASN1_CLASS_CONTEXTSPEC)
+        return rc;
+
+    if (extns_node->type != ASN1_SEQUENCE)
+        return rc;
+
+    /* list of extension */
+    it = extns_node->data;
+    if (it == NULL)
+        return rc;
+
+    if (it->type != ASN1_SEQUENCE)
+        return rc;
+
+    while (it != NULL) {
+        extn = it->data;
+        SSLCertExtension *nextn;
+        nextn = (SSLCertExtension *)SCMalloc(sizeof(SSLCertExtension));
+        if (nextn == NULL)
+            return rc;
+        memset(nextn, 0, sizeof(*nextn));
+
+        /* iterate extension's field */
+        while (extn != NULL) {
+            extn_node = extn->data;
+
+            if (extn_node == NULL) {
+                goto next;
+            }
+
+            switch (extn_node->type) {
+                case ASN1_OID:
+                    nextn->extn_id = SCStrdup(extn_node->str);
+                    if (nextn->extn_id == NULL) {
+                        SCFree(nextn);
+                        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate extension");
+                        return rc;
+                    }
+                    nextn->extn_name = Oid2ExtensionName(extn_node->str);
+                    break;
+                case ASN1_INTEGER:
+                    nextn->critical = extn_node->value;
+                    break;
+                case ASN1_OCTETSTRING:
+                    nextn->extn_value = SCMalloc(extn_node->strlen);
+                    nextn->extn_length = (size_t)extn_node->strlen;
+                    if (nextn->extn_value == NULL) {
+                        SCFree(nextn);
+                        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate extension");
+                        return rc;
+                    }
+                    memcpy(nextn->extn_value, extn_node->str, extn_node->strlen);
+                    break;
+                default: /* Unsupported type */
+                    break;
+            }
+        next:
+            extn = extn->next;
+        }
+        if (strcmp(nextn->extn_name, "unknown") != 0 && nextn->extn_id && nextn->extn_value) {
+            TAILQ_INSERT_TAIL(&server_connp->extns, nextn, next);
+        } else {
+            SCFree(nextn);
+        }
+
+        it = it->next;
+    }
+
+    return 0;
+}
+
+#ifdef HAVE_LIBJANSSON
+
+#define URI_TYPE 0x86
+#define DNS_TYPE 0x82
+
+json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn)
+{
+    int id = GetAsnExtension(extn);
+    if (id != -1 && asn_extns[id].ExtnGetValueAsJson) {
+        return asn_extns[id].ExtnGetValueAsJson(extn);
+    }
+
+    return json_string("unknown");
+}
+
+/* TLS KeyUsage flags */
+#define ASN1_X509_KU_DIGITAL_SIGNATURE            (0x80)  /* bit 0 */
+#define ASN1_X509_KU_NON_REPUDIATION              (0x40)  /* bit 1 */
+#define ASN1_X509_KU_KEY_ENCIPHERMENT             (0x20)  /* bit 2 */
+#define ASN1_X509_KU_DATA_ENCIPHERMENT            (0x10)  /* bit 3 */
+#define ASN1_X509_KU_KEY_AGREEMENT                (0x08)  /* bit 4 */
+#define ASN1_X509_KU_KEY_CERT_SIGN                (0x04)  /* bit 5 */
+#define ASN1_X509_KU_CRL_SIGN                     (0x02)  /* bit 6 */
+#define ASN1_X509_KU_ENCIPHER_ONLY                (0x01)  /* bit 7 */
+#define ASN1_X509_KU_DECIPHER_ONLY              (0x8000)  /* bit 8 */
+
+static json_t *Asn1KeyUsageToJSON(SSLCertExtension *extn)
+{
+    json_t *val = json_array();
+    if (val == NULL)
+        return NULL;
+
+    uint32_t kusage = 0;
+    uint32_t i;
+
+    for (i = 0; i < extn->extn_length && i < sizeof(unsigned int); i++)
+    {
+        kusage |= (unsigned int) extn->extn_value[i] << (8*i);
+    }
+    kusage = ntohl(kusage);
+
+    if (kusage & ASN1_X509_KU_DIGITAL_SIGNATURE) {
+        json_array_append_new(val, json_string("Digital Signature"));
+    }
+    if (kusage & ASN1_X509_KU_NON_REPUDIATION)
+        json_array_append_new(val, json_string("Non Repudation"));
+    if (kusage & ASN1_X509_KU_KEY_ENCIPHERMENT)
+        json_array_append_new(val, json_string("Key Encipherment"));
+    if (kusage & ASN1_X509_KU_DATA_ENCIPHERMENT)
+        json_array_append_new(val, json_string("Data Encipherment"));
+    if (kusage & ASN1_X509_KU_KEY_AGREEMENT)
+        json_array_append_new(val, json_string("Key Agreement"));
+    if (kusage & ASN1_X509_KU_KEY_CERT_SIGN)
+        json_array_append_new(val, json_string("Key Cert Sign"));
+    if (kusage & ASN1_X509_KU_CRL_SIGN)
+        json_array_append_new(val, json_string("CRL Sign"));
+    if (kusage & ASN1_X509_KU_ENCIPHER_ONLY)
+        json_array_append_new(val, json_string("Encipher Only"));
+    if (kusage & ASN1_X509_KU_DECIPHER_ONLY)
+        json_array_append_new(val, json_string("Decipher Only"));
+
+    return val;
+}
+
+typedef struct eku_oids_t {
+    const char *oid;
+    const char *desc;
+} eku_oids;
+
+eku_oids ext_key_usage[] = {
+    { "\x2b\x06\x01\x05\x05\x07\x03\x01", "TLS WWW Server Authentication" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x02", "TLS WWW Client Authentication" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x03", "Code Signing" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x04", "E-mail Protection" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x08", "Time Stamping" },
+    { "\x2b\x06\x01\x05\x05\x07\x03\x09", "OCSP Signing" },
+};
+
+#define OID_MAX 6
+static json_t *Asn1ExtKeyUsageToJSON(SSLCertExtension *extn)
+{
+    /* OID stats at 4th byte */
+    unsigned int offset = 4;
+    int i;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while (offset < extn->extn_length) {
+        for (i = 0; i < OID_MAX; i++) {
+            if (memcmp(ext_key_usage[i].oid, extn->extn_value + offset,
+                       strlen(ext_key_usage[i].oid)) == 0)
+            {
+                json_array_append_new(jdata, json_string(ext_key_usage[i].desc));
+                break;
+            }
+        }
+        /* add 8 bytes (oid length already checked above) and skip 2 bytes *
+         * to get the next OID to check. */
+        offset += 10;
+    }
+
+    return jdata;
+}
+
+static json_t *Asn1SubjectAltNameToJSON(SSLCertExtension *extn)
+{
+    uint8_t tag = extn->extn_value[0];
+    uint8_t len = 0;
+    unsigned int offset = 0;
+    json_t *jdata = NULL;
+
+    /* Only handle DNS name */
+    while (offset < extn->extn_length) {
+        if (tag == (ASN1_CONTEXT_SPECIFIC | 2))
+            break;
+        tag = extn->extn_value[++offset];
+    }
+
+    if (offset >= extn->extn_length) {
+        return NULL;
+    }
+
+    jdata = json_array();
+    while (offset < extn->extn_length) {
+        offset++;
+        len = extn->extn_value[offset];
+        if (len <= 3) {
+            offset += 2;
+            continue;
+        }
+        offset++;
+        /* Only handle DNS name */
+        if (tag  == (ASN1_CONTEXT_SPECIFIC | 2)) {
+            char buf[len + 1];
+            memcpy(buf, extn->extn_value + offset, len);
+            buf[len] = '\0';
+            json_array_append_new(jdata, json_string(buf));
+        }
+        offset += len;
+        if (offset >= extn->extn_length)
+            break;
+        tag = extn->extn_value[offset];
+    }
+
+    return jdata;
+}
+
+static json_t *Asn1BasicContraintsToJSON(SSLCertExtension *extn)
+{
+    int ca = (int)extn->extn_value[1];
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    json_object_set_new(jdata, "CA", json_boolean(ca));
+    return jdata;
+}
+
+static json_t *Asn1SubjectKeyIdentifierToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_OCTETSTRING) {
+        SCLogDebug("Invalid value, expected an octet string.");
+        return NULL;
+    }
+
+    uint8_t len = extn->extn_value[1];
+    if (len == 0 || len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    unsigned int out_len = len * 3;
+    char out[out_len];
+    uint8_t i;
+
+    memset(out, 0x00, out_len);
+
+    for (i = 0; i < len; i++) {
+        int x = 0;
+        char one[4];
+
+        memcpy((void *)&x, extn->extn_value + (2+i), 1);
+        snprintf(one, sizeof(one), i == len - 1 ? "%02X" : "%02X:", x);
+        strlcat(out, one, out_len);
+    }
+
+    return json_string(out);
+}
+
+static json_t *Asn1AuthorityKeyIdentifierToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid value, expected a constructed type.");
+        return NULL;
+    }
+
+    uint32_t len = extn->extn_value[3];
+    if (len == 0 || len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    unsigned int out_len = len * 3;
+    char out[out_len];
+    unsigned int i;
+
+    memset(out, 0x00, out_len);
+
+    for (i = 0; i < len; i++) {
+        int x = 0;
+        char one[4];
+
+        memcpy((void *)&x, extn->extn_value + (4+i), 1);
+        snprintf(one, sizeof(one), i == len - 1 ? "%02X" : "%02X:", x);
+        strlcat(out, one, out_len);
+    }
+
+    return json_string(out);
+}
+
+static json_t *Asn1InhibitAnyPolicyToJSON(SSLCertExtension *extn)
+{
+    #define MAX_LENGTH 6
+    uint32_t val = 0;
+    uint32_t i;
+
+    if (extn->extn_value[0] != ASN1_INTEGER) {
+        SCLogDebug("Invalid value, expected an integer");
+        return json_string("unknown");
+    }
+
+    if (extn->extn_length > MAX_LENGTH) {
+        SCLogDebug("value is too big");
+        return json_string("unknown");
+    }
+
+    for (i = 2; i < extn->extn_length; i++)
+    {
+        val = val<<8 | extn->extn_value[i];
+    }
+
+    return json_integer(val);
+}
+
+static json_t *Asn1CRLParseFullName(uint8_t *data, uint8_t *dp_len, uint8_t dp_seq_len)
+{
+    int offset = 0;
+    json_t *jret = NULL;
+    uint8_t fn_len = data[++offset];
+    if (fn_len == 0 || fn_len > dp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    if (data[++offset] == 0x86) {
+        uint8_t uri_len = data[++offset];
+        if (uri_len == 0 || (uri_len + 4) > dp_seq_len) {
+            SCLogDebug("invalid length");
+            return NULL;
+        }
+        char buf[uri_len + 1];
+        offset++;
+        memcpy(buf, (char *)data + offset, uri_len);
+        buf[uri_len] = '\0';
+        jret = json_string(buf);
+    }
+
+    *dp_len += fn_len;
+
+    return jret;
+}
+
+static json_t *Asn1CRLParseDistributionPoint(uint8_t *data, uint8_t *crl_len, uint8_t dp_seq_len)
+{
+    int offset = 0;
+    uint8_t dp_len = data[++offset];
+    if (dp_len == 0 || dp_len > dp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    json_t *jobj = NULL;
+    if (data[++offset] == 0xA0) {
+        /* fullName field length */
+        jobj = Asn1CRLParseFullName(data + offset, &len, dp_len);
+    }
+    *crl_len += dp_len;
+
+    return jobj;
+}
+
+static json_t *Asn1CRLDistributionPointsToJSON(SSLCertExtension *extn)
+{
+    /* check if CRLDistributionPoints is a SEQUENCE */
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        return NULL;
+    }
+
+    uint8_t crl_len = extn->extn_value[1];
+    if (crl_len == 0 || crl_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while ((len + 2) < crl_len) {
+        /* check if DistributionPoint is a SEQUENCE */
+        if (extn->extn_value[offset] != 0x30) {
+            SCLogDebug("identifier different than 0x30");
+            break;
+        }
+
+        uint8_t dp_seq_len = extn->extn_value[++offset];
+        if (dp_seq_len == 0 || dp_seq_len > crl_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+
+        if ((uint8_t)extn->extn_value[++offset] == 0xA0) {
+            json_t *jobj = Asn1CRLParseDistributionPoint((uint8_t *)extn->extn_value + offset, &len, dp_seq_len);
+            if (jobj) {
+                json_array_append_new(jdata, jobj);
+            }
+        }
+
+        offset += len + 2;
+        len += 3;
+    }
+
+    return jdata;
+}
+
+static void Asn1BuildOidValue(uint8_t *data, int offset, uint8_t oid_len, char *str)
+{
+    uint32_t oid_value;
+    uint8_t c;
+    int i = 1;
+
+    c = data[offset];
+    snprintf(str, MAX_OID_LENGTH, "%d.%d", (c/40), (c%40));
+
+    /* sub-identifiers are multi-valued, coded and 7 bits, first bit of
+       the 8bits is used to indicate, if a new value is starting */
+    while (i < oid_len) {
+        int s = strlen(str);
+        c = data[offset + i];
+        oid_value = 0;
+        while (i < oid_len && (c & (1<<7)) == 1<<7) {
+            oid_value = oid_value<<7 | (c & ~(1<<7));
+            i++;
+            c = data[offset + i];
+        }
+        oid_value = oid_value<<7 | c;
+        i++;
+        snprintf(str + s, MAX_OID_LENGTH - s, ".%d", oid_value);
+    }
+}
+
+static json_t *Asn1CPParsePolicyIdentifier(uint8_t *data, uint8_t *crl_len, uint8_t cp_seq_len)
+{
+    int offset = 0;
+    uint8_t pid_len = data[++offset];
+    if (pid_len == 0 || pid_len > cp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+    offset++;
+
+    char str[MAX_OID_LENGTH];
+    Asn1BuildOidValue(data, offset, pid_len, str);
+
+    *crl_len += pid_len + 2;
+
+    return json_string(str);
+}
+
+static json_t *Asn1CPParsePolicyQualifiers(uint8_t *data, uint8_t *crl_len, uint8_t cp_seq_len)
+{
+    int offset = 2;
+    uint8_t pq_len = data[1];
+    if (pq_len == 0 || pq_len > cp_seq_len) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    *crl_len += pq_len + 2;
+
+    /* PolicyQualifierInfo */
+    if (data[0] == ASN1_CONSTRUCTED) {
+        uint8_t len = 0;
+        json_t *jobj = json_object();
+        if (jobj == NULL) {
+            return NULL;
+        }
+
+        while (len < pq_len) {
+            switch(data[offset]) {
+                case ASN1_OID:
+                    {
+                        uint8_t pqid_len = data[++offset];
+                        if (pqid_len == 0 || pqid_len > pq_len) {
+                            SCLogDebug("invalid length");
+                            json_object_clear(jobj);
+                            json_decref(jobj);
+                            return NULL;
+                        }
+                        offset++;
+                        char str[MAX_OID_LENGTH];
+                        Asn1BuildOidValue(data, offset, pqid_len, str);
+                        len += pqid_len + 2;
+                        json_object_set_new(jobj, "qualifier_id", json_string(str));
+                    }
+                    break;
+                case ASN1_IA5STRING:
+                    {
+                        uint8_t qualifier_len = data[++offset];
+                        if (qualifier_len == 0 || qualifier_len > pq_len) {
+                            SCLogDebug("invalid length");
+                            json_object_clear(jobj);
+                            json_decref(jobj);
+                            return NULL;
+                        }
+                        char buf[qualifier_len + 1];
+                        memset(buf, 0x00, qualifier_len + 1);
+                        offset++;
+                        memcpy(buf, (char *)data + offset, qualifier_len);
+                        buf[qualifier_len] = '\0';
+                        json_object_set_new(jobj, "qualifier", json_string(buf));
+                        len += qualifier_len + 2;
+                    }
+                    break;
+                default:
+                    len += data[++offset] + 2;
+                    break;
+            }
+            offset = len + 2;
+        }
+        return jobj;
+    }
+
+    return NULL;
+}
+
+static json_t *Asn1CertificatePoliciesToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid value, expected a constructed type.");
+        return NULL;
+    }
+
+    uint8_t cp_len = extn->extn_value[1];
+    if (cp_len == 0 || cp_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 2;
+    int offset = 2;
+
+    json_t *jidentifier = NULL;
+    json_t *jqualifier = NULL;
+
+    while ((len + 2) < cp_len) {
+        if (extn->extn_value[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid value, expected a constructed type.");
+            break;
+        }
+
+        uint8_t pi_seq_len = extn->extn_value[++offset];
+        if (pi_seq_len == 0 || pi_seq_len > cp_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+
+        len += 2;
+        offset++;
+        json_t *jobj2;
+        if ((uint8_t)extn->extn_value[offset] == ASN1_OID) {
+            jobj2 = Asn1CPParsePolicyIdentifier((uint8_t *)extn->extn_value + offset, &len, pi_seq_len);
+            if (jobj2) {
+                if (jidentifier == NULL) {
+                    jidentifier = json_array();
+                    if (jidentifier == NULL) {
+                        return NULL;
+                    }
+                }
+                json_array_append_new(jidentifier, jobj2);
+            }
+        } else if ((uint8_t)extn->extn_value[offset] == ASN1_CONSTRUCTED) {
+            jobj2 = Asn1CPParsePolicyQualifiers((uint8_t *)extn->extn_value + offset, &len, pi_seq_len);
+            if (jobj2) {
+                if (jqualifier == NULL) {
+                    jqualifier = json_array();
+                    if (jqualifier == NULL) {
+                        return NULL;
+                    }
+                }
+                json_array_append_new(jqualifier, jobj2);
+            }
+        }
+        offset = len;
+    }
+
+    if (jqualifier || jidentifier) {
+        json_t *jdata = json_object();
+        if (jqualifier)
+            json_object_set_new(jdata, "policy_qualifiers", jqualifier);
+        if (jidentifier)
+            json_object_set_new(jdata, "policy_identifiers", jidentifier);
+        return jdata;
+    }
+
+    return NULL;
+}
+
+static json_t *Asn1PolicyMappingsToJSON(SSLCertExtension *extn)
+{
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid type, expected a constructed.");
+        return NULL;
+    }
+
+    uint8_t pm_len = extn->extn_value[1];
+    if (pm_len == 0 || pm_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+    json_t *jdata = json_array();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    while ((len + 2) < pm_len) {
+        if (extn->extn_value[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid type, expected a constructed.");
+            break;
+        }
+
+        uint8_t seq_len = extn->extn_value[++offset];
+        if (seq_len == 0 || seq_len > pm_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+        uint8_t len2 = 0;
+        int first = 1;
+        json_t *jobj = json_object();
+        if (jobj == NULL) {
+            json_decref(jdata);
+            return NULL;
+        }
+        offset++;
+        while ((len2 + 4) < seq_len) {
+            if ((uint8_t)extn->extn_value[offset] == ASN1_OID) {
+                uint8_t obj_len = extn->extn_value[++offset];
+                if (obj_len == 0 || obj_len > seq_len) {
+                    SCLogDebug("invalid length");
+                    break;
+                }
+                offset++;
+                const char *key = (first) ? "issuerDomainPolicy" : "subjectDomainPolicy";
+                char value[MAX_OID_LENGTH];
+                Asn1BuildOidValue((uint8_t *)extn->extn_value, offset, obj_len, value);
+                json_object_set_new(jobj, key, json_string(value));
+                len2 += obj_len;
+                offset += obj_len;
+            }
+            first = (first) ? 0 : 1;
+        }
+        json_array_append_new(jdata, jobj);
+        len += len2 + 4;
+        if (offset > len) {
+            offset = len;
+        }
+    }
+
+    return jdata;
+}
+
+static json_t *Asn1PolicyContraintsToJSON(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != ASN1_CONSTRUCTED) {
+        SCLogDebug("Invalid type, expected a constructed.");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        const char *key = NULL;
+        int i;
+        uint32_t value = 0;
+        if ((uint8_t)extn->extn_value[offset] == 0x80) {
+            key = "requireExplicitPolicy";
+        } else if ((uint8_t)extn->extn_value[offset] == 0x81) {
+            key = "inhibitPolicyMapping";
+        } else {
+            /* this sequence has only two possible values,
+             * so if we are here means that current value
+             * is wrong. So let's return the object which
+             * may contain a valid value. */
+            return jobj;
+        }
+
+        uint8_t int_len = extn->extn_value[++offset];
+        if (int_len == 0 || int_len > seq_len) {
+            SCLogDebug("invalid length");
+            break;
+        }
+        offset++;
+        for (i = 0; i < int_len; i++) {
+            value = value<<8 | (uint8_t)extn->extn_value[offset];
+            offset++;
+        }
+        json_object_set_new(jobj, key, json_integer(value));
+        len += int_len + 2;
+    }
+
+    return jobj;
+}
+
+static json_t *Asn1IssuerAlternativeName(SSLCertExtension *extn)
+{
+    json_t *jobj = json_array();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        uint8_t gn_len = extn->extn_value[++offset];
+        if (gn_len == 0 || gn_len > seq_len) {
+            SCLogDebug("Invalid length");
+            return jobj;
+        }
+        if ((uint8_t)extn->extn_value[offset - 1] == URI_TYPE) {
+            char buf[gn_len + 1];
+            memset(buf, 0x00, gn_len + 1);
+            offset++;
+            memcpy(buf, extn->extn_value + offset, gn_len);
+            buf[gn_len] = '\0';
+            json_array_append_new(jobj, json_string(buf));
+        }
+        len += gn_len + 2;
+        offset = len;
+    }
+
+    return jobj;
+}
+
+static json_t *Asn1NCParseGeneralSubtrees(uint8_t *data, uint8_t *gst_len, uint8_t gst_seq_len)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    json_t *jarray_uri = NULL;
+    json_t *jarray_dns = NULL;
+
+    int offset = 0;
+    uint8_t len = 0;
+
+    while ((len + 4) < gst_seq_len) {
+        if (data[offset] != ASN1_CONSTRUCTED) {
+            SCLogDebug("Invalid type, expected a constructed.");
+            json_decref(jobj);
+            return NULL;
+        }
+        uint8_t seq_len = data[++offset];
+        if (seq_len == 0 || seq_len > gst_seq_len) {
+            SCLogDebug("invalid length");
+            json_decref(jobj);
+            return NULL;
+        }
+        offset++;
+        uint8_t name_type = data[offset];
+        if (name_type == URI_TYPE || name_type == DNS_TYPE) {
+            uint8_t gn_len = data[++offset];
+            if (gn_len == 0 || gn_len > seq_len) {
+                SCLogDebug("invalid length");
+                json_object_clear(jobj);
+                json_decref(jobj);
+                return NULL;
+            }
+            if (jarray_uri == NULL && name_type == URI_TYPE) {
+                jarray_uri = json_array();
+                if (jarray_uri == NULL) {
+                    json_decref(jobj);
+                    if (jarray_dns != NULL) {
+                        json_decref(jarray_dns);
+                    }
+                    return NULL;
+                }
+            }
+            if (jarray_dns == NULL && name_type == DNS_TYPE) {
+                jarray_dns = json_array();
+                if (jarray_dns == NULL) {
+                    json_decref(jobj);
+                    if (jarray_uri != NULL) {
+                        json_decref(jarray_uri);
+                    }
+                    return NULL;
+                }
+            }
+            offset++;
+            char buf[gn_len + 1];
+            memset(buf, 0x00, gn_len + 1);
+            memcpy(buf, (char *)data + offset, gn_len);
+            if (name_type == URI_TYPE) {
+                json_array_append_new(jarray_uri, json_string(buf));
+            }
+            if (name_type == DNS_TYPE) {
+                json_array_append_new(jarray_dns, json_string(buf));
+            }
+            len += gn_len + 2;
+            offset = len + 2;
+        } else {
+            /* we have got an invalid type, so let's quit
+             * and return what we have seen, if any. */
+            goto end;
+        }
+    }
+    *gst_len += len + 2;
+end:
+    if (jarray_uri)
+        json_object_set_new(jobj, "uri", jarray_uri);
+    if (jarray_dns)
+        json_object_set_new(jobj, "dns", jarray_dns);
+
+    return jobj;
+}
+
+static json_t *Asn1NameContraintsToJSON(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+
+    while ((len + 2) < seq_len) {
+        const char *key = NULL;
+        if ((uint8_t)extn->extn_value[offset] == 0xA0) {
+            key = "permittedSubTrees";
+        } else if ((uint8_t)extn->extn_value[offset] == 0xA1) {
+            key = "excludedSubtrees";
+        } else {
+            return jobj;
+        }
+
+        uint8_t gst_seq_len = extn->extn_value[++offset];
+        if (gst_seq_len == 0 || gst_seq_len > seq_len) {
+            SCLogDebug("invalid length");
+            return jobj;
+        }
+        uint8_t sub_len = 0;
+        offset++;
+        while ((sub_len + 4) < gst_seq_len) {
+            json_t *jdata = Asn1NCParseGeneralSubtrees((uint8_t *)extn->extn_value + offset, &sub_len, gst_seq_len);
+            if (jdata) {
+                json_object_set_new(jobj, key, jdata);
+            } else {
+                return jobj;
+            }
+        }
+        len += sub_len + 2;
+    }
+
+    return jobj;
+}
+
+#define EXTN_TIME_LEN 15
+static json_t *Asn1PrivateKeyUsagePeriod(SSLCertExtension *extn)
+{
+    json_t *jobj = json_object();
+    if (jobj == NULL) {
+        return NULL;
+    }
+
+    if (extn->extn_value[0] != 0x30) {
+        SCLogDebug("identifier different than 0x30");
+        json_decref(jobj);
+        return NULL;
+    }
+
+    uint8_t seq_len = extn->extn_value[1];
+    if (seq_len == 0 || seq_len > extn->extn_length) {
+        SCLogDebug("invalid length");
+        json_decref(jobj);
+        return NULL;
+    }
+    uint8_t len = 0;
+    int offset = 2;
+    const char *key = NULL;
+
+    while ((len + EXTN_TIME_LEN + 2) <= seq_len) {
+        if ((uint8_t)extn->extn_value[offset] == 0x80) {
+            key = "notbefore";
+        } else if ((uint8_t)extn->extn_value[offset] == 0x81) {
+            key = "notafter";
+        } else {
+            return jobj;
+        }
+        uint8_t time_len = extn->extn_value[++offset];
+        if (time_len != EXTN_TIME_LEN) {
+            SCLogDebug("invalid length");
+            return jobj;
+        }
+        offset++;
+        char timestr[EXTN_TIME_LEN + 1];
+        char timebuf[64];
+        time_t time;
+        struct timeval tv;
+
+        memset(timestr, 0x00, sizeof(timestr));
+        memcpy(timestr, extn->extn_value + offset, EXTN_TIME_LEN);
+        time = GentimeToTime(timestr);
+        if (time < 0) {
+            return jobj;
+        }
+
+        tv.tv_sec = time;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+
+        json_object_set_new(jobj, key, json_string(timebuf));
+        len += EXTN_TIME_LEN + 2;
+        offset = len + 2;
+    }
+
+    return jobj;
+}
+
+#endif
 

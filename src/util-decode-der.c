@@ -47,8 +47,6 @@
 #include "util-decode-der.h"
 #include "util-validate.h"
 
-#define MAX_OID_LENGTH 256
-
 static Asn1Generic * DecodeAsn1DerBitstring(const unsigned char *buffer,
                                             uint32_t size, uint8_t depth,
                                             uint32_t *errcode) __attribute__((nonnull));

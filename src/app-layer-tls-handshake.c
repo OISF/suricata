@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 ANSSI
+ * Copyright (C) 2011-2014 ANSSI
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@
 
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
+#include "util-tls.h"
 #include "util-crypt.h"
 
 #define SSLV3_RECORD_LEN 5
@@ -81,8 +82,56 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
     };
 }
 
-int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
-                                        uint32_t input_len)
+/**
+ * \brief This function is called to parse a TLS ServerHello handshake message
+ * \param ssl_state the TLS state structure for the parser
+ * \param input input data
+ * \param input_len length of the input data
+ *
+ * \retval -1 if the parsing failed (message is not complete), otherwise the message length
+ */
+int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
+{
+    uint32_t version, length;
+    uint16_t ciphersuite;
+    uint8_t compressionmethod;
+    //const char *ciphername;
+
+    // parse the message only if complete
+    if (input_len < ssl_state->curr_connp->message_length || input_len < 40)
+        return -1;
+
+    version = input[0]<<8 | input[1];
+    ssl_state->curr_connp->handshake_server_hello_ssl_version = version;
+
+    input += 2;
+
+    /* skip the random field */
+    input += 32;
+
+    /* skip the session ID */
+    length = input[0];
+    input += 1 + length;
+
+    ciphersuite = input[0]<<8 | input[1];
+    ssl_state->curr_connp->ciphersuite = ciphersuite;
+
+    input += 2;
+
+    compressionmethod = input[0];
+    ssl_state->curr_connp->compressionmethod = compressionmethod;
+
+    //input += 1;
+
+    /* extensions (like renegotiation) */
+
+    //ciphername = tls_ciphersuite_id_to_name(ciphersuite);
+    //SCLogInfo("TLS Handshake Version 0x%.4x Cipher 0x%.4x (%s) Compression 0x%.4x\n", version, ciphersuite, ciphername, compressionmethod);
+
+    return ssl_state->curr_connp->message_length;
+}
+
+int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
 {
     uint32_t certificates_length, cur_cert_length;
     int i;
@@ -200,6 +249,55 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                 if (i == 0) {
                     ssl_state->server_connp.cert0_not_before = not_before;
                     ssl_state->server_connp.cert0_not_after = not_after;
+                }
+            }
+
+            rc = Asn1DerGetSubjectPublicKeyAlgo(cert, buffer, sizeof(buffer), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    if (ssl_state->server_connp.cert0_subject_pk_algo == NULL)
+                        ssl_state->server_connp.cert0_subject_pk_algo = SCStrdup(buffer);
+                    if (ssl_state->server_connp.cert0_subject_pk_algo == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
+                }
+            }
+
+            rc = Asn1DerGetCertSignatureAlgo(cert, buffer, sizeof(buffer), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    if (ssl_state->server_connp.cert0_signature_algo == NULL)
+                        ssl_state->server_connp.cert0_signature_algo = SCStrdup(buffer);
+                    if (ssl_state->server_connp.cert0_signature_algo == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
+                }
+            }
+
+            rc = Asn1DerGetSignatureAlgo(cert, buffer, sizeof(buffer), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    if (ssl_state->server_connp.signature_algo == NULL)
+                        ssl_state->server_connp.signature_algo = SCStrdup(buffer);
+                    if (ssl_state->server_connp.signature_algo == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
+                }
+            }
+
+            if (i == 0) {
+                rc = Asn1DerGetExtensions(cert, &ssl_state->server_connp, &errcode);
+                if (rc != 0) {
+                    TLSCertificateErrCodeToWarning(ssl_state, errcode);
                 }
             }
 
