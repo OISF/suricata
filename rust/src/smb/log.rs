@@ -180,7 +180,7 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             if x.directory {
                 js.set_string("directory", &name);
             } else {
-                js.set_string("file", &name);
+                js.set_string("filename", &name);
             }
             match x.disposition {
                 1 => { js.set_string("disposition", "open"); },
@@ -230,7 +230,7 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         },
         Some(SMBTransactionTypeData::FILE(ref x)) => {
             let file_name = String::from_utf8_lossy(&x.file_name);
-            js.set_string("file", &file_name);
+            js.set_string("filename", &file_name);
             let share_name = String::from_utf8_lossy(&x.share_name);
             js.set_string("share", &share_name);
 
