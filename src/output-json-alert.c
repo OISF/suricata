@@ -58,6 +58,7 @@
 #include "output-json-alert.h"
 #include "output-json-dnp3.h"
 #include "output-json-http.h"
+#include "output-json-ja3.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
@@ -71,6 +72,7 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
+#include "util-ja3.h"
 #include "util-crypt.h"
 #include "util-validate.h"
 
@@ -149,6 +151,26 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
         JsonSshLogJSON(tjs, ssh_state);
 
         json_object_set_new(js, "ssh", tjs);
+    }
+
+    return;
+}
+
+static void AlertJsonJa3(const Flow *f, json_t *js)
+{
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
+    if (ssl_state) {
+        if (ssl_state->ja3_str == NULL)
+            return;
+
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonJa3LogHash(tjs, ssl_state, "hash");
+        JsonJa3LogStr(tjs, ssl_state, "str");
+
+        json_object_set_new(js, "ja3", tjs);
     }
 
     return;
@@ -437,6 +459,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             /* ssh alert */
             if (proto == ALPROTO_SSH) {
                 AlertJsonSsh(p->flow, js);
+            }
+
+            /* ja3 alert */
+            if (proto == ALPROTO_TLS) {
+                AlertJsonJa3(p->flow, js);
             }
 
             /* smtp alert */

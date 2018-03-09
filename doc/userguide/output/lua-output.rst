@@ -508,6 +508,53 @@ Example:
       end
   end
 
+JA3
+---
+
+JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
+
+Initialize with:
+
+::
+
+  function init (args)
+      local needs = {}
+      needs["protocol"] = "tls"
+      return needs
+  end
+
+Ja3GetHash
+~~~~~~~~~~
+
+Get the JA3 hash (md5sum of JA3 string) through Ja3GetHash.
+
+Example:
+
+::
+
+  function log (args)
+      hash = Ja3GetHash()
+      if hash == nil then
+          return
+      end
+  end
+
+Ja3GetStr
+~~~~~~~~~
+
+Get the JA3 string through Ja3GetStr.
+
+Example:
+
+::
+
+  function log (args)
+      str = Ja3GetStr()
+      if str == nil then
+          return
+      end
+  end
+
 SSH
 ---
 
