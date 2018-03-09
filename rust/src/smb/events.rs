@@ -27,6 +27,7 @@ pub enum SMBEvent {
     MalformedNtlmsspRequest = 3,
     MalformedNtlmsspResponse = 4,
     DuplicateNegotiate = 5,
+    NegotiateMalformedDialects = 6,
 }
 
 pub fn smb_str_to_event(instr: &str) -> i32 {
@@ -38,6 +39,7 @@ pub fn smb_str_to_event(instr: &str) -> i32 {
         "malformed_ntlmssp_request"     => SMBEvent::MalformedNtlmsspRequest as i32,
         "malformed_ntlmssp_response"    => SMBEvent::MalformedNtlmsspResponse as i32,
         "duplicate_negotiate"           => SMBEvent::DuplicateNegotiate as i32,
+        "negotiate_malformed_dialects"  => SMBEvent::NegotiateMalformedDialects as i32,
         _ => -1,
     }
 }

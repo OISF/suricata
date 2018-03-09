@@ -211,8 +211,15 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                 IResult::Done(_, pr) => {
                     SCLogDebug!("SMB_COMMAND_NEGOTIATE_PROTOCOL {:?}", pr);
 
+                    let mut bad_dialects = false;
                     let mut dialects : Vec<Vec<u8>> = Vec::new();
                     for d in &pr.dialects {
+                        if d.len() == 0 {
+                            bad_dialects = true;
+                            continue;
+                        } else if d.len() == 1 {
+                            bad_dialects = true;
+                        }
                         let x = &d[1..d.len()];
                         let dvec = x.to_vec();
                         dialects.push(dvec);
@@ -232,6 +239,9 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                             tdn.dialects = dialects;
                         }
                         tx.request_done = true;
+                        if bad_dialects {
+                            tx.set_event(SMBEvent::NegotiateMalformedDialects);
+                        }
                     }
                     true
                 },
@@ -388,18 +398,15 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                                 _ => { None },
                             };
                             if d == None {
-                                tx.set_event(SMBEvent::MalformedData);
+                                tx.set_event(SMBEvent::NegotiateMalformedDialects);
                             }
                             (true, d)
                         },
                         None => { (false, None) },
                     };
-                    match dialect {
-                        Some(d) => {
-                            SCLogDebug!("dialect {:?}", d);
-                            state.dialect_vec = Some(d);
-                        },
-                        _ => { },
+                    if let Some(d) = dialect {
+                        SCLogDebug!("dialect {:?}", d);
+                        state.dialect_vec = Some(d);
                     }
                     have_ntx
                 },
