@@ -304,6 +304,32 @@ impl SMBVerCmdStat {
     }
 }
 
+/// "The FILETIME structure is a 64-bit value that represents the number of
+/// 100-nanosecond intervals that have elapsed since January 1, 1601,
+/// Coordinated Universal Time (UTC)."
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct SMBFiletime {
+    ts: u64, 
+}
+
+impl SMBFiletime {
+    pub fn new(raw: u64) -> SMBFiletime {
+        SMBFiletime {
+            ts: raw,
+        }
+    }
+
+    /// inspired by Bro, convert FILETIME to secs since unix epoch
+    pub fn as_unix(&self) -> u32 {
+        if self.ts > 116_444_736_000_000_000_u64 {
+            let ts = self.ts / 10000000 - 11644473600;
+            ts as u32
+        } else {
+            0
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum SMBTransactionTypeData {
     FILE(SMBTransactionFile),
@@ -320,6 +346,13 @@ pub struct SMBTransactionCreate {
     pub delete_on_close: bool,
     pub directory: bool,
     pub filename: Vec<u8>,
+
+    pub create_ts: u32,
+    pub last_access_ts: u32,
+    pub last_write_ts: u32,
+    pub last_change_ts: u32,
+
+    pub size: u64,
 }
 
 impl SMBTransactionCreate {
@@ -329,6 +362,11 @@ impl SMBTransactionCreate {
             delete_on_close: del,
             directory: dir,
             filename: filename,
+            create_ts: 0,
+            last_access_ts: 0,
+            last_write_ts: 0,
+            last_change_ts: 0,
+            size: 0,
         }
     }
 }

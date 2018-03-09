@@ -597,22 +597,37 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         SCLogDebug!("SMBv2: Create response => {:?}", cr);
 
                         let guid_key = SMBCommonHdr::from2(r, SMBHDR_TYPE_FILENAME);
-                        match state.ssn2vec_map.remove(&guid_key) {
-                            Some(mut p) => {
-                                p.retain(|&i|i != 0x00);
-                                state.guid2name_map.insert(cr.guid.to_vec(), p);
-                            },
-                            _ => {
-                                SCLogDebug!("SMBv2 response: GUID NOT FOUND");
-                            },
+                        if let Some(mut p) = state.ssn2vec_map.remove(&guid_key) {
+                            p.retain(|&i|i != 0x00);
+                            state.guid2name_map.insert(cr.guid.to_vec(), p);
+                        } else {
+                            SCLogDebug!("SMBv2 response: GUID NOT FOUND");
+                        }
+
+                        let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                        if let Some(tx) = state.get_generic_tx(2, r.command, &tx_hdr) {
+                            SCLogDebug!("tx {} with {}/{} marked as done",
+                                    tx.id, r.command, &smb2_command_string(r.command));
+                            tx.set_status(r.nt_status, false);
+                            tx.response_done = true;
+
+                            if let Some(SMBTransactionTypeData::CREATE(ref mut tdn)) = tx.type_data {
+                                tdn.create_ts = cr.create_ts.as_unix();
+                                tdn.last_access_ts = cr.last_access_ts.as_unix();
+                                tdn.last_write_ts = cr.last_write_ts.as_unix();
+                                tdn.last_change_ts = cr.last_change_ts.as_unix();
+                                tdn.size = cr.size;
+                            }
                         }
                     }
                     _ => {
                         events.push(SMBEvent::MalformedData);
                     },
                 }
+                true
+            } else {
+                false
             }
-            false
         },
         SMB2_COMMAND_TREE_DISCONNECT => {
             // normally removed when processing request,

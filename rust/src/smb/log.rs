@@ -193,6 +193,13 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             } else {
                 js.set_string("access", "normal");
             }
+
+            // field names inspired by Bro
+            js.set_integer("created", x.create_ts as u64);
+            js.set_integer("accessed", x.last_access_ts as u64);
+            js.set_integer("modified", x.last_write_ts as u64);
+            js.set_integer("changed", x.last_change_ts as u64);
+            js.set_integer("size", x.size);
         },
         Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
             if x.smb_ver == 1 {

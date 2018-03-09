@@ -16,6 +16,7 @@
  */
 
 use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes};
+use smb::smb::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SecBlobRecord<'a> {
@@ -339,15 +340,36 @@ named!(pub parse_smb2_response_read<Smb2ReadResponseRecord>,
 #[derive(Debug,PartialEq)]
 pub struct Smb2CreateResponseRecord<'a> {
     pub guid: &'a[u8],
+    pub create_ts: SMBFiletime,
+    pub last_access_ts: SMBFiletime,
+    pub last_write_ts: SMBFiletime,
+    pub last_change_ts: SMBFiletime,
+    pub size: u64,
 }
 
 named!(pub parse_smb2_response_create<Smb2CreateResponseRecord>,
     do_parse!(
-            skip1: take!(64)
+            ssize: le_u16
+        >>  oplock: le_u8
+        >>  resp_flags: le_u8
+        >>  create_action: le_u32
+        >>  create_ts: le_u64
+        >>  last_access_ts: le_u64
+        >>  last_write_ts: le_u64
+        >>  last_change_ts: le_u64
+        >>  alloc_size: le_u64
+        >>  eof: le_u64
+        >>  attrs: le_u32
+        >>  padding: take!(4)
         >>  guid: take!(16)
         >>  skip2: take!(8)
         >>  (Smb2CreateResponseRecord {
                 guid : guid,
+                create_ts: SMBFiletime::new(create_ts),
+                last_access_ts: SMBFiletime::new(last_access_ts),
+                last_write_ts: SMBFiletime::new(last_write_ts),
+                last_change_ts: SMBFiletime::new(last_change_ts),
+                size: eof,
             })
 ));
 
