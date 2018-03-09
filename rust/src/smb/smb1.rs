@@ -488,11 +488,32 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                                 SCLogDebug!("SMBv1 response: GUID NOT FOUND");
                             },
                         }
+
+                        let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+                        if let Some(tx) = state.get_generic_tx(1, r.command as u16, &tx_hdr) {
+                            SCLogDebug!("tx {} with {}/{} marked as done",
+                                    tx.id, r.command, &smb1_command_string(r.command));
+                            tx.set_status(r.nt_status, false);
+                            tx.response_done = true;
+
+                            if let Some(SMBTransactionTypeData::CREATE(ref mut tdn)) = tx.type_data {
+                                tdn.create_ts = cr.create_ts.as_unix();
+                                tdn.last_access_ts = cr.last_access_ts.as_unix();
+                                tdn.last_write_ts = cr.last_write_ts.as_unix();
+                                tdn.last_change_ts = cr.last_change_ts.as_unix();
+                                tdn.size = cr.file_size;
+                            }
+                        }
+                        true
                     },
-                    _ => { events.push(SMBEvent::MalformedData); },
+                    _ => {
+                        events.push(SMBEvent::MalformedData);
+                        false
+                    },
                 }
+            } else {
+                false
             }
-            false
         },
         SMB1_COMMAND_TRANS => {
             smb1_trans_response_record(state, r);
