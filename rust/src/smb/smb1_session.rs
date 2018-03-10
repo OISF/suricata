@@ -37,7 +37,10 @@ pub struct SessionSetupResponse {
     pub native_lm: Vec<u8>,
 }
 
-fn get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
+/// parse a UTF16 string that is null terminated. Normally by 2 null
+/// bytes, but at the end of the data it can also be a single null.
+/// Skip every second byte.
+pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
 {
     SCLogDebug!("get_unicode_string: blob {} {:?}", blob.len(), blob);
     let mut name : Vec<u8> = Vec::new();
@@ -61,7 +64,8 @@ fn get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
     IResult::Error(error_code!(ErrorKind::Custom(130)))
 }
 
-named!(pub get_nullterm_string<Vec<u8>>,
+/// parse an ASCII string that is null terminated
+named!(pub smb_get_ascii_string<Vec<u8>>,
     do_parse!(
             s: take_until_and_consume!("\x00")
         >> ( s.to_vec() )
@@ -72,11 +76,11 @@ pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> Sessi
     if blob.len() > 1 && r.has_unicode_support() {
         let offset = r.data.len() - blob.len();
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
-        let (native_os, native_lm, primary_domain) = match get_unicode_string(blob) {
+        let (native_os, native_lm, primary_domain) = match smb_get_unicode_string(blob) {
             IResult::Done(rem, n1) => {
-                match get_unicode_string(rem) {
+                match smb_get_unicode_string(rem) {
                     IResult::Done(rem, n2) => {
-                        match get_unicode_string(rem) {
+                        match smb_get_unicode_string(rem) {
                             IResult::Done(_, n3) => { (n1, n2, n3) },
                                 _ => { (n1, n2, Vec::new()) },
                         }
@@ -94,11 +98,11 @@ pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> Sessi
             primary_domain:primary_domain,
         }
     } else {
-        let (native_os, native_lm, primary_domain) = match get_nullterm_string(blob) {
+        let (native_os, native_lm, primary_domain) = match smb_get_ascii_string(blob) {
             IResult::Done(rem, n1) => {
-                match get_nullterm_string(rem) {
+                match smb_get_ascii_string(rem) {
                     IResult::Done(rem, n2) => {
-                        match get_nullterm_string(rem) {
+                        match smb_get_ascii_string(rem) {
                             IResult::Done(_, n3) => { (n1, n2, n3) },
                                 _ => { (n1, n2, Vec::new()) },
                         }
@@ -123,9 +127,9 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
     if blob.len() > 1 && r.has_unicode_support() {
         let offset = r.data.len() - blob.len();
         let blob = if offset % 2 == 1 { &blob[1..] } else { blob };
-        let (native_os, native_lm) = match get_unicode_string(blob) {
+        let (native_os, native_lm) = match smb_get_unicode_string(blob) {
             IResult::Done(rem, n1) => {
-                match get_unicode_string(rem) {
+                match smb_get_unicode_string(rem) {
                     IResult::Done(_, n2) => (n1, n2),
                     _ => { (n1, Vec::new()) },
                 }
@@ -140,9 +144,9 @@ pub fn smb1_session_setup_response_host_info(r: &SmbRecord, blob: &[u8]) -> Sess
         }
     } else {
         SCLogDebug!("session_setup_response_host_info: not unicode");
-        let (native_os, native_lm) = match get_nullterm_string(blob) {
+        let (native_os, native_lm) = match smb_get_ascii_string(blob) {
             IResult::Done(rem, n1) => {
-                match get_nullterm_string(rem) {
+                match smb_get_ascii_string(rem) {
                     IResult::Done(_, n2) => (n1, n2),
                     _ => { (n1, Vec::new()) },
                 }
