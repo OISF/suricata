@@ -20,6 +20,26 @@ use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
 use smb::smb::*;
 use smb::smb_records::*;
 
+fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8], Vec<u8>>
+{
+    do_parse!(i,
+            cond!(offset % 2 == 1, take!(1))
+        >>  s: call!(smb_get_unicode_string)
+        >> ( s )
+    )
+}
+
+/// take a string, unicode or ascii based on record
+pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>> {
+    do_parse!(i,
+          u: value!(r.has_unicode_support())
+       >> s: switch!(value!(u),
+                true => apply!(smb_get_unicode_string_with_offset, offset) |
+                false => call!(smb_get_ascii_string))
+       >> ( s )
+    )
+}
+
 #[derive(Debug,PartialEq)]
 pub struct Smb1WriteRequestRecord<'a> {
     pub offset: u64,
@@ -158,8 +178,7 @@ pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IRes
        >> pwlen: le_u16
        >> _bcc: le_u16
        >> _pw: take!(pwlen)
-       >> unicode: value!(r.has_unicode_support())
-       >> path: switch!(value!(unicode), true => call!(smb_get_unicode_string) | false => call!(smb_get_ascii_string))
+       >> path: apply!(smb1_get_string, r, 11 + pwlen as usize)
        >> service: take_until_and_consume!("\x00")
        >> (SmbRecordTreeConnectAndX {
                 path: path,
