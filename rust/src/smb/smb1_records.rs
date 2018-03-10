@@ -139,7 +139,7 @@ named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeCon
         >>  cond!(wct == 7, take!(8))   // access masks
         >>  bcc: le_u16
         >>  service: take_until_and_consume!("\x00")
-        >>  nativefs: rest
+        >>  nativefs: take_until_and_consume!("\x00")
         >> (Smb1ResponseRecordTreeConnectAndX {
                 service:service,
                 nativefs:nativefs,
@@ -148,21 +148,24 @@ named!(pub parse_smb_connect_tree_andx_response_record<Smb1ResponseRecordTreeCon
 
 #[derive(Debug,PartialEq)]
 pub struct SmbRecordTreeConnectAndX<'a> {
-    pub share: &'a[u8],
+    pub path: Vec<u8>,
+    pub service: &'a[u8],
 }
 
-named!(pub parse_smb_connect_tree_andx_record<SmbRecordTreeConnectAndX>,
-    do_parse!(
-       skip1: take!(7)
+pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IResult<&'a[u8], SmbRecordTreeConnectAndX<'a>> {
+    do_parse!(i,
+       _skip1: take!(7)
        >> pwlen: le_u16
-       >> bcc: le_u16
-       >> pw: take!(pwlen)
-       >> share: cond!(bcc >= (6 + pwlen), take!(bcc - (6 + pwlen)))
-       >> service: take!(6)
+       >> _bcc: le_u16
+       >> _pw: take!(pwlen)
+       >> unicode: value!(r.has_unicode_support())
+       >> path: switch!(value!(unicode), true => call!(smb_get_unicode_string) | false => call!(smb_get_ascii_string))
+       >> service: take_until_and_consume!("\x00")
        >> (SmbRecordTreeConnectAndX {
-                share: share.unwrap_or(&[]),
+                path: path,
+                service: service,
            }))
-);
+}
 
 #[derive(Debug,PartialEq)]
 pub struct SmbRecordTransRequest<'a> {

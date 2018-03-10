@@ -283,15 +283,13 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         },
         SMB1_COMMAND_TREE_CONNECT_ANDX => {
             SCLogDebug!("SMB1_COMMAND_TREE_CONNECT_ANDX");
-            match parse_smb_connect_tree_andx_record(r.data) {
+            match parse_smb_connect_tree_andx_record(r.data, r) {
                 IResult::Done(_, create_record) => {
                     let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_TREE);
-                    let mut name_val = create_record.share.to_vec();
-                    name_val.retain(|&i|i != 0x00);
+                    let mut name_val = create_record.path;
                     if name_val.len() > 1 {
                         name_val = name_val[1..].to_vec();
                     }
-                    //state.ssn2vec_map.insert(name_key, name_val);
 
                     // store hdr as SMBHDR_TYPE_TREE, so with tree id 0
                     // when the response finds this we update it
