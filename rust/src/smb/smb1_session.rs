@@ -15,10 +15,11 @@
  * 02110-1301, USA.
  */
 
-use nom::{IResult, ErrorKind};
+use nom::{IResult};
 
 use log::*;
 
+use smb::smb_records::*;
 use smb::smb1_records::*;
 use smb::smb::*;
 use smb::events::*;
@@ -36,40 +37,6 @@ pub struct SessionSetupResponse {
     pub native_os: Vec<u8>,
     pub native_lm: Vec<u8>,
 }
-
-/// parse a UTF16 string that is null terminated. Normally by 2 null
-/// bytes, but at the end of the data it can also be a single null.
-/// Skip every second byte.
-pub fn smb_get_unicode_string(blob: &[u8]) -> IResult<&[u8], Vec<u8>>
-{
-    SCLogDebug!("get_unicode_string: blob {} {:?}", blob.len(), blob);
-    let mut name : Vec<u8> = Vec::new();
-    let mut c = blob;
-    while c.len() >= 1 {
-        if c.len() == 1 && c[0] == 0 {
-            let rem = &c[1..];
-            SCLogDebug!("get_unicode_string: name {:?}", name);
-            return IResult::Done(rem, name)
-        } else if c.len() == 1 {
-            break;
-        } else if c[0] == 0 && c[1] == 0 {
-            let rem = &c[2..];
-            SCLogDebug!("get_unicode_string: name {:?}", name);
-            return IResult::Done(rem, name)
-        }
-        name.push(c[0]);
-        c = &c[2..];
-        //SCLogNotice!("get_unicode_string: c {:?}", c);
-    }
-    IResult::Error(error_code!(ErrorKind::Custom(130)))
-}
-
-/// parse an ASCII string that is null terminated
-named!(pub smb_get_ascii_string<Vec<u8>>,
-    do_parse!(
-            s: take_until_and_consume!("\x00")
-        >> ( s.to_vec() )
-));
 
 pub fn smb1_session_setup_request_host_info(r: &SmbRecord, blob: &[u8]) -> SessionSetupRequest
 {

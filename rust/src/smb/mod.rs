@@ -15,6 +15,7 @@
  * 02110-1301, USA.
  */
 
+pub mod smb_records;
 pub mod smb1_records;
 pub mod smb2_records;
 pub mod nbss_records;

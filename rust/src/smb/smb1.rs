@@ -604,12 +604,12 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                         pipe.fid.to_vec());
             }
 
-            let (sername, is_dcerpc) = get_service_for_nameslice(&rd.txname.name);
+            let (sername, is_dcerpc) = get_service_for_nameslice(&rd.txname.tx_name);
             SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
             if is_dcerpc {
                 // store tx name so the response also knows this is dcerpc
                 let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
-                state.ssn2vec_map.insert(txn_hdr, rd.txname.name.to_vec());
+                state.ssn2vec_map.insert(txn_hdr, rd.txname.tx_name);
 
                 // trans request will tell us the max size of the response
                 // if there is more response data, it will first give a

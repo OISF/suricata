@@ -18,6 +18,7 @@
 use log::*;
 use nom::{rest, le_u8, le_u16, le_u32, le_u64, IResult};
 use smb::smb::*;
+use smb::smb_records::*;
 
 #[derive(Debug,PartialEq)]
 pub struct Smb1WriteRequestRecord<'a> {
@@ -167,7 +168,7 @@ named!(pub parse_smb_connect_tree_andx_record<SmbRecordTreeConnectAndX>,
 pub struct SmbRecordTransRequest<'a> {
     pub params: SmbRecordTransRequestParams,
     pub pipe: Option<SmbPipeProtocolRecord<'a>>,
-    pub txname: SmbRecordTransRequestTxname<'a>,
+    pub txname: SmbRecordTransRequestTxname<>,
     pub data: SmbRecordTransRequestData<'a>,
 }
 
@@ -231,29 +232,29 @@ named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, O
 );
 
 #[derive(Debug,PartialEq)]
-pub struct SmbRecordTransRequestTxname<'a> {
-    pub name: &'a[u8],
+pub struct SmbRecordTransRequestTxname<> {
+    pub tx_name: Vec<u8>,
 }
 
-pub fn parse_smb_trans_request_tx_name_ascii(i: &[u8])
+fn parse_smb_trans_request_tx_name_ascii(i: &[u8])
     -> IResult<&[u8], SmbRecordTransRequestTxname>
 {
     do_parse!(i,
-            name: take_until_and_consume!("\0")
+            name: smb_get_ascii_string
         >> (SmbRecordTransRequestTxname {
-                name: name,
+                tx_name: name,
             })
     )
 }
 
-pub fn parse_smb_trans_request_tx_name_unicode(i: &[u8], offset: usize)
+fn parse_smb_trans_request_tx_name_unicode(i: &[u8], offset: usize)
     -> IResult<&[u8], SmbRecordTransRequestTxname>
 {
     do_parse!(i,
             cond!(offset % 2 == 1, take!(1))
-        >>  name: take_until_and_consume!("\0\0\0")
+        >>  name: smb_get_unicode_string
         >> (SmbRecordTransRequestTxname {
-                name: name,
+                tx_name: name,
             })
     )
 }
