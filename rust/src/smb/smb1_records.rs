@@ -190,7 +190,7 @@ pub fn parse_smb_connect_tree_andx_record<'a>(i: &'a[u8], r: &SmbRecord) -> IRes
 pub struct SmbRecordTransRequest<'a> {
     pub params: SmbRecordTransRequestParams,
     pub pipe: Option<SmbPipeProtocolRecord<'a>>,
-    pub txname: SmbRecordTransRequestTxname<>,
+    pub txname: Vec<u8>,
     pub data: SmbRecordTransRequestData<'a>,
 }
 
@@ -254,34 +254,6 @@ named!(pub parse_smb_trans_request_record_params<(SmbRecordTransRequestParams, O
 );
 
 #[derive(Debug,PartialEq)]
-pub struct SmbRecordTransRequestTxname<> {
-    pub tx_name: Vec<u8>,
-}
-
-fn parse_smb_trans_request_tx_name_ascii(i: &[u8])
-    -> IResult<&[u8], SmbRecordTransRequestTxname>
-{
-    do_parse!(i,
-            name: smb_get_ascii_string
-        >> (SmbRecordTransRequestTxname {
-                tx_name: name,
-            })
-    )
-}
-
-fn parse_smb_trans_request_tx_name_unicode(i: &[u8], offset: usize)
-    -> IResult<&[u8], SmbRecordTransRequestTxname>
-{
-    do_parse!(i,
-            cond!(offset % 2 == 1, take!(1))
-        >>  name: smb_get_unicode_string
-        >> (SmbRecordTransRequestTxname {
-                tx_name: name,
-            })
-    )
-}
-
-#[derive(Debug,PartialEq)]
 pub struct SmbRecordTransRequestData<'a> {
     pub data: &'a[u8],
 }
@@ -312,12 +284,7 @@ pub fn parse_smb_trans_request_record<'a, 'b>(i: &'a[u8], r: &SmbRecord<'b>)
     let mut offset = 32 + (i.len() - rem.len()); // init with SMB header
     SCLogDebug!("params {:?}: offset {}", params, offset);
 
-    let name = if r.has_unicode_support() {
-        parse_smb_trans_request_tx_name_unicode(rem, offset)
-    } else {
-        parse_smb_trans_request_tx_name_ascii(rem)
-    };
-    let (rem2, n) = match name {
+    let (rem2, n) = match smb1_get_string(rem, r, offset) {
         IResult::Done(rem, rd) => (rem, rd),
         IResult::Incomplete(ii) => { return IResult::Incomplete(ii); }
         IResult::Error(e) => { return IResult::Error(e); }
