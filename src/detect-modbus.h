@@ -54,6 +54,7 @@ typedef struct DetectModbus_ {
     uint8_t             function;       /** < Modbus function code to match */
     uint16_t            *subfunction;   /** < Modbus subfunction to match */
     uint8_t             type;           /** < Modbus access type to match */
+    DetectModbusValue   *unit_id;       /** < Modbus unit id to match */
     DetectModbusValue   *address;       /** < Modbus address to match */
     DetectModbusValue   *data;          /** < Modbus data to match */
 } DetectModbus;
