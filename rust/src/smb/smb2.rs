@@ -646,6 +646,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         let found = match state.get_treeconnect_tx(name_key) {
                             Some(tx) => {
                                 if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
+                                    tdn.share_type = tr.share_type;
                                     tdn.is_pipe = is_pipe;
                                     tdn.tree_id = r.tree_id as u32;
                                     share_name = tdn.share_name.to_vec();

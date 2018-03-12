@@ -246,6 +246,15 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
                     jsd.set_string("response", &serv);
                 }
                 js.set("service", jsd);
+
+            // share type only for SMB2
+            } else {
+                match x.share_type {
+                    1 => { js.set_string("share_type", "FILE"); },
+                    2 => { js.set_string("share_type", "PIPE"); },
+                    3 => { js.set_string("share_type", "PRINT"); },
+                    _ => { js.set_string("share_type", "UNKNOWN"); },
+                }
             }
         },
         Some(SMBTransactionTypeData::FILE(ref x)) => {

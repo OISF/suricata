@@ -391,6 +391,7 @@ impl SMBTransactionNegotiate {
 #[derive(Debug)]
 pub struct SMBTransactionTreeConnect {
     pub is_pipe: bool,
+    pub share_type: u8,
     pub tree_id: u32,
     pub share_name: Vec<u8>,
 
@@ -403,6 +404,7 @@ impl SMBTransactionTreeConnect {
     pub fn new(share_name: Vec<u8>) -> SMBTransactionTreeConnect {
         return SMBTransactionTreeConnect {
             is_pipe:false,
+            share_type: 0,
             tree_id:0,
             share_name:share_name,
             req_service: None,
