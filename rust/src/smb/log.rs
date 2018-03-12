@@ -26,6 +26,15 @@ use smb::smb2::*;
 use smb::dcerpc::*;
 use nom;
 
+#[cfg(not(feature = "debug"))]
+fn debug_add_progress(_js: &Json, _tx: &SMBTransaction) { }
+
+#[cfg(feature = "debug")]
+fn debug_add_progress(js: &Json, tx: &SMBTransaction) {
+    js.set_boolean("request_done", tx.request_done);
+    js.set_boolean("response_done", tx.request_done);
+}
+
 fn guid_to_string(guid: &Vec<u8>) -> String {
     if guid.len() == 16 {
         let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -101,8 +110,8 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
     js.set_integer("session_id", tx.hdr.ssn_id);
     js.set_integer("tree_id", tx.hdr.tree_id as u64);
 
-    js.set_boolean("request_done", tx.request_done);
-    js.set_boolean("response_done", tx.request_done);
+    debug_add_progress(&js, tx);
+
     match tx.type_data {
         Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
             if let Some(ref ntlmssp) = x.ntlmssp {
