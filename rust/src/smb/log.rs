@@ -374,3 +374,4 @@ pub extern "C" fn rs_smb_log_json_response(state: &mut SMBState, tx: &mut SMBTra
     let js = smb_common_header(state, tx);
     return js.unwrap();
 }
+

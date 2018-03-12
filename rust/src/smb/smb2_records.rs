@@ -217,6 +217,7 @@ named!(pub parse_smb2_request_create<Smb2CreateRequestRecord>,
 #[derive(Debug,PartialEq)]
 pub struct Smb2IOCtlRequestRecord<'a> {
     pub is_pipe: bool,
+    pub function: u32,
     pub guid: &'a[u8],
     pub data: &'a[u8],
 }
@@ -236,6 +237,7 @@ named!(pub parse_smb2_request_ioctl<Smb2IOCtlRequestRecord>,
         >>  data: take!(indata_len)
         >>  (Smb2IOCtlRequestRecord {
                 is_pipe: (func == 0x0011c017),
+                function: func,
                 guid:guid,
                 data:data,
             })
