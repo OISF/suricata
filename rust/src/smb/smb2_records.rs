@@ -82,25 +82,33 @@ named!(pub parse_smb2_request_record<Smb2Record>,
 ));
 
 #[derive(Debug,PartialEq)]
-pub struct Smb2NegotiateProtocolRequestRecord<> {
+pub struct Smb2NegotiateProtocolRequestRecord<'a> {
     pub dialects_vec: Vec<u16>,
+    pub client_guid: &'a[u8],
 }
 
 named!(pub parse_smb2_request_negotiate_protocol<Smb2NegotiateProtocolRequestRecord>,
     do_parse!(
             struct_size: take!(2)
         >>  dialects_count: le_u16
-        >>  blob1: take!(32)
+        >>  sec_mode: le_u16
+        >>  reserved1: le_u16
+        >>  capabilities: le_u32
+        >>  client_guid: take!(16)
+        >>  ctx_offset: le_u32
+        >>  ctx_cnt: le_u16
+        >>  reserved2: le_u16
         >>  dia_vec: count!(le_u16, dialects_count as usize)
-        >>  blob2: rest
         >>  (Smb2NegotiateProtocolRequestRecord {
                 dialects_vec: dia_vec,
+                client_guid: client_guid,
             })
 ));
 
 #[derive(Debug,PartialEq)]
-pub struct Smb2NegotiateProtocolResponseRecord<> {
+pub struct Smb2NegotiateProtocolResponseRecord<'a> {
     pub dialect: u16,
+    pub server_guid: &'a[u8],
 }
 
 named!(pub parse_smb2_response_negotiate_protocol<Smb2NegotiateProtocolResponseRecord>,
@@ -108,10 +116,24 @@ named!(pub parse_smb2_response_negotiate_protocol<Smb2NegotiateProtocolResponseR
             struct_size: take!(2)
         >>  skip1: take!(2)
         >>  dialect: le_u16
+        >>  ctx_cnt: le_u16
+        >>  server_guid: take!(16)
         >>  (Smb2NegotiateProtocolResponseRecord {
                 dialect: dialect,
+                server_guid: server_guid,
             })
 ));
+
+named!(pub parse_smb2_response_negotiate_protocol_error<Smb2NegotiateProtocolResponseRecord>,
+    do_parse!(
+            struct_size: take!(2)
+        >>  skip1: take!(2)
+        >>  (Smb2NegotiateProtocolResponseRecord {
+                dialect: 0,
+                server_guid: &[],
+            })
+));
+
 
 #[derive(Debug,PartialEq)]
 pub struct Smb2SessionSetupRequestRecord<'a> {

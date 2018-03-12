@@ -322,6 +322,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         let tx = state.new_negotiate_tx(2);
                         if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
                             tdn.dialects2 = dialects;
+                            tdn.client_guid = Some(rd.client_guid.to_vec());
                         }
                         tx.request_done = true;
                     }
@@ -685,13 +686,21 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             }
         },
         SMB2_COMMAND_NEGOTIATE_PROTOCOL => {
-            match parse_smb2_response_negotiate_protocol(r.data) {
+            let res = if r.nt_status == SMB_NTSTATUS_SUCCESS {
+                parse_smb2_response_negotiate_protocol(r.data)
+            } else {
+                parse_smb2_response_negotiate_protocol_error(r.data)
+            };
+            match res {
                 IResult::Done(_, rd) => {
                     SCLogDebug!("SERVER dialect => {}", &smb2_dialect_string(rd.dialect));
 
                     state.dialect = rd.dialect;
                     let found2 = match state.get_negotiate_tx(2) {
                         Some(tx) => {
+                            if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
+                                tdn.server_guid = rd.server_guid.to_vec();
+                            }
                             tx.set_status(r.nt_status, false);
                             tx.response_done = true;
                             true
@@ -701,6 +710,9 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     // SMB2 response to SMB1 request?
                     let found1 = !found2 && match state.get_negotiate_tx(1) {
                         Some(tx) => {
+                            if let Some(SMBTransactionTypeData::NEGOTIATE(ref mut tdn)) = tx.type_data {
+                                tdn.server_guid = rd.server_guid.to_vec();
+                            }
                             tx.set_status(r.nt_status, false);
                             tx.response_done = true;
                             true

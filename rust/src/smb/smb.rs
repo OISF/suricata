@@ -376,6 +376,10 @@ pub struct SMBTransactionNegotiate {
     pub smb_ver: u8,
     pub dialects: Vec<Vec<u8>>,
     pub dialects2: Vec<Vec<u8>>,
+
+    // SMB1 doesn't have the client GUID
+    pub client_guid: Option<Vec<u8>>,
+    pub server_guid: Vec<u8>,
 }
 
 impl SMBTransactionNegotiate {
@@ -384,6 +388,8 @@ impl SMBTransactionNegotiate {
             smb_ver: smb_ver,
             dialects: Vec::new(),
             dialects2: Vec::new(),
+            client_guid: None,
+            server_guid: Vec::with_capacity(16),
         }
     }
 }

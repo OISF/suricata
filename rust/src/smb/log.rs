@@ -26,6 +26,19 @@ use smb::smb2::*;
 use smb::dcerpc::*;
 use nom;
 
+fn guid_to_string(guid: &Vec<u8>) -> String {
+    if guid.len() == 16 {
+        let output = format!("{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+                guid[3],  guid[2],  guid[1],  guid[0],
+                guid[5],  guid[4],  guid[7],  guid[6],
+                guid[9],  guid[8],  guid[11], guid[10],
+                guid[15], guid[14], guid[13], guid[12]);
+        output
+    } else {
+        "".to_string()
+    }
+}
+
 fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
 {
     let js = Json::object();
@@ -222,6 +235,12 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
                 }
                 js.set("client_dialects", jsa);
             }
+
+            if let Some(ref g) = x.client_guid {
+                js.set_string("client_guid", &guid_to_string(g));
+            }
+
+            js.set_string("server_guid", &guid_to_string(&x.server_guid));
         },
         Some(SMBTransactionTypeData::TREECONNECT(ref x)) => {
             js.set_integer("tree_id", x.tree_id as u64);
