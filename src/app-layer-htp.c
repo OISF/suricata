@@ -1760,6 +1760,12 @@ static int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             HtpRequestBodyHandlePUT(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
         }
 
+    } else {
+        if (tx_ud->tsflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOSERVER);
+            tx_ud->tsflags &= ~HTP_FILENAME_SET;
+        }
     }
 
 end:
