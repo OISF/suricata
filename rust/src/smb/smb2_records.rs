@@ -38,8 +38,15 @@ pub struct Smb2Record<'a> {
     pub command: u16,
     pub message_id: u64,
     pub tree_id: u32,
+    pub async_id: u64,
     pub session_id: u64,
     pub data: &'a[u8],
+}
+
+impl<'a> Smb2Record<'a> {
+    pub fn is_async(&self) -> bool {
+        self.async_id != 0
+    }
 }
 
 named!(pub parse_smb2_request_record<Smb2Record>,
@@ -76,6 +83,7 @@ named!(pub parse_smb2_request_record<Smb2Record>,
                 command:command,
                 message_id: message_id,
                 tree_id: tree_id,
+                async_id: 0,
                 session_id: session_id,
                 data: if data_c != None { data_c.unwrap() } else { data_r.unwrap() }
            })
@@ -432,8 +440,9 @@ named!(pub parse_smb2_response_record<Smb2Record>,
             ))
         >> chain_offset: le_u32
         >> message_id: le_u64
-        >> process_id: le_u32
-        >> tree_id: le_u32
+        >> process_id: cond!(flags.6==0, le_u32)
+        >> tree_id: cond!(flags.6==0, le_u32)
+        >> async_id: cond!(flags.6==1, le_u64)
         >> session_id: le_u64
         >> signature: take!(16)
         // there is probably a cleaner way to do this
@@ -443,7 +452,8 @@ named!(pub parse_smb2_response_record<Smb2Record>,
                 direction: flags.7,
                 nt_status: nt_status,
                 message_id: message_id,
-                tree_id: tree_id,
+                tree_id: tree_id.unwrap_or(0),
+                async_id: async_id.unwrap_or(0),
                 session_id: session_id,
                 command:command,
                 data: data_c.or(data_r).unwrap()
