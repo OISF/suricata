@@ -210,9 +210,12 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
                 js.set_string("filename", "<share_root>");
             }
             match x.disposition {
-                1 => { js.set_string("disposition", "open"); },
-                2 => { js.set_string("disposition", "create"); },
-                5 => { js.set_string("disposition", "overwrite"); },
+                0 => { js.set_string("disposition", "FILE_SUPERSEDE"); },
+                1 => { js.set_string("disposition", "FILE_OPEN"); },
+                2 => { js.set_string("disposition", "FILE_CREATE"); },
+                3 => { js.set_string("disposition", "FILE_OPEN_IF"); },
+                4 => { js.set_string("disposition", "FILE_OVERWRITE"); },
+                5 => { js.set_string("disposition", "FILE_OVERWRITE_IF"); },
                 _ => { js.set_string("disposition", "UNKNOWN"); },
             }
             if x.delete_on_close {
