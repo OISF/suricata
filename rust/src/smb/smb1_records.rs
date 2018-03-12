@@ -113,18 +113,44 @@ named!(pub parse_smb1_write_and_close_request_record<Smb1WriteRequestRecord>,
 );
 
 #[derive(Debug,PartialEq)]
-pub struct Smb1NegotiateProtocolResponseRecord<> {
+pub struct Smb1NegotiateProtocolResponseRecord<'a> {
     pub dialect_idx: u16,
+    pub server_guid: &'a[u8],
 }
 
-named!(pub parse_smb1_negotiate_protocol_response_record<Smb1NegotiateProtocolResponseRecord>,
+named!(pub parse_smb1_negotiate_protocol_response_record_error<Smb1NegotiateProtocolResponseRecord>,
     do_parse!(
-            le_u8
+            wct: le_u8
+         >> bcc: le_u16
+         >> ( Smb1NegotiateProtocolResponseRecord {
+                dialect_idx: 0,
+                server_guid: &[],
+            })
+));
+
+named!(pub parse_smb1_negotiate_protocol_response_record_ok<Smb1NegotiateProtocolResponseRecord>,
+    do_parse!(
+            wct: le_u8
         >>  dialect_idx: le_u16
+        >>  sec_mode: le_u8
+        >>  take!(16)
+        >>  caps: le_u32
+        >>  sys_time: le_u64
+        >>  server_tz: le_u16
+        >>  challenge_len: le_u8
+        >>  bcc: le_u16
+        >>  server_guid: cond!(bcc >= 16, take!(16))
         >> (Smb1NegotiateProtocolResponseRecord {
                 dialect_idx:dialect_idx,
+                server_guid: server_guid.unwrap_or(&[]),
             }))
 );
+
+named!(pub parse_smb1_negotiate_protocol_response_record<Smb1NegotiateProtocolResponseRecord>,
+    switch!(peek!(le_u8),
+        0 => call!(parse_smb1_negotiate_protocol_response_record_error) |
+        _ => call!(parse_smb1_negotiate_protocol_response_record_ok)
+    ));
 
 #[derive(Debug,PartialEq)]
 pub struct Smb1NegotiateProtocolRecord<'a> {

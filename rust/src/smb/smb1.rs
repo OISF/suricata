@@ -388,6 +388,8 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                             SCLogDebug!("tx {} is done", tx.id);
                             let d = match tx.type_data {
                                 Some(SMBTransactionTypeData::NEGOTIATE(ref mut x)) => {
+                                    x.server_guid = pr.server_guid.to_vec();
+
                                     let dialect_idx = pr.dialect_idx as usize;
                                     if x.dialects.len() <= dialect_idx {
                                         None
