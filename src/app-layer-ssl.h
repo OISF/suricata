@@ -29,6 +29,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "decode-events.h"
+#include "util-ja3.h"
 #include "queue.h"
 
 enum {
@@ -107,6 +108,8 @@ enum {
 
 /* extensions */
 #define SSL_EXTENSION_SNI                       0x0000
+#define SSL_EXTENSION_ELLIPTIC_CURVES           0x000a
+#define SSL_EXTENSION_EC_POINT_FORMATS          0x000b
 
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
@@ -201,6 +204,9 @@ typedef struct SSLState_ {
     uint16_t events;
 
     uint32_t current_flags;
+
+    JA3Buffer *ja3_str;
+    char *ja3_hash;
 
     SSLStateConnp *curr_connp;
 
