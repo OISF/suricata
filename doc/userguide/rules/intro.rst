@@ -78,6 +78,7 @@ you can pick from. These are:
 * dnp3 (disabled by default)
 * enip (disabled by default)
 * nfs (depends on rust availability)
+* ikev2 (depends on rust availability)
 * ntp (depends on rust availability)
 
 The availability of these protocols depends on whether the protocol is enabled in the configuration file suricata.yaml.

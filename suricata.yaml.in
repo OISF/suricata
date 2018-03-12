@@ -106,6 +106,7 @@ rule-files:
 # - app-layer-events.rules  # available in suricata sources under rules dir
 # - dnp3-events.rules       # available in suricata sources under rules dir
 # - ntp-events.rules       # available in suricata sources under rules dir
+# - ipsec-events.rules       # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
@@ -243,6 +244,7 @@ outputs:
         #- dnp3
         @rust_config_comment@- nfs
         @rust_config_comment@- tftp
+        @rust_config_comment@- ikev2
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -749,6 +751,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    ikev2:
+      enabled: yes
     tls:
       enabled: yes
       detection-ports:

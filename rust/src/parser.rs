@@ -117,7 +117,7 @@ macro_rules! cast_pointer {
 
 pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        state: *mut c_void,
-                                       pstate: *const c_void,
+                                       pstate: *mut c_void,
                                        input: *const u8,
                                        input_len: u32,
                                        data: *const c_void) -> i8;
@@ -153,6 +153,13 @@ extern {
 }
 
 // Defined in app-layer-parser.h
+pub const APP_LAYER_PARSER_EOF : u8 = 0b0;
+pub const APP_LAYER_PARSER_NO_INSPECTION : u8 = 0b1;
+pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
+pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
+pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
+
 extern {
+    pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
 }

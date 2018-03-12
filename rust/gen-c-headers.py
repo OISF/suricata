@@ -82,6 +82,8 @@ type_map = {
     "NTPTransaction": "NTPTransaction",
     "TFTPTransaction": "TFTPTransaction",
     "TFTPState": "TFTPState",
+    "IKEV2State": "IKEV2State",
+    "IKEV2Transaction": "IKEV2Transaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",

@@ -70,6 +70,7 @@
 #include "output-json.h"
 #include "output-json-nfs.h"
 #include "output-json-tftp.h"
+#include "output-json-ikev2.h"
 #include "output-json-template.h"
 #include "output-lua.h"
 #include "output-json-dnp3.h"
@@ -1092,6 +1093,8 @@ void OutputRegisterLoggers(void)
     JsonNFSLogRegister();
     /* TFTP JSON logger. */
     JsonTFTPLogRegister();
+    /* IKEv2 JSON logger. */
+    JsonIKEv2LogRegister();
     /* Template JSON logger. */
     JsonTemplateLogRegister();
 }
