@@ -227,6 +227,21 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             } else {
                 js.set_string("share", &share_name);
             }
+
+            // handle services
+            if tx.vercmd.get_version() == 1 {
+                let jsd = Json::object();
+
+                if let Some(ref s) = x.req_service {
+                    let serv = String::from_utf8_lossy(&s);
+                    jsd.set_string("request", &serv);
+                }
+                if let Some(ref s) = x.res_service {
+                    let serv = String::from_utf8_lossy(&s);
+                    jsd.set_string("response", &serv);
+                }
+                js.set("service", jsd);
+            }
         },
         Some(SMBTransactionTypeData::FILE(ref x)) => {
             let file_name = String::from_utf8_lossy(&x.file_name);

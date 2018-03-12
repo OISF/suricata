@@ -393,6 +393,10 @@ pub struct SMBTransactionTreeConnect {
     pub is_pipe: bool,
     pub tree_id: u32,
     pub share_name: Vec<u8>,
+
+    /// SMB1 service strings
+    pub req_service: Option<Vec<u8>>,
+    pub res_service: Option<Vec<u8>>,
 }
 
 impl SMBTransactionTreeConnect {
@@ -401,6 +405,8 @@ impl SMBTransactionTreeConnect {
             is_pipe:false,
             tree_id:0,
             share_name:share_name,
+            req_service: None,
+            res_service: None,
         }
     }
 }

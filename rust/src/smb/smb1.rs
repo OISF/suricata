@@ -284,9 +284,9 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
         SMB1_COMMAND_TREE_CONNECT_ANDX => {
             SCLogDebug!("SMB1_COMMAND_TREE_CONNECT_ANDX");
             match parse_smb_connect_tree_andx_record(r.data, r) {
-                IResult::Done(_, create_record) => {
+                IResult::Done(_, tr) => {
                     let name_key = SMBCommonHdr::from1(r, SMBHDR_TYPE_TREE);
-                    let mut name_val = create_record.path;
+                    let mut name_val = tr.path;
                     if name_val.len() > 1 {
                         name_val = name_val[1..].to_vec();
                     }
@@ -294,6 +294,9 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                     // store hdr as SMBHDR_TYPE_TREE, so with tree id 0
                     // when the response finds this we update it
                     let tx = state.new_treeconnect_tx(name_key, name_val);
+                    if let Some(SMBTransactionTypeData::TREECONNECT(ref mut tdn)) = tx.type_data {
+                        tdn.req_service = Some(tr.service.to_vec());
+                    }
                     tx.request_done = true;
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TREE_CONNECT_ANDX);
                     true
@@ -442,6 +445,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
                                 tdn.is_pipe = is_pipe;
                                 tdn.tree_id = r.tree_id as u32;
                                 share_name = tdn.share_name.to_vec();
+                                tdn.res_service = Some(tr.service.to_vec());
                             }
                             tx.hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
                             tx.set_status(r.nt_status, r.is_dos_error);
