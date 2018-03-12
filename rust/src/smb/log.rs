@@ -176,11 +176,16 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         Some(SMBTransactionTypeData::CREATE(ref x)) => {
             let mut name_raw = x.filename.to_vec();
             name_raw.retain(|&i|i != 0x00);
-            let name = String::from_utf8_lossy(&name_raw);
-            if x.directory {
-                js.set_string("directory", &name);
+            if name_raw.len() > 0 {
+                let name = String::from_utf8_lossy(&name_raw);
+                if x.directory {
+                    js.set_string("directory", &name);
+                } else {
+                    js.set_string("filename", &name);
+                }
             } else {
-                js.set_string("filename", &name);
+                // name suggestion from Bro
+                js.set_string("filename", "<share_root>");
             }
             match x.disposition {
                 1 => { js.set_string("disposition", "open"); },
