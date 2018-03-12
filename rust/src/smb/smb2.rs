@@ -26,6 +26,8 @@ use smb::dcerpc::*;
 use smb::events::*;
 use smb::files::*;
 
+use smb::funcs::*;
+
 pub const SMB2_COMMAND_NEGOTIATE_PROTOCOL:      u16 = 0;
 pub const SMB2_COMMAND_SESSION_SETUP:           u16 = 1;
 pub const SMB2_COMMAND_SESSION_LOGOFF:          u16 = 2;
@@ -273,9 +275,6 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
     let have_tx = match r.command {
         SMB2_COMMAND_IOCTL => {
-            // some IOCTL responses don't set the tree id
-            key_tree_id = 0;
-
             let have_ioctl_tx = match parse_smb2_request_ioctl(r.data) {
                 IResult::Done(_, rd) => {
                     SCLogDebug!("IOCTL request data: {:?}", rd);
@@ -283,13 +282,20 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         (_, x) => x,
                     };
                     if is_dcerpc {
+                        // some IOCTL responses don't set the tree id
+                        key_tree_id = 0;
+
                         SCLogDebug!("IOCTL request data is_pipe. Calling smb_write_dcerpc_record");
                         let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                                 key_session_id, key_tree_id, key_message_id);
                         let vercmd = SMBVerCmdStat::new2(SMB2_COMMAND_IOCTL);
                         smb_write_dcerpc_record(state, vercmd, hdr, rd.data)
                     } else {
-                        false
+                        SCLogDebug!("IOCTL {:08x} {}", rd.function, &fsctl_func_to_string(rd.function));
+                        let hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                        let tx = state.new_ioctl_tx(hdr, rd.function);
+                        tx.vercmd.set_smb2_cmd(SMB2_COMMAND_IOCTL);
+                        true
                     }
                 },
                 _ => { false },
@@ -475,9 +481,6 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
     let have_tx = match r.command {
         SMB2_COMMAND_IOCTL => {
-            // some IOCTL responses don't set the tree id
-            key_tree_id = 0;
-
             let have_ioctl_tx = match parse_smb2_response_ioctl(r.data) {
                 IResult::Done(_, rd) => {
                     SCLogDebug!("IOCTL response data: {:?}", rd);
@@ -486,6 +489,9 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         (_, x) => x,
                     };
                     if is_dcerpc {
+                        // some IOCTL responses don't set the tree id
+                        key_tree_id = 0;
+
                         SCLogDebug!("IOCTL response data is_pipe. Calling smb_read_dcerpc_record");
                         let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                                 key_session_id, key_tree_id, key_message_id);
@@ -754,5 +760,37 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 false
             },
         };
+    }
+}
+
+#[derive(Debug)]
+pub struct SMBTransactionIoctl {
+    pub func: u32,
+}
+
+impl SMBTransactionIoctl {
+    pub fn new(func: u32) -> SMBTransactionIoctl {
+        return SMBTransactionIoctl {
+            func: func,
+        }
+    }
+}
+
+impl SMBState {
+    pub fn new_ioctl_tx(&mut self, hdr: SMBCommonHdr, func: u32)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+        tx.hdr = hdr;
+        tx.type_data = Some(SMBTransactionTypeData::IOCTL(
+                    SMBTransactionIoctl::new(func)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogDebug!("SMB: TX IOCTL created: ID {} FUNC {:08x}: {}",
+                tx.id, func, &fsctl_func_to_string(func));
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
     }
 }

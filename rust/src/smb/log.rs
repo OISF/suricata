@@ -24,6 +24,7 @@ use smb::smb::*;
 use smb::smb1::*;
 use smb::smb2::*;
 use smb::dcerpc::*;
+use smb::funcs::*;
 use nom;
 
 #[cfg(not(feature = "debug"))]
@@ -356,6 +357,9 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             jsd.set_integer("call_id", x.call_id as u64);
             js.set("dcerpc", jsd);
         }
+        Some(SMBTransactionTypeData::IOCTL(ref x)) => {
+            js.set_string("function", &fsctl_func_to_string(x.func));
+        },
         _ => {  },
     }
     return js;

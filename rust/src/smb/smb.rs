@@ -338,6 +338,7 @@ pub enum SMBTransactionTypeData {
     DCERPC(SMBTransactionDCERPC),
     CREATE(SMBTransactionCreate),
     SESSIONSETUP(SMBTransactionSessionSetup),
+    IOCTL(SMBTransactionIoctl),
 }
 
 #[derive(Debug)]
