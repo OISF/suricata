@@ -30,7 +30,7 @@
 #include "rust-smb-smb-gen.h"
 #include "rust-smb-files-gen.h"
 
-#define MIN_REC_SIZE 32
+#define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
 static int RustSMBTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
@@ -81,11 +81,11 @@ static uint16_t RustSMBTCPProbeTS(Flow *f,
         uint8_t *input, uint32_t len, uint32_t *offset)
 {
     SCLogDebug("RustSMBTCPProbe");
-/*
-    if (len == 0 || len < sizeof(SMBHeader)) {
+
+    if (len < MIN_REC_SIZE) {
         return ALPROTO_UNKNOWN;
     }
-*/
+
     // Validate and return ALPROTO_FAILED if needed.
     if (!rs_smb_probe_tcp_ts(input, len)) {
         return ALPROTO_FAILED;
@@ -98,11 +98,11 @@ static uint16_t RustSMBTCPProbeTC(Flow *f,
         uint8_t *input, uint32_t len, uint32_t *offset)
 {
     SCLogDebug("RustSMBTCPProbe");
-/*
-    if (len == 0 || len < sizeof(SMBHeader)) {
+
+    if (len < MIN_REC_SIZE) {
         return ALPROTO_UNKNOWN;
     }
-*/
+
     // Validate and return ALPROTO_FAILED if needed.
     if (!rs_smb_probe_tcp_tc(input, len)) {
         return ALPROTO_FAILED;
@@ -192,6 +192,29 @@ static void RustSMBStateTruncate(void *state, uint8_t direction)
     return rs_smb_state_truncate(state, direction);
 }
 
+static int RustSMBRegisterPatternsForProtocolDetection(void)
+{
+    int r = 0;
+    /* SMB1 */
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+
+    /* SMB2/3 */
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|fe|SMB", 8, 4, STREAM_TOSERVER);
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+
+    /* SMB3 encrypted records */
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|fd|SMB", 8, 4, STREAM_TOSERVER);
+    r |= AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMB,
+            "|fd|SMB", 8, 4, STREAM_TOCLIENT);
+    return r == 0 ? 0 : -1;
+}
+
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
@@ -202,6 +225,8 @@ void RegisterRustSMBTCPParsers(void)
     /** SMB */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_SMB, proto_name);
+        if (RustSMBRegisterPatternsForProtocolDetection() < 0)
+            return;
 
         rs_smb_init(&sfc);
 
