@@ -78,6 +78,7 @@ The set of existing commands is the following:
 * memcap-set: update memcap value of an item specified
 * memcap-show: show memcap value of an item specified
 * memcap-list: list all memcap values available
+* iprep-add: add an IP address to the IP reputation module
 
 You can access to these commands with the provided example script which
 is named ``suricatasc``. A typical session with ``suricatasc`` will looks like:
