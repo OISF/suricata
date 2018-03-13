@@ -49,6 +49,7 @@ use smb::dcerpc::*;
 use smb::session::*;
 use smb::events::*;
 use smb::files::*;
+use smb::smb2_ioctl::*;
 
 pub static mut SURICATA_SMB_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
