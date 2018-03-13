@@ -43,7 +43,8 @@ impl<'a> NbssRecord<'a> {
             _ => false,
         };
         let smb = if self.data.len() >= 4 &&
-            self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8
+            self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8 &&
+            (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD')
         {
             true
         } else {
