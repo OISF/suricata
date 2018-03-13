@@ -142,6 +142,22 @@ pub fn smb_ntstatus_string(c: u32) -> String {
     }.to_string()
 }
 
+pub const SMB_SRV_ERROR:                u16 = 1;
+pub const SMB_SRV_BADPW:                u16 = 2;
+pub const SMB_SRV_BADTYPE:              u16 = 3;
+pub const SMB_SRV_ACCESS:               u16 = 4;
+pub const SMB_SRV_BADUID:               u16 = 91;
+
+pub fn smb_srv_error_string(c: u16) -> String {
+    match c {
+        SMB_SRV_ERROR           => "SRV_ERROR",
+        SMB_SRV_BADPW           => "SRV_BADPW",
+        SMB_SRV_BADTYPE         => "SRV_BADTYPE",
+        SMB_SRV_ACCESS          => "SRV_ACCESS",
+        SMB_SRV_BADUID          => "SRV_BADUID",
+        _ => { return (c).to_string(); },
+    }.to_string()
+}
 
 pub const SMB_DOS_SUCCESS:                u16 = 0;
 pub const SMB_DOS_BAD_FUNC:               u16 = 1;
@@ -183,6 +199,7 @@ pub struct SMBVerCmdStat {
 
     status_set: bool,
     status_is_dos_error: bool,
+    status_error_class: u8,
     status: u32,
 }
 
@@ -194,6 +211,7 @@ impl SMBVerCmdStat {
             smb2_cmd: 0,
             status_set: false,
             status_is_dos_error: false,
+            status_error_class: 0,
             status: 0,
         }
     }
@@ -204,6 +222,7 @@ impl SMBVerCmdStat {
             smb2_cmd: 0,
             status_set: false,
             status_is_dos_error: false,
+            status_error_class: 0,
             status: 0,
         }
     }
@@ -214,6 +233,7 @@ impl SMBVerCmdStat {
             smb2_cmd: 0,
             status_set: true,
             status_is_dos_error: false,
+            status_error_class: 0,
             status: status,
         }
     }
@@ -224,6 +244,7 @@ impl SMBVerCmdStat {
             smb2_cmd: cmd,
             status_set: false,
             status_is_dos_error: false,
+            status_error_class: 0,
             status: 0,
         }
     }
@@ -235,6 +256,7 @@ impl SMBVerCmdStat {
             smb2_cmd: cmd,
             status_set: true,
             status_is_dos_error: false,
+            status_error_class: 0,
             status: status,
         }
     }
@@ -279,14 +301,15 @@ impl SMBVerCmdStat {
         (self.status_set && !self.status_is_dos_error, self.status)
     }
 
-    pub fn get_dos_error(&self) -> (bool, u16) {
-        (self.status_set && self.status_is_dos_error, self.status as u16)
+    pub fn get_dos_error(&self) -> (bool, u8, u16) {
+        (self.status_set && self.status_is_dos_error, self.status_error_class, self.status as u16)
     }
 
     fn set_status(&mut self, status: u32, is_dos_error: bool)
     {
         if is_dos_error {
             self.status_is_dos_error = true;
+            self.status_error_class = (status & 0x0000_00ff) as u8;
             self.status = (status & 0xffff_0000) >> 16;
         } else {
             self.status = status;

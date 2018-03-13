@@ -632,6 +632,9 @@ impl<'a> SmbRecord<'a> {
     pub fn has_unicode_support(&self) -> bool {
         self.flags2 & 0x8000_u16 != 0
     }
+    pub fn is_dos_error(&self) -> bool {
+        self.flags2 & 0x4000_u16 != 0
+    }
 }
 
 named!(pub parse_smb_record<SmbRecord>,
@@ -655,7 +658,7 @@ named!(pub parse_smb_record<SmbRecord>,
                 nt_status:nt_status,
                 flags:flags,
                 flags2:flags2,
-                is_dos_error: ((flags2 & 0x4000 == 0) && nt_status != 0),
+                is_dos_error: (flags2 & 0x4000_u16 == 0),// && nt_status != 0),
                 tree_id:tree_id,
                 user_id:user_id,
                 multiplex_id:multiplex_id,

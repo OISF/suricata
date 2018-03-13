@@ -91,17 +91,29 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             let status = smb_ntstatus_string(ntstatus);
             js.set_string("status", &status);
             let status_hex = format!("0x{:x}", ntstatus);
-            js.set_string("statux", &status_hex);
+            js.set_string("status_code", &status_hex);
         },
         (false, _) => {
             match tx.vercmd.get_dos_error() {
-                (true, doserr) => {
-                    let status = smb_dos_error_string(doserr);
-                    js.set_string("status", &status);
-                    let status_hex = format!("0x{:x}", doserr);
-                    js.set_string("statux", &status_hex);
+                (true, errclass, errcode) => {
+                    match errclass {
+                        1 => { // DOSERR
+                            let status = smb_dos_error_string(errcode);
+                            js.set_string("status", &status);
+                        },
+                        2 => { // SRVERR
+                            let status = smb_srv_error_string(errcode);
+                            js.set_string("status", &status);
+                        }
+                        _ => {
+                            let s = format!("UNKNOWN_{:02x}_{:04x}", errclass, errcode);
+                            js.set_string("status", &s);
+                        },
+                    }
+                    let status_hex = format!("0x{:04x}", errcode);
+                    js.set_string("status_code", &status_hex);
                 },
-                (_, _) => {
+                (_, _, _) => {
                 },
             }
         },
