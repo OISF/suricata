@@ -49,9 +49,6 @@ pub struct IKEV2State {
     /// List of transactions for this session
     transactions: Vec<IKEV2Transaction>,
 
-    /// Events counter
-    events: u16,
-
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 
@@ -111,7 +108,6 @@ impl IKEV2State {
     pub fn new() -> IKEV2State {
         IKEV2State{
             transactions: Vec::new(),
-            events: 0,
             tx_id: 0,
             connection_state: IKEV2ConnectionState::Init,
             dh_group: IkeTransformDHType::None,
@@ -240,7 +236,6 @@ impl IKEV2State {
         if let Some(tx) = self.transactions.last_mut() {
             let ev = event as u8;
             core::sc_app_layer_decoder_events_set_event_raw(&mut tx.events, ev);
-            self.events += 1;
         }
     }
 
