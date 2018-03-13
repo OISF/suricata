@@ -244,6 +244,7 @@ outputs:
 
         #- dnp3
         @rust_config_comment@- nfs
+        @rust_config_comment@- smb
         @rust_config_comment@- tftp
         - ssh
         - stats:
