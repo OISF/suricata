@@ -132,7 +132,8 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord)
     SCLogDebug!("SMB1_COMMAND_SESSION_SETUP_ANDX user_id {}", r.user_id);
     match parse_smb_setup_andx_record(r.data) {
         IResult::Done(rem, setup) => {
-            let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
+            let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
+                    r.ssn_id as u64, 0, r.multiplex_id as u64);
             let tx = state.new_sessionsetup_tx(hdr);
             tx.vercmd.set_smb1_cmd(r.command);
 
@@ -147,8 +148,8 @@ pub fn smb1_session_setup_request(state: &mut SMBState, r: &SmbRecord)
                 td.request_host = Some(smb1_session_setup_request_host_info(r, rem));
             }
         },
-            _ => {
-//                events.push(SMBEvent::MalformedData);
+        _ => {
+            // events.push(SMBEvent::MalformedData);
         },
     }
 }
@@ -175,7 +176,8 @@ pub fn smb1_session_setup_response(state: &mut SMBState, r: &SmbRecord)
 {
     // try exact match with session id already set (e.g. NTLMSSP AUTH phase)
     let found = r.ssn_id != 0 && match state.get_sessionsetup_tx(
-                SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER))
+                SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
+                    r.ssn_id as u64, 0, r.multiplex_id as u64))
     {
         Some(tx) => {
             smb1_session_setup_update_tx(tx, r);
