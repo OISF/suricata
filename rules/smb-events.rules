@@ -1,0 +1,16 @@
+# SMB app layer event rules
+#
+# SID's fall in the 2225000+ range. See https://redmine.openinfosecfoundation.org/projects/suricata/wiki/AppLayer
+#
+# These sigs fire at most once per connection.
+#
+
+alert smb any any -> any any (msg:"SURICATA SMB internal parser error"; flow:to_server; app-layer-event:smb.internal_error; classtype:protocol-command-decode; sid:2225000; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB internal parser error"; flow:to_client; app-layer-event:smb.internal_error; classtype:protocol-command-decode; sid:2225001; rev:1;)
+
+alert smb any any -> any any (msg:"SURICATA SMB malformed request data"; flow:to_server; app-layer-event:smb.malformed_data; classtype:protocol-command-decode; sid:2225002; rev:1;)
+alert smb any any -> any any (msg:"SURICATA SMB malformed response data"; flow:to_client; app-layer-event:smb.malformed_data; classtype:protocol-command-decode; sid:2225003; rev:1;)
+
+alert smb any any -> any any (msg:"SURICATA SMB malformed NTLMSSP record"; flow:to_server; app-layer-event:smb.malformed_ntlmssp_request; classtype:protocol-command-decode; sid:2225004; rev:1;)
+
+alert smb any any -> any any (msg:"SURICATA SMB malformed request dialects"; flow:to_server; app-layer-event:smb.negotiate_malformed_dialects; classtype:protocol-command-decode; sid:2225005; rev:1;)

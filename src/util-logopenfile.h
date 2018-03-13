@@ -125,6 +125,9 @@ typedef struct LogFileCtx_ {
     /* Set to true if the filename should not be timestamped. */
     bool nostamp;
 
+    /* if set to true EVE will add a pcap file record */
+    bool is_pcap_offline;
+
     /* Socket types may need to drop events to keep from blocking
      * Suricata. */
     uint64_t dropped;

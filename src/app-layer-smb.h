@@ -32,6 +32,8 @@
 #include "app-layer-dcerpc-common.h"
 #include "app-layer-dcerpc.h"
 
+#ifndef HAVE_RUST
+
 typedef struct SMBHdr_ {
     uint8_t protocol[4];
     uint8_t command;
@@ -159,9 +161,11 @@ typedef struct SMBState_ {
 #define SMB_COM_CLOSE_PRINT_FILE	0xC2
 #define SMB_COM_GET_PRINT_QUEUE	 	0xC3
 
+int isAndX(SMBState *smb_state);
+#endif /* HAVE_RUST */
+
 void RegisterSMBParsers(void);
 void SMBParserRegisterTests(void);
-int isAndX(SMBState *smb_state);
 
 #endif /* __APP_LAYER_SMB_H__ */
 
