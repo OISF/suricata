@@ -1696,26 +1696,21 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     return -1;
 }
 
-/// TOSERVER probe function
 #[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp_ts(_input: *const libc::uint8_t, _len: libc::uint32_t)
+pub extern "C" fn rs_smb_probe_tcp(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
-//    let slice: &[u8] = unsafe {
-//        std::slice::from_raw_parts(input as *mut u8, len as usize)
-//    };
-    //return smb3_probe(slice, STREAM_TOSERVER);
-    return 1
-}
-/// TOCLIENT probe function
-#[no_mangle]
-pub extern "C" fn rs_smb_probe_tcp_tc(_input: *const libc::uint8_t, _len: libc::uint32_t)
-                               -> libc::int8_t
-{
-//    let slice: &[u8] = unsafe {
-//        std::slice::from_raw_parts(input as *mut u8, len as usize)
-//    };
-    //return smb3_probe(slice, STREAM_TOCLIENT);
+    let slice: &[u8] = unsafe {
+        std::slice::from_raw_parts(input as *mut u8, len as usize)
+    };
+    match parse_nbss_record_partial(slice) {
+        IResult::Done(_, ref hdr) => {
+            if hdr.is_smb() {
+                return 1;
+            }
+        },
+        _ => { },
+    }
     return 1
 }
 

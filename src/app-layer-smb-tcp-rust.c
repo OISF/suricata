@@ -77,7 +77,7 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
     return res;
 }
 
-static uint16_t RustSMBTCPProbeTS(Flow *f,
+static uint16_t RustSMBTCPProbe(Flow *f,
         uint8_t *input, uint32_t len, uint32_t *offset)
 {
     SCLogDebug("RustSMBTCPProbe");
@@ -87,24 +87,7 @@ static uint16_t RustSMBTCPProbeTS(Flow *f,
     }
 
     // Validate and return ALPROTO_FAILED if needed.
-    if (!rs_smb_probe_tcp_ts(input, len)) {
-        return ALPROTO_FAILED;
-    }
-
-    return ALPROTO_SMB;
-}
-
-static uint16_t RustSMBTCPProbeTC(Flow *f,
-        uint8_t *input, uint32_t len, uint32_t *offset)
-{
-    SCLogDebug("RustSMBTCPProbe");
-
-    if (len < MIN_REC_SIZE) {
-        return ALPROTO_UNKNOWN;
-    }
-
-    // Validate and return ALPROTO_FAILED if needed.
-    if (!rs_smb_probe_tcp_tc(input, len)) {
+    if (!rs_smb_probe_tcp(input, len)) {
         return ALPROTO_FAILED;
     }
 
@@ -232,20 +215,20 @@ void RegisterRustSMBTCPParsers(void)
 
         if (RunmodeIsUnittests()) {
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbeTS,
+                    MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbe,
                     NULL);
         } else {
             int have_cfg = AppLayerProtoDetectPPParseConfPorts("tcp",
                     IPPROTO_TCP, proto_name, ALPROTO_SMB, 0,
-                    MIN_REC_SIZE, RustSMBTCPProbeTS, RustSMBTCPProbeTC);
+                    MIN_REC_SIZE, RustSMBTCPProbe, RustSMBTCPProbe);
             /* if we have no config, we enable the default port 445 */
             if (!have_cfg) {
                 SCLogWarning(SC_ERR_SMB_CONFIG, "no SMB TCP config found, "
                                                 "enabling SMB detection on "
                                                 "port 445.");
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "445", ALPROTO_SMB, 0,
-                        MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbeTS,
-                        RustSMBTCPProbeTC);
+                        MIN_REC_SIZE, STREAM_TOSERVER, RustSMBTCPProbe,
+                        RustSMBTCPProbe);
             }
         }
     } else {
