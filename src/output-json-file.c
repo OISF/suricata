@@ -61,6 +61,7 @@
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
 #include "output-json-nfs.h"
+#include "output-json-smb.h"
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
@@ -108,6 +109,11 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
             hjs = JsonNFSAddMetadata(p->flow, ff->txid);
             if (hjs)
                 json_object_set_new(js, "nfs", hjs);
+            break;
+        case ALPROTO_SMB:
+            hjs = JsonSMBAddMetadata(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "smb", hjs);
             break;
 #endif
     }
