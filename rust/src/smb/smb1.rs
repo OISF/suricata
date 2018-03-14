@@ -61,6 +61,7 @@ pub const SMB1_COMMAND_LOCKING_ANDX:            u8 = 0x24;
 pub const SMB1_COMMAND_TRANS:                   u8 = 0x25;
 pub const SMB1_COMMAND_ECHO:                    u8 = 0x2b;
 pub const SMB1_COMMAND_WRITE_AND_CLOSE:         u8 = 0x2c;
+pub const SMB1_COMMAND_OPEN_ANDX:               u8 = 0x2d;
 pub const SMB1_COMMAND_READ_ANDX:               u8 = 0x2e;
 pub const SMB1_COMMAND_WRITE_ANDX:              u8 = 0x2f;
 pub const SMB1_COMMAND_TRANS2:                  u8 = 0x32;
@@ -101,6 +102,7 @@ pub fn smb1_command_string(c: u8) -> String {
         SMB1_COMMAND_LOCKING_ANDX       => "SMB1_COMMAND_LOCKING_ANDX",
         SMB1_COMMAND_ECHO               => "SMB1_COMMAND_ECHO",
         SMB1_COMMAND_WRITE_AND_CLOSE    => "SMB1_COMMAND_WRITE_AND_CLOSE",
+        SMB1_COMMAND_OPEN_ANDX          => "SMB1_COMMAND_OPEN_ANDX",
         SMB1_COMMAND_READ_ANDX          => "SMB1_COMMAND_READ_ANDX",
         SMB1_COMMAND_WRITE_ANDX         => "SMB1_COMMAND_WRITE_ANDX",
         SMB1_COMMAND_TRANS              => "SMB1_COMMAND_TRANS",
