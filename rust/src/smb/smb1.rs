@@ -121,8 +121,8 @@ pub fn smb1_command_string(c: u8) -> String {
 
 // later we'll use this to determine if we need to
 // track a ssn per type
-pub fn smb1_create_new_tx(_cmd: u8) -> bool {
-    match _cmd {
+pub fn smb1_create_new_tx(cmd: u8) -> bool {
+    match cmd {
         SMB1_COMMAND_READ_ANDX |
         SMB1_COMMAND_WRITE_ANDX |
         SMB1_COMMAND_TRANS |

@@ -90,8 +90,14 @@ pub fn smb2_dialect_string(d: u16) -> String {
 
 // later we'll use this to determine if we need to
 // track a ssn per type
-fn smb2_create_new_tx(_cmd: u16) -> bool {
-    true
+fn smb2_create_new_tx(cmd: u16) -> bool {
+    match cmd {
+        SMB2_COMMAND_READ |
+        SMB2_COMMAND_WRITE |
+        SMB2_COMMAND_GET_INFO |
+        SMB2_COMMAND_SET_INFO => { false },
+        _ => { true },
+    }
 }
 
 fn smb2_read_response_record_generic<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
