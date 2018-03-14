@@ -337,6 +337,8 @@ typedef enum {
     SC_ERR_PF_RING_VLAN,
     SC_ERR_CREATE_DIRECTORY,
     SC_WARN_FLOWBIT,
+    SC_ERR_PCAP_LOG_COMPRESS,
+    SC_ERR_FSEEK,
 
     SC_ERR_MAX,
 } SCError;

@@ -457,6 +457,14 @@ If you would like to use Suricata with Sguil, do not forget to enable
 Remember that in the 'normal' mode, the file will be saved in
 default-log-dir or in the absolute path (if set).
 
+The pcap files can be compressed before being written to disk by setting
+the compression option to lz4. This option is incompatible with sguil
+mode. Note: On Windows, this option increases disk I/O instead of
+reducing it. When using lz4 compression, you can enable checksums using
+the lz4-checksum option, and you can set the compression level using
+lz4-compression-level (between 0 and 16), where higher levels result in
+higher compression.
+
 By default all packets are logged except:
 
 - TCP streams beyond stream.reassembly.depth
