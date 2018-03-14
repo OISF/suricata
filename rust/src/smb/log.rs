@@ -324,14 +324,8 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         Some(SMBTransactionTypeData::FILE(ref x)) => {
             let file_name = String::from_utf8_lossy(&x.file_name);
             js.set_string("filename", &file_name);
-            if x.share_name.len() > 0 {
-                let share_name = String::from_utf8_lossy(&x.share_name);
-                js.set_string("share", &share_name);
-            } else {
-                // name suggestion from Bro
-                js.set_string("share", "<share_root>");
-            };
-
+            let share_name = String::from_utf8_lossy(&x.share_name);
+            js.set_string("share", &share_name);
             let gs = fuid_to_string(&x.fuid);
             js.set_string("fuid", &gs);
         },
