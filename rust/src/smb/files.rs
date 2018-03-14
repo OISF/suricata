@@ -26,7 +26,7 @@ use smb::smb::*;
 #[derive(Debug)]
 pub struct SMBTransactionFile {
     pub direction: u8,
-    pub guid: Vec<u8>,
+    pub fuid: Vec<u8>,
     pub file_name: Vec<u8>,
     pub share_name: Vec<u8>,
     pub file_tracker: FileTransferTracker,
@@ -36,7 +36,7 @@ impl SMBTransactionFile {
     pub fn new() -> SMBTransactionFile {
         return SMBTransactionFile {
             direction: 0,
-            guid: Vec::new(),
+            fuid: Vec::new(),
             file_name: Vec::new(),
             share_name: Vec::new(),
             file_tracker: FileTransferTracker::new(),
@@ -91,7 +91,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
 }
 
 impl SMBState {
-    pub fn new_file_tx(&mut self, file_guid: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
+    pub fn new_file_tx(&mut self, fuid: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
         -> (&mut SMBTransaction, &mut FileContainer, u16)
     {
         let mut tx = self.new_tx();
@@ -99,7 +99,7 @@ impl SMBState {
         match tx.type_data {
             Some(SMBTransactionTypeData::FILE(ref mut d)) => {
                 d.direction = direction;
-                d.guid = file_guid.to_vec();
+                d.fuid = fuid.to_vec();
                 d.file_name = file_name.to_vec();
                 d.file_tracker.tx_id = tx.id - 1;
             },
@@ -113,14 +113,14 @@ impl SMBState {
         return (tx_ref.unwrap(), files, flags)
     }
 
-    pub fn get_file_tx_by_guid(&mut self, guid: &Vec<u8>, direction: u8)
+    pub fn get_file_tx_by_fuid(&mut self, fuid: &Vec<u8>, direction: u8)
         -> Option<(&mut SMBTransaction, &mut FileContainer, u16)>
     {
-        let g = guid.to_vec();
+        let f = fuid.to_vec();
         for tx in &mut self.transactions {
             let found = match tx.type_data {
                 Some(SMBTransactionTypeData::FILE(ref mut d)) => {
-                    direction == d.direction && g == d.guid
+                    direction == d.direction && f == d.fuid
                 },
                 _ => { false },
             };
@@ -131,7 +131,7 @@ impl SMBState {
                 return Some((tx, files, flags));
             }
         }
-        SCLogDebug!("SMB: Failed to find SMB TX with GUID {:?}", guid);
+        SCLogDebug!("SMB: Failed to find SMB TX with FUID {:?}", fuid);
         return None;
     }
 
@@ -190,7 +190,7 @@ impl SMBState {
 
         let ssn_gap = self.ts_ssn_gap | self.tc_ssn_gap;
         // get the tx and update it
-        let consumed = match self.get_file_tx_by_guid(&file_handle, direction) {
+        let consumed = match self.get_file_tx_by_fuid(&file_handle, direction) {
             Some((tx, files, flags)) => {
                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                     if ssn_gap {

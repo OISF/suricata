@@ -132,7 +132,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             SCLogDebug!("SMBv2 READ: GUID {:?} offset {}", file_guid, offset);
 
             // look up existing tracker and if we have it update it
-            let found = match state.get_file_tx_by_guid(&file_guid, STREAM_TOCLIENT) {
+            let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOCLIENT) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
@@ -209,7 +209,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 None => Vec::new(),
             };
 
-            let found = match state.get_file_tx_by_guid(&file_guid, STREAM_TOSERVER) {
+            let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOSERVER) {
                 Some((tx, files, flags)) => {
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
                         let file_id : u32 = tx.id as u32;
@@ -385,7 +385,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
         SMB2_COMMAND_CLOSE => {
             match parse_smb2_request_close(r.data) {
                 IResult::Done(_, cd) => {
-                    let found_ts = match state.get_file_tx_by_guid(&cd.guid.to_vec(), STREAM_TOSERVER) {
+                    let found_ts = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOSERVER) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -399,7 +399,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         },
                         None => { false },
                     };
-                    let found_tc = match state.get_file_tx_by_guid(&cd.guid.to_vec(), STREAM_TOCLIENT) {
+                    let found_tc = match state.get_file_tx_by_fuid(&cd.guid.to_vec(), STREAM_TOCLIENT) {
                         Some((tx, files, flags)) => {
                             if !tx.request_done {
                                 if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -498,7 +498,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                         Vec::new()
                     },
                 };
-                let found = match state.get_file_tx_by_guid(&file_guid, STREAM_TOCLIENT) {
+                let found = match state.get_file_tx_by_fuid(&file_guid, STREAM_TOCLIENT) {
                     Some((tx, files, flags)) => {
                         if !tx.request_done {
                             if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
@@ -547,6 +547,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                                 tdn.last_write_ts = cr.last_write_ts.as_unix();
                                 tdn.last_change_ts = cr.last_change_ts.as_unix();
                                 tdn.size = cr.size;
+                                tdn.guid = cr.guid.to_vec();
                             }
                         }
                     }

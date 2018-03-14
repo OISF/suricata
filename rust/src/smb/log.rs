@@ -25,7 +25,6 @@ use smb::smb1::*;
 use smb::smb2::*;
 use smb::dcerpc::*;
 use smb::funcs::*;
-use nom;
 
 #[cfg(not(feature = "debug"))]
 fn debug_add_progress(_js: &Json, _tx: &SMBTransaction) { }
@@ -34,6 +33,24 @@ fn debug_add_progress(_js: &Json, _tx: &SMBTransaction) { }
 fn debug_add_progress(js: &Json, tx: &SMBTransaction) {
     js.set_boolean("request_done", tx.request_done);
     js.set_boolean("response_done", tx.request_done);
+}
+
+/// take in a file GUID (16 bytes) or FID (2 bytes). Also deal
+/// with our frankenFID (2 bytes + 4 user_id)
+fn fuid_to_string(fuid: &Vec<u8>) -> String {
+    let fuid_len = fuid.len();
+    if fuid_len == 16 {
+        guid_to_string(fuid)
+    } else if fuid_len == 2 {
+        let o = format!("{:02x}{:02x}", fuid[1], fuid[0]);
+        o.to_string()
+    } else if fuid_len == 6 {
+        let pure_fid = &fuid[0..2];
+        let o = format!("{:02x}{:02x}", pure_fid[1], pure_fid[0]);
+        o.to_string()
+    } else {
+        "".to_string()
+    }
 }
 
 fn guid_to_string(guid: &Vec<u8>) -> String {
@@ -243,6 +260,9 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             js.set_integer("modified", x.last_write_ts as u64);
             js.set_integer("changed", x.last_change_ts as u64);
             js.set_integer("size", x.size);
+
+            let gs = fuid_to_string(&x.guid);
+            js.set_string("fuid", &gs);
         },
         Some(SMBTransactionTypeData::NEGOTIATE(ref x)) => {
             if x.smb_ver == 1 {
@@ -304,21 +324,16 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         Some(SMBTransactionTypeData::FILE(ref x)) => {
             let file_name = String::from_utf8_lossy(&x.file_name);
             js.set_string("filename", &file_name);
-            let share_name = String::from_utf8_lossy(&x.share_name);
-            js.set_string("share", &share_name);
+            if x.share_name.len() > 0 {
+                let share_name = String::from_utf8_lossy(&x.share_name);
+                js.set_string("share", &share_name);
+            } else {
+                // name suggestion from Bro
+                js.set_string("share", "<share_root>");
+            };
 
-
-            if x.guid.len() >= 2 {
-                let fid_s = &x.guid[0..2];
-                let fid_n = match nom::le_u16(&fid_s) {
-                    nom::IResult::Done(_, x) => {
-                        x as u16
-                    }
-                    _ => 0 as u16
-                };
-                let fid_hex_str = format!("0x{:00x}", fid_n);
-                js.set_string("fid", &fid_hex_str);
-            }
+            let gs = fuid_to_string(&x.fuid);
+            js.set_string("fuid", &gs);
         },
         Some(SMBTransactionTypeData::DCERPC(ref x)) => {
             let jsd = Json::object();

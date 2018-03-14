@@ -371,6 +371,7 @@ pub struct SMBTransactionCreate {
     pub delete_on_close: bool,
     pub directory: bool,
     pub filename: Vec<u8>,
+    pub guid: Vec<u8>,
 
     pub create_ts: u32,
     pub last_access_ts: u32,
@@ -387,6 +388,7 @@ impl SMBTransactionCreate {
             delete_on_close: del,
             directory: dir,
             filename: filename,
+            guid: Vec::new(),
             create_ts: 0,
             last_access_ts: 0,
             last_write_ts: 0,
