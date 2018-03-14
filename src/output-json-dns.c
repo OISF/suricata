@@ -196,6 +196,12 @@ typedef enum {
     DNS_VERSION_2
 } DnsVersion;
 
+#ifdef HAVE_RUST
+#define DNS_VERSION_DEFAULT DNS_VERSION_2
+#else
+#define DNS_VERSION_DEFAULT DNS_VERSION_1
+#endif
+
 static struct {
     const char *config_rrtype;
     uint64_t flags;
@@ -1216,10 +1222,10 @@ static void JsonDnsLogParseConfig(LogDnsFileCtx *dnslog_ctx, ConfNode *conf,
 static DnsVersion JsonDnsParseVersion(ConfNode *conf)
 {
     if (conf == NULL) {
-        return DNS_VERSION_1;
+        return DNS_VERSION_DEFAULT;
     }
 
-    DnsVersion version = DNS_VERSION_1;
+    DnsVersion version = DNS_VERSION_DEFAULT;
     intmax_t config_version;
     if (ConfGetChildValueInt(conf, "version", &config_version)) {
         switch(config_version) {
@@ -1231,17 +1237,24 @@ static DnsVersion JsonDnsParseVersion(ConfNode *conf)
                 break;
             default:
                 SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                        "Invalid version option: %ji, "
-                        "forcing it to version 1", config_version);
-                version = DNS_VERSION_1;
+                        "invalid eve-log dns version option: %"PRIuMAX", "
+                        "forcing it to version %u",
+                        config_version, DNS_VERSION_DEFAULT);
+                version = DNS_VERSION_DEFAULT;
                 break;
         }
     } else {
         SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "Version not found, forcing it to version 1");
-        version = DNS_VERSION_1;
+                "version not found, forcing it to version %u",
+                DNS_VERSION_DEFAULT);
+        version = DNS_VERSION_DEFAULT;
     }
-
+#ifdef HAVE_RUST
+    if (version != DNS_VERSION_2) {
+        FatalError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
+                "by Rust builds.", version);
+    }
+#endif
     return version;
 }
 
@@ -1285,13 +1298,6 @@ static OutputInitResult JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_c
     }
 
     DnsVersion version = JsonDnsParseVersion(conf);
-#ifdef HAVE_RUST
-    if (version != 2) {
-        SCLogError(SC_ERR_NOT_SUPPORTED, "EVE/DNS version %d not support with "
-                "by Rust builds.", version);
-        exit(1);
-    }
-#endif
 
     OutputJsonCtx *ojc = parent_ctx->data;
 
