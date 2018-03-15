@@ -72,7 +72,7 @@ static int JsonIKEv2Logger(ThreadVars *tv, void *thread_data,
     LogIKEv2LogThread *thread = thread_data;
     json_t *js, *ikev2js;
 
-    js = CreateJSONHeader((Packet *)p, 0, "ikev2");
+    js = CreateJSONHeader((Packet *)p, LOG_DIR_PACKET, "ikev2");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
