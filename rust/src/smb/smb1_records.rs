@@ -565,6 +565,79 @@ named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetFileInfo<'a> {
+    pub fid: &'a[u8],
+    pub loi: u16,
+}
+
+named!(pub parse_trans2_request_params_set_file_info<Trans2RecordParamSetFileInfo>,
+    do_parse!(
+            fid: take!(2)
+        >>  loi: le_u16
+        >> (Trans2RecordParamSetFileInfo {
+                fid:fid,
+                loi:loi,
+            })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetFileInfoRename<'a> {
+    pub replace: bool,
+    pub newname: &'a[u8],
+}
+
+named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFileInfoRename>,
+    do_parse!(
+            replace: le_u8
+        >>  _reserved: take!(3)
+        >>  root_dir: take!(4)
+        >>  newname_len: le_u32
+        >>  newname: take!(newname_len)
+        >> (Trans2RecordParamSetFileInfoRename {
+                replace: replace==1,
+                newname: newname,
+            })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct SmbRequestTrans2Record<'a> {
+    pub subcmd: u16,
+    pub setup_blob: &'a[u8],
+    pub data_blob: &'a[u8],
+}
+
+named!(pub parse_smb_trans2_request_record<SmbRequestTrans2Record>,
+    do_parse!(
+            wct: le_u8
+        >>  total_param_cnt: le_u16
+        >>  total_data_cnt: le_u16
+        >>  max_param_cnt: le_u16
+        >>  max_data_cnt: le_u16
+        >>  max_setup_cnt: le_u8
+        >>  _reserved1: take!(1)
+        >>  flags: le_u16
+        >>  timeout: le_u32
+        >>  _reserved2: take!(2)
+        >>  param_cnt: le_u16
+        >>  param_offset: le_u16
+        >>  data_cnt: le_u16
+        >>  data_offset: le_u16
+        >>  setup_cnt: le_u8
+        >>  _reserved3: take!(1)
+        >>  subcmd: le_u16
+        >>  bcc: le_u16
+        >>  _padding: take!(3)
+        >>  setup_blob: take!(param_cnt)
+        >>  data_blob: take!(data_cnt)
+
+        >> (SmbRequestTrans2Record {
+                subcmd: subcmd,
+                setup_blob: setup_blob,
+                data_blob: data_blob,
+           }))
+);
+
+#[derive(Debug,PartialEq)]
 pub struct SmbResponseCreateAndXRecord<'a> {
     pub fid: &'a[u8],
     pub create_ts: SMBFiletime,

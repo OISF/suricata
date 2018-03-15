@@ -133,6 +133,18 @@ pub fn smb1_create_new_tx(cmd: u8) -> bool {
     }
 }
 
+// see if we're going to do a lookup for a TX.
+// related to smb1_create_new_tx(), however it
+// excludes the 'maybe' commands like TRANS2
+pub fn smb1_check_tx(cmd: u8) -> bool {
+    match cmd {
+        SMB1_COMMAND_READ_ANDX |
+        SMB1_COMMAND_WRITE_ANDX |
+        SMB1_COMMAND_TRANS => { false },
+        _ => { true },
+    }
+}
+
 fn smb1_close_file(state: &mut SMBState, fid: &Vec<u8>)
 {
     // we can have created 2 txs for a FID: one for reads
@@ -199,7 +211,79 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                 },
             }
         },
+        SMB1_COMMAND_TRANS2 => {
+            match parse_smb_trans2_request_record(r.data) {
+                IResult::Done(_, rd) => {
+                    SCLogDebug!("TRANS2 DONE {:?}", rd);
 
+                    if rd.subcmd == 8 {
+                        match parse_trans2_request_params_set_file_info(rd.setup_blob) {
+                            IResult::Done(_, pd) => {
+                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS DONE {:?}", pd);
+
+                                if pd.loi == 1010 {
+                                    match parse_trans2_request_data_set_file_info_rename(rd.data_blob) {
+                                        IResult::Done(_, ren) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME DONE {:?}", ren);
+                                            let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+                                            let mut newname = ren.newname.to_vec();
+                                            newname.retain(|&i|i != 0x00);
+
+                                            let mut frankenfid = pd.fid.to_vec();
+                                            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+
+                                            let oldname = match state.guid2name_map.get(&frankenfid) {
+                                                Some(n) => n.to_vec(),
+                                                None => b"<unknown>".to_vec(),
+                                            };
+                                            let tx = state.new_rename_tx(pd.fid.to_vec(), oldname, newname);
+                                            tx.hdr = tx_hdr;
+                                            tx.request_done = true;
+                                            tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
+                                            true
+                                        },
+                                        IResult::Incomplete(n) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME INCOMPLETE {:?}", n);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                        IResult::Error(e) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME ERROR {:?}", e);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                    }
+                                } else {
+                                    false
+                                }
+                            },
+                            IResult::Incomplete(n) => {
+                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS INCOMPLETE {:?}", n);
+                                events.push(SMBEvent::MalformedData);
+                                false
+                            },
+                            IResult::Error(e) => {
+                                SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS ERROR {:?}", e);
+                                events.push(SMBEvent::MalformedData);
+                                false
+                            },
+                        }
+                    } else {
+                        false
+                    }
+                },
+                IResult::Incomplete(n) => {
+                    SCLogDebug!("TRANS2 INCOMPLETE {:?}", n);
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
+                IResult::Error(e) => {
+                    SCLogDebug!("TRANS2 ERROR {:?}", e);
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
+            }
+        },
         SMB1_COMMAND_READ_ANDX => {
             match parse_smb_read_andx_request_record(r.data) {
                 IResult::Done(_, rr) => {
@@ -355,8 +439,7 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
             false
         },
         _ => {
-            if r.command == SMB1_COMMAND_TRANS2 ||
-               r.command == SMB1_COMMAND_LOGOFF_ANDX ||
+            if r.command == SMB1_COMMAND_LOGOFF_ANDX ||
                r.command == SMB1_COMMAND_TREE_DISCONNECT ||
                r.command == SMB1_COMMAND_NT_TRANS ||
                r.command == SMB1_COMMAND_NT_CANCEL ||
@@ -577,7 +660,7 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
             },
             _ => {},
         }
-    } else if !have_tx && smb1_create_new_tx(r.command) {
+    } else if !have_tx && smb1_check_tx(r.command) {
         let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_GENERICTX,
                 key_ssn_id as u64, key_tree_id as u32, key_multiplex_id as u64);
         let _have_tx2 = match state.get_generic_tx(1, r.command as u16, &tx_key) {
