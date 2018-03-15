@@ -710,7 +710,7 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 
             let file_name = match state.guid2name_map.get(&file_fid) {
                 Some(n) => n.to_vec(),
-                None => Vec::new(),
+                None => b"<unknown>".to_vec(),
             };
             let found = match state.get_file_tx_by_fuid(&file_fid, STREAM_TOSERVER) {
                 Some((tx, files, flags)) => {

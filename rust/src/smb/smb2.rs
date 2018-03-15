@@ -170,7 +170,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 } else {
                     let file_name = match state.guid2name_map.get(&file_guid) {
                         Some(n) => { n.to_vec() },
-                        None => { Vec::new() },
+                        None => { b"<unknown>".to_vec() },
                     };
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOCLIENT);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
