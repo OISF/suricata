@@ -300,6 +300,50 @@ named!(pub parse_smb2_request_close<Smb2CloseRequestRecord>,
             })
 ));
 
+#[derive(Debug)]
+pub struct Smb2SetInfoRequestRenameRecord<'a> {
+    pub name: &'a[u8],
+}
+
+named!(pub parse_smb2_request_setinfo_rename<Smb2SetInfoRequestRenameRecord>,
+    do_parse!(
+            replace: le_u8
+        >>  _reserved: take!(7)
+        >>  _root_handle: take!(8)
+        >>  name_len: le_u32
+        >>  name: take!(name_len)
+        >> (Smb2SetInfoRequestRenameRecord {
+                name: name,
+            })
+));
+
+#[derive(Debug)]
+pub struct Smb2SetInfoRequestRecord<'a> {
+    pub guid: &'a[u8],
+    pub class: u8,
+    pub infolvl: u8,
+    pub rename: Option<Smb2SetInfoRequestRenameRecord<'a>>,
+}
+
+named!(pub parse_smb2_request_setinfo<Smb2SetInfoRequestRecord>,
+    do_parse!(
+            struct_size: le_u16
+        >>  class: le_u8
+        >>  infolvl: le_u8
+        >>  setinfo_size: le_u32
+        >>  setinfo_offset: le_u16
+        >>  _reserved: take!(2)
+        >>  additional_info: le_u32
+        >>  guid: take!(16)
+        >>  rename: cond!(class == 1 && infolvl == 10, flat_map!(take!(setinfo_size),parse_smb2_request_setinfo_rename))
+        >> (Smb2SetInfoRequestRecord {
+                guid: guid,
+                class: class,
+                infolvl: infolvl,
+                rename: rename,
+            })
+));
+
 #[derive(Debug,PartialEq)]
 pub struct Smb2WriteRequestRecord<'a> {
     pub wr_len: u32,

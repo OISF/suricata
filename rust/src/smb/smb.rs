@@ -363,6 +363,40 @@ pub enum SMBTransactionTypeData {
     CREATE(SMBTransactionCreate),
     SESSIONSETUP(SMBTransactionSessionSetup),
     IOCTL(SMBTransactionIoctl),
+    RENAME(SMBTransactionRename),
+}
+
+#[derive(Debug)]
+pub struct SMBTransactionRename {
+    pub oldname: Vec<u8>,
+    pub newname: Vec<u8>,
+    pub fuid: Vec<u8>,
+}
+
+impl SMBTransactionRename {
+    pub fn new(fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>) -> SMBTransactionRename {
+        return SMBTransactionRename {
+            fuid: fuid, oldname: oldname, newname: newname,
+        }
+    }
+}
+
+impl SMBState {
+    pub fn new_rename_tx(&mut self, fuid: Vec<u8>, oldname: Vec<u8>, newname: Vec<u8>)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+
+        tx.type_data = Some(SMBTransactionTypeData::RENAME(
+                    SMBTransactionRename::new(fuid, oldname, newname)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogNotice!("SMB: TX RENAME created: ID {}", tx.id);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
 }
 
 #[derive(Debug)]

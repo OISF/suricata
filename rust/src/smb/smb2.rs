@@ -276,6 +276,42 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
     let mut events : Vec<SMBEvent> = Vec::new();
 
     let have_tx = match r.command {
+        SMB2_COMMAND_SET_INFO => {
+            SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", r);
+            let have_si_tx = match parse_smb2_request_setinfo(r.data) {
+                IResult::Done(_, rd) => {
+                    SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", rd);
+
+                    if let Some(ref ren) = rd.rename {
+                        let tx_hdr = SMBCommonHdr::from2(r, SMBHDR_TYPE_GENERICTX);
+                        let mut newname = ren.name.to_vec();
+                        newname.retain(|&i|i != 0x00);
+                        let oldname = match state.guid2name_map.get(rd.guid) {
+                            Some(n) => { n.to_vec() },
+                            None => { b"<unknown>".to_vec() },
+                        };
+                        let tx = state.new_rename_tx(rd.guid.to_vec(), oldname, newname);
+                        tx.hdr = tx_hdr;
+                        tx.request_done = true;
+                        tx.vercmd.set_smb2_cmd(SMB2_COMMAND_SET_INFO);
+                        true
+                    } else {
+                        false
+                    }
+                },
+                IResult::Incomplete(_n) => {
+                    SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _n);
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
+                IResult::Error(_e) => {
+                    SCLogDebug!("SMB2_COMMAND_SET_INFO: {:?}", _e);
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
+            };
+            have_si_tx
+        },
         SMB2_COMMAND_IOCTL => {
             smb2_ioctl_request_record(state, r);
             true
