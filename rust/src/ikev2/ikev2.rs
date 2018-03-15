@@ -129,16 +129,15 @@ impl IKEV2State {
     fn parse(&mut self, i: &[u8], direction: u8) -> i8 {
         match parse_ikev2_header(i) {
             IResult::Done(rem,ref hdr) => {
-                SCLogDebug!("parse_ikev2: {:?}",hdr);
                 if rem.len() == 0 && hdr.length == 28 {
                     return 1;
                 }
                 // Rule 0: check version
                 if hdr.maj_ver != 2 || hdr.min_ver != 0 {
-                    SCLogInfo!("Unknown header version: {}.{}", hdr.maj_ver, hdr.min_ver);
+                    self.set_event(IKEV2Event::MalformedData);
+                    return -1;
                 }
                 if hdr.init_spi == 0 {
-                    SCLogInfo!("Malformed SPI - wrong length");
                     self.set_event(IKEV2Event::MalformedData);
                     return -1;
                 }
@@ -184,13 +183,13 @@ impl IKEV2State {
                                 // XXX TSr
                                 // XXX IDr
                                 _ => {
-                                    SCLogInfo!("Unknown payload content {:?}", payload.content);
+                                    SCLogDebug!("Unknown payload content {:?}", payload.content);
                                 },
                             }
                             self.connection_state = self.connection_state.advance(payload);
                         };
                     },
-                    e @ _ => SCLogInfo!("parse_ikev2_payload_with_type: {:?}",e),
+                    e => { SCLogDebug!("parse_ikev2_payload_with_type: {:?}",e); () },
                 }
                 self.transactions.push(tx);
                 1
