@@ -173,18 +173,10 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
 
             if let Some(ref ticket) = x.krb_ticket {
                 let jsd = Json::object();
-                let realm = match str::from_utf8(&ticket.realm) {
-                    Ok(v) => v,
-                    Err(_) => "UTF8_ERROR",
-                };
-                jsd.set_string("realm", &realm);
+                jsd.set_string("realm", &ticket.realm.0);
                 let jsa = Json::array();
-                for sname in &ticket.snames {
-                    let name = match str::from_utf8(&sname) {
-                        Ok(v) => v,
-                        Err(_) => "UTF8_ERROR",
-                    };
-                    jsa.array_append_string(&name);
+                for sname in ticket.sname.name_string.iter() {
+                    jsa.array_append_string(&sname);
                 }
                 jsd.set("snames", jsa);
                 js.set("kerberos", jsd);
