@@ -18,6 +18,7 @@ debug = []
 nom = "~3.2.1"
 libc = "^0.2.36"
 crc = "~1.7.0"
-der-parser = "0.5.1"
+der-parser = "0.5.2"
+kerberos-parser = "0.1.0"
 
 ntp-parser = { version = "^0", optional = true }

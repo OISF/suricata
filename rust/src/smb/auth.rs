@@ -15,6 +15,9 @@
  * 02110-1301, USA.
  */
 
+use smb::kerberos_parser::krb5_parser;
+use smb::kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
+
 use log::*;
 use smb::ntlmssp_records::*;
 use smb::smb::*;
@@ -25,113 +28,8 @@ use der_parser;
 
 #[derive(Debug,PartialEq)]
 pub struct Kerberos5Ticket {
-    pub realm: Vec<u8>,
-    pub snames: Vec<Vec<u8>>,
-}
-
-/// ticket starts with custom header [APPLICATION 1]
-fn parse_kerberos5_request_ticket(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket>
-{
-    let (rem, ticket_hdr) = match der_parser::der_read_element_header(blob) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => {  return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request_ticket: ticket {:?}, remaining data {}", ticket_hdr, rem.len());
-
-    if !(ticket_hdr.class == 1 && ticket_hdr.structured == 1 && ticket_hdr.tag == 1 && ticket_hdr.len == rem.len() as u64) {
-        SCLogDebug!("parse_kerberos5_request_ticket: bad data");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-    let (_, ticket_seq) = match der_parser::parse_der_sequence(rem) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request_ticket: ticket {:?}", ticket_seq);
-
-    let ticket_vec = ticket_seq.as_sequence().unwrap(); // parse_der_sequence is checked
-    SCLogDebug!("parse_kerberos5_request_ticket: ticket_vec {:?}", ticket_vec);
-    if ticket_vec.len() != 4 {
-        SCLogDebug!("parse_kerberos5_request_ticket: unexpected format");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-
-    SCLogDebug!("parse_kerberos5_request_ticket: tkt-vno {:?}", ticket_vec[0]);
-    SCLogDebug!("parse_kerberos5_request_ticket: realm {:?}", ticket_vec[1]);
-    SCLogDebug!("parse_kerberos5_request_ticket: sname {:?}", ticket_vec[2]);
-    SCLogDebug!("parse_kerberos5_request_ticket: enc-part {:?}", ticket_vec[3]);
-
-    let gs = match ticket_vec[1].content.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-        },
-    };
-    let realm = match der_parser::parse_der_generalstring(gs) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request_ticket: realm {:?}", realm);
-
-    if !(realm.class == 0 && realm.structured == 0 && realm.tag == 27) {
-        SCLogDebug!("bad realm data");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-    let realm_v = realm.content.as_slice().unwrap().to_vec();
-    SCLogDebug!("parse_kerberos5_request_ticket: realm_v {:?}", realm_v);
-
-    let sname = match der_parser::parse_der_sequence(ticket_vec[2].content.as_slice().unwrap()) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: needed {:?}", needed);
-            return IResult::Incomplete(needed);
-        },
-        IResult::Error(err) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: err {:?}", err);
-            return IResult::Error(err);
-        },
-    };
-    SCLogDebug!("parse_kerberos5_request_ticket: sname {:?}", sname);
-
-    let sname_vec = sname.as_sequence().unwrap(); // parse_der_sequence is checked
-    SCLogDebug!("parse_kerberos5_request_ticket: sname_vec {:?}", sname_vec);
-
-    if sname_vec.len() != 2 {
-        SCLogDebug!("parse_kerberos5_request_ticket: unexpected format");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-    let sname_seq = match der_parser::parse_der_sequence(sname_vec[1].content.as_slice().unwrap()) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: needed {:?}", needed);
-            return IResult::Incomplete(needed);
-        },
-        IResult::Error(err) => {
-            SCLogDebug!("parse_kerberos5_request_ticket: err {:?}", err);
-            return IResult::Error(err);
-        },
-    };
-    SCLogDebug!("parse_kerberos5_request_ticket: sname_seq {:?}", sname_seq);
-    let snamestr_vec = sname_seq.as_sequence().unwrap(); // parse_der_sequence is checked
-
-    let mut snames : Vec<Vec<u8>> = Vec::new();
-    for o in snamestr_vec {
-        SCLogDebug!("parse_kerberos5_request_ticket: sname o {:?}", o);
-        if o.tag == 27 {
-            let v = o.content.as_slice().unwrap().to_vec();
-            SCLogDebug!("sname {:?}", v);
-            snames.push(v);
-        }
-    }
-
-    let t = Kerberos5Ticket {
-        realm: realm_v,
-        snames: snames,
-    };
-    SCLogDebug!("ticket {:?}", t);
-    IResult::Done(&[],t)
+    pub realm: Realm,
+    pub sname: PrincipalName,
 }
 
 // get SPNEGO
@@ -140,7 +38,7 @@ fn parse_kerberos5_request_ticket(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket
 // else if OID has NTLMSSP get NTLMSSP
 // else bruteforce NTLMSSP
 
-fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket>
+fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], ApReq>
 {
     let blob = match der_parser::parse_der(blob) {
         IResult::Done(_, b) => {
@@ -167,75 +65,7 @@ fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], Kerberos5Ticket>
     };
     SCLogDebug!("parse_kerberos5_request: tok_id {}", tok_id);
 
-    // APPLICATION 14
-    let (rem, base_o) = match der_parser::der_read_element_header(rem) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    if !(base_o.class == 1 && base_o.structured == 1 && base_o.tag == 14 && base_o.len == rem.len() as u64) {
-        SCLogDebug!("parse_kerberos5_request_ticket: bad data");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-
-    let base_seq = match der_parser::parse_der_sequence(rem) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request: base_seq {:?}", base_seq);
-
-    if base_seq.as_sequence().unwrap().len() < 4 {
-        SCLogDebug!("parse_kerberos5_request_ticket: bad data");
-        return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-    }
-
-    let pvno_s = match base_seq[0].content.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-        },
-    };
-    let pvno = match der_parser::parse_der_integer(pvno_s) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("pvno {:?}", pvno);
-
-    let msg_type_s = match base_seq[1].content.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-        },
-    };
-    let msg_type = match der_parser::parse_der_integer(msg_type_s) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("msg_type {:?}", msg_type);
-
-    let padding_s = match base_seq[2].content.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-        },
-    };
-    let padding = match der_parser::parse_der_bitstring(padding_s) {
-        IResult::Done(_, o) => o,
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("padding {:?}", padding);
-
-    let ticket_s = match base_seq[3].content.as_slice() {
-        Ok(s) => s,
-        Err(_) => {
-            return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR)));
-        },
-    };
-    parse_kerberos5_request_ticket(ticket_s)
+    krb5_parser::parse_ap_req(rem)
 }
 
 
@@ -358,7 +188,11 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             der_parser::DerObjectContent::OctetString(ref os) => {
                 if have_kerberos {
                     match parse_kerberos5_request(os) {
-                        IResult::Done(_, t) => {
+                        IResult::Done(_, req) => {
+                            let t = Kerberos5Ticket {
+                                realm: req.ticket.realm,
+                                sname: req.ticket.sname,
+                            };
                             kticket = Some(t)
                         },
                         _ => { },
