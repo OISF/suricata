@@ -146,22 +146,13 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         Some(SMBTransactionTypeData::SESSIONSETUP(ref x)) => {
             if let Some(ref ntlmssp) = x.ntlmssp {
                 let jsd = Json::object();
-                let domain = match str::from_utf8(&ntlmssp.domain) {
-                    Ok(v) => v,
-                    Err(_) => "UTF8_ERROR",
-                };
+                let domain = String::from_utf8_lossy(&ntlmssp.domain);
                 jsd.set_string("domain", &domain);
 
-                let user = match str::from_utf8(&ntlmssp.user) {
-                    Ok(v) => v,
-                    Err(_) => "UTF8_ERROR",
-                };
+                let user = String::from_utf8_lossy(&ntlmssp.user);
                 jsd.set_string("user", &user);
 
-                let host = match str::from_utf8(&ntlmssp.host) {
-                    Ok(v) => v,
-                    Err(_) => "UTF8_ERROR",
-                };
+                let host = String::from_utf8_lossy(&ntlmssp.host);
                 jsd.set_string("host", &host);
 
                 if let Some(ref v) = ntlmssp.version {
@@ -185,15 +176,9 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             match x.request_host {
                 Some(ref r) => {
                     let jsd = Json::object();
-                    let os = match str::from_utf8(&r.native_os) {
-                        Ok(v) => v,
-                            Err(_) => "UTF8_ERROR",
-                    };
+                    let os = String::from_utf8_lossy(&r.native_os);
                     jsd.set_string("native_os", &os);
-                    let lm = match str::from_utf8(&r.native_lm) {
-                        Ok(v) => v,
-                            Err(_) => "UTF8_ERROR",
-                    };
+                    let lm = String::from_utf8_lossy(&r.native_lm);
                     jsd.set_string("native_lm", &lm);
                     js.set("request", jsd);
                 },
@@ -202,15 +187,9 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             match x.response_host {
                 Some(ref r) => {
                     let jsd = Json::object();
-                    let os = match str::from_utf8(&r.native_os) {
-                        Ok(v) => v,
-                            Err(_) => "UTF8_ERROR",
-                    };
+                    let os = String::from_utf8_lossy(&r.native_os);
                     jsd.set_string("native_os", &os);
-                    let lm = match str::from_utf8(&r.native_lm) {
-                        Ok(v) => v,
-                            Err(_) => "UTF8_ERROR",
-                    };
+                    let lm = String::from_utf8_lossy(&r.native_lm);
                     jsd.set_string("native_lm", &lm);
                     js.set("response", jsd);
                 },
