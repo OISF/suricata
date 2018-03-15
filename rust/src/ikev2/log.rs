@@ -43,15 +43,15 @@ pub extern "C" fn rs_ikev2_log_json_response(state: &mut IKEV2State, tx: &mut IK
         js.set_string("alg_esn", &format!("{:?}", state.alg_esn));
     }
     js.set_integer("errors", tx.errors as u64);
-    let payload_list : Vec<String> = tx.payload_types.iter()
-        .map(|x| format!("{:?}", x))
-        .collect();
-    let payload_list = payload_list.join(",");
-    js.set_string("payload_list", &payload_list);
-    let notify_list : Vec<String> = tx.notify_types.iter()
-        .map(|x| format!("{:?}", x))
-        .collect();
-    let notify_list = notify_list.join(",");
-    js.set_string("notify_list", &notify_list);
+    let jsa = Json::array();
+    for payload in tx.payload_types.iter() {
+        jsa.array_append_string(&format!("{:?}", payload));
+    }
+    js.set("payload", jsa);
+    let jsa = Json::array();
+    for notify in tx.notify_types.iter() {
+        jsa.array_append_string(&format!("{:?}", notify));
+    }
+    js.set("notify", jsa);
     return js.unwrap();
 }
