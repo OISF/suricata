@@ -176,6 +176,30 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
     let mut no_response_expected = false;
 
     let have_tx = match r.command {
+        SMB1_COMMAND_RENAME => {
+            match parse_smb_rename_request_record(r.data) {
+                IResult::Done(_, rd) => {
+                    SCLogDebug!("RENAME {:?}", rd);
+
+                    let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+                    let mut newname = rd.newname;
+                    newname.retain(|&i|i != 0x00);
+                    let mut oldname = rd.oldname;
+                    oldname.retain(|&i|i != 0x00);
+
+                    let tx = state.new_rename_tx(Vec::new(), oldname, newname);
+                    tx.hdr = tx_hdr;
+                    tx.request_done = true;
+                    tx.vercmd.set_smb1_cmd(SMB1_COMMAND_RENAME);
+                    true
+                },
+                _ => {
+                    events.push(SMBEvent::MalformedData);
+                    false
+                },
+            }
+        },
+
         SMB1_COMMAND_READ_ANDX => {
             match parse_smb_read_andx_request_record(r.data) {
                 IResult::Done(_, rr) => {

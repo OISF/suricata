@@ -330,14 +330,19 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
             js.set_string("fuid", &gs);
         },
         Some(SMBTransactionTypeData::RENAME(ref x)) => {
+            if tx.vercmd.get_version() == 2 {
+                let jsd = Json::object();
+                jsd.set_string("class", "FILE_INFO");
+                jsd.set_string("info_level", "SMB2_FILE_RENAME_INFO");
+                js.set("set_info", jsd);
+            }
+
             let jsd = Json::object();
-            jsd.set_string("class", "FILE_INFO");
-            jsd.set_string("info_level", "SMB2_FILE_RENAME_INFO");
             let file_name = String::from_utf8_lossy(&x.oldname);
             jsd.set_string("from", &file_name);
             let file_name = String::from_utf8_lossy(&x.newname);
             jsd.set_string("to", &file_name);
-            js.set("set_info", jsd);
+            js.set("rename", jsd);
             let gs = fuid_to_string(&x.fuid);
             js.set_string("fuid", &gs);
         },

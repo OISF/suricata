@@ -520,6 +520,27 @@ named!(pub parse_smb_read_andx_response_record<SmbResponseReadAndXRecord>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct SmbRequestRenameRecord {
+    pub oldname: Vec<u8>,
+    pub newname: Vec<u8>,
+}
+
+named!(pub parse_smb_rename_request_record<SmbRequestRenameRecord>,
+    do_parse!(
+            wct: le_u8
+        >>  search_attr: le_u16
+        >>  bcc: le_u16
+        >>  oldtype: le_u8
+        >>  oldname: smb_get_unicode_string
+        >>  newtype: le_u8
+        >>  newname: apply!(smb_get_unicode_string_with_offset, 1) // HACK if we assume oldname is a series of utf16 chars offset would be 1
+        >> (SmbRequestRenameRecord {
+                oldname: oldname,
+                newname: newname,
+           }))
+);
+
+#[derive(Debug,PartialEq)]
 pub struct SmbRequestCreateAndXRecord<'a> {
     pub disposition: u32,
     pub create_options: u32,
