@@ -57,12 +57,12 @@ Example:
       end
       http_ua = string.gsub(http_ua, "%g", ".")
 
-      ts = SCPacketTimeString()
-      ipver, srcip, dstip, proto, sp, dp = SCFlowTuple()
+      timestring = SCPacketTimeString()
+      ip_version, src_ip, dst_ip, protocol, src_port, dst_port = SCFlowTuple()
 
-      file:write (ts .. " " .. http_host .. " [**] " .. http_uri .. " [**] " ..
-             http_ua .. " [**] " .. srcip .. ":" .. sp .. " -> " ..
-             dstip .. ":" .. dp .. "\n")
+      file:write (timestring .. " " .. http_host .. " [**] " .. http_uri .. " [**] " ..
+             http_ua .. " [**] " .. src_ip .. ":" .. src_port .. " -> " ..
+             dst_ip .. ":" .. dst_port .. "\n")
       file:flush()
 
       http = http + 1
@@ -127,21 +127,22 @@ Add SCPacketTimeString to get the packets time string in the format:
 ::
 
   function log(args)
-      ts = SCPacketTimeString()
+      timestring = SCPacketTimeString()
+  end
 
 SCPacketTuple
 ~~~~~~~~~~~~~
 
 ::
 
-  ipver, srcip, dstip, proto, sp, dp = SCPacketTuple()
+  ip_version, src_ip, dst_ip, protocol, src_port, dst_port = SCPacketTuple()
 
 SCPacketPayload
 ~~~~~~~~~~~~~~~
 
 ::
 
-  p = SCPacketPayload()
+  payload = SCPacketPayload()
 
 flow
 ----
@@ -177,7 +178,7 @@ SCFlowTuple
 
 ::
 
-  ipver, srcip, dstip, proto, sp, dp = SCFlowTuple()
+  ip_version, src_ip, dst_ip, protocol, src_port, dst_port = SCFlowTuple()
 
 SCFlowAppLayerProto
 ~~~~~~~~~~~~~~~~~~~
@@ -399,8 +400,8 @@ DnsGetQueries
           rrtype = t["type"]
 
           print ("QUERY: " .. ts .. " " .. rrname .. " [**] " .. rrtype .. " [**] " ..
-                 "TODO" .. " [**] " .. srcip .. ":" .. sp .. " -> " ..
-                 dstip .. ":" .. dp)
+                 "TODO" .. " [**] " .. src_ip .. ":" .. src_port .. " -> " ..
+                 dst_ip .. ":" .. dst_port)
       end
   end
 
@@ -419,8 +420,8 @@ DnsGetAnswers
           ttl = t["ttl"]
 
           print ("ANSWER: " .. ts .. " " .. rrname .. " [**] " .. rrtype .. " [**] " ..
-                 ttl .. " [**] " .. srcip .. ":" .. sp .. " -> " ..
-                 dstip .. ":" .. dp)
+                 ttl .. " [**] " .. src_ip .. ":" .. src_port .. " -> " ..
+                 dst_ip .. ":" .. dst_port)
       end
   end
 
@@ -439,8 +440,8 @@ DnsGetAuthorities
           ttl = t["ttl"]
 
           print ("AUTHORITY: " .. ts .. " " .. rrname .. " [**] " .. rrtype .. " [**] " ..
-                 ttl .. " [**] " .. srcip .. ":" .. sp .. " -> " ..
-                 dstip .. ":" .. dp)
+                 ttl .. " [**] " .. src_ip .. ":" .. src_port .. " -> " ..
+                 dst_ip .. ":" .. dst_port)
       end
   end
 
