@@ -1,17 +1,25 @@
 Lua Output
 ==========
 
-Lua scripts can be used to generate output from Suricata.
+Suricata offers the possibility to get more detailed output on specific kinds of
+network traffic via pluggable lua scripts. You can write these scripts yourself and only need to
+define four hooking functions.
+
+For your scripts suricata offers you a wide range of lua functions.
+They all return information on specific engine internals and aspects of the network traffic.
+They are described in the following sections, grouped by the event/traffic type.
+But let's start with a example explaining these four hooking functions, and how to make
+suricata load your scripts.
 
 Script structure
 ----------------
 
-A script defines 4 functions: init, setup, log, deinit
+Your script needs to define 4 hooking functions: init(), setup(), log(), deinit()
 
-* init -- registers where the script hooks into the output engine
-* setup -- does per output thread setup
-* log -- logging function
-* deinit -- clean up function
+* init() -- registers where the script hooks into the output engine
+* setup() -- does per output thread setup
+* log() -- logging function
+* deinit() -- clean up function
 
 Example:
 
