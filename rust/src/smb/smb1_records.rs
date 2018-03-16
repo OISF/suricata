@@ -31,13 +31,11 @@ fn smb_get_unicode_string_with_offset(i: &[u8], offset: usize) -> IResult<&[u8],
 
 /// take a string, unicode or ascii based on record
 pub fn smb1_get_string<'a>(i: &'a[u8], r: &SmbRecord, offset: usize) -> IResult<&'a[u8], Vec<u8>> {
-    do_parse!(i,
-          u: value!(r.has_unicode_support())
-       >> s: switch!(value!(u),
-                true => apply!(smb_get_unicode_string_with_offset, offset) |
-                false => call!(smb_get_ascii_string))
-       >> ( s )
-    )
+    if r.has_unicode_support() {
+        smb_get_unicode_string_with_offset(i, offset)
+    } else {
+        smb_get_ascii_string(i)
+    }
 }
 
 #[derive(Debug,PartialEq)]

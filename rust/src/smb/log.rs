@@ -42,12 +42,10 @@ fn fuid_to_string(fuid: &Vec<u8>) -> String {
     if fuid_len == 16 {
         guid_to_string(fuid)
     } else if fuid_len == 2 {
-        let o = format!("{:02x}{:02x}", fuid[1], fuid[0]);
-        o.to_string()
+        format!("{:02x}{:02x}", fuid[1], fuid[0])
     } else if fuid_len == 6 {
         let pure_fid = &fuid[0..2];
-        let o = format!("{:02x}{:02x}", pure_fid[1], pure_fid[0]);
-        o.to_string()
+        format!("{:02x}{:02x}", pure_fid[1], pure_fid[0])
     } else {
         "".to_string()
     }
@@ -76,13 +74,8 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         js.set_string("dialect", &dialect);
     } else {
         let dialect = match &state.dialect_vec {
-            &Some(ref d) => {
-                match str::from_utf8(&d) {
-                    Ok(v) => v,
-                    Err(_) => "invalid",
-                }
-            },
-            &None => { "unknown" },
+            &Some(ref d) => str::from_utf8(&d).unwrap_or("invalid"),
+            &None        => "unknown",
         };
         js.set_string("dialect", &dialect);
     }
