@@ -101,7 +101,7 @@ pub fn smb2_ioctl_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 let hdr = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,
                         r.session_id, 0, r.message_id);
                 let vercmd = SMBVerCmdStat::new2_with_ntstatus(SMB2_COMMAND_IOCTL, r.nt_status);
-                SCLogNotice!("TODO passing empty GUID");
+                SCLogDebug!("TODO passing empty GUID");
                 smb_read_dcerpc_record(state, vercmd, hdr, &[],rd.data);
             } else {
                 let tx_key = SMBCommonHdr::new(SMBHDR_TYPE_HEADER,

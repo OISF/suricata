@@ -76,7 +76,7 @@ pub fn smb2_session_setup_response(state: &mut SMBState, r: &Smb2Record)
                 SCLogDebug!("smb2_session_setup_response: tx {:?}", tx);
             },
             None => {
-                SCLogNotice!("smb2_session_setup_response: tx not found for {:?}", r);
+                SCLogDebug!("smb2_session_setup_response: tx not found for {:?}", r);
             },
         }
     }

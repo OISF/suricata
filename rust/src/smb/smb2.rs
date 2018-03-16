@@ -333,7 +333,7 @@ pub fn smb2_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 
                     let found = match state.get_negotiate_tx(2) {
                         Some(_) => {
-                            SCLogNotice!("WEIRD, should not have NEGOTIATE tx!");
+                            SCLogDebug!("WEIRD, should not have NEGOTIATE tx!");
                             true
                         },
                         None => { false },
@@ -536,7 +536,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 let file_guid = match state.ssn2vecoffset_map.remove(&guid_key) {
                     Some(o) => o.guid,
                     _ => {
-                        SCLogNotice!("SMBv2 READ response: reply to unknown request");
+                        SCLogDebug!("SMBv2 READ response: reply to unknown request");
                         Vec::new()
                     },
                 };
@@ -558,7 +558,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 }
                 false
             } else {
-                SCLogNotice!("SMBv2 READ: status {}", &smb_ntstatus_string(r.nt_status));
+                SCLogDebug!("SMBv2 READ: status {}", &smb_ntstatus_string(r.nt_status));
                 false
             }
         },
@@ -721,7 +721,7 @@ pub fn smb2_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 true
             },
             _ => {
-                SCLogNotice!("no tx found for {:?}", r);
+                SCLogDebug!("no tx found for {:?}", r);
                 false
             },
         };

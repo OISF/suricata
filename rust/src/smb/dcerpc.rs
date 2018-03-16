@@ -415,7 +415,7 @@ fn smb_read_dcerpc_record_error(state: &mut SMBState,
             true
         },
         None => {
-            SCLogNotice!("NOT found");
+            SCLogDebug!("NOT found");
             false
         },
     };
@@ -453,7 +453,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
     let mut malformed = false;
 
     if data.len() == 0 {
-        SCLogNotice!("weird: no DCERPC data"); // TODO
+        SCLogDebug!("weird: no DCERPC data"); // TODO
         // TODO set event?
         return false;
 
@@ -499,7 +499,7 @@ pub fn smb_read_dcerpc_record<'b>(state: &mut SMBState,
                 let tx = match state.get_dcerpc_tx(&hdr, &vercmd, dcer.call_id) {
                     Some(tx) => tx,
                     None => {
-                        SCLogNotice!("no tx");
+                        SCLogDebug!("no tx");
                         return false; },
                 };
 

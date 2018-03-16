@@ -209,7 +209,7 @@ impl SMBState {
                 }
             },
             None => {
-                SCLogNotice!("not found for handle {:?}", file_handle);
+                SCLogDebug!("not found for handle {:?}", file_handle);
                 0 },
         };
 

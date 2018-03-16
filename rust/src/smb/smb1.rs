@@ -693,7 +693,7 @@ pub fn get_service_for_nameslice(nameslice: &[u8]) -> (&'static str, bool)
         Ok("\\PIPE\\") => ("PIPE", true), // TODO not sure if this is true
         Err(_) => ("MALFORMED", false),
         Ok(&_) => {
-            SCLogNotice!("don't know \"{}\"", String::from_utf8_lossy(&name));
+            SCLogDebug!("don't know \"{}\"", String::from_utf8_lossy(&name));
             ("UNKNOWN", false)
         },
     }
@@ -885,7 +885,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                 let (offset, file_fid) = match state.ssn2vecoffset_map.remove(&fid_key) {
                     Some(o) => (o.offset, o.guid),
                     None => {
-                        SCLogNotice!("SMBv1 READ response: reply to unknown request: left {} {:?}",
+                        SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
                                 rd.len - rd.data.len() as u32, rd);
                         state.skip_tc = rd.len - rd.data.len() as u32;
                         return;

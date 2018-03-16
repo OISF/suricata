@@ -392,7 +392,7 @@ impl SMBState {
         tx.request_done = true;
         tx.response_done = self.tc_trunc; // no response expected if tc is truncated
 
-        SCLogNotice!("SMB: TX RENAME created: ID {}", tx.id);
+        SCLogDebug!("SMB: TX RENAME created: ID {}", tx.id);
         self.transactions.push(tx);
         let tx_ref = self.transactions.last_mut();
         return tx_ref.unwrap();
@@ -1053,7 +1053,7 @@ impl SMBState {
                     Ok("samr") => ("samr", true),
                     Err(_) => ("MALFORMED", false),
                     Ok(&_) => {
-                        SCLogNotice!("don't know {}", String::from_utf8_lossy(&n));
+                        SCLogDebug!("don't know {}", String::from_utf8_lossy(&n));
                         ("UNKNOWN", false)
                     },
                 }
@@ -1082,7 +1082,7 @@ impl SMBState {
             None => (false, 0),
         };
         if last_done && id > 0 {
-            SCLogNotice!("check_gap_resync2: TX {} is done post-GAP, mark all older ones complete", id);
+            SCLogDebug!("check_gap_resync2: TX {} is done post-GAP, mark all older ones complete", id);
             self.ts_ssn_gap = false;
             self.tc_ssn_gap = false;
             self.close_non_file_txs(prior_max_id);

@@ -173,10 +173,10 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
                                 "1.2.840.113554.1.2.2.3" => { SCLogDebug!("krb5-user-to-user-mech"); },
                                 "1.3.6.1.4.1.311.2.2.10" => { SCLogDebug!("NTLMSSP"); have_ntlmssp = true; },
                                 "1.3.6.1.4.1.311.2.2.30" => { SCLogDebug!("NegoEx"); },
-                                _ => { SCLogNotice!("unexpected OID {:?}", oid); },
+                                _ => { SCLogDebug!("unexpected OID {:?}", oid); },
                             }
                         },
-                        _ => { SCLogNotice!("expected OID, got {:?}", se); },
+                        _ => { SCLogDebug!("expected OID, got {:?}", se); },
                     }
                 }
             },
