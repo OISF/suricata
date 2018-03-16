@@ -155,8 +155,8 @@ pub struct NFSTransaction {
 
     /// for state tracking. false means this side is in progress, true
     /// that it's complete.
-    request_done: bool,
-    response_done: bool,
+    pub request_done: bool,
+    pub response_done: bool,
 
     pub nfs_version: u16,
 
@@ -231,13 +231,13 @@ impl Drop for NFSTransaction {
 
 #[derive(Debug)]
 pub struct NFSRequestXidMap {
-    progver: u32,
-    procedure: u32,
-    chunk_offset: u64,
-    file_name:Vec<u8>,
+    pub progver: u32,
+    pub procedure: u32,
+    pub chunk_offset: u64,
+    pub file_name:Vec<u8>,
 
     /// READ replies can use this to get to the handle the request used
-    file_handle:Vec<u8>,
+    pub file_handle:Vec<u8>,
 }
 
 impl NFSRequestXidMap {
@@ -285,7 +285,7 @@ impl NFSFiles {
 }
 
 /// little wrapper around the FileTransferTracker::new_chunk method
-fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
+pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContainer,
         flags: u16, name: &Vec<u8>, data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
@@ -315,11 +315,11 @@ pub struct NFSState {
     pub files: NFSFiles,
 
     /// partial record tracking
-    ts_chunk_xid: u32,
-    tc_chunk_xid: u32,
+    pub ts_chunk_xid: u32,
+    pub tc_chunk_xid: u32,
     /// size of the current chunk that we still need to receive
-    ts_chunk_left: u32,
-    tc_chunk_left: u32,
+    pub ts_chunk_left: u32,
+    pub tc_chunk_left: u32,
 
     ts_ssn_gap: bool,
     tc_ssn_gap: bool,
@@ -483,7 +483,7 @@ impl NFSState {
         };
     }
 
-    fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {
+    pub fn xidmap_handle2name(&mut self, xidmap: &mut NFSRequestXidMap) {
         match self.namemap.get(&xidmap.file_handle) {
             Some(n) => {
                 SCLogDebug!("xidmap_handle2name: name {:?}", n);
@@ -500,6 +500,10 @@ impl NFSState {
     fn process_request_record<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
+
+        if r.progver == 4 {
+            return self.process_request_record_v4(r);
+        }
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
@@ -779,7 +783,7 @@ impl NFSState {
         0
     }
 
-    fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
+    pub fn new_file_tx(&mut self, file_handle: &Vec<u8>, file_name: &Vec<u8>, direction: u8)
         -> (&mut NFSTransaction, &mut FileContainer, u16)
     {
         let mut tx = self.new_tx();
@@ -803,7 +807,7 @@ impl NFSState {
         return (tx_ref.unwrap(), files, flags)
     }
 
-    fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: u8)
+    pub fn get_file_tx_by_handle(&mut self, file_handle: &Vec<u8>, direction: u8)
         -> Option<(&mut NFSTransaction, &mut FileContainer, u16)>
     {
         let fh = file_handle.to_vec();
@@ -1080,9 +1084,8 @@ impl NFSState {
                 return self.process_reply_record_v3(r, &mut xidmap);
             },
             4 => {
-                SCLogDebug!("NFSv4 unsupported");
-                self.set_event(NFSEvent::UnsupportedVersion);
-                return 0;
+                SCLogDebug!("NFSv4 reply record");
+                return self.process_reply_record_v4(r, &mut xidmap);
             },
             _ => {
                 SCLogDebug!("Invalid NFS version");
@@ -1199,7 +1202,7 @@ impl NFSState {
 
     /// xidmapr is an Option as it's already removed from the map if we
     /// have a complete record. Otherwise we do a lookup ourselves.
-    fn process_read_record<'b>(&mut self, r: &RpcReplyPacket<'b>,
+    pub fn process_read_record<'b>(&mut self, r: &RpcReplyPacket<'b>,
             reply: &NfsReplyRead<'b>, xidmapr: Option<&NFSRequestXidMap>) -> u32
     {
         let file_name;
@@ -1226,6 +1229,7 @@ impl NFSState {
                 }
             },
         }
+        SCLogDebug!("chunk_offset {}", chunk_offset);
 
         let mut is_last = reply.eof;
         let mut fill_bytes = 0;
@@ -1233,7 +1237,8 @@ impl NFSState {
         if pad != 0 {
             fill_bytes = 4 - pad;
         }
-        SCLogDebug!("XID {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}", r.hdr.xid, fill_bytes, reply.count, reply.data_len, reply.data.len());
+        SCLogDebug!("XID {} is_last {} fill_bytes {} reply.count {} reply.data_len {} reply.data.len() {}",
+                r.hdr.xid, is_last, fill_bytes, reply.count, reply.data_len, reply.data.len());
 
         if nfs_version == 2 {
             let size = match parse_nfs2_attribs(reply.attr_blob) {
@@ -1256,6 +1261,7 @@ impl NFSState {
 
         let found = match self.get_file_tx_by_handle(&file_handle, STREAM_TOCLIENT) {
             Some((tx, files, flags)) => {
+                SCLogDebug!("updated TX {:?}", tx);
                 let ref mut tdf = match tx.type_data {
                     Some(NFSTransactionTypeData::FILE(ref mut x)) => x,
                     _ => { panic!("BUG") },
@@ -1291,7 +1297,7 @@ impl NFSState {
             filetracker_newchunk(&mut tdf.file_tracker, files, flags,
                     &file_name, reply.data, chunk_offset,
                     reply.count, fill_bytes as u8, is_last, &r.hdr.xid);
-            tx.procedure = NFSPROC3_READ;
+            tx.procedure = if nfs_version < 4 { NFSPROC3_READ } else { NFSPROC4_READ };
             tx.xid = r.hdr.xid;
             tx.is_first = true;
             if is_last {
@@ -2106,7 +2112,8 @@ pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
         match parse_rpc(i) {
             IResult::Done(_, ref rpc) => {
                 if rpc.hdr.frag_len >= 40 && rpc.hdr.msgtype == 0 &&
-                   rpc.rpcver == 2 && rpc.progver == 3 && rpc.program == 100003 &&
+                   rpc.rpcver == 2 && (rpc.progver == 3 || rpc.progver == 4) &&
+                   rpc.program == 100003 &&
                    rpc.procedure <= NFSPROC3_COMMIT
                 {
                     return 1;
