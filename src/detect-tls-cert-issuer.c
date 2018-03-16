@@ -32,7 +32,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-tls.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -56,6 +56,10 @@
 
 static int DetectTlsIssuerSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsIssuerRegisterTests(void);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 static int g_tls_cert_issuer_buffer_id = 0;
 
 /**
@@ -73,12 +77,16 @@ void DetectTlsIssuerRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxTlsIssuerRegister);
+    DetectAppLayerInspectEngineRegister2("tls_cert_issuer", ALPROTO_TLS,
+            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("tls_cert_issuer",
-            ALPROTO_TLS, SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
-            DetectEngineInspectTlsIssuer);
+    DetectAppLayerMpmRegister2("tls_cert_issuer", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
+            TLS_STATE_CERT_READY);
+
+    DetectBufferTypeSetDescriptionByName("tls_cert_issuer",
+            "TLS certificate issuer");
 
     g_tls_cert_issuer_buffer_id = DetectBufferTypeGetByName("tls_cert_issuer");
 }
@@ -95,9 +103,33 @@ void DetectTlsIssuerRegister(void)
  */
 static int DetectTlsIssuerSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
 {
-    s->init_data->list = g_tls_cert_issuer_buffer_id;
+    DetectBufferSetActiveList(s, g_tls_cert_issuer_buffer_id);
     s->alproto = ALPROTO_TLS;
     return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+
+    if (buffer->inspect == NULL) {
+        SSLState *ssl_state = (SSLState *)_f->alstate;
+
+        if (ssl_state->server_connp.cert0_issuerdn == NULL) {
+            return NULL;
+        }
+
+        const uint32_t data_len = strlen(ssl_state->server_connp.cert0_issuerdn);
+        const uint8_t *data = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS
