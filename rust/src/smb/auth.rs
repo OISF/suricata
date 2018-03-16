@@ -15,16 +15,16 @@
  * 02110-1301, USA.
  */
 
-use smb::kerberos_parser::krb5_parser;
+use smb::kerberos_parser::krb5_parser::parse_ap_req;
 use smb::kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
 
 use log::*;
 use smb::ntlmssp_records::*;
 use smb::smb::*;
 
-use nom;
-use nom::{IResult, ErrorKind};
+use nom::{IResult, ErrorKind, le_u16};
 use der_parser;
+use der_parser::parse_der_oid;
 
 #[derive(Debug,PartialEq)]
 pub struct Kerberos5Ticket {
@@ -50,22 +50,17 @@ fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], ApReq>
         IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
         IResult::Error(err) => { return IResult::Error(err); },
     };
-    let (rem, base_o) = match der_parser::parse_der_oid(blob) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request: base_o {:?}", base_o);
-
-    // not DER encoded 2 byte length field
-    let (rem, tok_id) = match nom::le_u16(rem) {
-        IResult::Done(rem, o) => (rem, o),
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    SCLogDebug!("parse_kerberos5_request: tok_id {}", tok_id);
-
-    krb5_parser::parse_ap_req(rem)
+    do_parse!(
+        blob,
+        base_o: parse_der_oid >>
+        tok_id: le_u16 >>
+        ap_req: parse_ap_req >>
+        ({
+            SCLogDebug!("parse_kerberos5_request: base_o {:?}", base_o.as_oid());
+            SCLogDebug!("parse_kerberos5_request: tok_id {}", tok_id);
+            ap_req
+        })
+    )
 }
 
 
