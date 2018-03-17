@@ -932,13 +932,10 @@ impl NFSState {
                     SCLogDebug!("RESPONSE CREATE file_name {:?}", xidmap.file_name);
                     nfs_status = nfs3_create_record.status;
 
-                    match nfs3_create_record.handle {
-                        Some(h) => {
-                            SCLogDebug!("handle {:?}", h);
-                            self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
-                            resp_handle = h.value.to_vec();
-                        },
-                        _ => { },
+                    if let Some(h) = nfs3_create_record.handle {
+                        SCLogDebug!("handle {:?}", h);
+                        self.namemap.insert(h.value.to_vec(), xidmap.file_name.to_vec());
+                        resp_handle = h.value.to_vec();
                     }
 
                 },
