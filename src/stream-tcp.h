@@ -94,6 +94,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_synack;
     /** rst pkts */
     uint16_t counter_tcp_rst;
+    /** midstream pickups */
+    uint16_t counter_tcp_midstream_pickups;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;
