@@ -159,16 +159,19 @@ named!(nfs4_req_setclientid_confirm<Nfs4RequestContent>,
 pub struct Nfs4RequestCreate<'a> {
     pub ftype4: u32,
     pub filename: &'a[u8],
+    pub link_content: &'a[u8],
 }
 
 named!(nfs4_req_create<Nfs4RequestContent>,
     do_parse!(
             ftype4: be_u32
+        >>  link_content: cond!(ftype4 == 5, nfs4_parse_nfsstring)
         >>  filename: nfs4_parse_nfsstring
         >>  attrs: nfs4_parse_attrs
         >> ( Nfs4RequestContent::Create(Nfs4RequestCreate {
                 ftype4: ftype4,
                 filename: filename,
+                link_content: link_content.unwrap_or(&[]),
             })
         ))
 );
