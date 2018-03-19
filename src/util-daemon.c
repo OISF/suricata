@@ -121,8 +121,6 @@ void Daemonize (void)
         /* Child continues here */
         const char *daemondir;
 
-        umask(027);
-
         sid = setsid();
         if (sid < 0) {
             SCLogError(SC_ERR_DAEMON, "Error creating new session");
