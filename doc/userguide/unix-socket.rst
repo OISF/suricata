@@ -46,6 +46,8 @@ example to write custom scripts:
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
 * C: https://github.com/regit/SuricataC (a unix socket mode client in C without interactive mode)
 
+.. _standard-unix-socket-commands:
+
 Commands in standard running mode
 ---------------------------------
 You may need to install suricatasc if you have not done so, running the following command from scripts/suricatasc
