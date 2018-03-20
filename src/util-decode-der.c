@@ -147,6 +147,10 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
         *errcode = ERR_DER_RECURSION_LIMIT;
         return NULL;
     }
+    if (max_size < 2) {
+        *errcode = ERR_DER_INVALID_SIZE;
+        return NULL;
+    }
 
     el.cls = (d_ptr[0] & 0xc0) >> 6;
     el.pc = (d_ptr[0] & 0x20) >> 5;
@@ -154,8 +158,10 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
 
     el_type = el.tag;
 
-    if (el.tag == 0x1f)
+    if (el.tag == 0x1f) {
+        *errcode = ERR_DER_INVALID_TAG;
         return NULL;
+    }
 
     switch (el.cls) {
         case ASN1_CLASS_CONTEXTSPEC:
@@ -247,6 +253,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
             /* total sequence length */
             const unsigned char * save_d_ptr = d_ptr;
             d_ptr++;
+            el_max_size--;
             c = d_ptr[0];
 
             /* short form 8.1.3.4 */
@@ -256,7 +263,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
             /* long form 8.1.3.5 */
             } else {
                 numbytes = c & 0x7f;
-                if (numbytes > el_max_size) {
+                if (2 + numbytes > el_max_size) {
                     SCFree(child);
                     *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
                     return NULL;
@@ -274,6 +281,7 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
             child->length += (d_ptr - save_d_ptr);
 
             if (child->length > max_size - (d_ptr - buffer)) {
+                *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
                 SCFree(child);
                 return NULL;
             }
@@ -281,11 +289,14 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
             break;
     };
 
-    if (child == NULL)
+    if (child == NULL) {
+        *errcode = ERR_DER_INVALID_OBJECT;
         return NULL;
+    }
 
     /* child length should never be zero */
     if (child->length == 0) {
+        *errcode = ERR_DER_INVALID_OBJECT;
         SCFree(child);
         return NULL;
     }
@@ -306,7 +317,7 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer,
 
     numbytes = d_ptr[1];
 
-    if (numbytes > size) {
+    if ((uint32_t)(numbytes + 2) > size) {
         *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
@@ -328,8 +339,10 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer,
     }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_INTEGER;
     a->length = (d_ptr - buffer) + numbytes;
@@ -337,6 +350,7 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer,
 
     a->str = SCMalloc(2*numbytes + 1);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -383,6 +397,10 @@ static Asn1Generic * DecodeAsn1DerBoolean(const unsigned char *buffer,
     Asn1Generic *a;
 
     numbytes = d_ptr[1];
+    if ((uint32_t)(numbytes + 2) > size) {
+        *errcode = ERR_DER_INVALID_SIZE;
+        return NULL;
+    }
     d_ptr += 2;
 
     if (DecodeAsn1BuildValue(&d_ptr, &value, numbytes, errcode) == -1) {
@@ -390,8 +408,10 @@ static Asn1Generic * DecodeAsn1DerBoolean(const unsigned char *buffer,
     }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_BOOLEAN;
     a->length = (d_ptr - buffer);
@@ -410,6 +430,10 @@ static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer,
     Asn1Generic *a;
 
     numbytes = d_ptr[1];
+    if ((uint32_t)(numbytes + 2) > size) {
+        *errcode = ERR_DER_INVALID_SIZE;
+        return NULL;
+    }
     d_ptr += 2;
 
     if (DecodeAsn1BuildValue(&d_ptr, &value, numbytes, errcode) == -1) {
@@ -417,8 +441,10 @@ static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer,
     }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_NULL;
     a->length = (d_ptr - buffer);
@@ -447,24 +473,33 @@ static Asn1Generic * DecodeAsn1DerBitstring(const unsigned char *buffer,
     /* long form 8.1.3.5 */
     } else {
         numbytes = c & 0x7f;
+        if ((uint32_t)(numbytes + 2) > max_size) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            return NULL;
+        }
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes, errcode) == -1) {
             return NULL;
         }
     }
 
-    if (length > max_size)
+    if ((d_ptr-buffer) + length > max_size) {
+        *errcode = ERR_DER_INVALID_SIZE;
         return NULL;
+    }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_BITSTRING;
     a->strlen = length;
 
     a->str = SCMalloc(length);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -497,23 +532,32 @@ static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer,
     /* long form 8.1.3.5 */
     } else {
         numbytes = c & 0x7f;
+        if ((uint32_t)(numbytes + 2) > max_size) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            return NULL;
+        }
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &oid_length, numbytes, errcode) == -1) {
             return NULL;
         }
     }
 
-    if (oid_length > max_size)
+    if (oid_length == 0 || (d_ptr-buffer) + oid_length > max_size) {
+        *errcode = ERR_DER_INVALID_SIZE;
         return NULL;
+    }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_OID;
 
     a->str = SCMalloc(MAX_OID_LENGTH);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -521,6 +565,13 @@ static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer,
     /* first element = X*40 + Y (See 8.19.4) */
     snprintf(a->str, MAX_OID_LENGTH, "%d.%d", (d_ptr[0]/40), (d_ptr[0]%40));
     d_ptr++;
+
+    if (oid_length + (d_ptr-buffer) > max_size) {
+        *errcode = ERR_DER_INVALID_SIZE;
+        SCFree(a->str);
+        SCFree(a);
+        return NULL;
+    }
 
     /* sub-identifiers are multi-valued, coded and 7 bits, first bit of
        the 8bits is used to indicate, if a new value is starting */
@@ -554,6 +605,7 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer,
     unsigned char c;
 
     d_ptr++;
+    max_size--;
 
     /* total sequence length */
     c = d_ptr[0];
@@ -561,29 +613,38 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer,
     if ((c & (1<<7))>>7 == 0) {
         length = c;
         d_ptr++;
+        max_size--;
     /* long form 8.1.3.5 */
     } else {
         numbytes = c & 0x7f;
+        if (max_size < 1 + numbytes) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            return NULL;
+        }
+        max_size -= 1 + numbytes;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes, errcode) == -1) {
             return NULL;
         }
     }
 
-    if (length == UINT32_MAX || length > max_size) {
+    if (length == UINT32_MAX || (d_ptr-buffer) + length > max_size) {
         *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_IA5STRING;
     a->strlen = length;
 
     a->str = SCMalloc(length+1);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -606,6 +667,7 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer,
     unsigned char c;
 
     d_ptr++;
+    max_size--;
 
     /* total sequence length */
     c = d_ptr[0];
@@ -613,23 +675,30 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer,
     if ((c & (1<<7))>>7 == 0) {
         length = c;
         d_ptr++;
+        max_size--;
     /* long form 8.1.3.5 */
     } else {
         numbytes = c & 0x7f;
+        if (max_size < 1 + numbytes) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            return NULL;
+        }
+        max_size -= 1 + numbytes;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes, errcode) == -1) {
             return NULL;
         }
     }
 
-    if (length == UINT32_MAX || length > max_size) {
+    if (length == UINT32_MAX || (d_ptr-buffer) + length > max_size) {
         *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
-
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_OCTETSTRING;
     a->strlen = length;
@@ -638,6 +707,7 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer,
        use the string in printf */
     a->str = SCMalloc(length + 1);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -683,25 +753,32 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer,
     } else {
         numbytes = c & 0x7f;
         d_ptr++;
+        if (2 + numbytes > max_size) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            return NULL;
+        }
         if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes, errcode) == -1) {
             return NULL;
         }
     }
 
-    if (length == UINT32_MAX || length > max_size) {
+    if (length == UINT32_MAX || (d_ptr-buffer) + length > max_size) {
         *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
     }
 
     a = Asn1GenericNew();
-    if (a == NULL)
+    if (a == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     a->type = ASN1_PRINTSTRING;
     a->strlen = length;
 
     a->str = SCMalloc(length+1);
     if (a->str == NULL) {
+        *errcode = ERR_DER_GENERIC;
         SCFree(a);
         return NULL;
     }
@@ -727,8 +804,10 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
     d_ptr++;
 
     node = Asn1GenericNew();
-    if (node == NULL)
+    if (node == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
 
     node->type = ASN1_SEQUENCE;
 
@@ -742,6 +821,11 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer,
     } else {
         numbytes = c & 0x7f;
         d_ptr++;
+        if ( 2 + numbytes > max_size ) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            SCFree(node);
+            return NULL;
+        }
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes, errcode) == -1) {
             SCFree(node);
             return NULL;
@@ -799,8 +883,10 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer,
     d_ptr++;
 
     node = Asn1GenericNew();
-    if (node == NULL)
+    if (node == NULL) {
+        *errcode = ERR_DER_GENERIC;
         return NULL;
+    }
     node->type = ASN1_SET;
     node->data = NULL;
 
@@ -813,6 +899,11 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer,
     /* long form 8.1.3.5 */
     } else {
         numbytes = c & 0x7f;
+        if (2 + numbytes > max_size) {
+            *errcode = ERR_DER_INVALID_SIZE;
+            SCFree(node);
+            return NULL;
+        }
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes, errcode) == -1) {
             SCFree(node);
@@ -895,28 +986,40 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
     uint8_t c;
 
     DEBUG_VALIDATE_BUG_ON(errcode == NULL);
+    *errcode = 0;
 
-    if (size < 2)
+    if (size < 2) {
+        *errcode = ERR_DER_INVALID_SIZE;
         return NULL;
+    }
 
     /* check that buffer is an ASN.1 structure (basic checks) */
-    if (d_ptr[0] != 0x30 && d_ptr[1] != 0x82) /* Sequence */
+    if (d_ptr[0] != 0x30 && d_ptr[1] != 0x82) { /* Sequence */
+        *errcode = ERR_DER_UNKNOWN_ELEMENT;
         return NULL;
+    }
 
     c = d_ptr[1];
-    if ((c & (1<<7))>>7 != 1)
+    if ((c & (1<<7))>>7 != 1) {
+        *errcode = ERR_DER_INVALID_SIZE;
         return NULL;
+    }
 
     numbytes = c & 0x7f;
     d_ptr += 2;
+    if (size < numbytes + 2) {
+        *errcode = ERR_DER_INVALID_SIZE;
+        return NULL;
+    }
     if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes, errcode) == -1) {
         return NULL;
     }
 
-    if (d_length+(d_ptr-buffer) != size)
+    if (d_length+(d_ptr-buffer) != size) {
+        *errcode = ERR_DER_INVALID_SIZE;
         return NULL;
+    }
 
-    *errcode = 0;
     cert = DecodeAsn1DerGeneric(buffer, size, 0 /* depth */, 0, errcode);
 
     return cert;
