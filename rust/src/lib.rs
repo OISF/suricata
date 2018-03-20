@@ -25,6 +25,7 @@ extern crate nom;
 extern crate crc;
 
 extern crate der_parser;
+extern crate kerberos_parser;
 
 #[macro_use]
 pub mod log;
@@ -39,6 +40,7 @@ pub mod filecontainer;
 pub mod filetracker;
 #[macro_use]
 pub mod parser;
+pub mod kerberos;
 
 #[cfg(feature = "lua")]
 pub mod lua;
