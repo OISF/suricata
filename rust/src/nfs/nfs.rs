@@ -674,8 +674,8 @@ impl NFSState {
             }
 
             tx.auth_type = r.creds_flavor;
-            match &r.creds_unix {
-                &Some(ref u) => {
+            match r.creds {
+                RpcRequestCreds::Unix(ref u) => {
                     tx.request_machine_name = u.machine_name_buf.to_vec();
                     tx.request_uid = u.uid;
                     tx.request_gid = u.gid;
@@ -700,8 +700,8 @@ impl NFSState {
                 tx.nfs_version = r.progver as u16;
 
                 tx.auth_type = r.creds_flavor;
-                match &r.creds_unix {
-                    &Some(ref u) => {
+                match r.creds {
+                    RpcRequestCreds::Unix(ref u) => {
                         tx.request_machine_name = u.machine_name_buf.to_vec();
                         tx.request_uid = u.uid;
                         tx.request_gid = u.gid;
@@ -765,8 +765,8 @@ impl NFSState {
             }
 
             tx.auth_type = r.creds_flavor;
-            match &r.creds_unix {
-                &Some(ref u) => {
+            match r.creds {
+                RpcRequestCreds::Unix(ref u) => {
                     tx.request_machine_name = u.machine_name_buf.to_vec();
                     tx.request_uid = u.uid;
                     tx.request_gid = u.gid;
