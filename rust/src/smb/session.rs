@@ -16,7 +16,7 @@
  */
 
 use log::*;
-
+use kerberos::*;
 use smb::smb::*;
 use smb::smb1_session::*;
 use smb::auth::*;

@@ -15,57 +15,14 @@
  * 02110-1301, USA.
  */
 
-use smb::kerberos_parser::krb5_parser::parse_ap_req;
-use smb::kerberos_parser::krb5::{ApReq,Realm,PrincipalName};
+use kerberos::*;
 
 use log::*;
 use smb::ntlmssp_records::*;
 use smb::smb::*;
 
-use nom::{IResult, ErrorKind, le_u16};
+use nom::{IResult, ErrorKind};
 use der_parser;
-use der_parser::parse_der_oid;
-
-#[derive(Debug,PartialEq)]
-pub struct Kerberos5Ticket {
-    pub realm: Realm,
-    pub sname: PrincipalName,
-}
-
-// get SPNEGO
-// get OIDS
-// if OID has KERBEROS get KERBEROS data
-// else if OID has NTLMSSP get NTLMSSP
-// else bruteforce NTLMSSP
-
-fn parse_kerberos5_request(blob: &[u8]) -> IResult<&[u8], ApReq>
-{
-    let blob = match der_parser::parse_der(blob) {
-        IResult::Done(_, b) => {
-            match b.content.as_slice() {
-                Ok(b) => { b },
-                _ => { return IResult::Error(error_code!(ErrorKind::Custom(SECBLOB_KRB_FMT_ERR))); },
-            }
-        },
-        IResult::Incomplete(needed) => { return IResult::Incomplete(needed); },
-        IResult::Error(err) => { return IResult::Error(err); },
-    };
-    do_parse!(
-        blob,
-        base_o: parse_der_oid >>
-        tok_id: le_u16 >>
-        ap_req: parse_ap_req >>
-        ({
-            SCLogDebug!("parse_kerberos5_request: base_o {:?}", base_o.as_oid());
-            SCLogDebug!("parse_kerberos5_request: tok_id {}", tok_id);
-            ap_req
-        })
-    )
-}
-
-
-pub const SECBLOB_NOT_SPNEGO :  u32 = 128;
-pub const SECBLOB_KRB_FMT_ERR : u32 = 129;
 
 fn parse_secblob_get_spnego(blob: &[u8]) -> IResult<&[u8], &[u8]>
 {
@@ -183,11 +140,7 @@ fn parse_secblob_spnego(blob: &[u8]) -> Option<SpnegoRequest>
             der_parser::DerObjectContent::OctetString(ref os) => {
                 if have_kerberos {
                     match parse_kerberos5_request(os) {
-                        IResult::Done(_, req) => {
-                            let t = Kerberos5Ticket {
-                                realm: req.ticket.realm,
-                                sname: req.ticket.sname,
-                            };
+                        IResult::Done(_, t) => {
                             kticket = Some(t)
                         },
                         _ => { },
