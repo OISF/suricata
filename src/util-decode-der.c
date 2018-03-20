@@ -290,7 +290,8 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer,
     };
 
     if (child == NULL) {
-        *errcode = ERR_DER_INVALID_OBJECT;
+        if (*errcode == 0)
+            *errcode = ERR_DER_INVALID_OBJECT;
         return NULL;
     }
 
