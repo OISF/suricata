@@ -35,6 +35,8 @@
 #ifndef __UTIL_DECODE_DER_H__
 #define __UTIL_DECODE_DER_H__
 
+#define MAX_OID_LENGTH 256
+
 #define ASN1_CLASS_UNIVERSAL   0
 #define ASN1_CLASS_APPLICATION 1
 #define ASN1_CLASS_CONTEXTSPEC 2
@@ -55,6 +57,8 @@
 #define ASN1_IA5STRING       0x16
 #define ASN1_UTCTIME         0x17
 #define ASN1_GENERALIZEDTIME 0x18
+#define ASN1_CONSTRUCTED     0x30
+#define ASN1_CONTEXT_SPECIFIC 0x80
 
 typedef struct Asn1ElementType_ {
 	uint8_t cls:2;

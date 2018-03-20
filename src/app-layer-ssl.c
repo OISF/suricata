@@ -39,6 +39,7 @@
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
 #include "app-layer-tls-handshake.h"
+#include "util-tls.h"
 
 #include "decode-events.h"
 #include "conf.h"
@@ -422,6 +423,12 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
+
+            rc = DecodeTLSHandshakeServerHello(ssl_state, input, input_len);
+
+            if (rc < 0)
+                return rc;
+
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1558,6 +1565,7 @@ static void *SSLStateAlloc(void)
     ssl_state->client_connp.cert_log_flag = 0;
     ssl_state->server_connp.cert_log_flag = 0;
     TAILQ_INIT(&ssl_state->server_connp.certs);
+    TAILQ_INIT(&ssl_state->server_connp.extns);
 
     return (void *)ssl_state;
 }
@@ -1570,6 +1578,7 @@ static void SSLStateFree(void *p)
 {
     SSLState *ssl_state = (SSLState *)p;
     SSLCertsChain *item;
+    SSLCertExtension *extn;
 
     if (ssl_state->client_connp.trec)
         SCFree(ssl_state->client_connp.trec);
@@ -1594,6 +1603,12 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
         SCFree(ssl_state->server_connp.sni);
+    if (ssl_state->server_connp.cert0_subject_pk_algo)
+        SCFree(ssl_state->server_connp.cert0_subject_pk_algo);
+    if (ssl_state->server_connp.cert0_signature_algo)
+        SCFree(ssl_state->server_connp.cert0_signature_algo);
+    if (ssl_state->server_connp.signature_algo)
+        SCFree(ssl_state->server_connp.signature_algo);
 
     AppLayerDecoderEventsFreeEvents(&ssl_state->decoder_events);
 
@@ -1607,6 +1622,17 @@ static void SSLStateFree(void *p)
         SCFree(item);
     }
     TAILQ_INIT(&ssl_state->server_connp.certs);
+
+    /* Free extensions list */
+    while ((extn = TAILQ_FIRST(&ssl_state->server_connp.extns))) {
+        TAILQ_REMOVE(&ssl_state->server_connp.extns, extn, next);
+        if (extn->extn_value)
+            SCFree(extn->extn_value);
+        if (extn->extn_id)
+            SCFree(extn->extn_id);
+        SCFree(extn);
+    }
+    TAILQ_INIT(&ssl_state->server_connp.extns);
 
     SCFree(ssl_state);
 
@@ -1868,6 +1894,9 @@ void RegisterSSLParsers(void)
         } else {
             if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
                 ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
+        }
+        if (ConfGetNode("tls-ciphersuites") != NULL) {
+            TlsCiphersInit();
         }
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"

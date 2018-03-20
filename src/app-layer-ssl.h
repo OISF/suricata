@@ -128,6 +128,14 @@ typedef struct SSLCertsChain_ {
     TAILQ_ENTRY(SSLCertsChain_) next;
 } SSLCertsChain;
 
+typedef struct SSLCertExtension_ {
+    char *extn_id;
+    const char *extn_name;
+    int critical;
+    char *extn_value;
+    size_t extn_length;
+    TAILQ_ENTRY(SSLCertExtension_) next;
+} SSLCertExtension;
 
 typedef struct SSLStateConnp_ {
     /* record length */
@@ -153,12 +161,22 @@ typedef struct SSLStateConnp_ {
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
 
+    uint16_t handshake_server_hello_ssl_version;
+
+    /* the ciphersuite, chosen by the server */
+    uint16_t ciphersuite;
+    uint8_t compressionmethod;
+
     char *cert0_subject;
     char *cert0_issuerdn;
     char *cert0_serial;
     time_t cert0_not_before;
     time_t cert0_not_after;
     char *cert0_fingerprint;
+    char *cert0_subject_pk_algo;
+    char *cert0_signature_algo;
+    char *signature_algo;
+    TAILQ_HEAD(, SSLCertExtension_) extns;
 
     /* ssl server name indication extension */
     char *sni;

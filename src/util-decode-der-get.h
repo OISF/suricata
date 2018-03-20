@@ -35,11 +35,21 @@
 #ifndef __UTIL_DECODE_DER_GET_H__
 #define __UTIL_DECODE_DER_GET_H__
 
+#include "app-layer-ssl.h"
+
 const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode);
 
 int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 int Asn1DerGetSerial(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 int Asn1DerGetValidity(const Asn1Generic *cert, time_t *not_before, time_t *not_after, uint32_t *errcode);
 int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetSubjectPublicKeyAlgo(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetCertSignatureAlgo(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetSignatureAlgo(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetExtensions(const Asn1Generic *cert, SSLStateConnp *server_connp, uint32_t *errcode);
+
+#ifdef HAVE_LIBJANSSON
+json_t *Asn1DerGetExtensionValueAsJSON(SSLCertExtension *extn);
+#endif
 
 #endif /* __UTIL_DECODE_DER_GET_H__ */
