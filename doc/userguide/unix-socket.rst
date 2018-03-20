@@ -44,7 +44,7 @@ example to write custom scripts:
 
 * Python: https://github.com/inliniac/suricata/blob/master/scripts/suricatasc/suricatasc.in (provided with suricata and used in this document)
 * Perl: https://github.com/aflab/suricatac (a simple Perl client with interactive mode)
-* C: https://github.com/regit/SuricataC (a unix socket mode client in C without interactive mode)
+* C: https://github.com/regit/SuricataC (a Unix socket mode client in C without interactive mode)
 
 .. _standard-unix-socket-commands:
 
@@ -59,7 +59,7 @@ You may need to install suricatasc if you have not done so, running the followin
 The set of existing commands is the following:
 
 * command-list: list available commands
-* shutdown: this shutdown suricata
+* shutdown: this shutdown Suricata
 * iface-list: list interfaces where Suricata is sniffing packets
 * iface-stat: list statistic for an interface
 * help: alias of command-list
@@ -71,7 +71,7 @@ The set of existing commands is the following:
 * dump-counters: dump Suricata's performance counters
 * reopen-log-files: reopen log files (to be run after external log rotation)
 * ruleset-reload-rules: reload ruleset and wait for completion
-* ruleset-reload-nonblocking: reload rulesat and proceed without waiting
+* ruleset-reload-nonblocking: reload ruleset and proceed without waiting
 * ruleset-reload-time: return time of last reload
 * ruleset-stats: display the number of rules loaded and failed
 * ruleset-failed-rules: display the list of failed rules
@@ -169,7 +169,7 @@ You can add multiple files without waiting the result: they will be
 sequentially processed and the generated log/alert files will be put
 into the directory specified as second arguments of the pcap-file
 command. You need to provide absolute path to the files and directory
-as suricata doesn’t know from where the script has been run. If you pass
+as Suricata doesn’t know from where the script has been run. If you pass
 a directory instead of a file, all files in the directory will be processed. If
 using ``pcap-file-continuous`` and passing in a directory, the directory will
 be monitored for new files being added until you use ``pcap-interrupt`` or
@@ -257,9 +257,8 @@ In pcap-file mode, this gives:
   RCV: {"message": {"count": 1, "files": ["/home/eric/git/oisf/benches/sandnet.pcap"]}, "return": "OK"}
   Success: {'count': 1, 'files': ['/home/eric/git/oisf/benches/sandnet.pcap']}
 
-There is one thing to be careful about: a suricata message is sent in
+There is one thing to be careful about: a Suricata message is sent in
 multiple send operations. This result in possible incomplete read on
 client side. The worse workaround is to sleep a bit before trying a
 recv call. An other solution is to use non blocking socket and retry a
-recv if the previous one has failed. This method is used here:
-source:scripts/suricatasc/suricatasc.in#L43
+recv if the previous one has failed.
