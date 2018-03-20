@@ -19,7 +19,7 @@
 
 extern crate libc;
 
-use nom::IResult;
+use nom::{IResult, be_u32};
 
 use core::*;
 use log::*;
@@ -29,6 +29,15 @@ use nfs::types::*;
 use nfs::rpc_records::*;
 use nfs::nfs_records::*;
 use nfs::nfs4_records::*;
+
+use kerberos;
+
+named!(parse_req_gssapi<kerberos::Kerberos5Ticket>,
+   do_parse!(
+        len: be_u32
+    >>  ap: flat_map!(take!(len), call!(kerberos::parse_kerberos5_request))
+    >> ( ap )
+));
 
 impl NFSState {
     /* normal write: PUTFH (file handle), WRITE (write opts/data). File handle
@@ -154,7 +163,14 @@ impl NFSState {
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
 
-        if r.procedure == NFSPROC4_COMPOUND {
+        if r.procedure == NFSPROC4_NULL {
+            if let RpcRequestCreds::GssApi(ref creds) = r.creds {
+                if creds.procedure == 1 {
+                    let _x = parse_req_gssapi(r.prog_data);
+                    SCLogDebug!("RPCSEC_GSS_INIT {:?}", _x);
+                }
+            }
+        } else if r.procedure == NFSPROC4_COMPOUND {
             match parse_nfs4_request_compound(r.prog_data) {
                 IResult::Done(_, rd) => {
                     SCLogDebug!("NFSPROC4_COMPOUND: {:?}", rd);
