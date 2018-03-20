@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2017-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,9 +15,16 @@
  * 02110-1301, USA.
  */
 
-//! Nom parsers for RPC & NFSv3
+//! Nom parsers for RPCv2
 
 use nom::{be_u32, rest};
+
+#[derive(Debug,PartialEq)]
+pub enum RpcRequestCreds<'a> {
+    Unix(RpcRequestCredsUnix<'a>),
+    GssApi(RpcRequestCredsGssApi<'a>),
+    Unknown(&'a[u8]),
+}
 
 #[derive(Debug,PartialEq)]
 pub struct RpcRequestCredsUnix<'a> {
@@ -34,26 +41,56 @@ pub struct RpcRequestCredsUnix<'a> {
 //    many0!(be_u32)
 //);
 
-named!(pub parse_rfc_request_creds_unix<RpcRequestCredsUnix>,
+named!(parse_rpc_request_creds_unix<RpcRequestCreds>,
     do_parse!(
-           stamp: be_u32
-        >> machine_name_len: be_u32
-        >> machine_name_buf: take!(machine_name_len)
-        >> uid: be_u32
-        >> gid: be_u32
-        //>> aux_gids: parse_rpc_creds_unix_aux_gids
+        stamp: be_u32
+    >>  machine_name_len: be_u32
+    >>  machine_name_buf: take!(machine_name_len)
+    >>  uid: be_u32
+    >>  gid: be_u32
+    //>>aux_gids: parse_rpc_creds_unix_aux_gids
+    >> (RpcRequestCreds::Unix(RpcRequestCredsUnix {
+            stamp:stamp,
+            machine_name_len:machine_name_len,
+            machine_name_buf:machine_name_buf,
+            uid:uid,
+            gid:gid,
+            aux_gids:None,
+        }))
+));
 
-        >> (
-            RpcRequestCredsUnix {
-                stamp:stamp,
-                machine_name_len:machine_name_len,
-                machine_name_buf:machine_name_buf,
-                uid:uid,
-                gid:gid,
-                aux_gids:None,
-            }
-        ))
-);
+#[derive(Debug,PartialEq)]
+pub struct RpcRequestCredsGssApi<'a> {
+    pub version: u32,
+    pub procedure: u32,
+    pub seq_num: u32,
+    pub service: u32,
+
+    pub ctx: &'a[u8],
+}
+
+named!(parse_rpc_request_creds_gssapi<RpcRequestCreds>,
+    do_parse!(
+        version: be_u32
+    >>  procedure: be_u32
+    >>  seq_num: be_u32
+    >>  service: be_u32
+    >>  ctx_len: be_u32
+    >>  ctx: take!(ctx_len)
+    >> (RpcRequestCreds::GssApi(RpcRequestCredsGssApi {
+            version: version,
+            procedure: procedure,
+            seq_num: seq_num,
+            service: service,
+            ctx: ctx,
+        }))
+));
+
+named!(parse_rpc_request_creds_unknown<RpcRequestCreds>,
+    do_parse!(
+        blob: rest
+    >> (RpcRequestCreds::Unknown(blob) )
+));
 
 #[derive(Debug,PartialEq)]
 pub struct RpcPacketHeader<> {
@@ -134,13 +171,11 @@ pub struct RpcPacket<'a> {
     pub procedure: u32,
 
     pub creds_flavor: u32,
-    pub creds_len: u32,
-    pub creds: Option<&'a[u8]>,
-    pub creds_unix:Option<RpcRequestCredsUnix<'a>>,
+    pub creds: RpcRequestCreds<'a>,
 
     pub verifier_flavor: u32,
     pub verifier_len: u32,
-    pub verifier: Option<&'a[u8]>,
+    pub verifier: &'a[u8],
 
     pub prog_data: &'a[u8],
 }
@@ -156,12 +191,14 @@ named!(pub parse_rpc<RpcPacket>,
 
        >> creds_flavor: be_u32
        >> creds_len: be_u32
-       >> creds: cond!(creds_flavor != 1 && creds_len > 0, take!(creds_len as usize))
-       >> creds_unix: cond!(creds_len > 0 && creds_flavor == 1, flat_map!(take!((creds_len) as usize),parse_rfc_request_creds_unix))
+       >> creds: flat_map!(take!(creds_len), switch!(value!(creds_flavor),
+            1 => call!(parse_rpc_request_creds_unix)    |
+            6 => call!(parse_rpc_request_creds_gssapi)  |
+            _ => call!(parse_rpc_request_creds_unknown) ))
 
        >> verifier_flavor: be_u32
        >> verifier_len: be_u32
-       >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
+       >> verifier: take!(verifier_len as usize)
 
        >> pl: rest
 
@@ -175,9 +212,7 @@ named!(pub parse_rpc<RpcPacket>,
                 procedure:procedure,
 
                 creds_flavor:creds_flavor,
-                creds_len:creds_len,
                 creds:creds,
-                creds_unix:creds_unix,
 
                 verifier_flavor:verifier_flavor,
                 verifier_len:verifier_len,
@@ -233,27 +268,6 @@ named!(pub parse_rpc_udp_packet_header<RpcPacketHeader>,
         ))
 );
 
-#[derive(Debug,PartialEq)]
-pub struct RpcUdpRequestPacket<'a> {
-    pub hdr: RpcPacketHeader<>,
-
-    pub rpcver: u32,
-    pub program: u32,
-    pub progver: u32,
-    pub procedure: u32,
-
-    pub creds_flavor: u32,
-    pub creds_len: u32,
-    pub creds: Option<&'a[u8]>,
-    pub creds_unix:Option<RpcRequestCredsUnix<'a>>,
-
-    pub verifier_flavor: u32,
-    pub verifier_len: u32,
-    pub verifier: Option<&'a[u8]>,
-
-    pub prog_data: &'a[u8],
-}
-
 named!(pub parse_rpc_udp_request<RpcPacket>,
    do_parse!(
        hdr: parse_rpc_udp_packet_header
@@ -265,12 +279,14 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
 
        >> creds_flavor: be_u32
        >> creds_len: be_u32
-       >> creds: cond!(creds_flavor != 1 && creds_len > 0, take!(creds_len as usize))
-       >> creds_unix: cond!(creds_len > 0 && creds_flavor == 1, flat_map!(take!((creds_len) as usize),parse_rfc_request_creds_unix))
+       >> creds: flat_map!(take!(creds_len), switch!(value!(creds_flavor),
+            1 => call!(parse_rpc_request_creds_unix)    |
+            6 => call!(parse_rpc_request_creds_gssapi)  |
+            _ => call!(parse_rpc_request_creds_unknown) ))
 
        >> verifier_flavor: be_u32
        >> verifier_len: be_u32
-       >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
+       >> verifier: take!(verifier_len as usize)
 
        >> pl: rest
 
@@ -284,9 +300,7 @@ named!(pub parse_rpc_udp_request<RpcPacket>,
                 procedure:procedure,
 
                 creds_flavor:creds_flavor,
-                creds_len:creds_len,
                 creds:creds,
-                creds_unix:creds_unix,
 
                 verifier_flavor:verifier_flavor,
                 verifier_len:verifier_len,
