@@ -27,6 +27,7 @@ pub enum Nfs4RequestContent<'a> {
     SaveFH,
     PutRootFH,
     ReadDir,
+    Commit,
     Open(Nfs4RequestOpen<'a>),
     Lookup(Nfs4RequestLookup<'a>),
     Read(Nfs4RequestRead<'a>),
@@ -406,6 +407,14 @@ named!(nfs4_req_access<Nfs4RequestContent>,
     )
 );
 
+named!(nfs4_req_commit<Nfs4RequestContent>,
+    do_parse!(
+            offset: be_u64
+        >>  count: be_u32
+        >> ( Nfs4RequestContent::Commit )
+    )
+);
+
 #[derive(Debug,PartialEq)]
 pub struct Nfs4RequestExchangeId<'a> {
     pub client_string: &'a[u8],
@@ -446,6 +455,7 @@ named!(parse_request_compound_command<Nfs4RequestContent>,
             NFSPROC4_CLOSE                  => call!(nfs4_req_close)                |
             NFSPROC4_LOOKUP                 => call!(nfs4_req_lookup)               |
             NFSPROC4_ACCESS                 => call!(nfs4_req_access)               |
+            NFSPROC4_COMMIT                 => call!(nfs4_req_commit)               |
             NFSPROC4_GETATTR                => call!(nfs4_req_getattr)              |
             NFSPROC4_READDIR                => call!(nfs4_req_readdir)              |
             NFSPROC4_RENEW                  => call!(nfs4_req_renew)                |
@@ -503,6 +513,7 @@ pub enum Nfs4ResponseContent<'a> {
     SetClientId(u32),
     SetClientIdConfirm(u32),
     Create(u32),
+    Commit(u32),
 }
 
 #[derive(Debug,PartialEq)]
@@ -774,6 +785,13 @@ named!(nfs4_res_setclientid_confirm<Nfs4ResponseContent>,
         >> ( Nfs4ResponseContent::SetClientIdConfirm(status) )
 ));
 
+named!(nfs4_res_commit<Nfs4ResponseContent>,
+    do_parse!(
+            status: be_u32
+        >>  verifier: cond!(status == 0, take!(8))
+        >> ( Nfs4ResponseContent::Commit(status))
+));
+
 #[derive(Debug,PartialEq)]
 pub struct Nfs4ResponseAccess {
     pub supported_types: u32,
@@ -805,6 +823,7 @@ named!(nfs4_res_compound_command<Nfs4ResponseContent>,
             NFSPROC4_READ                   => call!(nfs4_res_read)                |
             NFSPROC4_WRITE                  => call!(nfs4_res_write)               |
             NFSPROC4_ACCESS                 => call!(nfs4_res_access)              |
+            NFSPROC4_COMMIT                 => call!(nfs4_res_commit)              |
             NFSPROC4_GETFH                  => call!(nfs4_res_getfh)               |
             NFSPROC4_PUTFH                  => call!(nfs4_res_putfh)               |
             NFSPROC4_SAVEFH                 => call!(nfs4_res_savefh)              |

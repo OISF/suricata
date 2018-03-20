@@ -105,6 +105,24 @@ impl NFSState {
         self.ts_chunk_left = w.write_len as u32 - file_data_len as u32;
     }
 
+    fn commit_v4<'b>(&mut self, r: &RpcPacket<'b>, fh: &'b[u8])
+    {
+        SCLogDebug!("COMMIT, closing shop");
+
+        let file_handle = fh.to_vec();
+        match self.get_file_tx_by_handle(&file_handle, STREAM_TOSERVER) {
+            Some((tx, files, flags)) => {
+                if let Some(NFSTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
+                    tdf.file_tracker.close(files, flags);
+                    tdf.file_last_xid = r.hdr.xid;
+                    tx.is_last = true;
+                    tx.request_done = true;
+                }
+            }
+            None => {},
+        }
+    }
+
     /* A normal READ request looks like: PUTFH (file handle) READ (read opts).
      * We need the file handle for the READ.
      */
@@ -140,6 +158,12 @@ impl NFSState {
                     SCLogDebug!("WRITEv4: {:?}", rd);
                     if let Some(fh) = last_putfh {
                         self.write_v4(r, rd, fh);
+                    }
+                }
+                &Nfs4RequestContent::Commit => {
+                    SCLogDebug!("COMMITv4");
+                    if let Some(fh) = last_putfh {
+                        self.commit_v4(r, fh);
                     }
                 }
                 &Nfs4RequestContent::Close(ref rd) => {
