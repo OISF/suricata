@@ -10,7 +10,7 @@
 ##
 
 vars:
-  # more specifc is better for alert accuracy and performance
+  # more specific is better for alert accuracy and performance
   address-groups:
     HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/16]"
@@ -209,7 +209,7 @@ outputs:
             # the old configuration is still available:
             # http://suricata.readthedocs.io/en/latest/configuration/suricata-yaml.html#eve-extensible-event-format
             # Use version 2 logging with the new format:
-            # dns answers will be logged in one single event
+            # DNS answers will be logged in one single event
             # rather than an event for each of it.
             # Without setting a version the version
             # will fallback to 1 for backwards compatibility.
@@ -427,7 +427,7 @@ outputs:
       log-packet-content: no
       log-packet-header: yes
 
-  # Stats.log contains data from various counters of the suricata engine.
+  # Stats.log contains data from various counters of the Suricata engine.
   - stats:
       enabled: yes
       filename: stats.log
@@ -454,7 +454,7 @@ outputs:
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # Output module for storing files on disk. Files are stored in a
-  # directory names consisting of the first 2 characaters of the
+  # directory names consisting of the first 2 characters of the
   # SHA256 of the file. Each file is given its SHA256 as a filename.
   #
   # When a duplicate file is found, the existing file is touched to
@@ -534,7 +534,7 @@ outputs:
       #max-open-files: 1000
       include-pid: no # set to yes to include pid in file names
 
-  # output module to log files tracked in a easily parsable json format
+  # output module to log files tracked in a easily parsable JSON format
   - file-log:
       enabled: no
       filename: files-json.log
@@ -585,20 +585,20 @@ logging:
   # Note that debug level logging will only be emitted if Suricata was
   # compiled with the --enable-debug configure option.
   #
-  # This value is overriden by the SC_LOG_LEVEL env var.
+  # This value is overridden by the SC_LOG_LEVEL env var.
   default-log-level: notice
 
   # The default output format.  Optional parameter, should default to
-  # something reasonable if not provided.  Can be overriden in an
+  # something reasonable if not provided.  Can be overridden in an
   # output section.  You can leave this out to get the default.
   #
-  # This value is overriden by the SC_LOG_FORMAT env var.
+  # This value is overridden by the SC_LOG_FORMAT env var.
   #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
   # A regex to filter output.  Can be overridden in an output section.
   # Defaults to empty (no filter).
   #
-  # This value is overriden by the SC_LOG_OP_FILTER env var.
+  # This value is overridden by the SC_LOG_OP_FILTER env var.
   default-output-filter:
 
   # Define your logging outputs.  If none are defined, or they are all
@@ -659,7 +659,7 @@ af-packet:
     #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     #use-mmap: yes
-    # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
+    # Lock memory map to avoid it goes to swap. Be careful that over subscribing could lock
     # your system
     #mmap-locked: yes
     # Use tpacket_v3 capture mode, only active if use-mmap is true
@@ -730,7 +730,7 @@ pcap:
     # Possible values are:
     #  - yes: checksum validation is forced
     #  - no: checksum validation is disabled
-    #  - auto: suricata uses a statistical approach to detect when
+    #  - auto: Suricata uses a statistical approach to detect when
     #  checksum off-loading is used. (default)
     # Warning: 'checksum-validation' must be set to yes to have any validation
     #checksum-checks: auto
@@ -753,7 +753,7 @@ pcap-file:
   # Possible values are:
   #  - yes: checksum validation is forced
   #  - no: checksum validation is disabled
-  #  - auto: suricata uses a statistical approach to detect when
+  #  - auto: Suricata uses a statistical approach to detect when
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
@@ -869,7 +869,7 @@ app-layer:
       #                           decompressed. Defaults to 2.
       #
       # server-config:            List of server configurations to use if address matches
-      #   address:                List of ip addresses or networks for this block
+      #   address:                List of IP addresses or networks for this block
       #   personalitiy:           List of personalities used by this block
       #   request-body-limit:     Limit reassembly of request body for inspection
       #                           by http_client_body & pcre /P option.
@@ -1055,7 +1055,7 @@ asn1-max-frames: 256
 coredump:
   max-dump: unlimited
 
-# If suricata box is a router for the sniffed networks, set it to 'router'. If
+# If Suricata box is a router for the sniffed networks, set it to 'router'. If
 # it is a pure sniffing setup, set it to 'sniffer-only'.
 # If set to auto, the variable is internally switch to 'router' in IPS mode
 # and 'sniffer-only' in IDS mode.
@@ -1079,7 +1079,7 @@ host-mode: auto
 # round-robin       - Flows assigned to threads in a round robin fashion.
 # active-packets    - Flows assigned to threads that have the lowest number of
 #                     unprocessed packets (default).
-# hash              - Flow alloted usihng the address hash. More of a random
+# hash              - Flow allocated using the address hash. More of a random
 #                     technique. Was the default in Suricata 1.2.1 and older.
 #
 #autofp-scheduler: active-packets
@@ -1089,8 +1089,8 @@ host-mode: auto
 # packet size (MTU + hardware header) on your system.
 #default-packet-size: 1514
 
-# Unix command socket can be used to pass commands to suricata.
-# An external tool can then connect to get information from suricata
+# Unix command socket can be used to pass commands to Suricata.
+# An external tool can then connect to get information from Suricata
 # or trigger some modifications of the engine. Set enabled to yes
 # to activate the feature. In auto mode, the feature will only be
 # activated in live capture mode. You can use the filename variable to set
@@ -1110,7 +1110,7 @@ legacy:
 ## Detection settings
 ##
 
-# Set the order of alerts bassed on actions
+# Set the order of alerts based on actions
 # The default order is pass, drop, reject, alert
 # action-order:
 #   - pass
@@ -1198,10 +1198,10 @@ defrag:
 # emergency-recovery is the percentage of flows that the engine need to
 # prune before unsetting the emergency state. The emergency state is activated
 # when the memcap limit is reached, allowing to create new flows, but
-# prunning them with the emergency timeouts (they are defined below).
+# pruning them with the emergency timeouts (they are defined below).
 # If the memcap is reached, the engine will try to prune flows
-# with the default timeouts. If it doens't find a flow to prune, it will set
-# the emergency bit and it will try again with more agressive timeouts.
+# with the default timeouts. If it doesn't find a flow to prune, it will set
+# the emergency bit and it will try again with more aggressive timeouts.
 # If that doesn't work, then it will try to kill the last time seen flows
 # not in use.
 # The memcap can be specified in kb, mb, gb.  Just a number indicates it's
@@ -1224,7 +1224,7 @@ vlan:
 
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
-# protocol. The value of "new" determine the seconds to wait after a hanshake or
+# protocol. The value of "new" determine the seconds to wait after a handshake or
 # stream startup before the engine free the data of that flow it doesn't
 # change the state to established (usually if we don't receive more packets
 # of that flow). The value of "established" is the amount of
@@ -1285,7 +1285,7 @@ flow-timeouts:
 #                               # packet. If csum validation is specified as
 #                               # "yes", then packet with invalid csum will not
 #                               # be processed by the engine stream/app layer.
-#                               # Warning: locally generated trafic can be
+#                               # Warning: locally generated traffic can be
 #                               # generated without checksum due to hardware offload
 #                               # of checksum. You can control the handling of checksum
 #                               # on a per-interface basis via the 'checksum-checks'
@@ -1479,9 +1479,9 @@ threading:
   #
   cpu-affinity:
     - management-cpu-set:
-        cpu: [ 0 ]  # include only these cpus in affinity settings
+        cpu: [ 0 ]  # include only these CPUs in affinity settings
     - receive-cpu-set:
-        cpu: [ 0 ]  # include only these cpus in affinity settings
+        cpu: [ 0 ]  # include only these CPUs in affinity settings
     - worker-cpu-set:
         cpu: [ "all" ]
         mode: "exclusive"
@@ -1597,7 +1597,7 @@ profiling:
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
-# This permit to do send all needed packet to suricata via this a rule:
+# This permit to do send all needed packet to Suricata via this a rule:
 #        iptables -I FORWARD -m mark ! --mark $MARK/$MASK -j NFQUEUE
 # And below, you can have your standard filtering ruleset. To activate
 # this mode, you need to set mode to 'repeat'
@@ -1606,7 +1606,7 @@ profiling:
 # On linux >= 3.1, you can set batchcount to a value > 1 to improve performance
 # by processing several packets before sending a verdict (worker runmode only).
 # On linux >= 3.6, you can set the fail-open option to yes to have the kernel
-# accept the packet if suricata is not able to keep pace.
+# accept the packet if Suricata is not able to keep pace.
 # bypass mark and mask can be used to implement NFQ bypass. If bypass mark is
 # set then the NFQ bypass is activated. Suricata will set the bypass mark/mask
 # on packet of a flow that need to be bypassed. The Nefilter ruleset has to
@@ -1654,7 +1654,7 @@ capture:
 
 # Netmap support
 #
-# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
+# Netmap operates with NIC directly in driver, so you need FreeBSD which have
 # built-in netmap support or compile and install netmap module and appropriate
 # NIC driver on your Linux system.
 # To reach maximum throughput disable all receive-, segmentation-,
@@ -1689,7 +1689,7 @@ netmap:
    # Possible values are:
    #  - yes: checksum validation is forced
    #  - no: checksum validation is disabled
-   #  - auto: suricata uses a statistical approach to detect when
+   #  - auto: Suricata uses a statistical approach to detect when
    #  checksum off-loading is used.
    # Warning: 'checksum-validation' must be set to yes to have any validation
    #checksum-checks: auto
@@ -1733,7 +1733,7 @@ pfring:
     #  - rxonly: only compute checksum for packets received by network card.
     #  - yes: checksum validation is forced
     #  - no: checksum validation is disabled
-    #  - auto: suricata uses a statistical approach to detect when
+    #  - auto: Suricata uses a statistical approach to detect when
     #  checksum off-loading is used. (default)
     # Warning: 'checksum-validation' must be set to yes to have any validation
     #checksum-checks: auto
