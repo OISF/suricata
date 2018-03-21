@@ -42,6 +42,8 @@ typedef enum {
 
 #ifndef HAVE_NSS
 
+#define SHA1_LENGTH 20
+
 #define LOAD32H(x, y)                            \
      { x = ((unsigned long)((y)[0] & 255)<<24) | \
            ((unsigned long)((y)[1] & 255)<<16) | \
