@@ -100,6 +100,93 @@ static pcre_extra *regex_suppress_study = NULL;
 
 static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd);
 
+void SCThresholdConfGlobalInit(void)
+{
+    const char *eb = NULL;
+    int eo;
+    int opts = 0;
+
+    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
+    if (regex_base == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
+    }
+
+    regex_base_study = pcre_study(regex_base, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
+    if (regex_threshold == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
+    }
+
+    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
+    if (regex_rate == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
+    }
+
+    regex_rate_study = pcre_study(regex_rate, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
+    if (regex_suppress == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
+    }
+
+    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+}
+
+void SCThresholdConfGlobalFree(void)
+{
+    if (regex_base != NULL) {
+        pcre_free(regex_base);
+        regex_base = NULL;
+    }
+    if (regex_base_study != NULL) {
+        pcre_free(regex_base_study);
+        regex_base_study = NULL;
+    }
+
+    if (regex_threshold != NULL) {
+        pcre_free(regex_threshold);
+        regex_threshold = NULL;
+    }
+    if (regex_threshold_study != NULL) {
+        pcre_free(regex_threshold_study);
+        regex_threshold_study = NULL;
+    }
+
+    if (regex_rate != NULL) {
+        pcre_free(regex_rate);
+        regex_rate = NULL;
+    }
+    if (regex_rate_study != NULL) {
+        pcre_free(regex_rate_study);
+        regex_rate_study = NULL;
+    }
+
+    if (regex_suppress != NULL) {
+        pcre_free(regex_suppress);
+        regex_suppress = NULL;
+    }
+    if (regex_suppress_study != NULL) {
+        pcre_free(regex_suppress_study);
+        regex_suppress_study = NULL;
+    }
+}
+
 /**
  * \brief Returns the path for the Threshold Config file.  We check if we
  *        can retrieve the path from the yaml conf file.  If it is not present,
@@ -150,9 +237,6 @@ static const char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 {
     const char *filename = NULL;
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
 #ifndef UNITTESTS
     FILE *fd = NULL;
 #else
@@ -167,54 +251,6 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx)
 #ifdef UNITTESTS
     }
 #endif
-
-    regex_base = pcre_compile(DETECT_BASE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_base == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_BASE_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_base_study = pcre_study(regex_base, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_threshold = pcre_compile(DETECT_THRESHOLD_REGEX, opts, &eb, &eo, NULL);
-    if (regex_threshold == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_THRESHOLD_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_threshold_study = pcre_study(regex_threshold, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_rate = pcre_compile(DETECT_RATE_REGEX, opts, &eb, &eo, NULL);
-    if (regex_rate == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_RATE_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_rate_study = pcre_study(regex_rate, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    regex_suppress = pcre_compile(DETECT_SUPPRESS_REGEX, opts, &eb, &eo, NULL);
-    if (regex_suppress == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",DETECT_SUPPRESS_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_suppress_study = pcre_study(regex_suppress, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
 
     SCThresholdConfParseFile(de_ctx, fd);
     SCThresholdConfDeInitContext(de_ctx, fd);
@@ -240,43 +276,6 @@ static void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 {
     if (fd != NULL)
         fclose(fd);
-
-    if (regex_base != NULL) {
-        pcre_free(regex_base);
-        regex_base = NULL;
-    }
-    if (regex_base_study != NULL) {
-        pcre_free(regex_base_study);
-        regex_base_study = NULL;
-    }
-
-    if (regex_threshold != NULL) {
-        pcre_free(regex_threshold);
-        regex_threshold = NULL;
-    }
-    if (regex_threshold_study != NULL) {
-        pcre_free(regex_threshold_study);
-        regex_threshold_study = NULL;
-    }
-
-    if (regex_rate != NULL) {
-        pcre_free(regex_rate);
-        regex_rate = NULL;
-    }
-    if (regex_rate_study != NULL) {
-        pcre_free(regex_rate_study);
-        regex_rate_study = NULL;
-    }
-
-    if (regex_suppress != NULL) {
-        pcre_free(regex_suppress);
-        regex_suppress = NULL;
-    }
-    if (regex_suppress_study != NULL) {
-        pcre_free(regex_suppress_study);
-        regex_suppress_study = NULL;
-    }
-
     return;
 }
 

@@ -29,4 +29,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *);
 
 void SCThresholdConfRegisterTests(void);
 
+void SCThresholdConfGlobalInit(void);
+void SCThresholdConfGlobalFree(void);
+
 #endif /* __UTIL_THRESHOLD_CONFIG_H__ */

@@ -337,6 +337,7 @@ void GlobalsInitPreConfig(void)
 
     TimeInit();
     SupportFastPatternForSigMatchTypes();
+    SCThresholdConfGlobalInit();
 }
 
 static void GlobalsDestroy(SCInstance *suri)
@@ -401,6 +402,7 @@ static void GlobalsDestroy(SCInstance *suri)
 #endif
     SCLogDeInitLogModule();
     DetectParseFreeRegexes();
+    SCThresholdConfGlobalFree();
 
     SCPidfileRemove(suri->pid_filename);
 }
