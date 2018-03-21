@@ -238,6 +238,9 @@ pub struct NFSRequestXidMap {
 
     /// READ replies can use this to get to the handle the request used
     pub file_handle:Vec<u8>,
+
+    pub gssapi_proc: u32,
+    pub gssapi_service: u32,
 }
 
 impl NFSRequestXidMap {
@@ -248,6 +251,8 @@ impl NFSRequestXidMap {
             chunk_offset:chunk_offset,
             file_name:Vec::new(),
             file_handle:Vec::new(),
+            gssapi_proc: 0,
+            gssapi_service: 0,
         }
     }
 }
