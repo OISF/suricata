@@ -43,6 +43,9 @@
 #include "decode-events.h"
 #include "conf.h"
 
+#include "util-crypt.h"
+#include "util-decode-der.h"
+#include "util-decode-der-get.h"
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -138,6 +141,8 @@ SslConfig ssl_config;
 #define TLS_HB_RESPONSE                 2
 
 #define SSL_RECORD_MINIMUM_LENGTH       6
+
+#define SHA1_STRING_LENGTH             60
 
 #define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
@@ -253,6 +258,250 @@ static void SSLSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
     } else {
         ssl_state->detect_flags_tc = flags;
     }
+}
+
+static void TlsDecodeHSCertificateErrSetEvent(SSLState *ssl_state, uint32_t err)
+{
+    switch (err) {
+        case ERR_DER_UNKNOWN_ELEMENT:
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_CERTIFICATE_UNKNOWN_ELEMENT);
+            break;
+        case ERR_DER_ELEMENT_SIZE_TOO_BIG:
+        case ERR_DER_INVALID_SIZE:
+        case ERR_DER_RECURSION_LIMIT:
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
+            break;
+        case ERR_DER_UNSUPPORTED_STRING:
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_CERTIFICATE_INVALID_STRING);
+            break;
+        case ERR_DER_MISSING_ELEMENT:
+            SSLSetEvent(ssl_state,
+                        TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
+            break;
+        case ERR_DER_INVALID_TAG:
+        case ERR_DER_INVALID_OBJECT:
+        case ERR_DER_GENERIC:
+        default:
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            break;
+    }
+}
+
+static inline int TlsDecodeHSCertificateSubject(SSLState *ssl_state,
+                                                Asn1Generic *cert)
+{
+    if (unlikely(ssl_state->server_connp.cert0_subject != NULL))
+        return 0;
+
+    uint32_t err = 0;
+    char buffer[512];
+
+    int rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer), &err);
+    if (rc != 0) {
+        TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_subject = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_subject == NULL)
+        return -1;
+
+    return 0;
+}
+
+static inline int TlsDecodeHSCertificateIssuer(SSLState *ssl_state,
+                                               Asn1Generic *cert)
+{
+    if (unlikely(ssl_state->server_connp.cert0_issuerdn != NULL))
+        return 0;
+
+    uint32_t err = 0;
+    char buffer[512];
+
+    int rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer), &err);
+    if (rc != 0) {
+        TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_issuerdn = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_issuerdn == NULL)
+        return -1;
+
+    return 0;
+}
+
+static inline int TlsDecodeHSCertificateSerial(SSLState *ssl_state,
+                                               Asn1Generic *cert)
+{
+    if (unlikely(ssl_state->server_connp.cert0_serial != NULL))
+        return 0;
+
+    uint32_t err = 0;
+    char buffer[512];
+
+    int rc = Asn1DerGetSerial(cert, buffer, sizeof(buffer), &err);
+    if (rc != 0) {
+        TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_serial = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_serial == NULL)
+        return -1;
+
+    return 0;
+}
+
+static inline int TlsDecodeHSCertificateValidity(SSLState *ssl_state,
+                                                 Asn1Generic *cert)
+{
+    uint32_t err = 0;
+    time_t not_before;
+    time_t not_after;
+
+    int rc = Asn1DerGetValidity(cert, &not_before, &not_after, &err);
+    if (rc != 0) {
+        TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_not_before = not_before;
+    ssl_state->server_connp.cert0_not_after = not_after;
+
+    return 0;
+}
+
+static inline int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
+                                                    const uint8_t *input,
+                                                    uint32_t cert_len)
+{
+    if (unlikely(ssl_state->server_connp.cert0_fingerprint != NULL))
+        return 0;
+
+    ssl_state->server_connp.cert0_fingerprint = SCCalloc(1, SHA1_STRING_LENGTH *
+                                                         sizeof(char));
+    if (ssl_state->server_connp.cert0_fingerprint == NULL)
+        return -1;
+
+    uint8_t *hash = ComputeSHA1((uint8_t *)input, cert_len);
+    if (hash == NULL)
+        return 0;
+
+    int i, x;
+    for (i = 0, x = 0; x < SHA1_LENGTH; x++)
+    {
+        i += snprintf(ssl_state->server_connp.cert0_fingerprint + i,
+                      SHA1_STRING_LENGTH - i, i == 0 ? "%02x" : ":%02x",
+                      *(hash + x));
+    }
+
+    SCFree(hash);
+
+    return 0;
+}
+
+static inline int TlsDecodeHSCertificateAddCertToChain(SSLState *ssl_state,
+                                                       const uint8_t *input,
+                                                       uint32_t cert_len)
+{
+    SSLCertsChain *cert = SCCalloc(1, sizeof(SSLCertsChain));
+    if (cert == NULL)
+        return -1;
+
+    cert->cert_data = (uint8_t *)input;
+    cert->cert_len = cert_len;
+    TAILQ_INSERT_TAIL(&ssl_state->server_connp.certs, cert, next);
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificate(SSLState *ssl_state,
+                                  const uint8_t * const initial_input,
+                                  const uint32_t input_len)
+{
+    const uint8_t *input = (uint8_t *)initial_input;
+
+    Asn1Generic *cert;
+
+    if (!(HAS_SPACE(3)))
+        return 1;
+
+    uint32_t cert_chain_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
+    input += 3;
+
+    if (!(HAS_SPACE(cert_chain_len)))
+        return 0;
+
+    uint32_t processed_len = 0;
+    while (processed_len < cert_chain_len)
+    {
+        if (!(HAS_SPACE(3)))
+            goto invalid_cert;
+
+        uint32_t cert_len = *input << 16 | *(input + 1) << 8 | *(input + 2);
+        input += 3;
+
+        if (!(HAS_SPACE(cert_len)))
+            goto invalid_cert;
+
+        uint32_t err = 0;
+        int rc = 0;
+
+        /* only store fields from the first certificate in the chain */
+        if (processed_len == 0) {
+            cert = DecodeDer(input, cert_len, &err);
+            if (cert == NULL) {
+                TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
+                goto next;
+            }
+
+            rc = TlsDecodeHSCertificateSubject(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateIssuer(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateSerial(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateValidity(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateFingerprint(ssl_state, input, cert_len);
+            if (rc != 0)
+                goto error;
+
+            DerFree(cert);
+        }
+
+        rc = TlsDecodeHSCertificateAddCertToChain(ssl_state, input, cert_len);
+        if (rc != 0)
+            goto error;
+
+next:
+        input += cert_len;
+        processed_len += cert_len + 3;
+    }
+
+    return (input - initial_input);
+
+error:
+    if (cert != NULL)
+        DerFree(cert);
+    return -1;
+
+invalid_cert:
+    SCLogDebug("TLS invalid certificate");
+    SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+    return -1;
 }
 
 /**
@@ -937,9 +1186,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                     ssl_state->curr_connp->trec_pos, initial_input, write_len);
             ssl_state->curr_connp->trec_pos += write_len;
 
-            rc = DecodeTLSHandshakeServerCertificate(ssl_state,
-                    ssl_state->curr_connp->trec,
-                    ssl_state->curr_connp->trec_pos);
+            rc = TlsDecodeHSCertificate(ssl_state, ssl_state->curr_connp->trec,
+                                        ssl_state->curr_connp->trec_pos);
 
             if (rc > 0) {
                 /* do not return normally if the packet was fragmented:
