@@ -186,7 +186,7 @@ update af-packet configuration to set bypass to yes ::
     use-mmap: yes
     ring-size: 200000
 
-Constraints on eBPF code to have a bypass compliant code are stonger than for regular filter. The
+Constraints on eBPF code to have a bypass compliant code are stronger than for regular filter. The
 filter must expose `flow_table_v4` and `flow_table_v6` per CPU array maps with similar definitions
 as the one available in `bypass_filter.c`. These two maps will be accessed and
 maintained by Suricata to handle the lists of flow to bypass.
@@ -202,7 +202,7 @@ which socket the packet has to be send.
 An implementation of a simple IP pair hashing function is provided in the ``lb.bpf``
 file.
 
-Copy the resulting eBPF fiter as needed ::
+Copy the resulting eBPF filter as needed ::
 
  cp ebpf/lb.bpf /etc/suricata/ebpf/
 
@@ -309,7 +309,7 @@ Try to use the network's card balancing as much as possible ::
 The XDP CPU redirect case
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If ever your hardware is not able to do a symetric load balancing but support XDP in driver mode, you
+If ever your hardware is not able to do a symmetric load balancing but support XDP in driver mode, you
 can then use the CPU redirect map support available in the xdp_filter.bpf file. In this mode, the load
 balancing will be done by the XDP filter and each CPU will handle the whole packet treatment including
 the creation of the skb structure in kernel.
