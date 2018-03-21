@@ -38,7 +38,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
-#include "app-layer-tls-handshake.h"
 
 #include "decode-events.h"
 #include "conf.h"
@@ -52,6 +51,9 @@
 #include "util-ja3.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "util-decode-der.h"
+#include "util-decode-der-get.h"
+#include "util-crypt.h"
 
 SCEnumCharMap tls_decoder_event_table[ ] = {
     /* TLS protocol messages */
@@ -253,6 +255,249 @@ static void SSLSetTxDetectFlags(void *vtx, uint8_t dir, uint64_t flags)
     } else {
         ssl_state->detect_flags_tc = flags;
     }
+}
+
+static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
+                                           uint32_t errcode)
+{
+    if (errcode == 0)
+        return;
+
+    switch (errcode) {
+        case ERR_DER_ELEMENT_SIZE_TOO_BIG:
+        case ERR_DER_INVALID_SIZE:
+        case ERR_DER_RECURSION_LIMIT:
+            SSLSetEvent(ssl_state,
+                    TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
+            break;
+        case ERR_DER_UNSUPPORTED_STRING:
+            SSLSetEvent(ssl_state,
+                    TLS_DECODER_EVENT_CERTIFICATE_INVALID_STRING);
+            break;
+        case ERR_DER_UNKNOWN_ELEMENT:
+            SSLSetEvent(ssl_state,
+                    TLS_DECODER_EVENT_CERTIFICATE_UNKNOWN_ELEMENT);
+            break;
+        case ERR_DER_MISSING_ELEMENT:
+            SSLSetEvent(ssl_state,
+                    TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
+            break;
+        case ERR_DER_GENERIC:
+        default:
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            break;
+    };
+}
+
+static int TlsDecodeHSCertificateSubject(SSLState *ssl_state, Asn1Generic *cert)
+{
+    uint32_t errcode = 0;
+    char buffer[256];
+
+    if (ssl_state->server_connp.cert0_subject != NULL)
+        return 0;
+
+    int rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer), &errcode);
+    if (rc != 0) {
+        TLSCertificateErrCodeToWarning(ssl_state, errcode);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_subject = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_subject == NULL)
+        return -1;
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificateIssuer(SSLState *ssl_state, Asn1Generic *cert)
+{
+    uint32_t errcode = 0;
+    char buffer[256];
+
+    if (ssl_state->server_connp.cert0_issuerdn != NULL)
+        return 0;
+
+    int rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer), &errcode);
+    if (rc != 0) {
+        TLSCertificateErrCodeToWarning(ssl_state, errcode);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_issuerdn = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_issuerdn == NULL)
+        return -1;
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificateSerial(SSLState *ssl_state, Asn1Generic *cert)
+{
+    uint32_t errcode = 0;
+    char buffer[256];
+
+    if (ssl_state->server_connp.cert0_serial != NULL)
+        return 0;
+
+    int rc = Asn1DerGetSerial(cert, buffer, sizeof(buffer), &errcode);
+    if (rc != 0) {
+        TLSCertificateErrCodeToWarning(ssl_state, errcode);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_serial = SCStrdup(buffer);
+    if (ssl_state->server_connp.cert0_serial == NULL)
+        return -1;
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificateValidity(SSLState *ssl_state,
+                                          Asn1Generic *cert)
+{
+    uint32_t errcode = 0;
+    time_t not_before;
+    time_t not_after;
+
+    int rc = Asn1DerGetValidity(cert, &not_before, &not_after, &errcode);
+    if (rc != 0) {
+        TLSCertificateErrCodeToWarning(ssl_state, errcode);
+        return 0;
+    }
+
+    ssl_state->server_connp.cert0_not_before = not_before;
+    ssl_state->server_connp.cert0_not_after = not_after;
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificateFingerprint(SSLState *ssl_state,
+                                             uint8_t *input,
+                                             uint32_t cur_cert_length)
+{
+    if (ssl_state->server_connp.cert0_fingerprint != NULL)
+        return 0;
+
+    unsigned char *hash = ComputeSHA1((unsigned char *)input, cur_cert_length);
+    if (hash == NULL)
+        return 0;
+
+    int hash_len = 20;
+    int out_len = hash_len * 3 + 1;
+    char out[out_len];
+    memset(out, 0x00, out_len);
+
+    int j = 0;
+    for (j = 0; j < hash_len; j++)
+    {
+        char one[4];
+        snprintf(one, sizeof(one), j == hash_len - 1 ? "%02x" : "%02x:", hash[j]);
+        strlcat(out, one, out_len);
+    }
+    SCFree(hash);
+
+    ssl_state->server_connp.cert0_fingerprint = SCStrdup(out);
+    if (ssl_state->server_connp.cert0_fingerprint == NULL)
+        return -1;
+
+    ssl_state->server_connp.cert_input = input;
+    ssl_state->server_connp.cert_input_len = cur_cert_length;
+
+    return 0;
+}
+
+static int TlsDecodeHSCertificate(SSLState *ssl_state,
+                                  const uint8_t * const initial_input,
+                                  const uint32_t input_len)
+{
+    uint8_t *input = (uint8_t *)initial_input;
+    Asn1Generic *cert;
+
+    if (input_len < 3)
+        return 1;
+
+    uint32_t certificates_length = input[0]<<16 | input[1]<<8 | input[2];
+
+    /* check if the message is complete */
+    if (input_len < certificates_length + 3)
+        return 0;
+
+    input += 3;
+
+    int i = 0;
+    while (certificates_length > 0)
+    {
+        if (!(HAS_SPACE(3)))
+            goto invalid_cert;
+
+        uint32_t cur_cert_length = input[0]<<16 | input[1]<<8 | input[2];
+        input += 3;
+
+        /* current certificate length should be greater than zero */
+        if (cur_cert_length == 0)
+            goto invalid_cert;
+
+        if (!(HAS_SPACE(cur_cert_length)))
+            goto invalid_cert;
+
+        uint32_t errcode = 0;
+
+        cert = DecodeDer(input, cur_cert_length, &errcode);
+        if (cert == NULL) {
+            TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            goto next;
+        }
+
+        /* only store fields from the first certificate in the chain */
+        if (i == 0) {
+            int rc = TlsDecodeHSCertificateSubject(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateIssuer(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateSerial(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateValidity(ssl_state, cert);
+            if (rc != 0)
+                goto error;
+
+            rc = TlsDecodeHSCertificateFingerprint(ssl_state, input, cur_cert_length);
+            if (rc != 0)
+                goto error;
+        }
+ 
+        DerFree(cert);
+
+        SSLCertsChain *ncert = SCCalloc(1, sizeof(SSLCertsChain));
+        if (ncert == NULL)
+            goto error;
+
+        ncert->cert_data = input;
+        ncert->cert_len = cur_cert_length;
+        TAILQ_INSERT_TAIL(&ssl_state->server_connp.certs, ncert, next);
+
+next:
+        i++;
+        certificates_length -= (cur_cert_length + 3);
+        input += cur_cert_length;
+    }
+
+    return (input - initial_input);
+
+invalid_cert:
+    SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+    return -1;
+
+error:
+    if (cert != NULL)
+        DerFree(cert);
+
+    return -1;
 }
 
 /**
@@ -937,9 +1182,8 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                     ssl_state->curr_connp->trec_pos, initial_input, write_len);
             ssl_state->curr_connp->trec_pos += write_len;
 
-            rc = DecodeTLSHandshakeServerCertificate(ssl_state,
-                    ssl_state->curr_connp->trec,
-                    ssl_state->curr_connp->trec_pos);
+            rc = TlsDecodeHSCertificate(ssl_state, ssl_state->curr_connp->trec,
+                                        ssl_state->curr_connp->trec_pos);
 
             if (rc > 0) {
                 /* do not return normally if the packet was fragmented:
