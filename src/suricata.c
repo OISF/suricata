@@ -1905,7 +1905,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 SCLogError(SC_ERR_FATAL, "Failed to set log directory.\n");
                 return TM_ECODE_FAILED;
             }
-            if (ConfigCheckLogDirectory(optarg) != TM_ECODE_OK) {
+            if (ConfigCheckFileExists(optarg) != TM_ECODE_OK) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
                         " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
@@ -2042,6 +2042,46 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             return TM_ECODE_FAILED;
         }
     }
+
+#ifndef OS_WIN32
+    /* Get the suricata user ID to given user ID */
+    if (suri->do_setuid == TRUE) {
+        if (SCGetUserID(suri->user_name, suri->group_name,
+                        &suri->userid, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_UID_FAILED, "failed in getting user ID");
+            return TM_ECODE_FAILED;
+        }
+    /* Get the suricata group ID to given group ID */
+    } else if (suri->do_setgid == TRUE) {
+        if (SCGetGroupID(suri->group_name, &suri->groupid) != 0) {
+            SCLogError(SC_ERR_GID_FAILED, "failed in getting group ID");
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (set_log_directory
+        && ConfigCheckFileWritablePrivDrop(ConfigGetLogDirectory()) != TM_ECODE_DONE ) {
+
+        if (suri->do_setuid || suri->do_setgid) { /* We will drop privileges */
+            FatalError(SC_ERR_LOGDIR_CMDLINE,
+                      "After dropping privileges to another user the logfile directory \"%s\" "
+                      "defined on the commandline (-l parameter) will no longer be writeable. "
+                      "This means after logrotation it will not be possible to create a new "
+                      "logfile and all following log messages will get lost. "
+                      "To avoid this, please make the default logdir writeable "
+                      "for the privilege drop user or configure another logdir. Exiting ..." ,
+                       ConfigGetLogDirectory());
+        } else { /* We will not drop privileges */
+            FatalError(SC_ERR_LOGDIR_CMDLINE,
+                      "The logfile directory \"%s\" defined on the commandline (-l parameter) is not writeable. "
+                      "This means after logrotation it will not be possible to create a new "
+                      "logfile and all following log messages will get lost. "
+                      "To avoid this, please make the default logdir writeable "
+                      "or configure another logdir. Exiting ...",
+                       ConfigGetLogDirectory());
+        }
+    }
+#endif /* OS_WIN32 */
 
     if (suri->disabled_detect && suri->sig_file != NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
@@ -2593,7 +2633,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
      * from suricata.yaml.  If not found, shut the engine down */
     suri->log_dir = ConfigGetLogDirectory();
 
-    if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
+    if (ConfigCheckFileExists(suri->log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
                 "Shutting down the engine", suri->log_dir, suri->conf_filename);
@@ -2690,6 +2730,31 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
+#ifndef OS_WIN32
+    if (ConfigCheckFileWritablePrivDrop(suri->log_dir) != TM_ECODE_DONE) {
+
+        if (sc_set_caps) { /* We will drop privileges */
+            FatalError(SC_ERR_LOGDIR_CONFIG,
+                      "After dropping privileges to another user the logfile directory \"%s\" "
+                      "defined in %s will no longer be writeable. "
+                      "This means after logrotation it will not be possible to create a new "
+                      "logfile and all following log messages will get lost. "
+                      "To avoid this, please make the default logdir writeable "
+                      "for the privilege drop user or configure another logdir. Exiting ...",
+                       suri->log_dir,
+                       suri->conf_filename);
+        } else { /* We will not drop privileges */
+            FatalError(SC_ERR_LOGDIR_CONFIG,
+                      "The logfile directory \"%s\" defined in %s is not writeable. "
+                      "This means after logrotation it will not be possible to create a new "
+                      "logfile and all following log messages will get lost. "
+                      "To avoid this, please make the default logdir writeable "
+                      "or configure another logdir. Exiting ...",
+                       suri->log_dir,
+                       suri->conf_filename);
+        }
+    }
+#endif /* OS_WIN32 */
 
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
