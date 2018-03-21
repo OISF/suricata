@@ -32,7 +32,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-tls.h"
+#include "detect-engine-prefilter.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-tls-cert-fingerprint.h"
@@ -56,6 +56,10 @@
 
 static int DetectTlsFingerprintSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectTlsFingerprintRegisterTests(void);
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id);
 static int g_tls_cert_fingerprint_buffer_id = 0;
 
 /**
@@ -73,11 +77,16 @@ void DetectTlsFingerprintRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_FINGERPRINT].flags |= SIGMATCH_NOOPT;
 
-    DetectAppLayerMpmRegister("tls_cert_fingerprint", SIG_FLAG_TOCLIENT, 2,
-            PrefilterTxTlsFingerprintRegister);
+    DetectAppLayerInspectEngineRegister2("tls_cert_fingerprint", ALPROTO_TLS,
+            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY,
+            DetectEngineInspectBufferGeneric, GetData);
 
-    DetectAppLayerInspectEngineRegister("tls_cert_fingerprint", ALPROTO_TLS,
-            SIG_FLAG_TOCLIENT, TLS_STATE_CERT_READY, DetectEngineInspectTlsFingerprint);
+    DetectAppLayerMpmRegister2("tls_cert_fingerprint", SIG_FLAG_TOCLIENT, 2,
+            PrefilterGenericMpmRegister, GetData, ALPROTO_TLS,
+            TLS_STATE_CERT_READY);
+
+    DetectBufferTypeSetDescriptionByName("tls_cert_fingerprint",
+            "TLS certificate fingerprint");
 
     g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls_cert_fingerprint");
 }
@@ -94,12 +103,36 @@ void DetectTlsFingerprintRegister(void)
 static int DetectTlsFingerprintSetup(DetectEngineCtx *de_ctx, Signature *s,
                                      const char *str)
 {
-    s->init_data->list = g_tls_cert_fingerprint_buffer_id;
+    DetectBufferSetActiveList(s, g_tls_cert_fingerprint_buffer_id);
 
     if (DetectSignatureSetAppProto(s, ALPROTO_TLS) != 0)
         return -1;
 
     return 0;
+}
+
+static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms, Flow *_f,
+        const uint8_t _flow_flags, void *txv, const int list_id)
+{
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+
+    if (buffer->inspect == NULL) {
+        SSLState *ssl_state = (SSLState *)_f->alstate;
+
+        if (ssl_state->server_connp.cert0_fingerprint == NULL) {
+            return NULL;
+        }
+
+        const uint32_t data_len = strlen(ssl_state->server_connp.cert0_fingerprint);
+        const uint8_t *data = (uint8_t *)ssl_state->server_connp.cert0_fingerprint;
+
+        InspectionBufferSetup(buffer, data, data_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+
+    return buffer;
 }
 
 #ifdef UNITTESTS
