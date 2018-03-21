@@ -372,6 +372,34 @@ static void FtpTransferCmdFree(void *data)
     FTPFree(cmd, sizeof(struct FtpTransferCmd));
 }
 
+static int FTPParseGetDynPort(FtpState *state, uint8_t *input, uint32_t input_len)
+{
+    uint16_t dyn_port;
+
+#ifdef HAVE_RUST
+    dyn_port = rs_ftp_pasv_response(input, input_len);
+    if (dyn_port == 0) {
+        return -1;
+    }
+#else
+    uint16_t part1, part2;
+    uint8_t *ptr = memrchr(input, ',', input_len);
+    if (ptr == NULL)
+        return -1;
+
+    part2 = atoi((char *)ptr + 1);
+    ptr = memrchr(input, ',', (ptr - input) - 1);
+    if (ptr == NULL)
+        return -1;
+    part1 = atoi((char *)ptr + 1);
+
+    dyn_port = 256 * part1 + part2;
+#endif
+    state->dyn_port = dyn_port;
+
+    return 0;
+}
+
 /**
  * \brief This function is called to retrieve a ftp request
  * \param ftp_state the ftp state structure for the parser
@@ -425,6 +453,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
                 memcpy(state->port_line, state->current_line,
                         state->current_line_len);
                 state->port_line_len = state->current_line_len;
+                // TODO need to handle ipv6
+                FTPParseGetDynPort(state, input, input_len);
                 break;
             case FTP_COMMAND_RETR:
                 /* change direction (default to server) so expectation will handle
@@ -477,30 +507,7 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
 static int FTPParsePassiveResponse(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
 {
-    uint16_t dyn_port;
-
-#ifdef HAVE_RUST
-    dyn_port = rs_ftp_pasv_response(input, input_len);
-    if (dyn_port == 0) {
-        return -1;
-    }
-#else
-    uint16_t part1, part2;
-    uint8_t *ptr = memrchr(input, ',', input_len);
-    if (ptr == NULL)
-        return -1;
-
-    part2 = atoi((char *)ptr + 1);
-    ptr = memrchr(input, ',', (ptr - input) - 1);
-    if (ptr == NULL)
-        return -1;
-    part1 = atoi((char *)ptr + 1);
-
-    dyn_port = 256 * part1 + part2;
-#endif
-    state->dyn_port = dyn_port;
-
-    return 0;
+    return FTPParseGetDynPort(state, input, input_len);
 }
 
 static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, uint32_t input_len)
@@ -1328,4 +1335,3 @@ void FTPParserRegisterTests(void)
     UtRegisterTest("FTPParserTest10", FTPParserTest10);
 #endif /* UNITTESTS */
 }
-
