@@ -228,11 +228,12 @@ named!(pub parse_rpc_reply<RpcReplyPacket>,
    do_parse!(
        hdr: parse_rpc_packet_header
 
+       >> reply_state: be_u32
+
        >> verifier_flavor: be_u32
        >> verifier_len: be_u32
        >> verifier: cond!(verifier_len > 0, take!(verifier_len as usize))
 
-       >> reply_state: be_u32
        >> accept_state: be_u32
 
        >> pl: rest
