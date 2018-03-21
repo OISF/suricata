@@ -2231,8 +2231,10 @@ void PreRunPostPrivsDropInit(const int runmode)
  * Will be run once per pcap in unix-socket mode */
 void PostRunDeinit(const int runmode, struct timeval *start_time)
 {
-    if (runmode == RUNMODE_UNIX_SOCKET)
+    if (runmode == RUNMODE_UNIX_SOCKET) {
+        FlowManagerWakeupThreads();
         return;
+    }
 
     /* needed by FlowForceReassembly */
     PacketPoolInit();

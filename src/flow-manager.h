@@ -34,6 +34,7 @@ SCCtrlMutex flow_manager_ctrl_mutex;
 #define FlowWakeupFlowManagerThread() SCCtrlCondSignal(&flow_manager_ctrl_cond)
 
 void FlowManagerThreadSpawn(void);
+void FlowManagerWakeupThreads(void);
 void FlowDisableFlowManagerThread(void);
 void FlowMgrRegisterTests (void);
 
