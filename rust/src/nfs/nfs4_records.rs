@@ -63,7 +63,8 @@ named!(nfs4_parse_attrs<Nfs4Attr>,
     do_parse!(
         attr_cnt: be_u32
     >>  attr_mask1: be_u32
-    >>  attr_mask2: cond!(attr_cnt == 2, be_u32)
+    >>  attr_mask2: cond!(attr_cnt >= 2, be_u32)
+    >>  cond!(attr_cnt == 3, be_u32)
     >>  nfs4_parse_attr_fields
     >> ( Nfs4Attr {
             attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
@@ -74,7 +75,8 @@ named!(nfs4_parse_attrbits<Nfs4Attr>,
     do_parse!(
         attr_cnt: be_u32
     >>  attr_mask1: be_u32
-    >>  attr_mask2: cond!(attr_cnt == 2, be_u32)
+    >>  attr_mask2: cond!(attr_cnt >= 2, be_u32)
+    >>  cond!(attr_cnt == 3, be_u32)
     >> ( Nfs4Attr {
             attr_mask: ((attr_mask1 as u64) << 32) | attr_mask2.unwrap_or(0) as u64,
         } )
