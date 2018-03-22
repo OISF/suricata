@@ -402,6 +402,8 @@ static TmEcode UnixSocketAddPcapFileImpl(json_t *cmd, json_t* answer, void *data
             SCLogInfo("Added file '%s' to list", filename);
             json_object_set_new(answer, "message",
                                 json_string("Successfully added file to list"));
+            /* Increase polling speed */
+            UnixManagerSetTimeout(TIMEOUT_INCREASE_SEC, TIMEOUT_INCREASE_USEC);
             return TM_ECODE_OK;
     }
     return TM_ECODE_OK;
@@ -475,6 +477,8 @@ static TmEcode UnixSocketPcapFilesCheck(void *data)
 
     if (TAILQ_EMPTY(&this->files)) {
         // nothing to do
+        /* When idle, reset timeout */
+        UnixManagerSetTimeout(TIMEOUT_DEFAULT_SEC, TIMEOUT_DEFAULT_USEC);
         return TM_ECODE_OK;
     }
 

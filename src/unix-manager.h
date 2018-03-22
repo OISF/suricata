@@ -30,6 +30,12 @@
 
 #define UNIX_CMD_TAKE_ARGS 1
 
+/* Timeout for polling */
+#define TIMEOUT_DEFAULT_SEC   0
+#define TIMEOUT_DEFAULT_USEC (200*1000)
+#define TIMEOUT_INCREASE_SEC 0
+#define TIMEOUT_INCREASE_USEC 100
+
 SCCtrlCondT unix_manager_ctrl_cond;
 SCCtrlMutex unix_manager_ctrl_mutex;
 
@@ -44,6 +50,9 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 TmEcode UnixManagerRegisterBackgroundTask(
         TmEcode (*Func)(void *),
         void *data);
+TmEcode UnixManagerSetTimeout(
+        int seconds,
+        int microseconds);
 #endif
 
 void TmModuleUnixManagerRegister(void);
