@@ -244,8 +244,7 @@ static void JsonTlsLogJa3(json_t *js, SSLState *ssl_state)
 
 static void JsonTlsLogCertificate(json_t *js, SSLState *ssl_state)
 {
-    if ((ssl_state->server_connp.cert_input == NULL) ||
-            (ssl_state->server_connp.cert_input_len == 0)) {
+    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
         return;
     }
 
@@ -264,8 +263,7 @@ static void JsonTlsLogCertificate(json_t *js, SSLState *ssl_state)
 
 static void JsonTlsLogChain(json_t *js, SSLState *ssl_state)
 {
-    if ((ssl_state->server_connp.cert_input == NULL) ||
-            (ssl_state->server_connp.cert_input_len == 0)) {
+    if (TAILQ_EMPTY(&ssl_state->server_connp.certs)) {
         return;
     }
 

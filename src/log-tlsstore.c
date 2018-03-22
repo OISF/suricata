@@ -105,7 +105,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     uint8_t *ptmp;
     SSLCertsChain *cert;
 
-    if ((state->server_connp.cert_input == NULL) || (state->server_connp.cert_input_len == 0))
+    if (TAILQ_EMPTY(&state->server_connp.certs))
         SCReturn;
 
     CreateFileName(p, state, filename);
