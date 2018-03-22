@@ -38,7 +38,6 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
-#include "app-layer-tls-handshake.h"
 
 #include "decode-events.h"
 #include "conf.h"
