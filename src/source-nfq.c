@@ -1183,9 +1183,15 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     DecodeUpdatePacketCounters(tv, dtv, p);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("IPv4 packet");
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
+        if (unlikely(GET_PKT_LEN(p) > USHRT_MAX)) {
+            return TM_ECODE_FAILED;
+        }
         SCLogDebug("IPv6 packet");
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {
