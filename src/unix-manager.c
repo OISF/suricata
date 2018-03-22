@@ -88,6 +88,7 @@ typedef struct UnixCommand_ {
     int socket;
     struct sockaddr_un client_addr;
     int select_max;
+    struct timeval select_timeout;
     TAILQ_HEAD(, Command_) commands;
     TAILQ_HEAD(, Task_) tasks;
     TAILQ_HEAD(, UnixClient_) clients;
@@ -114,6 +115,10 @@ static int UnixNew(UnixCommand * this)
     TAILQ_INIT(&this->commands);
     TAILQ_INIT(&this->tasks);
     TAILQ_INIT(&this->clients);
+
+    /* set the default timeout */
+    this->select_timeout.tv_sec = TIMEOUT_DEFAULT_SEC;
+    this->select_timeout.tv_usec = TIMEOUT_DEFAULT_USEC;
 
     int check_dir = 0;
     if (ConfGet("unix-command.filename", &socketname) == 1) {
@@ -644,8 +649,8 @@ static int UnixMain(UnixCommand * this)
         FD_SET(uclient->fd, &select_set);
     }
 
-    tv.tv_sec = 0;
-    tv.tv_usec = 200 * 1000;
+    tv.tv_sec = this->select_timeout.tv_sec;
+    tv.tv_usec = this->select_timeout.tv_usec;
     ret = select(this->select_max, &select_set, NULL, NULL, &tv);
 
     /* catch select() error */
@@ -1005,6 +1010,32 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
     /* Add it to the list */
     TAILQ_INSERT_TAIL(&command.commands, cmd, next);
 
+    SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief Set a timeout speed for the socket loop
+ *
+ * This function set a custom timeout value for the select loop
+ * around the UnixMain() function.
+ *
+ * \param seconds number of seconds for the timeout
+ * \param microseconds number of microseconds for the timeout
+ *
+ * \retval TM_ECODE_OK in case of success (always)
+ */
+TmEcode UnixManagerSetTimeout(int seconds, int microseconds)
+{
+    if ((seconds != (&command)->select_timeout.tv_sec) ||
+        (microseconds != (&command)->select_timeout.tv_usec)) {
+        SCLogInfo("Select set timeout: %d:%d from %lu:%lu",
+                seconds, microseconds,
+                (&command)->select_timeout.tv_sec,
+                (&command)->select_timeout.tv_usec);
+
+        (&command)->select_timeout.tv_sec = seconds;
+        (&command)->select_timeout.tv_usec = microseconds;
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 
