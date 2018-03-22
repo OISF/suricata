@@ -1,3 +1,83 @@
+4.1.0-beta1 -- 2018-03-22
+
+Feature #646: smb log feature to be introduced
+Feature #719: finish/enable smb2 app layer parser
+Feature #723: Add support for smb 3
+Feature #724: Prevent resetting in UNIX socket mode
+Feature #735: Introduce content_len keyword
+Feature #741: Introduce endswith keyword
+Feature #742: startswith keyword
+Feature #1006: transformation api
+Feature #1201: file-store metadata in JSON format
+Feature #1386: offline: add pcap file name to EVE
+Feature #1458: unix-socket - make rule load errs available
+Feature #1476: Suricata Unix socket PCAP processing stats should not need to reset after each run
+Feature #1579: Support Modbus Unit Identifier
+Feature #1585: unix-socket: improve information regarding ruleset
+Feature #1600: flash file decompression for file_data
+Feature #1678: open umask settings or make them configurable
+Feature #1948: allow filestore name configuration options
+Feature #1949: only write unique files
+Feature #2020: eve: add body of signature to eve.json alert
+Feature #2062: tls: reimplement tls.fingerprint
+Feature #2076: Strip whitespace from buffers
+Feature #2142: filesize: support other units than only bytes
+Feature #2192: JA3 TLS client fingerprinting
+Feature #2199: DNS answer events compacted
+Feature #2222: Batch submission of PCAPs over the socket
+Feature #2253: Log rule metadata in alert event
+Feature #2285: modify memcaps over unix socket
+Feature #2295: decoder: support PCAP LINKTYPE_IPV4
+Feature #2299: pcap: read directory with pcaps from the commandline
+Feature #2303: file-store enhancements (aka file-store v2): deduplication; hash-based naming; json metadata and cleanup tooling
+Feature #2352: eve: add "metadata" field to alert (rework of vars)
+Feature #2382: deprecate: CUDA support
+Feature #2399: eBPF and XDP bypass for AF_PACKET capture method
+Optimization #2193: random: support getrandom(2) if available
+Optimization #2302: rule parsing: faster parsing by not using pcre
+Bug #993: libhtp upgrade to handle responses first
+Bug #1503: lua output setup failure does not exit engine with --init-errors-fatal
+Bug #2202: BUG_ON asserts in AppLayerIncFlowCounter
+Bug #2229: mem leak AFP with 4.0.0-dev (rev 1180687)
+Bug #2268: Don't printf util-enum errors
+Bug #2288: Suricata segfaults on ICMP and flowint check
+Bug #2294: rules: depth < content rules not rejected (master)
+Bug #2307: segfault in http_start with 4.1.0-dev (rev 83f220a)
+Bug #2335: conf: stack-based buffer-overflow in ParseFilename
+Bug #2345: conf: Memory-leak in DetectAddressTestConfVars
+Bug #2346: conf: NULL-pointer dereference in ConfUnixSocketIsEnable
+Bug #2347: conf: use of NULL-pointer in DetectLoadCompleteSigPath
+Bug #2349: conf: multiple NULL-pointer dereferences in FlowInitConfig
+Bug #2353: Command Line Options Ignored with pcap-file-continuous setting
+Bug #2354: conf: multiple NULL-pointer dereferences in StreamTcpInitConfig
+Bug #2356: coverity issues in new pcap file/directory handling
+Bug #2360: possible deadlock with signal handling
+Bug #2364: rust/dns: logging missing string versions of rtypes and rcodes
+Bug #2365: rust/dns: flooded by 'LogDnsLogger not implemented for Rust DNS'
+Bug #2367: Conf: Multipe NULL-pointer dereferences in HostInitConfig
+Bug #2368: Conf: Multipe NULL-pointer dereferences after ConfGetBool in StreamTcpInitConfig
+Bug #2370: Conf: Multipe NULL-pointer dereferences in PostConfLoadedSetup
+Bug #2390: mingw linker error with rust
+Bug #2391: libhtp 0.5.26
+Bug #2394: Pcap Directory May Miss Files
+Bug #2397: Call to panic()! macro in Rust NFS decoder causes crash on malformed NFS traffic
+Bug #2398: Lua keyword cmd help documentation pointing to old docs
+Bug #2402: http_header_names doesn't operate as documented
+Bug #2403: Crash for offline pcap mode when running in single mode
+Bug #2407: Fix timestamp offline when pcap timestamp is zero
+Bug #2408: fix print backslash in PrintRawUriFp
+Bug #2414: NTP parser registration frees used memory
+Bug #2418: Skip configuration "include" nodes when file is empty
+Bug #2420: Use pthread_sigmask instead of sigprogmask for signal handling
+Bug #2425: DNP3 memcpy buffer overflow
+Bug #2427: Suricata 3.x.x and 4.x.x do not parse HTTP responses if tcp data was sent before 3-way-handshake completed
+Bug #2430: http eve log data source/dest flip
+Bug #2437: rust/dns: Core Dump with malformed traffic
+Bug #2442: der parser: bad input consumes cpu and memory
+Bug #2446: http bodies / file_data: thread space creation writing out of bounds (master)
+Bug #2451: Missing Files Will Cause Pcap Thread to No Longer Run in Unix Socket Mode
+Bug #2454: master - suricata.c:2473-2474 - SIGUSR2 not wrapped in #ifndef OS_WIN32
+
 4.0.1 -- 2017-10-18
 
 Bug #2050: TLS rule mixes up server and client certificates
