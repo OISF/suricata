@@ -60,6 +60,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+        const char **sigerror);
 static int g_tls_cert_serial_buffer_id = 0;
 
 /**
@@ -87,6 +89,9 @@ void DetectTlsSerialRegister(void)
 
     DetectBufferTypeSetDescriptionByName("tls_cert_serial",
             "TLS certificate serial number");
+
+    DetectBufferTypeRegisterValidateCallback("tls_cert_serial",
+            DetectTlsSerialValidateCallback);
 
     g_tls_cert_serial_buffer_id = DetectBufferTypeGetByName("tls_cert_serial");
 }
@@ -132,6 +137,37 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     }
 
     return buffer;
+}
+
+static _Bool DetectTlsSerialValidateCallback(const Signature *s,
+                                             const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_cert_serial_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        /* no need to worry about this if the content is short enough */
+        if (cd->content_len <= 2)
+            return TRUE;
+
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+            if (cd->content[u] == ':')
+                return TRUE;
+
+        *sigerror = "No colon delimiters ':' detected in content after "
+                    "tls_cert_serial. This rule will therefore never "
+                    "match.";
+        SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 #ifdef UNITTESTS
