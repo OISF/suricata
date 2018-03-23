@@ -58,7 +58,8 @@
 #include "stream-tcp.h"
 
 static void DetectHttpUriRegisterTests(void);
-static void DetectHttpUriSetupCallback(Signature *s);
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                       Signature *s);
 static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror);
 
 static int g_http_uri_buffer_id = 0;
@@ -122,7 +123,8 @@ static bool DetectHttpUriValidateCallback(const Signature *s, const char **siger
     return DetectUrilenValidateContent(s, g_http_uri_buffer_id, sigerror);
 }
 
-static void DetectHttpUriSetupCallback(Signature *s)
+static void DetectHttpUriSetupCallback(const DetectEngineCtx *de_ctx,
+                                       Signature *s)
 {
     SCLogDebug("callback invoked by %u", s->id);
     DetectUrilenApplyToContent(s, g_http_uri_buffer_id);

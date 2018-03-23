@@ -421,7 +421,7 @@ typedef struct DetectBufferType_ {
     _Bool mpm;
     _Bool packet; /**< compat to packet matches */
     bool supports_transforms;
-    void (*SetupCallback)(struct Signature_ *);
+    void (*SetupCallback)(const struct DetectEngineCtx_ *, struct Signature_ *);
     bool (*ValidateCallback)(const struct Signature_ *, const char **sigerror);
     DetectEngineTransforms transforms;
 } DetectBufferType;
