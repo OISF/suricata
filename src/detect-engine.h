@@ -46,7 +46,7 @@ void DetectBufferTypeCloseRegistration(void);
 void DetectBufferTypeSetDescriptionByName(const char *name, const char *desc);
 const char *DetectBufferTypeGetDescriptionByName(const char *name);
 void DetectBufferTypeRegisterSetupCallback(const char *name,
-        void (*Callback)(Signature *));
+        void (*Callback)(const DetectEngineCtx *, Signature *));
 void DetectBufferTypeRegisterValidateCallback(const char *name,
         _Bool (*ValidateCallback)(const Signature *, const char **sigerror));
 
