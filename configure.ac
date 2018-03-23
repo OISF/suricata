@@ -1003,6 +1003,11 @@
         if test "x$libnetfilter_queue_nfq_get_payload_signed" = "xyes"; then
             AC_DEFINE([NFQ_GET_PAYLOAD_SIGNED], [1], [For signed version of nfq_get_payload])
         fi
+        AC_ARG_ENABLE(nfqmemseg,
+             AS_HELP_STRING([--enable-nfqmemseg], [Enable NFQUEUE memseg support for packet transit time]),[enable_nfqmemseg=yes],[enable_nfqmemseg=no])
+        if test "x$enable_nfqmemseg" = "xyes"; then
+            AC_DEFINE([NFQ_MEMSEG], [1], [For packet processing time collection in memseg in NFQ mode])
+        fi
         CFLAGS="${STORECFLAGS}"
 
         if test "$NFQ" = "no"; then

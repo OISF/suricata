@@ -94,6 +94,26 @@ int NFQGetQueueCount(void);
 void *NFQGetQueue(int number);
 int NFQGetQueueNum(int number);
 void *NFQGetThread(int number);
+
+#ifdef NFQ_MEMSEG
+
+#define SHM_SIZE 65536  /* make it a 1K shared memory segment */
+#define NFQ_TIMEVALS 1024
+struct NFQmemseg {
+  int reader_attached;
+  struct {
+	struct timeval pktrcvd;
+	struct timeval pktsent;
+	uint32_t id;
+  } pkttimes[1024];
+  uint32_t updated;
+  uint64_t buckets10us[500];
+  double boxcar;
+  int shmid;
+} *memseg;
+
+#endif /* NFQ_MEMSEG */
+
 #endif /* NFQ */
 #endif /* __SOURCE_NFQ_H__ */
 

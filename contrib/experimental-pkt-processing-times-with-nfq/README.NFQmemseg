@@ -1,0 +1,103 @@
+Demo-of-concept Suricata code mods and external programs to allow
+monitoring Suricata inline packet processing time while using
+netfilter queues. This example uses external programs to minimize
+processing in Suricata.
+
+Background:
+
+Suricata is designed and built for high speed IDS/IPS detection. The
+designers (quite correctly) resist adding any feature that could slow
+down packet processing.
+
+As a demo of using ancient features of the Unix operating system, and
+because I'm curious about performance and Linux behavior under load,
+I've put together this demo of using shared memory and external
+processing to monitor the time it takes Suricata to get a packet from,
+process the packet, and return it to the netfilter queue. Kernel
+processing time isn't part of this, just Suri processing time.
+
+How it works.
+
+1. Added into Suricata's NFQ module, at the time the packet is handed
+back to netfilter for forwarding, rerouting or drop, the receipt time
+(delivered in the packet skb) and the current time (gotten from
+gettimeofday()) are saved into shared memory, and the current packet
+id is stored in the same shared structure. The gettimeofday() is the
+only call made by the added code in Suricata per packet.
+
+2. An external program (processmem) runs in a loop, looking for a new
+packet to process. When it sees that there is one, it gets the
+received and sent times from the shared memory, calculates the time
+difference, and updates an array of packet delta times according to
+the time difference. The delta times array is an array of 500 buckets,
+each representing a range of 10 microseconds, and containing the count
+of packets that fit within that time range (since startup of the
+processmem program or zeroing of the times/counts array).
+
+Processmem is an interactive program, in that it can be controlled by
+key presses while operating. If processmem isn't running, Suricata
+doesn't store anything in the shared memory segment, or do the
+gettimeofday() call to get the time of sending the packet off to
+netfilter (and thus should be essentially the same performance as
+"stock" Suricata). The list of commands/info can be seen by pressing
+the 'h' key while processmem is running. 'q' to quit, 'x' to see
+current pkt id and boxcar average of the times of the last 100 pkts.
+
+Processmem has two run modes - running in a dead loop looking for new
+packets, and a less intrusive mode that still gives a representative
+(but incomplete) look at the Suri processing time spread, by invoking
+a sched yield each time around the loop after it looks for a new
+packet. In the "slow" mode, processmem uses about 7-8% of a processor
+on my I7 box, in the fast mode it's 100% of a core (but it doesn't
+miss much in "fast" mode ).
+
+I usually run processmem in a screen or tmux session, since I'm rarely
+logged into my firewall other than over a network connection.
+
+3. A third program, readspread, is used to read the counts of packets
+within the 500 buckets (corresponding to 0 to 9 usec per bucket). A
+single argument controls how many buckets are printed per line,
+defaulting to 8 if nothing is given. I typically invoke it like this:
+
+"watch -n 1 -d readspread"
+
+or
+
+"watch -n 1 -d readspread 3"
+
+if you're using an 80 column terminal. (Run as root).
+
+The shared memory segment can be identified by the key "0xdeadbeef",
+and isn't removed between suricata runs, so the counters just keep
+incrementing unless zeroed.  To start from scratch, stop suricata and
+processmem, then remove the shared mem using "ipcrm -m " (shmid). Find
+the shmid from "ipcs -m". Nattach must be 0 for it to be actually
+removed; you can remove with ipcrm, but it won't be removed until the
+number of processes attached goes to zero.
+
+To build Suricata:
+
+Autogen.sh as usual, then configure with --enable-nfqueue and
+--enable-nfqmemseg.
+
+To build processmem and readspread:
+
+Install ncurses development package, if you don't already have it.
+
+gcc -g -O processmem.c -o processmem -lncurses
+
+gcc -g -O readspread.c -o readspread
+
+Notes:
+
+This experimental code for Suricata is currently meant to be run in a
+single instance of Suricata; only a single shared memory segment is
+created/used, and multiple copies of Suricata would step all over each
+other's data. Further development would be needed to make it
+multi-Suricata process safe.
+
+Suggestion:
+
+If you're remotely logged into the Suri machine, and want to keep
+processmem running if you get logged out, fire it up in a screen or
+tmux session.
