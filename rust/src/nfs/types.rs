@@ -224,3 +224,99 @@ pub fn rpc_auth_status_string(auth_status: u32) -> String {
         },
     }.to_string()
 }
+
+pub const NFSPROC4_NULL:                u32 = 0;
+pub const NFSPROC4_COMPOUND:            u32 = 1;
+/* ops */
+pub const NFSPROC4_ACCESS:              u32 = 3;
+pub const NFSPROC4_CLOSE:               u32 = 4;
+pub const NFSPROC4_COMMIT:              u32 = 5;
+pub const NFSPROC4_CREATE:              u32 = 6;
+pub const NFSPROC4_DELEGPURGE:          u32 = 7;
+pub const NFSPROC4_DELEGRETURN:         u32 = 8;
+pub const NFSPROC4_GETATTR:             u32 = 9;
+pub const NFSPROC4_GETFH:               u32 = 10;
+pub const NFSPROC4_LINK:                u32 = 11;
+pub const NFSPROC4_LOCK:                u32 = 12;
+pub const NFSPROC4_LOCKT:               u32 = 13;
+pub const NFSPROC4_LOCKU:               u32 = 14;
+pub const NFSPROC4_LOOKUP:              u32 = 15;
+pub const NFSPROC4_LOOKUPP:             u32 = 16;
+pub const NFSPROC4_NVERIFY:             u32 = 17;
+pub const NFSPROC4_OPEN:                u32 = 18;
+pub const NFSPROC4_OPENATTR:            u32 = 19;
+pub const NFSPROC4_OPEN_CONFIRM:        u32 = 20;
+pub const NFSPROC4_OPEN_DOWNGRADE:      u32 = 21;
+pub const NFSPROC4_PUTFH:               u32 = 22;
+pub const NFSPROC4_PUTPUBFH:            u32 = 23;
+pub const NFSPROC4_PUTROOTFH:           u32 = 24;
+pub const NFSPROC4_READ:                u32 = 25;
+pub const NFSPROC4_READDIR:             u32 = 26;
+pub const NFSPROC4_READLINK:            u32 = 27;
+pub const NFSPROC4_REMOVE:              u32 = 28;
+pub const NFSPROC4_RENAME:              u32 = 29;
+pub const NFSPROC4_RENEW:               u32 = 30;
+pub const NFSPROC4_RESTOREFH:           u32 = 31;
+pub const NFSPROC4_SAVEFH:              u32 = 32;
+pub const NFSPROC4_SECINFO:             u32 = 33;
+pub const NFSPROC4_SETATTR:             u32 = 34;
+pub const NFSPROC4_SETCLIENTID:         u32 = 35;
+pub const NFSPROC4_SETCLIENTID_CONFIRM: u32 = 36;
+pub const NFSPROC4_VERIFY:              u32 = 37;
+pub const NFSPROC4_WRITE:               u32 = 38;
+pub const NFSPROC4_RELEASE_LOCKOWNER:   u32 = 39;
+
+
+pub const NFSPROC4_EXCHANGE_ID:         u32 = 42;
+
+pub const NFSPROC4_ILLEGAL:             u32 = 10044;
+
+
+pub fn nfs4_procedure_string(procedure: u32) -> String {
+    match procedure {
+        NFSPROC4_COMPOUND               => "COMPOUND",
+        NFSPROC4_NULL                   => "NULL",
+        // ops
+        NFSPROC4_ACCESS                 => "ACCESS",
+        NFSPROC4_CLOSE                  => "CLOSE",
+        NFSPROC4_COMMIT                 => "COMMIT",
+        NFSPROC4_CREATE                 => "CREATE",
+        NFSPROC4_DELEGPURGE             => "DELEGPURGE",
+        NFSPROC4_DELEGRETURN            => "DELEGRETURN",
+        NFSPROC4_GETATTR                => "GETATTR",
+        NFSPROC4_GETFH                  => "GETFH",
+        NFSPROC4_LINK                   => "LINK",
+        NFSPROC4_LOCK                   => "LOCK",
+        NFSPROC4_LOCKT                  => "LOCKT",
+        NFSPROC4_LOCKU                  => "LOCKU",
+        NFSPROC4_LOOKUP                 => "LOOKUP",
+        NFSPROC4_LOOKUPP                => "LOOKUPP",
+        NFSPROC4_NVERIFY                => "NVERIFY",
+        NFSPROC4_OPEN                   => "OPEN",
+        NFSPROC4_OPENATTR               => "OPENATTR",
+        NFSPROC4_OPEN_CONFIRM           => "OPEN_CONFIRM",
+        NFSPROC4_OPEN_DOWNGRADE         => "OPEN_DOWNGRADE",
+        NFSPROC4_PUTFH                  => "PUTFH",
+        NFSPROC4_PUTPUBFH               => "PUTPUBFH",
+        NFSPROC4_PUTROOTFH              => "PUTROOTFH",
+        NFSPROC4_READ                   => "READ",
+        NFSPROC4_READDIR                => "READDIR",
+        NFSPROC4_READLINK               => "READLINK",
+        NFSPROC4_REMOVE                 => "REMOVE",
+        NFSPROC4_RENAME                 => "RENAME",
+        NFSPROC4_RENEW                  => "RENEW",
+        NFSPROC4_RESTOREFH              => "RESTOREFH",
+        NFSPROC4_SAVEFH                 => "SAVEFH",
+        NFSPROC4_SECINFO                => "SECINFO",
+        NFSPROC4_SETATTR                => "SETATTR",
+        NFSPROC4_SETCLIENTID            => "SETCLIENTID",
+        NFSPROC4_SETCLIENTID_CONFIRM    => "SETCLIENTID_CONFIRM",
+        NFSPROC4_VERIFY                 => "VERIFY",
+        NFSPROC4_WRITE                  => "WRITE",
+        NFSPROC4_RELEASE_LOCKOWNER      => "RELEASE_LOCKOWNER",
+        NFSPROC4_ILLEGAL                => "ILLEGAL",
+        _ => {
+            return (procedure).to_string();
+        }
+    }.to_string()
+}
