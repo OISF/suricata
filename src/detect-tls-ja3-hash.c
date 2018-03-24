@@ -154,7 +154,14 @@ static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
         if (sm->type != DETECT_CONTENT)
             continue;
 
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "ja3_hash should not be used together with "
+                        "nocase, since the rule is automatically "
+                        "lowercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
 
         if (cd->content_len == 32)
             return TRUE;
