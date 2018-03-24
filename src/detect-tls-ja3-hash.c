@@ -64,6 +64,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *_f, const uint8_t _flow_flags,
        void *txv, const int list_id);
+static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
+       const char **sigerror);
 static int g_tls_ja3_hash_buffer_id = 0;
 
 /**
@@ -88,6 +90,9 @@ void DetectTlsJa3HashRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
     DetectBufferTypeSetDescriptionByName("ja3_hash", "TLS JA3 hash");
+
+    DetectBufferTypeRegisterValidateCallback("ja3_hash",
+            DetectTlsJa3HashValidateCallback);
 
     g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3_hash");
 }
@@ -138,6 +143,30 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     }
 
     return buffer;
+}
+
+static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
+                                              const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_ja3_hash_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->content_len == 32)
+            return TRUE;
+
+        *sigerror = "Invalid length of the specified JA3 hash (should "
+                    "be 32 characters long). This rule will therefore "
+                    "never match.";
+        SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 #ifndef HAVE_NSS
