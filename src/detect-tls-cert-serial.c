@@ -155,6 +155,13 @@ static _Bool DetectTlsSerialValidateCallback(const Signature *s,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
 
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "tls_cert_serial should not be used together "
+                        "with nocase, since the rule is automatically "
+                        "uppercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
+
         /* no need to worry about this if the content is short enough */
         if (cd->content_len <= 2)
             return TRUE;
