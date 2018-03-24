@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes};
+use nom::{rest, le_u8, le_u16, le_u32, le_u64, AsBytes, IResult};
 use smb::smb::*;
 
 #[derive(Debug,PartialEq)]
@@ -352,6 +352,7 @@ pub struct Smb2WriteRequestRecord<'a> {
     pub data: &'a[u8],
 }
 
+// can be called on incomplete records
 named!(pub parse_smb2_request_write<Smb2WriteRequestRecord>,
     do_parse!(
             skip1: take!(4)
@@ -362,7 +363,7 @@ named!(pub parse_smb2_request_write<Smb2WriteRequestRecord>,
         >>  remaining_bytes: le_u32
         >>  write_flags: le_u32
         >>  skip2: take!(4)
-        >>  data: rest
+        >>  data: apply!(parse_smb2_data, wr_len)
         >>  (Smb2WriteRequestRecord {
                 wr_len:wr_len,
                 wr_offset:wr_offset,
@@ -401,12 +402,31 @@ pub struct Smb2ReadResponseRecord<'a> {
     pub data: &'a[u8],
 }
 
+// parse read/write data. If all is available, 'take' it.
+// otherwise just return what we have. So this may return
+// partial data.
+fn parse_smb2_data<'a>(i: &'a[u8], len: u32)
+    -> IResult<&'a[u8], &'a[u8]>
+{
+    if len as usize > i.len() {
+        IResult::Done(&[], i)
+    } else {
+        do_parse!(i,
+                data: take!(len)
+            >> (data)
+        )
+    }
+}
+
+// can be called on incomplete records
 named!(pub parse_smb2_response_read<Smb2ReadResponseRecord>,
     do_parse!(
-            skip1: take!(4)
+            struct_size: le_u16
+        >>  data_offset: le_u16
         >>  rd_len: le_u32
-        >>  skip2: take!(8)
-        >>  data: rest
+        >>  rd_rem: le_u32
+        >>  _padding: take!(4)
+        >>  data: apply!(parse_smb2_data, rd_len)
         >>  (Smb2ReadResponseRecord {
                 len : rd_len,
                 data : data,
