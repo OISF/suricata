@@ -60,6 +60,8 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
+        const char **sigerror);
 static int g_tls_cert_fingerprint_buffer_id = 0;
 
 /**
@@ -87,6 +89,9 @@ void DetectTlsFingerprintRegister(void)
 
     DetectBufferTypeSetDescriptionByName("tls_cert_fingerprint",
             "TLS certificate fingerprint");
+
+    DetectBufferTypeRegisterValidateCallback("tls_cert_fingerprint",
+            DetectTlsFingerprintValidateCallback);
 
     g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls_cert_fingerprint");
 }
@@ -133,6 +138,47 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     }
 
     return buffer;
+}
+
+static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
+                                                  const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_cert_fingerprint_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->content_len != 59) {
+            *sigerror = "Invalid length of the specified fingerprint. "
+                        "This rule will therefore never match.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            return FALSE;
+        }
+
+        _Bool have_delimiters = FALSE;
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+        {
+            if (cd->content[u] == ':') {
+                have_delimiters = TRUE;
+                break;
+            }
+        }
+
+        if (have_delimiters == FALSE) {
+            *sigerror = "No colon delimiters ':' detected in content after "
+                        "tls_cert_fingerprint. This rule will therefore "
+                        "never match.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            return FALSE;
+        }
+
+    }
+
+    return TRUE;
 }
 
 #ifdef UNITTESTS
