@@ -887,7 +887,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                     None => {
                         SCLogDebug!("SMBv1 READ response: reply to unknown request: left {} {:?}",
                                 rd.len - rd.data.len() as u32, rd);
-                        state.skip_tc = rd.len - rd.data.len() as u32;
+                        state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
                         return;
                     },
                 };

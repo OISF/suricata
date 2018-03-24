@@ -698,8 +698,8 @@ pub struct SMBState<> {
 
     pub files: SMBFiles,
 
-    pub skip_ts: u32,
-    pub skip_tc: u32,
+    skip_ts: u32,
+    skip_tc: u32,
 
     pub file_ts_left : u32,
     pub file_tc_left : u32,
@@ -1104,6 +1104,16 @@ impl SMBState {
                 tx.request_done = true;
                 tx.response_done = true;
             }
+        }
+    }
+
+    pub fn set_skip(&mut self, direction: u8, rec_size: u32, data_size: u32)
+    {
+        let skip = if data_size >= rec_size { 0 } else { rec_size - data_size };
+        if direction == STREAM_TOSERVER {
+            self.skip_ts = skip;
+        } else {
+            self.skip_tc = skip;
         }
     }
 

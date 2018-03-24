@@ -130,8 +130,8 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
             let (offset, file_guid) = match state.ssn2vecoffset_map.remove(&guid_key) {
                 Some(o) => (o.offset, o.guid),
                 None => {
-                    SCLogDebug!("SMBv2 READ response: reply to unknown request");
-                    state.skip_tc = rd.len - rd.data.len() as u32;
+                    SCLogDebug!("SMBv2 READ response: reply to unknown request {:?}",rd);
+                    state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
                     return;
                 },
             };
@@ -166,7 +166,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     smb_read_dcerpc_record(state, vercmd, hdr, &file_guid, rd.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe");
-                    state.skip_tc = rd.len - rd.data.len() as u32;
+                    state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
                 } else {
                     let file_name = match state.guid2name_map.get(&file_guid) {
                         Some(n) => { n.to_vec() },
@@ -243,7 +243,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                     smb_write_dcerpc_record(state, vercmd, hdr, wr.data);
                 } else if is_pipe {
                     SCLogDebug!("non-DCERPC pipe: skip rest of the record");
-                    state.skip_ts = wr.wr_len - wr.data.len() as u32;
+                    state.set_skip(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32);
                 } else {
                     let (tx, files, flags) = state.new_file_tx(&file_guid, &file_name, STREAM_TOSERVER);
                     if let Some(SMBTransactionTypeData::FILE(ref mut tdf)) = tx.type_data {
