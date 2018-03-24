@@ -154,7 +154,7 @@ static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
         if (sm->type != DETECT_CONTENT)
             continue;
 
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
 
         if (cd->content_len != 59) {
             *sigerror = "Invalid length of the specified fingerprint. "
@@ -181,6 +181,12 @@ static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
             return FALSE;
         }
 
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "tls_cert_fingerprint should not be used together "
+                        "with nocase, since the rule is automatically "
+                        "lowercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
     }
 
     return TRUE;
