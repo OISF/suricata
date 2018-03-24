@@ -65,7 +65,7 @@ void SCHSRegisterTests(void);
 #define INIT_HASH_SIZE 65536
 
 /* Initial size of the global database hash (used for de-duplication). */
-#define INIT_DB_HASH_SIZE 1000
+#define INIT_DB_HASH_SIZE 1024
 
 /* Global prototype scratch, built incrementally as Hyperscan databases are
  * built and then cloned for each thread context. Access is serialised via

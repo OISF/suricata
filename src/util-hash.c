@@ -38,6 +38,10 @@ HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, vo
     if (size == 0) {
         goto error;
     }
+    if ((size & (size - 1)) != 0) {
+        //printf("ERROR: Size must be a power of 2\n"); 
+        goto error;
+    }
 
     if (Hash == NULL) {
         //printf("ERROR: HashTableInit no Hash function\n");
@@ -231,7 +235,7 @@ uint32_t HashTableGenericHash(HashTable *ht, void *data, uint16_t datalen)
      }
 
      hash *= datalen;
-     hash %= ht->array_size;
+     hash &= ht->array_size - 1;
      return hash;
 }
 
