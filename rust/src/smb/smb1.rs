@@ -856,9 +856,8 @@ pub fn smb1_write_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                     tx.vercmd.set_smb1_cmd(SMB1_COMMAND_WRITE_ANDX);
                 }
             }
-            state.file_ts_left = rd.len - rd.data.len() as u32;
-            state.file_ts_guid = file_fid.to_vec();
-            SCLogDebug!("SMBv1 WRITE RESPONSE: {} bytes left", state.file_tc_left);
+
+            state.set_file_left(STREAM_TOSERVER, rd.len, rd.data.len() as u32, file_fid.to_vec());
 
             if r.command == SMB1_COMMAND_WRITE_AND_CLOSE {
                 SCLogDebug!("closing FID {:?}", file_fid);
@@ -939,9 +938,7 @@ pub fn smb1_read_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
                     smb_read_dcerpc_record(state, vercmd, hdr, &pure_fid, &rd.data);
                 }
 
-                state.file_tc_left = rd.len - rd.data.len() as u32;
-                state.file_tc_guid = file_fid.to_vec();
-                SCLogDebug!("SMBv1 READ RESPONSE: {} bytes left", state.file_tc_left);
+                state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_fid.to_vec());
             }
             _ => {
                 events.push(SMBEvent::MalformedData);

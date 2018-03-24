@@ -186,9 +186,7 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                 }
             }
 
-            state.file_tc_left = rd.len - rd.data.len() as u32;
-            state.file_tc_guid = file_guid.to_vec();
-            SCLogDebug!("SMBv2 READ RESPONSE: {} bytes left", state.file_tc_left);
+            state.set_file_left(STREAM_TOCLIENT, rd.len, rd.data.len() as u32, file_guid.to_vec());
         }
         _ => {
             state.set_event(SMBEvent::MalformedData);
@@ -257,10 +255,7 @@ pub fn smb2_write_request_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
                             r.session_id, r.tree_id, 0); // TODO move into new_file_tx
                 }
             }
-            state.file_ts_left = wr.wr_len - wr.data.len() as u32;
-            state.file_ts_guid = file_guid.to_vec();
-            SCLogDebug!("SMBv2 WRITE REQUEST: {} bytes left", state.file_ts_left);
-
+            state.set_file_left(STREAM_TOSERVER, wr.wr_len, wr.data.len() as u32, file_guid.to_vec());
         },
         _ => {
             state.set_event(SMBEvent::MalformedData);
