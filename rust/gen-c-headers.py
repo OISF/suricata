@@ -84,6 +84,8 @@ type_map = {
     "TFTPState": "TFTPState",
     "SMBState": "SMBState",
     "SMBTransaction": "SMBTransaction",
+    "IKEV2State": "IKEV2State",
+    "IKEV2Transaction": "IKEV2Transaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",
