@@ -516,7 +516,7 @@ static int DetectTlsFingerprintTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_serial\"; "
+                              "(msg:\"Test tls_cert_fingerprint\"; "
                               "tls_cert_fingerprint; "
                               "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
                               "sid:1;)");
