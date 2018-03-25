@@ -239,7 +239,9 @@ static int DetectTlsFingerprintTest01(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
                                "(msg:\"Testing tls_cert_fingerprint\"; "
-                               "tls_cert_fingerprint; content:\"XX:XX:XX\"; sid:1;)");
+                               "tls_cert_fingerprint; "
+                               "content:\"11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00\"; "
+                               "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
