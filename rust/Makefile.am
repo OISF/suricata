@@ -25,10 +25,6 @@ if HAVE_LUA
 RUST_FEATURES +=	lua
 endif
 
-if HAVE_RUST_EXTERNAL
-RUST_FEATURES +=	experimental
-endif
-
 if DEBUG
 RUST_FEATURES +=	debug
 endif

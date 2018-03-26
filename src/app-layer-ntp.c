@@ -34,7 +34,7 @@
 
 #include "app-layer-ntp.h"
 
-#if defined(HAVE_RUST) && defined(HAVE_RUST_EXTERNAL)
+#if defined(HAVE_RUST)
 
 #include "rust-ntp-ntp-gen.h"
 

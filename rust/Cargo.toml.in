@@ -10,7 +10,6 @@ debug = true
 
 [features]
 lua = []
-experimental = ["ntp-parser"]
 strict = []
 debug = []
 
@@ -21,5 +20,5 @@ crc = "~1.7.0"
 der-parser = "0.5.2"
 kerberos-parser = "0.1.0"
 
-ntp-parser = { version = "^0", optional = true }
+ntp-parser = "^0"
 ipsec-parser = "~0.3.0"

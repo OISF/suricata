@@ -52,6 +52,5 @@ pub mod smb;
 
 pub mod ikev2;
 
-#[cfg(feature = "experimental")]
 pub mod ntp;
 pub mod tftp;

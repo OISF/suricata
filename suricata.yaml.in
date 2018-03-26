@@ -1013,9 +1013,8 @@ app-layer:
         sp: 44818
 
     # Note: parser depends on experimental Rust support
-    # with --enable-rust-experimental passed to configure
     ntp:
-      enabled: @rust_config_exp_enabled@
+      enabled: @rust_config_enabled@
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
