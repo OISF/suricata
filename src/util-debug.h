@@ -45,6 +45,8 @@
 
 /**
  * \brief The various log levels
+ * NOTE: when adding new level, don't forget to update SCLogMapLogLevelToSyslogLevel()
+  *      or it may result in logging to syslog with LOG_EMERG priority.
  */
 typedef enum {
     SC_LOG_NOTSET = -1,
