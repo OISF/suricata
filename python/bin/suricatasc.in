@@ -14,10 +14,28 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-
 from __future__ import print_function
+
 import sys
+import os
 import argparse
+
+# Find the Python libdir.
+exec_dir = os.path.dirname(__file__)
+if os.path.exists(os.path.join(exec_dir, "..", "suricata", "ctl", "main.py")):
+    # Looks like we're running from the development directory.
+    sys.path.insert(0, ".")
+else:
+    # This is to find the suricata module in the case of being installed
+    # to a non-standard prefix.
+    version_info = sys.version_info
+    pyver = "%d.%d" % (version_info.major, version_info.minor)
+    path = os.path.join(
+        exec_dir, "..", "lib", "python%s" % (pyver), "site-packages",
+        "suricata")
+    if os.path.exists(path):
+        sys.path.insert(0, os.path.dirname(path))
+
 from suricatasc import *
 
 parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
