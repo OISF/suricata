@@ -1,6 +1,7 @@
 EXTRA_DIST =	setup.py \
 		bin \
-		suricata
+		suricata \
+		suricatasc
 
 if HAVE_PYTHON
 all-local:
@@ -14,7 +15,9 @@ install-exec-local:
 
 uninstall-local:
 	rm -f $(DESTDIR)$(bindir)/suricatactl
+	rm -f $(DESTDIR)$(bindir)/suricatasc
 	rm -rf $(DESTDIR)$(prefix)/lib*/python*/site-packages/suricata
+	rm -rf $(DESTDIR)$(prefix)/lib*/python*/site-packages/suricatasc
 	rm -rf $(DESTDIR)$(prefix)/lib*/python*/site-packages/suricata-[0-9]*.egg-info
 
 clean-local:
