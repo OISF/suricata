@@ -29,6 +29,7 @@ setup(
     packages=[
         "suricata",
         "suricata.ctl",
+        "suricata.sc",
         "suricatasc",
     ],
     scripts=[
