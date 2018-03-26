@@ -21,12 +21,29 @@ if version is None:
     
 setup(
     name="suricata",
+    description="Suricata control tools",
     version=version,
+    author='OISF Developers, Eric Leblond',
+    author_email='oisf-devel@lists.openinfosecfoundation.org, eric@regit.org',
+    url='https://www.suricata-ids.org/',
     packages=[
         "suricata",
         "suricata.ctl",
+        "suricatasc",
     ],
     scripts=[
         "bin/suricatactl",
-    ]
+        "bin/suricatasc",
+    ],
+    provides=['suricatactl', 'suricatasc'],
+    requires=['argparse','simplejson'],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Environment :: Console',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'Operating System :: POSIX',
+        'Programming Language :: Python',
+        'Topic :: System :: Systems Administration',
+    ],
 )

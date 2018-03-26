@@ -1,3 +1,7 @@
 *.pyc
 .cache
 build
+lib/
+scripts-*/
+bin/suricatasc
+!bin/suricatasc.in
