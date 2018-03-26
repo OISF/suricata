@@ -36,7 +36,7 @@ else:
     if os.path.exists(path):
         sys.path.insert(0, os.path.dirname(path))
 
-from suricatasc import *
+from suricata.sc import *
 
 parser = argparse.ArgumentParser(prog='suricatasc', description='Client for Suricata unix socket')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output (including JSON dump)')

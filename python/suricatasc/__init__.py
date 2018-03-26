@@ -1,2 +1,1 @@
-
-from suricatasc import *
+from suricata.sc import *
