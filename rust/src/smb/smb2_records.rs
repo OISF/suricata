@@ -409,12 +409,9 @@ fn parse_smb2_data<'a>(i: &'a[u8], len: u32)
     -> IResult<&'a[u8], &'a[u8]>
 {
     if len as usize > i.len() {
-        IResult::Done(&[], i)
+        rest(i)
     } else {
-        do_parse!(i,
-                data: take!(len)
-            >> (data)
-        )
+        take!(i, len)
     }
 }
 

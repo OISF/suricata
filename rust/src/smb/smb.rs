@@ -1109,7 +1109,7 @@ impl SMBState {
 
     pub fn set_file_left(&mut self, direction: u8, rec_size: u32, data_size: u32, fuid: Vec<u8>)
     {
-        let left = if data_size >= rec_size { 0 } else { rec_size - data_size };
+        let left = rec_size.saturating_sub(data_size);
         if direction == STREAM_TOSERVER {
             self.file_ts_left = left;
             self.file_ts_guid = fuid;
@@ -1121,7 +1121,7 @@ impl SMBState {
 
     pub fn set_skip(&mut self, direction: u8, rec_size: u32, data_size: u32)
     {
-        let skip = if data_size >= rec_size { 0 } else { rec_size - data_size };
+        let skip = rec_size.saturating_sub(data_size);
         if direction == STREAM_TOSERVER {
             self.skip_ts = skip;
         } else {
