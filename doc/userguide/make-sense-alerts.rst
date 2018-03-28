@@ -59,8 +59,8 @@ signature support lists helps a lot then.
 For the Emerging Threats list this is:
 http://lists.emergingthreats.net/mailman/listinfo/emerging-sigs
 
-For the VRT ruleset:
-https://lists.sourceforge.net/lists/listinfo/snort-sigs
+For the TALOS ruleset:
+https://lists.snort.org/mailman/listinfo/snort-sigs
 
 In many cases, looking at just the alert and the packet that triggered
 it won't be enough to be conclusive. When running an IDS engine like
