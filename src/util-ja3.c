@@ -50,15 +50,17 @@ JA3Buffer *Ja3BufferInit(void)
  *
  * \param buffer The buffer to free.
  */
-void Ja3BufferFree(JA3Buffer *buffer)
+void Ja3BufferFree(JA3Buffer **buffer)
 {
-    DEBUG_VALIDATE_BUG_ON(buffer == NULL);
+    DEBUG_VALIDATE_BUG_ON(*buffer == NULL);
 
-    if (buffer->data != NULL) {
-        SCFree(buffer->data);
+    if ((*buffer)->data != NULL) {
+        SCFree((*buffer)->data);
+        (*buffer)->data = NULL;
     }
 
-    SCFree(buffer);
+    SCFree(*buffer);
+    *buffer = NULL;
 }
 
 /**
@@ -123,8 +125,8 @@ int Ja3BufferAppendBuffer(JA3Buffer *buffer1, JA3Buffer *buffer2)
 
     int rc = Ja3BufferResizeIfFull(buffer1, buffer2->used);
     if (rc != 0) {
-        Ja3BufferFree(buffer1);
-        Ja3BufferFree(buffer2);
+        Ja3BufferFree(&buffer1);
+        Ja3BufferFree(&buffer2);
         return -1;
     }
 
@@ -136,7 +138,7 @@ int Ja3BufferAppendBuffer(JA3Buffer *buffer1, JA3Buffer *buffer2)
                                   buffer1->used, ",%s", buffer2->data);
     }
 
-    Ja3BufferFree(buffer2);
+    Ja3BufferFree(&buffer2);
 
     return 0;
 }
@@ -179,7 +181,7 @@ int Ja3BufferAddValue(JA3Buffer *buffer, uint32_t value)
         if (buffer->data == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC,
                        "Error allocating memory for JA3 data");
-            Ja3BufferFree(buffer);
+            Ja3BufferFree(&buffer);
             return -1;
         }
         buffer->size = JA3_BUFFER_INITIAL_SIZE;
@@ -189,7 +191,7 @@ int Ja3BufferAddValue(JA3Buffer *buffer, uint32_t value)
 
     int rc = Ja3BufferResizeIfFull(buffer, value_len);
     if (rc != 0) {
-        Ja3BufferFree(buffer);
+        Ja3BufferFree(&buffer);
         return -1;
     }
 
