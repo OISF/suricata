@@ -143,7 +143,7 @@ SslConfig ssl_config;
 
 #define SHA1_STRING_LENGTH             60
 
-#define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
+#define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) > (uint64_t)(input_len)) ?  0 : 1
 
 static void SSLParserReset(SSLState *ssl_state)
 {
