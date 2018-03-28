@@ -660,7 +660,6 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
                 rc = Ja3BufferAddValue(ja3_cipher_suites, cipher_suite);
                 if (rc != 0) {
-                    Ja3BufferFree(&ja3_cipher_suites);
                     return -1;
                 }
             }
