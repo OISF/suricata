@@ -436,6 +436,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
         return 0;
 
     uint32_t processed_len = 0;
+    /* coverity[tainted_data] */
     while (processed_len < cert_chain_len)
     {
         if (!(HAS_SPACE(3)))
@@ -452,6 +453,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
 
         /* only store fields from the first certificate in the chain */
         if (processed_len == 0) {
+            /* coverity[tainted_data] */
             cert = DecodeDer(input, cert_len, &err);
             if (cert == NULL) {
                 TlsDecodeHSCertificateErrSetEvent(ssl_state, err);
@@ -644,6 +646,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             return -1;
 
         uint16_t processed_len = 0;
+        /* coverity[tainted_data] */
         while (processed_len < cipher_suites_length)
         {
             if (!(HAS_SPACE(2))) {
@@ -808,6 +811,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
             ssl_config.enable_ja3) {
         uint16_t ec_processed_len = 0;
+        /* coverity[tainted_data] */
         while (ec_processed_len < elliptic_curves_len)
         {
             uint16_t elliptic_curve = *input << 8 | *(input + 1);
@@ -857,6 +861,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
             ssl_config.enable_ja3) {
         uint8_t ec_pf_processed_len = 0;
+        /* coverity[tainted_data] */
         while (ec_pf_processed_len < ec_pf_len)
         {
             uint8_t elliptic_curve_pf = *input;
@@ -922,6 +927,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         goto invalid_length;
 
     uint16_t processed_len = 0;
+    /* coverity[tainted_data] */
     while (processed_len < extensions_len)
     {
         if (!(HAS_SPACE(2)))
@@ -944,6 +950,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         switch (ext_type) {
             case SSL_EXTENSION_SNI:
             {
+                /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionSni(ssl_state, input,
                                                    input_len - parsed);
                 if (ret < 0)
@@ -956,6 +963,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
             case SSL_EXTENSION_ELLIPTIC_CURVES:
             {
+                /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurves(ssl_state, input,
                                                               input_len - parsed,
                                                               ja3_elliptic_curves);
@@ -969,6 +977,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 
             case SSL_EXTENSION_EC_POINT_FORMATS:
             {
+                /* coverity[tainted_data] */
                 ret = TLSDecodeHSHelloExtensionEllipticCurvePF(ssl_state, input,
                                                                input_len - parsed,
                                                                ja3_elliptic_curves_pf);
