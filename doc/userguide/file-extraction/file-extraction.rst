@@ -14,8 +14,9 @@ Supported protocols are:
 
 - HTTP
 - SMTP
-- NFS
 - FTP
+- NFS (with RUST activated)
+- SMB (with RUST activated)
 
 Settings
 ~~~~~~~~
@@ -142,7 +143,7 @@ Without rules in place no extraction will happen. The simplest rule would be:
 
 This will simply store all files to disk.
 
-Want to store all files with a pdf extension?
+Want to store all files with a pdf extension ?
 
 
 ::
