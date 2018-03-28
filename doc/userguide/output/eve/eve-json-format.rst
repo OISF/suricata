@@ -129,7 +129,7 @@ In addition to these fields, if the extended logging is enabled in the suricata.
 * "http_method": The HTTP method (ex: GET, POST, HEAD)
 * "http_refer": The referer for this action
 
-In addition to the extended logging fields one can also choose to enable/add from 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
+In addition to the extended logging fields one can also choose to enable/add more than 50 additional custom logging HTTP fields enabled in the suricata.yaml file. The additional fields can be enabled as following:
 
 
 ::
@@ -381,8 +381,8 @@ If extended logging is enabled the following fields are also included:
 * "fingerprint": The (SHA1) fingerprint of the TLS certificate
 * "sni": The Server Name Indication (SNI) extension sent by the client
 * "version": The SSL/TLS version used
-* "notbefore": The NotBefore field from the TLS certificate
-* "notafter": The NotAfter field from the TLS certificate
+* "not_before": The NotBefore field from the TLS certificate
+* "not_after": The NotAfter field from the TLS certificate
 * "ja3": The JA3 fingerprint consisting of both a JA3 hash and a JA3 string
 
 JA3 must be enabled in the Suricata config file (set 'app-layer.protocols.tls.ja3-fingerprints' to 'yes').
