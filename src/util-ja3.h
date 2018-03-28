@@ -33,7 +33,7 @@ typedef struct JA3Buffer_ {
 } JA3Buffer;
 
 JA3Buffer *Ja3BufferInit(void);
-void Ja3BufferFree(JA3Buffer *);
+void Ja3BufferFree(JA3Buffer **);
 int Ja3BufferAppendBuffer(JA3Buffer *, JA3Buffer *);
 int Ja3BufferAddValue(JA3Buffer *, uint32_t);
 char *Ja3GenerateHash(JA3Buffer *);

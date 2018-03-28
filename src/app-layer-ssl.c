@@ -650,7 +650,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
         while (processed_len < cipher_suites_length)
         {
             if (!(HAS_SPACE(2))) {
-                Ja3BufferFree(ja3_cipher_suites);
+                Ja3BufferFree(&ja3_cipher_suites);
                 goto invalid_length;
             }
 
@@ -660,7 +660,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
                 rc = Ja3BufferAddValue(ja3_cipher_suites, cipher_suite);
                 if (rc != 0) {
-                    Ja3BufferFree(ja3_cipher_suites);
+                    Ja3BufferFree(&ja3_cipher_suites);
                     return -1;
                 }
             }
@@ -1034,11 +1034,11 @@ invalid_length:
 
 error:
     if (ja3_extensions != NULL)
-        Ja3BufferFree(ja3_extensions);
+        Ja3BufferFree(&ja3_extensions);
     if (ja3_elliptic_curves != NULL)
-        Ja3BufferFree(ja3_elliptic_curves);
+        Ja3BufferFree(&ja3_elliptic_curves);
     if (ja3_elliptic_curves_pf != NULL)
-        Ja3BufferFree(ja3_elliptic_curves_pf);
+        Ja3BufferFree(&ja3_elliptic_curves_pf);
 
     return -1;
 }
@@ -2299,7 +2299,7 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.sni);
 
     if (ssl_state->ja3_str)
-        Ja3BufferFree(ssl_state->ja3_str);
+        Ja3BufferFree(&ssl_state->ja3_str);
     if (ssl_state->ja3_hash)
         SCFree(ssl_state->ja3_hash);
 
