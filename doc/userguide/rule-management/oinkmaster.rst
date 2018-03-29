@@ -1,6 +1,8 @@
 Rule Management with Oinkmaster
 ===============================
 
+.. note:: ``suricata-update`` is the official and recommended way to
+          update and manage rules and rulesets. See :doc:`suricata-update`
 
 It is possible to download and install rules manually, but there is a
 much easier and quicker way to do so. There are special programs which

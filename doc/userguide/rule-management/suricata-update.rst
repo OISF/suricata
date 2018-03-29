@@ -1,20 +1,16 @@
 Rule Management with Suricata-Update
 ====================================
 
-.. note:: ``suricata-update`` is in active development and is not yet
-          considered 'production quality'. Proceed with care.
-
 While it is possible to download and install rules manually, it is
 recommended to use a management tool for this. Suricata-Update is the
 official way to update and manage rules for Suricata.
 
+Suricata-update is bundled with Suricata and is normally installed
+with it. For instructions on installing manually, see http://suricata-update.readthedocs.io/en/latest/quickstart.html#install-suricata-update
 
-To install suricata-update
-
-::
-
-  sudo apt install python-pip python-yaml
-  sudo pip install --pre --upgrade suricata-update
+.. note:: ``suricata-update`` is bundled with Suricata version 4.1 and
+          later. It can be used with older versions as well. It will
+          have to be installed separately in that case.
 
 To download the Emerging Threats Open ruleset, it is enough to simply run:
 
@@ -68,6 +64,9 @@ Then have a look at what is available:
 This will give a result similar to
 
 .. image:: suricata-update/suricata-update.png
+
+Each of the rulesets has a name that has a 'vendor' prefix, followed by a
+set name. For example, OISF's traffic id ruleset is called 'oisf/trafficid'.
 
 To enable 'oisf/trafficid', enter:
 
