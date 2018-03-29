@@ -1407,8 +1407,7 @@ void SCLogLoadConfig(int daemon, int verbose)
                     facility = SC_LOG_DEF_SYSLOG_FACILITY;
                 }
             }
-            printf("Initialization syslog logging with format \"%s\".\n",
-                format);
+            SCLogDebug("Initializing syslog logging with format \"%s\"", format);
             have_logging = 1;
             op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
         }
