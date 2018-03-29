@@ -106,39 +106,40 @@ static int Ja3BufferResizeIfFull(JA3Buffer *buffer, uint32_t len)
  * \retval 0 on success.
  * \retval -1 on failure.
  */
-int Ja3BufferAppendBuffer(JA3Buffer *buffer1, JA3Buffer *buffer2)
+int Ja3BufferAppendBuffer(JA3Buffer **buffer1, JA3Buffer **buffer2)
 {
-    if (buffer1 == NULL || buffer2 == NULL) {
+    if (*buffer1 == NULL || *buffer2 == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffers should not be NULL");
         return -1;
     }
 
     /* If buffer1 contains no data, then we just copy the second buffer
        instead of appending its data. */
-    if (buffer1->data == NULL) {
-        buffer1->data = buffer2->data;
-        buffer1->used = buffer2->used;
-        buffer1->size = buffer2->size;
-        SCFree(buffer2);
+    if ((*buffer1)->data == NULL) {
+        (*buffer1)->data = (*buffer2)->data;
+        (*buffer1)->used = (*buffer2)->used;
+        (*buffer1)->size = (*buffer2)->size;
+        SCFree(*buffer2);
         return 0;
     }
 
-    int rc = Ja3BufferResizeIfFull(buffer1, buffer2->used);
+    int rc = Ja3BufferResizeIfFull(*buffer1, (*buffer2)->used);
     if (rc != 0) {
-        Ja3BufferFree(&buffer1);
-        Ja3BufferFree(&buffer2);
+        Ja3BufferFree(buffer1);
+        Ja3BufferFree(buffer2);
         return -1;
     }
 
-    if (buffer2->used == 0) {
-        buffer1->used += snprintf(buffer1->data + buffer1->used, buffer1->size -
-                                  buffer1->used, ",");
+    if ((*buffer2)->used == 0) {
+        (*buffer1)->used += snprintf((*buffer1)->data + (*buffer1)->used,
+                                     (*buffer1)->size - (*buffer1)->used, ",");
     } else {
-        buffer1->used += snprintf(buffer1->data + buffer1->used, buffer1->size -
-                                  buffer1->used, ",%s", buffer2->data);
+        (*buffer1)->used += snprintf((*buffer1)->data + (*buffer1)->used,
+                                     (*buffer1)->size - (*buffer1)->used, ",%s",
+                                     (*buffer2)->data);
     }
 
-    Ja3BufferFree(&buffer2);
+    Ja3BufferFree(buffer2);
 
     return 0;
 }
@@ -169,38 +170,40 @@ static uint32_t NumberOfDigits(uint32_t num)
  * \retval 0 on success.
  * \retval -1 on failure.
  */
-int Ja3BufferAddValue(JA3Buffer *buffer, uint32_t value)
+int Ja3BufferAddValue(JA3Buffer **buffer, uint32_t value)
 {
-    if (buffer == NULL) {
+    if (*buffer == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Buffer should not be NULL");
         return -1;
     }
 
-    if (buffer->data == NULL) {
-        buffer->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE * sizeof(char));
-        if (buffer->data == NULL) {
+    if ((*buffer)->data == NULL) {
+        (*buffer)->data = SCMalloc(JA3_BUFFER_INITIAL_SIZE * sizeof(char));
+        if ((*buffer)->data == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC,
                        "Error allocating memory for JA3 data");
-            Ja3BufferFree(&buffer);
+            Ja3BufferFree(buffer);
             return -1;
         }
-        buffer->size = JA3_BUFFER_INITIAL_SIZE;
+        (*buffer)->size = JA3_BUFFER_INITIAL_SIZE;
     }
 
     uint32_t value_len = NumberOfDigits(value);
 
-    int rc = Ja3BufferResizeIfFull(buffer, value_len);
+    int rc = Ja3BufferResizeIfFull(*buffer, value_len);
     if (rc != 0) {
-        Ja3BufferFree(&buffer);
+        Ja3BufferFree(buffer);
         return -1;
     }
 
-    if (buffer->used == 0) {
-        buffer->used += snprintf(buffer->data, buffer->size, "%d", value);
+    if ((*buffer)->used == 0) {
+        (*buffer)->used += snprintf((*buffer)->data, (*buffer)->size, "%d",
+                                    value);
     }
     else {
-        buffer->used += snprintf(buffer->data + buffer->used, buffer->size -
-                                 buffer->used, "-%d", value);
+        (*buffer)->used += snprintf((*buffer)->data + (*buffer)->used,
+                                    (*buffer)->size - (*buffer)->used, "-%d",
+                                    value);
     }
 
     return 0;
