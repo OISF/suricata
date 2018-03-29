@@ -54,24 +54,24 @@ search engine.
 
 It's not always straight forward and sometimes not all of that
 information is available publicly. Usually asking about it on the
-signature support lists helps a lot then.
+signature support channel helps a lot then.
 
-For the Emerging Threats list this is:
-http://lists.emergingthreats.net/mailman/listinfo/emerging-sigs
-
-For the VRT ruleset:
-https://lists.sourceforge.net/lists/listinfo/snort-sigs
+In :doc:`../rule-management/suricata-update` more information on the rule
+sources and their documentation and support methods can be found.
 
 In many cases, looking at just the alert and the packet that triggered
-it won't be enough to be conclusive. When running an IDS engine like
-Suricata, it's always recommended to combine it with full packet
-capturing. Using tools like Sguil or Snorby, the full TCP session or
-UDP flow can be inspected.
+it won't be enough to be conclusive. When using the default Eve settings
+a lot of metadata will be added to the alert.
 
 For example, if a rule fired that indicates your web application is
-attacked, looking at the full TCP session might reveal that the web
+attacked, looking at the metadata might reveal that the web
 application replied with 404 not found. This will usually mean the
 attack failed. Usually, not always.
+
+Not every protocol leads to metadata generation, so when running an
+IDS engine like Suricata, it's often recommended to combine it with
+full packet capture. Using tools like Evebox, Sguil or Snorby, the
+full TCP session or UDP flow can be inspected.
 
 Obviously there is a lot more to Incidence Response, but this should
 get you started.
