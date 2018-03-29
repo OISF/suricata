@@ -456,3 +456,158 @@ Example of TFTP logging:
       "file": "rfc1350.txt",
       "mode": "octet"
    }
+
+
+Event type: SMB
+---------------
+
+SMB Fields
+~~~~~~~~~~
+
+* "id" (integer): internal transaction id
+* "dialect" (string): the negotiated protocol dialect, or "unknown" if missing
+* "command" (string): command name. E.g. SMB2_COMMAND_CREATE or SMB1_COMMAND_WRITE_ANDX
+* "status" (string): status string. Can be both NT_STATUS or DOS_ERR and other variants
+* "status_code" (string): status code as hex string
+* "session_id" (integer): SMB2+ session_id. SMB1 user id.
+* "tree_id" (integer): Tree ID
+* "filename" (string): filename for CREATE and other commands.
+* "disposition" (string): requested disposition. E.g. FILE_OPEN, FILE_CREATE and FILE_OVERWRITE. See https://msdn.microsoft.com/en-us/library/ee442175.aspx#Appendix_A_Target_119
+* "access" (string): indication of how the file was opened. "normal" or "delete on close" (field is subject to change)
+* "created", "accessed", "modified", "changed" (interger): timestamps in seconds since unix epoch
+* "size" (integer): size of the requested file
+* "fuid" (string): SMB2+ file GUID. SMB1 FID as hex.
+* "share" (string): share name.
+* "share_type" (string): FILE, PIPE, PRINT or unknown.
+
+Examples of SMB logging:
+
+.. code-block:: json
+
+    "smb": {
+      "id": 1,
+      "dialect": "unknown",
+      "command": "SMB2_COMMAND_CREATE",
+      "status": "STATUS_SUCCESS",
+      "status_code": "0x0",
+      "session_id": 4398046511201,
+      "tree_id": 1,
+      "filename": "atsvc",
+      "disposition": "FILE_OPEN",
+      "access": "normal",
+      "created": 0,
+      "accessed": 0,
+      "modified": 0,
+      "changed": 0,
+      "size": 0,
+      "fuid": "0000004d-0000-0000-0005-0000ffffffff"
+    }
+
+.. code-block:: json
+
+  "smb": {
+    "id": 15,
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_CLOSE",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 4398046511121,
+    "tree_id": 1,
+  }
+
+.. code-block:: json
+
+  "smb": {
+    "id": 3,
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_TREE_CONNECT",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 4398046511121,
+    "tree_id": 1,
+    "share": "\\\\admin-pc\\c$",
+    "share_type": "FILE"
+  }
+
+DCERPC fields
+~~~~~~~~~~~~~
+
+* "request" (string): command. E.g. REQUEST, BIND.
+* "response" (string): reply. E.g. RESPONSE, BINDACK or FAULT.
+* "opnum" (integer): the opnum
+* "call_id" (integer): the call id
+* "frag_cnt" (integer): the number of fragments for the stub data
+* "stub_data_size": total stub data size
+* "interfaces" (array): list of interfaces
+* "interfaces.uuid" (string): string representation of the UUID
+* "interfaces.version" (string): interface version
+* "interfaces.ack_result" (integer): ack result
+* "interfaces.ack_reason" (integer): ack reason
+
+
+.. code-block:: json
+
+  "smb": {
+    "id": 4,
+    "dialect": "unknown",
+    "command": "SMB2_COMMAND_IOCTL",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 4398046511201,
+    "tree_id": 0,
+    "request_done": true,
+    "response_done": true,
+    "dcerpc": {
+      "request": "REQUEST",
+      "response": "RESPONSE",
+      "opnum": 0,
+      "req": {
+        "frag_cnt": 1,
+        "stub_data_size": 136
+      },
+      "res": {
+        "frag_cnt": 1,
+        "stub_data_size": 8
+      },
+      "call_id": 2
+    }
+  }
+
+
+.. code-block:: json
+
+  "smb": {
+    "id": 53,
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_WRITE",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 35184439197745,
+    "tree_id": 1,
+    "request_done": true,
+    "response_done": true,
+    "dcerpc": {
+      "request": "BIND",
+      "response": "BINDACK",
+      "interfaces": [
+        {
+          "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "version": "1.0",
+          "ack_result": 2,
+          "ack_reason": 0
+        },
+        {
+          "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "version": "1.0",
+          "ack_result": 0,
+          "ack_reason": 0
+        },
+        {
+          "uuid": "12345778-1234-abcd-ef00-0123456789ac",
+          "version": "1.0",
+          "ack_result": 3,
+          "ack_reason": 0
+        }
+      ],
+      "call_id": 2
+    }
