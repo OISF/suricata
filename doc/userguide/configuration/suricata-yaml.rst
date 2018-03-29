@@ -237,7 +237,7 @@ There are several types of output. The general structure is:
 ::
 
   outputs:
-   -fast:
+    - fast:
       enabled: yes
       filename: fast.log
       append: yes/no
