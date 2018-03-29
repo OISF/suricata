@@ -1447,6 +1447,29 @@ use of libhtp.
        # Accepted values - bestfit, status_400 and status_404.
        #set-path-unicode-mapping: bestfit
 
+Configure SMB (Rust)
+~~~~~~~~~~~~~~~~~~~~
+
+.. note:: for full SMB support compile Suricata with Rust support
+
+The SMB parser will parse version 1, 2 and 3 of the SMB protocol over TCP.
+
+To enable the parser add the following to the ``app-layer`` section of the YAML.
+
+::
+
+    smb:
+      enabled: yes
+      detection-ports:
+        dp: 139, 445
+
+The parser uses pattern based protocol detection and will fallback to ``probing parsers``
+if the pattern based detection fails. As usual, the pattern based detection is port
+independent. The ``probing parsers`` will only run on the ``detection-ports``.
+
+SMB is commonly used to transfer the DCERPC protocol. This traffic is also handled by
+this parser.
+
 Engine output
 -------------
 
