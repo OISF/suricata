@@ -115,7 +115,7 @@ Syntax:
 ::
 
   suppress gen_id <gid>, sig_id <sid>
-  suppress gen_id <gid>, sig_id <sid>, track <by_src|by_dst>, ip <ip|subnet>
+  suppress gen_id <gid>, sig_id <sid>, track <by_src|by_dst|by_either>, ip <ip|subnet|addressvar>
 
 Examples:
 
@@ -131,6 +131,11 @@ Other possibilities/examples::
   suppress gen_id 1, sig_id 2003614, track by_src, ip 217.110.97.128/25
   suppress gen_id 1, sig_id 2003614, track by_src, ip [192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]
   suppress gen_id 1, sig_id 2003614, track by_src, ip $HOME_NET
+  suppress gen_id 1, sig_id 2003614, track by_either, ip 217.110.97.128/25
+
+In the last example above, the ``by_either`` tracking means that if either
+the ``source ip`` or ``destination ip`` matches ``217.110.97.128/25`` the
+rule with sid 2003614 is suppressed.
 
 .. _global-thresholds-vs-rule-thresholds:
 
