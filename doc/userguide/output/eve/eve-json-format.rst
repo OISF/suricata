@@ -479,10 +479,17 @@ SMB Fields
 * "fuid" (string): SMB2+ file GUID. SMB1 FID as hex.
 * "share" (string): share name.
 * "share_type" (string): FILE, PIPE, PRINT or unknown.
+* "client_dialects" (array of strings): list of SMB dialects the client speaks.
+* "client_guid" (string): client GUID
+* "server_guid" (string): server GUID
+* "request.native_os" (string): SMB1 native OS string"
+* "request.native_lm" (string): SMB1 native Lan Manager string"
+* "response.native_os" (string): SMB1 native OS string"
+* "response.native_lm" (string): SMB1 native Lan Manager string"
 
 Examples of SMB logging:
 
-::
+Pipe open::
 
     "smb": {
       "id": 1,
@@ -503,7 +510,7 @@ Examples of SMB logging:
       "fuid": "0000004d-0000-0000-0005-0000ffffffff"
     }
 
-::
+File/pipe close::
 
   "smb": {
     "id": 15,
@@ -515,7 +522,7 @@ Examples of SMB logging:
     "tree_id": 1,
   }
 
-::
+Tree connect (share open)::
 
   "smb": {
     "id": 3,
@@ -528,6 +535,55 @@ Examples of SMB logging:
     "share": "\\\\admin-pc\\c$",
     "share_type": "FILE"
   }
+
+Dialect negotiation from SMB1 to SMB2 dialect 2.10::
+
+  "smb": {
+    "id": 1,
+    "dialect": "2.??",
+    "command": "SMB1_COMMAND_NEGOTIATE_PROTOCOL",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 0,
+    "tree_id": 0,
+    "client_dialects": [
+      "PC NETWORK PROGRAM 1.0",
+      "LANMAN1.0",
+      "Windows for Workgroups 3.1a",
+      "LM1.2X002",
+      "LANMAN2.1",
+      "NT LM 0.12",
+      "SMB 2.002",
+      "SMB 2.???"
+    ],
+    "server_guid": "aec6e793-2b11-4019-2d95-55453a0ad2f1"
+  }
+  "smb": {
+    "id": 2,
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_NEGOTIATE_PROTOCOL",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 0,
+    "tree_id": 0,
+    "client_dialects": [
+      "2.02",
+      "2.10"
+    ],
+    "client_guid": "601985d2-aad9-11e7-8494-00088bb57f27",
+    "server_guid": "aec6e793-2b11-4019-2d95-55453a0ad2f1"
+  }
+
+SMB1 partial SMB1_COMMAND_SESSION_SETUP_ANDX::
+
+    "request": {
+      "native_os": "Unix",
+      "native_lm": "Samba 3.9.0-SVN-build-11572"
+    },
+    "response": {
+      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
+      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
+    }
 
 DCERPC fields
 ~~~~~~~~~~~~~
@@ -545,7 +601,7 @@ DCERPC fields
 * "interfaces.ack_reason" (integer): ack reason
 
 
-::
+DCERPC REQUEST/RESPONSE::
 
   "smb": {
     "id": 4,
@@ -555,8 +611,6 @@ DCERPC fields
     "status_code": "0x0",
     "session_id": 4398046511201,
     "tree_id": 0,
-    "request_done": true,
-    "response_done": true,
     "dcerpc": {
       "request": "REQUEST",
       "response": "RESPONSE",
@@ -573,7 +627,7 @@ DCERPC fields
     }
   }
 
-::
+DCERPC BIND/BINDACK::
 
   "smb": {
     "id": 53,
@@ -583,8 +637,6 @@ DCERPC fields
     "status_code": "0x0",
     "session_id": 35184439197745,
     "tree_id": 1,
-    "request_done": true,
-    "response_done": true,
     "dcerpc": {
       "request": "BIND",
       "response": "BINDACK",
@@ -610,3 +662,67 @@ DCERPC fields
       ],
       "call_id": 2
     }
+
+NTLMSSP fields
+~~~~~~~~~~~~~~
+
+* "domain" (string): the Windows domain.
+* "user" (string): the user
+* "host" (string) the host
+
+Example::
+
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU"
+    }
+
+More complete example::
+
+  "smb": {
+    "id": 3,
+    "dialect": "NT LM 0.12",
+    "command": "SMB1_COMMAND_SESSION_SETUP_ANDX",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 2048,
+    "tree_id": 0,
+    "ntlmssp": {
+      "domain": "VNET3",
+      "user": "administrator",
+      "host": "BLU"
+    },
+    "request": {
+      "native_os": "Unix",
+      "native_lm": "Samba 3.9.0-SVN-build-11572"
+    },
+    "response": {
+      "native_os": "Windows (TM) Code Name \"Longhorn\" Ultimate 5231",
+      "native_lm": "Windows (TM) Code Name \"Longhorn\" Ultimate 6.0"
+    }
+  }
+
+Kerberos fields
+~~~~~~~~~~~~~~~
+
+* "kerberos.realm" (string): the Kerberos Realm.
+* "kerberos.snames (array of strings): snames.
+
+Example::
+
+  "smb": {
+    "dialect": "2.10",
+    "command": "SMB2_COMMAND_SESSION_SETUP",
+    "status": "STATUS_SUCCESS",
+    "status_code": "0x0",
+    "session_id": 35184439197745,
+    "tree_id": 0,
+    "kerberos": {
+      "realm": "CONTOSO.LOCAL",
+      "snames": [
+        "cifs",
+        "DC1.contoso.local"
+      ]
+    }
+  }
