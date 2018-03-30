@@ -32,6 +32,7 @@
 #include "threads.h"
 #include "pkt-var.h"
 #include "detect-pktvar.h"
+#include "detect-content.h"
 #include "util-spm.h"
 #include "util-debug.h"
 
@@ -78,15 +79,12 @@ static int DetectPktvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pac
 
 static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char *rawstr)
 {
-    DetectPktvarData *cd = NULL;
-    SigMatch *sm = NULL;
-    char *str;
-    int dubbed = 0;
-    uint16_t len;
     char *varname = NULL, *varcontent = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    uint8_t *content = NULL;
+    uint16_t len = 0;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
@@ -109,124 +107,52 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, const char 
     }
     varcontent = (char *)str_ptr;
 
-    SCLogDebug("varname %s, varcontent %s", varname, varcontent);
+    SCLogDebug("varname '%s', varcontent '%s'", varname, varcontent);
 
-    if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
-        str = SCStrdup(varcontent+1);
-        if (unlikely(str == NULL)) {
-            return -1;
-        }
-        str[strlen(varcontent)-2] = '\0';
-        dubbed = 1;
-    } else {
-        str = varcontent;
-    }
-
-    len = strlen(str);
-    if (len == 0) {
-        if (dubbed) SCFree(str);
-        return -1;
-    }
-
-    cd = SCMalloc(sizeof(DetectPktvarData));
-    if (unlikely(cd == NULL))
-        goto error;
-
-    char converted = 0;
-
+    char *parse_content;
+    if (strlen(varcontent) >= 2 && varcontent[0] == '"' &&
+            varcontent[strlen(varcontent) - 1] == '"')
     {
-        uint16_t i, x;
-        uint8_t bin = 0, binstr[3] = "", binpos = 0;
-        for (i = 0, x = 0; i < len; i++) {
-            // printf("str[%02u]: %c\n", i, str[i]);
-            if (str[i] == '|') {
-                if (bin) {
-                    bin = 0;
-                } else {
-                    bin = 1;
-                }
-            } else {
-                if (bin) {
-                    if (isdigit((unsigned char)str[i]) ||
-                        str[i] == 'A' || str[i] == 'a' ||
-                        str[i] == 'B' || str[i] == 'b' ||
-                        str[i] == 'C' || str[i] == 'c' ||
-                        str[i] == 'D' || str[i] == 'd' ||
-                        str[i] == 'E' || str[i] == 'e' ||
-                        str[i] == 'F' || str[i] == 'f') {
-                        // printf("part of binary: %c\n", str[i]);
-
-                        binstr[binpos] = (char)str[i];
-                        binpos++;
-
-                        if (binpos == 2) {
-                            uint8_t c = strtol((char *)binstr, (char **) NULL, 16) & 0xFF;
-                            binpos = 0;
-                            str[x] = c;
-                            x++;
-                            converted = 1;
-                        }
-                    } else if (str[i] == ' ') {
-                        // printf("space as part of binary string\n");
-                    }
-                } else {
-                    str[x] = str[i];
-                    x++;
-                }
-            }
-        }
-#ifdef DEBUG
-    if (SCLogDebugEnabled()) {
-        for (i = 0; i < x; i++) {
-            if (isprint((unsigned char)str[i])) printf("%c", str[i]);
-            else printf("\\x%02u", str[i]);
-        }
-        printf("\n");
-    }
-#endif
-
-        if (converted)
-            len = x;
+        parse_content = varcontent + 1;
+        varcontent[strlen(varcontent) - 1] = '\0';
+    } else {
+        parse_content = varcontent;
     }
 
-    /* coverity[alloc_strlen : FALSE]
-     * not an actual string, but a byte array */
-    cd->content = SCMalloc(len);
-    if (cd->content == NULL) {
-        SCFree(cd);
-        if (dubbed) SCFree(str);
+    ret = DetectContentDataParse("pktvar", parse_content, &content, &len);
+    if (ret == -1 || content == NULL) {
+        pcre_free(varname);
+        pcre_free(varcontent);
         return -1;
     }
 
-    cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
+    DetectPktvarData *cd = SCCalloc(1, sizeof(DetectPktvarData));
+    if (unlikely(cd == NULL)) {
+        pcre_free(varname);
+        pcre_free(varcontent);
+        SCFree(content);
+        return -1;
+    }
 
-    memcpy(cd->content, str, len);
+    cd->content = content;
     cd->content_len = len;
-    cd->flags = 0;
+    cd->id = VarNameStoreSetupAdd(varname, VAR_TYPE_PKT_VAR);
+    pcre_free(varname);
+    pcre_free(varcontent);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
-
+    SigMatch *sm = SigMatchAlloc();
+    if (unlikely(sm == NULL)) {
+        SCFree(cd->content);
+        SCFree(cd);
+        return -1;
+    }
     sm->type = DETECT_PKTVAR;
     sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-
-    if (dubbed) SCFree(str);
     return 0;
-
-error:
-    if (dubbed)
-        SCFree(str);
-    if (cd) {
-        SCFree(cd);
-    }
-    if (sm)
-        SCFree(sm);
-    return -1;
 }
 
 
