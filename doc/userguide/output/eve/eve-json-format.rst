@@ -482,7 +482,7 @@ SMB Fields
 
 Examples of SMB logging:
 
-.. code-block:: json
+::
 
     "smb": {
       "id": 1,
@@ -503,7 +503,7 @@ Examples of SMB logging:
       "fuid": "0000004d-0000-0000-0005-0000ffffffff"
     }
 
-.. code-block:: json
+::
 
   "smb": {
     "id": 15,
@@ -515,7 +515,7 @@ Examples of SMB logging:
     "tree_id": 1,
   }
 
-.. code-block:: json
+::
 
   "smb": {
     "id": 3,
@@ -545,7 +545,7 @@ DCERPC fields
 * "interfaces.ack_reason" (integer): ack reason
 
 
-.. code-block:: json
+::
 
   "smb": {
     "id": 4,
@@ -573,8 +573,7 @@ DCERPC fields
     }
   }
 
-
-.. code-block:: json
+::
 
   "smb": {
     "id": 53,
