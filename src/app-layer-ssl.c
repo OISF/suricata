@@ -143,7 +143,7 @@ SslConfig ssl_config;
 
 #define SHA1_STRING_LENGTH             60
 
-#define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
+#define HAS_SPACE(n) ((uint64_t)(input - initial_input) + (uint64_t)(n) > (uint64_t)(input_len)) ?  0 : 1
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -563,7 +563,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         if (ssl_state->ja3_str == NULL)
             return -1;
 
-        int rc = Ja3BufferAddValue(ssl_state->ja3_str, version);
+        int rc = Ja3BufferAddValue(&ssl_state->ja3_str, version);
         if (rc != 0)
             return -1;
     }
@@ -658,7 +658,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             input += 2;
 
             if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
-                rc = Ja3BufferAddValue(ja3_cipher_suites, cipher_suite);
+                rc = Ja3BufferAddValue(&ja3_cipher_suites, cipher_suite);
                 if (rc != 0) {
                     return -1;
                 }
@@ -667,7 +667,7 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
             processed_len += 2;
         }
 
-        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_cipher_suites);
+        rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str, &ja3_cipher_suites);
         if (rc == -1) {
             return -1;
         }
@@ -817,7 +817,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
             input += 2;
 
             if (TLSDecodeValueIsGREASE(elliptic_curve) != 1) {
-                int rc = Ja3BufferAddValue(ja3_elliptic_curves,
+                int rc = Ja3BufferAddValue(&ja3_elliptic_curves,
                                            elliptic_curve);
                 if (rc != 0)
                     return -1;
@@ -867,7 +867,7 @@ static inline int TLSDecodeHSHelloExtensionEllipticCurvePF(SSLState *ssl_state,
             input += 1;
 
             if (TLSDecodeValueIsGREASE(elliptic_curve_pf) != 1) {
-                int rc = Ja3BufferAddValue(ja3_elliptic_curves_pf,
+                int rc = Ja3BufferAddValue(&ja3_elliptic_curves_pf,
                                            elliptic_curve_pf);
                 if (rc != 0)
                     return -1;
@@ -998,7 +998,7 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
         if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
                 ssl_config.enable_ja3) {
             if (TLSDecodeValueIsGREASE(ext_type) != 1) {
-                rc = Ja3BufferAddValue(ja3_extensions, ext_type);
+                rc = Ja3BufferAddValue(&ja3_extensions, ext_type);
                 if (rc != 0)
                     goto error;
             }
@@ -1010,16 +1010,16 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
 end:
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
             ssl_config.enable_ja3) {
-        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_extensions);
+        rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str, &ja3_extensions);
         if (rc == -1)
             goto error;
 
-        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str, ja3_elliptic_curves);
+        rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str, &ja3_elliptic_curves);
         if (rc == -1)
             goto error;
 
-        rc = Ja3BufferAppendBuffer(ssl_state->ja3_str,
-                                   ja3_elliptic_curves_pf);
+        rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str,
+                                   &ja3_elliptic_curves_pf);
         if (rc == -1)
             goto error;
     }
