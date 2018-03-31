@@ -157,7 +157,7 @@ The keywords offset and depth can be combined and are often used together.
 
 For example::
 
-  content; “def”; offset:3; depth:3;
+  content:“def”; offset:3; depth:3;
 
 If this was used in a signature, it would check the payload from the
 third byte till the sixth byte.

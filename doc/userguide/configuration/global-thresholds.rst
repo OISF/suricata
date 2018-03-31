@@ -202,9 +202,9 @@ Each of these will replace the threshold setting for 2002087 by the
 new threshold setting.
 
 **Note:** overriding all gids or sids (by using gen_id 0 or sig_id 0)
-is not supported. Bug #425.
+is not supported. Bug https://redmine.openinfosecfoundation.org/issues/425.
 
 Rate_filter
 ~~~~~~~~~~~
 
-TODO
+see https://redmine.openinfosecfoundation.org/issues/425.
