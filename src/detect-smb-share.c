@@ -44,78 +44,34 @@
 
 static int g_smb_named_pipe_buffer_id = 0;
 
-/** \brief SMB NAMED PIPE Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxSmbNamedPipe(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    uint8_t *buffer;
-    uint32_t buffer_len;
-
-    if (rs_smb_tx_get_named_pipe(txv, &buffer, &buffer_len) != 1) {
-        return;
-    }
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-static int PrefilterTxSmbNamedPipeRequestRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSmbNamedPipe,
-        ALPROTO_SMB, 0,
-        mpm_ctx, NULL, KEYWORD_NAME " (request)");
-}
-
-static int InspectEngineSmbNamedPipe(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    uint32_t buffer_len = 0;
-    uint8_t *buffer = NULL;
-
-    if (rs_smb_tx_get_named_pipe(tx, &buffer, &buffer_len) != 1)
-        goto end;
-    if (buffer == NULL ||buffer_len == 0)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
-                                          NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
-end:
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
 static int DetectSmbNamedPipeSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_smb_named_pipe_buffer_id;
-    return 0;
+    int r = DetectBufferSetActiveList(s, g_smb_named_pipe_buffer_id);
+    s->alproto = ALPROTO_SMB;
+    return r;
+}
+
+static InspectionBuffer *GetNamedPipeData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id)
+{
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        uint8_t *b = NULL;
+
+        if (rs_smb_tx_get_named_pipe(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
 }
 
 void DetectSmbNamedPipeRegister(void)
@@ -123,13 +79,15 @@ void DetectSmbNamedPipeRegister(void)
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbNamedPipeSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB named pipe in tree connect";
 
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterTxSmbNamedPipeRequestRegister);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetNamedPipeData,
+            ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            InspectEngineSmbNamedPipe);
+            DetectEngineInspectBufferGeneric, GetNamedPipeData);
 
     g_smb_named_pipe_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
@@ -149,78 +107,34 @@ void DetectSmbNamedPipeRegister(void) {}
 
 static int g_smb_share_buffer_id = 0;
 
-/** \brief SMB SHARE Mpm prefilter callback
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *  \param f flow to inspect
- *  \param txv tx to inspect
- *  \param pectx inspection context
- */
-static void PrefilterTxSmbShare(DetectEngineThreadCtx *det_ctx,
-        const void *pectx,
-        Packet *p, Flow *f, void *txv,
-        const uint64_t idx, const uint8_t flags)
-{
-    SCEnter();
-
-    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
-    uint8_t *buffer;
-    uint32_t buffer_len;
-
-    if (rs_smb_tx_get_share(txv, &buffer, &buffer_len) != 1) {
-        return;
-    }
-
-    if (buffer_len >= mpm_ctx->minlen) {
-        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
-    }
-}
-
-static int PrefilterTxSmbShareRequestRegister(DetectEngineCtx *de_ctx,
-        SigGroupHead *sgh, MpmCtx *mpm_ctx)
-{
-    SCEnter();
-
-    return PrefilterAppendTxEngine(de_ctx, sgh, PrefilterTxSmbShare,
-        ALPROTO_SMB, 0,
-        mpm_ctx, NULL, KEYWORD_NAME " (request)");
-}
-
-static int InspectEngineSmbShare(ThreadVars *tv,
-        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        const Signature *s, const SigMatchData *smd,
-        Flow *f, uint8_t flags, void *alstate, void *tx, uint64_t tx_id)
-{
-    uint32_t buffer_len = 0;
-    uint8_t *buffer = NULL;
-
-    if (rs_smb_tx_get_share(tx, &buffer, &buffer_len) != 1)
-        goto end;
-    if (buffer == NULL ||buffer_len == 0)
-        goto end;
-
-    det_ctx->buffer_offset = 0;
-    det_ctx->discontinue_matching = 0;
-    det_ctx->inspection_recursion_counter = 0;
-    int r = DetectEngineContentInspection(de_ctx, det_ctx, s, smd,
-                                          f,
-                                          buffer, buffer_len,
-                                          0, DETECT_CI_FLAGS_SINGLE,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE,
-                                          NULL);
-    if (r == 1)
-        return DETECT_ENGINE_INSPECT_SIG_MATCH;
-
-end:
-    return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
-}
-
 static int DetectSmbShareSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    s->init_data->list = g_smb_share_buffer_id;
-    return 0;
+    int r = DetectBufferSetActiveList(s, g_smb_share_buffer_id);
+    s->alproto = ALPROTO_SMB;
+    return r;
+}
+
+static InspectionBuffer *GetShareData(DetectEngineThreadCtx *det_ctx,
+        const DetectEngineTransforms *transforms,
+        Flow *_f, const uint8_t _flow_flags,
+        void *txv, const int list_id)
+{
+    BUG_ON(det_ctx->inspect_buffers == NULL);
+    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+
+    if (buffer->inspect == NULL) {
+        uint32_t b_len = 0;
+        uint8_t *b = NULL;
+
+        if (rs_smb_tx_get_share(txv, &b, &b_len) != 1)
+            return NULL;
+        if (b == NULL || b_len == 0)
+            return NULL;
+
+        InspectionBufferSetup(buffer, b, b_len);
+        InspectionBufferApplyTransforms(buffer, transforms);
+    }
+    return buffer;
 }
 
 void DetectSmbShareRegister(void)
@@ -228,13 +142,15 @@ void DetectSmbShareRegister(void)
     sigmatch_table[KEYWORD_ID].name = KEYWORD_NAME;
     sigmatch_table[KEYWORD_ID].Setup = DetectSmbShareSetup;
     sigmatch_table[KEYWORD_ID].flags |= SIGMATCH_NOOPT;
+    sigmatch_table[KEYWORD_ID].desc = "sticky buffer to match on SMB share name in tree connect";
 
-    DetectAppLayerMpmRegister(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
-            PrefilterTxSmbShareRequestRegister);
+    DetectAppLayerMpmRegister2(BUFFER_NAME, SIG_FLAG_TOSERVER, 2,
+            PrefilterGenericMpmRegister, GetShareData,
+            ALPROTO_SMB, 1);
 
-    DetectAppLayerInspectEngineRegister(BUFFER_NAME,
+    DetectAppLayerInspectEngineRegister2(BUFFER_NAME,
             ALPROTO_SMB, SIG_FLAG_TOSERVER, 0,
-            InspectEngineSmbShare);
+            DetectEngineInspectBufferGeneric, GetShareData);
 
     g_smb_share_buffer_id = DetectBufferTypeGetByName(BUFFER_NAME);
 }
