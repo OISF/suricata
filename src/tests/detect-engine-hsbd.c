@@ -136,6 +136,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -260,6 +261,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -384,6 +386,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -508,6 +511,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -632,6 +636,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -760,6 +765,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -887,6 +893,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -1014,6 +1021,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -1141,6 +1149,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -1265,6 +1274,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
@@ -1388,6 +1398,7 @@ libhtp:\n\
     FAIL_IF(!(PacketAlertCheck(p2, 1)));
 
     AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
     HTPFreeConfig();
