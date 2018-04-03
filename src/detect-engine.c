@@ -2490,6 +2490,9 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         DetectEngineDeReference(&det_ctx->de_ctx);
 #endif
     }
+
+    AppLayerDecoderEventsFreeEvents(&det_ctx->decoder_events);
+
     SCFree(det_ctx);
 }
 
