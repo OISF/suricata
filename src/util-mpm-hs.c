@@ -716,8 +716,10 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
 
     /* Cache this database globally for later. */
     pd->ref_cnt = 1;
-    HashTableAdd(g_db_table, pd, 1);
+    int r = HashTableAdd(g_db_table, pd, 1);
     SCMutexUnlock(&g_db_table_mutex);
+    if (r < 0)
+        goto error;
 
     SCHSFreeCompileData(cd);
     return 0;
