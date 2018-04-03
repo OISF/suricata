@@ -1920,7 +1920,7 @@
                     AC_CHECK_LIB(event, event_base_free,, HAVE_LIBEVENT="no")
                     AC_CHECK_LIB(event_pthreads, evthread_use_pthreads,, HAVE_LIBEVENT_PTHREADS="no")
                 fi
-                if test "$HAVE_LIBEVENT" = "no" -o test "$HAVE_LIBEVENT_PTHREADS" = "no" ; then
+                if [ test "$HAVE_LIBEVENT" = "no" ] && [ -o test "$HAVE_LIBEVENT_PTHREADS" = "no"]; then
                     if test "$HAVE_LIBEVENT" = "no"; then
                         echo
                         echo "  Async mode for redis output will not be available."
