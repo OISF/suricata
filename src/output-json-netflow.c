@@ -321,20 +321,22 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     json_object_clear(js);
     json_decref(js);
 
-    /* reset */
-    MemBufferReset(jhl->buffer);
-    js = CreateJSONHeaderFromFlow(f, "netflow", 1);
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-    JsonNetFlowLogJSONToClient(jhl, js, f);
-    if (netflow_ctx->include_metadata) {
-        JsonAddMetadata(NULL, f, js);
+    /* only log a response record if we actually have seen response packets */
+    if (f->tosrcpktcnt) {
+        /* reset */
+        MemBufferReset(jhl->buffer);
+        js = CreateJSONHeaderFromFlow(f, "netflow", 1);
+        if (unlikely(js == NULL))
+            return TM_ECODE_OK;
+        JsonNetFlowLogJSONToClient(jhl, js, f);
+        if (netflow_ctx->include_metadata) {
+            JsonAddMetadata(NULL, f, js);
+        }
+        OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
+        json_object_del(js, "netflow");
+        json_object_clear(js);
+        json_decref(js);
     }
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
-    json_object_del(js, "netflow");
-    json_object_clear(js);
-    json_decref(js);
-
     SCReturnInt(TM_ECODE_OK);
 }
 
