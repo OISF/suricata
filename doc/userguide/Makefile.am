@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	configuration \
 	file-extraction \
 	licenses \
+	lua \
 	manpages \
 	output \
 	performance \
