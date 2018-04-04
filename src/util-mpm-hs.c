@@ -579,6 +579,7 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
         return 0;
     }
 
+    int r;
     hs_error_t err;
     hs_compile_error_t *compile_err = NULL;
     SCHSCompileData *cd = NULL;
