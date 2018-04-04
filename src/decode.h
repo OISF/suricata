@@ -108,15 +108,17 @@ void AppLayerDecoderEventsFreeEvents(AppLayerDecoderEvents **events);
 typedef struct Address_ {
     char family;
     union {
-        uint32_t       address_un_data32[4]; /* type-specific field */
-        uint16_t       address_un_data16[8]; /* type-specific field */
-        uint8_t        address_un_data8[16]; /* type-specific field */
+        uint32_t        address_un_data32[4]; /* type-specific field */
+        uint16_t        address_un_data16[8]; /* type-specific field */
+        uint8_t         address_un_data8[16]; /* type-specific field */
+        struct in6_addr address_un_in6;
     } address;
 } Address;
 
 #define addr_data32 address.address_un_data32
 #define addr_data16 address.address_un_data16
 #define addr_data8  address.address_un_data8
+#define addr_in6addr    address.address_un_in6
 
 #define COPY_ADDRESS(a, b) do {                    \
         (b)->family = (a)->family;                 \
@@ -210,6 +212,8 @@ typedef struct Address_ {
 #define GET_IPV4_SRC_ADDR_PTR(p) ((p)->src.addr_data32)
 #define GET_IPV4_DST_ADDR_PTR(p) ((p)->dst.addr_data32)
 
+#define GET_IPV6_SRC_IN6ADDR(p) ((p)->src.addr_in6addr)
+#define GET_IPV6_DST_IN6ADDR(p) ((p)->dst.addr_in6addr)
 #define GET_IPV6_SRC_ADDR(p) ((p)->src.addr_data32)
 #define GET_IPV6_DST_ADDR(p) ((p)->dst.addr_data32)
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
