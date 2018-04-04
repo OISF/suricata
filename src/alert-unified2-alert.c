@@ -844,16 +844,17 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
     gphdr.sensor_id = htonl(sensor_id);
     gphdr.event_second =  htonl(p->ts.tv_sec);
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
-    gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
-    gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
+    gphdr.src_ip = GET_IPV6_SRC_IN6ADDR(p);
+    gphdr.dst_ip = GET_IPV6_SRC_IN6ADDR(p);
     /** If XFF is in overwrite mode... */
     if (aun->xff_flags & XFF_OVERWRITE) {
         BUG_ON(aun->xff_flags & UNIFIED2_ALERT_XFF_IPV4);
 
+        struct in6_addr *a = (struct in6_addr*)aun->xff_ip;
         if (p->flowflags & FLOW_PKT_TOCLIENT) {
-           gphdr.dst_ip = *(struct in6_addr*)aun->xff_ip;
+            gphdr.dst_ip = *a;
         } else {
-           gphdr.src_ip = *(struct in6_addr*)aun->xff_ip;
+            gphdr.src_ip = *a;
         }
     }
     gphdr.protocol = p->proto;
