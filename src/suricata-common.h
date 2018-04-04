@@ -208,6 +208,15 @@
 #endif
 #endif
 
+#if !__CYGWIN__
+#ifdef HAVE_WINSOCK2_H
+#include <winsock2.h>
+#endif
+#ifdef HAVE_WS2TCPIP_H
+#include <ws2tcpip.h>
+#endif
+#endif /* !__CYGWIN__ */
+
 #ifdef HAVE_WINDOWS_H
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -222,15 +231,6 @@
 #ifdef HAVE_W32API_WTYPES_H
 #include <w32api/wtypes.h>
 #endif
-
-#if !__CYGWIN__
-#ifdef HAVE_WINSOCK2_H
-#include <winsock2.h>
-#endif
-#ifdef HAVE_WS2TCPIP_H
-#include <ws2tcpip.h>
-#endif
-#endif /* !__CYGWIN__ */
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>

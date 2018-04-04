@@ -748,7 +748,9 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
                 return result;
             }
             OutputRegisterFileRotationFlag(&json_ctx->file_ctx->rotation_flag);
-        } else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
+        }
+#ifndef OS_WIN32
+	else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
                 facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
@@ -775,8 +777,8 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
              * figure it out by itself. */
 
             openlog(ident, LOG_PID|LOG_NDELAY, facility);
-
         }
+#endif
 #ifdef HAVE_LIBHIREDIS
         else if (json_ctx->json_out == LOGFILE_TYPE_REDIS) {
             ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");

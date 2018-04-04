@@ -4740,7 +4740,7 @@ static int AddressTestCutIPv410(void)
     if (b->ip.addr_data32[0] != SCNtohl(16909059) || b->ip2.addr_data32[0] != SCNtohl(16909065))
         goto error;
 
-    printf("ip %u ip2 %u ", htonl(a->ip.addr_data32[0]), htonl(a->ip2.addr_data32[0]));
+    printf("ip %u ip2 %u ", (uint32_t)htonl(a->ip.addr_data32[0]), (uint32_t)htonl(a->ip2.addr_data32[0]));
 
     DetectAddressFree(a);
     DetectAddressFree(b);

@@ -814,18 +814,13 @@ static int DetectAppLayerEventTest06(void)
 
     FAIL_IF_NULL(aled);
 
-    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0)
-        goto error;
+    FAIL_IF(DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0);
 
-    if (aled->alproto != ALPROTO_UNKNOWN || aled->event_id != DET_CTX_EVENT_TEST)
-        goto error;
+    FAIL_IF(aled->alproto != ALPROTO_UNKNOWN);
+    FAIL_IF(aled->event_id != DET_CTX_EVENT_TEST);
 
     DetectAppLayerEventFree(aled);
     PASS;
-
-error:
-    DetectAppLayerEventFree(aled);
-    FAIL;
 }
 #endif /* UNITTESTS */
 

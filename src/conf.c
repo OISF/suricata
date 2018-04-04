@@ -998,10 +998,11 @@ static int ConfTestSetAndGet(void)
 {
     char name[] = "some-name";
     char value[] = "some-value";
-    const char *value0;
+    const char *value0 = NULL;
 
     FAIL_IF(ConfSet(name, value) != 1);
     FAIL_IF(ConfGet(name, &value0) != 1);
+    FAIL_IF(value0 == NULL);
     FAIL_IF(strcmp(value, value0) != 0);
 
     /* Cleanup. */
@@ -1019,12 +1020,13 @@ static int ConfTestOverrideValue1(void)
     char name[] = "some-name";
     char value0[] = "some-value";
     char value1[] = "new-value";
-    const char *val;
+    const char *val = NULL;
 
     FAIL_IF(ConfSet(name, value0) != 1);
     FAIL_IF(ConfSet(name, value1) != 1);
     FAIL_IF(ConfGet(name, &val) != 1);
-    FAIL_IF(strcmp(val, value1));
+    FAIL_IF(val == NULL);
+    FAIL_IF(strcmp(val, value1) != 0);
 
     /* Cleanup. */
     ConfRemove(name);
@@ -1040,12 +1042,13 @@ static int ConfTestOverrideValue2(void)
     char name[] = "some-name";
     char value0[] = "some-value";
     char value1[] = "new-value";
-    const char *val;
+    const char *val = NULL;
 
     FAIL_IF(ConfSetFinal(name, value0) != 1);
     FAIL_IF(ConfSet(name, value1) != 0);
     FAIL_IF(ConfGet(name, &val) != 1);
-    FAIL_IF(strcmp(val, value0));
+    FAIL_IF(val == NULL);
+    FAIL_IF(strcmp(val, value0) != 0);
 
     /* Cleanup. */
     ConfRemove(name);
