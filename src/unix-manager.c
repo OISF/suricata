@@ -1088,7 +1088,7 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("memcap-set", UnixSocketSetMemcap, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("memcap-show", UnixSocketShowMemcap, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("memcap-list", UnixSocketShowAllMemcap, NULL, 0);
-
+    UnixManagerRegisterCommand("iprep-add", UnixSocketIpReputationAdd, &command, UNIX_CMD_TAKE_ARGS);
     return 0;
 }
 

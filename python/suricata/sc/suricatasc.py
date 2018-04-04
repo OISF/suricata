@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-continuous','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit', 'memcap-set', 'memcap-show']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-continuous','pcap-file-number','pcap-file-list','pcap-last-processed','pcap-interrupt','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler', 'add-hostbit', 'remove-hostbit', 'list-hostbit', 'memcap-set', 'memcap-show', 'iprep-add']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -352,6 +352,18 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["config"] = config
+            elif "iprep-add" in command:
+                try:
+                    [cmd, ipaddress, category, value] = command.split(' ', 3)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "iprep-add":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["ipaddress"] = ipaddress;
+                    arguments["category"] = int(category);
+                    arguments["value"] = int(value);
             else:
                 cmd = command
         else:

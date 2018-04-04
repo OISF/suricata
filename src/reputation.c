@@ -75,7 +75,17 @@ static void SRepCIDRFreeUserData(void *data)
     return;
 }
 
-static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
+/**
+ * Add an IP address in CIDR notation
+ *
+ * \param cidr_ctx  cidr context
+ * \param ip        ip address
+ * \param cat       category
+ * \param value     value
+ *
+ * \retval 1 if success, -1 otherwise
+ */
+static int SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
 {
     SReputation *user_data = NULL;
     if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
@@ -101,6 +111,7 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int v
         if (SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv6 host %s", ip);
+            return -1;
         }
 
     } else {
@@ -117,8 +128,11 @@ static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int v
         if (SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data) == NULL) {
             SCLogWarning(SC_ERR_INVALID_VALUE,
                         "failed to add ipv4 host %s", ip);
+            return -1;
         }
     }
+
+    return 1;
 }
 
 static uint8_t SRepCIDRGetIPv4IPRep(SRepCIDRTree *cidr_ctx, uint8_t *ipv4_addr, uint8_t cat)
@@ -311,13 +325,13 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_
     }
 
     int v = atoi(ptrs[2]);
-    if (v < 0 || v > 127) {
+    if (v < 0 || v > SREP_MAX_VAL) {
         return -1;
     }
 
     if (strchr(ptrs[0], '/') != NULL) {
-        SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
-        return 1;
+        int r = SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
+        return r;
     } else {
         if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
             ip->family = AF_INET;
@@ -432,6 +446,54 @@ static int SRepLoadFile(SRepCIDRTree *cidr_ctx, char *filename)
 
 }
 
+static void SRepLoadLine(Address *a, int cat, int value)
+{
+    Host *h = HostGetHostFromHash(a);
+    if (h == NULL) {
+        SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
+        return;
+    } else {
+        //SCLogInfo("host %p", h);
+
+        if (h->iprep == NULL) {
+            h->iprep = SCMalloc(sizeof(SReputation));
+            if (h->iprep != NULL) {
+                memset(h->iprep, 0x00, sizeof(SReputation));
+
+                HostIncrUsecnt(h);
+            }
+        }
+        if (h->iprep != NULL) {
+            SReputation *rep = h->iprep;
+
+            /* if version is outdated, it's an older entry that we'll
+             * now replace. */
+            if (rep->version != SRepGetVersion()) {
+                memset(rep, 0x00, sizeof(SReputation));
+            }
+
+            rep->version = SRepGetVersion();
+            rep->rep[cat] = value;
+
+            SCLogDebug("host %p iprep %p setting cat %u to value %u",
+                h, h->iprep, cat, value);
+#ifdef DEBUG
+            if (SCLogDebugEnabled()) {
+                int i;
+                for (i = 0; i < SREP_MAX_CATS; i++) {
+                    if (rep->rep[i] == 0)
+                        continue;
+
+                        SCLogDebug("--> host %p iprep %p cat %d to value %u",
+                                h, h->iprep, i, rep->rep[i]);
+                }
+            }
+#endif
+        }
+        HostRelease(h);
+    }
+}
+
 int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
 {
     char line[8192] = "";
@@ -473,53 +535,31 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
                 PrintInet(AF_INET6, (const void *)&a.address, ipstr, sizeof(ipstr));
                 SCLogDebug("%s %u %u", ipstr, cat, value);
             }
-
-            Host *h = HostGetHostFromHash(&a);
-            if (h == NULL) {
-                SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
-                break;
-            } else {
-                //SCLogInfo("host %p", h);
-
-                if (h->iprep == NULL) {
-                    h->iprep = SCMalloc(sizeof(SReputation));
-                    if (h->iprep != NULL) {
-                        memset(h->iprep, 0x00, sizeof(SReputation));
-
-                        HostIncrUsecnt(h);
-                    }
-                }
-                if (h->iprep != NULL) {
-                    SReputation *rep = h->iprep;
-
-                    /* if version is outdated, it's an older entry that we'll
-                     * now replace. */
-                    if (rep->version != SRepGetVersion()) {
-                        memset(rep, 0x00, sizeof(SReputation));
-                    }
-
-                    rep->version = SRepGetVersion();
-                    rep->rep[cat] = value;
-
-                    SCLogDebug("host %p iprep %p setting cat %u to value %u",
-                        h, h->iprep, cat, value);
-#ifdef DEBUG
-                    if (SCLogDebugEnabled()) {
-                        int i;
-                        for (i = 0; i < SREP_MAX_CATS; i++) {
-                            if (rep->rep[i] == 0)
-                                continue;
-
-                            SCLogDebug("--> host %p iprep %p cat %d to value %u",
-                                    h, h->iprep, i, rep->rep[i]);
-                        }
-                    }
-#endif
-                }
-
-                HostRelease(h);
-            }
+            SRepLoadLine(&a, cat, value);
         }
+    }
+
+    return 0;
+}
+
+int SRepLoadLineFromUnix(SRepCIDRTree *cidr_ctx,
+                         char *ipaddress,
+                         int cat, int val)
+{
+    if (strchr(ipaddress, '/') != NULL) {
+        int r = SRepCIDRAddNetblock(cidr_ctx, ipaddress, cat, val);
+        return r;
+    } else {
+        Address ip;
+        memset(&ip, 0, sizeof(ip));
+        if (inet_pton(AF_INET, ipaddress, &ip.address) == 1) {
+            ip.family = AF_INET;
+        } else if (inet_pton(AF_INET6, ipaddress, &ip.address) == 1) {
+            ip.family = AF_INET6;
+        } else {
+            return -1;
+        }
+        SRepLoadLine(&ip, cat, val);
     }
 
     return 0;
