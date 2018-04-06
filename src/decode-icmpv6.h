@@ -189,6 +189,8 @@ typedef struct ICMPV6Vars_ {
 
 void DecodeICMPV6RegisterTests(void);
 
+int ICMPv6GetCounterpart(uint8_t type);
+
 /** -------- Inline functions --------- */
 static inline uint16_t ICMPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
 

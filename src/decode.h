@@ -407,11 +407,19 @@ typedef struct Packet_
     Address dst;
     union {
         Port sp;
-        uint8_t type;
+        // icmp type and code of this packet
+        struct {
+            uint8_t type;
+            uint8_t code;
+        } icmp_s;
     };
     union {
         Port dp;
-        uint8_t code;
+        // icmp type and code of the expected counterpart (for flows)
+        struct {
+            uint8_t type;
+            uint8_t code;
+        } icmp_d;
     };
     uint8_t proto;
     /* make sure we can't be attacked on when the tunneled packet

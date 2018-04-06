@@ -46,6 +46,12 @@
 #ifndef ICMP_ECHO
 #define ICMP_ECHO               8       /* Echo Request                 */
 #endif
+#ifndef ICMP_ROUTERADVERT
+#define ICMP_ROUTERADVERT       9
+#endif
+#ifndef ICMP_ROUTERSOLICIT
+#define ICMP_ROUTERSOLICIT      10
+#endif
 #ifndef ICMP_TIME_EXCEEDED
 #define ICMP_TIME_EXCEEDED      11      /* Time Exceeded                */
 #endif
@@ -318,6 +324,8 @@ static inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
 
     return (uint16_t) ~csum;
 }
+
+int ICMPv4GetCounterpart(uint8_t type);
 
 #endif /* __DECODE_ICMPV4_H__ */
 

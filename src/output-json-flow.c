@@ -163,9 +163,15 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
         case IPPROTO_ICMP:
         case IPPROTO_ICMPV6:
             json_object_set_new(js, "icmp_type",
-                    json_integer(f->type));
+                    json_integer(f->icmp_s.type));
             json_object_set_new(js, "icmp_code",
-                    json_integer(f->code));
+                    json_integer(f->icmp_s.code));
+            if (f->tosrcpktcnt) {
+                json_object_set_new(js, "response_icmp_type",
+                        json_integer(f->icmp_d.type));
+                json_object_set_new(js, "response_icmp_code",
+                        json_integer(f->icmp_d.code));
+            }
             break;
     }
     return js;
