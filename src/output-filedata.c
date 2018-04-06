@@ -152,6 +152,9 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
              * close the logger(s) */
             if (FileDataSize(ff) == ff->content_stored &&
                 (file_trunc || file_close)) {
+                if (ff->state < FILE_STATE_CLOSED) {
+                    FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
+                }
                 CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE);
                 ff->flags |= FILE_STORED;
                 continue;
@@ -171,7 +174,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
             /* if file needs to be closed or truncated, inform
              * loggers */
             if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
-                ff->state = FILE_STATE_TRUNCATED;
+                FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
             }
 
             /* tell the logger we're closing up */

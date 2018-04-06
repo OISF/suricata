@@ -145,6 +145,8 @@ int FileCloseFile(FileContainer *, const uint8_t *data, uint32_t data_len,
         uint16_t flags);
 int FileCloseFileById(FileContainer *, uint32_t track_id,
         const uint8_t *data, uint32_t data_len, uint16_t flags);
+int FileCloseFilePtr(File *ff, const uint8_t *data,
+        uint32_t data_len, uint16_t flags);
 
 /**
  *  \brief Store a chunk of file data in the flow. The open "flowfile"

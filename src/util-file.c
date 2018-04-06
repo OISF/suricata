@@ -847,7 +847,7 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
     return 0;
 }
 
-static int FileCloseFilePtr(File *ff, const uint8_t *data,
+int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint16_t flags)
 {
     SCEnter();
