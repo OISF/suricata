@@ -93,6 +93,25 @@ named!(parse_rpc_request_creds_unknown<RpcRequestCreds>,
 ));
 
 #[derive(Debug,PartialEq)]
+pub struct RpcGssApiIntegrity<'a> {
+    pub seq_num: u32,
+    pub data: &'a[u8],
+}
+
+// Parse the GSSAPI Integrity envelope to get to the
+// data we care about.
+named!(pub parse_rpc_gssapi_integrity<RpcGssApiIntegrity>,
+    do_parse!(
+        len: be_u32
+    >>  seq_num: be_u32
+    >>  data: take!(len)
+    >> (RpcGssApiIntegrity {
+            seq_num: seq_num,
+            data: data,
+        })
+));
+
+#[derive(Debug,PartialEq)]
 pub struct RpcPacketHeader<> {
     pub frag_is_last: bool,
     pub frag_len: u32,

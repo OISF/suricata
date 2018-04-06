@@ -94,7 +94,12 @@ fn nfs_common_header(state: &NFSState, tx: &NFSTransaction) -> Json
 {
     let js = Json::object();
     js.set_integer("version", state.nfs_version as u64);
-    js.set_string("procedure", &nfs3_procedure_string(tx.procedure));
+    let proc_string = if state.nfs_version < 4 {
+        nfs3_procedure_string(tx.procedure)
+    } else {
+        nfs4_procedure_string(tx.procedure)
+    };
+    js.set_string("procedure", &proc_string);
     let file_name = String::from_utf8_lossy(&tx.file_name);
     js.set_string("filename", &file_name);
 
