@@ -25,11 +25,13 @@
  *
  */
 
+#ifdef WINDIVERT
 // clang-format off
 #include <winsock2.h>
 #include <windows.h>
 #include <iphlpapi.h>
 // clang-format on
+#endif
 
 #include "suricata-common.h"
 #include "suricata.h"
