@@ -44,6 +44,10 @@
 #include <net/if.h>
 #endif
 
+#ifdef OS_WIN32
+#include "win32-syscall.h"
+#endif
+
 #include "util-ioctl.h"
 
 /**
@@ -53,6 +57,8 @@
  */
 static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
 {
+    /* \bug: this isn't necessarily universal (my Ubuntu WiFi device is wlp1s0),
+     * and doesn't work for Windows devices. */
     if ((!strcmp("eth", pcap_dev))
             ||
             (!strcmp("br", pcap_dev))
@@ -77,6 +83,7 @@ static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
     return 8 + SLL_HEADER_LEN;
 }
 
+
 /**
  * \brief output the link MTU
  *
@@ -85,7 +92,7 @@ static int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
  */
 int GetIfaceMTU(const char *pcap_dev)
 {
-#ifdef SIOCGIFMTU
+#if defined SIOCGIFMTU
     struct ifreq ifr;
     int fd;
 
@@ -106,6 +113,8 @@ int GetIfaceMTU(const char *pcap_dev)
     SCLogInfo("Found an MTU of %d for '%s'", ifr.ifr_mtu,
             pcap_dev);
     return ifr.ifr_mtu;
+#elif defined OS_WIN32
+    return GetIfaceMTUWin32(pcap_dev);
 #else
     /* ioctl is not defined, let's pretend returning 0 is ok */
     return 0;
@@ -675,6 +684,8 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
     return GetIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCGIFCAP
     return GetIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+    return GetIfaceOffloadingWin32(dev, csum, other);
 #else
     return 0;
 #endif
@@ -686,6 +697,8 @@ int DisableIfaceOffloading(LiveDevice *dev, int csum, int other)
     return DisableIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCSIFCAP
     return DisableIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+    return DisableIfaceOffloadingWin32(dev, csum, other);
 #else
     return 0;
 #endif
@@ -699,6 +712,8 @@ void RestoreIfaceOffloading(LiveDevice *dev)
         RestoreIfaceOffloadingLinux(dev);
 #elif defined SIOCSIFCAP
         RestoreIfaceOffloadingBSD(dev);
+#elif defined OS_WIN32
+        RestoreIfaceOffloadingWin32(dev);
 #endif
     }
 }
