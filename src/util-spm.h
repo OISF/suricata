@@ -68,7 +68,7 @@ typedef struct SpmTableElmt_ {
                        SpmGlobalThreadCtx *g_thread_ctx);
     void (*DestroyCtx)(SpmCtx *);
     uint8_t *(*Scan)(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                     const uint8_t *haystack, uint16_t haystack_len);
+                     const uint8_t *haystack, uint32_t haystack_len);
 } SpmTableElmt;
 
 SpmTableElmt spm_table[SPM_TABLE_SIZE];
@@ -89,7 +89,7 @@ SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
 void SpmDestroyCtx(SpmCtx *ctx);
 
 uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                 const uint8_t *haystack, uint16_t haystack_len);
+                 const uint8_t *haystack, uint32_t haystack_len);
 
 /** Default algorithm to use: Boyer Moore */
 uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);

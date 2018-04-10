@@ -32,9 +32,9 @@
 
 /* This function handles (ctx->state_count < 32767) */
 uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                   PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen)
+                   PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
 {
-    int i = 0;
+    uint32_t i = 0;
     int matches = 0;
 
     uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
