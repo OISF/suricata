@@ -184,7 +184,7 @@ void SpmDestroyCtx(SpmCtx *ctx)
 }
 
 uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                 const uint8_t *haystack, uint16_t haystack_len)
+                 const uint8_t *haystack, uint32_t haystack_len)
 {
     uint16_t matcher = ctx->matcher;
     return spm_table[matcher].Scan(ctx, thread_ctx, haystack, haystack_len);

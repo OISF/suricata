@@ -136,7 +136,7 @@ static SpmCtx *HSInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
 }
 
 static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
-                       const uint8_t *haystack, uint16_t haystack_len)
+                       const uint8_t *haystack, uint32_t haystack_len)
 {
     const SpmHsCtx *sctx = ctx->ctx;
     hs_scratch_t *scratch = thread_ctx->ctx;

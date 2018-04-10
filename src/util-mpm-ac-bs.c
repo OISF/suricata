@@ -70,7 +70,7 @@ int SCACBSAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                        uint32_t, SigIntId, uint8_t);
 int SCACBSPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                      PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen);
+                      PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen);
 void SCACBSPrintInfo(MpmCtx *mpm_ctx);
 void SCACBSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACBSRegisterTests(void);
@@ -1145,10 +1145,10 @@ void SCACBSDestroyCtx(MpmCtx *mpm_ctx)
  * \retval matches Match count.
  */
 uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                      PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen)
+                      PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
 {
     const SCACBSCtx *ctx = (SCACBSCtx *)mpm_ctx->ctx;
-    int i = 0;
+    uint32_t i = 0;
     int matches = 0;
     uint8_t buf_local;
 

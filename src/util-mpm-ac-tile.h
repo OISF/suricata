@@ -64,7 +64,7 @@ typedef struct SCACTileCtx_ {
      * 32 bits.
      */
     uint32_t (*Search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
-                       PrefilterRuleStore *, const uint8_t *, uint16_t);
+                       PrefilterRuleStore *, const uint8_t *, uint32_t);
 
     /* Function to set the next state based on size of next state
      * (bytes_per_state).
@@ -117,7 +117,7 @@ typedef struct SCACTileSearchCtx_ {
      * 32 bits.
      */
     uint32_t (*Search)(const struct SCACTileSearchCtx_ *ctx, struct MpmThreadCtx_ *,
-                       PrefilterRuleStore *, const uint8_t *, uint16_t);
+                       PrefilterRuleStore *, const uint8_t *, uint32_t);
 
     /* Convert input character to matching alphabet */
     uint8_t translate_table[256];

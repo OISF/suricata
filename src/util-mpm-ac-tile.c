@@ -93,51 +93,51 @@ int SCACTileAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
 int SCACTilePreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PrefilterRuleStore *pmq, const uint8_t *buf,
-                        uint16_t buflen);
+                        uint32_t buflen);
 void SCACTilePrintInfo(MpmCtx *mpm_ctx);
 void SCACTilePrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACTileRegisterTests(void);
 
 uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PrefilterRuleStore *pmq,
-                             const uint8_t *buf, uint16_t buflen);
+                             const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PrefilterRuleStore *pmq,
-                                const uint8_t *buf, uint16_t buflen);
+                                const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PrefilterRuleStore *pmq,
-                                const uint8_t *buf, uint16_t buflen);
+                                const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PrefilterRuleStore *pmq,
-                               const uint8_t *buf, uint16_t buflen);
+                               const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PrefilterRuleStore *pmq,
-                               const uint8_t *buf, uint16_t buflen);
+                               const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PrefilterRuleStore *pmq,
-                               const uint8_t *buf, uint16_t buflen);
+                               const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchSmall8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PrefilterRuleStore *pmq,
-                              const uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint32_t buflen);
 
 uint32_t SCACTileSearchTiny256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PrefilterRuleStore *pmq,
-                               const uint8_t *buf, uint16_t buflen);
+                               const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchTiny128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PrefilterRuleStore *pmq,
-                               const uint8_t *buf, uint16_t buflen);
+                               const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchTiny64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PrefilterRuleStore *pmq,
-                              const uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchTiny32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PrefilterRuleStore *pmq,
-                              const uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchTiny16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PrefilterRuleStore *pmq,
-                              const uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint32_t buflen);
 uint32_t SCACTileSearchTiny8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PrefilterRuleStore *pmq,
-                             const uint8_t *buf, uint16_t buflen);
+                             const uint8_t *buf, uint32_t buflen);
 
 
 static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
@@ -1173,7 +1173,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #endif
 
 static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
-               const uint8_t *buf, uint16_t buflen,
+               const uint8_t *buf, uint32_t buflen,
                uint16_t state, int i, int matches,
                uint8_t *mpm_bitarray)
 {
@@ -1235,7 +1235,7 @@ static int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
  * \retval matches Match count.
  */
 uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                        PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen)
+                        PrefilterRuleStore *pmq, const uint8_t *buf, uint32_t buflen)
 {
     const SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
@@ -1249,9 +1249,9 @@ uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 /* This function handles (ctx->state_count >= 32767) */
 uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PrefilterRuleStore *pmq,
-                             const uint8_t *buf, uint16_t buflen)
+                             const uint8_t *buf, uint32_t buflen)
 {
-    int i = 0;
+    uint32_t i = 0;
     int matches = 0;
 
     uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
