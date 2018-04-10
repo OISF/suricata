@@ -23,8 +23,8 @@
  * Isolation for WMI/COM functionality
  */
 
-#ifndef __WIN32_WMI_H__
-#define __WIN32_WMI_H__
+#ifndef __WIN32_SYSCALL_H__
+#define __WIN32_SYSCALL_H__
 #ifdef OS_WIN32
 
 #include "util-device.h"
@@ -48,4 +48,4 @@ int RestoreIfaceOffloadingWin32(LiveDevice *ldev);
 void Win32SyscallRegisterTests(void);
 
 #endif /* OS_WIN32 */
-#endif /* __WIN32_WMI_H__ */
+#endif /* __WIN32_SYSCALL_H__ */
