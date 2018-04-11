@@ -122,6 +122,10 @@
 #include "util-streaming-buffer.h"
 #include "util-lua.h"
 
+#ifdef OS_WIN32
+#include "win32-syscall.h"
+#endif
+
 #ifdef HAVE_NSS
 #include <prinit.h>
 #include <nss.h>
@@ -218,6 +222,9 @@ static void RegisterUnittests(void)
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
     StreamingBufferRegisterTests();
+#ifdef OS_WIN32
+    Win32SyscallRegisterTests();
+#endif
 }
 #endif
 
