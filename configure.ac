@@ -232,8 +232,8 @@
             RUST_LDADD="-ldl -lrt -lm"
             ;;
         *-*-mingw32*)
-            CFLAGS="${CFLAGS} -DOS_WIN32"
-            LDFLAGS="${LDFLAGS} -lws2_32"
+            CFLAGS="${CFLAGS} -DOS_WIN32 -DNTDDI_VERSION=NTDDI_VISTA -D_WIN32_WINNT=_WIN32_WINNT_VISTA"
+            LDFLAGS="${LDFLAGS} -lws2_32 -liphlpapi -lwbemuuid -lOle32 -lOleAut32 -lUuid"
             WINDOWS_PATH="yes"
             PCAP_LIB_NAME="wpcap"
             AC_DEFINE([HAVE_NON_POSIX_MKDIR], [1], [mkdir is not POSIX compliant: single arg])
@@ -1051,6 +1051,45 @@
         fi
     fi
 
+  # WinDivert support
+    AC_ARG_ENABLE(windivert,
+        AS_HELP_STRING([--enable-windivert],[Enable WinDivert support [default=no]]),,
+        [enable_windivert="no"])
+    
+  # WinDivert can only be enabled on Windows builds
+    AC_CHECK_DECL([OS_WIN32],,[enable_windivert="no"])
+
+    if test "x$enable_windivert" = "xyes"; then
+        AC_DEFINE_UNQUOTED([WINDIVERT],[1],[Enable Windows WinDivert support for inline IDP])
+
+        AC_ARG_WITH(windivert_include,
+                [  --with-windivert-include=DIR WinDivert include path],
+                [with_windivert_include="$withval"],[with_windivert_include="no"])
+        AC_ARG_WITH(windivert_libraries,
+                [  --with-windivert-libraries=DIR WinDivert library path],
+                [with_windivert_libraries="$withval"],[with_windivert_libraries="no"])
+
+        if test "$with_windivert_include" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_windivert_include}"
+        fi
+
+        if test "$with_windivert_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_windivert_libraries}"
+        fi
+
+        AC_CHECK_HEADER(windivert.h,,WINDIVERT_INC="no")
+        AC_CHECK_LIB(WinDivert, WinDivertOpen,, WINDIVERT_LIB="no")
+
+        if test "$WINDIVERT_LIB" = "no" || test "$WINDIVERT_INC" = "no"; then
+            echo
+            echo "    ERROR! WinDivert not found, go get it from"
+            echo "    https://www.reqrypt.org/windivert.html"
+            echo
+            exit 1
+        fi
+    fi
+  # /WinDivert
+
   # prelude
     AC_ARG_ENABLE(prelude,
             AS_HELP_STRING([--enable-prelude], [Enable Prelude support for alerts]),,[enable_prelude=no])
@@ -1394,7 +1433,7 @@
 
         AC_ARG_WITH(libhtp_includes,
                 [  --with-libhtp-includes=DIR  libhtp include directory],
-                [with_libhtp_includes="$withval"],[with_libhtp_includes=no])
+                [with_libhtp_includes="$withval"],[with_libhtp_includes="no"])
         AC_ARG_WITH(libhtp_libraries,
                 [  --with-libhtp-libraries=DIR    libhtp library directory],
                 [with_libhtp_libraries="$withval"],[with_libhtp_libraries="no"])
@@ -2276,6 +2315,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Netmap support:                          ${enable_netmap}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
+  WinDivert enabled:                       ${enable_windivert}
 
   Unix socket enabled:                     ${enable_unixsocket}
   Detection enabled:                       ${enable_detection}

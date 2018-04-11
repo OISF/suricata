@@ -52,6 +52,8 @@ void unsetenv(const char *name)
     SCFree(str);
 }
 
+/* these functions have been defined on Vista and later */
+#if NTDDI_VERSION < NTDDI_VISTA || _WIN32_WINNT < _WIN32_WINNT_VISTA
 const char* inet_ntop(int af, const void *src, char *dst, uint32_t cnt)
 {
     if (af == AF_INET)
@@ -116,5 +118,6 @@ int inet_pton(int af, const char *src, void *dst)
 
     return -1;
 }
+#endif
 
 #endif /* OS_WIN32 */
