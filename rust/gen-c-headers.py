@@ -86,6 +86,8 @@ type_map = {
     "SMBTransaction": "SMBTransaction",
     "IKEV2State": "IKEV2State",
     "IKEV2Transaction": "IKEV2Transaction",
+    "KRB5State": "KRB5State",
+    "KRB5Transaction": "KRB5Transaction",
     "JsonT": "json_t",
     "DetectEngineState": "DetectEngineState",
     "core::DetectEngineState": "DetectEngineState",
