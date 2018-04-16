@@ -776,6 +776,9 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    krb5:
+      enabled: @rust_config_enabled@
+      warn-weak-crypto: yes
     ikev2:
       enabled: yes
     tls:
