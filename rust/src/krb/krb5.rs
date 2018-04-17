@@ -397,9 +397,17 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::
             if hdr.tag >= 30 { return unsafe{ALPROTO_FAILED}; }
             // Kerberos messages contain sequences
             if rem.is_empty() || rem[0] != 0x30 { return unsafe{ALPROTO_FAILED}; }
-            // XXX check kerberos version ?
-            // SCLogInfo!("probe hdr: {:?}", hdr);
-            return alproto;
+            // Check kerberos version
+            if let IResult::Done(rem,_hdr) = der_read_element_header(rem) {
+                if rem.len() > 5 {
+                    match (rem[2],rem[3],rem[4]) {
+                        // Encoding of DER unteger 5 (version)
+                        (2,1,5) => { return alproto; },
+                        _       => (),
+                    }
+                }
+            }
+            return unsafe{ALPROTO_FAILED};
         },
         IResult::Incomplete(_) => {
             return ALPROTO_UNKNOWN;
