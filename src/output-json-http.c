@@ -40,6 +40,7 @@
 
 #include "output.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
@@ -59,6 +60,7 @@ typedef struct LogHttpFileCtx_ {
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
     bool include_metadata;
+    HttpXFFCfg *xff_cfg;
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -466,6 +468,28 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     MemBufferReset(jhl->buffer);
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
+    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg;
+
+    /* xff header */
+    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
+        int have_xff_ip = 0;
+        char buffer[XFF_MAXLEN];
+
+        have_xff_ip = HttpXFFGetIPFromTx(p->flow, tx_id, xff_cfg, buffer, XFF_MAXLEN);
+
+        if (have_xff_ip) {
+            if (xff_cfg->flags & XFF_EXTRADATA) {
+                json_object_set_new(js, "xff", json_string(buffer));
+            }
+            else if (xff_cfg->flags & XFF_OVERWRITE) {
+                if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                    json_object_set(js, "dest_ip", json_string(buffer));
+                } else {
+                    json_object_set(js, "src_ip", json_string(buffer));
+                }
+            }
+        }
+    }
 
     OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "http");
@@ -501,6 +525,9 @@ static void OutputHttpLogDeinit(OutputCtx *output_ctx)
     LogHttpFileCtx *http_ctx = output_ctx->data;
     LogFileCtx *logfile_ctx = http_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    if (http_ctx->xff_cfg) {
+        SCFree(http_ctx->xff_cfg);
+    }
     SCFree(http_ctx);
     SCFree(output_ctx);
 }
@@ -545,6 +572,11 @@ static OutputInitResult OutputHttpLogInit(ConfNode *conf)
             }
         }
     }
+    http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+    if (http_ctx->xff_cfg != NULL) {
+        HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+    }
+
     output_ctx->data = http_ctx;
     output_ctx->DeInit = OutputHttpLogDeinit;
 
@@ -559,6 +591,9 @@ static OutputInitResult OutputHttpLogInit(ConfNode *conf)
 static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *http_ctx = output_ctx->data;
+    if (http_ctx->xff_cfg) {
+        SCFree(http_ctx->xff_cfg);
+    }
     SCFree(http_ctx);
     SCFree(output_ctx);
 }
@@ -615,6 +650,11 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
             }
         }
     }
+    http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+    if (http_ctx->xff_cfg != NULL) {
+        HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+    }
+
     output_ctx->data = http_ctx;
     output_ctx->DeInit = OutputHttpLogDeinitSub;
 

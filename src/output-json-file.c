@@ -64,6 +64,7 @@
 #include "output-json-smb.h"
 
 #include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
@@ -72,6 +73,7 @@
 typedef struct OutputFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t file_cnt;
+    HttpXFFCfg *xff_cfg;
 } OutputFileCtx;
 
 typedef struct JsonFileLogThread_ {
@@ -80,7 +82,7 @@ typedef struct JsonFileLogThread_ {
 } JsonFileLogThread;
 
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored)
+        const bool stored, HttpXFFCfg *xff_cfg)
 {
     json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "fileinfo");
     json_t *hjs = NULL;
@@ -190,6 +192,29 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     json_object_set_new(fjs, "size", json_integer(FileTrackedSize(ff)));
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
+    /* xff header */
+    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
+        int have_xff_ip = 0;
+        char buffer[XFF_MAXLEN];
+
+        if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+            have_xff_ip = HttpXFFGetIPFromTx(p->flow, ff->txid, xff_cfg, buffer, XFF_MAXLEN);
+        }
+
+        if (have_xff_ip) {
+            if (xff_cfg->flags & XFF_EXTRADATA) {
+                json_object_set_new(js, "xff", json_string(buffer));
+            }
+            else if (xff_cfg->flags & XFF_OVERWRITE) {
+                if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                    json_object_set(js, "dest_ip", json_string(buffer));
+                } else {
+                    json_object_set(js, "src_ip", json_string(buffer));
+                }
+            }
+        }
+    }
+
     /* originally just 'file', but due to bug 1127 naming it fileinfo */
     json_object_set_new(js, "fileinfo", fjs);
 
@@ -202,8 +227,9 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
  */
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
 {
+    HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg;
     json_t *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false);
+            ff->flags & FILE_STORED ? true : false, xff_cfg);
     if (unlikely(js == NULL)) {
         return;
     }
@@ -273,6 +299,9 @@ static TmEcode JsonFileLogThreadDeinit(ThreadVars *t, void *data)
 static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
 {
     OutputFileCtx *ff_ctx = output_ctx->data;
+    if (ff_ctx->xff_cfg != NULL) {
+        SCFree(ff_ctx->xff_cfg);
+    }
     SCFree(ff_ctx);
     SCFree(output_ctx);
 }
@@ -312,6 +341,10 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
         }
 
         FileForceHashParseCfg(conf);
+    }
+    output_file_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+    if (output_file_ctx->xff_cfg != NULL) {
+        HttpXFFGetCfg(conf, output_file_ctx->xff_cfg);
     }
 
     output_ctx->data = output_file_ctx;

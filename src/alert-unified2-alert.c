@@ -329,7 +329,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
         int have_xff_ip = 0;
 
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+            have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
         }
 
         if (have_xff_ip) {
@@ -916,9 +916,9 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
 
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
 
@@ -1104,9 +1104,9 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
 
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p->flow, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p->flow, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
 
