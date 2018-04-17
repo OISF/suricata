@@ -82,8 +82,23 @@ typedef struct JsonFileLogThread_ {
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
         const bool stored)
 {
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "fileinfo");
+    json_t *js = NULL;
     json_t *hjs = NULL;
+    enum OutputJsonLogDirection dir = LOG_DIR_FLOW;
+
+    switch (ff->side) {
+        case FILE_NO_SIDE:
+            dir = LOG_DIR_FLOW;
+            break;
+        case FILE_TO_SERVER:
+            dir = LOG_DIR_FLOW_TO_SERVER;
+            break;
+        case FILE_TO_CLIENT:
+            dir = LOG_DIR_FLOW_TO_CLIENT;
+            break;
+    }
+
+    js = CreateJSONHeader(p, dir, "fileinfo");
     if (unlikely(js == NULL))
         return NULL;
 

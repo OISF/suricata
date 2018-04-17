@@ -740,6 +740,17 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
                          input, input_len, flags) == NULL) {
             SCLogDebug("Can't open file");
             ret = -1;
+        } else {
+            switch (data->cmd) {
+                case FTP_COMMAND_STOR:
+                    FileSetSide(ftpdata_state->files->tail, FILE_TO_SERVER);
+                    break;
+                case FTP_COMMAND_RETR:
+                    FileSetSide(ftpdata_state->files->tail, FILE_TO_CLIENT);
+                    break;
+                default:
+                    break;
+            }
         }
         FlowFreeStorageById(f, AppLayerExpectationGetDataId());
     } else {

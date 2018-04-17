@@ -145,6 +145,12 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
 
     FileSetTx(files->tail, txid);
 
+    if (direction & STREAM_TOCLIENT) {
+        FileSetSide(files->tail, FILE_TO_CLIENT);
+    } else {
+        FileSetSide(files->tail, FILE_TO_SERVER);
+    }
+
     FilePrune(files);
 end:
     SCReturnInt(retval);
