@@ -273,6 +273,7 @@ outputs:
         @rust_config_comment@- smb
         @rust_config_comment@- tftp
         @rust_config_comment@- ikev2
+        @rust_config_comment@- krb5
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
