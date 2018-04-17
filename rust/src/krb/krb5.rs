@@ -20,7 +20,7 @@
 use libc;
 use std;
 use std::ffi::{CStr,CString};
-use nom::IResult;
+use nom::{IResult,be_u32};
 use der_parser::der_read_element_header;
 use kerberos_parser::krb5_parser;
 use kerberos_parser::krb5::{EncryptionType,MessageType,PrincipalName,Realm};
@@ -409,6 +409,24 @@ pub extern "C" fn rs_krb5_probing_parser(_flow: *const Flow, input:*const libc::
 }
 
 #[no_mangle]
+pub extern "C" fn rs_krb5_probing_parser_tcp(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32, _offset: *const u32) -> AppProto {
+    let slice = build_slice!(input,input_len as usize);
+    if slice.len() <= 14 { return unsafe{ALPROTO_FAILED}; }
+    match be_u32(slice) {
+        IResult::Done(rem, record_mark) => {
+            if record_mark != rem.len() as u32 { return unsafe{ALPROTO_FAILED}; }
+            return rs_krb5_probing_parser(_flow, rem.as_ptr(), rem.len() as u32, _offset);
+        },
+        IResult::Incomplete(_) => {
+            return ALPROTO_UNKNOWN;
+        },
+        IResult::Error(_) => {
+            return unsafe{ALPROTO_FAILED};
+        },
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        state: *mut libc::c_void,
                                        _pstate: *mut libc::c_void,
@@ -432,13 +450,41 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
     state.parse(buf, STREAM_TOCLIENT)
 }
 
+#[no_mangle]
+pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
+                                       state: *mut libc::c_void,
+                                       _pstate: *mut libc::c_void,
+                                       input: *const libc::uint8_t,
+                                       input_len: u32,
+                                       _data: *const libc::c_void) -> i8 {
+    if input_len < 4 { return -1; }
+    let buf = build_slice!(input,input_len as usize);
+    let state = cast_pointer!(state,KRB5State);
+    // skip the record mark
+    state.parse(&buf[4..], STREAM_TOSERVER)
+}
+
+#[no_mangle]
+pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
+                                       state: *mut libc::c_void,
+                                       _pstate: *mut libc::c_void,
+                                       input: *const libc::uint8_t,
+                                       input_len: u32,
+                                       _data: *const libc::c_void) -> i8 {
+    if input_len < 4 { return -1; }
+    let buf = build_slice!(input,input_len as usize);
+    let state = cast_pointer!(state,KRB5State);
+    // skip the record mark
+    state.parse(&buf[4..], STREAM_TOCLIENT)
+}
+
 
 const PARSER_NAME : &'static [u8] = b"krb5\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_krb5_parser() {
     let default_port = CString::new("88").unwrap();
-    let parser = RustParser {
+    let mut parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
         ipproto           : libc::IPPROTO_UDP,
@@ -467,6 +513,7 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
         set_tx_mpm_id     : None,
         get_files         : None,
     };
+    // register UDP parser
     let ip_proto_str = CString::new("udp").unwrap();
     if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
         let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
@@ -476,6 +523,23 @@ pub unsafe extern "C" fn rs_register_krb5_parser() {
             let _ = AppLayerRegisterParser(&parser, alproto);
         }
     } else {
-        SCLogDebug!("Protocol detecter and parser disabled for KRB5.");
+        SCLogDebug!("Protocol detecter and parser disabled for KRB5/UDP.");
+    }
+    // register TCP parser
+    parser.ipproto = libc::IPPROTO_TCP;
+    parser.probe_ts = rs_krb5_probing_parser_tcp;
+    parser.probe_tc = rs_krb5_probing_parser_tcp;
+    parser.parse_ts = rs_krb5_parse_request_tcp;
+    parser.parse_tc = rs_krb5_parse_response_tcp;
+    let ip_proto_str = CString::new("tcp").unwrap();
+    if AppLayerProtoDetectConfProtoDetectionEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+        let alproto = AppLayerRegisterProtocolDetection(&parser, 1);
+        // store the allocated ID for the probe function
+        ALPROTO_KRB5 = alproto;
+        if AppLayerParserConfParserEnabled(ip_proto_str.as_ptr(), parser.name) != 0 {
+            let _ = AppLayerRegisterParser(&parser, alproto);
+        }
+    } else {
+        SCLogDebug!("Protocol detecter and parser disabled for KRB5/TCP.");
     }
 }
