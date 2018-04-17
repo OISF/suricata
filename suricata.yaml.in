@@ -192,6 +192,7 @@ outputs:
         header: X-Forwarded-For
 
       types:
+        - krb5
         - alert:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
