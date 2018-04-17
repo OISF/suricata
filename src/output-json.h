@@ -36,6 +36,8 @@ void OutputJsonRegister(void);
 enum OutputJsonLogDirection {
     LOG_DIR_PACKET = 0,
     LOG_DIR_FLOW,
+    LOG_DIR_FLOW_TO_CLIENT,
+    LOG_DIR_FLOW_TO_SERVER,
 };
 
 /* helper struct for OutputJSONMemBufferCallback */

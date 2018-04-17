@@ -145,6 +145,20 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
 
     FileSetTx(files->tail, txid);
 
+    htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, s, txid);
+    if (tx) {
+        switch (tx->request_method_number) {
+            case HTP_M_POST:
+            case HTP_M_PUT:
+                FileSetSide(files->tail, FILE_TO_SERVER);
+                break;
+            case HTP_M_GET:
+                FileSetSide(files->tail, FILE_TO_CLIENT);
+            default:
+                break;
+        }
+    }
+
     FilePrune(files);
 end:
     SCReturnInt(retval);
