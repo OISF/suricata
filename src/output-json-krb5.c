@@ -127,6 +127,7 @@ static OutputInitResult OutputKRB5LogInitSub(ConfNode *conf,
 
     SCLogDebug("KRB5 log sub-module initialized.");
 
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_KRB5);
     AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_KRB5);
 
     result.ctx = output_ctx;
