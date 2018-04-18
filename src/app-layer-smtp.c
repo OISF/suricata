@@ -449,6 +449,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                     (uint8_t *) chunk, len, flags) == NULL) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
+            } else {
+                FileSetSide(files->tail, FILE_TO_SERVER);
             }
             FlagDetectStateNewFile(smtp_state->curr_tx);
 

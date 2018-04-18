@@ -61,6 +61,12 @@ typedef enum FileState_ {
     FILE_STATE_MAX
 } FileState;
 
+typedef enum FileSide_ {
+    FILE_NO_SIDE = 0,
+    FILE_TO_CLIENT,
+    FILE_TO_SERVER,
+} FileSide;
+
 typedef struct File_ {
     uint16_t flags;
     uint16_t name_len;
@@ -89,6 +95,7 @@ typedef struct File_ {
                                      *   flag is set */
     uint64_t content_stored;
     uint64_t size;
+    FileSide side;                   /**< side of stream the File is attached to */
 } File;
 
 typedef struct FileContainer_ {
@@ -171,6 +178,8 @@ int FileAppendGAPById(FileContainer *ffc, uint32_t track_id,
  *  \param ff The file to store
  */
 int FileStore(File *);
+
+int FileSetSide(File *ff, FileSide side);
 
 /**
  *  \brief Set the TX id for a file
