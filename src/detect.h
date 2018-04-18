@@ -366,7 +366,9 @@ typedef struct InspectionBuffer {
 
 typedef struct InspectionBufferMultipleForList {
     InspectionBuffer *inspection_buffers;
-    uint32_t size;  /**< size in number of elements */
+    uint32_t size;      /**< size in number of elements */
+    uint32_t max:31;    /**< max id in use in this run */
+    uint32_t init:1;    /**< first time used this run. Used for clean logic */
 } InspectionBufferMultipleForList;
 
 typedef struct DetectEngineTransforms {
@@ -1008,14 +1010,22 @@ typedef struct DetectEngineThreadCtx_ {
 #endif
 
     int inspect_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
-    InspectionBuffer *inspect_buffers;
 
-    uint32_t inspect_buffers_size;          /**< in number of elements */
-    uint32_t multi_inspect_buffers_size;    /**< in number of elements */
+    struct {
+        InspectionBuffer *buffers;
+        uint32_t buffers_size;          /**< in number of elements */
+        uint32_t to_clear_idx;
+        uint32_t *to_clear_queue;
+    } inspect;
 
-    /* inspection buffers for more complete case. As we can inspect multiple
-     * buffers in parallel, we need this extra wrapper struct */
-    InspectionBufferMultipleForList *multi_inspect_buffers;
+    struct {
+        /** inspection buffers for more complex case. As we can inspect multiple
+         *  buffers in parallel, we need this extra wrapper struct */
+        InspectionBufferMultipleForList *buffers;
+        uint32_t buffers_size;                      /**< in number of elements */
+        uint32_t to_clear_idx;
+        uint32_t *to_clear_queue;
+    } multi_inspect;
 
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
