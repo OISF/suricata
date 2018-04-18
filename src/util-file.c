@@ -519,6 +519,13 @@ int FileSetTx(File *ff, uint64_t txid)
     SCReturnInt(0);
 }
 
+int FileSetSide(File *ff, FileSide side)
+{
+    if (ff != NULL)
+        ff->side = side;
+    SCReturnInt(0);
+}
+
 void FileContainerSetTx(FileContainer *ffc, uint64_t tx_id)
 {
     if (ffc && ffc->tail) {
