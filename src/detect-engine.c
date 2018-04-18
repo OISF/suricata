@@ -844,6 +844,81 @@ int DetectBufferGetActiveList(DetectEngineCtx *de_ctx, Signature *s)
     return 0;
 }
 
+void InspectionBufferClean(DetectEngineThreadCtx *det_ctx)
+{
+    /* single buffers */
+    for (uint32_t i = 0; i < det_ctx->inspect.to_clear_idx; i++)
+    {
+        const uint32_t idx = det_ctx->inspect.to_clear_queue[i];
+        InspectionBuffer *buffer = &det_ctx->inspect.buffers[idx];
+        buffer->inspect = NULL;
+    }
+    det_ctx->inspect.to_clear_idx = 0;
+
+    /* multi buffers */
+    for (uint32_t i = 0; i < det_ctx->multi_inspect.to_clear_idx; i++)
+    {
+        const uint32_t idx = det_ctx->multi_inspect.to_clear_queue[i];
+        InspectionBufferMultipleForList *mbuffer = &det_ctx->multi_inspect.buffers[idx];
+        for (uint32_t x = 0; x < mbuffer->max; x++) {
+            InspectionBuffer *buffer = &mbuffer->inspection_buffers[x];
+            buffer->inspect = NULL;
+        }
+        mbuffer->init = 0;
+        mbuffer->max = 0;
+    }
+    det_ctx->multi_inspect.to_clear_idx = 0;
+}
+
+InspectionBuffer *InspectionBufferGet(DetectEngineThreadCtx *det_ctx, const int list_id)
+{
+    InspectionBuffer *buffer = &det_ctx->inspect.buffers[list_id];
+    if (buffer->inspect == NULL) {
+        det_ctx->inspect.to_clear_queue[det_ctx->inspect.to_clear_idx++] = list_id;
+    }
+    return buffer;
+}
+
+/** \brief for a InspectionBufferMultipleForList get a InspectionBuffer
+ *  \param fb the multiple buffer array
+ *  \param local_id the index to get a buffer
+ *  \param buffer the inspect buffer or NULL in case of error */
+InspectionBuffer *InspectionBufferMultipleForListGet(InspectionBufferMultipleForList *fb, uint32_t local_id)
+{
+    if (local_id >= fb->size) {
+        uint32_t old_size = fb->size;
+        uint32_t new_size = local_id + 1;
+        uint32_t grow_by = new_size - old_size;
+        SCLogDebug("size is %u, need %u, so growing by %u", old_size, new_size, grow_by);
+
+        SCLogDebug("fb->inspection_buffers %p", fb->inspection_buffers);
+        void *ptr = SCRealloc(fb->inspection_buffers, (local_id + 1) * sizeof(InspectionBuffer));
+        if (ptr == NULL)
+            return NULL;
+
+        InspectionBuffer *to_zero = (InspectionBuffer *)ptr + old_size;
+        SCLogDebug("ptr %p to_zero %p", ptr, to_zero);
+        memset((uint8_t *)to_zero, 0, (grow_by * sizeof(InspectionBuffer)));
+        fb->inspection_buffers = ptr;
+        fb->size = new_size;
+    }
+
+    fb->max = MAX(fb->max, local_id);
+    InspectionBuffer *buffer = &fb->inspection_buffers[local_id];
+    SCLogDebug("using file_data buffer %p", buffer);
+    return buffer;
+}
+
+InspectionBufferMultipleForList *InspectionBufferGetMulti(DetectEngineThreadCtx *det_ctx, const int list_id)
+{
+    InspectionBufferMultipleForList *buffer = &det_ctx->multi_inspect.buffers[list_id];
+    if (!buffer->init) {
+        det_ctx->multi_inspect.to_clear_queue[det_ctx->multi_inspect.to_clear_idx++] = list_id;
+        buffer->init = 1;
+    }
+    return buffer;
+}
+
 void InspectionBufferInit(InspectionBuffer *buffer, uint32_t initial_size)
 {
     memset(buffer, 0, sizeof(*buffer));
@@ -2253,16 +2328,28 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         det_ctx->base64_decoded_len = 0;
     }
 
-    det_ctx->inspect_buffers_size = de_ctx->buffer_type_id;
-    det_ctx->inspect_buffers = SCCalloc(det_ctx->inspect_buffers_size, sizeof(InspectionBuffer));
-    if (det_ctx->inspect_buffers == NULL) {
+    det_ctx->inspect.buffers_size = de_ctx->buffer_type_id;
+    det_ctx->inspect.buffers = SCCalloc(det_ctx->inspect.buffers_size, sizeof(InspectionBuffer));
+    if (det_ctx->inspect.buffers == NULL) {
         return TM_ECODE_FAILED;
     }
-    det_ctx->multi_inspect_buffers_size = de_ctx->buffer_type_id;
-    det_ctx->multi_inspect_buffers = SCCalloc(det_ctx->multi_inspect_buffers_size, sizeof(InspectionBufferMultipleForList));
-    if (det_ctx->multi_inspect_buffers == NULL) {
+    det_ctx->inspect.to_clear_queue = SCCalloc(det_ctx->inspect.buffers_size, sizeof(uint32_t));
+    if (det_ctx->inspect.to_clear_queue == NULL) {
         return TM_ECODE_FAILED;
     }
+    det_ctx->inspect.to_clear_idx = 0;
+
+    det_ctx->multi_inspect.buffers_size = de_ctx->buffer_type_id;
+    det_ctx->multi_inspect.buffers = SCCalloc(det_ctx->multi_inspect.buffers_size, sizeof(InspectionBufferMultipleForList));
+    if (det_ctx->multi_inspect.buffers == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    det_ctx->multi_inspect.to_clear_queue = SCCalloc(det_ctx->multi_inspect.buffers_size, sizeof(uint32_t));
+    if (det_ctx->multi_inspect.to_clear_queue == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    det_ctx->multi_inspect.to_clear_idx = 0;
+
 
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
     DetectEngineThreadCtxInitGlobalKeywords(det_ctx);
@@ -2469,23 +2556,28 @@ static void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SCFree(det_ctx->base64_decoded);
     }
 
-    if (det_ctx->inspect_buffers) {
-        for (uint32_t i = 0; i < det_ctx->inspect_buffers_size; i++) {
-            InspectionBufferFree(&det_ctx->inspect_buffers[i]);
+    if (det_ctx->inspect.buffers) {
+        for (uint32_t i = 0; i < det_ctx->inspect.buffers_size; i++) {
+            InspectionBufferFree(&det_ctx->inspect.buffers[i]);
         }
-        SCFree(det_ctx->inspect_buffers);
+        SCFree(det_ctx->inspect.buffers);
     }
-    if (det_ctx->multi_inspect_buffers) {
-        for (uint32_t i = 0; i < det_ctx->multi_inspect_buffers_size; i++) {
-            InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect_buffers[i];
+    if (det_ctx->inspect.to_clear_queue) {
+        SCFree(det_ctx->inspect.to_clear_queue);
+    }
+    if (det_ctx->multi_inspect.buffers) {
+        for (uint32_t i = 0; i < det_ctx->multi_inspect.buffers_size; i++) {
+            InspectionBufferMultipleForList *fb = &det_ctx->multi_inspect.buffers[i];
             for (uint32_t x = 0; x < fb->size; x++) {
                 InspectionBufferFree(&fb->inspection_buffers[x]);
             }
             SCFree(fb->inspection_buffers);
         }
-        SCFree(det_ctx->multi_inspect_buffers);
+        SCFree(det_ctx->multi_inspect.buffers);
     }
-
+    if (det_ctx->multi_inspect.to_clear_queue) {
+        SCFree(det_ctx->multi_inspect.to_clear_queue);
+    }
 
     DetectEngineThreadCtxDeinitGlobalKeywords(det_ctx);
     if (det_ctx->de_ctx != NULL) {

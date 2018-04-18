@@ -122,9 +122,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         htp_tx_t *tx = (htp_tx_t *)txv;
         if (unlikely(tx->request_line == NULL)) {

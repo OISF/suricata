@@ -130,9 +130,7 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms, Flow *_f,
         const uint8_t _flow_flags, void *txv, const int list_id)
 {
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
-
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         SSLState *ssl_state = (SSLState *)_f->alstate;
 

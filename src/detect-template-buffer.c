@@ -117,14 +117,11 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         Flow *_f, const uint8_t flow_flags,
         void *txv, const int list_id)
 {
-    const uint8_t *data = NULL;
-    uint32_t data_len = 0;
-
-    BUG_ON(det_ctx->inspect_buffers == NULL);
-
-    InspectionBuffer *buffer = &det_ctx->inspect_buffers[list_id];
+    InspectionBuffer *buffer = InspectionBufferGet(det_ctx, list_id);
     if (buffer->inspect == NULL) {
         const TemplateTransaction  *tx = (TemplateTransaction *)txv;
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
 
         if (flow_flags & STREAM_TOSERVER) {
             data = tx->request_buffer;
