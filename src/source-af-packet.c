@@ -1505,6 +1505,12 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
             }
         } else if (unlikely(r == 0)) {
+            /* Trigger one dump of stats every second */
+            current_time = time(NULL);
+            if (current_time != last_dump) {
+                AFPDumpCounters(ptv);
+                last_dump = current_time;
+            }
             /* poll timed out, lets see if we need to inject a fake packet  */
             TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
 
