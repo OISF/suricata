@@ -30,7 +30,8 @@
 #include "util-file.h"
 
 /** packet logger function pointer type */
-typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *, const File *);
+typedef int (*FileLogger)(ThreadVars *, void *thread_data, const Packet *,
+                          const File *, uint8_t direction);
 
 /** packet logger condition function pointer type,
  *  must return true for packets that should be logged

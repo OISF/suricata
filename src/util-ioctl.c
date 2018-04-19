@@ -313,7 +313,7 @@ static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  "Failure when trying to set feature via ioctl for '%s': %s (%d)",
                   dev, strerror(errno), errno);
         close(fd);
         return -1;
