@@ -69,7 +69,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     uint32_t line_len = input_len;
 
     /* is it the version line? */
-    if (SCMemcmp("SSH-", line_ptr, 4) != 0) {
+    if (line_len >= 4 && SCMemcmp("SSH-", line_ptr, 4) != 0) {
         SCReturnInt(-1);
     }
 
