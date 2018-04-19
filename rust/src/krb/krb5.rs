@@ -34,7 +34,7 @@ use log::*;
 #[repr(u32)]
 pub enum KRB5Event {
     MalformedData = 0,
-    WeakCrypto,
+    WeakEncryption,
 }
 
 pub struct KRB5State {
@@ -115,7 +115,9 @@ impl KRB5State {
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            self.check_crypto(kdc_rep.enc_part.etype);
+                            if test_weak_encryption(kdc_rep.enc_part.etype) {
+                                self.set_event(KRB5Event::WeakEncryption);
+                            }
                         });
                         self.req_id = 0;
                     },
@@ -132,7 +134,9 @@ impl KRB5State {
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            self.check_crypto(kdc_rep.enc_part.etype);
+                            if test_weak_encryption(kdc_rep.enc_part.etype) {
+                                self.set_event(KRB5Event::WeakEncryption);
+                            }
                         });
                         self.req_id = 0;
                     },
@@ -169,21 +173,6 @@ impl KRB5State {
                 self.set_event(KRB5Event::MalformedData);
                 -1
             },
-        }
-    }
-
-    fn check_crypto(&mut self, alg:EncryptionType) {
-        match alg {
-            EncryptionType::AES128_CTS_HMAC_SHA1_96 |
-            EncryptionType::AES256_CTS_HMAC_SHA1_96 |
-            EncryptionType::AES128_CTS_HMAC_SHA256_128 |
-            EncryptionType::AES256_CTS_HMAC_SHA384_192 |
-            EncryptionType::CAMELLIA128_CTS_CMAC |
-            EncryptionType::CAMELLIA256_CTS_CMAC => (),
-            _ => { // all other ciphers are weak or deprecated
-                SCLogDebug!("Kerberos5: weak encryption {:?}", alg);
-                self.set_event(KRB5Event::WeakCrypto);
-            }
         }
     }
 
@@ -246,6 +235,20 @@ impl Drop for KRB5Transaction {
         }
     }
 }
+
+/// Return true if Kerberos `EncryptionType` is weak
+pub fn test_weak_encryption(alg:EncryptionType) -> bool {
+    match alg {
+        EncryptionType::AES128_CTS_HMAC_SHA1_96 |
+        EncryptionType::AES256_CTS_HMAC_SHA1_96 |
+        EncryptionType::AES128_CTS_HMAC_SHA256_128 |
+        EncryptionType::AES256_CTS_HMAC_SHA384_192 |
+        EncryptionType::CAMELLIA128_CTS_CMAC |
+        EncryptionType::CAMELLIA256_CTS_CMAC => false,
+        _ => true, // all other ciphers are weak or deprecated
+    }
+}
+
 
 
 
@@ -377,7 +380,7 @@ pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const libc::c_char,
         Ok(s) => {
             match s {
                 "malformed_data"     => KRB5Event::MalformedData as i32,
-                "weak_crypto"        => KRB5Event::WeakCrypto as i32,
+                "weak_encryption"    => KRB5Event::WeakEncryption as i32,
                 _                    => -1, // unknown event
             }
         },

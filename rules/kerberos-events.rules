@@ -5,4 +5,4 @@
 # These sigs fire at most once per connection.
 #
 alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 malformed request data"; flow:to_server; app-layer-event:krb5.malformed_data; classtype:protocol-command-decode; sid:2226000; rev:1;)
-alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 weak cryptographic parameters"; flow:to_client; app-layer-event:krb5.weak_crypto; classtype:protocol-command-decode; sid:2226001; rev:1;)
+alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 weak encryption parameters"; flow:to_client; app-layer-event:krb5.weak_encryption; classtype:protocol-command-decode; sid:2226001; rev:1;)

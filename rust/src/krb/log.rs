@@ -18,7 +18,7 @@
 // written by Pierre Chifflier  <chifflier@wzdftpd.net>
 
 use json::*;
-use krb::krb5::{KRB5State,KRB5Transaction};
+use krb::krb5::{KRB5State,KRB5Transaction,test_weak_encryption};
 
 #[no_mangle]
 pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB5Transaction) -> *mut JsonT
@@ -52,6 +52,7 @@ pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB
     js.set_string("realm", &realm);
     js.set_string("sname", &sname);
     js.set_string("encryption", &encryption);
+    js.set_boolean("weak_encryption", tx.etype.map_or(false,test_weak_encryption));
     return js.unwrap();
 }
 
