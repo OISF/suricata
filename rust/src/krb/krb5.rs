@@ -48,7 +48,7 @@ pub struct KRB5State {
     tx_id: u64,
 }
 
-static mut LOG_WEAK_CRYPTO : bool = false;
+static mut WARN_WEAK_CRYPTO : bool = false;
 
 pub struct KRB5Transaction {
     /// The message type: AS-REQ, AS-REP, etc.
@@ -118,7 +118,9 @@ impl KRB5State {
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            self.check_crypto(kdc_rep.enc_part.etype);
+                            if unsafe{ WARN_WEAK_CRYPTO } & test_weak_crypto(kdc_rep.enc_part.etype) {
+                                self.set_event(KRB5Event::WeakCrypto);
+                            }
                         });
                         self.req_id = 0;
                     },
@@ -135,7 +137,9 @@ impl KRB5State {
                             tx.sname = Some(kdc_rep.ticket.sname);
                             tx.etype = Some(kdc_rep.enc_part.etype);
                             self.transactions.push(tx);
-                            self.check_crypto(kdc_rep.enc_part.etype);
+                            if unsafe{ WARN_WEAK_CRYPTO } & test_weak_crypto(kdc_rep.enc_part.etype) {
+                                self.set_event(KRB5Event::WeakCrypto);
+                            }
                         });
                         self.req_id = 0;
                     },
@@ -172,23 +176,6 @@ impl KRB5State {
                 self.set_event(KRB5Event::MalformedData);
                 -1
             },
-        }
-    }
-
-    fn check_crypto(&mut self, alg:EncryptionType) {
-        // this warning is configurable: it can generate lots of logs
-        if unsafe{ ! LOG_WEAK_CRYPTO } { return; }
-        match alg {
-            EncryptionType::AES128_CTS_HMAC_SHA1_96 |
-            EncryptionType::AES256_CTS_HMAC_SHA1_96 |
-            EncryptionType::AES128_CTS_HMAC_SHA256_128 |
-            EncryptionType::AES256_CTS_HMAC_SHA384_192 |
-            EncryptionType::CAMELLIA128_CTS_CMAC |
-            EncryptionType::CAMELLIA256_CTS_CMAC => (),
-            _ => { // all other ciphers are weak or deprecated
-                SCLogDebug!("Kerberos5: weak encryption {:?}", alg);
-                self.set_event(KRB5Event::WeakCrypto);
-            }
         }
     }
 
@@ -251,6 +238,20 @@ impl Drop for KRB5Transaction {
         }
     }
 }
+
+/// Return true if Kerberos `EncryptionType` is weak
+pub fn test_weak_crypto(alg:EncryptionType) -> bool {
+    match alg {
+        EncryptionType::AES128_CTS_HMAC_SHA1_96 |
+        EncryptionType::AES256_CTS_HMAC_SHA1_96 |
+        EncryptionType::AES128_CTS_HMAC_SHA256_128 |
+        EncryptionType::AES256_CTS_HMAC_SHA384_192 |
+        EncryptionType::CAMELLIA128_CTS_CMAC |
+        EncryptionType::CAMELLIA256_CTS_CMAC => false,
+        _ => true, // all other ciphers are weak or deprecated
+    }
+}
+
 
 
 
@@ -505,7 +506,7 @@ const PARSER_NAME : &'static [u8] = b"krb5\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_krb5_parser() {
-    LOG_WEAK_CRYPTO = conf_get_bool("app-layer.protocols.krb5.warn-weak-crypto");
+    WARN_WEAK_CRYPTO = conf_get_bool("app-layer.protocols.krb5.warn-weak-crypto");
     let default_port = CString::new("88").unwrap();
     let mut parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
