@@ -375,6 +375,7 @@ pub extern "C" fn rs_krb5_state_get_event_info(event_name: *const libc::c_char,
         Ok(s) => {
             match s {
                 "malformed_data"     => KRB5Event::MalformedData as i32,
+                "weak_crypto"        => KRB5Event::WeakCrypto as i32,
                 _                    => -1, // unknown event
             }
         },
