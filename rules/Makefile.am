@@ -11,4 +11,5 @@ files.rules \
 dnp3-events.rules \
 ntp-events.rules \
 nfs-events.rules \
-ipsec-events.rules
+ipsec-events.rules \
+kerberos-events.rules
