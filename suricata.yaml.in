@@ -110,6 +110,7 @@ default-rule-path: @e_defaultruledir@
 # - dnp3-events.rules       # available in suricata sources under rules dir
 # - ntp-events.rules       # available in suricata sources under rules dir
 # - ipsec-events.rules       # available in suricata sources under rules dir
+# - kerberos-events.rules       # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
