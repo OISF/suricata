@@ -445,6 +445,68 @@ void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
             sp = p->sp;
             dp = p->dp;
             break;
+        case LOG_DIR_FLOW_TOSERVER:
+            if ((PKT_IS_TOSERVER(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
+        case LOG_DIR_FLOW_TOCLIENT:
+            if ((PKT_IS_TOCLIENT(p))) {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->sp;
+                dp = p->dp;
+            } else {
+                if (PKT_IS_IPV4(p)) {
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                            dstip, sizeof(dstip));
+                } else if (PKT_IS_IPV6(p)) {
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                            srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                            dstip, sizeof(dstip));
+                }
+                sp = p->dp;
+                dp = p->sp;
+            }
+            break;
         default:
             DEBUG_VALIDATE_BUG_ON(1);
             return;

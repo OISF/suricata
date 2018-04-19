@@ -325,7 +325,8 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 }
 
-static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
+static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+                         const File *ff, uint8_t dir)
 {
     SCEnter();
     LogFileLogThread *aft = (LogFileLogThread *)thread_data;
