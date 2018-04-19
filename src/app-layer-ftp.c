@@ -733,6 +733,16 @@ static int FTPDataParse(Flow *f, FtpDataState *ftpdata_state,
         data->file_len = 0;
         f->parent_id = data->flow_id;
         ftpdata_state->command = data->cmd;
+        switch (data->cmd) {
+            case FTP_COMMAND_STOR:
+                ftpdata_state->direction = STREAM_TOSERVER;
+                break;
+            case FTP_COMMAND_RETR:
+                ftpdata_state->direction = STREAM_TOCLIENT;
+                break;
+            default:
+                break;
+        }
 
         if (FileOpenFile(ftpdata_state->files, &sbcfg,
                          (uint8_t *) ftpdata_state->file_name,
@@ -882,6 +892,9 @@ static int FTPDataGetAlstateProgress(void *tx, uint8_t direction)
 static FileContainer *FTPDataStateGetFiles(void *state, uint8_t direction)
 {
     FtpDataState *ftpdata_state = (FtpDataState *)state;
+
+    if (direction != ftpdata_state->direction)
+        SCReturnPtr(NULL, "FileContainer");
 
     SCReturnPtr(ftpdata_state->files, "FileContainer");
 }
