@@ -28,7 +28,7 @@ pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB
         Some(c) => {
             js.set_string("msg_type", "KRB_ERROR");
             js.set_string("failed_request", &format!("{:?}", tx.msg_type));
-            js.set_string("error_code", &format!("{}", c));
+            js.set_string("error_code", &format!("{:?}", c));
         },
         None    => { js.set_string("msg_type", &format!("{:?}", tx.msg_type)); },
     }
