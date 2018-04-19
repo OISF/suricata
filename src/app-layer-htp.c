@@ -2953,6 +2953,107 @@ static int HTPParserTest01(void)
     PASS;
 }
 
+/** \test Test folding in 1 read case */
+static int HTPParserTest01b(void)
+{
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent:\r\n Victor/1.0\r\n\r\nPost"
+                         " Data is c0oL!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint8_t flags =STREAM_TOSERVER|STREAM_START|STREAM_EOF;
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+            httpbuf1, httplen1);
+    FAIL_IF(r != 0);
+
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    FAIL_IF_NULL(tx);
+
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(tx->request_method_number != HTP_M_POST);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
+/** \test Test folding in 1byte per read case */
+static int HTPParserTest01c(void)
+{
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent:\r\n Victor/1.0\r\n\r\nPost"
+                         " Data is c0oL!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    TcpSession ssn;
+    memset(&ssn, 0, sizeof(ssn));
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0)
+            flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1))
+            flags = STREAM_TOSERVER|STREAM_EOF;
+        else
+            flags = STREAM_TOSERVER;
+
+        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
+        FAIL_IF(r != 0);
+    }
+
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    FAIL_IF_NULL(tx);
+
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(tx->request_method_number != HTP_M_POST);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
+    PASS;
+}
+
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */
 static int HTPParserTest01a(void)
@@ -6763,6 +6864,8 @@ void HTPParserRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("HTPParserTest01", HTPParserTest01);
     UtRegisterTest("HTPParserTest01a", HTPParserTest01a);
+    UtRegisterTest("HTPParserTest01b", HTPParserTest01b);
+    UtRegisterTest("HTPParserTest01c", HTPParserTest01c);
     UtRegisterTest("HTPParserTest02", HTPParserTest02);
     UtRegisterTest("HTPParserTest03", HTPParserTest03);
     UtRegisterTest("HTPParserTest04", HTPParserTest04);
