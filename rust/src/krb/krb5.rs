@@ -41,15 +41,14 @@ pub enum KRB5Event {
 pub struct KRB5State {
     pub req_id: u8,
 
-    /// Configuration option to warn user on weak crypto
-    pub log_weak_crypto: bool,
-
     /// List of transactions for this session
     transactions: Vec<KRB5Transaction>,
 
     /// tx counter for assigning incrementing id's to tx's
     tx_id: u64,
 }
+
+static mut LOG_WEAK_CRYPTO : bool = false;
 
 pub struct KRB5Transaction {
     /// The message type: AS-REQ, AS-REP, etc.
@@ -90,10 +89,8 @@ pub fn to_hex_string(bytes: &[u8]) -> String {
 
 impl KRB5State {
     pub fn new() -> KRB5State {
-        let l = conf_get_bool("app-layer.protocols.krb5.warn-weak-crypto");
         KRB5State{
             req_id: 0,
-            log_weak_crypto: l,
             transactions: Vec::new(),
             tx_id: 0,
         }
@@ -180,7 +177,7 @@ impl KRB5State {
 
     fn check_crypto(&mut self, alg:EncryptionType) {
         // this warning is configurable: it can generate lots of logs
-        if !self.log_weak_crypto { return; }
+        if unsafe{ ! LOG_WEAK_CRYPTO } { return; }
         match alg {
             EncryptionType::AES128_CTS_HMAC_SHA1_96 |
             EncryptionType::AES256_CTS_HMAC_SHA1_96 |
@@ -508,6 +505,7 @@ const PARSER_NAME : &'static [u8] = b"krb5\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_register_krb5_parser() {
+    LOG_WEAK_CRYPTO = conf_get_bool("app-layer.protocols.krb5.warn-weak-crypto");
     let default_port = CString::new("88").unwrap();
     let mut parser = RustParser {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
