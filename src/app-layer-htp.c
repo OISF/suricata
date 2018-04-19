@@ -2900,21 +2900,18 @@ void HtpConfigRestoreBackup(void)
  *        response of the parser from HTP library. */
 static int HTPParserTest01(void)
 {
-    int result = 0;
-    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-    TcpSession ssn;
-    HtpState *htp_state =  NULL;
-    int r = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
 
+    TcpSession ssn;
     memset(&ssn, 0, sizeof(ssn));
 
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
+
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
@@ -2932,45 +2929,28 @@ static int HTPParserTest01(void)
         else
             flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+        int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
                                 &httpbuf1[u], 1);
-        if (r != 0) {
-            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                    " 0: ", u, r);
-            FLOWLOCK_UNLOCK(f);
-            goto end;
-        }
-        FLOWLOCK_UNLOCK(f);
+        FAIL_IF(r != 0);
     }
 
-    htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
-    if (strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0")
-        || tx->request_method_number != HTP_M_POST ||
-        tx->request_protocol_number != HTP_PROTOCOL_1_0)
-    {
-        printf("expected header value: Victor/1.0 and got %s: and expected"
-                " method: POST and got %s, expected protocol number HTTP/1.0"
-                "  and got: %s \n", bstr_util_strdup_to_c(h->value),
-                bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    FAIL_IF_NULL(h);
+
+    FAIL_IF(strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0"));
+    FAIL_IF(tx->request_method_number != HTP_M_POST);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_0);
+
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    return result;
+    PASS;
 }
 
 /** \test Test case where chunks are sent in smaller chunks and check the
