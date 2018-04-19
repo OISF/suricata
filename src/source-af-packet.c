@@ -917,15 +917,15 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
         if (ptv->flags & AFP_BYPASS) {
             p->BypassPacketsFlow = AFPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
-            p->afp_v.v4_map_fd = ptv->v4_map_fd;    
-            p->afp_v.v6_map_fd = ptv->v6_map_fd;    
+            p->afp_v.v4_map_fd = ptv->v4_map_fd;
+            p->afp_v.v6_map_fd = ptv->v6_map_fd;
 #endif
         }
         if (ptv->flags & AFP_XDPBYPASS) {
             p->BypassPacketsFlow = AFPXDPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
-            p->afp_v.v4_map_fd = ptv->v4_map_fd;    
-            p->afp_v.v6_map_fd = ptv->v6_map_fd;    
+            p->afp_v.v4_map_fd = ptv->v4_map_fd;
+            p->afp_v.v6_map_fd = ptv->v6_map_fd;
 #endif
         }
 
@@ -1044,15 +1044,15 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     if (ptv->flags & AFP_BYPASS) {
         p->BypassPacketsFlow = AFPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
-        p->afp_v.v4_map_fd = ptv->v4_map_fd;    
-        p->afp_v.v6_map_fd = ptv->v6_map_fd;    
+        p->afp_v.v4_map_fd = ptv->v4_map_fd;
+        p->afp_v.v6_map_fd = ptv->v6_map_fd;
 #endif
     }
     if (ptv->flags & AFP_XDPBYPASS) {
         p->BypassPacketsFlow = AFPXDPBypassCallback;
 #ifdef HAVE_PACKET_EBPF
-        p->afp_v.v4_map_fd = ptv->v4_map_fd;    
-        p->afp_v.v6_map_fd = ptv->v6_map_fd;    
+        p->afp_v.v4_map_fd = ptv->v4_map_fd;
+        p->afp_v.v6_map_fd = ptv->v6_map_fd;
 #endif
     }
 
@@ -2374,7 +2374,7 @@ static int AFPBypassCallback(Packet *p)
         return 1;
     }
     /* For IPv6 case we don't handle extended header in eBPF */
-    if (PKT_IS_IPV6(p) && 
+    if (PKT_IS_IPV6(p) &&
         ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         int i;
         if (p->afp_v.v6_map_fd == -1) {
@@ -2450,7 +2450,7 @@ static int AFPXDPBypassCallback(Packet *p)
         key.src = GET_IPV4_SRC_ADDR_U32(p);
         key.dst = GET_IPV4_DST_ADDR_U32(p);
         /* In the XDP filter we get port from parsing of packet and not from skb
-         * (as in eBPF filter) so we need to pass from host to network order */      
+         * (as in eBPF filter) so we need to pass from host to network order */
         key.port16[0] = htons(GET_TCP_SRC_PORT(p));
         key.port16[1] = htons(GET_TCP_DST_PORT(p));
         key.ip_proto = IPV4_GET_IPPROTO(p);
@@ -2467,7 +2467,7 @@ static int AFPXDPBypassCallback(Packet *p)
         return 1;
     }
     /* For IPv6 case we don't handle extended header in eBPF */
-    if (PKT_IS_IPV6(p) && 
+    if (PKT_IS_IPV6(p) &&
         ((IPV6_GET_NH(p) == IPPROTO_TCP) || (IPV6_GET_NH(p) == IPPROTO_UDP))) {
         SCLogDebug("add an IPv6");
         if (p->afp_v.v6_map_fd == -1) {
