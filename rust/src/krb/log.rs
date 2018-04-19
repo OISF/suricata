@@ -24,8 +24,14 @@ use krb::krb5::{KRB5State,KRB5Transaction};
 pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB5Transaction) -> *mut JsonT
 {
     let js = Json::object();
-    js.set_string("msg_type", &format!("{:?}", tx.msg_type));
-    // XXX PrincipalName object should be pretty-printed
+    match tx.error_code {
+        Some(c) => {
+            js.set_string("msg_type", "KRB_ERROR");
+            js.set_string("failed_request", &format!("{:?}", tx.msg_type));
+            js.set_string("error_code", &format!("{}", c));
+        },
+        None    => { js.set_string("msg_type", &format!("{:?}", tx.msg_type)); },
+    }
     let cname = match tx.cname {
         Some(ref x) => format!("{}", x),
         None        => "<empty>".to_owned(),
@@ -34,7 +40,6 @@ pub extern "C" fn rs_krb5_log_json_response(_state: &mut KRB5State, tx: &mut KRB
         Some(ref x) => format!("{}", x.0),
         None        => "<empty>".to_owned(),
     };
-    // XXX PrincipalName object should be pretty-printed
     let sname = match tx.sname {
         Some(ref x) => format!("{}", x),
         None        => "<empty>".to_owned(),
