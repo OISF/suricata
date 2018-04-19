@@ -23,7 +23,7 @@ use std::ffi::{CStr,CString};
 use nom::{IResult,be_u32};
 use der_parser::der_read_element_header;
 use kerberos_parser::krb5_parser;
-use kerberos_parser::krb5::{EncryptionType,MessageType,PrincipalName,Realm};
+use kerberos_parser::krb5::{EncryptionType,ErrorCode,MessageType,PrincipalName,Realm};
 use applayer;
 use core;
 use core::{AppProto,Flow,ALPROTO_FAILED,ALPROTO_UNKNOWN,STREAM_TOCLIENT,STREAM_TOSERVER,sc_detect_engine_state_free};
@@ -62,7 +62,7 @@ pub struct KRB5Transaction {
     pub etype: Option<EncryptionType>,
 
     /// Error code, if request has failed
-    pub error_code: Option<i32>,
+    pub error_code: Option<ErrorCode>,
 
     /// The internal transaction id
     id: u64,
