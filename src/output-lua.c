@@ -307,7 +307,7 @@ static int LuaPacketCondition(ThreadVars *tv, const Packet *p)
  *
  * NOTE p->flow is locked at this point
  */
-static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
+static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, uint8_t dir)
 {
     SCEnter();
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;

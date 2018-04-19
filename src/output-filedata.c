@@ -99,7 +99,7 @@ SC_ATOMIC_DECLARE(unsigned int, g_file_store_id);
 
 static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
         Packet *p, File *ff,
-        const uint8_t *data, uint32_t data_len, uint8_t flags)
+        const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t dir)
 {
     OutputFiledataLogger *logger = list;
     OutputLoggerThreadStore *store = store_list;
@@ -110,7 +110,7 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
         SCLogDebug("logger %p", logger);
         PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
-        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, data, data_len, flags);
+        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, data, data_len, flags, dir);
         PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
         file_logged = 1;
@@ -126,7 +126,7 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
 static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
         Packet *p, FileContainer *ffc, const uint8_t call_flags,
-        const bool file_close, const bool file_trunc)
+        const bool file_close, const bool file_trunc, const uint8_t dir)
 {
     if (ffc != NULL) {
         File *ff;
@@ -155,7 +155,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
                 if (ff->state < FILE_STATE_CLOSED) {
                     FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
                 }
-                CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE);
+                CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE, dir);
                 ff->flags |= FILE_STORED;
                 continue;
             }
@@ -189,7 +189,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
                     &data, &data_len,
                     ff->content_stored);
 
-            const int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags);
+            const int file_logged = CallLoggers(tv, store, p, ff, data, data_len, file_flags, dir);
             if (file_logged) {
                 ff->content_stored += data_len;
 
@@ -233,9 +233,9 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
     FileContainer *ffc_tc = AppLayerParserGetFiles(p->proto, f->alproto,
                                                    f->alstate, STREAM_TOCLIENT);
     SCLogDebug("ffc_ts %p", ffc_ts);
-    OutputFiledataLogFfc(tv, store, p, ffc_ts, STREAM_TOSERVER, file_close_ts, file_trunc);
+    OutputFiledataLogFfc(tv, store, p, ffc_ts, STREAM_TOSERVER, file_close_ts, file_trunc, STREAM_TOSERVER);
     SCLogDebug("ffc_tc %p", ffc_tc);
-    OutputFiledataLogFfc(tv, store, p, ffc_tc, STREAM_TOCLIENT, file_close_tc, file_trunc);
+    OutputFiledataLogFfc(tv, store, p, ffc_tc, STREAM_TOCLIENT, file_close_tc, file_trunc, STREAM_TOCLIENT);
 
     return TM_ECODE_OK;
 }

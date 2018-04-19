@@ -80,10 +80,24 @@ typedef struct JsonFileLogThread_ {
 } JsonFileLogThread;
 
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored)
+        const bool stored, uint8_t dir)
 {
-    json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "fileinfo");
+    json_t *js = NULL;
     json_t *hjs = NULL;
+    enum OutputJsonLogDirection fdir;
+
+    switch(dir) {
+        case STREAM_TOCLIENT:
+            fdir = LOG_DIR_FLOW_TOCLIENT;
+            break;
+        case STREAM_TOSERVER:
+            fdir = LOG_DIR_FLOW_TOSERVER;
+            break;
+        default:
+            fdir = LOG_DIR_FLOW;
+    }
+
+    js = CreateJSONHeader(p, fdir, "fileinfo");
     if (unlikely(js == NULL))
         return NULL;
 
@@ -200,10 +214,11 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const File *ff)
+static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
+                                const File *ff, uint32_t dir)
 {
     json_t *js = JsonBuildFileInfoRecord(p, ff,
-            ff->flags & FILE_STORED ? true : false);
+            ff->flags & FILE_STORED ? true : false, dir);
     if (unlikely(js == NULL)) {
         return;
     }
@@ -213,7 +228,8 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_decref(js);
 }
 
-static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
+static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+                          const File *ff, uint8_t dir)
 {
     SCEnter();
     JsonFileLogThread *aft = (JsonFileLogThread *)thread_data;
@@ -222,7 +238,7 @@ static int JsonFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, co
 
     SCLogDebug("ff %p", ff);
 
-    FileWriteJsonRecord(aft, p, ff);
+    FileWriteJsonRecord(aft, p, ff, dir);
     return 0;
 }
 

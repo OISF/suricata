@@ -28,7 +28,7 @@ void JsonFileLogRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
-        const bool stored);
+        const bool stored, uint8_t dir);
 #endif
 
 #endif /* __OUTPUT_JSON_FILE_H__ */
