@@ -94,7 +94,8 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
 static void OutputFileLogFfc(ThreadVars *tv,
         OutputLoggerThreadData *op_thread_data,
         Packet *p,
-        FileContainer *ffc, const bool file_close, const bool file_trunc)
+        FileContainer *ffc, const bool file_close, const bool file_trunc,
+        uint8_t dir)
 {
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
@@ -127,7 +128,7 @@ static void OutputFileLogFfc(ThreadVars *tv,
 
                     SCLogDebug("logger %p", logger);
                     PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
-                    logger->LogFunc(tv, store->thread_data, (const Packet *)p, (const File *)ff);
+                    logger->LogFunc(tv, store->thread_data, (const Packet *)p, (const File *)ff, dir);
                     PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
                     file_logged = true;
 
@@ -176,8 +177,8 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
     FileContainer *ffc_tc = AppLayerParserGetFiles(p->proto, f->alproto,
                                                    f->alstate, STREAM_TOCLIENT);
 
-    OutputFileLogFfc(tv, op_thread_data, p, ffc_ts, file_close_ts, file_trunc);
-    OutputFileLogFfc(tv, op_thread_data, p, ffc_tc, file_close_tc, file_trunc);
+    OutputFileLogFfc(tv, op_thread_data, p, ffc_ts, file_close_ts, file_trunc, STREAM_TOSERVER);
+    OutputFileLogFfc(tv, op_thread_data, p, ffc_tc, file_close_tc, file_trunc, STREAM_TOCLIENT);
 
     return TM_ECODE_OK;
 }

@@ -392,7 +392,7 @@ static void LogFilestoreFinalizeFiles(const File *ff) {
 }
 
 static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
-        File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
+        File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags, uint8_t dir)
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
