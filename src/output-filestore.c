@@ -121,7 +121,7 @@ static void OutputFilestoreUpdateFileTime(const char *src_filename,
 
 static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         const OutputFilestoreLogThread *oft, const OutputFilestoreCtx *ctx,
-        const Packet *p, File *ff) {
+        const Packet *p, File *ff, uint8_t dir) {
     /* Stringify the SHA256 which will be used in the final
      * filename. */
     char sha256string[(SHA256_LENGTH * 2) + 1];
@@ -162,7 +162,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
         snprintf(js_metadata_filename, sizeof(js_metadata_filename),
                 "%s.%"PRIuMAX".%u.json", final_filename,
                 (uintmax_t)p->ts.tv_sec, ff->file_store_id);
-        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true);
+        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir);
         if (likely(js_fileinfo != NULL)) {
             json_dump_file(js_fileinfo, js_metadata_filename, 0);
             json_decref(js_fileinfo);
@@ -173,7 +173,7 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
 
 static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
         const Packet *p, File *ff, const uint8_t *data, uint32_t data_len,
-        uint8_t flags)
+        uint8_t flags, uint8_t dir)
 {
     SCEnter();
     OutputFilestoreLogThread *aft = (OutputFilestoreLogThread *)thread_data;
@@ -255,7 +255,7 @@ static int OutputFilestoreLogger(ThreadVars *tv, void *thread_data,
             ff->fd = -1;
             SC_ATOMIC_SUB(filestore_open_file_cnt, 1);
         }
-        OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff);
+        OutputFilestoreFinalizeFiles(tv, aft, ctx, p, ff, dir);
     }
 
     return 0;
