@@ -65,6 +65,9 @@ pub struct KRB5Transaction {
     /// Encryption used (only in AS-REP and TGS-REP)
     pub etype: Option<EncryptionType>,
 
+    /// Error code, if request has failed
+    pub error_code: Option<i32>,
+
     /// The internal transaction id
     id: u64,
 
@@ -146,6 +149,16 @@ impl KRB5State {
                         self.req_id = 0;
                     },
                     30 => {
+                        let res = krb5_parser::parse_krb_error(i);
+                        res.map(|error| {
+                            let mut tx = self.new_tx();
+                            tx.msg_type = MessageType(self.req_id as u32);
+                            tx.cname = error.cname;
+                            tx.realm = error.crealm;
+                            tx.sname = Some(error.sname);
+                            tx.error_code = Some(error.error_code);
+                            self.transactions.push(tx);
+                        });
                         self.req_id = 0;
                     },
                     _ => { SCLogDebug!("unknown/unsupported tag {}", hdr.tag); },
@@ -222,6 +235,7 @@ impl KRB5Transaction {
             realm: None,
             sname: None,
             etype: None,
+            error_code: None,
             id: id,
             de_state: None,
             events: std::ptr::null_mut(),
