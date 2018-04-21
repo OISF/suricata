@@ -21,6 +21,7 @@
 
 use core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppProto};
 use filecontainer::FileContainer;
+use applayer;
 
 use libc::{c_void,c_char,c_int};
 use applayer::{AppLayerGetTxIterTuple};
@@ -169,8 +170,16 @@ pub const APP_LAYER_PARSER_NO_REASSEMBLY : u8 = 0b10;
 pub const APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD : u8 = 0b100;
 pub const APP_LAYER_PARSER_BYPASS_READY : u8 = 0b1000;
 
+pub type AppLayerGetTxIteratorFn = extern "C" fn (ipproto: u8,
+                                                  alproto: AppProto,
+                                                  alstate: *mut c_void,
+                                                  min_tx_id: u64,
+                                                  max_tx_id: u64,
+                                                  istate: &mut u64) -> applayer::AppLayerGetTxIterTuple;
+
 extern {
     pub fn AppLayerParserStateSetFlag(state: *mut c_void, flag: u8);
     pub fn AppLayerParserStateIssetFlag(state: *mut c_void, flag: u8) -> c_int;
     pub fn AppLayerParserConfParserEnabled(ipproto: *const c_char, proto: *const c_char) -> c_int;
+    pub fn AppLayerParserRegisterGetTxIterator(ipproto: u8, alproto: AppProto, fun: AppLayerGetTxIteratorFn);
 }
