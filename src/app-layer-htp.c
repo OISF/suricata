@@ -5864,13 +5864,8 @@ end:
 /** \test Test really long request, this should result in HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
 static int HTPParserTest14(void)
 {
-    int result = 0;
-    Flow *f = NULL;
-    char *httpbuf = NULL;
     size_t len = 18887;
     TcpSession ssn;
-    HtpState *htp_state =  NULL;
-    int r = 0;
     char input[] = "\
 %YAML 1.1\n\
 ---\n\
@@ -5884,6 +5879,7 @@ libhtp:\n\
     response-body-limit: 0\n\
 ";
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    FAIL_IF_NULL(alp_tctx);
 
     memset(&ssn, 0, sizeof(ssn));
 
@@ -5893,9 +5889,8 @@ libhtp:\n\
     ConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
-    httpbuf = SCMalloc(len);
-    if (unlikely(httpbuf == NULL))
-        goto end;
+    char *httpbuf = SCMalloc(len);
+    FAIL_IF_NULL(httpbuf);
     memset(httpbuf, 0x00, len);
 
     /* create the request with a longer than 18k cookie */
@@ -5916,9 +5911,8 @@ libhtp:\n\
     httpbuf[len - 2] = '\r';
     httpbuf[len - 1] = '\n';
 
-    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    Flow *f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->alproto = ALPROTO_HTTP;
     f->proto = IPPROTO_TCP;
@@ -5933,72 +5927,31 @@ libhtp:\n\
         else if (u == (len - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        FLOWLOCK_WRLOCK(f);
-        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+        (void)AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
                                 (uint8_t *)&httpbuf[u], 1);
-        if (u < 18294) { /* first 18294 bytes should result in 0 */
-            if (r != 0) {
-                printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                        " 0: ", u, r);
-                FLOWLOCK_UNLOCK(f);
-                goto end;
-            }
-        } else if (u == 18294UL) { /* byte 18294 should result in error */
-            if (r != -1) {
-                printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
-                        " -1: ", u, r);
-                FLOWLOCK_UNLOCK(f);
-                goto end;
-            }
-
-            /* break out, htp state is in error state now */
-            FLOWLOCK_UNLOCK(f);
-            break;
-        }
-        FLOWLOCK_UNLOCK(f);
     }
-    htp_state = f->alstate;
-    if (htp_state == NULL) {
-        printf("no http state: ");
-        goto end;
-    }
+    HtpState *htp_state = f->alstate;
+    FAIL_IF_NULL(htp_state);
 
     htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
-    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
-    {
-        printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
+    FAIL_IF(tx->request_method_number != HTP_M_GET);
+    FAIL_IF(tx->request_protocol_number != HTP_PROTOCOL_1_1);
 
-    FLOWLOCK_WRLOCK(f);
     AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
-    if (decoder_events == NULL) {
-        printf("no app events: ");
-        FLOWLOCK_UNLOCK(f);
-        goto end;
-    }
-    FLOWLOCK_UNLOCK(f);
+    FAIL_IF_NULL(decoder_events);
 
-    if (decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG) {
-        printf("HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG not set: ");
-        goto end;
-    }
+    FAIL_IF(decoder_events->events[0] != HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG);
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     StreamTcpFreeConfig(TRUE);
     UTHFreeFlow(f);
-    if (httpbuf != NULL)
-        SCFree(httpbuf);
+    SCFree(httpbuf);
     HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
-    return result;
+    PASS;
 }
 
 /** \test Test really long request (same as HTPParserTest14), now with config
