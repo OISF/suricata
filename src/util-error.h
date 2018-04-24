@@ -340,7 +340,10 @@ typedef enum {
     SC_ERR_SMB_CONFIG,
     SC_WARN_NO_JA3_SUPPORT,
     SC_WARN_JA3_DISABLED,
-    SC_ERR_MAX
+    SC_ERR_PCAP_LOG_COMPRESS,
+    SC_ERR_FSEEK,
+
+    SC_ERR_MAX,
 } SCError;
 
 const char *SCErrorToString(SCError);
