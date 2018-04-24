@@ -58,24 +58,25 @@
  */
 char *RunmodeAutoFpCreatePickupQueuesString(int n)
 {
-    char *queues = NULL;
+    if (n > 1024)
+        return NULL;
+
     /* 13 because pickup12345, = 12 + \0 */
     size_t queues_size = n * 13;
-    int thread;
     char qname[TM_QUEUE_NAME_MAX];
 
-    queues = SCMalloc(queues_size);
+    char *queues = SCMalloc(queues_size);
     if (unlikely(queues == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "failed to alloc queues buffer: %s", strerror(errno));
         return NULL;
     }
     memset(queues, 0x00, queues_size);
 
-    for (thread = 0; thread < n; thread++) {
+    for (int thread = 0; thread < n; thread++) {
         if (strlen(queues) > 0)
             strlcat(queues, ",", queues_size);
 
-        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", (int16_t)thread+1);
         strlcat(queues, qname, queues_size);
     }
 

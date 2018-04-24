@@ -69,25 +69,22 @@ typedef struct LogTlsStoreLogThread_ {
     size_t     enc_buf_len;
 } LogTlsStoreLogThread;
 
-static int CreateFileName(const Packet *p, SSLState *state, char *filename)
+static int CreateFileName(const Packet *p, SSLState *state, char *filename, size_t filename_size)
 {
-#define FILELEN 64  //filename len + extention + ending path / + some space
-
-    int filenamelen = FILELEN + strlen(tls_logfile_base_dir);
+    char path[PATH_MAX];
     int file_id = SC_ATOMIC_ADD(cert_id, 1);
-
-    if (filenamelen + 1 > PATH_MAX) {
-        return 0;
-    }
 
     /* Use format : packet time + incremental ID
      * When running on same pcap it will overwrite
      * On a live device, we will not be able to overwrite */
-    snprintf(filename, filenamelen, "%s/%ld.%ld-%d.pem",
+    if (snprintf(path, sizeof(path), "%s/%ld.%ld-%d.pem",
              tls_logfile_base_dir,
              (long int)p->ts.tv_sec,
              (long int)p->ts.tv_usec,
-             file_id);
+             file_id) == sizeof(path))
+        return 0;
+
+    strlcpy(filename, path, filename_size);
     return 1;
 }
 
@@ -108,7 +105,7 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
     if ((state->server_connp.cert_input == NULL) || (state->server_connp.cert_input_len == 0))
         SCReturn;
 
-    CreateFileName(p, state, filename);
+    CreateFileName(p, state, filename, sizeof(filename));
     if (strlen(filename) == 0) {
         SCLogWarning(SC_ERR_FOPEN, "Can't create PEM filename");
         SCReturn;

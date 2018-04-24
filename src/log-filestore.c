@@ -208,7 +208,10 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
         return;
 
     char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    if (snprintf(metafilename, sizeof(metafilename), "%s.meta",
+                filename) == sizeof(metafilename))
+        return;
+
     FILE *fp = fopen(metafilename, "w+");
     if (fp != NULL) {
         char timebuf[64];
@@ -283,10 +286,13 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
         return;
 
     char filename[PATH_MAX] = "";
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
+    if (snprintf(filename, sizeof(filename), "%s/file.%u",
+            g_logfile_base_dir, ff->file_store_id) == sizeof(filename))
+        return;
     char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    if (snprintf(metafilename, sizeof(metafilename), "%s.meta",
+                filename) == sizeof(metafilename))
+        return;
     FILE *fp = fopen(metafilename, "a");
     if (fp != NULL) {
 #ifdef HAVE_MAGIC
@@ -365,8 +371,9 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
     SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_store_id);
+    if (snprintf(filename, sizeof(filename), "%s/file.%u",
+            g_logfile_base_dir, ff->file_store_id) == sizeof(filename))
+        return -1;
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
