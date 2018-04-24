@@ -95,6 +95,9 @@
 #include "source-netmap.h"
 #include "source-mpipe.h"
 
+#include "source-windivert.h"
+#include "source-windivert-prototypes.h"
+
 #include "respond-reject.h"
 
 #include "flow.h"
@@ -652,6 +655,10 @@ static void PrintUsage(const char *progname)
 #ifdef HAVE_MPIPE
     printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
 #endif
+#ifdef WINDIVERT
+    printf("\t--windivert <filter>                 : run in inline WinDivert mode\n");
+    printf("\t--windivert-forward <filter>         : run in inline WinDivert mode, as a gateway\n");
+#endif
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
     printf("\nTo run the engine with default configuration on "
@@ -855,6 +862,9 @@ int g_ut_covered;
 
 void RegisterAllModules(void)
 {
+    // zero all module storage
+    memset(tmm_modules, 0, TMM_SIZE * sizeof(TmModule));
+
     /* commanders */
     TmModuleUnixManagerRegister();
     /* managers */
@@ -912,6 +922,11 @@ void RegisterAllModules(void)
     /* nflog */
     TmModuleReceiveNFLOGRegister();
     TmModuleDecodeNFLOGRegister();
+
+    /* windivert */
+    TmModuleReceiveWinDivertRegister();
+    TmModuleVerdictWinDivertRegister();
+    TmModuleDecodeWinDivertRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
@@ -1534,6 +1549,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_MPIPE
         {"mpipe", optional_argument, 0, 0},
 #endif
+#ifdef WINDIVERT
+        {"windivert", required_argument, 0, 0},
+        {"windivert-forward", required_argument, 0, 0},
+#endif
         {"set", required_argument, 0, 0},
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
@@ -1812,6 +1831,45 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             }
 #endif
+            else if(strcmp((long_opts[option_index]).name, "windivert-forward") == 0) {
+#ifdef WINDIVERT
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_WINDIVERT;
+                    if (WinDivertRegisterQueue(true, optarg) == -1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                    if (WinDivertRegisterQueue(true, optarg) == -1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                        "has been specified");
+                    PrintUsage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if(strcmp((long_opts[option_index]).name, "windivert") == 0) {
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_WINDIVERT;
+                    if (WinDivertRegisterQueue(false, optarg) == -1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (suri->run_mode == RUNMODE_WINDIVERT) {
+                    if (WinDivertRegisterQueue(false, optarg) == -1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                        "has been specified");
+                    PrintUsage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#else
+                SCLogError(SC_ERR_WINDIVERT_NOSUPPORT,"WinDivert not enabled. Make sure to pass --enable-windivert to configure when building.");
+                return TM_ECODE_FAILED;            
+#endif /* WINDIVERT */
+            }
             else if (strcmp((long_opts[option_index]).name, "set") == 0) {
                 if (optarg != NULL) {
                     /* Quick validation. */
@@ -2405,12 +2463,30 @@ static int ConfigGetCaptureValue(SCInstance *suri)
      * back on a sane default. */
     const char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
+        int mtu = 0;
         int lthread;
         int nlive;
         int strip_trailing_plus = 0;
         switch (suri->run_mode) {
+#ifdef WINDIVERT
+            case RUNMODE_WINDIVERT:
+                /* by default, WinDivert collects from all devices */
+                mtu = GetGlobalMTUWin32();
+
+                if (mtu > 0) {
+                    g_default_mtu = mtu;
+                    /* SLL_HEADER_LEN is the longest header + 8 for VLAN */
+                    default_packet_size = mtu + SLL_HEADER_LEN + 8;
+                    break;
+                }
+
+                g_default_mtu = DEFAULT_MTU;
+                default_packet_size = DEFAULT_PACKET_SIZE;
+                break;
+#endif /* WINDIVERT */
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
+            /* \bug: are PCAP/AFP supposed to fall through to strip_trailing_plus? */
             case RUNMODE_NETMAP:
                 /* in netmap igb0+ has a special meaning, however the
                  * interface really is igb0 */
@@ -2420,7 +2496,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
                     const char *live_dev = LiveGetDeviceName(lthread);
-                    char dev[32];
+                    char dev[128]; /* need to be able to support GUID names on Windows */
                     (void)strlcpy(dev, live_dev, sizeof(dev));
 
                     if (strip_trailing_plus) {
@@ -2429,7 +2505,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
                             dev[len-1] = '\0';
                         }
                     }
-                    int mtu = GetIfaceMTU(dev);
+                    mtu = GetIfaceMTU(dev);
                     g_default_mtu = MAX(mtu, g_default_mtu);
 
                     unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
