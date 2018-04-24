@@ -618,7 +618,9 @@ static TmEcode PcapLogInitRingBuffer(PcapLogData *pl)
             goto fail;
         }
         char path[PATH_MAX];
-        snprintf(path, PATH_MAX - 1, "%s/%s", pattern, entry->d_name);
+        if (snprintf(path, PATH_MAX, "%s/%s", pattern, entry->d_name) == PATH_MAX)
+            goto fail;
+
         if ((pf->filename = SCStrdup(path)) == NULL) {
             goto fail;
         }
@@ -1245,14 +1247,18 @@ static int PcapLogOpenFileCtx(PcapLogData *pl)
             goto error;
         }
 
+        int written;
         if (pl->timestamp_format == TS_FORMAT_SEC) {
-            snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, dirfull,
+            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, dirfull,
                      pl->prefix, (uint32_t)ts.tv_sec);
         } else {
-            snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32,
+            written = snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32 ".%" PRIu32,
                      dirfull, pl->prefix, (uint32_t)ts.tv_sec, (uint32_t)ts.tv_usec);
         }
-
+        if (written == PATH_MAX) {
+            SCLogError(SC_ERR_SPRINTF,"log-pcap path overflow");
+            goto error;
+        }
     } else if (pl->mode == LOGMODE_NORMAL) {
         int ret;
         /* create the filename to use */

@@ -92,7 +92,7 @@ void hexdump(/*Flow *f,*/ const void *buf, size_t len)
     unsigned char c;
     size_t n;
     char bytestr[4] = {0};
-    char addrstr[10] = {0};
+    char addrstr[17] = {0};
     char hexstr[ 16*3 + 5] = {0};
     char charstr[16*1 + 5] = {0};
     for (n=1; n<=len; n++) {

@@ -221,8 +221,10 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
         return;
 
     char metafilename[PATH_MAX] = "";
-    snprintf(metafilename, sizeof(metafilename), "%s.meta%s", base_filename,
-            g_working_file_suffix);
+    if (snprintf(metafilename, sizeof(metafilename), "%s.meta%s", base_filename,
+            g_working_file_suffix) == sizeof(metafilename))
+        return;
+
     FILE *fp = fopen(metafilename, "w+");
     if (fp != NULL) {
         char timebuf[64];
@@ -297,14 +299,18 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     if (FileIncludePid())
         snprintf(pid_expression, sizeof(pid_expression), ".%d", getpid());
     char final_filename[PATH_MAX] = "";
-    snprintf(final_filename, sizeof(final_filename), "%s/file%s.%u",
-            g_logfile_base_dir, pid_expression, ff->file_store_id);
+    if (snprintf(final_filename, sizeof(final_filename), "%s/file%s.%u",
+            g_logfile_base_dir, pid_expression, ff->file_store_id) == sizeof(final_filename))
+        return;
     char final_metafilename[PATH_MAX] = "";
-    snprintf(final_metafilename, sizeof(final_metafilename),
-            "%s.meta", final_filename);
+    if (snprintf(final_metafilename, sizeof(final_metafilename),
+            "%s.meta", final_filename) == sizeof(final_metafilename))
+        return;
     char working_metafilename[PATH_MAX] = "";
-    snprintf(working_metafilename, sizeof(working_metafilename),
-            "%s%s", final_metafilename, g_working_file_suffix);
+    if (snprintf(working_metafilename, sizeof(working_metafilename),
+            "%s%s", final_metafilename, g_working_file_suffix) == sizeof(working_metafilename))
+        return;
+
     FILE *fp = fopen(working_metafilename, "a");
     if (fp != NULL) {
 #ifdef HAVE_MAGIC
@@ -365,11 +371,14 @@ static void LogFilestoreFinalizeFiles(const File *ff) {
     if (FileIncludePid())
         snprintf(pid_expression, sizeof(pid_expression), ".%d", getpid());
     char final_filename[PATH_MAX] = "";
-    snprintf(final_filename, sizeof(final_filename), "%s/file%s.%u",
-            g_logfile_base_dir, pid_expression, ff->file_store_id);
+    if (snprintf(final_filename, sizeof(final_filename), "%s/file%s.%u",
+            g_logfile_base_dir, pid_expression, ff->file_store_id) == sizeof(final_filename))
+        return;
     char working_filename[PATH_MAX] = "";
-    snprintf(working_filename, sizeof(working_filename), "%s%s",
-            final_filename, g_working_file_suffix);
+    if (snprintf(working_filename, sizeof(working_filename), "%s%s",
+            final_filename, g_working_file_suffix) == sizeof(working_filename))
+           return;
+
     if (rename(working_filename, final_filename) != 0) {
         SCLogWarning(SC_WARN_RENAMING_FILE, "renaming file %s to %s failed",
                 working_filename, final_filename);
@@ -378,11 +387,14 @@ static void LogFilestoreFinalizeFiles(const File *ff) {
     if (FileWriteMeta()) {
         LogFilestoreLogCloseMetaFile(ff);
         char final_metafilename[PATH_MAX] = "";
-        snprintf(final_metafilename, sizeof(final_metafilename),
-                "%s.meta", final_filename);
+        if (snprintf(final_metafilename, sizeof(final_metafilename),
+                "%s.meta", final_filename) == sizeof(final_metafilename))
+            return;
         char working_metafilename[PATH_MAX] = "";
-        snprintf(working_metafilename, sizeof(working_metafilename),
-                "%s%s", final_metafilename, g_working_file_suffix);
+        if (snprintf(working_metafilename, sizeof(working_metafilename),
+                "%s%s", final_metafilename, g_working_file_suffix) == sizeof(working_metafilename))
+            return;
+
         if (rename(working_metafilename, final_metafilename) != 0) {
             SCLogWarning(SC_WARN_RENAMING_FILE,
                     "renaming metafile %s to %s failed", working_metafilename,
@@ -419,10 +431,12 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     if (FileIncludePid())
         snprintf(pid_expression, sizeof(pid_expression), ".%d", getpid());
     char base_filename[PATH_MAX] = "";
-    snprintf(base_filename, sizeof(base_filename), "%s/file%s.%u",
-            g_logfile_base_dir, pid_expression, ff->file_store_id);
-    snprintf(filename, sizeof(filename), "%s%s", base_filename,
-            g_working_file_suffix);
+    if (snprintf(base_filename, sizeof(base_filename), "%s/file%s.%u",
+            g_logfile_base_dir, pid_expression, ff->file_store_id) == sizeof(base_filename))
+        return -1;
+    if (snprintf(filename, sizeof(filename), "%s%s", base_filename,
+            g_working_file_suffix) == sizeof(filename))
+        return -1;
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
