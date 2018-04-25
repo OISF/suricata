@@ -162,6 +162,8 @@ void FTPParserRegisterTests(void);
 void FTPAtExitPrintStats(void);
 uint64_t FTPMemuseGlobalCounter(void);
 uint64_t FTPMemcapGlobalCounter(void);
+int FTPSetMemcap(uint64_t size);
+uint64_t FTPGetMemcap(void);
 
 #ifdef HAVE_LIBJANSSON
 json_t *JsonFTPDataAddMetadata(const Flow *f);

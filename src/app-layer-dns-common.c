@@ -33,14 +33,16 @@
 
 typedef struct DNSConfig_ {
     uint32_t request_flood;
-    uint32_t state_memcap;  /**< memcap in bytes per state */
-    uint64_t global_memcap; /**< memcap in bytes globally for parser */
+    SC_ATOMIC_DECLARE(uint64_t, state_memcap);  /**< memcap in bytes per state */
+    SC_ATOMIC_DECLARE(uint64_t, global_memcap); /**< memcap in bytes globally for parser */
 } DNSConfig;
 static DNSConfig dns_config;
 
 void DNSConfigInit(void)
 {
     memset(&dns_config, 0x00, sizeof(dns_config));
+    SC_ATOMIC_INIT(dns_config.state_memcap);
+    SC_ATOMIC_INIT(dns_config.global_memcap);
 }
 
 void DNSConfigSetRequestFlood(uint32_t value)
@@ -48,19 +50,36 @@ void DNSConfigSetRequestFlood(uint32_t value)
     dns_config.request_flood = value;
 }
 
-void DNSConfigSetStateMemcap(uint32_t value)
+int DNSConfigSetStateMemcap(uint64_t value)
 {
-    dns_config.state_memcap = value;
+    SC_ATOMIC_SET(dns_config.state_memcap, value);
+    return 1;
 }
 
 SC_ATOMIC_DECLARE(uint64_t, dns_memuse); /**< byte counter of current memuse */
 SC_ATOMIC_DECLARE(uint64_t, dns_memcap_state); /**< counts number of 'rejects' */
 SC_ATOMIC_DECLARE(uint64_t, dns_memcap_global); /**< counts number of 'rejects' */
 
-void DNSConfigSetGlobalMemcap(uint64_t value)
+int DNSConfigSetGlobalMemcap(uint64_t value)
 {
-    dns_config.global_memcap = value;
+    SC_ATOMIC_SET(dns_config.global_memcap, value);
+    return 1;
+}
 
+uint64_t DNSConfigGetStateMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(dns_config.state_memcap);
+    return memcapcopy;
+}
+
+uint64_t DNSConfigGetGlobalMemcap(void)
+{
+    uint64_t memcapcopy = SC_ATOMIC_GET(dns_config.global_memcap);
+    return memcapcopy;
+}
+
+void DNSConfigInitMemcaps(void)
+{
     SC_ATOMIC_INIT(dns_memuse);
     SC_ATOMIC_INIT(dns_memcap_state);
     SC_ATOMIC_INIT(dns_memcap_global);
@@ -88,14 +107,15 @@ void DNSDecrMemcap(uint32_t size, DNSState *state)
 int DNSCheckMemcap(uint32_t want, DNSState *state)
 {
     if (state != NULL) {
-        if (state->memuse + want > dns_config.state_memcap) {
+        if (state->memuse + want > SC_ATOMIC_GET(dns_config.state_memcap)) {
             SC_ATOMIC_ADD(dns_memcap_state, 1);
             DNSSetEvent(state, DNS_DECODER_EVENT_STATE_MEMCAP_REACHED);
             return -1;
         }
     }
 
-    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want > dns_config.global_memcap) {
+    if (SC_ATOMIC_GET(dns_memuse) + (uint64_t)want >
+        SC_ATOMIC_GET(dns_config.global_memcap)) {
         SC_ATOMIC_ADD(dns_memcap_global, 1);
         return -2;
     }

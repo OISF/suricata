@@ -42,6 +42,7 @@
 #include "detect-engine-threshold.h"
 
 #include "util-hash-lookup3.h"
+#include "util-memcap.h"
 
 static Host *HostGetUsedHost(void);
 
@@ -185,6 +186,9 @@ void HostInitConfig(char quiet)
     host_config.prealloc    = HOST_DEFAULT_PREALLOC;
     SC_ATOMIC_SET(host_config.memcap, HOST_DEFAULT_MEMCAP);
 
+    MemcapListRegisterMemcap("host", "host.memcap",
+                             HostSetMemcap, HostGetMemcap, HostGetMemuse);
+
     /* Check if we have memcap and hash_size defined at config */
     const char *conf_val;
     uint32_t configval = 0;
@@ -201,6 +205,11 @@ void HostInitConfig(char quiet)
         } else {
             SC_ATOMIC_SET(host_config.memcap, host_memcap);
         }
+    }
+    if (GlobalMemcapReached(SC_ATOMIC_GET(host_config.memcap))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "The value specified for global memcap needs "
+                   "to be increased for the host.memcap value");
+        exit(EXIT_FAILURE);
     }
     if ((ConfGetValue("host.hash-size", &conf_val)) == 1)
     {
