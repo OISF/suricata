@@ -268,7 +268,16 @@ const char *PrintInet(int af, const void *src, char *dst, socklen_t size)
 {
     switch (af) {
         case AF_INET:
+#if defined(OS_WIN32) && NTDDI_VERSION >= NTDDI_VISTA
+            // because Windows has to provide a non-conformant inet_ntop, of
+            // course!
+            ; // case has to start with a statement
+            struct in_addr _src;
+            memcpy(&_src, src, sizeof(struct in_addr));
+            return inet_ntop(af, &_src, dst, size);
+#else
             return inet_ntop(af, src, dst, size);
+#endif
         case AF_INET6:
             /* Format IPv6 without deleting zeroes */
             return PrintInetIPv6(src, dst, size);
