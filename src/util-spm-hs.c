@@ -161,7 +161,6 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
     }
 
     BUG_ON(match_offset < sctx->needle_len);
-    BUG_ON(match_offset > UINT16_MAX); /* haystack_len is a uint16_t */
 
     /* Note: existing API returns non-const ptr */
     return (uint8_t *)haystack + (match_offset - sctx->needle_len);
