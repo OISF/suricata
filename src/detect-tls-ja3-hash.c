@@ -64,6 +64,10 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
        const DetectEngineTransforms *transforms,
        Flow *_f, const uint8_t _flow_flags,
        void *txv, const int list_id);
+static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
+       Signature *s);
+static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
+       const char **sigerror);
 static int g_tls_ja3_hash_buffer_id = 0;
 
 /**
@@ -88,6 +92,12 @@ void DetectTlsJa3HashRegister(void)
             PrefilterGenericMpmRegister, GetData, ALPROTO_TLS, 0);
 
     DetectBufferTypeSetDescriptionByName("ja3_hash", "TLS JA3 hash");
+
+    DetectBufferTypeRegisterSetupCallback("ja3_hash",
+            DetectTlsJa3HashSetupCallback);
+
+    DetectBufferTypeRegisterValidateCallback("ja3_hash",
+            DetectTlsJa3HashValidateCallback);
 
     g_tls_ja3_hash_buffer_id = DetectBufferTypeGetByName("ja3_hash");
 }
@@ -138,6 +148,67 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     }
 
     return buffer;
+}
+
+static _Bool DetectTlsJa3HashValidateCallback(const Signature *s,
+                                              const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_ja3_hash_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "ja3_hash should not be used together with "
+                        "nocase, since the rule is automatically "
+                        "lowercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
+
+        if (cd->content_len == 32)
+            return TRUE;
+
+        *sigerror = "Invalid length of the specified JA3 hash (should "
+                    "be 32 characters long). This rule will therefore "
+                    "never match.";
+        SCLogWarning(SC_WARN_POOR_RULE,  "rule %u: %s", s->id, *sigerror);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static void DetectTlsJa3HashSetupCallback(const DetectEngineCtx *de_ctx,
+                                          Signature *s)
+{
+    SigMatch *sm = s->init_data->smlists[g_tls_ja3_hash_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        _Bool changed = FALSE;
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+        {
+            if (isupper(cd->content[u])) {
+                cd->content[u] = tolower(cd->content[u]);
+                changed = TRUE;
+            }
+        }
+
+        /* recreate the context if changes were made */
+        if (changed) {
+            SpmDestroyCtx(cd->spm_ctx);
+            cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
+                                     de_ctx->spm_global_thread_ctx);
+        }
+    }
 }
 
 #ifndef HAVE_NSS

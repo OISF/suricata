@@ -764,7 +764,7 @@ bool DetectBufferTypeSupportsMpmGetById(const DetectEngineCtx *de_ctx, const int
 }
 
 void DetectBufferTypeRegisterSetupCallback(const char *name,
-        void (*SetupCallback)(Signature *))
+        void (*SetupCallback)(const DetectEngineCtx *, Signature *))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -778,7 +778,7 @@ void DetectBufferRunSetupCallback(const DetectEngineCtx *de_ctx,
 {
     const DetectBufferType *map = DetectBufferTypeGetById(de_ctx, id);
     if (map && map->SetupCallback) {
-        map->SetupCallback(s);
+        map->SetupCallback(de_ctx, s);
     }
 }
 
