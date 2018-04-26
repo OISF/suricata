@@ -2234,6 +2234,7 @@ if test "$WINDOWS_PATH" = "yes"; then
     e_logdir="$e_winbase\\\\log"
     e_logfilesdir="$e_logdir\\\\files"
     e_logcertsdir="$e_logdir\\\\certs"
+    e_datarulesdir="$e_winbase\\\\rules\\\\"
 else
     EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
     EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
@@ -2242,6 +2243,7 @@ else
     EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
     EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
+    EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
@@ -2254,6 +2256,7 @@ AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 AC_SUBST(e_magic_file_comment)
 AC_SUBST(e_enable_evelog)
+AC_SUBST(e_datarulesdir)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
