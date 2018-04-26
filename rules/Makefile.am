@@ -1,4 +1,6 @@
-EXTRA_DIST = \
+ruledir = $(datadir)/suricata/rules
+
+dist_rule_DATA = \
 decoder-events.rules \
 stream-events.rules \
 smtp-events.rules \
