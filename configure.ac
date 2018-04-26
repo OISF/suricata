@@ -1376,11 +1376,14 @@
   ])
 
   # suricata-update
+  have_suricata_update="no"
   AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
       SURICATA_UPDATE_DIR="suricata-update"
       AC_SUBST(SURICATA_UPDATE_DIR)
       AC_OUTPUT(suricata-update/Makefile)
+      have_suricata_update="yes"
   ])
+  AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
