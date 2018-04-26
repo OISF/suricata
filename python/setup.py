@@ -28,6 +28,7 @@ setup(
     url='https://www.suricata-ids.org/',
     packages=[
         "suricata",
+        "suricata.config",
         "suricata.ctl",
         "suricata.sc",
         "suricatasc",

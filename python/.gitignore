@@ -5,3 +5,5 @@ lib/
 scripts-*/
 bin/suricatasc
 !bin/suricatasc.in
+suricata/config/defaults.py
+!suricata/config/defaults.py.in

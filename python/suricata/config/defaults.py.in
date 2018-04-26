@@ -1,0 +1,2 @@
+sysconfdir = "@e_sysconfdir@"
+datarulesdir = "@e_datarulesdir@"
