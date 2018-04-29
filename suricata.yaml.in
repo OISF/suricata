@@ -49,8 +49,11 @@ vars:
 ## Step 2: select the rules to enable or disable
 ##
 
-default-rule-path: @e_sysconfdir@rules
-rule-files:
+#default-rule-path: @e_sysconfdir@rules
+default-rule-path: @e_defaultruledir@
+@suricata_update_rule_files@:
+ - suricata.rules
+@classic_rule_files@:
  - botcc.rules
  # - botcc.portgrouped.rules
  - ciarmy.rules
