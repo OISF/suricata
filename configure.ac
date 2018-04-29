@@ -1377,11 +1377,17 @@
 
   # suricata-update
   have_suricata_update="no"
+  ruledirprefix="$sysconfdir"
+  suricata_update_rule_files="suricata-update-rule-files"
+  classic_rule_files="rule-files"
   AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
       SURICATA_UPDATE_DIR="suricata-update"
       AC_SUBST(SURICATA_UPDATE_DIR)
       AC_OUTPUT(suricata-update/Makefile)
       have_suricata_update="yes"
+      ruledirprefix="$localstatedir/lib"
+      suricata_update_rule_files="rule-files"
+      classic_rule_files="classic-rule-files"
   ])
   AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
 
@@ -2233,6 +2239,7 @@ if test "$WINDOWS_PATH" = "yes"; then
 
     e_sysconfdir="${e_winbase}\\\\"
     e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
+    e_defaultruledir="$e_winbase\\\\rules\\\\"
     e_magic_file="$e_winbase\\\\magic.mgc"
     e_logdir="$e_winbase\\\\log"
     e_logfilesdir="$e_logdir\\\\files"
@@ -2247,6 +2254,7 @@ else
     EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
     EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
+    EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
@@ -2260,6 +2268,9 @@ AC_SUBST(e_magic_file)
 AC_SUBST(e_magic_file_comment)
 AC_SUBST(e_enable_evelog)
 AC_SUBST(e_datarulesdir)
+AC_SUBST(e_defaultruledir)
+AC_SUBST(suricata_update_rule_files)
+AC_SUBST(classic_rule_files)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
