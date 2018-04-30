@@ -201,7 +201,7 @@ end:
  */
 void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
 {
-    BUG_ON(conf == NULL || result == NULL);
+    BUG_ON(result == NULL);
 
     ConfNode *xff_node = NULL;
 
