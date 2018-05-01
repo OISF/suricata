@@ -261,7 +261,7 @@ The ack is the acknowledgement of the receipt of all previous
 (data)-bytes send by the other side of the TCP-connection. In most
 occasions every packet of a TCP connection has an ACK flag after the
 first SYN and a ack-number which increases with the receipt of every
-new data-byte.  The ack-keyword can be used in a signature to check
+new data-byte.  The ack keyword can be used in a signature to check
 for a specific TCP acknowledgement number.
 
 Format of ack::

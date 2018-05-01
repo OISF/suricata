@@ -3,7 +3,7 @@ Global-Thresholds
 
 Thresholds can be configured in the rules themselves, see
 :doc:`../rules/thresholding`. They are often set by rule writers based on
-their intel for creating a rule combined with a judgement on how often
+their intelligence for creating a rule combined with a judgement on how often
 a rule will alert.
 
 Threshold Config

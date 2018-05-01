@@ -49,7 +49,7 @@ information:
   www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/CURRENT_EVENTS/CURRENT_Adobe
 
 Some rules contain a reference like: "reference:cve,2009-3958;" should
-allow you to find info about the specific CVE using your favourite
+allow you to find info about the specific CVE using your favorite
 search engine.
 
 It's not always straight forward and sometimes not all of that

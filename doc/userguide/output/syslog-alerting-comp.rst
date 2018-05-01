@@ -9,7 +9,7 @@ Popular syslog daemons
 ----------------------
 
 * **syslogd** - logs system messages
-* **syslog-ng** - logs system messages but also suports TCP, TLS, and other enhanced enterprise features
+* **syslog-ng** - logs system messages but also supports TCP, TLS, and other enhanced enterprise features
 * **rsyslogd** - logs system messages but also support TCP, TLS, multi-threading, and other enhanced features
 * **klogd** - logs kernel messages
 * **sysklogd** - basically a bundle of syslogd and klogd
@@ -46,7 +46,7 @@ Locate those files and look at them to give you clues as to what syslog daemon y
 Example
 -------
 
-Here is an example where the Suricata sensor is sending syslog messages in rsyslogd format but the SIEM is expecting and parsing them in a sysklogd format.  In the syslog configuration file (ususally in /etc with a filename like rsyslog.conf or syslog.conf), first add the template:
+Here is an example where the Suricata sensor is sending syslog messages in rsyslogd format but the SIEM is expecting and parsing them in a sysklogd format.  In the syslog configuration file (usually in /etc with a filename like rsyslog.conf or syslog.conf), first add the template:
 
 ::
 
