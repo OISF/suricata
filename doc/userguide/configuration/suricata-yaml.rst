@@ -149,7 +149,7 @@ Splitting configuration in multiple files
 -----------------------------------------
 
 Some users might have a need or a wish to split their suricata.yaml
-file in to seperate files, this is available vis the 'include' and
+file in to separate files, this is available vis the 'include' and
 '!include' keyword. The first example is of taking the contents of the
 outputs section and storing them in outputs.yaml
 
@@ -316,7 +316,7 @@ This output supports IPv6 and IPv4 events.
 
       # By default unified2 log files have the file creation time (in
       # unix epoch format) appended to the filename. Set this to yes to
-      # disable this behaviour.
+      # disable this behavior.
       #nostamp: no
 
       # Sensor ID field of unified2 alerts.
@@ -393,7 +393,7 @@ server, ttl, resource record data. This logging can also be performed
 through the use of the :ref:`Eve-log capability <eve-json-format>` which
 offers easier parsing.
 
-Example of the apperance of a DNS log of a query with a preceding reply:
+Example of the appearance of a DNS log of a query with a preceding reply:
 
 ::
 
@@ -625,7 +625,7 @@ Detection engine
 Inspection configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.)  For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group.  The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options:high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting.The option custom is for advanced users. This option has values which can be managed by the user.
+The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.)  For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group.  The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options:high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting. The option custom is for advanced users. This option has values which can be managed by the user.
 
 ::
 
@@ -741,7 +741,7 @@ These are the proceedings:
 
 1)A packet comes in.
 
-2)The packed will be analysed by the Multi-pattern-matcher in search
+2)The packed will be analyzed by the Multi-pattern-matcher in search
   of patterns that match.
 
 3)All patterns that match, will be further processed by Suricata (signatures).
@@ -989,7 +989,7 @@ Flow Settings
 
 Within Suricata, Flows are very important. They play a big part in the
 way Suricata organizes data internally. A flow is a bit similar to a
-connection, except a flow is more general.All packets having the same
+connection, except a flow is more general. All packets having the same
 Tuple (protocol, source IP, destination IP, source-port,
 destination-port), belong to the same flow. Packets belonging to a
 flow are connected to it internally.
@@ -1120,7 +1120,7 @@ exists of two parts: The stream tracking- and the reassembly-engine.
 
 The stream-tracking engine monitors the state of a connection. The
 reassembly-engine reconstructs the flow as it used to be, so it will
-be recognised by Suricata.
+be recognized by Suricata.
 
 The stream-engine has two memcaps that can be set. One for the
 stream-tracking-engine and one for the reassembly-engine.
@@ -1403,7 +1403,7 @@ use of libhtp.
        # Apache does not do this, but IIS does. If enabled, a path such as
        # "/one%2ftwo" will be normalized to "/one/two". If the
        # backslash_separators option is also enabled, encoded backslash
-       # characters will be converted too (and subseqently normalized to
+       # characters will be converted too (and subsequently normalized to
        # forward slashes).  Accepted values - yes, no.
        #path-decode-separators: yes
 
@@ -1434,7 +1434,7 @@ use of libhtp.
        # path.  Accepted values - none, terminate, status_400, status_404.
        path-nul-raw-handling: none
 
-       # Sets the replacement characater that will be used to in the lossy
+       # Sets the replacement character that will be used to in the lossy
        # best-fit mapping from Unicode characters into single-byte streams.
        # The question mark is the default replacement character.
        #set-path-replacement-char: ?
@@ -1884,7 +1884,7 @@ Engine-analysis
 ~~~~~~~~~~~~~~~
 
 The option engine-analysis provides information for signature writers
-about how Suricata organises signatures internally.
+about how Suricata organizes signatures internally.
 
 Like mentioned before, signatures have zero or more patterns on which
 they can match. Only one of these patterns will be used by the multi
@@ -2118,7 +2118,7 @@ Encrypted traffic
 
 There is no decryption of encrypted traffic, so once the handshake is complete
 continued tracking of the session is of limited use. The ``no-reassemble``
-option controls the behaviour after the handshake.
+option controls the behavior after the handshake.
 
 If ``no-reassemble`` is set to ``true``, all processing of this session is
 stopped. No further parsing and inspection happens. If ``bypass`` is enabled

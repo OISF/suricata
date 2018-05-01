@@ -257,7 +257,7 @@ HttpGetRequestBody and HttpGetResponseBody.
 Make normalized body data available to the script through
 HttpGetRequestBody and HttpGetResponseBody.
 
-There no guarantees that all of the body will be availble.
+There no guarantees that all of the body will be available.
 
 Example:
 

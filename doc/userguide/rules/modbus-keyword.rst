@@ -71,7 +71,7 @@ Examples::
   modbus: access read input                              # Read access to Discretes Input table
   modbus: access write coils                             # Write access to Coils table
   modbus: access read discretes, address <100            # Read access at address smaller than 100 of Discretes Input table
-  modbus: access write holding, address 500, value >200  # Write value greather than 200 at address 500 of Holding Registers table
+  modbus: access write holding, address 500, value >200  # Write value greater than 200 at address 500 of Holding Registers table
 
 With the setting **unit**, you can match on:
 
@@ -108,7 +108,7 @@ Examples::
   modbus: unit 10, access read                                          # Unit identifier 10 and Read access
   modbus: unit 10, access write coils                                   # Unit identifier 10 and Write access to Coils table
   modbus: unit >10, access read discretes, address <100                 # Greater than unit identifier 10 and Read access at address smaller than 100 of Discretes Input table
-  modbus: unit 10<>20, access write holding, address 500, value >200    # Greater than unit identifier 10 and smaller than unit identifier 20 and Write value greather than 200 at address 500 of Holding Registers table
+  modbus: unit 10<>20, access write holding, address 500, value >200    # Greater than unit identifier 10 and smaller than unit identifier 20 and Write value greater than 200 at address 500 of Holding Registers table
 
 (cf. http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b3.pdf)
 

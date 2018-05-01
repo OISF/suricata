@@ -18,7 +18,7 @@
 .. option:: --fatal-unittests
 
    Enables fatal failure on a unit test error. Suricata will exit
-   instead of continuuing more tests.
+   instead of continuing more tests.
 
 .. option:: --unittests-coverage
 

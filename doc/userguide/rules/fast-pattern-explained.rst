@@ -131,7 +131,7 @@ score is returned.
     *  Longer patterns score better than short patters.
     *
     *  \param pat pattern
-    *  \param patlen length of the patternn
+    *  \param patlen length of the pattern
     *
     *  \retval s pattern score
     */
