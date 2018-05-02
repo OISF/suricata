@@ -303,8 +303,6 @@ static int LuaPacketCondition(ThreadVars *tv, const Packet *p)
  *
  *  Executes a script once for one file.
  *
- * TODO non-http support
- *
  * NOTE p->flow is locked at this point
  */
 static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, uint8_t dir)
@@ -318,18 +316,17 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     BUG_ON(ff->flags & FILE_LOGGED);
 
     SCLogDebug("ff %p", ff);
-
-    /* Get the TX so the script can get more context about it.
-     * TODO hardcoded to HTTP currently */
-    void *txptr = NULL;
-    if (p->flow && p->flow->alstate)
-        txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP, p->flow->alstate, ff->txid);
-
+    
     SCMutexLock(&td->lua_ctx->m);
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetTX(td->lua_ctx->luastate, txptr);
+    if (p->flow && p->flow->alstate) {
+        txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
+        if (txptr) {
+            LuaStateSetTX(td->lua_ctx->luastate, txptr);
+        }
+    }
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
     LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
 
