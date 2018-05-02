@@ -90,6 +90,13 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
         exit(EXIT_FAILURE);
     }
 
+    #ifdef HAVE_SYS_PRCTL_H
+    if(prctl(PR_SET_DUMPABLE, 1) < 0) {
+        SCLogError(SC_ERR_CHANGING_CAPS_FAILED, "restoring core dump privileges"
+                " failed");
+    }
+    #endif
+    
     SCLogInfo("dropped the caps for main thread");
 }
 
