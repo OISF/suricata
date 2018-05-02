@@ -322,7 +322,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     if (p->flow && p->flow->alstate) {
-        txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
+        void *txptr = AppLayerParserGetTx(p->proto, p->flow->alproto, p->flow->alstate, ff->txid);
         if (txptr) {
             LuaStateSetTX(td->lua_ctx->luastate, txptr);
         }
