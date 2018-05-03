@@ -1749,11 +1749,11 @@
   # liblua
     AC_ARG_ENABLE(lua,
 	        AS_HELP_STRING([--enable-lua],[Enable Lua support]),
-	        [ enable_lua="yes"],
+	        [],
 	        [ enable_lua="no"])
     AC_ARG_ENABLE(luajit,
 	        AS_HELP_STRING([--enable-luajit],[Enable Luajit support]),
-	        [ enable_luajit="yes"],
+	        [],
 	        [ enable_luajit="no"])
     if test "$enable_lua" = "yes"; then
         if test "$enable_luajit" = "yes"; then
