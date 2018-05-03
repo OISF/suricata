@@ -29,6 +29,8 @@
 #include "util-logopenfile.h"
 #include "output.h"
 
+#include "app-layer-htp-xff.h"
+
 void OutputJsonRegister(void);
 
 #ifdef HAVE_LIBJANSSON
@@ -66,6 +68,7 @@ typedef struct OutputJsonCtx_ {
     LogFileCtx *file_ctx;
     enum LogFileType json_out;
     bool include_metadata;
+    HttpXFFCfg *xff_cfg;
 } OutputJsonCtx;
 
 json_t *SCJsonBool(int val);

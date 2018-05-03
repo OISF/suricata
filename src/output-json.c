@@ -854,6 +854,15 @@ OutputInitResult OutputJsonInitCtx(ConfNode *conf)
             json_ctx->include_metadata = true;
         }
 
+        /* Do we have a global eve xff configuration? */
+        const ConfNode *xff = ConfNodeLookupChild(conf, "xff");
+        if (xff != NULL) {
+            json_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+            if (likely(json_ctx->xff_cfg != NULL)) {
+                HttpXFFGetCfg(conf, json_ctx->xff_cfg);
+            }
+        }
+        
         const char *pcapfile_s = ConfNodeLookupChildValue(conf, "pcap-file");
         if (pcapfile_s != NULL && ConfValIsTrue(pcapfile_s)) {
             json_ctx->file_ctx->is_pcap_offline =
@@ -879,6 +888,9 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
         SCLogWarning(SC_WARN_EVENT_DROPPED,
                 "%"PRIu64" events were dropped due to slow or "
                 "disconnected socket", logfile_ctx->dropped);
+    }
+    if (json_ctx->xff_cfg != NULL) {
+        SCFree(json_ctx->xff_cfg);
     }
     LogFileFreeCtx(logfile_ctx);
     SCFree(json_ctx);
