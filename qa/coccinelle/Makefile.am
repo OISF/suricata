@@ -15,7 +15,7 @@ struct-flags.cocci:
 	$(srcdir)/struct-flags.py > $(top_builddir)/qa/coccinelle/struct-flags.cocci
 
 check:
-	$(top_srcdir)/qa/coccinelle/run_check.sh
+	TOP_SRCDIR=$(abs_top_srcdir) $(top_srcdir)/qa/coccinelle/run_check.sh
 
 distclean-local:
 	-rm $(top_builddir)/qa/coccinelle/struct-flags.cocci
