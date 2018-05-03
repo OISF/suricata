@@ -75,6 +75,7 @@ typedef struct OutputFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t file_cnt;
     HttpXFFCfg *xff_cfg;
+    HttpXFFCfg *parent_xff_cfg;
 } OutputFileCtx;
 
 typedef struct JsonFileLogThread_ {
@@ -243,7 +244,8 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
 static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p,
                                 const File *ff, uint32_t dir)
 {
-    HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg;
+    HttpXFFCfg *xff_cfg = aft->filelog_ctx->xff_cfg != NULL ?
+        aft->filelog_ctx->xff_cfg : aft->filelog_ctx->parent_xff_cfg;;
     json_t *js = JsonBuildFileInfoRecord(p, ff,
             ff->flags & FILE_STORED ? true : false, dir, xff_cfg);
     if (unlikely(js == NULL)) {
@@ -332,7 +334,7 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    OutputFileCtx *output_file_ctx = SCMalloc(sizeof(OutputFileCtx));
+    OutputFileCtx *output_file_ctx = SCCalloc(1, sizeof(OutputFileCtx));
     if (unlikely(output_file_ctx == NULL))
         return result;
 
@@ -359,9 +361,14 @@ static OutputInitResult OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_c
 
         FileForceHashParseCfg(conf);
     }
-    output_file_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
-    if (output_file_ctx->xff_cfg != NULL) {
-        HttpXFFGetCfg(conf, output_file_ctx->xff_cfg);
+
+    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+        output_file_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+        if (output_file_ctx->xff_cfg != NULL) {
+            HttpXFFGetCfg(conf, output_file_ctx->xff_cfg);
+        }
+    } else if (ojc->xff_cfg) {
+        output_file_ctx->parent_xff_cfg = ojc->xff_cfg;
     }
 
     output_ctx->data = output_file_ctx;
