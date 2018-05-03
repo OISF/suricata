@@ -103,6 +103,7 @@ typedef struct AlertJsonOutputCtx_ {
     uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
+    HttpXFFCfg *parent_xff_cfg;
     bool include_metadata;
 } AlertJsonOutputCtx;
 
@@ -589,7 +590,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 json_object_set_new(hjs, "rule", json_string(pa->s->sig_str));
         }
 
-        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
+        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg != NULL ?
+            json_output_ctx->xff_cfg : json_output_ctx->parent_xff_cfg;;
 
         /* xff header */
         if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
@@ -899,21 +901,16 @@ static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
     json_output_ctx->flags |= flags;
 }
 
-static void JsonAlertLogSetupXff(AlertJsonOutputCtx *json_output_ctx,
-        ConfNode *conf)
+static HttpXFFCfg *JsonAlertLogGetXffCfg(ConfNode *conf)
 {
     HttpXFFCfg *xff_cfg = NULL;
-
-    xff_cfg = SCMalloc(sizeof(HttpXFFCfg));
-    if (unlikely(xff_cfg == NULL)) {
-        return;
+    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+        xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+        if (likely(xff_cfg != NULL)) {
+            HttpXFFGetCfg(conf, xff_cfg);
+        }
     }
-    memset(xff_cfg, 0, sizeof(HttpXFFCfg));
-    json_output_ctx->xff_cfg = xff_cfg;
-
-    if (conf != NULL) {
-        HttpXFFGetCfg(conf, xff_cfg);
-    }
+    return xff_cfg;
 }
 
 /**
@@ -953,7 +950,7 @@ static OutputInitResult JsonAlertLogInitCtx(ConfNode *conf)
     json_output_ctx->file_ctx = logfile_ctx;
 
     JsonAlertLogSetupMetadata(json_output_ctx, conf);
-    JsonAlertLogSetupXff(json_output_ctx, conf);
+    json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtx;
@@ -988,7 +985,10 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     json_output_ctx->include_metadata = ajt->include_metadata;
 
     JsonAlertLogSetupMetadata(json_output_ctx, conf);
-    JsonAlertLogSetupXff(json_output_ctx, conf);
+    json_output_ctx->xff_cfg = JsonAlertLogGetXffCfg(conf);
+    if (json_output_ctx->xff_cfg == NULL) {
+        json_output_ctx->parent_xff_cfg = ajt->xff_cfg;
+    }
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
