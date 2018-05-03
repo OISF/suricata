@@ -828,18 +828,9 @@ static void SetFlag(const ConfNode *conf, const char *name, uint16_t flag, uint1
 
 #define DEFAULT_LOG_FILENAME "alert.json"
 
-static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
+static void JsonAlertLogSetupMetadata(AlertJsonOutputCtx *json_output_ctx,
+        ConfNode *conf)
 {
-    HttpXFFCfg *xff_cfg = NULL;
-
-    xff_cfg = SCMalloc(sizeof(HttpXFFCfg));
-    if (unlikely(xff_cfg == NULL)) {
-        return;
-    }
-    memset(xff_cfg, 0, sizeof(HttpXFFCfg));
-
-    json_output_ctx->xff_cfg = xff_cfg;
-
     uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
     uint16_t flags = METADATA_DEFAULTS;
 
@@ -899,7 +890,6 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         }
 
         json_output_ctx->payload_buffer_size = payload_buffer_size;
-        HttpXFFGetCfg(conf, xff_cfg);
     }
 
     if (flags & LOG_JSON_RULE_METADATA) {
@@ -907,6 +897,23 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
     }
 
     json_output_ctx->flags |= flags;
+}
+
+static void JsonAlertLogSetupXff(AlertJsonOutputCtx *json_output_ctx,
+        ConfNode *conf)
+{
+    HttpXFFCfg *xff_cfg = NULL;
+
+    xff_cfg = SCMalloc(sizeof(HttpXFFCfg));
+    if (unlikely(xff_cfg == NULL)) {
+        return;
+    }
+    memset(xff_cfg, 0, sizeof(HttpXFFCfg));
+    json_output_ctx->xff_cfg = xff_cfg;
+
+    if (conf != NULL) {
+        HttpXFFGetCfg(conf, xff_cfg);
+    }
 }
 
 /**
@@ -945,7 +952,8 @@ static OutputInitResult JsonAlertLogInitCtx(ConfNode *conf)
 
     json_output_ctx->file_ctx = logfile_ctx;
 
-    XffSetup(json_output_ctx, conf);
+    JsonAlertLogSetupMetadata(json_output_ctx, conf);
+    JsonAlertLogSetupXff(json_output_ctx, conf);
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtx;
@@ -979,7 +987,8 @@ static OutputInitResult JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent
     json_output_ctx->file_ctx = ajt->file_ctx;
     json_output_ctx->include_metadata = ajt->include_metadata;
 
-    XffSetup(json_output_ctx, conf);
+    JsonAlertLogSetupMetadata(json_output_ctx, conf);
+    JsonAlertLogSetupXff(json_output_ctx, conf);
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
