@@ -61,6 +61,7 @@ typedef struct LogHttpFileCtx_ {
     uint64_t fields;/** Store fields */
     bool include_metadata;
     HttpXFFCfg *xff_cfg;
+    HttpXFFCfg *parent_xff_cfg;
 } LogHttpFileCtx;
 
 typedef struct JsonHttpLogThread_ {
@@ -468,7 +469,8 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     MemBufferReset(jhl->buffer);
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
-    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg;
+    HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
+        jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
 
     /* xff header */
     if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
@@ -603,7 +605,7 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
     OutputInitResult result = { NULL, false };
     OutputJsonCtx *ojc = parent_ctx->data;
 
-    LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
+    LogHttpFileCtx *http_ctx = SCCalloc(1, sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL))
         return result;
     memset(http_ctx, 0x00, sizeof(*http_ctx));
@@ -650,9 +652,14 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
             }
         }
     }
-    http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
-    if (http_ctx->xff_cfg != NULL) {
-        HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+
+    if (conf != NULL && ConfNodeLookupChild(conf, "xff") != NULL) {
+        http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
+        if (http_ctx->xff_cfg != NULL) {
+            HttpXFFGetCfg(conf, http_ctx->xff_cfg);
+        }
+    } else if (ojc->xff_cfg) {
+        http_ctx->parent_xff_cfg = ojc->xff_cfg;
     }
 
     output_ctx->data = http_ctx;
