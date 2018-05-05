@@ -214,6 +214,7 @@ detect-iprep.c detect-iprep.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
 detect-krb5-msgtype.c detect-krb5-msgtype.h \
+detect-krb5-name.c detect-krb5-name.h \
 detect-l3proto.c detect-l3proto.h \
 detect-lua.c detect-lua.h \
 detect-lua-extensions.c detect-lua-extensions.h \

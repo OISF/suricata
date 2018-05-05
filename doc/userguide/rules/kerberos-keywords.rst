@@ -23,3 +23,40 @@ Syntax::
 Signature example::
 
  alert krb5 any any -> any any (msg:"Kerberos 5 AS-REQ message"; krb5.msg_type:10; sid:3; rev:1;)
+
+krb5.cname
+----------
+
+Kerberos client name, provided in the ticket (for AS-REQ and TGS-REQ messages).
+
+If the client name from the Kerberos message is composed of several parts, the
+name is compared to each part and the match will succeed if any is identical.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ krb5.cname:[!]<name>
+
+Signature example::
+
+ alert krb5 any any -> any any (msg:"Kerberos 5 des server name"; krb5.cname:des; sid:4; rev:1;)
+
+krb5.sname
+----------
+
+Kerberos server name, provided in the ticket (for AS-REQ and TGS-REQ messages)
+or in the error message.
+
+If the server name from the Kerberos message is composed of several parts, the
+name is compared to each part and the match will succeed if any is identical.
+
+Comparison is case-sensitive.
+
+Syntax::
+
+ krb5.sname:[!]<name>
+
+Signature example::
+
+ alert krb5 any any -> any any (msg:"Kerberos 5 krbtgt server name"; krb5.sname:krbtgt; sid:5; rev:1;)

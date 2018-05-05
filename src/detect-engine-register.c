@@ -179,6 +179,7 @@
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
 #include "detect-krb5-msgtype.h"
+#include "detect-krb5-name.h"
 #include "detect-target.h"
 #include "detect-template-buffer.h"
 #include "detect-bypass.h"
@@ -492,6 +493,7 @@ void SigTableSetup(void)
     DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectKrb5MsgTypeRegister();
+    DetectKrb5NameRegister();
     DetectTargetRegister();
     DetectTemplateBufferRegister();
     DetectBypassRegister();
