@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 Open Information Security Foundation
+/* Copyright (C) 2015-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,8 +15,19 @@
  * 02110-1301, USA.
  */
 
-// written by Pierre Chifflier  <chifflier@wzdftpd.net>
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-pub mod krb5;
-pub mod detect;
-pub mod log;
+#ifndef __DETECT_KRB5_MSGTYPE_H__
+#define __DETECT_KRB5_MSGTYPE_H__
+
+typedef struct DetectKrb5MsgTypeData_ {
+    uint8_t msg_type;
+} DetectKrb5MsgTypeData;
+
+void DetectKrb5MsgTypeRegister(void);
+
+#endif /* __DETECT_KRB5_MSGTYPE_H__ */

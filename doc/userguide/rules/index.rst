@@ -18,6 +18,7 @@ Suricata Rules
    dnp3-keywords
    enip-keyword
    ftp-keywords
+   kerberos-keywords
    app-layer
    xbits
    thresholding
