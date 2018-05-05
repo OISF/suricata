@@ -27,3 +27,39 @@ pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx:  &mut KRB5Transaction,
 {
     *ptr = tx.msg_type.0;
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
+                                              i: libc::uint16_t,
+                                              buffer: *mut *const libc::uint8_t,
+                                              buffer_len: *mut libc::uint32_t)
+                                              -> libc::uint8_t
+{
+    if let Some(ref s) = tx.cname {
+        if (i as usize) < s.name_string.len() {
+            let value = &s.name_string[i as usize];
+            *buffer = value.as_ptr();
+            *buffer_len = value.len() as u32;
+            return 1;
+        }
+    }
+    0
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rs_krb5_tx_get_sname(tx:  &mut KRB5Transaction,
+                                              i: libc::uint16_t,
+                                              buffer: *mut *const libc::uint8_t,
+                                              buffer_len: *mut libc::uint32_t)
+                                              -> libc::uint8_t
+{
+    if let Some(ref s) = tx.sname {
+        if (i as usize) < s.name_string.len() {
+            let value = &s.name_string[i as usize];
+            *buffer = value.as_ptr();
+            *buffer_len = value.len() as u32;
+            return 1;
+        }
+    }
+    0
+}
