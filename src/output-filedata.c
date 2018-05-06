@@ -145,6 +145,12 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
 
             if (!(ff->flags & FILE_STORE)) {
                 SCLogDebug("ff FILE_STORE not set");
+                /* if the stream has been closed and we still
+                 * haven't stored the file then mark it no-store */
+                if (ff->state >= FILE_STATE_CLOSED &&
+                    (p->flowflags & STREAM_EOF)) {
+                    ff->flags |= FILE_NOSTORE;
+                }
                 continue;
             }
 
