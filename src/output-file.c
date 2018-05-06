@@ -114,7 +114,8 @@ static void OutputFileLogFfc(ThreadVars *tv,
 
             SCLogDebug("ff %p state %u", ff, ff->state);
 
-            if (ff->state > FILE_STATE_OPENED) {
+            if (ff->state > FILE_STATE_OPENED &&
+               (ff->flags & (FILE_STORED|FILE_NOSTORE))) {
                 bool file_logged = false;
 #ifdef HAVE_MAGIC
                 if (FileForceMagic() && ff->magic == NULL) {
