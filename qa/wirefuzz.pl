@@ -82,7 +82,7 @@ my $keeplogs;
 my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
+GetOptions( \%config, qw(n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s q h help) );
 
 &parseopts();
 
@@ -140,7 +140,9 @@ sub parseopts {
             close $in;
         }
         elsif ( -B $suricatabin ) {
-            print "parseopts: suricata bin file checks out\n";
+            if ( ! $config{q} ) {
+                print "parseopts: suricata bin file checks out\n";
+            }
         }
         else {
             print "parseopts: suricata bin file is not a text or a bin exiting.\n";
@@ -294,7 +296,9 @@ sub parseopts {
         }
     }
 
-    print "******************Initialization Complete**********************\n";
+    if ( ! $config{q} ) {
+        print "******************Initialization Complete**********************\n";
+    }
     return;
 
 }
@@ -361,7 +365,9 @@ while ( $successcnt < $loopnum ) {
                 $editcap_sys_signal, $editcap_sys_coredump );
         my ( $fuzzedfiledir, $fuzzedfilename, $fullcmd, $out, $err, $exit,
                 $suricata_sys_signal, $suricata_sys_coredump, $report);
-        print "Going to work with file: $file\n";
+        if ( ! $config{q} ) {
+           print "Going to work with file: $file\n";
+        }
         my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
             localtime(time);
         $timestamp = sprintf "%4d-%02d-%02d-%02d-%02d-%02d", $year + 1900,
@@ -371,7 +377,9 @@ while ( $successcnt < $loopnum ) {
             $fuzzedfile = $logdir . $filename . "-fuzz-" . $timestamp;
             $editcapcmd =
                 "editcap -E " . $editeratio . " " . $file . " " . $fuzzedfile;
-            print( "editcap: " . $editcapcmd . "\n" );
+            if ( ! $config{q} ) {
+                print( "editcap: " . $editcapcmd . "\n" );
+            }
             ( $editcapout, $editcaperr ) = capture {
                 system $editcapcmd;
                 $editcapexit          = $? >> 8;
@@ -395,7 +403,7 @@ while ( $successcnt < $loopnum ) {
                 exit(1);
 
             }
-            else {
+            elsif ( ! $config{q} ) {
                 print("editcap: ran successfully\n");
                 print
                     "******************Editcap Complete**********************\n";
@@ -463,7 +471,9 @@ while ( $successcnt < $loopnum ) {
                 $fullcmd = $fullcmd . " -s " . $rules;
             }
         }
-        print "suricata: $fullcmd \n";
+        if ( ! $config{q} ) {
+            print "suricata: $fullcmd \n";
+        }
         my $starttime = time();
         ( $out, $err ) = capture {
             system $fullcmd;
@@ -479,7 +489,9 @@ while ( $successcnt < $loopnum ) {
             . $exit . ","
             . $suricata_sys_signal . ","
             . $suricata_sys_coredump . "\n";
-        print "suricata: exit value $exit\n";
+        if ( ! $config{q} ) {
+            print "suricata: exit value $exit\n";
+        }
 
         if ( $exit ne 0 ) {
             my $knownerr = 0;
@@ -487,6 +499,12 @@ while ( $successcnt < $loopnum ) {
             #fuzzer genrated some random link type we can't deal with
             if ( $err =~
                     /datalink type \d+ not \(yet\) supported in module PcapFile\./ )
+            {
+                print "suricata: we matched a known error going to the next file\n";
+                $knownerr = 1;
+            }
+            elsif ( $err =~
+                    /invalid interface capture length/ )
             {
                 print "suricata: we matched a known error going to the next file\n";
                 $knownerr = 1;
@@ -504,6 +522,8 @@ while ( $successcnt < $loopnum ) {
                 &clean_logs($fuzzedfilename,$file_was_fuzzed);
             }
             else {
+                print "suricata: $fullcmd \n";
+                print "suricata: exit value $exit\n";
                 my $report = $logdir . $fuzzedfilename . "-ERR.txt";
 
                 &process_core_dump();
@@ -535,15 +555,19 @@ while ( $successcnt < $loopnum ) {
                 $successcnt++;
             }
 
-            print "suricata: we have run with success " . $successcnt . " times\n";
-            print "******************Suricata Complete**********************\n";
+            if ( ! $config{q} ) {
+                print "suricata: we have run with success " . $successcnt . " times\n";
+                print "******************Suricata Complete**********************\n";
+            }
             if( $keeplogs eq "yes" ) {
                 &keep_logs($fuzzedfilename);
                 $report = $logdir . $fuzzedfilename . "-OUT.txt";
                 &generate_report($report, $fullcmd, $out, $err, $exit, "none");
             }
             &clean_logs($fuzzedfilename,$file_was_fuzzed);
-            print "******************Next Packet or Exit *******************\n";
+            if ( ! $config{q} ) {
+                print "******************Next Pcap or Exit *******************\n";
+            }
         }
 
         if ($successcnt >= $loopnum) {
@@ -601,7 +625,9 @@ sub clean_logs {
     my $rmcmd;
     if ( defined $editeratio and $file_was_fuzzed) {
         if ( unlink($deletemerge) == 1 ) {
-            print "clean_logs: " . $deletemerge . " deleted successfully.\n";
+            if ( ! $config{q} ) {
+                print "clean_logs: " . $deletemerge . " deleted successfully.\n";
+            }
         }
         else {
             print "clean_logs: error " . $deletemerge . " was not deleted. You may have to delete the file manually.\n";

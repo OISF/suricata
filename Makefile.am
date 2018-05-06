@@ -30,6 +30,12 @@ install-conf:
 	install -m 770 -d "$(DESTDIR)$(e_localstatedir)"
 
 install-rules:
+if HAVE_SURICATA_UPDATE
+	$(DESTDIR)$(bindir)/suricata-update \
+		--suricata $(DESTDIR)$(bindir)/suricata \
+		--suricata-conf $(DESTDIR)$(sysconfdir)/suricata/suricata.yaml \
+		--no-test --no-reload
+else
 	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
 if HAVE_FETCH_COMMAND
 if HAVE_WGET_COMMAND
@@ -58,3 +64,4 @@ endif
 	@echo "While rules are installed now, it's highly recommended to use a rule manager for maintaining rules."
 	@echo "The three most common are Suricata-Update, Oinkmaster and Pulledpork. For a guide see:"
 	@echo "https://suricata.readthedocs.io/en/latest/rule-management/index.html"
+endif

@@ -49,8 +49,11 @@ vars:
 ## Step 2: select the rules to enable or disable
 ##
 
-default-rule-path: @e_sysconfdir@rules
-rule-files:
+#default-rule-path: @e_sysconfdir@rules
+default-rule-path: @e_defaultruledir@
+@suricata_update_rule_files@:
+ - suricata.rules
+@classic_rule_files@:
  - botcc.rules
  # - botcc.portgrouped.rules
  - ciarmy.rules
@@ -402,6 +405,17 @@ outputs:
 
       # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
       max-files: 2000
+
+      # Compression algorithm for pcap files. Possible values: none, lz4.
+      # Enabling compression is incompatible with the sguil mode. Note also
+      # that on Windows, enabling compression will *increase* disk I/O.
+      compression: none
+
+      # Further options for lz4 compression. The compression level can be set
+      # to a value between 0 and 16, where higher values result in higher
+      # compression.
+      #lz4-checksum: no
+      #lz4-level: 0
 
       mode: normal # normal, multi or sguil.
 

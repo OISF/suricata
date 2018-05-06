@@ -60,6 +60,10 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
         const DetectEngineTransforms *transforms,
         Flow *_f, const uint8_t _flow_flags,
         void *txv, const int list_id);
+static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
+        Signature *s);
+static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
+        const char **sigerror);
 static int g_tls_cert_fingerprint_buffer_id = 0;
 
 /**
@@ -87,6 +91,12 @@ void DetectTlsFingerprintRegister(void)
 
     DetectBufferTypeSetDescriptionByName("tls_cert_fingerprint",
             "TLS certificate fingerprint");
+
+    DetectBufferTypeRegisterSetupCallback("tls_cert_fingerprint",
+            DetectTlsFingerprintSetupCallback);
+
+    DetectBufferTypeRegisterValidateCallback("tls_cert_fingerprint",
+            DetectTlsFingerprintValidateCallback);
 
     g_tls_cert_fingerprint_buffer_id = DetectBufferTypeGetByName("tls_cert_fingerprint");
 }
@@ -135,6 +145,83 @@ static InspectionBuffer *GetData(DetectEngineThreadCtx *det_ctx,
     return buffer;
 }
 
+static _Bool DetectTlsFingerprintValidateCallback(const Signature *s,
+                                                  const char **sigerror)
+{
+    const SigMatch *sm = s->init_data->smlists[g_tls_cert_fingerprint_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        const DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        if (cd->content_len != 59) {
+            *sigerror = "Invalid length of the specified fingerprint. "
+                        "This rule will therefore never match.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            return FALSE;
+        }
+
+        _Bool have_delimiters = FALSE;
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+        {
+            if (cd->content[u] == ':') {
+                have_delimiters = TRUE;
+                break;
+            }
+        }
+
+        if (have_delimiters == FALSE) {
+            *sigerror = "No colon delimiters ':' detected in content after "
+                        "tls_cert_fingerprint. This rule will therefore "
+                        "never match.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+            return FALSE;
+        }
+
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            *sigerror = "tls_cert_fingerprint should not be used together "
+                        "with nocase, since the rule is automatically "
+                        "lowercased anyway which makes nocase redundant.";
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: %s", s->id, *sigerror);
+        }
+    }
+
+    return TRUE;
+}
+
+static void DetectTlsFingerprintSetupCallback(const DetectEngineCtx *de_ctx,
+                                              Signature *s)
+{
+    SigMatch *sm = s->init_data->smlists[g_tls_cert_fingerprint_buffer_id];
+    for ( ; sm != NULL; sm = sm->next)
+    {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+        _Bool changed = FALSE;
+        uint32_t u;
+        for (u = 0; u < cd->content_len; u++)
+        {
+            if (isupper(cd->content[u])) {
+                cd->content[u] = tolower(cd->content[u]);
+                changed = TRUE;
+            }
+        }
+
+        /* recreate the context if changes were made */
+        if (changed) {
+            SpmDestroyCtx(cd->spm_ctx);
+            cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
+                                     de_ctx->spm_global_thread_ctx);
+        }
+    }
+}
+
 #ifdef UNITTESTS
 
 /**
@@ -152,7 +239,9 @@ static int DetectTlsFingerprintTest01(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tls any any -> any any "
                                "(msg:\"Testing tls_cert_fingerprint\"; "
-                               "tls_cert_fingerprint; content:\"XX:XX:XX\"; sid:1;)");
+                               "tls_cert_fingerprint; "
+                               "content:\"11:22:33:44:55:66:77:88:99:00:11:22:33:44:55:66:77:88:99:00\"; "
+                               "sid:1;)");
     FAIL_IF_NULL(de_ctx->sig_list);
 
     /* sm should not be in the MATCH list */
@@ -427,7 +516,7 @@ static int DetectTlsFingerprintTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
-                              "(msg:\"Test tls_cert_serial\"; "
+                              "(msg:\"Test tls_cert_fingerprint\"; "
                               "tls_cert_fingerprint; "
                               "content:\"4a:a3:66:76:82:cb:6b:23:bb:c3:58:47:23:a4:63:a7:78:a4:a1:18\"; "
                               "sid:1;)");

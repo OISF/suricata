@@ -51,7 +51,8 @@
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, const char *);
 static void DetectFiledataRegisterTests(void);
-static void DetectFiledataSetupCallback(Signature *s);
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
+                                        Signature *s);
 static int g_file_data_buffer_id = 0;
 
 /**
@@ -174,7 +175,8 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, const cha
     return 0;
 }
 
-static void DetectFiledataSetupCallback(Signature *s)
+static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
+                                        Signature *s)
 {
     if (s->alproto == ALPROTO_HTTP || s->alproto == ALPROTO_UNKNOWN) {
         AppLayerHtpEnableRequestBodyCallback();

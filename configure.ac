@@ -1376,11 +1376,20 @@
   ])
 
   # suricata-update
+  have_suricata_update="no"
+  ruledirprefix="$sysconfdir"
+  suricata_update_rule_files="suricata-update-rule-files"
+  classic_rule_files="rule-files"
   AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
       SURICATA_UPDATE_DIR="suricata-update"
       AC_SUBST(SURICATA_UPDATE_DIR)
       AC_OUTPUT(suricata-update/Makefile)
+      have_suricata_update="yes"
+      ruledirprefix="$localstatedir/lib"
+      suricata_update_rule_files="rule-files"
+      classic_rule_files="classic-rule-files"
   ])
+  AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
 
   # libhtp
     AC_ARG_ENABLE(non-bundled-htp,
@@ -2052,6 +2061,22 @@
         fi
     fi
 
+# Check for lz4
+enable_liblz4="yes"
+AC_CHECK_LIB(lz4, LZ4F_createCompressionContext, , enable_liblz4="no")
+
+if test "$enable_liblz4" = "no"; then
+    echo
+    echo "  Compressed pcap logging is not available without liblz4."
+    echo "  If you want to enable compression, you need to install it."
+    echo
+    echo "  Ubuntu: apt-get install liblz4-dev"
+    echo "  Fedora: dnf install lz4-devel"
+    echo "  RHEL/CentOS: yum install epel-release"
+    echo "               yum install lz4-devel"
+    echo
+fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -2230,10 +2255,12 @@ if test "$WINDOWS_PATH" = "yes"; then
 
     e_sysconfdir="${e_winbase}\\\\"
     e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
+    e_defaultruledir="$e_winbase\\\\rules\\\\"
     e_magic_file="$e_winbase\\\\magic.mgc"
     e_logdir="$e_winbase\\\\log"
     e_logfilesdir="$e_logdir\\\\files"
     e_logcertsdir="$e_logdir\\\\certs"
+    e_datarulesdir="$e_winbase\\\\rules\\\\"
 else
     EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
     EXPAND_VARIABLE(localstatedir, e_rundir, "/run/")
@@ -2242,6 +2269,8 @@ else
     EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
     EXPAND_VARIABLE(sysconfdir, e_sysconfrulesdir, "/suricata/rules")
     EXPAND_VARIABLE(localstatedir, e_localstatedir, "/run/suricata")
+    EXPAND_VARIABLE(datadir, e_datarulesdir, "/suricata/rules")
+    EXPAND_VARIABLE(ruledirprefix, e_defaultruledir, "/suricata/rules")
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_rundir)
@@ -2254,6 +2283,10 @@ AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 AC_SUBST(e_magic_file_comment)
 AC_SUBST(e_enable_evelog)
+AC_SUBST(e_datarulesdir)
+AC_SUBST(e_defaultruledir)
+AC_SUBST(suricata_update_rule_files)
+AC_SUBST(classic_rule_files)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
@@ -2263,7 +2296,7 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/bin/suricatasc ebpf/Makefile)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml etc/Makefile etc/suricata.logrotate etc/suricata.service python/Makefile python/suricata/config/defaults.py python/bin/suricatasc ebpf/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}
@@ -2296,6 +2329,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Old barnyard2 support:                   ${enable_old_barnyard2}
   Hyperscan support:                       ${enable_hyperscan}
   Libnet support:                          ${enable_libnet}
+  liblz4 support:                          ${enable_liblz4}
 
   Rust support (experimental):             ${enable_rust}
   Rust strict mode:                        ${enable_rust_strict}
