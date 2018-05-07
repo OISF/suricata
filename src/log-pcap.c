@@ -1774,7 +1774,8 @@ static void PcapLogProfilingDump(PcapLogData *pl)
 
     /* overall stats */
     fprintf(fp, "\nOverall: %"PRIu64" bytes written, average %d bytes per write.\n",
-        pl->profile_data_size, (int)(pl->profile_data_size / pl->profile_write.cnt));
+        pl->profile_data_size, pl->profile_write.cnt ?
+            (int)(pl->profile_data_size / pl->profile_write.cnt) : 0);
     fprintf(fp, "         PCAP data structure overhead: %"PRIuMAX" per write.\n",
         (uintmax_t)sizeof(struct pcap_pkthdr));
 
