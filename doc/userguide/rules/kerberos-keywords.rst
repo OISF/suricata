@@ -61,6 +61,21 @@ Signature example::
 
  alert krb5 any any -> any any (msg:"Kerberos 5 krbtgt server name"; krb5.sname:krbtgt; sid:5; rev:1;)
 
+krb5.err_code
+-------------
+
+Kerberos error code (integer). This field is matched in  Kerberos error messages only
+
+For a list of error codes, refer to RFC4120 section 7.5.9.
+
+Syntax::
+
+ krb5.err_code:<number>
+
+Signature example::
+
+ alert krb5 any any -> any any (msg:"Kerberos 5 error C_PRINCIPAL_UNKNOWN"; krb5.msg_type:6; sid:6; rev:1;)
+
 krb5.weak_crypto (event)
 ------------------------
 
