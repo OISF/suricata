@@ -68,3 +68,18 @@ Signature example::
 ``krb5_sname`` is a 'sticky buffer'.
 
 ``krb5_sname`` can be used as ``fast_pattern``.
+
+krb5_err_code
+-------------
+
+Kerberos error code (integer). This field is matched in Kerberos error messages only.
+
+For a list of error codes, refer to RFC4120 section 7.5.9.
+
+Syntax::
+
+ krb5_err_code:<number>
+
+Signature example::
+
+ alert krb5 any any -> any any (msg:"Kerberos 5 error C_PRINCIPAL_UNKNOWN"; krb5_err_code:6; sid:6; rev:1;)

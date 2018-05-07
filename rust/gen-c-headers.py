@@ -63,6 +63,7 @@ type_map = {
     "libc::c_int": "int",
     "c_int": "int",
     "libc::int8_t": "int8_t",
+    "libc::int32_t": "int32_t",
 
     "libc::uint8_t": "uint8_t",
     "libc::uint16_t": "uint16_t",

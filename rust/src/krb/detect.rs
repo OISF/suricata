@@ -28,6 +28,21 @@ pub unsafe extern "C" fn rs_krb5_tx_get_msgtype(tx:  &mut KRB5Transaction,
     *ptr = tx.msg_type.0;
 }
 
+/// Get error code, if present in transaction
+/// Return 0 if error code was filled, else 1
+#[no_mangle]
+pub unsafe extern "C" fn rs_krb5_tx_get_errcode(tx:  &mut KRB5Transaction,
+                                                ptr: *mut libc::int32_t) -> u32
+{
+    match tx.error_code {
+        Some(ref e) => {
+            *ptr = e.0;
+            0
+        },
+        None        => 1
+    }
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rs_krb5_tx_get_cname(tx:  &mut KRB5Transaction,
                                               i: libc::uint16_t,
