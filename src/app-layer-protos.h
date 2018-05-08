@@ -50,6 +50,7 @@ enum AppProtoEnum {
     ALPROTO_TFTP,
     ALPROTO_IKEV2,
     ALPROTO_KRB5,
+    ALPROTO_DHCP,
     ALPROTO_TEMPLATE,
 
     /* used by the probing parser when alproto detection fails

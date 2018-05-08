@@ -58,6 +58,7 @@ type_map = {
     "u64" :"uint64_t",
 
     "libc::c_void": "void",
+    "c_void": "void",
 
     "libc::c_char": "char",
     "libc::c_int": "int",

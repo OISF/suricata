@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,45 +15,37 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Jason Ish <jason.ish@oisf.net>
+ */
 
-extern crate libc;
+#include "suricata-common.h"
+#include "util-unittest.h"
+#include "app-layer-parser.h"
+#include "app-layer-dhcp.h"
 
-#[macro_use]
-extern crate nom;
+#ifdef HAVE_RUST
+#include "rust-dhcp-dhcp-gen.h"
+#endif /* HAVE_RUST */
 
-extern crate crc;
+void RegisterDHCPParsers(void)
+{
+#ifdef HAVE_RUST
+    rs_dhcp_register_parser();
+#endif /* HAVE_RUST */
+#ifdef UNITTESTS
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_DHCP,
+        DHCPParserRegisterTests);
+#endif
+}
 
-extern crate der_parser;
-extern crate kerberos_parser;
+#ifdef UNITTESTS
+#endif
 
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-#[macro_use]
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-pub mod kerberos;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-pub mod krb;
-
-pub mod ikev2;
-
-pub mod ntp;
-pub mod tftp;
-pub mod dhcp;
+void DHCPParserRegisterTests(void)
+{
+#ifdef UNITTESTS
+#endif
+}

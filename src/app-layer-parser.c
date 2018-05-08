@@ -66,6 +66,7 @@
 #include "app-layer-tftp.h"
 #include "app-layer-ikev2.h"
 #include "app-layer-krb5.h"
+#include "app-layer-dhcp.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1454,6 +1455,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterTFTPParsers();
     RegisterIKEV2Parsers();
     RegisterKRB5Parsers();
+    RegisterDHCPParsers();
     RegisterTemplateParsers();
 
     /** IMAP */
