@@ -148,7 +148,7 @@ static void OutputFiledataLogFfc(ThreadVars *tv, OutputLoggerThreadStore *store,
                 /* if the stream has been closed and we still
                  * haven't stored the file then mark it no-store */
                 if (ff->state >= FILE_STATE_CLOSED &&
-                    (p->flowflags & STREAM_EOF)) {
+                    (p->flags & PKT_STREAM_EOF)) {
                     ff->flags |= FILE_NOSTORE;
                 }
                 continue;
