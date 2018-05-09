@@ -209,7 +209,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
     /* xff header */
-    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
+    if ((xff_cfg != NULL) && !(xff_cfg->flags & XFF_DISABLED)) {
         int have_xff_ip = 0;
         char buffer[XFF_MAXLEN];
 
