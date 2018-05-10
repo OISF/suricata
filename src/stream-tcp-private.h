@@ -185,7 +185,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED 0x0200
 /** Raw reassembly disabled completely */
 #define STREAMTCP_STREAM_FLAG_DISABLE_RAW 0x400
-// vacancy 1x
+
+#define STREAMTCP_STREAM_FLAG_RST_RECV  0x800
 
 /** NOTE: flags field is 12 bits */
 
@@ -220,7 +221,8 @@ enum
 
 typedef struct TcpSession_ {
     PoolThreadReserved res;
-    uint8_t state;
+    uint8_t state:4;                        /**< tcp state from state enum */
+    uint8_t pstate:4;                       /**< previous state */
     uint8_t queue_len;                      /**< length of queue list below */
     int8_t data_first_seen_dir;
     /** track all the tcp flags we've seen */

@@ -105,6 +105,9 @@ static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
 static int StreamTcpValidateRst(TcpSession * , Packet *);
 static inline int StreamTcpValidateAck(TcpSession *ssn, TcpStream *, Packet *);
+static int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
+        StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq,
+        uint8_t state);
 
 extern int g_detect_disabled;
 
@@ -697,6 +700,7 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
     if (state == ssn->state || PKT_IS_PSEUDOPKT(p))
         return;
 
+    ssn->pstate = ssn->state;
     ssn->state = state;
 
     /* update the flow state */
@@ -1333,11 +1337,16 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                     SEQ_EQ(TCP_GET_WINDOW(p), 0) &&
                     SEQ_EQ(TCP_GET_ACK(p), (ssn->client.isn + 1)))
             {
+                SCLogDebug("ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
+                ssn->server.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received and state changed to "
                         "TCP_CLOSED", ssn);
             }
         } else {
+            ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV;
+            SCLogDebug("ssn->client.flags |= STREAMTCP_STREAM_FLAG_RST_RECV");
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
             SCLogDebug("ssn %p: Reset received and state changed to "
                     "TCP_CLOSED", ssn);
@@ -4189,6 +4198,68 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
     return 0;
 }
 
+static int StreamTcpPacketStateClosed(ThreadVars *tv, Packet *p,
+                        StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq)
+{
+    if (ssn == NULL)
+        return -1;
+
+    if (p->tcph->th_flags & TH_RST) {
+        SCLogDebug("RST on closed state");
+        return 0;
+    }
+
+    TcpStream *stream = NULL, *ostream = NULL;
+    if (PKT_IS_TOSERVER(p)) {
+        stream = &ssn->client;
+        ostream = &ssn->server;
+    } else {
+        stream = &ssn->server;
+        ostream = &ssn->client;
+    }
+
+    SCLogDebug("stream %s ostream %s",
+            stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV?"true":"false",
+            ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV ? "true":"false");
+
+    /* if we've seen a RST on our direction, but not on the other
+     * see if we perhaps need to continue processing anyway. */
+    if ((stream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) == 0) {
+        if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
+            if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->pstate) < 0)
+                return -1;
+        }
+    }
+    return 0;
+}
+
+static void StreamTcpPacketCheckPostRst(TcpSession *ssn, Packet *p)
+{
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        return;
+    }
+    /* more RSTs are not unusual */
+    if ((p->tcph->th_flags & (TH_RST)) != 0) {
+        return;
+    }
+
+    TcpStream *ostream = NULL;
+    if (PKT_IS_TOSERVER(p)) {
+        ostream = &ssn->server;
+    } else {
+        ostream = &ssn->client;
+    }
+
+    if (ostream->flags & STREAMTCP_STREAM_FLAG_RST_RECV) {
+        SCLogDebug("regular packet %"PRIu64" from same sender as "
+                "the previous RST. Looks like it injected!", p->pcap_cnt);
+        ostream->flags &= ~STREAMTCP_STREAM_FLAG_RST_RECV;
+        StreamTcpSetEvent(p, STREAM_SUSPECTED_RST_INJECT);
+        return;
+    }
+    return;
+}
+
 /**
  *  \retval 1 packet is a keep alive pkt
  *  \retval 0 packet is not a keep alive pkt
@@ -4473,6 +4544,76 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
+/** \internal
+ *  \brief call packet handling function for 'state'
+ *  \param state current TCP state
+ */
+static inline int StreamTcpStateDispatch(ThreadVars *tv, Packet *p,
+        StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq,
+        const uint8_t state)
+{
+    switch (state) {
+        case TCP_SYN_SENT:
+            if (StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_SYN_RECV:
+            if (StreamTcpPacketStateSynRecv(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_ESTABLISHED:
+            if (StreamTcpPacketStateEstablished(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_FIN_WAIT1:
+            if (StreamTcpPacketStateFinWait1(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_FIN_WAIT2:
+            if (StreamTcpPacketStateFinWait2(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_CLOSING:
+            if (StreamTcpPacketStateClosing(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_CLOSE_WAIT:
+            if (StreamTcpPacketStateCloseWait(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_LAST_ACK:
+            if (StreamTcpPacketStateLastAck(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_TIME_WAIT:
+            if (StreamTcpPacketStateTimeWait(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+            break;
+        case TCP_CLOSED:
+            /* TCP session memory is not returned to pool until timeout. */
+            SCLogDebug("packet received on closed state");
+
+            if (StreamTcpPacketStateClosed(tv, p, stt, ssn, pq)) {
+                return -1;
+            }
+
+            break;
+        default:
+            SCLogDebug("packet received on default state");
+            break;
+    }
+    return 0;
+}
+
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq)
@@ -4588,61 +4729,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 if (StreamTcpPacketIsBadWindowUpdate(ssn,p))
                     goto skip;
 
-        switch (ssn->state) {
-            case TCP_SYN_SENT:
-                if(StreamTcpPacketStateSynSent(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_SYN_RECV:
-                if(StreamTcpPacketStateSynRecv(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_ESTABLISHED:
-                if(StreamTcpPacketStateEstablished(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_FIN_WAIT1:
-                if(StreamTcpPacketStateFinWait1(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_FIN_WAIT2:
-                if(StreamTcpPacketStateFinWait2(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_CLOSING:
-                if(StreamTcpPacketStateClosing(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_CLOSE_WAIT:
-                if(StreamTcpPacketStateCloseWait(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_LAST_ACK:
-                if(StreamTcpPacketStateLastAck(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_TIME_WAIT:
-                if(StreamTcpPacketStateTimeWait(tv, p, stt, ssn, &stt->pseudo_queue)) {
-                    goto error;
-                }
-                break;
-            case TCP_CLOSED:
-                /* TCP session memory is not returned to pool until timeout. */
-                SCLogDebug("packet received on closed state");
-                break;
-            default:
-                SCLogDebug("packet received on default state");
-                break;
-        }
+        /* handle the per 'state' logic */
+        if (StreamTcpStateDispatch(tv, p, stt, ssn, &stt->pseudo_queue, ssn->state) < 0)
+            goto error;
+
     skip:
+        StreamTcpPacketCheckPostRst(ssn, p);
 
         if (ssn->state >= TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EST;
