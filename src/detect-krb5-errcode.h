@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2015-2017 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,43 +15,19 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-extern crate libc;
+#ifndef __DETECT_KRB5_ERRCODE_H__
+#define __DETECT_KRB5_ERRCODE_H__
 
-#[macro_use]
-extern crate nom;
+typedef struct DetectKrb5ErrCodeData_ {
+    int32_t err_code;
+} DetectKrb5ErrCodeData;
 
-extern crate crc;
+void DetectKrb5ErrCodeRegister(void);
 
-extern crate der_parser;
-extern crate kerberos_parser;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-pub mod kerberos;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-pub mod krb;
-
-pub mod ikev2;
-
-pub mod ntp;
-pub mod tftp;
+#endif /* __DETECT_KRB5_ERRCODE_H__ */
