@@ -11,6 +11,7 @@ Suricata Rules
    flow-keywords
    http-keywords
    file-keywords
+   yara-keyword
    dns-keywords
    tls-keywords
    ja3-keywords
