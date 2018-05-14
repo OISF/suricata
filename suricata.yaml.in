@@ -1560,6 +1560,15 @@ threading:
 luajit:
   states: 128
 
+# YARA options
+yara:
+  # The maximum duration of a scan in seconds. A value of 0
+  # means no timeout. The default is a 1 second timeout.
+  timeout: 1
+
+  # For each string, stop scanning after the first match.
+  fast-scan: yes
+
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
 #
