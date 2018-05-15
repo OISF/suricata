@@ -20,5 +20,5 @@ crc = "~1.7.0"
 der-parser = "0.5.2"
 kerberos-parser = "0.1.0"
 
-ntp-parser = "^0"
+ntp-parser = "0.2.0"
 ipsec-parser = "~0.3.0"
