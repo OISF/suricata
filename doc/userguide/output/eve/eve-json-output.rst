@@ -47,7 +47,7 @@ Output types::
 Alerts
 ~~~~~~
 
-Alerts are event records for rule matches. They can be ammended with
+Alerts are event records for rule matches. They can be amended with
 metadata, such as the application layer record (HTTP, DNS, etc) an
 alert was generated for, and elements of the rule.
 
