@@ -83,3 +83,30 @@ Syntax::
 Signature example::
 
  alert krb5 any any -> any any (msg:"Kerberos 5 error C_PRINCIPAL_UNKNOWN"; krb5_err_code:6; sid:6; rev:1;)
+
+krb5.weak_crypto (event)
+------------------------
+
+Event raised if the cryptographic parameters selected by the server are weak or
+deprecated. For example, using a key size smaller than 128, or using deprecated
+ciphers like DES.
+
+This event can be disabled by setting the configuration option
+``app-layer.protocols.krb5.warn-weak-crypto`` to false.
+
+Syntax::
+
+  app-layer-event:krb5.weak_crypto
+
+Signature example::
+
+ alert krb5 any any -> any any (msg:"SURICATA Kerberos 5 weak cryptographic parameters"; flow:to_client; app-layer-event:krb5.weak_crypto; classtype:protocol-command-decode; sid:2226001; rev:1;)
+
+krb5.malformed_data (event)
+---------------------------
+
+Event raised in case of a protocol decoding error
+
+Syntax::
+
+  app-layer-event:krb5.malformed_data
