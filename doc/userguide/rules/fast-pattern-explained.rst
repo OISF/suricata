@@ -2,8 +2,8 @@ Suricata Fast Pattern Determination Explained
 =============================================
 
 If the 'fast_pattern' keyword is explicitly set in a rule, Suricata
-will use that as the fast pattern match.  The 'fast_pattern' keyword
-can only be set once per rule.  If 'fast_pattern' is not set, Suricata
+will use that as the fast pattern match. The 'fast_pattern' keyword
+can only be set once per rule. If 'fast_pattern' is not set, Suricata
 automatically determines the content to use as the fast pattern match.
 
 The following explains the logic Suricata uses to automatically
@@ -11,7 +11,7 @@ determine the fast pattern match to use.
 
 Be aware that if there are positive (i.e. non-negated) content
 matches, then negated content matches are ignored for fast pattern
-determination.  Otherwise, negated content matches are considered.
+determination. Otherwise, negated content matches are considered.
 
 The fast_pattern selection criteria are as follows:
 
@@ -111,13 +111,13 @@ fast pattern match for Suricata 2.0.7 but registration order does.
 Appendix C - Pattern Strength Algorithm
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-From detect-engine-mpm.c.  Basically the Pattern Strength "score"
+From detect-engine-mpm.c. Basically the Pattern Strength "score"
 starts at zero and looks at each character/byte in the passed in byte
-array from left to right.  If the character/byte has not been seen
+array from left to right. If the character/byte has not been seen
 before in the array, it adds 3 to the score if it is an alpha
 character; else it adds 4 to the score if it is a printable character,
-0x00, 0x01, or 0xFF; else it adds 6 to the score.  If the
-character/byte has been seen before it adds 1 to the score.  The final
+0x00, 0x01, or 0xFF; else it adds 6 to the score. If the
+character/byte has been seen before it adds 1 to the score. The final
 score is returned.
 
 .. code-block:: c
@@ -131,7 +131,7 @@ score is returned.
     *  Longer patterns score better than short patters.
     *
     *  \param pat pattern
-    *  \param patlen length of the patternn
+    *  \param patlen length of the pattern
     *
     *  \retval s pattern score
     */

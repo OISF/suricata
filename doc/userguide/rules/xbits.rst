@@ -42,7 +42,7 @@ Threading
 ---------
 
 Due to subtle timing issues between threads the order of sets and checks
-can be slightly unpredictible.
+can be slightly unpredictable.
 
 Unix Socket
 -----------

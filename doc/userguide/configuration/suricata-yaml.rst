@@ -14,13 +14,13 @@ Max-pending-packets
 -------------------
 
 With the max-pending-packets setting you can set the number of packets
-you allow Suricata to process simultaneously.  This can range from one
-packet to tens of thousands/hundreds of thousands of packets.  It is a
+you allow Suricata to process simultaneously. This can range from one
+packet to tens of thousands/hundreds of thousands of packets. It is a
 trade of higher performance and the use of more memory (RAM), or lower
 performance and less use of memory. A high number of packets being
 processed results in a higher performance and the use of more
 memory. A low number of packets, results in lower performance and less
-use of memory.  Choosing a low number of packets being processed while
+use of memory. Choosing a low number of packets being processed while
 having many CPU's/CPU cores, can result in not making use of the whole
 computer-capacity. (For instance: using one core while having three
 waiting for processing packets.)
@@ -91,7 +91,7 @@ Action-order
 
 All signatures have different properties. One of those is the Action
 property. This one determines what will happen when a signature
-matches.  There are four types of Action. A summary of what will
+matches. There are four types of Action. A summary of what will
 happen when a signature matches and contains one of those Actions:
 
 1) Pass
@@ -102,9 +102,9 @@ packet).
 
 2) Drop
 
-This only concerns the IPS/inline mode.  If the program finds a
+This only concerns the IPS/inline mode. If the program finds a
 signature that matches, containing drop, it stops immediately. The
-packet will not be sent any further.  Drawback: The receiver does not
+packet will not be sent any further. Drawback: The receiver does not
 receive a message of what is going on, resulting in a time-out
 (certainly with TCP). Suricata generates an alert for this packet.
 
@@ -149,7 +149,7 @@ Splitting configuration in multiple files
 -----------------------------------------
 
 Some users might have a need or a wish to split their suricata.yaml
-file in to seperate files, this is available vis the 'include' and
+file in to separate files, this is available vis the 'include' and
 '!include' keyword. The first example is of taking the contents of the
 outputs section and storing them in outputs.yaml
 
@@ -248,7 +248,7 @@ the use of more disc space, so enable only the outputs you need.
 Line based alerts log (fast.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This log contains alerts consisting of a single line.  Example of the
+This log contains alerts consisting of a single line. Example of the
 appearance of a single fast.log-file line:
 
 ::
@@ -316,7 +316,7 @@ This output supports IPv6 and IPv4 events.
 
       # By default unified2 log files have the file creation time (in
       # unix epoch format) appended to the filename. Set this to yes to
-      # disable this behaviour.
+      # disable this behavior.
       #nostamp: no
 
       # Sensor ID field of unified2 alerts.
@@ -393,7 +393,7 @@ server, ttl, resource record data. This logging can also be performed
 through the use of the :ref:`Eve-log capability <eve-json-format>` which
 offers easier parsing.
 
-Example of the apperance of a DNS log of a query with a preceding reply:
+Example of the appearance of a DNS log of a query with a preceding reply:
 
 ::
 
@@ -441,9 +441,9 @@ The pcap-log option can be enabled and disabled.
 
 There is a size limit for the pcap-log file that can be set. The
 default limit is 32 MB. If the log-file reaches this limit, the file
-will be rotated and a new one will be created.  The pcap-log option
+will be rotated and a new one will be created. The pcap-log option
 has an extra functionality for "Sguil":http://sguil.sourceforge.net/
-that can be enabled in the 'mode' option.  In the sguil mode the
+that can be enabled in the 'mode' option. In the sguil mode the
 "sguil_base_dir" indicates the base directory. In this base dir the
 pcaps are created in a Sguil-specific directory structure that is
 based on the day:
@@ -544,7 +544,7 @@ want the output-data to be written to the log file.
 
   - stats:
        enabled: yes               #By default, the stats-option is enabled
-       filename: stats.log        #The log-name. Combined with the  default logging directory
+       filename: stats.log        #The log-name. Combined with the default logging directory
                                   #(default-log-dir) it will result in /var/log/suricata/stats.log.
                                   #This directory can be overruled with a absolute path. (A
                                   #directory starting with / ).
@@ -633,7 +633,7 @@ Detection engine
 Inspection configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.)  For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group.  The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options:high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting.The option custom is for advanced users. This option has values which can be managed by the user.
+The detection-engine builds internal groups of signatures. Suricata loads signatures, with which the network traffic will be compared. The fact is, that many rules certainly will not be necessary. (For instance: if there appears a packet with the UDP-protocol, all signatures for the TCP-protocol won't be needed.) For that reason, all signatures will be divided in groups. However, a distribution containing many groups will make use of a lot of memory. Not every type of signature gets its own group. There is a possibility that different signatures with several properties in common, will be placed together in a group. The quantity of groups will determine the balance between memory and performance. A small amount of groups will lower the performance yet uses little memory. The opposite counts for a higher amount of groups. The engine allows you to manage the balance between memory and performance. To manage this, (by determining the amount of groups) there are several general options: high for good performance and more use of memory, low for low performance and little use of memory. The option medium is the balance between performance and memory usage. This is the default setting. The option custom is for advanced users. This option has values which can be managed by the user.
 
 ::
 
@@ -645,13 +645,13 @@ The detection-engine builds internal groups of signatures. Suricata loads signat
     sgh-mpm-context: auto
     inspection-recursion-limit: 3000
 
-At all of these options, you can add (or change) a value.  Most
+At all of these options, you can add (or change) a value. Most
 signatures have the adjustment to focus on one direction, meaning
 focusing exclusively on the server, or exclusively on the client.
 
 If you take a look at example 4, *the Detection-engine grouping tree*,
 you see it has many branches. At the end of each branch, there is
-actually a 'sig group head'.  Within that sig group head there is a
+actually a 'sig group head'. Within that sig group head there is a
 container which contains a list with signatures that are significant
 for that specific group/that specific end of the branch. Also within
 the sig group head the settings for Multi-Pattern-Matcher (MPM) can be
@@ -668,7 +668,7 @@ For setting the option sgh-mpm-context, you can choose from auto, full
 or single. The default setting is 'auto', meaning Suricata selects
 full or single based on the algorithm you use. 'Full' means that every
 group has its own MPM-context, and 'single' that all groups share one
-MPM-context.  The two algorithms ac and ac-gfbs are new in 1.03. These
+MPM-context. The two algorithms ac and ac-gfbs are new in 1.03. These
 algorithms use a single MPM-context if the Sgh-MPM-context setting is
 'auto'. The rest of the algorithms use full in that case.
 
@@ -749,7 +749,7 @@ These are the proceedings:
 
 1)A packet comes in.
 
-2)The packed will be analysed by the Multi-pattern-matcher in search
+2)The packed will be analyzed by the Multi-pattern-matcher in search
   of patterns that match.
 
 3)All patterns that match, will be further processed by Suricata (signatures).
@@ -790,7 +790,7 @@ used with the final step of the pattern matcher, namely the validation
 of the pattern. For this option the same counts as for the hash-size
 option: setting it to low will cause lower memory usage, but lowers
 the performance. The opposite counts for a high setting of the
-bf_size: higher memory usage, but (generally) higher performance.  The
+bf_size: higher memory usage, but (generally) higher performance. The
 bloom-filter sizes can vary from low (512) - medium (1024) - high
 (2048).
 
@@ -889,13 +889,13 @@ become active.
 In the option 'cpu affinity' you can set which CPU's/cores work on which
 thread. In this option there are several sets of threads. The management-,
 receive-, worker- and verdict-set. These are fixed names and can not be
-changed. For each set there are several options: cpu, mode, and prio.  In the
+changed. For each set there are several options: cpu, mode, and prio. In the
 option 'cpu' you can set the numbers of the CPU's/cores which will run the
 threads from that set. You can set this option to 'all', use a range (0-3) or a
 comma separated list (0,1).  The option 'mode' can be set to 'balanced' or
 'exclusive'. When set to 'balanced', the individual threads can be processed by
 all cores set in the option 'cpu'. If the option 'mode' is set to 'exclusive',
-there will be fixed cores for each thread.  As mentioned before, threads can
+there will be fixed cores for each thread. As mentioned before, threads can
 have different priority's. In the option 'prio' you can set a priority for each
 thread. This priority can be low, medium, high or you can set the priority to
 'default'. If you do not set a priority for a CPU, than the settings in
@@ -972,7 +972,7 @@ packet is reconstructed by the defragment-engine, the engine sends on
 the reassembled packet to rest of Suricata.
 
 There are three options within defrag: max-frags, prealloc and
-timeout.  At the moment Suricata receives a fragment of a packet, it
+timeout. At the moment Suricata receives a fragment of a packet, it
 keeps in memory that other fragments of that packet will appear soon
 to complete the packet. However, there is a possibility that one of
 the fragments does not appear. To prevent Suricata for keeping waiting
@@ -997,7 +997,7 @@ Flow Settings
 
 Within Suricata, Flows are very important. They play a big part in the
 way Suricata organizes data internally. A flow is a bit similar to a
-connection, except a flow is more general.All packets having the same
+connection, except a flow is more general. All packets having the same
 Tuple (protocol, source IP, destination IP, source-port,
 destination-port), belong to the same flow. Packets belonging to a
 flow are connected to it internally.
@@ -1128,7 +1128,7 @@ exists of two parts: The stream tracking- and the reassembly-engine.
 
 The stream-tracking engine monitors the state of a connection. The
 reassembly-engine reconstructs the flow as it used to be, so it will
-be recognised by Suricata.
+be recognized by Suricata.
 
 The stream-engine has two memcaps that can be set. One for the
 stream-tracking-engine and one for the reassembly-engine.
@@ -1160,7 +1160,7 @@ started. This way, Suricata misses the original setup of those
 sessions. This setup always includes a lot of information. If you want
 Suricata to check the stream from that time on, you can do so by
 setting the option 'midstream' to 'true'. The default setting is
-'false'.  Normally Suricata is able to see all packets of a
+'false'. Normally Suricata is able to see all packets of a
 connection. Some networks make it more complicated though. Some of the
 network-traffic follows a different route than the other part, in
 other words: the traffic goes asynchronous. To make sure Suricata will
@@ -1411,7 +1411,7 @@ use of libhtp.
        # Apache does not do this, but IIS does. If enabled, a path such as
        # "/one%2ftwo" will be normalized to "/one/two". If the
        # backslash_separators option is also enabled, encoded backslash
-       # characters will be converted too (and subseqently normalized to
+       # characters will be converted too (and subsequently normalized to
        # forward slashes).  Accepted values - yes, no.
        #path-decode-separators: yes
 
@@ -1442,7 +1442,7 @@ use of libhtp.
        # path.  Accepted values - none, terminate, status_400, status_404.
        path-nul-raw-handling: none
 
-       # Sets the replacement characater that will be used to in the lossy
+       # Sets the replacement character that will be used to in the lossy
        # best-fit mapping from Unicode characters into single-byte streams.
        # The question mark is the default replacement character.
        #set-path-replacement-char: ?
@@ -1528,7 +1528,7 @@ is the actual message.)
 
 It is possible to determine which information will be displayed in
 this line and (the manner how it will be displayed) in which format it
-will be displayed.  This option is the so called format string::
+will be displayed. This option is the so called format string::
 
   default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
 
@@ -1595,7 +1595,7 @@ Pf-ring
 ~~~~~~~
 
 The Pf_ring is a library that aims to improve packet capture
-performance over libcap. It performs packet acquisition.  There are
+performance over libcap. It performs packet acquisition. There are
 three options within Pf_ring: interface, cluster-id and cluster-type.
 
 ::
@@ -1718,7 +1718,7 @@ Rule-files
 For different categories of risk there are different rule-files
 available containing one or more rules. There is a possibility to
 instruct Suricata where to find these rules and which rules you want
-to be load for use.  You can set the directory where the files can be
+to be load for use. You can set the directory where the files can be
 found.
 
 ::
@@ -1892,7 +1892,7 @@ Engine-analysis
 ~~~~~~~~~~~~~~~
 
 The option engine-analysis provides information for signature writers
-about how Suricata organises signatures internally.
+about how Suricata organizes signatures internally.
 
 Like mentioned before, signatures have zero or more patterns on which
 they can match. Only one of these patterns will be used by the multi
@@ -2090,9 +2090,9 @@ in yaml.
 
 It is best to use runmode 'single' if you would like to profile the
 speed of the code.  When using a single thread, there is no situation
-in which two threads have to wait for each other . When using two
+in which two threads have to wait for each other. When using two
 threads, the time threads might have to wait for each other will be
-taken in account when/during profiling packets.  For more information
+taken in account when/during profiling packets. For more information
 see :doc:`../performance/packet-profiling`.
 
 Application layers
@@ -2126,7 +2126,7 @@ Encrypted traffic
 
 There is no decryption of encrypted traffic, so once the handshake is complete
 continued tracking of the session is of limited use. The ``no-reassemble``
-option controls the behaviour after the handshake.
+option controls the behavior after the handshake.
 
 If ``no-reassemble`` is set to ``true``, all processing of this session is
 stopped. No further parsing and inspection happens. If ``bypass`` is enabled
