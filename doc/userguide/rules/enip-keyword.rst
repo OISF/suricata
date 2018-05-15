@@ -13,9 +13,9 @@ There are three ways of using this keyword:
 
 For the ENIP command, we are matching against the command field found in the ENIP encapsulation.
 
-For the CIP Service, we use a maximum of 3 comma seperated values representing the Service, Class and Attribute.
-These values are described in the CIP specification.  CIP Classes are associated with their Service, and CIP Attributes
-are associated with their Service.  If you only need to match up until the Service, then only provide the Service value.
+For the CIP Service, we use a maximum of 3 comma separated values representing the Service, Class and Attribute.
+These values are described in the CIP specification. CIP Classes are associated with their Service, and CIP Attributes
+are associated with their Service. If you only need to match up until the Service, then only provide the Service value.
 If you want to match to the CIP Attribute, then you must provide all 3 values.
 
 

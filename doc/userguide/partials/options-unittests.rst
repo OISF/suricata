@@ -8,7 +8,7 @@
 .. option:: -U, --unittest-filter=REGEX
 
    With the -U option you can select which of the unit tests you want
-   to run. This option uses REGEX.  Example of use: suricata -u -U
+   to run. This option uses REGEX. Example of use: suricata -u -U
    http
 
 .. option:: --list-unittests
@@ -18,7 +18,7 @@
 .. option:: --fatal-unittests
 
    Enables fatal failure on a unit test error. Suricata will exit
-   instead of continuuing more tests.
+   instead of continuing more tests.
 
 .. option:: --unittests-coverage
 
