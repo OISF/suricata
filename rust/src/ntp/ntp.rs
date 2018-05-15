@@ -91,7 +91,7 @@ impl NTPState {
         match parse_ntp(i) {
             IResult::Done(_,ref msg) => {
                 // SCLogDebug!("parse_ntp: {:?}",msg);
-                if msg.mode == 1 || msg.mode == 3 {
+                if msg.mode == NtpMode::SymmetricActive || msg.mode == NtpMode::Client {
                     let mut tx = self.new_tx();
                     // use the reference id as identifier
                     tx.xid = msg.ref_id;
