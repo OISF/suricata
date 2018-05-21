@@ -3,6 +3,8 @@ EXTRA_DIST = 	Cargo.toml \
 		.cargo/config.in \
 		gen-c-headers.py
 
+CARGO_TOML =	$(abs_builddir)/Cargo.toml
+
 if HAVE_RUST
 
 EXTRA_DIST +=	Cargo.lock
@@ -35,27 +37,32 @@ if HAVE_PYTHON
 		$(HAVE_PYTHON) ./gen-c-headers.py && \
 		CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(RUST_FEATURES)"
+			--features "$(RUST_FEATURES)" \
+			--manifest-path $(CARGO_TOML)
 else
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
 		CARGO_HOME=$(CARGO_HOME) $(CARGO) build $(RELEASE) $(FROZEN) \
-			--features "$(RUST_FEATURES)"
+			--features "$(RUST_FEATURES)" \
+			--manifest-path $(CARGO_TOML)
 endif
 
 clean-local:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		CARGO_HOME=$(CARGO_HOME) $(CARGO) clean
+		CARGO_HOME=$(CARGO_HOME) $(CARGO) \
+			clean --manifest-path $(CARGO_TOML)
 
 distclean-local:
 	rm -rf vendor gen Cargo.lock
 
 check:
 	cd $(top_srcdir)/rust && CARGO_TARGET_DIR=$(abs_builddir)/target \
-		CARGO_HOME=$(CARGO_HOME) $(CARGO) test
+		CARGO_HOME=$(CARGO_HOME) $(CARGO) \
+			test --manifest-path $(CARGO_TOML)
 
 Cargo.lock: Cargo.toml
 	cd $(top_srcdir)/rust && \
-		CARGO_HOME=$(CARGO_HOME) $(CARGO) generate-lockfile
+		CARGO_HOME=$(CARGO_HOME) $(CARGO) \
+			generate-lockfile --manifest-path $(CARGO_TOML)
 
 if HAVE_CARGO_VENDOR
 vendor:
