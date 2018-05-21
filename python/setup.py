@@ -3,8 +3,10 @@ from __future__ import print_function
 import os
 import re
 import sys
+import shutil
 
 from distutils.core import setup
+from distutils.command.build_py import build_py
 
 version = None
 if os.path.exists("../configure.ac"):
@@ -18,7 +20,22 @@ if version is None:
     print("error: failed to parse Suricata version, will use 0.0.0",
           file=sys.stderr)
     version = "0.0.0"
-    
+
+class do_build(build_py):
+    def run(self):
+        build_py.run(self)
+        defaults_py_out = os.path.join(
+            self.build_lib, "suricata", "config", "defaults.py")
+        if not os.path.exists(defaults_py_out):
+            # Must be an out of tree build, find defaults.py.
+            defaults_py_in = os.path.join(
+                self.build_lib, "..", "suricata", "config", "defaults.py")
+            if os.path.exists(defaults_py_in):
+                shutil.copy(defaults_py_in, defaults_py_out)
+            else:
+                print("error: failed to find defaults.py")
+                sys.exit(1)
+
 setup(
     name="suricata",
     description="Suricata control tools",
@@ -48,4 +65,5 @@ setup(
         'Programming Language :: Python',
         'Topic :: System :: Systems Administration',
     ],
+    cmdclass={'build_py': do_build},
 )
