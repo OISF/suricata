@@ -27,6 +27,33 @@
 #include "suricata-common.h"
 #include "util-random.h"
 
+#if defined(HAVE_CLOCK_GETTIME)
+
+static long int RandomGetClock(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    srandom(ts.tv_nsec ^ ts.tv_sec);
+    long int value = random();
+    return value;
+}
+
+#elif !(defined(HAVE_WINCRYPT_H) &&  defined(OS_WIN32))
+
+static long int RandomGetPosix(void)
+{
+    struct timeval tv;
+    memset(&tv, 0, sizeof(tv));
+    gettimeofday(&tv, NULL);
+
+    srandom(tv.tv_usec ^ tv.tv_sec);
+    long int value = random();
+    return value;
+}
+
+#endif
+
 #if defined(HAVE_WINCRYPT_H) && defined(OS_WIN32)
 #include <wincrypt.h>
 
@@ -62,6 +89,13 @@ long int RandomGet(void)
     /* ret should be sizeof(value), but if it is > 0 and < sizeof(value)
      * it's still better than nothing so we return what we have */
     if (ret <= 0) {
+        if (ret == -ENOSYS) {
+#if defined(HAVE_CLOCK_GETTIME)
+            return RandomGetClock();
+#else
+            return RandomGetPosix();
+#endif
+        }
         return -1;
     }
     return value;
@@ -72,12 +106,7 @@ long int RandomGet(void)
     if (g_disable_randomness)
         return 0;
 
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-
-    srandom(ts.tv_nsec ^ ts.tv_sec);
-    long int value = random();
-    return value;
+    return RandomGetClock();
 }
 #else
 long int RandomGet(void)
@@ -85,12 +114,6 @@ long int RandomGet(void)
     if (g_disable_randomness)
         return 0;
 
-    struct timeval tv;
-    memset(&tv, 0, sizeof(tv));
-    gettimeofday(&tv, NULL);
-
-    srandom(tv.tv_usec ^ tv.tv_sec);
-    long int value = random();
-    return value;
+    return RandomGetPosix();
 }
 #endif
