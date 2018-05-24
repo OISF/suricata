@@ -83,14 +83,17 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { NULL,                          -1 },
 };
 
-/* by default we keep tracking */
-#define SSL_CONFIG_DEFAULT_NOREASSEMBLE 0
-
 /* JA3 fingerprints are disabled by default */
 #define SSL_CONFIG_DEFAULT_JA3 0
 
+enum SslConfigEncryptHandling {
+    SSL_CNF_ENC_HANDLE_DEFAULT = 0, /**< disable raw content, continue tracking */
+    SSL_CNF_ENC_HANDLE_BYPASS = 1,  /**< skip processing of flow, bypass if possible */
+    SSL_CNF_ENC_HANDLE_FULL = 2,    /**< handle fully like any other proto */
+};
+
 typedef struct SslConfig_ {
-    int no_reassemble;
+    enum SslConfigEncryptHandling encrypt_mode;
     int enable_ja3;
 } SslConfig;
 
@@ -1840,10 +1843,14 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                 }
 
                 if ((ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
-                        (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
-                    AppLayerParserStateSetFlag(pstate,
-                            APP_LAYER_PARSER_NO_INSPECTION);
-                    if (ssl_config.no_reassemble == 1) {
+                    (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED))
+                {
+                    if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
+                        AppLayerParserStateSetFlag(pstate,
+                                APP_LAYER_PARSER_NO_INSPECTION);
+                    }
+
+                    if (ssl_config.encrypt_mode == SSL_CNF_ENC_HANDLE_BYPASS) {
                         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
                         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
                     }
@@ -1946,14 +1953,13 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
         case SSLV3_APPLICATION_PROTOCOL:
             if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
-                    (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
-                /*
-                AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
-                if (ssl_config.no_reassemble == 1)
-                    AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
-                */
-                AppLayerParserStateSetFlag(pstate,
-                        APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
+                (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
+
+                if (ssl_config.encrypt_mode != SSL_CNF_ENC_HANDLE_FULL) {
+                    SCLogDebug("setting APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD");
+                    AppLayerParserStateSetFlag(pstate,
+                            APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD);
+                }
             }
 
             /* if we see (encrypted) aplication data, then this means the
@@ -1962,7 +1968,8 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
             /* Encrypted data, reassembly not asked, bypass asked, let's sacrifice
              * heartbeat lke inspection to be able to be able to bypass the flow */
-            if (ssl_config.no_reassemble == 1) {
+            if (ssl_config.encrypt_mode == SSL_CNF_ENC_HANDLE_BYPASS) {
+                SCLogDebug("setting APP_LAYER_PARSER_NO_REASSEMBLY");
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_INSPECTION);
                 AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_BYPASS_READY);
@@ -2568,14 +2575,31 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
                                                                SSLGetAlstateProgressCompletionStatus);
 
-        /* Get the value of no reassembly option from the config file */
-        if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
-            if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-                ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
+        ConfNode *enc_handle = ConfGetNode("app-layer.protocols.tls.encryption-handling");
+        if (enc_handle != NULL && enc_handle->val != NULL) {
+            SCLogDebug("have app-layer.protocols.tls.encryption-handling = %s", enc_handle->val);
+            if (strcmp(enc_handle->val, "full") == 0) {
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_FULL;
+            } else if (strcmp(enc_handle->val, "bypass") == 0) {
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
+            } else if (strcmp(enc_handle->val, "default") == 0) {
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_DEFAULT;
+            } else {
+                ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_DEFAULT;
+            }
         } else {
-            if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &ssl_config.no_reassemble) != 1)
-                ssl_config.no_reassemble = SSL_CONFIG_DEFAULT_NOREASSEMBLE;
+            /* Get the value of no reassembly option from the config file */
+            if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {
+                int value = 0;
+                if (ConfGetBool("tls.no-reassemble", &value) == 1 && value == 1)
+                    ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
+            } else {
+                int value = 0;
+                if (ConfGetBool("app-layer.protocols.tls.no-reassemble", &value) == 1 && value == 1)
+                    ssl_config.encrypt_mode = SSL_CNF_ENC_HANDLE_BYPASS;
+            }
         }
+        SCLogDebug("ssl_config.encrypt_mode %u", ssl_config.encrypt_mode);
 
         /* Check if we should generate JA3 fingerprints */
         if (ConfGetBool("app-layer.protocols.tls.ja3-fingerprints",
