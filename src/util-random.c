@@ -89,7 +89,7 @@ long int RandomGet(void)
     /* ret should be sizeof(value), but if it is > 0 and < sizeof(value)
      * it's still better than nothing so we return what we have */
     if (ret <= 0) {
-        if (ret == -ENOSYS) {
+        if (ret == -1 && errno == ENOSYS) {
 #if defined(HAVE_CLOCK_GETTIME)
             return RandomGetClock();
 #else
