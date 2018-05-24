@@ -40,6 +40,11 @@ pub enum KRB5Event {
 pub struct KRB5State {
     pub req_id: u8,
 
+    pub record_ts: usize,
+    pub defrag_buf_ts: Vec<u8>,
+    pub record_tc: usize,
+    pub defrag_buf_tc: Vec<u8>,
+
     /// List of transactions for this session
     transactions: Vec<KRB5Transaction>,
 
@@ -88,6 +93,10 @@ impl KRB5State {
     pub fn new() -> KRB5State {
         KRB5State{
             req_id: 0,
+            record_ts: 0,
+            defrag_buf_ts: Vec::new(),
+            record_tc: 0,
+            defrag_buf_tc: Vec::new(),
             transactions: Vec::new(),
             tx_id: 0,
         }
@@ -480,8 +489,51 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    // skip the record mark
-    state.parse(&buf[4..], STREAM_TOSERVER)
+
+    let mut v : Vec<u8>;
+    let mut status = 0;
+    let tcp_buffer = match state.record_ts {
+        0 => buf,
+        _ => {
+            // sanity check to avoid memory exhaustion
+            if state.defrag_buf_ts.len() + buf.len() > 100000 {
+                SCLogDebug!("rs_krb5_parse_response_tcp: TCP buffer exploded {} {}",
+                            state.defrag_buf_ts.len(), buf.len());
+                return 1;
+            }
+            v = state.defrag_buf_ts.split_off(0);
+            v.extend_from_slice(buf);
+            v.as_slice()
+        }
+    };
+    let mut cur_i = tcp_buffer;
+    while cur_i.len() > 0 {
+        if state.record_ts == 0 {
+            match be_u32(cur_i) {
+                IResult::Done(rem,record) => {
+                    state.record_ts = record as usize;
+                    cur_i = rem;
+                },
+                _ => {
+                    SCLogDebug!("rs_krb5_parse_response_tcp: reading record mark failed!");
+                    return 1;
+                }
+            }
+        }
+        if cur_i.len() >= state.record_ts {
+            status = state.parse(cur_i, STREAM_TOSERVER);
+            if status != 0 {
+                return status;
+            }
+            state.record_ts = 0;
+            cur_i = &cur_i[state.record_ts..];
+        } else {
+            // more fragments required
+            state.defrag_buf_ts.extend_from_slice(cur_i);
+            return 0;
+        }
+    }
+    status
 }
 
 #[no_mangle]
@@ -494,8 +546,51 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
-    // skip the record mark
-    state.parse(&buf[4..], STREAM_TOCLIENT)
+
+    let mut v : Vec<u8>;
+    let mut status = 0;
+    let tcp_buffer = match state.record_tc {
+        0 => buf,
+        _ => {
+            // sanity check to avoid memory exhaustion
+            if state.defrag_buf_tc.len() + buf.len() > 100000 {
+                SCLogDebug!("rs_krb5_parse_response_tcp: TCP buffer exploded {} {}",
+                            state.defrag_buf_tc.len(), buf.len());
+                return 1;
+            }
+            v = state.defrag_buf_tc.split_off(0);
+            v.extend_from_slice(buf);
+            v.as_slice()
+        }
+    };
+    let mut cur_i = tcp_buffer;
+    while cur_i.len() > 0 {
+        if state.record_tc == 0 {
+            match be_u32(cur_i) {
+                IResult::Done(rem,record) => {
+                    state.record_tc = record as usize;
+                    cur_i = rem;
+                },
+                _ => {
+                    SCLogNotice!("rs_krb5_parse_response_tcp: reading record mark failed!");
+                    return 1;
+                }
+            }
+        }
+        if cur_i.len() >= state.record_tc {
+            status = state.parse(cur_i, STREAM_TOCLIENT);
+            if status != 0 {
+                return status;
+            }
+            state.record_tc = 0;
+            cur_i = &cur_i[state.record_tc..];
+        } else {
+            // more fragments required
+            state.defrag_buf_tc.extend_from_slice(cur_i);
+            return 0;
+        }
+    }
+    status
 }
 
 
