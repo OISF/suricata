@@ -47,6 +47,8 @@
 
 #include "device-storage.h"
 #include "flow-storage.h"
+#include "flow.h"
+#include "flow-hash.h"
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
@@ -312,72 +314,40 @@ int EBPFSetupXDP(const char *iface, int fd, uint8_t flags)
     return 0;
 }
 
-/**
- * Decide if an IPV4 flow needs to be timeouted
- *
- * The filter is maintaining for each half flow a struct pair:: structure in
- * the kernel where it does accounting and timestamp update. So by comparing
- * the current timestamp to the timestamp in the struct pair we can know that
- * no packet have been seen on a half flow since a certain delay.
- *
- * If a per-CPU array map is used, this function has only a per-CPU view so
- * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
- * 1 for all CPUs.
- *
- * \param fd the file descriptor of the flow table map
- * \param key the key of the element
- * \param value the value of the element in the hash
- * \param curtime the current time
- * \return 1 if timeouted 0 if not
- */
-static int EBPFBypassedFlowV4Timeout(int fd, struct flowv4_keys *key,
-                                     struct pair *value, struct timespec *curtime)
+static int EBPFUpdateFlowForKey(struct flows_stats *flowstats, FlowKey *flow_key,
+                               uint32_t hash, uint64_t pkts_cnt, uint64_t bytes_cnt)
 {
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d) %u",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1], key->ip_proto
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        return 1;
+    Flow *f = FlowGetExistingtFlowFromHash(flow_key, hash);
+    if (f != NULL) {
+        SCLogDebug("bypassed flow found %d -> %d, doing accounting",
+                    f->sp, f->dp);
+        if (flow_key->sp == f->sp) {
+            if (pkts_cnt != f->todstpktcnt) {
+                f->todstpktcnt = pkts_cnt;
+                f->todstbytecnt = bytes_cnt;
+                /* interval based so no meaning to update the millisecond.
+                 * Let's keep it fast and simple */
+                f->lastts.tv_sec = time(NULL);
+            }
+        } else {
+            if (pkts_cnt != f->tosrcpktcnt) {
+                f->tosrcpktcnt = pkts_cnt;
+                f->tosrcbytecnt = bytes_cnt;
+                f->lastts.tv_sec = time(NULL);
+            }
+        }
+        FLOWLOCK_UNLOCK(f);
+        return 0;
+    } else {
+        /* Flow has disappeared so it has been removed due to timeout.
+         * We discard the flow and do accounting */
+        SCLogDebug("No flow for %d -> %d", flow_key->sp, flow_key->dp);
+        SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
+        flowstats->count++;
+        flowstats->packets += pkts_cnt;
+        flowstats->bytes += bytes_cnt;
+        return pkts_cnt;
     }
-    return 0;
-}
-
-/**
- * Decide if an IPV6 flow needs to be timeouted
- *
- * The filter is maintaining for each half flow a struct pair:: structure in
- * the kernel where it does accounting and timestamp update. So by comparing
- * the current timestamp to the timestamp in the struct pair we can know that
- * no packet have been seen on a half flow since a certain delay.
- *
- * If a per-CPU array map is used, this function has only a per-CPU view so
- * the flow will be deleted from the table if EBPFBypassedFlowV4Timeout() return
- * 1 for all CPUs.
- *
- * \param fd the file descriptor of the flow table map
- * \param key the key of the element
- * \param value the value of the element in the hash
- * \param curtime the current time
- * \return 1 if timeouted 0 if not
- */
-static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key,
-                                     struct pair *value, struct timespec *curtime)
-{
-    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
-               curtime->tv_sec, value->time / 1000000000,
-               key->port16[0], key->port16[1]
-              );
-
-    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
-        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
-                   key->port16[0], key->port16[1], value->time);
-        return 1;
-    }
-    return 0;
 }
 
 /**
@@ -388,58 +358,72 @@ static int EBPFBypassedFlowV6Timeout(int fd, struct flowv6_keys *key,
  */
 static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
-                                  struct timespec *ctime)
+                                  struct timespec *ctime,
+                                  struct ebpf_timeout_config *tcfg)
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv4_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
-    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
-    if (nr_cpus == 0) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "Unable to get CPU count");
+    uint64_t hash_cnt = 0;
+
+    if (tcfg->cpus_count == 0) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "CPU count should not be 0");
         return 0;
     }
 
-    uint64_t hash_cnt = 0;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
         hash_cnt++;
-        /* We use a per CPU structure so we will get a array of values. */
-        struct pair values_array[nr_cpus];
+        /* We use a per CPU structure so we will get a array of values. But if nr_cpus
+         * is 1 then we have a global hash. */
+        struct pair values_array[tcfg->cpus_count];
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
         if (res < 0) {
             SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
+            SCLogDebug("errno: (%d) %s", errno, strerror(errno));
             key = next_key;
             continue;
         }
-        for (i = 0; i < nr_cpus; i++) {
-            int ret = EBPFBypassedFlowV4Timeout(mapfd, &key, &values_array[i], ctime);
-            if (ret) {
-                /* no packet for the flow on this CPU, let's start accumulating
-                   value so we can compute the counters */
-                SCLogDebug("%d:%lu: Adding pkts %lu bytes %lu", i, values_array[i].time / 1000000000,
-                            values_array[i].packets, values_array[i].bytes);
-                pkts_cnt += values_array[i].packets;
-                bytes_cnt += values_array[i].bytes;
-            } else {
-                /* Packet seen on one CPU so we keep the flow */
-                purge = false;
-                break;
-            }
+        for (i = 0; i < tcfg->cpus_count; i++) {
+            /* let's start accumulating value so we can compute the counters */
+            SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
+                       values_array[i].packets, values_array[i].bytes);
+            pkts_cnt += values_array[i].packets;
+            bytes_cnt += values_array[i].bytes;
         }
-        /* No packet seen, we discard the flow and do accounting */
-        if (purge) {
-            SCLogDebug("Got no packet for %d -> %d", key.port16[0], key.port16[1]);
-            SCLogDebug("Dead with pkts %lu bytes %lu", pkts_cnt, bytes_cnt);
-            flowstats->count++;
-            flowstats->packets += pkts_cnt;
-            flowstats->bytes += bytes_cnt;
+        /* Get the corresponding Flow in the Flow table to compare and update
+         * its counters and lastseen if needed */
+        FlowKey flow_key;
+        if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
+            flow_key.sp = ntohs(key.port16[0]);
+            flow_key.dp = ntohs(key.port16[1]);
+        } else {
+            flow_key.sp = key.port16[0];
+            flow_key.dp = key.port16[1];
+        }
+        flow_key.src.family = AF_INET;
+        flow_key.src.addr_data32[0] = key.src;
+        flow_key.src.addr_data32[1] = 0;
+        flow_key.src.addr_data32[2] = 0;
+        flow_key.src.addr_data32[3] = 0;
+        flow_key.dst.family = AF_INET;
+        flow_key.dst.addr_data32[0] = key.dst;
+        flow_key.dst.addr_data32[1] = 0;
+        flow_key.dst.addr_data32[2] = 0;
+        flow_key.dst.addr_data32[3] = 0;
+        flow_key.vlan_id[0] = key.vlan_id[0];
+        flow_key.vlan_id[1] = key.vlan_id[1];
+        flow_key.proto = key.ip_proto;
+        flow_key.recursion_level = 0;
+        pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
+                                        pkts_cnt, bytes_cnt);
+        if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
-            found = 1;
             EBPFDeleteKey(mapfd, &key);
+            found = 1;
         }
         key = next_key;
     }
@@ -460,49 +444,71 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
  */
 static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct flows_stats *flowstats,
-                                  struct timespec *ctime)
+                                  struct timespec *ctime,
+                                  struct ebpf_timeout_config *tcfg)
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
     struct flowv6_keys key = {}, next_key;
     int found = 0;
     unsigned int i;
-    unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
-    if (nr_cpus == 0) {
-        SCLogWarning(SC_ERR_INVALID_VALUE, "Unable to get CPU count");
+    uint64_t hash_cnt = 0;
+
+    if (tcfg->cpus_count == 0) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "CPU count should not be 0");
         return 0;
     }
 
-    uint64_t hash_cnt = 0;
     while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
-        bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
         hash_cnt++;
-        struct pair values_array[nr_cpus];
+        /* We use a per CPU structure so we will get a array of values. But if nr_cpus
+         * is 1 then we have a global hash. */
+        struct pair values_array[tcfg->cpus_count];
         memset(values_array, 0, sizeof(values_array));
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
         if (res < 0) {
-            SCLogDebug("no entry in v6 table for %d -> %d", key.port16[0], key.port16[1]);
+            SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
             key = next_key;
             continue;
         }
-        for (i = 0; i < nr_cpus; i++) {
-            int ret = EBPFBypassedFlowV6Timeout(mapfd, &key, &values_array[i], ctime);
-            if (ret) {
-                pkts_cnt += values_array[i].packets;
-                bytes_cnt += values_array[i].bytes;
-            } else {
-                purge = false;
-                break;
-            }
+        for (i = 0; i < tcfg->cpus_count; i++) {
+            /* let's start accumulating value so we can compute the counters */
+            SCLogDebug("%d: Adding pkts %lu bytes %lu", i,
+                       values_array[i].packets, values_array[i].bytes);
+            pkts_cnt += values_array[i].packets;
+            bytes_cnt += values_array[i].bytes;
         }
-        if (purge) {
-            flowstats->count++;
-            flowstats->packets += pkts_cnt;
-            flowstats->bytes += bytes_cnt;
+        /* Get the corresponding Flow in the Flow table to compare and update
+         * its counters  and lastseen if needed */
+        FlowKey flow_key;
+        if (tcfg->mode == AFP_MODE_XDP_BYPASS) {
+            flow_key.sp = ntohs(key.port16[0]);
+            flow_key.dp = ntohs(key.port16[1]);
+        } else {
+            flow_key.sp = key.port16[0];
+            flow_key.dp = key.port16[1];
+        }
+        flow_key.src.family = AF_INET6;
+        flow_key.src.addr_data32[0] = key.src[0];
+        flow_key.src.addr_data32[1] = key.src[1];
+        flow_key.src.addr_data32[2] = key.src[2];
+        flow_key.src.addr_data32[3] = key.src[3];
+        flow_key.dst.family = AF_INET6;
+        flow_key.dst.addr_data32[0] = key.dst[0];
+        flow_key.dst.addr_data32[1] = key.dst[1];
+        flow_key.dst.addr_data32[2] = key.dst[2];
+        flow_key.dst.addr_data32[3] = key.dst[3];
+        flow_key.vlan_id[0] = key.vlan_id[0];
+        flow_key.vlan_id[1] = key.vlan_id[1];
+        flow_key.proto = key.ip_proto;
+        flow_key.recursion_level = 0;
+        pkts_cnt = EBPFUpdateFlowForKey(flowstats, &flow_key, values_array[0].hash,
+                                        pkts_cnt, bytes_cnt);
+        if (pkts_cnt > 0) {
             SC_ATOMIC_ADD(dev->bypassed, pkts_cnt);
-            found = 1;
             EBPFDeleteKey(mapfd, &key);
+            found = 1;
         }
         key = next_key;
     }
@@ -522,16 +528,25 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
  *
  */
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
-                                        struct timespec *curtime)
+                                        struct timespec *curtime,
+                                        void *data)
 {
     struct flows_stats local_bypassstats = { 0, 0, 0};
     int ret = 0;
     int tcount = 0;
     LiveDevice *ldev = NULL, *ndev;
+    struct ebpf_timeout_config *cfg = (struct ebpf_timeout_config *)data;
+
+    if (cfg == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Programming error, contact developer");
+        return 0;
+    }
 
     while(LiveDeviceForEach(&ldev, &ndev)) {
         tcount = EBPFForEachFlowV4Table(ldev, "flow_table_v4",
-                                        &local_bypassstats, curtime);
+                                        &local_bypassstats, curtime,
+                                        cfg);
         if (tcount) {
             bypassstats->count = local_bypassstats.count;
             bypassstats->packets = local_bypassstats.packets ;
@@ -540,7 +555,8 @@ int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
         }
         memset(&local_bypassstats, 0, sizeof(local_bypassstats));
         tcount = EBPFForEachFlowV6Table(ldev, "flow_table_v6",
-                                        &local_bypassstats, curtime);
+                                        &local_bypassstats, curtime,
+                                        cfg);
         if (tcount) {
             bypassstats->count += local_bypassstats.count;
             bypassstats->packets += local_bypassstats.packets ;
@@ -693,7 +709,12 @@ int EBPFSetPeerIface(const char *iface, const char *out_iface)
     return 0;
 }
 
-int EBPFUpdateFlow(Flow *f, Packet *p)
+/**
+ * Bypass the flow on all ifaces it is seen on. This is used
+ * in IPS mode.
+ */
+
+int EBPFUpdateFlow(Flow *f, Packet *p, void *data)
 {
     BypassedIfaceList *ifl = (BypassedIfaceList *)FlowGetStorageById(f, g_flow_storage_id);
     if (ifl == NULL) {
