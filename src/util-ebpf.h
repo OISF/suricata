@@ -41,7 +41,8 @@ struct flowv4_keys {
 		__be16 port16[2];
 	};
 	__u32 ip_proto;
-}  __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct flowv6_keys {
     __be32 src[4];
@@ -51,13 +52,14 @@ struct flowv6_keys {
         __be16 port16[2];
     };
     __u32 ip_proto;
-}  __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct pair {
-    uint64_t time;
     uint64_t packets;
     uint64_t bytes;
-} __attribute__((__aligned__(8)));
+    uint32_t hash;
+};
 
 #define EBPF_SOCKET_FILTER  (1<<0)
 #define EBPF_XDP_CODE       (1<<1)
@@ -68,7 +70,8 @@ int EBPFLoadFile(const char *iface, const char *path, const char * section,
 int EBPFSetupXDP(const char *iface, int fd, uint8_t flags);
 
 int EBPFCheckBypassedFlowTimeout(struct flows_stats *bypassstats,
-                                        struct timespec *curtime);
+                                        struct timespec *curtime,
+                                        void *data);
 
 void EBPFRegisterExtension(void);
 
@@ -76,8 +79,8 @@ void EBPFBuildCPUSet(ConfNode *node, char *iface);
 
 int EBPFSetPeerIface(const char *iface, const char *out_iface);
 
-int EBPFUpdateFlow(Flow *f, Packet *p);
-  
+int EBPFUpdateFlow(Flow *f, Packet *p, void *data);
+
 #ifdef BUILD_UNIX_SOCKET
 TmEcode EBPFGetBypassedStats(json_t *cmd, json_t *answer, void *data);
 #endif

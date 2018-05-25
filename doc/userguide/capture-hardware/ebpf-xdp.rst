@@ -249,10 +249,16 @@ also use the ``/etc/suricata/ebpf/xdp_filter.bpf`` (in our example TCP offloadin
     bypass: yes
     use-mmap: yes
     ring-size: 200000
+    # Uncomment the following if you are using hardware XDP with
+    # card like Netronome
+    # no-percpu-hash: yes 
 
 
 XDP bypass is compatible with AF_PACKET IPS mode. Packets from bypassed flows will be send directly 
 from one card to the second card without going by the kernel network stack.
+
+If you are using hardware XDP offload you may have to use the ``no-percpu-hash`` function and
+build and install the XDP filter file after setting ``USE_PERCPU_HASH`` to 0.
 
 Setup symmetric hashing on the NIC
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

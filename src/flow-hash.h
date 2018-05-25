@@ -76,6 +76,8 @@ typedef struct FlowBucket_ {
 
 Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *, Flow **);
 
+Flow *FlowGetExistingtFlowFromHash(FlowKey * key, uint32_t hash);
+
 void FlowDisableTcpReuseHandling(void);
 
 #endif /* __FLOW_HASH_H__ */
