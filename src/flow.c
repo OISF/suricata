@@ -343,7 +343,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
             COPY_TIMESTAMP(&p->ts, &f->lastts);
             FlowUpdateState(f, FLOW_STATE_LOCAL_BYPASSED);
         } else {
-            /* In IPS mode the packet could come from the over interface so it would
+            /* In IPS mode the packet could come from the other interface so it would
              * need to be bypassed */
             if (EngineModeIsIPS()) {
                 BypassedFlowUpdate(f, p);

@@ -274,7 +274,7 @@ typedef struct FlowKey_
     Port sp, dp;
     uint8_t proto;
     uint8_t recursion_level;
-
+    uint16_t vlan_id[2];
 } FlowKey;
 
 typedef struct FlowAddress_ {
