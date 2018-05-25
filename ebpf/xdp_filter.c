@@ -42,6 +42,8 @@
 /* Increase CPUMAP_MAX_CPUS if ever you have more than 64 CPUs */
 #define CPUMAP_MAX_CPUS     64
 
+#define USE_PERCPU_HASH    1
+
 struct vlan_hdr {
     __u16	h_vlan_TCI;
     __u16	h_vlan_encapsulated_proto;
@@ -55,7 +57,8 @@ struct flowv4_keys {
         __u16 port16[2];
     };
     __u32 ip_proto;
-} __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct flowv6_keys {
     __u32 src[4];
@@ -65,23 +68,32 @@ struct flowv6_keys {
         __u16 port16[2];
     };
     __u32 ip_proto;
-} __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct pair {
-    __u64 time;
     __u64 packets;
     __u64 bytes;
-} __attribute__((__aligned__(8)));
+    __u32 hash;
+};
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
+#if USE_PERCPU_HASH
     .type = BPF_MAP_TYPE_PERCPU_HASH,
+#else
+    .type = BPF_MAP_TYPE_HASH,
+#endif
     .key_size = sizeof(struct flowv4_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
 };
 
 struct bpf_map_def SEC("maps") flow_table_v6 = {
+#if USE_PERCPU_HASH
     .type = BPF_MAP_TYPE_PERCPU_HASH,
+#else
+    .type = BPF_MAP_TYPE_HASH,
+#endif
     .key_size = sizeof(struct flowv6_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 32768,
@@ -169,7 +181,7 @@ static __always_inline int get_dport(void *trans_data, void *data_end,
     }
 }
 
-static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
+static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct iphdr *iph = data + nh_off;
     int dport;
@@ -203,6 +215,10 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
 
     tuple.port16[0] = (__u16)sport;
     tuple.port16[1] = (__u16)dport;
+
+    tuple.vlan_id[0] = vlan0;
+    tuple.vlan_id[1] = vlan1;
+
     value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
 #if 0
     {
@@ -219,7 +235,6 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
         char fmt[] = "Data: t:%lu p:%lu n:%lu\n";
         bpf_trace_printk(fmt, sizeof(fmt), value->time, value->packets, value->bytes);
 #endif
-        value->time = bpf_ktime_get_ns();
         value->packets++;
         value->bytes += data_end - data;
 
@@ -251,7 +266,7 @@ static int __always_inline filter_ipv4(void *data, __u64 nh_off, void *data_end)
 #endif
 }
 
-static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
+static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end, __u16 vlan0, __u16 vlan1)
 {
     struct ipv6hdr *ip6h = data + nh_off;
     int dport;
@@ -287,6 +302,9 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
     tuple.port16[0] = sport;
     tuple.port16[1] = dport;
 
+    tuple.vlan_id[0] = vlan0;
+    tuple.vlan_id[1] = vlan1;
+
     value = bpf_map_lookup_elem(&flow_table_v6, &tuple);
     if (value) {
 #if 0
@@ -295,7 +313,6 @@ static int __always_inline filter_ipv6(void *data, __u64 nh_off, void *data_end)
 #endif
         value->packets++;
         value->bytes += data_end - data;
-        value->time = bpf_ktime_get_ns();
 
         iface_peer = bpf_map_lookup_elem(&tx_peer_int, &key0);
         if (!iface_peer) {
@@ -336,6 +353,8 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
     int rc = XDP_PASS;
     __u16 h_proto;
     __u64 nh_off;
+    __u16 vlan0 = 0;
+    __u16 vlan1 = 0;
 
 	nh_off = sizeof(*eth);
 	if (data + nh_off > data_end)
@@ -351,6 +370,7 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
 		if (data + nh_off > data_end)
 			return rc;
 		h_proto = vhdr->h_vlan_encapsulated_proto;
+		vlan0 = vhdr->h_vlan_TCI & 0x0fff;
 	}
 	if (h_proto == __constant_htons(ETH_P_8021Q) || h_proto == __constant_htons(ETH_P_8021AD)) {
 		struct vlan_hdr *vhdr;
@@ -360,12 +380,13 @@ int SEC("xdp") xdp_hashfilter(struct xdp_md *ctx)
 		if (data + nh_off > data_end)
 			return rc;
 		h_proto = vhdr->h_vlan_encapsulated_proto;
+		vlan1 = vhdr->h_vlan_TCI & 0x0fff;
 	}
 
 	if (h_proto == __constant_htons(ETH_P_IP))
-		return filter_ipv4(data, nh_off, data_end);
+		return filter_ipv4(data, nh_off, data_end, vlan0, vlan1);
 	else if (h_proto == __constant_htons(ETH_P_IPV6))
-		return filter_ipv6(data, nh_off, data_end);
+		return filter_ipv6(data, nh_off, data_end, vlan0, vlan1);
 	else
 		rc = XDP_PASS;
 

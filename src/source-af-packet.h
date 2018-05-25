@@ -43,6 +43,15 @@
 #endif /* HAVE_PACKET_FANOUT */
 #include "queue.h"
 
+#ifdef HAVE_PACKET_EBPF
+#define AFP_MODE_XDP_BYPASS 1
+#define AFP_MODE_EBPF_BYPASS 2
+struct ebpf_timeout_config {
+    uint16_t cpus_count;
+    uint8_t mode;
+};
+#endif
+
 /* value for flags */
 #define AFP_RING_MODE (1<<0)
 #define AFP_ZERO_COPY (1<<1)
@@ -98,6 +107,9 @@ typedef struct AFPIfaceConfig_
     int xdp_filter_fd;
     uint8_t xdp_mode;
     const char *out_iface;
+#ifdef HAVE_PACKET_EBPF
+    struct ebpf_timeout_config ebpf_t_config;
+#endif
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
@@ -137,6 +149,7 @@ typedef struct AFPPacketVars_
     uint8_t copy_mode;
     int v4_map_fd;
     int v6_map_fd;
+    unsigned int nr_cpus;
 } AFPPacketVars;
 
 #define AFPV_CLEANUP(afpv) do {           \
