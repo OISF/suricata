@@ -37,7 +37,8 @@ struct flowv4_keys {
         __be16 port16[2];
     };
     __u32 ip_proto;
-} __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct flowv6_keys {
     __be32 src[4];
@@ -47,13 +48,14 @@ struct flowv6_keys {
         __be16 port16[2];
     };
     __u32 ip_proto;
-} __attribute__((__aligned__(8)));
+    __u16 vlan_id[2];
+};
 
 struct pair {
-    __u64 time;
     __u64 packets;
     __u64 bytes;
-} __attribute__((__aligned__(8)));
+    __u32 hash;
+};
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
     .type = BPF_MAP_TYPE_PERCPU_HASH,
@@ -80,6 +82,7 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
     struct flowv4_keys tuple;
     struct pair *value;
     __u16 port;
+    __u16 vlan_id = skb->vlan_tci & 0x0fff;
 
     nhoff = skb->cb[0];
 
@@ -102,6 +105,9 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
     port = tuple.port16[1];
     tuple.port16[1] = tuple.port16[0];
     tuple.port16[0] = port;
+    tuple.vlan_id[0] = vlan_id;
+    /* FIXME add second vlan layer */
+    tuple.vlan_id[1] = 0;
 
 #if 0
     if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
@@ -125,7 +131,6 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
 #endif
         value->packets++;
         value->bytes += skb->len;
-        value->time = bpf_ktime_get_ns();
         return 0;
     }
     return -1;
@@ -143,6 +148,7 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     struct flowv6_keys tuple;
     struct pair *value;
     __u16 port;
+    __u16 vlan_id = skb->vlan_tci & 0x0fff;
 
     nhoff = skb->cb[0];
 
@@ -174,6 +180,10 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
     tuple.port16[0] = port;
     tuple.ip_proto = nhdr;
 
+    tuple.vlan_id[0] = vlan_id;
+    /* FIXME add second vlan layer */
+    tuple.vlan_id[1] = 0;
+
     //char fmt[] = "Now Got IPv6 port %u and %u\n";
     //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
     /* Test if src is in hash */
@@ -183,7 +193,6 @@ static __always_inline int ipv6_filter(struct __sk_buff *skb)
         //bpf_trace_printk(fmt, sizeof(fmt), tuple.port16[0], tuple.port16[1]);
         value->packets++;
         value->bytes += skb->len;
-        value->time = bpf_ktime_get_ns();
         return 0;
     }
     return -1;
