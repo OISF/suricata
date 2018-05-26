@@ -1708,7 +1708,10 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    /* TCP: pkt vs stream vs depth/offset */
+    /* TCP: corner cases:
+     * - pkt vs stream vs depth/offset
+     * - pkt vs stream vs stream_size
+     */
     if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
         if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
             s->flags |= SIG_FLAG_REQUIRE_STREAM;
@@ -1717,6 +1720,15 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 if (sm->type == DETECT_CONTENT &&
                         (((DetectContentData *)(sm->ctx))->flags &
                          (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
+                    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                    break;
+                }
+                sm = sm->next;
+            }
+            /* if stream_size is in use, also inspect packets */
+            sm = s->init_data->smlists[DETECT_SM_LIST_MATCH];
+            while (sm != NULL) {
+                if (sm->type == DETECT_STREAM_SIZE) {
                     s->flags |= SIG_FLAG_REQUIRE_PACKET;
                     break;
                 }
