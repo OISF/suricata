@@ -1650,13 +1650,9 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    if (alpd_ctx.alproto_names[alproto] != NULL)
-        goto end;
+    if (alpd_ctx.alproto_names[alproto] == NULL)
+        alpd_ctx.alproto_names[alproto] = alproto_name;
 
-    alpd_ctx.alproto_names[alproto] = alproto_name;
-
-    goto end;
- end:
     SCReturn;
 }
 
