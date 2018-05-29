@@ -64,3 +64,12 @@ Example:
 ::
 
   suppress gen_id 0, sig_id 0, track by_src, ip 1.2.3.4
+
+
+Encrypted traffic
+-----------------
+
+The TLS app layer parser has the ability to stop processing encrypted traffic
+after the initial handshake. By setting the `app-layer.protocols.tls.encryption-handling`
+option to `bypass` the rest of this flow is ignored. If flow bypass is enabled,
+the bypass is done in the kernel or in hardware.
