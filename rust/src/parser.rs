@@ -37,9 +37,9 @@ pub struct RustParser {
     pub ipproto:           c_int,
 
     /// Probing function, for packets going to server
-    pub probe_ts:          ProbeFn,
+    pub probe_ts:          Option<ProbeFn>,
     /// Probing function, for packets going to client
-    pub probe_tc:          ProbeFn,
+    pub probe_tc:          Option<ProbeFn>,
 
     /// Minimum frame depth for probing
     pub min_depth:         u16,
@@ -52,9 +52,9 @@ pub struct RustParser {
     pub state_free:        StateFreeFn,
 
     /// Parsing function, for packets going to server
-    pub parse_ts:          ParseFn,
+    pub parse_ts:          Option<ParseFn>,
     /// Parsing function, for packets going to client
-    pub parse_tc:          ParseFn,
+    pub parse_tc:          Option<ParseFn>,
 
     /// Get the current transaction count
     pub get_tx_count:      StateGetTxCntFn,

@@ -108,12 +108,16 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
         p->StateAlloc, p->StateFree);
 
     /* Register request parser for parsing frame from server to server. */
-    AppLayerParserRegisterParser(p->ip_proto, alproto,
-        STREAM_TOSERVER, p->ParseTS);
+    if (p->ParseTS) {
+        AppLayerParserRegisterParser(p->ip_proto, alproto,
+                STREAM_TOSERVER, p->ParseTS);
+    }
 
     /* Register response parser for parsing frames from server to client. */
-    AppLayerParserRegisterParser(p->ip_proto, alproto,
-        STREAM_TOCLIENT, p->ParseTC);
+    if (p->ParseTC) {
+        AppLayerParserRegisterParser(p->ip_proto, alproto,
+                STREAM_TOCLIENT, p->ParseTC);
+    }
 
     /* Register a function to be called by the application layer
      * when a transaction is to be freed. */
