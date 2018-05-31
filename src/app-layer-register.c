@@ -166,6 +166,11 @@ int AppLayerRegisterParser(const struct AppLayerParser *p, AppProto alproto)
                 p->StateGetFiles);
     }
 
+    if (p->GetTxIterator) {
+        AppLayerParserRegisterGetTxIterator(p->ip_proto, alproto,
+                p->GetTxIterator);
+    }
+
     return 0;
 }
 
