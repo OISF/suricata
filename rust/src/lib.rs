@@ -35,6 +35,7 @@ pub mod core;
 
 pub mod conf;
 pub mod json;
+#[macro_use]
 pub mod applayer;
 pub mod filecontainer;
 pub mod filetracker;
