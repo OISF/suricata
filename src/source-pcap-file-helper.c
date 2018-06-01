@@ -212,6 +212,7 @@ TmEcode ValidateLinkType(int datalink, Decoder *decoder)
         case LINKTYPE_IPV4:
         case LINKTYPE_RAW:
         case LINKTYPE_RAW2:
+        case LINKTYPE_GRE_OVER_IP:
             *decoder = DecodeRaw;
             break;
         case LINKTYPE_NULL:

@@ -563,6 +563,7 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
             DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_RAW:
+        case LINKTYPE_GRE_OVER_IP:
             DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_NULL:
