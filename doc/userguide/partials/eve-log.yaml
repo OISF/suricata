@@ -163,6 +163,14 @@ outputs:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
             deltas: no        # include delta values
+        - dhcp:
+            # DHCP logging requires Rust.
+            enabled: @rust_config_enabled@
+            # When extended mode is on, all DHCP messages are logged
+            # with full detail. When extended mode is off (the
+            # default), just enough information to map a MAC address
+            # to an IP address is logged.
+            extended: no
         # bi-directional flows
         - flow
         # uni-directional flows
