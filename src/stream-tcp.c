@@ -2555,7 +2555,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         return 0;
 
     } else if (p->tcph->th_flags & TH_SYN) {
-        SCLogDebug("ssn %p: SYN packet on state ESTABLISED... resent", ssn);
+        SCLogDebug("ssn %p: SYN packet on state ESTABLISHED... resent", ssn);
         if (PKT_IS_TOCLIENT(p)) {
             SCLogDebug("ssn %p: SYN-pkt to client in EST state", ssn);
 
