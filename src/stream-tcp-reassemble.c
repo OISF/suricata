@@ -1767,6 +1767,13 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
                 ssn, stream, p->payload_len,
                 (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ? "true" : "false");
 
+        /* In the case of bypass Suricata has to honor the inspection for all packets
+         * before stream depth so we need to check the depth.By adding the stream depth
+         * reached flag, it will trigger the bypass. */
+        if (StreamTcpBypassEnabled()) {
+            StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_SEQ(p), p->payload_len);
+        }
+
     }
 
     /* if the STREAMTCP_STREAM_FLAG_DEPTH_REACHED is set, but not the
