@@ -4841,18 +4841,13 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
-        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) &&
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
              (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             /* we can call bypass callback, if enabled */
             if (StreamTcpBypassEnabled()) {
                 PacketBypassCallback(p);
             }
-        }
-
-        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
-        {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
 
