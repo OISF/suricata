@@ -370,15 +370,15 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
         ipproto           : libc::IPPROTO_UDP,
-        probe_ts          : ntp_probing_parser,
-        probe_tc          : ntp_probing_parser,
+        probe_ts          : Some(ntp_probing_parser),
+        probe_tc          : Some(ntp_probing_parser),
         min_depth         : 0,
         max_depth         : 16,
         state_new         : rs_ntp_state_new,
         state_free        : rs_ntp_state_free,
         tx_free           : rs_ntp_state_tx_free,
-        parse_ts          : rs_ntp_parse_request,
-        parse_tc          : rs_ntp_parse_response,
+        parse_ts          : Some(rs_ntp_parse_request),
+        parse_tc          : Some(rs_ntp_parse_response),
         get_tx_count      : rs_ntp_state_get_tx_count,
         get_tx            : rs_ntp_state_get_tx,
         tx_get_comp_st    : rs_ntp_state_progress_completion_status,
@@ -394,6 +394,7 @@ pub unsafe extern "C" fn rs_register_ntp_parser() {
         get_tx_mpm_id     : None,
         set_tx_mpm_id     : None,
         get_files         : None,
+        get_tx_iterator   : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

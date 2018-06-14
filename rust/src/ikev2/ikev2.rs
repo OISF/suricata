@@ -647,15 +647,15 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         name              : PARSER_NAME.as_ptr() as *const libc::c_char,
         default_port      : default_port.as_ptr(),
         ipproto           : libc::IPPROTO_UDP,
-        probe_ts          : rs_ikev2_probing_parser,
-        probe_tc          : rs_ikev2_probing_parser,
+        probe_ts          : Some(rs_ikev2_probing_parser),
+        probe_tc          : Some(rs_ikev2_probing_parser),
         min_depth         : 0,
         max_depth         : 16,
         state_new         : rs_ikev2_state_new,
         state_free        : rs_ikev2_state_free,
         tx_free           : rs_ikev2_state_tx_free,
-        parse_ts          : rs_ikev2_parse_request,
-        parse_tc          : rs_ikev2_parse_response,
+        parse_ts          : Some(rs_ikev2_parse_request),
+        parse_tc          : Some(rs_ikev2_parse_response),
         get_tx_count      : rs_ikev2_state_get_tx_count,
         get_tx            : rs_ikev2_state_get_tx,
         tx_get_comp_st    : rs_ikev2_state_progress_completion_status,
@@ -671,6 +671,7 @@ pub unsafe extern "C" fn rs_register_ikev2_parser() {
         get_tx_mpm_id     : None,
         set_tx_mpm_id     : None,
         get_files         : None,
+        get_tx_iterator   : None,
     };
 
     let ip_proto_str = CString::new("udp").unwrap();

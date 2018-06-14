@@ -23,7 +23,7 @@ use core::{DetectEngineState,Flow,AppLayerEventType,AppLayerDecoderEvents,AppPro
 use filecontainer::FileContainer;
 
 use libc::{c_void,c_char,c_int};
-
+use applayer::{AppLayerGetTxIterTuple};
 
 /// Rust parser declaration
 #[repr(C)]
@@ -37,9 +37,9 @@ pub struct RustParser {
     pub ipproto:           c_int,
 
     /// Probing function, for packets going to server
-    pub probe_ts:          ProbeFn,
+    pub probe_ts:          Option<ProbeFn>,
     /// Probing function, for packets going to client
-    pub probe_tc:          ProbeFn,
+    pub probe_tc:          Option<ProbeFn>,
 
     /// Minimum frame depth for probing
     pub min_depth:         u16,
@@ -52,9 +52,9 @@ pub struct RustParser {
     pub state_free:        StateFreeFn,
 
     /// Parsing function, for packets going to server
-    pub parse_ts:          ParseFn,
+    pub parse_ts:          Option<ParseFn>,
     /// Parsing function, for packets going to client
-    pub parse_tc:          ParseFn,
+    pub parse_tc:          Option<ParseFn>,
 
     /// Get the current transaction count
     pub get_tx_count:      StateGetTxCntFn,
@@ -94,6 +94,9 @@ pub struct RustParser {
 
     /// Function to get files
     pub get_files:         Option<GetFilesFn>,
+
+    /// Function to get the TX iterator
+    pub get_tx_iterator:   Option<GetTxIteratorFn>,
 }
 
 
@@ -140,6 +143,12 @@ pub type LocalStorageFreeFn = extern "C" fn (*mut c_void);
 pub type GetTxMpmIDFn       = extern "C" fn (*mut c_void) -> u64;
 pub type SetTxMpmIDFn       = extern "C" fn (*mut c_void, u64) -> c_int;
 pub type GetFilesFn         = extern "C" fn (*mut c_void, u8) -> *mut FileContainer;
+pub type GetTxIteratorFn    = extern "C" fn (ipproto: u8, alproto: AppProto,
+                                             state: *mut c_void,
+                                             min_tx_id: u64,
+                                             max_tx_id: u64,
+                                             istate: &mut u64)
+                                             -> AppLayerGetTxIterTuple;
 
 // Defined in app-layer-register.h
 extern {

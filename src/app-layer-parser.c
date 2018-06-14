@@ -65,6 +65,7 @@
 #include "app-layer-ntp.h"
 #include "app-layer-tftp.h"
 #include "app-layer-ikev2.h"
+#include "app-layer-dhcp.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1375,7 +1376,7 @@ static void ValidateParserProto(AppProto alproto, uint8_t ipproto)
     if (ctx->Parser[0] == NULL && ctx->Parser[1] == NULL)
         return;
 
-    if (!(BOTH_SET(ctx->Parser[0], ctx->Parser[1]))) {
+    if (!(ctx->Parser[0] || ctx->Parser[1])) {
         goto bad;
     }
     if (!(BOTH_SET(ctx->StateFree, ctx->StateAlloc))) {
@@ -1452,6 +1453,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterNTPParsers();
     RegisterTFTPParsers();
     RegisterIKEV2Parsers();
+    RegisterDHCPParsers();
     RegisterTemplateParsers();
 
     /** IMAP */

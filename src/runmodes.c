@@ -609,6 +609,15 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
         char subname[256];
         snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
 
+        ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
+        if (sub_output_config != NULL) {
+            const char *enabled = ConfNodeLookupChildValue(
+                sub_output_config, "enabled");
+            if (enabled != NULL && !ConfValIsTrue(enabled)) {
+                continue;
+            }
+        }
+
         /* Now setup all registers logger of this name. */
         OutputModule *sub_module;
         TAILQ_FOREACH(sub_module, &output_modules, entries) {
@@ -624,9 +633,6 @@ static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
                     FatalError(SC_ERR_INVALID_ARGUMENT,
                             "bad sub-module for %s", subname);
                 }
-                ConfNode *sub_output_config =
-                    ConfNodeLookupChild(type, type->val);
-                // sub_output_config may be NULL if no config
 
                 /* pass on parent output_ctx */
                 OutputInitResult result =
