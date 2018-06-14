@@ -47,6 +47,7 @@ app-layer-ntp.c app-layer-ntp.h \
 app-layer-register.c app-layer-register.h \
 app-layer-tftp.c app-layer-tftp.h \
 app-layer-ikev2.c app-layer-ikev2.h \
+app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -322,6 +323,7 @@ output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
 output-json-ikev2.c output-json-ikev2.h \
+output-json-dhcp.c output-json-dhcp.h \
 output-json-template.c output-json-template.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \
