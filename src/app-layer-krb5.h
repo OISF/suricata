@@ -1,4 +1,4 @@
-/* Copyright (C) 2017 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,45 +15,20 @@
  * 02110-1301, USA.
  */
 
-#![cfg_attr(feature = "strict", deny(warnings))]
+/**
+ * \file
+ *
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
+ */
 
-extern crate libc;
+#ifndef __APP_LAYER_KRB5_H__
+#define __APP_LAYER_KRB5_H__
 
-#[macro_use]
-extern crate nom;
+void RegisterKRB5Parsers(void);
+void KRB5ParserRegisterTests(void);
 
-extern crate crc;
+/** Opaque Rust types. */
+typedef struct KRB5State_ KRB5State;
+typedef struct KRB5Transaction_ KRB5Transaction;
 
-extern crate der_parser;
-extern crate kerberos_parser;
-
-#[macro_use]
-pub mod log;
-
-#[macro_use]
-pub mod core;
-
-pub mod conf;
-pub mod json;
-#[macro_use]
-pub mod applayer;
-pub mod filecontainer;
-pub mod filetracker;
-#[macro_use]
-pub mod parser;
-pub mod kerberos;
-
-#[cfg(feature = "lua")]
-pub mod lua;
-
-pub mod dns;
-pub mod nfs;
-pub mod ftp;
-pub mod smb;
-pub mod krb;
-
-pub mod ikev2;
-
-pub mod ntp;
-pub mod tftp;
-pub mod dhcp;
+#endif /* __APP_LAYER_KRB5_H__ */

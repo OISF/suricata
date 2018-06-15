@@ -727,6 +727,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_TFTP\n");
                     else if (pp_pe->alproto == ALPROTO_IKEV2)
                         printf("            alproto: ALPROTO_IKEV2\n");
+                    else if (pp_pe->alproto == ALPROTO_KRB5)
+                        printf("            alproto: ALPROTO_KRB5\n");
+                    else if (pp_pe->alproto == ALPROTO_DHCP)
+                        printf("            alproto: ALPROTO_DHCP\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -794,6 +798,10 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_TFTP\n");
                 else if (pp_pe->alproto == ALPROTO_IKEV2)
                     printf("            alproto: ALPROTO_IKEV2\n");
+                else if (pp_pe->alproto == ALPROTO_KRB5)
+                    printf("            alproto: ALPROTO_KRB5\n");
+                else if (pp_pe->alproto == ALPROTO_DHCP)
+                    printf("            alproto: ALPROTO_DHCP\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -1650,13 +1658,9 @@ void AppLayerProtoDetectRegisterProtocol(AppProto alproto, const char *alproto_n
 {
     SCEnter();
 
-    if (alpd_ctx.alproto_names[alproto] != NULL)
-        goto end;
+    if (alpd_ctx.alproto_names[alproto] == NULL)
+        alpd_ctx.alproto_names[alproto] = alproto_name;
 
-    alpd_ctx.alproto_names[alproto] = alproto_name;
-
-    goto end;
- end:
     SCReturn;
 }
 

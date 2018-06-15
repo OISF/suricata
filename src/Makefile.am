@@ -47,6 +47,8 @@ app-layer-ntp.c app-layer-ntp.h \
 app-layer-register.c app-layer-register.h \
 app-layer-tftp.c app-layer-tftp.h \
 app-layer-ikev2.c app-layer-ikev2.h \
+app-layer-krb5.c app-layer-krb5.h \
+app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -212,6 +214,10 @@ detect-ipproto.c detect-ipproto.h \
 detect-iprep.c detect-iprep.h \
 detect-isdataat.c detect-isdataat.h \
 detect-itype.c detect-itype.h \
+detect-krb5-cname.c detect-krb5-cname.h \
+detect-krb5-errcode.c detect-krb5-errcode.h \
+detect-krb5-msgtype.c detect-krb5-msgtype.h \
+detect-krb5-sname.c detect-krb5-sname.h \
 detect-l3proto.c detect-l3proto.h \
 detect-lua.c detect-lua.h \
 detect-lua-extensions.c detect-lua-extensions.h \
@@ -322,6 +328,8 @@ output-json-nfs.c output-json-nfs.h \
 output-json-tftp.c output-json-tftp.h \
 output-json-smb.c output-json-smb.h \
 output-json-ikev2.c output-json-ikev2.h \
+output-json-krb5.c output-json-krb5.h \
+output-json-dhcp.c output-json-dhcp.h \
 output-json-template.c output-json-template.h \
 output-json-metadata.c output-json-metadata.h \
 output-lua.c output-lua.h \

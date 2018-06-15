@@ -110,6 +110,7 @@ default-rule-path: @e_defaultruledir@
 # - dnp3-events.rules       # available in suricata sources under rules dir
 # - ntp-events.rules       # available in suricata sources under rules dir
 # - ipsec-events.rules       # available in suricata sources under rules dir
+# - kerberos-events.rules       # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
@@ -273,6 +274,15 @@ outputs:
         @rust_config_comment@- smb
         @rust_config_comment@- tftp
         @rust_config_comment@- ikev2
+        @rust_config_comment@- krb5
+        - dhcp:
+            # DHCP logging requires Rust.
+            enabled: @rust_config_enabled@
+            # When extended mode is on, all DHCP messages are logged
+            # with full detail. When extended mode is off (the
+            # default), just enough information to map a MAC address
+            # to an IP address is logged.
+            extended: no
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -808,6 +818,8 @@ pcap-file:
 # "detection-only" enables protocol detection only (parser disabled).
 app-layer:
   protocols:
+    krb5:
+      enabled: @rust_config_enabled@
     ikev2:
       enabled: yes
     tls:
@@ -1046,6 +1058,9 @@ app-layer:
 
     # Note: parser depends on experimental Rust support
     ntp:
+      enabled: @rust_config_enabled@
+
+    dhcp:
       enabled: @rust_config_enabled@
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
