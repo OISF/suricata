@@ -161,14 +161,19 @@ static void OutputFilestoreFinalizeFiles(ThreadVars *tv,
 #ifdef HAVE_LIBJANSSON
     if (ctx->fileinfo) {
         char js_metadata_filename[PATH_MAX];
-        snprintf(js_metadata_filename, sizeof(js_metadata_filename),
-                "%s.%"PRIuMAX".%u.json", final_filename,
-                (uintmax_t)p->ts.tv_sec, ff->file_store_id);
-        json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
-                ctx->xff_cfg);
-        if (likely(js_fileinfo != NULL)) {
-            json_dump_file(js_fileinfo, js_metadata_filename, 0);
-            json_decref(js_fileinfo);
+        if (snprintf(js_metadata_filename, sizeof(js_metadata_filename),
+                        "%s.%"PRIuMAX".%u.json", final_filename,
+                        (uintmax_t)p->ts.tv_sec, ff->file_store_id)
+                == (int)sizeof(js_metadata_filename)) {
+            WARN_ONCE(SC_ERR_SPRINTF,
+                "Failed to write file info record. Output filename truncated.");
+        } else {
+            json_t *js_fileinfo = JsonBuildFileInfoRecord(p, ff, true, dir,
+                    ctx->xff_cfg);
+            if (likely(js_fileinfo != NULL)) {
+                json_dump_file(js_fileinfo, js_metadata_filename, 0);
+                json_decref(js_fileinfo);
+            }
         }
     }
 #endif
@@ -407,8 +412,15 @@ static OutputInitResult OutputFilestoreLogInitCtx(ConfNode *conf)
     if (unlikely(ctx == NULL)) {
         return result;
     }
+
     strlcpy(ctx->prefix, log_directory, sizeof(ctx->prefix));
-    snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp", log_directory);
+    int written = snprintf(ctx->tmpdir, sizeof(ctx->tmpdir) - 1, "%s/tmp",
+            log_directory);
+    if (written == sizeof(ctx->tmpdir)) {
+        SCLogError(SC_ERR_SPRINTF, "File-store output directory overflow.");
+        SCFree(ctx);
+        return result;
+    }
 
     ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
     if (ctx->xff_cfg != NULL) {
