@@ -95,7 +95,7 @@ The scripts-dir option is optional. It makes Suricata load the scripts
 from this directory. Otherwise scripts will be loaded from the current
 workdir.
 
-Developping lua output script
+Developing lua output script
 -----------------------------
 
 You can use functions described in :ref:`Lua Functions <lua-functions>`
