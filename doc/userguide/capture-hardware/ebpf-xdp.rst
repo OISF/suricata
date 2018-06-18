@@ -121,7 +121,7 @@ First, enable `bypass` in the `stream` section ::
  stream:
    bypass: true
 
-If you want, you can also bypass encrypted flows by setting `no-reassemble` to `yes`
+If you want, you can also bypass encrypted flows by setting `encrypt-handling` to `bypass`
 in the app-layer tls section ::
 
   app-layer:
@@ -131,12 +131,7 @@ in the app-layer tls section ::
         detection-ports:
           dp: 443
   
-        # Completely stop processing TLS/SSL session after the handshake
-        # completed. If bypass is enabled this will also trigger flow
-        # bypass. If disabled (the default), TLS/SSL session is still
-        # tracked for Heartbleed and other anomalies.
-        no-reassemble: yes
-
+        encrypt-handling: bypass
 
 Setup eBPF filter
 -----------------
