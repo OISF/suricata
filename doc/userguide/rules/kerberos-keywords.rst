@@ -36,7 +36,7 @@ Comparison is case-sensitive.
 
 Syntax::
 
- krb5_cname:[!]<name>
+ krb5_cname; content:"name";
 
 Signature example::
 
@@ -59,7 +59,7 @@ Comparison is case-sensitive.
 
 Syntax::
 
- krb5_sname:[!]<name>
+ krb5_sname; content:"name";
 
 Signature example::
 

@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author FirstName LastName <name@domain>
+ * \author Pierre Chifflier <chifflier@wzdftpd.net>
  */
 
 #ifndef __OUTPUT_JSON_KRB5_H__
