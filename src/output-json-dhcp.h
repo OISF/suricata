@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author FirstName LastName <name@domain>
+ * \author Jason Ish <jason.ish@oisf.net>
  */
 
 #ifndef __OUTPUT_JSON_DHCP_H__
