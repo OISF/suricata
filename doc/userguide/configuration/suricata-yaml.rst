@@ -2115,29 +2115,47 @@ port independent.
       detection-ports:
         dp: 443
 
-      # Completely stop processing TLS/SSL session after the handshake
-      # completed. If bypass is enabled this will also trigger flow
-      # bypass. If disabled (the default), TLS/SSL session is still
-      # tracked for Heartbleed and other anomalies.
-      #no-reassemble: yes
+      # What to do when the encrypted communications start:
+      # - default: keep tracking TLS session, check for protocol anomalies,
+      #            inspect tls_* keywords. Disables inspection of unmodified
+      #            'content' signatures.
+      # - bypass:  stop processing this flow as much as possible. No further
+      #            TLS parsing and inspection. Offload flow bypass to kernel
+      #            or hardware if possible.
+      # - full:    keep tracking and inspection as normal. Unmodified content
+      #            keyword signatures are inspected as well.
+      #
+      # For best performance, select 'bypass'.
+      #
+      #encrypt-handling: default
+
 
 Encrypted traffic
 ^^^^^^^^^^^^^^^^^
 
 There is no decryption of encrypted traffic, so once the handshake is complete
-continued tracking of the session is of limited use. The ``no-reassemble``
+continued tracking of the session is of limited use. The ``encrypt-handling``
 option controls the behavior after the handshake.
 
-If ``no-reassemble`` is set to ``true``, all processing of this session is
-stopped. No further parsing and inspection happens. If ``bypass`` is enabled
-this will lead to the flow being bypassed, either inside Suricata or by the
-capture method if it supports it.
-
-If ``no-reassemble`` is set to ``false``, which is the default, Suricata will
-continue to track the SSL/TLS session. Inspection will be limited, as
-``content`` inspection will still be disabled. There is no point in doing
+If ``encrypt-handling`` is set to ``default`` (or if the option is not set),
+Suricata will continue to track the SSL/TLS session. Inspection will be limited,
+as raw ``content`` inspection will still be disabled. There is no point in doing
 pattern matching on traffic known to be encrypted. Inspection for (encrypted)
 Heartbleed and other protocol anomalies still happens.
+
+When ``encrypt-handling`` is set to ``bypass``, all processing of this session is
+stopped. No further parsing and inspection happens. If ``stream.bypass`` is enabled
+this will lead to the flow being bypassed, either inside Suricata or by the
+capture method if it supports it and is configured for it.
+
+Finally, if ``encrypt-handling`` is set to ``full``, Suricata will process the
+flow as normal, without inspection limitations or bypass.
+
+The option has replaced the ``no-reassemble`` option. If ``no-reassemble`` is
+present, and ``encrypt-handling`` is not, ``false`` is intepreted as
+``encrypt-handling: default`` and ``true`` is interpreted as
+``encrypt-handling: bypass``.
+
 
 Modbus
 ~~~~~~
