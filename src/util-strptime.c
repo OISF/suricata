@@ -291,7 +291,7 @@ recurse:
 					sse *= 10;
 					sse += *bp++ - '0';
 					rulim /= 10;
-				} while ((sse * 10 <= TIME_MAX) &&
+				} while (((uint64_t)sse * 10 <= TIME_MAX) &&
 					 rulim && *bp >= '0' && *bp <= '9');
 
 				if (sse < 0 || (uint64_t)sse > TIME_MAX) {
