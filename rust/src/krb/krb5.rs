@@ -461,7 +461,8 @@ pub extern "C" fn rs_krb5_parse_request(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
     state.parse(buf, STREAM_TOSERVER)
@@ -473,7 +474,8 @@ pub extern "C" fn rs_krb5_parse_response(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
     state.parse(buf, STREAM_TOCLIENT)
@@ -485,7 +487,8 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);
@@ -497,7 +500,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
         _ => {
             // sanity check to avoid memory exhaustion
             if state.defrag_buf_ts.len() + buf.len() > 100000 {
-                SCLogDebug!("rs_krb5_parse_response_tcp: TCP buffer exploded {} {}",
+                SCLogDebug!("rs_krb5_parse_resquest_tcp: TCP buffer exploded {} {}",
                             state.defrag_buf_ts.len(), buf.len());
                 return 1;
             }
@@ -515,7 +518,7 @@ pub extern "C" fn rs_krb5_parse_request_tcp(_flow: *const core::Flow,
                     cur_i = rem;
                 },
                 _ => {
-                    SCLogDebug!("rs_krb5_parse_response_tcp: reading record mark failed!");
+                    SCLogDebug!("rs_krb5_parse_request_tcp: reading record mark failed!");
                     return 1;
                 }
             }
@@ -542,7 +545,8 @@ pub extern "C" fn rs_krb5_parse_response_tcp(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     if input_len < 4 { return -1; }
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,KRB5State);

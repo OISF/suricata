@@ -90,7 +90,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 typedef int (*AppLayerParserFPtr)(Flow *f, void *protocol_state,
         AppLayerParserState *pstate,
         uint8_t *buf, uint32_t buf_len,
-        void *local_storage);
+        void *local_storage, const uint8_t flags);
 
 typedef struct AppLayerGetTxIterTuple {
     void *tx_ptr;

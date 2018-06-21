@@ -706,7 +706,7 @@ error:
 static int HTPHandleRequestData(Flow *f, void *htp_state,
                                 AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                void *local_data)
+                                void *local_data, const uint8_t flags)
 {
     SCEnter();
     int ret = 1;
@@ -769,7 +769,7 @@ error:
 static int HTPHandleResponseData(Flow *f, void *htp_state,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
     int ret = 1;
