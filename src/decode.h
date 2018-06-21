@@ -683,6 +683,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_flow_udp;
     uint16_t counter_flow_icmp4;
     uint16_t counter_flow_icmp6;
+    uint16_t counter_flow_pkts_bypassed;
 
     uint16_t counter_engine_events[DECODE_EVENT_MAX];
 
