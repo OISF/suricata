@@ -2242,14 +2242,14 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 
 static int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
-                         void *local_data)
+                         void *local_data, const uint8_t flags)
 {
     return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
 static int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
-                         void *local_data)
+                         void *local_data, const uint8_t flags)
 {
     return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
 }

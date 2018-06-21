@@ -210,7 +210,7 @@ static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_le
 
 static int TemplateParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     TemplateState *echo = state;
 
@@ -278,7 +278,8 @@ end:
 }
 
 static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     TemplateState *echo = state;
     TemplateTransaction *tx = NULL, *ttx;;

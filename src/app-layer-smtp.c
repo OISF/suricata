@@ -1268,7 +1268,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
 static int SMTPParseClientRecord(Flow *f, void *alstate,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
 
@@ -1279,7 +1279,7 @@ static int SMTPParseClientRecord(Flow *f, void *alstate,
 static int SMTPParseServerRecord(Flow *f, void *alstate,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+                                 void *local_data, const uint8_t flags)
 {
     SCEnter();
 

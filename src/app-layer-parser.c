@@ -1144,7 +1144,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         /* invoke the parser */
         if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
                 input, input_len,
-                alp_tctx->alproto_local_storage[f->protomap][alproto]) < 0)
+                alp_tctx->alproto_local_storage[f->protomap][alproto],
+                flags) < 0)
         {
             goto error;
         }
@@ -1909,7 +1910,7 @@ typedef struct TestState_ {
  */
 static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
-                              void *local_data)
+                              void *local_data, const uint8_t flags)
 {
     SCEnter();
     SCReturnInt(-1);

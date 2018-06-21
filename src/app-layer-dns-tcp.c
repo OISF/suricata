@@ -290,7 +290,7 @@ insufficient_data:
 static int DNSTCPRequestParse(Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
-                              void *local_data)
+                              void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
@@ -531,7 +531,7 @@ insufficient_data:
 static int DNSTCPResponseParse(Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
-                               void *local_data)
+                               void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
 
@@ -887,7 +887,7 @@ static int DNSTCPParserTestMultiRecord(void)
     f->alproto = ALPROTO_DNS;
     f->alstate = state;
 
-    FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSTCPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, STREAM_START));
     FAIL_IF(state->transaction_max != 20);
 
     UTHFreeFlow(f);

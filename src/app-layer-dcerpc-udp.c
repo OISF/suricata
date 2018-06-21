@@ -717,7 +717,7 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 
 static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     uint32_t retval = 0;
     uint32_t parsed = 0;

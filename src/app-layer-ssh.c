@@ -417,7 +417,7 @@ static int SSHParseData(SshState *state, SshHeader *header,
 
 static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data)
+                           void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->cli_hdr;
@@ -442,7 +442,7 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
 
 static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data)
+                            void *local_data, const uint8_t flags)
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->srv_hdr;

@@ -60,7 +60,7 @@
 static int DNSUDPRequestParse(Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
-                              void *local_data)
+                              void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
 
@@ -182,7 +182,7 @@ insufficient_data:
 static int DNSUDPResponseParse(Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
-                               void *local_data)
+                               void *local_data, const uint8_t flags)
 {
     DNSState *dns_state = (DNSState *)dstate;
 
@@ -338,7 +338,7 @@ static uint16_t DNSUdpProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
         return ALPROTO_UNKNOWN;
     }
 
-    if (DNSUDPRequestParse(NULL, NULL, NULL, input, ilen, NULL) == -1)
+    if (DNSUDPRequestParse(NULL, NULL, NULL, input, ilen, NULL, 0) == -1)
         return ALPROTO_FAILED;
 
     return ALPROTO_DNS;
@@ -499,7 +499,7 @@ static int DNSUDPParserTest01 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -528,7 +528,7 @@ static int DNSUDPParserTest02 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -557,7 +557,7 @@ static int DNSUDPParserTest03 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -589,7 +589,7 @@ static int DNSUDPParserTest04 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -621,7 +621,7 @@ static int DNSUDPParserTest05 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    FAIL_IF(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL) != -1);
+    FAIL_IF(DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL, STREAM_START) != -1);
 
     UTHFreeFlow(f);
     PASS;
@@ -691,13 +691,13 @@ static int DNSUDPParserTestDelayedResponse(void)
     f->alproto = ALPROTO_DNS;
     f->alstate = state;
 
-    /* Send to requests with an incrementing tx id. */
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    /* Send two requests with an incrementing tx id. */
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, STREAM_START));
     req[1] = 0x02;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, 0));
 
     /* Send response to the first request. */
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL, STREAM_START));
     DNSTransaction *tx = TAILQ_FIRST(&state->tx_list);
     FAIL_IF_NULL(tx);
     FAIL_IF_NOT(tx->replied);
@@ -733,19 +733,21 @@ static int DNSUDPParserTestFlood(void)
     f->alproto = ALPROTO_DNS;
     f->alstate = state;
 
+    uint8_t flags = STREAM_START;
     uint16_t txid;
     for (txid = 1; txid <= DNS_CONFIG_DEFAULT_REQUEST_FLOOD + 1; txid++) {
         req[0] = (txid >> 8) & 0xff;
         req[1] = txid & 0xff;
-        FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+        FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, flags));
         FAIL_IF(state->givenup);
+        flags = 0;
     }
 
     /* With one more request we should enter a flooded state. */
     txid++;
     req[0] = (txid >> 8) & 0xff;
     req[1] = txid & 0xff;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, 0));
     FAIL_IF(!state->givenup);
 
     /* Also free's state. */
@@ -803,28 +805,28 @@ static int DNSUDPParserTestLostResponse(void)
 
     /* First request. */
     req[1] = 0x01;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, STREAM_START));
     FAIL_IF_NOT(state->transaction_max == 1);
     FAIL_IF_NOT(state->unreplied_cnt == 1);
     FAIL_IF_NOT(state->window == 1);
 
     /* Second request. */
     req[1] = 0x02;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, 0));
     FAIL_IF_NOT(state->transaction_max == 2);
     FAIL_IF_NOT(state->unreplied_cnt == 2);
     FAIL_IF_NOT(state->window == 2);
 
     /* Third request. */
     req[1] = 0x03;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, 0));
     FAIL_IF_NOT(state->transaction_max == 3);
     FAIL_IF_NOT(state->unreplied_cnt == 3);
     FAIL_IF_NOT(state->window == 3);
 
     /* Now respond to the second. */
     res[1] = 0x02;
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL, 0));
     FAIL_IF_NOT(state->unreplied_cnt == 2);
     FAIL_IF_NOT(state->window == 3);
     tx = TAILQ_FIRST(&state->tx_list);
@@ -834,14 +836,14 @@ static int DNSUDPParserTestLostResponse(void)
 
     /* Send a 4th request. */
     req[1] = 0x04;
-    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL));
+    FAIL_IF_NOT(DNSUDPRequestParse(f, f->alstate, NULL, req, reqlen, NULL, 0));
     FAIL_IF_NOT(state->unreplied_cnt == 3);
     FAIL_IF(state->window != 3);
     FAIL_IF_NOT(state->transaction_max == 4);
 
     /* Response to the third request. */
     res[1] = 0x03;
-    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL));
+    FAIL_IF_NOT(DNSUDPResponseParse(f, f->alstate, NULL, res, reslen, NULL, 0));
     FAIL_IF_NOT(state->unreplied_cnt == 2);
     FAIL_IF_NOT(state->window == 3);
     tx = TAILQ_FIRST(&state->tx_list);

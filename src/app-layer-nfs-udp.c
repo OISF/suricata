@@ -155,7 +155,7 @@ static AppProto NFSProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len,
 
 static int NFSParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
     rs_nfs3_setfileflags(0, state, file_flags);
@@ -164,7 +164,8 @@ static int NFSParseRequest(Flow *f, void *state,
 }
 
 static int NFSParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
     rs_nfs3_setfileflags(1, state, file_flags);
