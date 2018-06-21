@@ -682,6 +682,11 @@ static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
     if (ssn->state == TCP_CLOSED) {
         flag |= STREAM_EOF;
     }
+
+    if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
+        flag |= STREAM_MIDSTREAM;
+    }
+
     if (p->flags & PKT_PSEUDO_STREAM_END) {
         flag |= STREAM_EOF;
     }
