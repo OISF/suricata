@@ -120,6 +120,7 @@
 #include "detect-filesha1.h"
 #include "detect-filesha256.h"
 #include "detect-filesize.h"
+#include "detect-yara.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -394,6 +395,8 @@ void SigTableSetup(void)
     DetectFileSha1Register();
     DetectFileSha256Register();
     DetectFilesizeRegister();
+
+    DetectYaraRegister();
 
     DetectHttpUARegister();
     DetectHttpHHRegister();

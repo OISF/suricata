@@ -1960,6 +1960,46 @@
         enable_geoip="yes"
     fi
 
+  # libyara
+    AC_ARG_ENABLE(yara,
+	        AS_HELP_STRING([--enable-yara],[Enable YARA support]),
+	        [ enable_yara="yes"],
+	        [ enable_yara="no"])
+    AC_ARG_WITH(libyara_includes,
+            [  --with-libyara-includes=DIR  libyara include directory],
+            [with_libyara_includes="$withval"],[with_libyara_includes="no"])
+    AC_ARG_WITH(libyara_libraries,
+            [  --with-libyara-libraries=DIR    libyara library directory],
+            [with_libyara_libraries="$withval"],[with_libyara_libraries="no"])
+
+    if test "$enable_yara" = "yes"; then
+        if test "$with_libyara_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libyara_includes}"
+        fi
+
+        AC_CHECK_HEADER(yara.h,YARA="yes",YARA="no")
+        if test "$YARA" = "yes"; then
+            if test "$with_libyara_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS} -L${with_libyara_libraries}"
+            fi
+            AC_CHECK_LIB(yara, yr_initialize,, YARA="no")
+        fi
+        if test "$YARA" = "no"; then
+              echo
+              echo "   ERROR!  YARA library not found, go get it"
+              echo "   from https://virustotal.github.io/yara/"
+              echo
+              echo "   Ubuntu: apt install libyara-dev"
+              echo "   Fedora: yum install yara-devel"
+              echo "   OpenBSD: pkg_add yara"
+              echo
+              exit 1
+        fi
+
+        AC_DEFINE([HAVE_YARA],[1],[libyara available])
+        enable_yara="yes"
+    fi
+
   # Position Independent Executable
     AC_ARG_ENABLE(pie,
                 AS_HELP_STRING([--enable-pie],[Enable compiling as a position independent executable]),
@@ -2318,6 +2358,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   liblzma support:                         ${enable_liblzma}
+  YARA support:                            ${enable_yara}
   hiredis support:                         ${enable_hiredis}
   hiredis async with libevent:             ${enable_hiredis_async}
   Prelude support:                         ${enable_prelude}
