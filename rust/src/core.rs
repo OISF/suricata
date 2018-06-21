@@ -32,8 +32,13 @@ pub const APP_LAYER_EVENT_TYPE_TRANSACTION : i32 = 1;
 pub const APP_LAYER_EVENT_TYPE_PACKET      : i32 = 2;
 
 // From stream.h.
+pub const STREAM_START:    u8 = 0x01;
+pub const STREAM_EOF:      u8 = 0x02;
 pub const STREAM_TOSERVER: u8 = 0x04;
 pub const STREAM_TOCLIENT: u8 = 0x08;
+pub const STREAM_GAP:      u8 = 0x10;
+pub const STREAM_DEPTH:    u8 = 0x20;
+pub const STREAM_MIDSTREAM:u8 = 0x40;
 
 // Application layer protocol identifiers (app-layer-protos.h)
 pub type AppProto = libc::c_int;
