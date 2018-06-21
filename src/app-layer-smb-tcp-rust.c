@@ -45,7 +45,7 @@ static int RustSMBTCPParseRequest(Flow *f, void *state,
         res = rs_smb_parse_request_tcp_gap(state, input_len);
     } else {
         res = rs_smb_parse_request_tcp(f, state, pstate, input, input_len,
-            local_data);
+            local_data, flags);
     }
     if (res != 1) {
         SCLogNotice("SMB request%s of %u bytes, retval %d",
@@ -68,7 +68,7 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
         res = rs_smb_parse_response_tcp_gap(state, input_len);
     } else {
         res = rs_smb_parse_response_tcp(f, state, pstate, input, input_len,
-            local_data);
+            local_data, flags);
     }
     if (res != 1) {
         SCLogNotice("SMB response%s of %u bytes, retval %d",

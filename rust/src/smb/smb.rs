@@ -1720,11 +1720,17 @@ pub extern "C" fn rs_smb_parse_request_tcp(_flow: *mut Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
                                        input_len: libc::uint32_t,
-                                       _data: *mut libc::c_void)
+                                       _data: *mut libc::c_void,
+                                       flags: u8)
                                        -> libc::int8_t
 {
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
     SCLogDebug!("parsing {} bytes of request data", input_len);
+
+    /* START with MISTREAM set: record might be starting the middle. */
+    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+        state.ts_gap = true;
+    }
 
     if state.parse_tcp_data_ts(buf) == 0 {
         return 1;
@@ -1752,11 +1758,17 @@ pub extern "C" fn rs_smb_parse_response_tcp(_flow: *mut Flow,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
                                         input_len: libc::uint32_t,
-                                        _data: *mut libc::c_void)
+                                        _data: *mut libc::c_void,
+                                        flags: u8)
                                         -> libc::int8_t
 {
     SCLogDebug!("parsing {} bytes of response data", input_len);
     let buf = unsafe{std::slice::from_raw_parts(input, input_len as usize)};
+
+    /* START with MISTREAM set: record might be starting the middle. */
+    if flags & (STREAM_START|STREAM_MIDSTREAM) == (STREAM_START|STREAM_MIDSTREAM) {
+        state.tc_gap = true;
+    }
 
     if state.parse_tcp_data_tc(buf) == 0 {
         return 1;
