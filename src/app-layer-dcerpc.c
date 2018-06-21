@@ -1922,7 +1922,7 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
-                              void *local_data)
+                              void *local_data, const uint8_t flags)
 {
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,
                        local_data, 0);
@@ -1931,7 +1931,7 @@ static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
 static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
-                               void *local_data)
+                               void *local_data, const uint8_t flags)
 {
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,
                        local_data, 1);

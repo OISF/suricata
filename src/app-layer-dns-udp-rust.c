@@ -36,7 +36,7 @@ static void RustDNSUDPParserRegisterTests(void);
 
 static int RustDNSUDPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     return rs_dns_parse_request(f, state, pstate, input, input_len,
             local_data);
@@ -44,7 +44,7 @@ static int RustDNSUDPParseRequest(Flow *f, void *state,
 
 static int RustDNSUDPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     return rs_dns_parse_response(f, state, pstate, input, input_len,
             local_data);
@@ -229,7 +229,7 @@ static int RustDNSUDPParserTest01 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL));
+                    NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -260,7 +260,7 @@ static int RustDNSUDPParserTest02 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL));
+                    NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -291,7 +291,7 @@ static int RustDNSUDPParserTest03 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL));
+                    NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -325,7 +325,7 @@ static int RustDNSUDPParserTest04 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF_NOT(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL));
+                    NULL, STREAM_START));
 
     UTHFreeFlow(f);
     PASS;
@@ -359,7 +359,7 @@ static int RustDNSUDPParserTest05 (void)
     FAIL_IF_NULL(f->alstate);
 
     FAIL_IF(RustDNSUDPParseResponse(f, f->alstate, NULL, buf, buflen,
-                    NULL) != -1);
+                    NULL, STREAM_START) != -1);
 
     UTHFreeFlow(f);
     PASS;

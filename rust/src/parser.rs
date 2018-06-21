@@ -123,7 +123,8 @@ pub type ParseFn      = extern "C" fn (flow: *const Flow,
                                        pstate: *mut c_void,
                                        input: *const u8,
                                        input_len: u32,
-                                       data: *const c_void) -> i8;
+                                       data: *const c_void,
+                                       flags: u8) -> i8;
 pub type ProbeFn      = extern "C" fn (flow: *const Flow,input:*const u8, input_len: u32, offset: *const u32) -> AppProto;
 pub type StateAllocFn = extern "C" fn () -> *mut c_void;
 pub type StateFreeFn  = extern "C" fn (*mut c_void);

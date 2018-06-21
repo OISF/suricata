@@ -384,7 +384,7 @@ static void FtpTransferCmdFree(void *data)
 static int FTPParseRequest(Flow *f, void *ftp_state,
                            AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data)
+                           void *local_data, const uint8_t flags)
 {
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
@@ -540,7 +540,7 @@ static int FTPParsePassiveResponseV6(Flow *f, FtpState *state, uint8_t *input, u
  */
 static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data)
+                            void *local_data, const uint8_t flags)
 {
     FtpState *state = (FtpState *)ftp_state;
 
@@ -787,7 +787,7 @@ out:
 static int FTPDataParseRequest(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,
                                local_data, STREAM_TOSERVER);
@@ -796,7 +796,7 @@ static int FTPDataParseRequest(Flow *f, void *ftp_state,
 static int FTPDataParseResponse(Flow *f, void *ftp_state,
         AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     return FTPDataParse(f, ftp_state, pstate, input, input_len,
                                local_data, STREAM_TOCLIENT);

@@ -443,7 +443,8 @@ pub extern "C" fn rs_ikev2_parse_request(_flow: *const core::Flow,
                                        _pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     state.parse(buf, STREAM_TOSERVER)
@@ -455,7 +456,8 @@ pub extern "C" fn rs_ikev2_parse_response(_flow: *const core::Flow,
                                        pstate: *mut libc::c_void,
                                        input: *const libc::uint8_t,
                                        input_len: u32,
-                                       _data: *const libc::c_void) -> i8 {
+                                       _data: *const libc::c_void,
+                                       _flags: u8) -> i8 {
     let buf = build_slice!(input,input_len as usize);
     let state = cast_pointer!(state,IKEV2State);
     let res = state.parse(buf, STREAM_TOCLIENT);

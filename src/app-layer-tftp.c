@@ -128,7 +128,7 @@ static AppProto TFTPProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
 
 static int TFTPParseRequest(Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-    void *local_data)
+    void *local_data, const uint8_t flags)
 {
     SCLogDebug("Parsing echo request: len=%"PRIu32, input_len);
 
@@ -151,7 +151,8 @@ static int TFTPParseRequest(Flow *f, void *state,
  * \brief Response parsing is not implemented
  */
 static int TFTPParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     return 0;
 }

@@ -1392,14 +1392,14 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
 
 static int SMBParseRequest(Flow *f, void *smb_state, AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
-                           void *local_data)
+                           void *local_data, const uint8_t flags)
 {
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
 }
 
 static int SMBParseResponse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            void *local_data)
+                            void *local_data, const uint8_t flags)
 {
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 1);
 }

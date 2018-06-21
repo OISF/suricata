@@ -1111,7 +1111,8 @@ error:
  * multiple frames, but not the complete final frame).
  */
 static int DNP3ParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;
@@ -1250,7 +1251,8 @@ error:
  * See DNP3ParseResponsePDUs for DNP3 frame handling.
  */
 static int DNP3ParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+    uint8_t *input, uint32_t input_len, void *local_data,
+    const uint8_t flags)
 {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)state;

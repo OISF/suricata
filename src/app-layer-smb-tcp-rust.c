@@ -34,7 +34,7 @@
 
 static int RustSMBTCPParseRequest(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustSMBTCPParseRequest");
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOSERVER);
@@ -56,7 +56,7 @@ static int RustSMBTCPParseRequest(Flow *f, void *state,
 
 static int RustSMBTCPParseResponse(Flow *f, void *state,
         AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-        void *local_data)
+        void *local_data, const uint8_t flags)
 {
     SCLogDebug("RustSMBTCPParseResponse");
     uint16_t file_flags = FileFlowToFlags(f, STREAM_TOCLIENT);
