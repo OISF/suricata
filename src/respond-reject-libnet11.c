@@ -128,14 +128,14 @@ static libnet_t *LibnetInit(Packet *p, const char *devname, char *ebuf) {
     return c;
 }
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                const char *devname)
 {
 
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -143,7 +143,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
         SCLogDebug("Will emit reject packet on dev %s", devname);
     }
@@ -253,13 +253,13 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char *devname)
 {
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -269,7 +269,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
     if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
@@ -340,14 +340,14 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                const char* devname)
 {
 
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -355,7 +355,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
     if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
@@ -464,13 +464,13 @@ cleanup:
 }
 
 #ifdef HAVE_LIBNET_ICMPV6_UNREACH
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char*devname)
 {
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -481,7 +481,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     lpacket.len = IPV6_GET_PLEN(p) + IPV6_HEADER_LEN;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
     if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
@@ -550,7 +550,8 @@ cleanup:
 }
 #else /* HAVE_LIBNET_ICMPV6_UNREACH */
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
                 "Usually this means that you don't have a patched libnet installed,"
@@ -562,7 +563,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
 #else
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -570,7 +571,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -578,7 +579,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -586,7 +587,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"

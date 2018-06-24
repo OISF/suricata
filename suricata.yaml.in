@@ -1130,6 +1130,11 @@ coredump:
 # This feature is currently only used by the reject* keywords.
 host-mode: auto
 
+# Uncomment and set the following variable to define the interface where
+# response packet will be sent. If not set, interface will be choozen using
+# the capture iface and following host-mode logic.
+#reject-iface: eth0
+
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
 # impact caching.
