@@ -740,6 +740,13 @@ static TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, vo
 {
     SCEnter();
 
+    if (DetectEngineMultiTenantEnabled()) {
+        json_object_set_new(server_msg, "message",
+                            json_string("generic rule reload not possible "
+                                "if multi tentancy is enabled."));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     if (SuriHasSigFile()) {
         json_object_set_new(server_msg, "message",
                             json_string("Live rule reload not possible if -s "
