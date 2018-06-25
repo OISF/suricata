@@ -2363,10 +2363,12 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /* most of the init happens here */
-    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
-        DetectEngineDeReference(&det_ctx->de_ctx);
-        SCFree(det_ctx);
-        return NULL;
+    if (det_ctx->de_ctx->minimal == 0) {
+        if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
+            DetectEngineDeReference(&det_ctx->de_ctx);
+            SCFree(det_ctx);
+            return NULL;
+        }
     }
 
     /** alert counter setup */
