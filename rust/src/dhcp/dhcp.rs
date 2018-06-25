@@ -373,7 +373,7 @@ const PARSER_NAME: &'static [u8] = b"dhcp\0";
 
 #[no_mangle]
 pub unsafe extern "C" fn rs_dhcp_register_parser() {
-    SCLogNotice!("Registering DHCP parser.");
+    SCLogDebug!("Registering DHCP parser.");
     let ports = CString::new("[67,68]").unwrap();
     let parser = RustParser {
         name: PARSER_NAME.as_ptr() as *const libc::c_char,
