@@ -935,7 +935,7 @@ mod tests {
         // than the available data.
         let mut request = Vec::new();
         request.push(((dns_payload.len() as u16) >> 8) as u8);
-        request.push((((dns_payload.len() as u16) & 0xff) as u8 + 1));
+        request.push(((dns_payload.len() as u16) & 0xff) as u8 + 1);
         request.extend(dns_payload);
 
         let mut state = DNSState::new();
