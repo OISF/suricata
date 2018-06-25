@@ -752,7 +752,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
             return TM_ECODE_FAILED;
         }
 
-        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
         r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint32_t)traffic_id);
     }
     if (r != 0) {

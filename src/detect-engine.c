@@ -1981,13 +1981,12 @@ void DetectEngineResetMaxSigId(DetectEngineCtx *de_ctx)
 static int DetectEngineThreadCtxInitGlobalKeywords(DetectEngineThreadCtx *det_ctx)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
 
     if (master->keyword_id > 0) {
         det_ctx->global_keyword_ctxs_array = (void **)SCCalloc(master->keyword_id, sizeof(void *));
         if (det_ctx->global_keyword_ctxs_array == NULL) {
             SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx");
-            goto error;
+            return TM_ECODE_FAILED;
         }
         det_ctx->global_keyword_ctxs_size = master->keyword_id;
 
@@ -1997,16 +1996,12 @@ static int DetectEngineThreadCtxInitGlobalKeywords(DetectEngineThreadCtx *det_ct
             if (det_ctx->global_keyword_ctxs_array[item->id] == NULL) {
                 SCLogError(SC_ERR_DETECT_PREPARE, "setting up thread local detect ctx "
                         "for keyword \"%s\" failed", item->name);
-                goto error;
+                return TM_ECODE_FAILED;
             }
             item = item->next;
         }
     }
-    SCMutexUnlock(&master->lock);
     return TM_ECODE_OK;
-error:
-    SCMutexUnlock(&master->lock);
-    return TM_ECODE_FAILED;
 }
 
 static void DetectEngineThreadCtxDeinitGlobalKeywords(DetectEngineThreadCtx *det_ctx)
@@ -2017,8 +2012,6 @@ static void DetectEngineThreadCtxDeinitGlobalKeywords(DetectEngineThreadCtx *det
     }
 
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
-
     if (master->keyword_id > 0) {
         DetectEngineThreadKeywordCtxItem *item = master->keyword_list;
         while (item) {
@@ -2031,7 +2024,6 @@ static void DetectEngineThreadCtxDeinitGlobalKeywords(DetectEngineThreadCtx *det
         SCFree(det_ctx->global_keyword_ctxs_array);
         det_ctx->global_keyword_ctxs_array = NULL;
     }
-    SCMutexUnlock(&master->lock);
 }
 
 static int DetectEngineThreadCtxInitKeywords(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
@@ -2371,10 +2363,12 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /* most of the init happens here */
-    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
-        DetectEngineDeReference(&det_ctx->de_ctx);
-        SCFree(det_ctx);
-        return NULL;
+    if (det_ctx->de_ctx->minimal == 0) {
+        if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
+            DetectEngineDeReference(&det_ctx->de_ctx);
+            SCFree(det_ctx);
+            return NULL;
+        }
     }
 
     /** alert counter setup */
@@ -2604,14 +2598,12 @@ int DetectRegisterThreadCtxGlobalFuncs(const char *name,
     BUG_ON(InitFunc == NULL || FreeFunc == NULL);
 
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
 
     /* if already registered, return existing id */
     DetectEngineThreadKeywordCtxItem *item = master->keyword_list;
     while (item != NULL) {
         if (strcmp(name, item->name) == 0) {
             id = item->id;
-            SCMutexUnlock(&master->lock);
             return id;
         }
 
@@ -2620,7 +2612,6 @@ int DetectRegisterThreadCtxGlobalFuncs(const char *name,
 
     item = SCCalloc(1, sizeof(*item));
     if (unlikely(item == NULL)) {
-        SCMutexUnlock(&master->lock);
         return -1;
     }
     item->InitFunc = InitFunc;
@@ -2633,7 +2624,6 @@ int DetectRegisterThreadCtxGlobalFuncs(const char *name,
     item->id = master->keyword_id++;
 
     id = item->id;
-    SCMutexUnlock(&master->lock);
     return id;
 }
 
@@ -3402,8 +3392,9 @@ static int reloads = 0;
  */
 int DetectEngineReload(const SCInstance *suri)
 {
-    DetectEngineCtx *new_de_ctx = NULL;
-    DetectEngineCtx *old_de_ctx = NULL;
+    if (DetectEngineMultiTenantEnabled()) {
+        return -1;
+    }
 
     char prefix[128];
     memset(prefix, 0, sizeof(prefix));
@@ -3430,13 +3421,13 @@ int DetectEngineReload(const SCInstance *suri)
     }
 
     /* get a reference to the current de_ctx */
-    old_de_ctx = DetectEngineGetCurrent();
+    DetectEngineCtx *old_de_ctx = DetectEngineGetCurrent();
     if (old_de_ctx == NULL)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
     /* get new detection engine */
-    new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
                 "context failed.");

@@ -158,11 +158,10 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     return;
 }
 
-static void AlertJsonDnp3(const Flow *f, json_t *js)
+static void AlertJsonDnp3(const Flow *f, const uint64_t tx_id, json_t *js)
 {
     DNP3State *dnp3_state = (DNP3State *)FlowGetAppState(f);
     if (dnp3_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
             dnp3_state, tx_id);
         if (tx) {
@@ -188,12 +187,11 @@ static void AlertJsonDnp3(const Flow *f, json_t *js)
     return;
 }
 
-static void AlertJsonDns(const Flow *f, json_t *js)
+static void AlertJsonDns(const Flow *f, const uint64_t tx_id, json_t *js)
 {
 #ifndef HAVE_RUST
     DNSState *dns_state = (DNSState *)FlowGetAppState(f);
     if (dns_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         DNSTransaction *tx = AppLayerParserGetTx(f->proto, ALPROTO_DNS,
                                                  dns_state, tx_id);
         if (tx) {
@@ -507,11 +505,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
             /* dnp3 alert */
             if (proto == ALPROTO_DNP3) {
-                AlertJsonDnp3(p->flow, js);
+                AlertJsonDnp3(p->flow, pa->tx_id, js);
             }
 
             if (proto == ALPROTO_DNS) {
-                AlertJsonDns(p->flow, js);
+                AlertJsonDns(p->flow, pa->tx_id, js);
             }
         }
 
