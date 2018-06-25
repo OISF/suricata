@@ -3392,8 +3392,9 @@ static int reloads = 0;
  */
 int DetectEngineReload(const SCInstance *suri)
 {
-    DetectEngineCtx *new_de_ctx = NULL;
-    DetectEngineCtx *old_de_ctx = NULL;
+    if (DetectEngineMultiTenantEnabled()) {
+        return -1;
+    }
 
     char prefix[128];
     memset(prefix, 0, sizeof(prefix));
@@ -3420,13 +3421,13 @@ int DetectEngineReload(const SCInstance *suri)
     }
 
     /* get a reference to the current de_ctx */
-    old_de_ctx = DetectEngineGetCurrent();
+    DetectEngineCtx *old_de_ctx = DetectEngineGetCurrent();
     if (old_de_ctx == NULL)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
     /* get new detection engine */
-    new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
                 "context failed.");
