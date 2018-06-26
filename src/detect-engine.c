@@ -3248,7 +3248,7 @@ DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
 
     DetectEngineCtx *de_ctx = master->list;
     while (de_ctx) {
-        if (de_ctx->tenant_id == tenant_id) {
+        if (de_ctx->minimal == 0 && de_ctx->tenant_id == tenant_id) {
             de_ctx->ref_cnt++;
             break;
         }
