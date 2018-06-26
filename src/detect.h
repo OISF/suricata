@@ -1353,7 +1353,9 @@ typedef struct DetectEngineMasterCtx_ {
      *  structures. */
     DetectEngineTenantMapping *tenant_mapping_list;
 
-    /** list of keywords that need thread local ctxs */
+    /** list of keywords that need thread local ctxs,
+     *  only updated by keyword registration at start up. Not
+     *  covered by the lock. */
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 } DetectEngineMasterCtx;
