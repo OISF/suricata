@@ -1474,7 +1474,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     return -1;
 }
 
-static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
+static DetectEngineCtx *DetectEngineCtxInitReal(int stub, const char *prefix)
 {
     DetectEngineCtx *de_ctx;
 
@@ -1487,8 +1487,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
     de_ctx->sigerror = NULL;
 
-    if (minimal) {
-        de_ctx->minimal = 1;
+    if (stub) {
+        de_ctx->type = DETECT_ENGINE_TYPE_STUB;
         de_ctx->version = DetectEngineGetVersion();
         SCLogDebug("minimal with version %u", de_ctx->version);
         return de_ctx;
@@ -1548,7 +1548,7 @@ error:
 
 }
 
-DetectEngineCtx *DetectEngineCtxInitMinimal(void)
+DetectEngineCtx *DetectEngineCtxInitStub(void)
 {
     return DetectEngineCtxInitReal(1, NULL);
 }
@@ -2100,7 +2100,7 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
         goto error;
     }
 
-    if (max_tenant_id == 0) {
+    if (tcnt == 0) {
         SCLogInfo("no tenants left, or none registered yet");
     } else {
         max_tenant_id++;
@@ -2310,7 +2310,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 #endif
     }
 
-    if (det_ctx->de_ctx->minimal == 0) {
+    if (det_ctx->de_ctx->type != DETECT_ENGINE_TYPE_STUB) {
         if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
             DetectEngineThreadCtxDeinit(tv, det_ctx);
             return TM_ECODE_FAILED;
@@ -2363,7 +2363,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /* most of the init happens here */
-    if (det_ctx->de_ctx->minimal == 0) {
+    if (det_ctx->de_ctx->type != DETECT_ENGINE_TYPE_STUB) {
         if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
             DetectEngineDeReference(&det_ctx->de_ctx);
             SCFree(det_ctx);
@@ -2761,6 +2761,7 @@ static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *fil
     }
     SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
 
+    de_ctx->type = DETECT_ENGINE_TYPE_TENANT;
     de_ctx->tenant_id = tenant_id;
     de_ctx->loader_id = loader_id;
 
@@ -2812,6 +2813,7 @@ static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *f
     }
     SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
 
+    new_de_ctx->type = DETECT_ENGINE_TYPE_TENANT;
     new_de_ctx->tenant_id = tenant_id;
     new_de_ctx->loader_id = old_de_ctx->loader_id;
 
@@ -3248,7 +3250,9 @@ DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
 
     DetectEngineCtx *de_ctx = master->list;
     while (de_ctx) {
-        if (de_ctx->minimal == 0 && de_ctx->tenant_id == tenant_id) {
+        if (de_ctx->type == DETECT_ENGINE_TYPE_TENANT &&
+                de_ctx->tenant_id == tenant_id)
+        {
             de_ctx->ref_cnt++;
             break;
         }
@@ -3493,23 +3497,23 @@ int DetectEngineMTApply(void)
         return -1;
     }
 
-    DetectEngineCtx *minimal_de_ctx = NULL;
-    /* if we have no tenants, we need a minimal one */
+    DetectEngineCtx *stub_de_ctx = NULL;
+    /* if we have no tenants, we need a stub */
     if (master->list == NULL) {
-        minimal_de_ctx = master->list = DetectEngineCtxInitMinimal();
-        SCLogDebug("no tenants, using minimal %p", minimal_de_ctx);
-    } else if (master->list->next == NULL && master->list->tenant_id == 0) {
-        minimal_de_ctx = master->list;
-        SCLogDebug("no tenants, using original %p", minimal_de_ctx);
+        stub_de_ctx = master->list = DetectEngineCtxInitStub();
+        SCLogDebug("no tenants, using stub %p", stub_de_ctx);
+    } else if (master->list->next == NULL && master->list->type == DETECT_ENGINE_TYPE_STUB) {
+        stub_de_ctx = master->list;
+        SCLogDebug("no tenants, using original %p", stub_de_ctx);
 
-    /* the default de_ctx should be in the list with tenant_id 0 */
+    /* the default de_ctx should be in the list */
     } else {
         DetectEngineCtx *list = master->list;
         for ( ; list != NULL; list = list->next) {
             SCLogDebug("list %p tenant %u", list, list->tenant_id);
 
-            if (list->tenant_id == 0) {
-                minimal_de_ctx = list;
+            if (list->type == DETECT_ENGINE_TYPE_NORMAL) {
+                stub_de_ctx = list;
                 break;
             }
         }
@@ -3517,7 +3521,7 @@ int DetectEngineMTApply(void)
 
     /* update the threads */
     SCLogDebug("MT reload starting");
-    DetectEngineReloadThreads(minimal_de_ctx);
+    DetectEngineReloadThreads(stub_de_ctx);
     SCLogDebug("MT reload done");
 
     SCMutexUnlock(&master->lock);

@@ -695,6 +695,13 @@ enum DetectEnginePrefilterSetting
     DETECT_PREFILTER_AUTO = 1,  /**< use mpm + keyword prefilters */
 };
 
+enum DetectEngineType
+{
+    DETECT_ENGINE_TYPE_NORMAL = 0,
+    DETECT_ENGINE_TYPE_STUB = 1, /* previously 'minimal' */
+    DETECT_ENGINE_TYPE_TENANT = 2,
+};
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
@@ -827,8 +834,7 @@ typedef struct DetectEngineCtx_ {
 
     char config_prefix[64];
 
-    /** minimal: essentially a stub */
-    int minimal;
+    enum DetectEngineType type;
 
     /** how many de_ctx' are referencing this */
     uint32_t ref_cnt;
