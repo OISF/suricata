@@ -2685,15 +2685,19 @@ DetectEngineCtx *DetectEngineGetCurrent(void)
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
 
-    if (master->list == NULL) {
-        SCMutexUnlock(&master->lock);
-        return NULL;
+    DetectEngineCtx *de_ctx = master->list;
+    while (de_ctx) {
+        if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL || de_ctx->type == DETECT_ENGINE_TYPE_STUB) {
+            de_ctx->ref_cnt++;
+            SCLogDebug("de_ctx %p ref_cnt %u", de_ctx, de_ctx->ref_cnt);
+            SCMutexUnlock(&master->lock);
+            return de_ctx;
+        }
+        de_ctx = de_ctx->next;
     }
 
-    master->list->ref_cnt++;
-    SCLogDebug("master->list %p ref_cnt %u", master->list, master->list->ref_cnt);
     SCMutexUnlock(&master->lock);
-    return master->list;
+    return NULL;
 }
 
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
