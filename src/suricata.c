@@ -2574,7 +2574,7 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
         }
         if ((suri->delayed_detect || (mt_enabled && !default_tenant)) &&
             (suri->run_mode != RUNMODE_CONF_TEST)) {
-            de_ctx = DetectEngineCtxInitMinimal();
+            de_ctx = DetectEngineCtxInitStub();
         } else {
             de_ctx = DetectEngineCtxInit();
         }
@@ -2584,7 +2584,7 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
             exit(EXIT_FAILURE);
         }
 
-        if (!de_ctx->minimal) {
+        if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL) {
             if (LoadSignatures(de_ctx, suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
             if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {

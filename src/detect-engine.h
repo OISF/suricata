@@ -62,7 +62,7 @@ bool DetectBufferRunValidateCallback(const DetectEngineCtx *de_ctx, const int id
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
-DetectEngineCtx *DetectEngineCtxInitMinimal(void);
+DetectEngineCtx *DetectEngineCtxInitStub(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 int DetectRegisterThreadCtxGlobalFuncs(const char *name,

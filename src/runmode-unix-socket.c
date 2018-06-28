@@ -752,7 +752,7 @@ TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *dat
             return TM_ECODE_FAILED;
         }
 
-        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        SCLogInfo("VLAN handler: removing mapping of %u to tenant %u", (uint32_t)traffic_id, tenant_id);
         r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint32_t)traffic_id);
     }
     if (r != 0) {
@@ -947,7 +947,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     }
     int tenant_id = json_integer_value(jarg);
 
-    SCLogInfo("remove-tenant: %d TODO", tenant_id);
+    SCLogInfo("remove-tenant: removing tenant %d", tenant_id);
 
     /* 2 remove it from the system */
     char prefix[64];
@@ -973,7 +973,7 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     /* walk free list, freeing the removed de_ctx */
     DetectEnginePruneFreeList();
 
-    json_object_set_new(answer, "message", json_string("work in progress"));
+    json_object_set_new(answer, "message", json_string("removing tenant succeeded"));
     return TM_ECODE_OK;
 }
 
