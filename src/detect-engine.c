@@ -3433,6 +3433,13 @@ int DetectEngineReload(const SCInstance *suri)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
+    /* only reload a regular 'normal' detect engine */
+    if (old_de_ctx->type == DETECT_ENGINE_TYPE_STUB) {
+        DetectEngineDeReference(&old_de_ctx);
+        SCLogNotice("rule reload complete");
+        return -1;
+    }
+
     /* get new detection engine */
     new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
