@@ -200,6 +200,7 @@ outputs:
             # packet: yes              # enable dumping of packet (without stream segments)
             # http-body: yes           # enable dumping of http body in Base64
             # http-body-printable: yes # enable dumping of http body in printable format
+            # metadata: no             # enable inclusion of app layer metadata with alert. Default yes
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
