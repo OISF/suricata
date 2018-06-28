@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	reputation \
 	rules \
 	setting-up-ipsinline-for-linux \
+	setting-up-ipsinline-for-windows.rst \
 	partials
 
 if HAVE_SURICATA_MAN
