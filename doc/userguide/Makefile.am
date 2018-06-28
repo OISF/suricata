@@ -68,7 +68,7 @@ _build/man/suricata.1:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
-		$(SPHINX_BUILD) -b man -d _build/doctrees \
+		$(SPHINX_BUILD) -W -b man -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/man
 
 suricata.1: _build/man/suricata.1
