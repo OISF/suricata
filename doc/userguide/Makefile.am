@@ -1,29 +1,29 @@
 EXTRA_DIST = \
-	conf.py \
-	index.rst \
-	install.rst \
 	acknowledgements.rst \
-	rule-management \
-	command-line-options.rst \
-	initscripts.rst \
-	public-data-sets.rst \
-	what-is-suricata.rst \
-	make-sense-alerts.rst \
-	setting-up-ipsinline-for-linux.rst \
-	unix-socket.rst \
 	capture-hardware \
+	command-line-options.rst \
+	conf.py \
 	configuration \
 	file-extraction \
+	index.rst \
+	initscripts.rst \
+	install.rst \
 	licenses \
 	lua \
+	make-sense-alerts.rst \
 	manpages \
 	output \
+	partials \
 	performance \
+	public-data-sets.rst \
 	reputation \
+	rule-management \
 	rules \
 	setting-up-ipsinline-for-linux \
+	setting-up-ipsinline-for-linux.rst \
 	setting-up-ipsinline-for-windows.rst \
-	partials
+	unix-socket.rst \
+	what-is-suricata.rst
 
 if HAVE_SURICATA_MAN
 man1_MANS = suricata.1
