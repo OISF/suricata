@@ -3433,6 +3433,13 @@ int DetectEngineReload(const SCInstance *suri)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
+    /* only reload a regular 'normal' detect engine */
+    if (old_de_ctx->type == DETECT_ENGINE_TYPE_STUB) {
+        DetectEngineDeReference(&old_de_ctx);
+        SCLogNotice("rule reload complete");
+        return -1;
+    }
+
     /* get new detection engine */
     new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
@@ -3502,24 +3509,27 @@ int DetectEngineMTApply(void)
     }
 
     DetectEngineCtx *stub_de_ctx = NULL;
-    /* if we have no tenants, we need a stub */
-    if (master->list == NULL) {
-        stub_de_ctx = master->list = DetectEngineCtxInitStub();
-        SCLogDebug("no tenants, using stub %p", stub_de_ctx);
-    } else if (master->list->next == NULL && master->list->type == DETECT_ENGINE_TYPE_STUB) {
-        stub_de_ctx = master->list;
-        SCLogDebug("no tenants, using original %p", stub_de_ctx);
+    DetectEngineCtx *list = master->list;
+    for ( ; list != NULL; list = list->next) {
+        SCLogDebug("list %p tenant %u", list, list->tenant_id);
 
-    /* the default de_ctx should be in the list */
-    } else {
-        DetectEngineCtx *list = master->list;
-        for ( ; list != NULL; list = list->next) {
-            SCLogDebug("list %p tenant %u", list, list->tenant_id);
+        if (list->type == DETECT_ENGINE_TYPE_NORMAL || list->type == DETECT_ENGINE_TYPE_STUB) {
+            stub_de_ctx = list;
+            break;
+        }
+    }
+    if (stub_de_ctx == NULL) {
+        stub_de_ctx = DetectEngineCtxInitStub();
+        if (stub_de_ctx == NULL) {
+            SCMutexUnlock(&master->lock);
+            return -1;
+        }
 
-            if (list->type == DETECT_ENGINE_TYPE_NORMAL) {
-                stub_de_ctx = list;
-                break;
-            }
+        if (master->list == NULL) {
+            master->list = stub_de_ctx;
+        } else {
+            stub_de_ctx->next = master->list;
+            master->list = stub_de_ctx;
         }
     }
 
