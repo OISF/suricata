@@ -1474,11 +1474,9 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     return -1;
 }
 
-static DetectEngineCtx *DetectEngineCtxInitReal(int stub, const char *prefix)
+static DetectEngineCtx *DetectEngineCtxInitReal(enum DetectEngineType type, const char *prefix)
 {
-    DetectEngineCtx *de_ctx;
-
-    de_ctx = SCMalloc(sizeof(DetectEngineCtx));
+    DetectEngineCtx *de_ctx = SCMalloc(sizeof(DetectEngineCtx));
     if (unlikely(de_ctx == NULL))
         goto error;
 
@@ -1486,11 +1484,11 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int stub, const char *prefix)
     memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
     TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
     de_ctx->sigerror = NULL;
+    de_ctx->type = type;
 
-    if (stub) {
-        de_ctx->type = DETECT_ENGINE_TYPE_STUB;
+    if (type == DETECT_ENGINE_TYPE_DD_STUB || type == DETECT_ENGINE_TYPE_MT_STUB) {
         de_ctx->version = DetectEngineGetVersion();
-        SCLogDebug("minimal with version %u", de_ctx->version);
+        SCLogDebug("stub %u with version %u", type, de_ctx->version);
         return de_ctx;
     }
 
@@ -1548,14 +1546,19 @@ error:
 
 }
 
-DetectEngineCtx *DetectEngineCtxInitStub(void)
+DetectEngineCtx *DetectEngineCtxInitStubForMT(void)
 {
-    return DetectEngineCtxInitReal(1, NULL);
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_MT_STUB, NULL);
+}
+
+DetectEngineCtx *DetectEngineCtxInitStubForDD(void)
+{
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_DD_STUB, NULL);
 }
 
 DetectEngineCtx *DetectEngineCtxInit(void)
 {
-    return DetectEngineCtxInitReal(0, NULL);
+    return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, NULL);
 }
 
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
@@ -1563,7 +1566,7 @@ DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
     if (prefix == NULL || strlen(prefix) == 0)
         return DetectEngineCtxInit();
     else
-        return DetectEngineCtxInitReal(0, prefix);
+        return DetectEngineCtxInitReal(DETECT_ENGINE_TYPE_NORMAL, prefix);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
@@ -2310,7 +2313,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 #endif
     }
 
-    if (det_ctx->de_ctx->type != DETECT_ENGINE_TYPE_STUB) {
+    if (det_ctx->de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
+        det_ctx->de_ctx->type == DETECT_ENGINE_TYPE_TENANT)
+    {
         if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
             DetectEngineThreadCtxDeinit(tv, det_ctx);
             return TM_ECODE_FAILED;
@@ -2363,7 +2368,9 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /* most of the init happens here */
-    if (det_ctx->de_ctx->type != DETECT_ENGINE_TYPE_STUB) {
+    if (det_ctx->de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
+        det_ctx->de_ctx->type == DETECT_ENGINE_TYPE_TENANT)
+    {
         if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
             DetectEngineDeReference(&det_ctx->de_ctx);
             SCFree(det_ctx);
@@ -2687,7 +2694,10 @@ DetectEngineCtx *DetectEngineGetCurrent(void)
 
     DetectEngineCtx *de_ctx = master->list;
     while (de_ctx) {
-        if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL || de_ctx->type == DETECT_ENGINE_TYPE_STUB) {
+        if (de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
+            de_ctx->type == DETECT_ENGINE_TYPE_DD_STUB ||
+            de_ctx->type == DETECT_ENGINE_TYPE_MT_STUB)
+        {
             de_ctx->ref_cnt++;
             SCLogDebug("de_ctx %p ref_cnt %u", de_ctx, de_ctx->ref_cnt);
             SCMutexUnlock(&master->lock);
@@ -3433,8 +3443,10 @@ int DetectEngineReload(const SCInstance *suri)
         return -1;
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
-    /* only reload a regular 'normal' detect engine */
-    if (old_de_ctx->type == DETECT_ENGINE_TYPE_STUB) {
+    /* only reload a regular 'normal' and 'delayed detect stub' detect engines */
+    if (!(old_de_ctx->type == DETECT_ENGINE_TYPE_NORMAL ||
+          old_de_ctx->type == DETECT_ENGINE_TYPE_DD_STUB))
+    {
         DetectEngineDeReference(&old_de_ctx);
         SCLogNotice("rule reload complete");
         return -1;
@@ -3513,13 +3525,16 @@ int DetectEngineMTApply(void)
     for ( ; list != NULL; list = list->next) {
         SCLogDebug("list %p tenant %u", list, list->tenant_id);
 
-        if (list->type == DETECT_ENGINE_TYPE_NORMAL || list->type == DETECT_ENGINE_TYPE_STUB) {
+        if (list->type == DETECT_ENGINE_TYPE_NORMAL ||
+            list->type == DETECT_ENGINE_TYPE_MT_STUB ||
+            list->type == DETECT_ENGINE_TYPE_DD_STUB)
+        {
             stub_de_ctx = list;
             break;
         }
     }
     if (stub_de_ctx == NULL) {
-        stub_de_ctx = DetectEngineCtxInitStub();
+        stub_de_ctx = DetectEngineCtxInitStubForMT();
         if (stub_de_ctx == NULL) {
             SCMutexUnlock(&master->lock);
             return -1;

@@ -2572,9 +2572,10 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
                     "detection engine contexts failed.");
             exit(EXIT_FAILURE);
         }
-        if ((suri->delayed_detect || (mt_enabled && !default_tenant)) &&
-            (suri->run_mode != RUNMODE_CONF_TEST)) {
-            de_ctx = DetectEngineCtxInitStub();
+        if (suri->delayed_detect && suri->run_mode != RUNMODE_CONF_TEST) {
+            de_ctx = DetectEngineCtxInitStubForDD();
+        } else if (mt_enabled && !default_tenant && suri->run_mode != RUNMODE_CONF_TEST) {
+            de_ctx = DetectEngineCtxInitStubForMT();
         } else {
             de_ctx = DetectEngineCtxInit();
         }
