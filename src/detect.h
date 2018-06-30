@@ -698,8 +698,9 @@ enum DetectEnginePrefilterSetting
 enum DetectEngineType
 {
     DETECT_ENGINE_TYPE_NORMAL = 0,
-    DETECT_ENGINE_TYPE_STUB = 1, /* previously 'minimal' */
-    DETECT_ENGINE_TYPE_TENANT = 2,
+    DETECT_ENGINE_TYPE_DD_STUB = 1, /* delayed detect stub: can be reloaded */
+    DETECT_ENGINE_TYPE_MT_STUB = 2, /* multi-tenant stub: cannot be reloaded */
+    DETECT_ENGINE_TYPE_TENANT = 3,
 };
 
 /** \brief main detection engine ctx */
