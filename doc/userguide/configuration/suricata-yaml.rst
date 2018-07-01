@@ -145,6 +145,24 @@ is: pass, drop, reject, alert.
 This means a pass rule is considered before a drop rule, a drop rule
 before a reject rule and so on.
 
+Host mode and reject keyword
+----------------------------
+
+When using the reject keyword, Suricata needs to know where reject
+packets have to be sent. The `host-mode` and `reject-iface` options
+allow a selection of the sending iface. If `reject-iface` is set, all
+packets are sent to the specified interface. 
+
+If not set, interface will be choozen using the network interface that
+did capture the packet and using information from the `host-mode` variable.
+If `host-mode` is `sniffer-only` then the reject packets are sent to
+the interface that did capture the packet. If `host-mode` is set to `router`
+then the reject packets are sent to transmission interface (and to the
+originating interface if ever reject is sent both way).
+
+If `host-mode` is set to `auto` then the running mode determine the value.
+If will be `sniffer-only` in IDS modes and `router` in IPS mode.
+
 Splitting configuration in multiple files
 -----------------------------------------
 
