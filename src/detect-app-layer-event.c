@@ -285,6 +285,9 @@ static int DetectAppLayerEventSetupP2(Signature *s,
     if (DetectAppLayerEventParseAppP2((DetectAppLayerEventData *)sm->ctx, s->proto.proto,
                                       &event_type) < 0) {
         /* DetectAppLayerEventParseAppP2 prints errors */
+
+        /* sm has been removed from lists by DetectAppLayerEventPrepare */
+        SigMatchFree(sm);
         return -1;
     }
     SigMatchAppendSMToList(s, sm, g_applayer_events_list_id);
