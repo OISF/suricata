@@ -149,6 +149,10 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
     { "REQUEST_LINE_LEADING_WHITESPACE",
         HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
+    { "TOO_MANY_ENCODING_LAYERS",
+        HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
+    { "ABNORMAL_CE_HEADER",
+        HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -515,6 +519,10 @@ struct {
     { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "Request line: non-compliant delimiter between Method and URI", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
     { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
+    { "Too many response content encoding layers", HTTP_DECODER_EVENT_TOO_MANY_ENCODING_LAYERS},
+    { "C-E gzip has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "C-E deflate has abnormal value", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
+    { "C-E unknown setting", HTTP_DECODER_EVENT_ABNORMAL_CE_HEADER},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
