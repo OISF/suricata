@@ -250,6 +250,8 @@ static void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
     }
 
     htp_tx_t *tx = HTPStateGetTx(s, s->transaction_cnt);
+    if (tx == NULL && s->transaction_cnt > 0)
+        tx = HTPStateGetTx(s, s->transaction_cnt - 1);
     if (tx != NULL) {
         htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
