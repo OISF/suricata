@@ -20,7 +20,6 @@
  */
 
 extern crate libc;
-use std::str;
 
 use nom::{IResult};
 
@@ -683,22 +682,6 @@ pub fn smb1_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 
     0
 }
 
-pub fn get_service_for_nameslice(nameslice: &[u8]) -> (&'static str, bool)
-{
-    let mut name = nameslice.to_vec();
-    name.retain(|&i|i != 0x00);
-
-    match str::from_utf8(&name) {
-        Ok("\\PIPE\\LANMAN") => ("LANMAN", false),
-        Ok("\\PIPE\\") => ("PIPE", true), // TODO not sure if this is true
-        Err(_) => ("MALFORMED", false),
-        Ok(&_) => {
-            SCLogDebug!("don't know \"{}\"", String::from_utf8_lossy(&name));
-            ("UNKNOWN", false)
-        },
-    }
-}
-
 pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
 {
     let mut events : Vec<SMBEvent> = Vec::new();
@@ -708,19 +691,24 @@ pub fn smb1_trans_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             SCLogDebug!("TRANS request {:?}", rd);
 
             /* if we have a fid, store it so the response can pick it up */
+            let mut pipe_dcerpc = false;
             if rd.pipe != None {
                 let pipe = rd.pipe.unwrap();
                 state.ssn2vec_map.insert(SMBCommonHdr::from1(r, SMBHDR_TYPE_GUID),
                         pipe.fid.to_vec());
+
+                let mut frankenfid = pipe.fid.to_vec();
+                frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+
+                let (filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
+                    (n, x) => (n, x),
+                };
+                SCLogDebug!("smb1_trans_request_record: name {} is_dcerpc {}",
+                        filename, is_dcerpc);
+                pipe_dcerpc = is_dcerpc;
             }
 
-            let (sername, is_dcerpc) = get_service_for_nameslice(&rd.txname);
-            SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
-            if is_dcerpc {
-                // store tx name so the response also knows this is dcerpc
-                let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
-                state.ssn2vec_map.insert(txn_hdr, rd.txname);
-
+            if pipe_dcerpc {
                 // trans request will tell us the max size of the response
                 // if there is more response data, it will first give a
                 // TRANS with 'max data cnt' worth of data, and the rest
@@ -761,33 +749,31 @@ pub fn smb1_trans_response_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>)
             };
             SCLogDebug!("FID {:?}", fid);
 
+            let mut frankenfid = fid.to_vec();
+            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+
+            let (filename, is_dcerpc) = match state.get_service_for_guid(&frankenfid) {
+                (n, x) => (n, x),
+            };
+            SCLogDebug!("smb1_trans_response_record: name {} is_dcerpc {}",
+                    filename, is_dcerpc);
+
             // if we get status 'BUFFER_OVERFLOW' this is only a part of
             // the data. Store it in the ssn/tree for later use.
             if r.nt_status == SMB_NTSTATUS_BUFFER_OVERFLOW {
                 state.ssnguid2vec_map.insert(SMBHashKeyHdrGuid::new(
                             SMBCommonHdr::from1(r, SMBHDR_TYPE_TRANS_FRAG), fid),
                         rd.data.to_vec());
-            } else {
-                let txn_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_TXNAME);
-                let is_dcerpc = match state.ssn2vec_map.remove(&txn_hdr) {
-                    None => false,
-                    Some(s) => {
-                        let (sername, is_dcerpc) = get_service_for_nameslice(&s);
-                        SCLogDebug!("service: {} dcerpc {}", sername, is_dcerpc);
-                        is_dcerpc
-                    },
-                };
-                if is_dcerpc {
-                    SCLogDebug!("SMBv1 TRANS TO PIPE");
-                    let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
-                    let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
-                    smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
-                }
+            } else if is_dcerpc {
+                SCLogDebug!("SMBv1 TRANS TO PIPE");
+                let hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_HEADER);
+                let vercmd = SMBVerCmdStat::new1_with_ntstatus(r.command, r.nt_status);
+                smb_read_dcerpc_record(state, vercmd, hdr, &fid, &rd.data);
             }
         },
-            _ => {
-                events.push(SMBEvent::MalformedData);
-            },
+        _ => {
+            events.push(SMBEvent::MalformedData);
+        },
     }
 
     // generic tx as well. Set events if needed.
