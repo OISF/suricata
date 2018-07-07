@@ -649,7 +649,7 @@ named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
     do_parse!(
             wct: le_u8
         >>  andx_command: le_u8
-        >>  take!(1)
+        >>  take!(1)    // reserved
         >>  andx_offset: le_u16
         >>  oplock_level: le_u8
         >>  fid: take!(2)
@@ -658,12 +658,14 @@ named!(pub parse_smb_create_andx_response_record<SmbResponseCreateAndXRecord>,
         >>  last_access_ts: le_u64
         >>  last_write_ts: le_u64
         >>  last_change_ts: le_u64
-        >>  take!(8)
+        >>  take!(4)
         >>  file_size: le_u64
-        >>  take!(8)
+        >>  eof: le_u64
         >>  file_type: le_u16
-        >>  take!(2)
+        >>  ipc_state: le_u16
         >>  is_dir: le_u8
+        >>  cond!(wct == 42, take!(32))
+        >>  bcc: le_u16
         >> (SmbResponseCreateAndXRecord {
                 fid:fid,
                 create_ts: SMBFiletime::new(create_ts),
