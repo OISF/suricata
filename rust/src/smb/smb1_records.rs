@@ -598,6 +598,42 @@ named!(pub parse_trans2_request_data_set_file_info_rename<Trans2RecordParamSetFi
 ));
 
 #[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetPathInfo<> {
+    pub loi: u16,
+    pub oldname: Vec<u8>,
+}
+
+named!(pub parse_trans2_request_params_set_path_info<Trans2RecordParamSetPathInfo>,
+    do_parse!(
+            loi: le_u16
+        >>  _reserved: take!(4)
+        >>  oldname: call!(smb_get_unicode_string)
+        >> (Trans2RecordParamSetPathInfo {
+                loi:loi,
+                oldname:oldname,
+            })
+));
+
+#[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetPathInfoRename<'a> {
+    pub replace: bool,
+    pub newname: &'a[u8],
+}
+
+named!(pub parse_trans2_request_data_set_path_info_rename<Trans2RecordParamSetPathInfoRename>,
+    do_parse!(
+            replace: le_u8
+        >>  _reserved: take!(3)
+        >>  root_dir: take!(4)
+        >>  newname_len: le_u32
+        >>  newname: take!(newname_len)
+        >> (Trans2RecordParamSetPathInfoRename {
+                replace: replace==1,
+                newname: newname,
+            })
+));
+
+#[derive(Debug,PartialEq)]
 pub struct SmbRequestTrans2Record<'a> {
     pub subcmd: u16,
     pub setup_blob: &'a[u8],

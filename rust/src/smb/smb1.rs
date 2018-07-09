@@ -215,7 +215,56 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                 IResult::Done(_, rd) => {
                     SCLogDebug!("TRANS2 DONE {:?}", rd);
 
-                    if rd.subcmd == 8 {
+                    if rd.subcmd == 6 {
+                        SCLogDebug!("SET_PATH_INFO");
+                        match parse_trans2_request_params_set_path_info(rd.setup_blob) {
+                            IResult::Done(_, pd) => {
+                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS DONE {:?}", pd);
+
+                                if pd.loi == 1010 {
+                                    match parse_trans2_request_data_set_path_info_rename(rd.data_blob) {
+                                        IResult::Done(_, ren) => {
+                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME DONE {:?}", ren);
+                                            let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+                                            let mut newname = ren.newname.to_vec();
+                                            newname.retain(|&i|i != 0x00);
+
+                                            let fid : Vec<u8> = Vec::new();
+
+                                            let tx = state.new_rename_tx(fid, pd.oldname, newname);
+                                            tx.hdr = tx_hdr;
+                                            tx.request_done = true;
+                                            tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
+                                            true
+                                        },
+                                        IResult::Incomplete(n) => {
+                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME INCOMPLETE {:?}", n);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                        IResult::Error(e) => {
+                                            SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME ERROR {:?}", e);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                    }
+                                } else {
+                                    false
+                                }
+                            },
+                            IResult::Incomplete(n) => {
+                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS INCOMPLETE {:?}", n);
+                                events.push(SMBEvent::MalformedData);
+                                false
+                            },
+                            IResult::Error(e) => {
+                                SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS ERROR {:?}", e);
+                                events.push(SMBEvent::MalformedData);
+                                false
+                            },
+                        }
+                    } else if rd.subcmd == 8 {
+                        SCLogDebug!("SET_FILE_INFO");
                         match parse_trans2_request_params_set_file_info(rd.setup_blob) {
                             IResult::Done(_, pd) => {
                                 SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS DONE {:?}", pd);
