@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -78,14 +78,64 @@ typedef struct Libnet11Packet_ {
     size_t len;
 } Libnet11Packet;
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+static int LibnetWrite(Packet *p, int ip_version, libnet_t *c)
+{
+    /* Only support one layer of VLAN */
+    if (p->vlan_idx == 1) {
+        int ret = libnet_build_802_1q(
+                p->ethh->eth_src,
+                p->ethh->eth_dst,
+                ETHERTYPE_VLAN,
+                0, // vlan_prio
+                0, // cfi
+                p->vlan_id[0],
+                ip_version,
+                NULL, // payload
+                0, // payload length
+                c,
+                0);
+        if (ret == -1) {
+            SCLogError(SC_ERR_LIBNET_BUILD_FAILED,"libnet_build_802_1q %s",
+                       libnet_geterror(c));
+            return ret;
+        }
+    }
+
+    return libnet_write(c);
+}
+
+static libnet_t *LibnetInit(Packet *p, const char *devname, char *ebuf) {
+    libnet_t *c = NULL; /* libnet context */
+    if (p->vlan_idx == 1) {
+        if ((c = libnet_init(LIBNET_LINK, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
+            SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
+            return NULL;
+        }
+    } else {
+        if (PKT_IS_IPV4(p)) {
+            if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
+                SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
+                return NULL;
+            }
+        }
+        if (PKT_IS_IPV6(p)) {
+            if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
+                SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
+                return NULL;
+            }
+        }
+    }
+    return c;
+}
+
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                const char *devname)
 {
 
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -93,11 +143,11 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
         SCLogDebug("Will emit reject packet on dev %s", devname);
     }
-    if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
+    if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
@@ -192,7 +242,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    result = libnet_write(c);
+    result = LibnetWrite(p, ETHERTYPE_IP, c);
     if (result == -1) {
         SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write failed: %s", libnet_geterror(c));
         goto cleanup;
@@ -203,13 +253,13 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char *devname)
 {
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -219,11 +269,11 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     lpacket.len = (IPV4_GET_HLEN(p) + p->payload_len);
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
-        SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
+    if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
+        SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
 
@@ -279,7 +329,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    result = libnet_write(c);
+    result = LibnetWrite(p, ETHERTYPE_IP, c);
     if (result == -1) {
         SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write_raw_ipv4 failed: %s", libnet_geterror(c));
         goto cleanup;
@@ -290,14 +340,14 @@ cleanup:
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                const char* devname)
 {
 
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -305,10 +355,10 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     lpacket.flow = 0;
     lpacket.class = 0;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
+    if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
@@ -402,7 +452,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    result = libnet_write(c);
+    result = LibnetWrite(p, ETHERTYPE_IPV6, c);
     if (result == -1) {
         SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write failed: %s", libnet_geterror(c));
         goto cleanup;
@@ -414,13 +464,13 @@ cleanup:
 }
 
 #ifdef HAVE_LIBNET_ICMPV6_UNREACH
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char*devname)
 {
     Libnet11Packet lpacket;
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -431,11 +481,11 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
     lpacket.len = IPV6_GET_PLEN(p) + IPV6_HEADER_LEN;
 
-    if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
+    if (!devname && IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
-        SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
+    if ((c = LibnetInit(p, devname, ebuf)) == NULL) {
+        SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
 
@@ -488,7 +538,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
         goto cleanup;
     }
 
-    result = libnet_write(c);
+    result = LibnetWrite(p, ETHERTYPE_IPV6, c);
     if (result == -1) {
         SCLogError(SC_ERR_LIBNET_WRITE_FAILED,"libnet_write_raw_ipv6 failed: %s", libnet_geterror(c));
         goto cleanup;
@@ -500,7 +550,8 @@ cleanup:
 }
 #else /* HAVE_LIBNET_ICMPV6_UNREACH */
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir,
+                                 const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet ICMPv6 based rejects are disabled."
                 "Usually this means that you don't have a patched libnet installed,"
@@ -512,7 +563,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
 
 #else
 
-int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -520,7 +571,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -528,7 +579,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
@@ -536,7 +587,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     return 0;
 }
 
-int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
+int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir, const char *dev)
 {
     SCLogError(SC_ERR_LIBNET_NOT_ENABLED, "Libnet based rejects are disabled."
                 "Usually this means that you don't have libnet installed,"
