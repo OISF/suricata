@@ -563,6 +563,20 @@ named!(pub parse_smb_create_andx_request_record<SmbRequestCreateAndXRecord>,
 );
 
 #[derive(Debug,PartialEq)]
+pub struct Trans2RecordParamSetFileInfoDisposition<> {
+    pub delete: bool,
+}
+
+named!(pub parse_trans2_request_data_set_file_info_disposition<Trans2RecordParamSetFileInfoDisposition>,
+    do_parse!(
+            delete: le_u8
+        >>  _reserved: take!(3)
+        >> (Trans2RecordParamSetFileInfoDisposition {
+                delete: delete & 1 == 1,
+            })
+));
+
+#[derive(Debug,PartialEq)]
 pub struct Trans2RecordParamSetFileInfo<'a> {
     pub fid: &'a[u8],
     pub loi: u16,

@@ -362,6 +362,42 @@ fn smb_common_header(state: &SMBState, tx: &SMBTransaction) -> Json
         Some(SMBTransactionTypeData::IOCTL(ref x)) => {
             js.set_string("function", &fsctl_func_to_string(x.func));
         },
+        Some(SMBTransactionTypeData::SETFILEPATHINFO(ref x)) => {
+            let mut name_raw = x.filename.to_vec();
+            name_raw.retain(|&i|i != 0x00);
+            if name_raw.len() > 0 {
+                let name = String::from_utf8_lossy(&name_raw);
+                js.set_string("filename", &name);
+            } else {
+                // name suggestion from Bro
+                js.set_string("filename", "<share_root>");
+            }
+            if x.delete_on_close {
+                js.set_string("access", "delete on close");
+            } else {
+                js.set_string("access", "normal");
+            }
+
+            match x.subcmd {
+                8 => {
+                    js.set_string("subcmd", "SET_FILE_INFO");
+                },
+                6 => {
+                    js.set_string("subcmd", "SET_PATH_INFO");
+                },
+                _ => { },
+            }
+
+            match x.loi {
+                1013 => { // Set Disposition Information
+                    js.set_string("level_of_interest", "Set Disposition Information");
+                },
+                _ => { },
+            }
+
+            let gs = fuid_to_string(&x.fid);
+            js.set_string("fuid", &gs);
+        },
         _ => {  },
     }
     return js;

@@ -364,6 +364,69 @@ pub enum SMBTransactionTypeData {
     SESSIONSETUP(SMBTransactionSessionSetup),
     IOCTL(SMBTransactionIoctl),
     RENAME(SMBTransactionRename),
+    SETFILEPATHINFO(SMBTransactionSetFilePathInfo),
+}
+
+// Used for Trans2 SET_PATH_INFO and SET_FILE_INFO
+#[derive(Debug)]
+pub struct SMBTransactionSetFilePathInfo {
+    pub subcmd: u16,
+    pub loi: u16,
+    pub delete_on_close: bool,
+    pub filename: Vec<u8>,
+    pub fid: Vec<u8>,
+}
+
+impl SMBTransactionSetFilePathInfo {
+    pub fn new(filename: Vec<u8>, fid: Vec<u8>, subcmd: u16, loi: u16, delete_on_close: bool)
+        -> SMBTransactionSetFilePathInfo
+    {
+        return SMBTransactionSetFilePathInfo {
+            filename: filename, fid: fid,
+            subcmd: subcmd,
+            loi: loi,
+            delete_on_close: delete_on_close,
+        }
+    }
+}
+
+impl SMBState {
+    pub fn new_setfileinfo_tx(&mut self, filename: Vec<u8>, fid: Vec<u8>,
+            subcmd: u16, loi: u16, delete_on_close: bool)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+
+        tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
+                    SMBTransactionSetFilePathInfo::new(
+                        filename, fid, subcmd, loi, delete_on_close)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
+
+    pub fn new_setpathinfo_tx(&mut self, filename: Vec<u8>,
+            subcmd: u16, loi: u16, delete_on_close: bool)
+        -> (&mut SMBTransaction)
+    {
+        let mut tx = self.new_tx();
+
+        let fid : Vec<u8> = Vec::new();
+        tx.type_data = Some(SMBTransactionTypeData::SETFILEPATHINFO(
+                    SMBTransactionSetFilePathInfo::new(filename, fid,
+                        subcmd, loi, delete_on_close)));
+        tx.request_done = true;
+        tx.response_done = self.tc_trunc; // no response expected if tc is truncated
+
+        SCLogDebug!("SMB: TX SETFILEPATHINFO created: ID {}", tx.id);
+        self.transactions.push(tx);
+        let tx_ref = self.transactions.last_mut();
+        return tx_ref.unwrap();
+    }
 }
 
 #[derive(Debug)]

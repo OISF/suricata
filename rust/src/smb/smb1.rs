@@ -221,7 +221,32 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                             IResult::Done(_, pd) => {
                                 SCLogDebug!("TRANS2 SET_PATH_INFO PARAMS DONE {:?}", pd);
 
-                                if pd.loi == 1010 {
+                                if pd.loi == 1013 { // set disposition info
+                                    match parse_trans2_request_data_set_file_info_disposition(rd.data_blob) {
+                                        IResult::Done(_, disp) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION DONE {:?}", disp);
+                                            let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+
+                                            let tx = state.new_setpathinfo_tx(pd.oldname,
+                                                    rd.subcmd, pd.loi, disp.delete);
+                                            tx.hdr = tx_hdr;
+                                            tx.request_done = true;
+                                            tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
+                                            true
+
+                                        },
+                                        IResult::Incomplete(n) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", n);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                        IResult::Error(e) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", e);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                    }
+                                } else if pd.loi == 1010 {
                                     match parse_trans2_request_data_set_path_info_rename(rd.data_blob) {
                                         IResult::Done(_, ren) => {
                                             SCLogDebug!("TRANS2 SET_PATH_INFO DATA RENAME DONE {:?}", ren);
@@ -269,7 +294,39 @@ pub fn smb1_request_record<'b>(state: &mut SMBState, r: &SmbRecord<'b>) -> u32 {
                             IResult::Done(_, pd) => {
                                 SCLogDebug!("TRANS2 SET_FILE_INFO PARAMS DONE {:?}", pd);
 
-                                if pd.loi == 1010 {
+                                if pd.loi == 1013 { // set disposition info
+                                    match parse_trans2_request_data_set_file_info_disposition(rd.data_blob) {
+                                        IResult::Done(_, disp) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION DONE {:?}", disp);
+                                            let tx_hdr = SMBCommonHdr::from1(r, SMBHDR_TYPE_GENERICTX);
+
+                                            let mut frankenfid = pd.fid.to_vec();
+                                            frankenfid.extend_from_slice(&u32_as_bytes(r.ssn_id));
+
+                                            let filename = match state.guid2name_map.get(&frankenfid) {
+                                                Some(n) => n.to_vec(),
+                                                None => b"<unknown>".to_vec(),
+                                            };
+                                            let tx = state.new_setfileinfo_tx(filename, pd.fid.to_vec(),
+                                                    rd.subcmd, pd.loi, disp.delete);
+                                            tx.hdr = tx_hdr;
+                                            tx.request_done = true;
+                                            tx.vercmd.set_smb1_cmd(SMB1_COMMAND_TRANS2);
+                                            true
+
+                                        },
+                                        IResult::Incomplete(n) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION INCOMPLETE {:?}", n);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                        IResult::Error(e) => {
+                                            SCLogDebug!("TRANS2 SET_FILE_INFO DATA DISPOSITION ERROR {:?}", e);
+                                            events.push(SMBEvent::MalformedData);
+                                            false
+                                        },
+                                    }
+                                } else if pd.loi == 1010 {
                                     match parse_trans2_request_data_set_file_info_rename(rd.data_blob) {
                                         IResult::Done(_, ren) => {
                                             SCLogDebug!("TRANS2 SET_FILE_INFO DATA RENAME DONE {:?}", ren);
