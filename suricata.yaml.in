@@ -692,7 +692,7 @@ af-packet:
     #copy-mode: ips
     #copy-iface: eth1
     #  For eBPF and XDP setup including bypass, filter and load balancing, please
-    #  see doc/userguide/capture/ebpf-xdt.rst for more info.
+    #  see doc/userguide/capture-hardware/ebpf-xdp.rst for more info.
 
   # Put default values here. These will be used for an interface that is not
   # in the list above.
