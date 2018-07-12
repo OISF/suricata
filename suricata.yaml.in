@@ -793,7 +793,7 @@ app-layer:
       #
       # For best performance, select 'bypass'.
       #
-      #encrypt-handling: default
+      #encryption-handling: default
 
     dcerpc:
       enabled: yes
