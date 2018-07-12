@@ -4859,10 +4859,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         if (ssn->flags & STREAMTCP_FLAG_BYPASS) {
-            /* we can call bypass callback, if enabled */
-            if (StreamTcpBypassEnabled()) {
-                PacketBypassCallback(p);
-            }
+            PacketBypassCallback(p);
 
         /* if stream is dead and we have no detect engine at all, bypass. */
         } else if (g_detect_disabled &&
