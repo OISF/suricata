@@ -66,6 +66,15 @@ of the filename. For example, if the SHA256 hex string of an extracted
 file starts with "f9bc6d..." the file we be placed in the directory
 `filestore/f9`.
 
+The size of a file that can be stored depends on ``file-store.stream-depth``,
+if this value is reached a file can be truncated and might not be stored completely.
+If not enabled, ``stream.reassembly.depth`` will be considered.
+
+Setting ``file-store.stream-depth`` to 0 permits to store any files.
+
+A protocol parser, like modbus, could permit to set a different
+store-depth value and use it rather than ``file-store.stream-depth``.
+
 Using the SHA256 for file names allows for automatic de-duplication of
 extracted files. However, the timestamp of a pre-existing file will be
 updated if the same files is extracted again, similar to the `touch`

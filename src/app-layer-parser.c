@@ -209,8 +209,11 @@ void AppLayerParserPostStreamSetup(void)
     /* lets set a default value for stream_depth */
     for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-            alp_ctx.ctxs[flow_proto][alproto].stream_depth =
-                stream_config.reassembly_depth;
+            if (!(alp_ctx.ctxs[flow_proto][alproto].flags &
+                APP_LAYER_PARSER_OPT_STREAM_DEPTH_SET)) {
+                alp_ctx.ctxs[flow_proto][alproto].stream_depth =
+                    stream_config.reassembly_depth;
+            }
         }
     }
 }
@@ -1315,6 +1318,8 @@ void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t st
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].stream_depth = stream_depth;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].flags |=
+        APP_LAYER_PARSER_OPT_STREAM_DEPTH_SET;
 
     SCReturn;
 }

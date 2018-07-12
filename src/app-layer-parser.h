@@ -39,6 +39,7 @@
 
 /* Flags for AppLayerParserProtoCtx. */
 #define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
+#define APP_LAYER_PARSER_OPT_STREAM_DEPTH_SET   BIT_U64(1)
 
 /* applies to DetectFlags uint64_t field */
 
