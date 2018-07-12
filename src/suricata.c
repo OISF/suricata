@@ -54,6 +54,7 @@
 #include "util-device.h"
 #include "util-misc.h"
 #include "util-running-modes.h"
+#include "util-memcap.h"
 
 #include "detect-engine.h"
 #include "detect-parse.h"
@@ -407,6 +408,8 @@ static void GlobalsDestroy(SCInstance *suri)
     DetectParseFreeRegexes();
     SCThresholdConfGlobalFree();
 
+    MemcapListFreeList();
+
     SCPidfileRemove(suri->pid_filename);
 }
 
@@ -619,6 +622,7 @@ static void PrintUsage(const char *progname)
     printf("\t--init-errors-fatal                  : enable fatal failure on signature init error\n");
     printf("\t--disable-detection                  : disable detection engine\n");
     printf("\t--dump-config                        : show the running configuration\n");
+    printf("\t--display-memcaps                    : show all the memcap values set\n");
     printf("\t--build-info                         : display build information\n");
     printf("\t--pcap[=<dev>]                       : run in pcap mode, no value select interfaces from suricata.yaml\n");
     printf("\t--pcap-file-continuous               : when running in pcap mode with a directory, continue checking directory for pcaps until interrupted\n");
@@ -1452,6 +1456,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int list_keywords = 0;
     int build_info = 0;
     int conf_test = 0;
+    int display_memcaps = 0;
 #ifdef AFLFUZZ_CONF_TEST
     int conf_test_force_success = 0;
 #endif
@@ -1467,6 +1472,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
+        {"display-memcaps", 0, &display_memcaps, 1},
         {"pfring", optional_argument, 0, 0},
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
@@ -2134,6 +2140,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         suri->run_mode = RUNMODE_LIST_UNITTEST;
     if (dump_config)
         suri->run_mode = RUNMODE_DUMP_CONFIG;
+    if (display_memcaps)
+        suri->run_mode = RUNMODE_DISPLAY_MEMCAPS;
     if (conf_test)
         suri->run_mode = RUNMODE_CONF_TEST;
     if (engine_analysis)
@@ -2658,6 +2666,8 @@ static int PostConfLoadedSetup(SCInstance *suri)
         ConfSet("runmode", suri->runmode_custom_mode);
     }
 
+    GlobalMemcapInitConfig();
+
     StorageInit();
 #ifdef HAVE_PACKET_EBPF
     EBPFRegisterExtension();
@@ -2941,9 +2951,6 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig(suricata.daemon, suricata.verbose);
 
-    LogVersion();
-    UtilCpuPrintSummary();
-
     if (ParseInterfacesList(suricata.run_mode, suricata.pcap_dev) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
@@ -2951,6 +2958,14 @@ int main(int argc, char **argv)
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
+
+    if (suricata.run_mode == RUNMODE_DISPLAY_MEMCAPS) {
+        DisplayMemcaps();
+        exit(EXIT_SUCCESS);
+    }
+
+    LogVersion();
+    UtilCpuPrintSummary();
 
     LiveDeviceFinalize();
 
