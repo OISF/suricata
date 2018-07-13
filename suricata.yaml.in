@@ -44,81 +44,8 @@ vars:
     FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
     FTP_PORTS: 21
 
-
 ##
-## Step 2: select the rules to enable or disable
-##
-
-#default-rule-path: @e_sysconfdir@rules
-default-rule-path: @e_defaultruledir@
-@suricata_update_rule_files@:
- - suricata.rules
-@classic_rule_files@:
- - botcc.rules
- # - botcc.portgrouped.rules
- - ciarmy.rules
- - compromised.rules
- - drop.rules
- - dshield.rules
-# - emerging-activex.rules
- - emerging-attack_response.rules
- - emerging-chat.rules
- - emerging-current_events.rules
- - emerging-dns.rules
- - emerging-dos.rules
- - emerging-exploit.rules
- - emerging-ftp.rules
-# - emerging-games.rules
-# - emerging-icmp_info.rules
-# - emerging-icmp.rules
- - emerging-imap.rules
-# - emerging-inappropriate.rules
-# - emerging-info.rules
- - emerging-malware.rules
- - emerging-misc.rules
- - emerging-mobile_malware.rules
- - emerging-netbios.rules
- - emerging-p2p.rules
- - emerging-policy.rules
- - emerging-pop3.rules
- - emerging-rpc.rules
-# - emerging-scada.rules
-# - emerging-scada_special.rules
- - emerging-scan.rules
-# - emerging-shellcode.rules
- - emerging-smtp.rules
- - emerging-snmp.rules
- - emerging-sql.rules
- - emerging-telnet.rules
- - emerging-tftp.rules
- - emerging-trojan.rules
- - emerging-user_agents.rules
- - emerging-voip.rules
- - emerging-web_client.rules
- - emerging-web_server.rules
-# - emerging-web_specific_apps.rules
- - emerging-worm.rules
- - tor.rules
-# - decoder-events.rules # available in suricata sources under rules dir
-# - stream-events.rules  # available in suricata sources under rules dir
- - http-events.rules    # available in suricata sources under rules dir
- - smtp-events.rules    # available in suricata sources under rules dir
- - dns-events.rules     # available in suricata sources under rules dir
- - tls-events.rules     # available in suricata sources under rules dir
-# - modbus-events.rules  # available in suricata sources under rules dir
-# - app-layer-events.rules  # available in suricata sources under rules dir
-# - dnp3-events.rules       # available in suricata sources under rules dir
-# - ntp-events.rules       # available in suricata sources under rules dir
-# - ipsec-events.rules       # available in suricata sources under rules dir
-# - kerberos-events.rules       # available in suricata sources under rules dir
-
-classification-file: @e_sysconfdir@classification.config
-reference-config-file: @e_sysconfdir@reference.config
-# threshold-file: @e_sysconfdir@threshold.config
-
-
-##
-## Step 3: select outputs to enable
+## Step 2: select outputs to enable
 ##
 
 # The default logging directory.  Any log or output file will be
@@ -1886,6 +1813,93 @@ mpipe:
     size10386: 0
     size16384: 0
 
+##
+## Configure Suricata to load Suricata-Update managed rules.
+##
+## If this section is completely commented out move down to the "Advanced rule
+## file configuration".
+##
+
+@no_suricata_update_comment@default-rule-path: @e_defaultruledir@
+@no_suricata_update_comment@rule-files:
+@no_suricata_update_comment@ - suricata.rules
+
+##
+## Advanced rule file configuration.
+##
+## If this section is completely commented out then your configuration
+## is setup for suricata-update as it was most likely bundled and
+## installed with Suricata.
+##
+
+@has_suricata_update_comment@default-rule-path: @e_defaultruledir@
+
+@has_suricata_update_comment@rule-files:
+@has_suricata_update_comment@ - botcc.rules
+@has_suricata_update_comment@ # - botcc.portgrouped.rules
+@has_suricata_update_comment@ - ciarmy.rules
+@has_suricata_update_comment@ - compromised.rules
+@has_suricata_update_comment@ - drop.rules
+@has_suricata_update_comment@ - dshield.rules
+@has_suricata_update_comment@# - emerging-activex.rules
+@has_suricata_update_comment@ - emerging-attack_response.rules
+@has_suricata_update_comment@ - emerging-chat.rules
+@has_suricata_update_comment@ - emerging-current_events.rules
+@has_suricata_update_comment@ - emerging-dns.rules
+@has_suricata_update_comment@ - emerging-dos.rules
+@has_suricata_update_comment@ - emerging-exploit.rules
+@has_suricata_update_comment@ - emerging-ftp.rules
+@has_suricata_update_comment@# - emerging-games.rules
+@has_suricata_update_comment@# - emerging-icmp_info.rules
+@has_suricata_update_comment@# - emerging-icmp.rules
+@has_suricata_update_comment@ - emerging-imap.rules
+@has_suricata_update_comment@# - emerging-inappropriate.rules
+@has_suricata_update_comment@# - emerging-info.rules
+@has_suricata_update_comment@ - emerging-malware.rules
+@has_suricata_update_comment@ - emerging-misc.rules
+@has_suricata_update_comment@ - emerging-mobile_malware.rules
+@has_suricata_update_comment@ - emerging-netbios.rules
+@has_suricata_update_comment@ - emerging-p2p.rules
+@has_suricata_update_comment@ - emerging-policy.rules
+@has_suricata_update_comment@ - emerging-pop3.rules
+@has_suricata_update_comment@ - emerging-rpc.rules
+@has_suricata_update_comment@# - emerging-scada.rules
+@has_suricata_update_comment@# - emerging-scada_special.rules
+@has_suricata_update_comment@ - emerging-scan.rules
+@has_suricata_update_comment@# - emerging-shellcode.rules
+@has_suricata_update_comment@ - emerging-smtp.rules
+@has_suricata_update_comment@ - emerging-snmp.rules
+@has_suricata_update_comment@ - emerging-sql.rules
+@has_suricata_update_comment@ - emerging-telnet.rules
+@has_suricata_update_comment@ - emerging-tftp.rules
+@has_suricata_update_comment@ - emerging-trojan.rules
+@has_suricata_update_comment@ - emerging-user_agents.rules
+@has_suricata_update_comment@ - emerging-voip.rules
+@has_suricata_update_comment@ - emerging-web_client.rules
+@has_suricata_update_comment@ - emerging-web_server.rules
+@has_suricata_update_comment@# - emerging-web_specific_apps.rules
+@has_suricata_update_comment@ - emerging-worm.rules
+@has_suricata_update_comment@ - tor.rules
+@has_suricata_update_comment@# - decoder-events.rules # available in suricata sources under rules dir
+@has_suricata_update_comment@# - stream-events.rules  # available in suricata sources under rules dir
+@has_suricata_update_comment@ - http-events.rules    # available in suricata sources under rules dir
+@has_suricata_update_comment@ - smtp-events.rules    # available in suricata sources under rules dir
+@has_suricata_update_comment@ - dns-events.rules     # available in suricata sources under rules dir
+@has_suricata_update_comment@ - tls-events.rules     # available in suricata sources under rules dir
+@has_suricata_update_comment@# - modbus-events.rules  # available in suricata sources under rules dir
+@has_suricata_update_comment@# - app-layer-events.rules  # available in suricata sources under rules dir
+@has_suricata_update_comment@# - dnp3-events.rules       # available in suricata sources under rules dir
+@has_suricata_update_comment@# - ntp-events.rules       # available in suricata sources under rules dir
+@has_suricata_update_comment@# - ipsec-events.rules       # available in suricata sources under rules dir
+@has_suricata_update_comment@# - kerberos-events.rules       # available in suricata sources under rules dir
+
+##
+## Auxiliary configuration files.
+##
+
+classification-file: @e_sysconfdir@classification.config
+reference-config-file: @e_sysconfdir@reference.config
+# threshold-file: @e_sysconfdir@threshold.config
 
 ##
 ## Include other configs
