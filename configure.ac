@@ -1423,15 +1423,17 @@
   have_suricata_update="no"
   ruledirprefix="$sysconfdir"
   suricata_update_rule_files="suricata-update-rule-files"
-  classic_rule_files="rule-files"
   AC_CHECK_FILE([$srcdir/suricata-update/setup.py], [
       SURICATA_UPDATE_DIR="suricata-update"
       AC_SUBST(SURICATA_UPDATE_DIR)
       AC_OUTPUT(suricata-update/Makefile)
       have_suricata_update="yes"
       ruledirprefix="$localstatedir/lib"
-      suricata_update_rule_files="rule-files"
-      classic_rule_files="classic-rule-files"
+      no_suricata_update_comment=""
+      has_suricata_update_comment="#"
+  ], [
+      no_suricata_update_comment="#"
+      has_suricata_update_comment=""
   ])
   AM_CONDITIONAL([HAVE_SURICATA_UPDATE], [test "x$have_suricata_update" != "xno"])
 
@@ -2329,8 +2331,8 @@ AC_SUBST(e_magic_file_comment)
 AC_SUBST(e_enable_evelog)
 AC_SUBST(e_datarulesdir)
 AC_SUBST(e_defaultruledir)
-AC_SUBST(suricata_update_rule_files)
-AC_SUBST(classic_rule_files)
+AC_SUBST(has_suricata_update_comment)
+AC_SUBST(no_suricata_update_comment)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
