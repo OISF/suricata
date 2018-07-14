@@ -275,6 +275,8 @@ static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
     int server = 0, client = 0;
 
     if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
+            SC_ATOMIC_GET(f->flow_state) != FLOW_STATE_CAPTURE_BYPASSED &&
+            SC_ATOMIC_GET(f->flow_state) != FLOW_STATE_LOCAL_BYPASSED &&
             FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
         FlowForceReassemblyForFlow(f, server, client);
         return 0;
