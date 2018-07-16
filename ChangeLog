@@ -1,3 +1,15 @@
+4.0.5 -- 2018-07-18
+
+Bug #2480: http eve log data source/dest flip (4.0.x)
+Bug #2482: HTTP connect: difference in detection rates between 3.1 and 4.0.x
+Bug #2531: yaml: ConfYamlHandleInclude memleak (4.0.x)
+Bug #2532: memleak: when using app-layer event rules without rust
+Bug #2533: Suricata gzip unpacker bypass (4.0.x)
+Bug #2534: Private Suricata stops inspecting TCP stream if a TCP RST was met (4.0.x)
+Bug #2535: Messages with SC_LOG_CONFIG level are logged to syslog with EMERG priority (4.0.x)
+Bug #2540: getrandom prevents any suricata start commands on more later OS's (4.0.x)
+Bug #2537: libhtp 0.5.27 (4.0.x)
+
 4.0.4 -- 2018-02-14
 
 Bug #2306: suricata 4 deadlocks during failed output log reopening
