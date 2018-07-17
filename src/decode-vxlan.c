@@ -190,11 +190,7 @@ static int DecodeVXLANtest01 (void)
     FlowInitConfig(FLOW_QUIET);
     DecodeVXLAN(&tv, &dtv, p, raw_vxlan, sizeof(raw_vxlan), NULL);
 
-    FAIL_IF(p->icmpv6h == NULL);
-
-    /* ICMPv6 not processed at all? */
-    FAIL_IF(ICMPV6_GET_TYPE(p) != 4 || ICMPV6_GET_CODE(p) != 0 ||
-        ICMPV6_GET_EMB_PROTO(p) != IPPROTO_ICMPV6);
+    FAIL_IF(p->udph == NULL);
 
     PACKET_RECYCLE(p);
     FlowShutdown();
