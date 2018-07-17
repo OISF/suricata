@@ -79,8 +79,7 @@ static int DecodeVXLANPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t le
 
     p->udph = (UDPHdr *)pkt;
 
-    SCLogDebug("VXLAN testing packet length %" PRIu16, len);
-    SCLogDebug("VXLAN testing UDP length %" PRIu16, UDP_GET_LEN(p));
+    SCLogDebug("VXLAN testing length %" PRIu16 " length %" PRIu16, len, UDP_GET_LEN(p));
 
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
@@ -111,10 +110,6 @@ int DecodeVXLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     int event = 0;
 
     StatsIncr(tv, dtv->counter_vxlan);
-
-    /* Is this packet to short to contain an IPv6 packet ? */
-    if (len < IPV4_HEADER_LEN)
-        return TM_ECODE_FAILED;
 
 
     SCLogDebug("letshitgo on the decode!");
