@@ -1,1 +1,1 @@
-fswatch . |  xargs -I {} -- rsync -av * root@172.29.0.147:suricata/src
+fswatch . |  xargs -I {} -- rsync -av * root@10.137.0.25:suricata/
