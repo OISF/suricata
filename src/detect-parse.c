@@ -678,7 +678,7 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
         /* if quoting is mandatory, enforce it */
         if (st->flags & SIGMATCH_QUOTES_MANDATORY && ovlen && *ptr != '"') {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formattingto %s keyword: "
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "invalid formatting to %s keyword: "
                     "value must be double quoted \'%s\'", optname, optstr);
             goto error;
         }
