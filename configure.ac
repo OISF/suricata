@@ -2166,7 +2166,10 @@ fi
       # Rust require jansson (json support).
       if test "x$enable_jansson" = "xno"; then
         echo ""
-        echo "   ERROR! Rust support requires jansson."
+        echo "   ERROR! Rust support requires jansson-devel."
+	echo "
+	echo "   Fedora: dnf install jansson-devel"
+	echo "   CentOS/RHEL: yum install jansson-devel"
         echo ""
         exit 1
       fi
@@ -2179,12 +2182,20 @@ fi
       if test "x$HAVE_CARGO" = "xno"; then
         echo ""
         echo "   ERROR! Rust support requested but cargo not found."
+	echo "
+	echo "   Ubuntu: apt-get install cargo"
+	echo "   Fedora: dnf install cargo"
+	echo "   CentOS/RHEL: yum install cargo"
         echo ""
         exit 1
       fi
       if test "x$HAVE_RUST" = "xno"; then
         echo ""
         echo "   ERROR! Rust support requested but rustc not found."
+	echo "
+	echo "	 Ubuntu: apt-get install rustc"
+	echo "	 Fedora: dnf install rust"
+	echo "	 CentOS/RHEL: yum install rust"
         echo ""
         exit 1
       fi
