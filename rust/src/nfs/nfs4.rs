@@ -213,7 +213,11 @@ impl NFSState {
                             self.set_event(NFSEvent::MalformedData);
                             return 0;
                         },
-                        IResult::Error(e) => { panic!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}",e);  },
+                        IResult::Error(_e) => {
+                            SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
+                            self.set_event(NFSEvent::MalformedData);
+                            return 0;
+                        },
                     }
                 }
             }
@@ -227,7 +231,10 @@ impl NFSState {
                     SCLogDebug!("NFSPROC4_COMPOUND: INCOMPLETE {:?}", _n);
                     self.set_event(NFSEvent::MalformedData);
                 },
-                IResult::Error(e) => { panic!("NFSPROC4_COMPOUND: Parsing failed: {:?}",e);  },
+                IResult::Error(_e) => {
+                    SCLogDebug!("NFSPROC4_COMPOUND: Parsing failed: {:?}", _e);
+                    self.set_event(NFSEvent::MalformedData);
+                },
             };
         }
 
@@ -312,7 +319,11 @@ impl NFSState {
                         self.set_event(NFSEvent::MalformedData);
                         return 0;
                     },
-                    IResult::Error(e) => { panic!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}",e);  },
+                    IResult::Error(_e) => {
+                        SCLogDebug!("NFSPROC4_COMPOUND/GSS INTEGRITIY: Parsing failed: {:?}", _e);
+                        self.set_event(NFSEvent::MalformedData);
+                        return 0;
+                    },
                 }
             }
             match parse_nfs4_response_compound(data) {
@@ -323,7 +334,10 @@ impl NFSState {
                 IResult::Incomplete(_) => {
                     self.set_event(NFSEvent::MalformedData);
                 },
-                IResult::Error(e) => { panic!("Parsing failed: {:?}",e);  },
+                IResult::Error(_e) => {
+                    SCLogDebug!("Parsing failed: {:?}", _e);
+                    self.set_event(NFSEvent::MalformedData);
+                },
             };
         }
         0
