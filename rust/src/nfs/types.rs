@@ -265,6 +265,7 @@ pub const NFSPROC4_SETCLIENTID_CONFIRM: u32 = 36;
 pub const NFSPROC4_VERIFY:              u32 = 37;
 pub const NFSPROC4_WRITE:               u32 = 38;
 pub const NFSPROC4_RELEASE_LOCKOWNER:   u32 = 39;
+pub const NFSPROC4_SEQUENCE:            u32 = 53;
 
 
 pub const NFSPROC4_EXCHANGE_ID:         u32 = 42;
