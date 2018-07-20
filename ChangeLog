@@ -1,3 +1,33 @@
+4.1.0-rc1 -- 2018-07-20
+
+Feature #2292: flow: add icmpv4 and improve icmpv6 flow handling
+Feature #2298: pcap: store pcaps in compressed form
+Feature #2417: Add Option to Delete Pcap Files After Processing
+Feature #2455: Add WinDivert source to Windows builds
+Feature #2456: LZ4 compression for pcap logs
+Optimization #2461: Let user to explicit disable libnss and libnspr support
+Bug #1929: yaml: ConfYamlHandleInclude memleak
+Bug #2090: Rule-reload in multi-tenancy is buggy
+Bug #2217: event_type flow is missing icmpv4 (while it has icmpv6) info wherever available
+Bug #2463: memleak: gitmaster flash decompression - 4.1.0-dev (rev efdc592)
+Bug #2469: The autoconf script throws and error when af_packet is enabled and then continues
+Bug #2481: integer overflow caused by casting uin32 to uint16 in detection
+Bug #2492: Inverted IP params in fileinfo events
+Bug #2496: gcc 8 warnings
+Bug #2498: Lua file output script causes a segfault when protocol is not HTTP
+Bug #2501: Suricata stops inspecting TCP stream if a TCP RST was met
+Bug #2504: ntp parser update cause build failure
+Bug #2505: getrandom prevents any suricata start commands on more later OS's
+Bug #2511: Suricata gzip unpacker bypass
+Bug #2515: memleak: when using smb rules without rust
+Bug #2516: Dead lock caused by unix command register-tenant
+Bug #2518: Tenant rules reload completely broken in 4.x.x
+Bug #2520: Invalid application layer logging in alert for DNS
+Bug #2521: rust: dns warning during compile
+Bug #2536: libhtp 0.5.27
+Bug #2542: ssh out of bounds read
+Bug #2543: enip out of bounds read
+
 4.1.0-beta1 -- 2018-03-22
 
 Feature #550: Extract file attachments from FTP
