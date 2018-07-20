@@ -1,5 +1,6 @@
 4.1.0-beta1 -- 2018-03-22
 
+Feature #550: Extract file attachments from FTP
 Feature #646: smb log feature to be introduced
 Feature #719: finish/enable smb2 app layer parser
 Feature #723: Add support for smb 3
@@ -8,6 +9,7 @@ Feature #735: Introduce content_len keyword
 Feature #741: Introduce endswith keyword
 Feature #742: startswith keyword
 Feature #1006: transformation api
+Feature #1198: more compact dns logging
 Feature #1201: file-store metadata in JSON format
 Feature #1386: offline: add pcap file name to EVE
 Feature #1458: unix-socket - make rule load errs available
@@ -21,6 +23,7 @@ Feature #1949: only write unique files
 Feature #2020: eve: add body of signature to eve.json alert
 Feature #2062: tls: reimplement tls.fingerprint
 Feature #2076: Strip whitespace from buffers
+Feature #2086: DNS answer for a NS containing multiple name servers should only be one line
 Feature #2142: filesize: support other units than only bytes
 Feature #2192: JA3 TLS client fingerprinting
 Feature #2199: DNS answer events compacted
@@ -33,12 +36,19 @@ Feature #2303: file-store enhancements (aka file-store v2): deduplication; hash-
 Feature #2352: eve: add "metadata" field to alert (rework of vars)
 Feature #2382: deprecate: CUDA support
 Feature #2399: eBPF and XDP bypass for AF_PACKET capture method
+Feature #2464: tftp logging
 Optimization #2193: random: support getrandom(2) if available
 Optimization #2302: rule parsing: faster parsing by not using pcre
 Bug #993: libhtp upgrade to handle responses first
 Bug #1503: lua output setup failure does not exit engine with --init-errors-fatal
+Bug #1788: af-packet coverity warning
+Bug #1842: Duplicated analyzer in Prelude alert
+Bug #1904: modbus: duplicate alerts / detection unaware of direction
 Bug #2202: BUG_ON asserts in AppLayerIncFlowCounter
 Bug #2229: mem leak AFP with 4.0.0-dev (rev 1180687)
+Bug #2240: suricatasc dump-counters returns error when return message is larger than 4096
+Bug #2252: Rule parses in 4.0 when flow to client is set and http_client_body is used.
+Bug #2258: rate_filter inconsistency: triggered after "count" detections when by_rule, and after count+1 detections when by_src/by_dst.
 Bug #2268: Don't printf util-enum errors
 Bug #2288: Suricata segfaults on ICMP and flowint check
 Bug #2294: rules: depth < content rules not rejected (master)
@@ -77,6 +87,7 @@ Bug #2442: der parser: bad input consumes cpu and memory
 Bug #2446: http bodies / file_data: thread space creation writing out of bounds (master)
 Bug #2451: Missing Files Will Cause Pcap Thread to No Longer Run in Unix Socket Mode
 Bug #2454: master - suricata.c:2473-2474 - SIGUSR2 not wrapped in #ifndef OS_WIN32
+Bug #2466: [4.1beta1] Messages with SC_LOG_CONFIG level are logged to syslog with EMERG priority
 
 4.0.1 -- 2017-10-18
 
