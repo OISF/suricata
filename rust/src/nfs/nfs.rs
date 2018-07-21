@@ -505,9 +505,24 @@ impl NFSState {
         SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
                 r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
-        if r.progver == 4 {
-            return self.process_request_record_v4(r);
+        match r.progver {
+            4 => {
+                self.process_request_record_v4(r)
+            },
+            3 => {
+                self.process_request_record_v3(r)
+            },
+            2 => {
+                self.process_request_record_v2(r)
+            },
+            _ => { 1 },
         }
+    }
+
+    /// complete NFS3 request record
+    fn process_request_record_v3<'b>(&mut self, r: &RpcPacket<'b>) -> u32 {
+        SCLogDebug!("REQUEST {} procedure {} ({}) blob size {}",
+                r.hdr.xid, r.procedure, self.requestmap.len(), r.prog_data.len());
 
         let mut xidmap = NFSRequestXidMap::new(r.progver, r.procedure, 0);
         let mut aux_file_name = Vec::new();
