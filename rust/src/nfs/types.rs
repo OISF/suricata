@@ -321,3 +321,6 @@ pub fn nfs4_procedure_string(procedure: u32) -> String {
         }
     }.to_string()
 }
+
+pub const NFS4_OK:              u32 = 0;
+

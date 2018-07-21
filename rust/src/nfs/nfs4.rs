@@ -296,6 +296,12 @@ impl NFSState {
                         }
                     }
                 },
+                &Nfs4ResponseContent::PutRootFH(s) => {
+                    if s == NFS4_OK && xidmap.file_name.len() == 0 {
+                        xidmap.file_name = b"<mount_root>".to_vec();
+                        SCLogDebug!("filename {:?}", xidmap.file_name);
+                    }
+                },
                 &_ => { },
             }
         }
