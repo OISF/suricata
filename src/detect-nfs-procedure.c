@@ -190,7 +190,7 @@ static int DetectNfsProcedureMatch (ThreadVars *t, DetectEngineThreadCtx *det_ct
     uint16_t i;
     for (i = 0; i < 256; i++) {
         uint32_t procedure;
-        if (rs_nfs3_tx_get_procedures(txv, i, &procedure) == 1) {
+        if (rs_nfs_tx_get_procedures(txv, i, &procedure) == 1) {
             SCLogDebug("proc %u mode %u lo %u hi %u",
                     procedure, dd->mode, dd->lo, dd->hi);
             if (ProcedureMatch(procedure, dd->mode, dd->lo, dd->hi))

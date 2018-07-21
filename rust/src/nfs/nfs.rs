@@ -39,7 +39,7 @@ use nfs::nfs_records::*;
 use nfs::nfs2_records::*;
 use nfs::nfs3_records::*;
 
-pub static mut SURICATA_NFS3_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
+pub static mut SURICATA_NFS_FILE_CONFIG: Option<&'static SuricataFileContext> = None;
 
 /*
  * Record parsing.
@@ -127,7 +127,7 @@ impl NFSTransactionFile {
 #[derive(Debug)]
 pub struct NFSTransaction {
     pub id: u64,    /// internal id
-    pub xid: u32,   /// nfs3 req/reply pair id
+    pub xid: u32,   /// nfs req/reply pair id
     pub procedure: u32,
     /// file name of the object we're dealing with. In case of RENAME
     /// this is the 'from' or original name.
@@ -285,7 +285,7 @@ pub fn filetracker_newchunk(ft: &mut FileTransferTracker, files: &mut FileContai
         flags: u16, name: &Vec<u8>, data: &[u8],
         chunk_offset: u64, chunk_size: u32, fill_bytes: u8, is_last: bool, xid: &u32)
 {
-    match unsafe {SURICATA_NFS3_FILE_CONFIG} {
+    match unsafe {SURICATA_NFS_FILE_CONFIG} {
         Some(sfcm) => {
             ft.new_chunk(sfcm, files, flags, &name, data, chunk_offset,
                     chunk_size, fill_bytes, is_last, xid); }
@@ -978,7 +978,7 @@ impl NFSState {
             let mut cnt = 0;
             while cur_i.len() > 0 {
                 cnt += 1;
-                match nfs3_probe(cur_i, STREAM_TOSERVER) {
+                match nfs_probe(cur_i, STREAM_TOSERVER) {
                     1 => {
                         SCLogDebug!("expected data found");
                         self.ts_gap = false;
@@ -1132,7 +1132,7 @@ impl NFSState {
             let mut cnt = 0;
             while cur_i.len() > 0 {
                 cnt += 1;
-                match nfs3_probe(cur_i, STREAM_TOCLIENT) {
+                match nfs_probe(cur_i, STREAM_TOCLIENT) {
                     1 => {
                         SCLogDebug!("expected data found");
                         self.tc_gap = false;
@@ -1310,7 +1310,7 @@ impl NFSState {
 
 /// Returns *mut NFSState
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_new() -> *mut libc::c_void {
+pub extern "C" fn rs_nfs_state_new() -> *mut libc::c_void {
     let state = NFSState::new();
     let boxed = Box::new(state);
     SCLogDebug!("allocating state");
@@ -1320,11 +1320,11 @@ pub extern "C" fn rs_nfs3_state_new() -> *mut libc::c_void {
 /// Params:
 /// - state: *mut NFSState as void pointer
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_free(state: *mut libc::c_void) {
+pub extern "C" fn rs_nfs_state_free(state: *mut libc::c_void) {
     // Just unbox...
     SCLogDebug!("freeing state");
-    let mut nfs3_state: Box<NFSState> = unsafe{transmute(state)};
-    nfs3_state.free();
+    let mut nfs_state: Box<NFSState> = unsafe{transmute(state)};
+    nfs_state.free();
 }
 
 /// C binding parse a NFS TCP request. Returns 1 on success, -1 on failure.
@@ -1392,7 +1392,7 @@ pub extern "C" fn rs_nfs_parse_response_tcp_gap(
 
 /// C binding parse a DNS request. Returns 1 on success, -1 on failure.
 #[no_mangle]
-pub extern "C" fn rs_nfs3_parse_request_udp(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_request_udp(_flow: *mut Flow,
                                        state: &mut NFSState,
                                        _pstate: *mut libc::c_void,
                                        input: *mut libc::uint8_t,
@@ -1411,7 +1411,7 @@ pub extern "C" fn rs_nfs3_parse_request_udp(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_parse_response_udp(_flow: *mut Flow,
+pub extern "C" fn rs_nfs_parse_response_udp(_flow: *mut Flow,
                                         state: &mut NFSState,
                                         _pstate: *mut libc::c_void,
                                         input: *mut libc::uint8_t,
@@ -1430,15 +1430,15 @@ pub extern "C" fn rs_nfs3_parse_response_udp(_flow: *mut Flow,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_get_tx_count(state: &mut NFSState)
+pub extern "C" fn rs_nfs_state_get_tx_count(state: &mut NFSState)
                                             -> libc::uint64_t
 {
-    SCLogDebug!("rs_nfs3_state_get_tx_count: returning {}", state.tx_id);
+    SCLogDebug!("rs_nfs_state_get_tx_count: returning {}", state.tx_id);
     return state.tx_id;
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_get_tx(state: &mut NFSState,
+pub extern "C" fn rs_nfs_state_get_tx(state: &mut NFSState,
                                       tx_id: libc::uint64_t)
                                       -> *mut NFSTransaction
 {
@@ -1473,14 +1473,14 @@ pub extern "C" fn rs_nfs_state_get_tx_iterator(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_tx_free(state: &mut NFSState,
+pub extern "C" fn rs_nfs_state_tx_free(state: &mut NFSState,
                                        tx_id: libc::uint64_t)
 {
     state.free_tx(tx_id);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_progress_completion_status(
+pub extern "C" fn rs_nfs_state_progress_completion_status(
     _direction: libc::uint8_t)
     -> libc::c_int
 {
@@ -1488,7 +1488,7 @@ pub extern "C" fn rs_nfs3_state_progress_completion_status(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFSTransaction,
+pub extern "C" fn rs_nfs_tx_get_alstate_progress(tx: &mut NFSTransaction,
                                                   direction: libc::uint8_t)
                                                   -> libc::uint8_t
 {
@@ -1505,7 +1505,7 @@ pub extern "C" fn rs_nfs3_tx_get_alstate_progress(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFSState,
+pub extern "C" fn rs_nfs_tx_set_logged(_state: &mut NFSState,
                                        tx: &mut NFSTransaction,
                                        logged: libc::uint32_t)
 {
@@ -1513,7 +1513,7 @@ pub extern "C" fn rs_nfs3_tx_set_logged(_state: &mut NFSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFSState,
+pub extern "C" fn rs_nfs_tx_get_logged(_state: &mut NFSState,
                                        tx: &mut NFSTransaction)
                                        -> u32
 {
@@ -1521,7 +1521,7 @@ pub extern "C" fn rs_nfs3_tx_get_logged(_state: &mut NFSState,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_set_tx_detect_state(
+pub extern "C" fn rs_nfs_state_set_tx_detect_state(
     tx: &mut NFSTransaction,
     de_state: &mut DetectEngineState)
 {
@@ -1529,7 +1529,7 @@ pub extern "C" fn rs_nfs3_state_set_tx_detect_state(
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_state_get_tx_detect_state(
+pub extern "C" fn rs_nfs_state_get_tx_detect_state(
     tx: &mut NFSTransaction)
     -> *mut DetectEngineState
 {
@@ -1616,10 +1616,10 @@ pub extern "C" fn rs_nfs_state_get_event_info(event_name: *const libc::c_char,
 /// otherwise get procs from the 'file_additional_procs'.
 /// Keep calling until 0 is returned.
 #[no_mangle]
-pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFSTransaction,
-                                       i: libc::uint16_t,
-                                       procedure: *mut libc::uint32_t)
-                                       -> libc::uint8_t
+pub extern "C" fn rs_nfs_tx_get_procedures(tx: &mut NFSTransaction,
+                                           i: libc::uint16_t,
+                                           procedure: *mut libc::uint32_t)
+                                           -> libc::uint8_t
 {
     if i == 0 {
         unsafe {
@@ -1649,7 +1649,7 @@ pub extern "C" fn rs_nfs3_tx_get_procedures(tx: &mut NFSTransaction,
 
 #[no_mangle]
 pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
-                                       version: *mut libc::uint32_t)
+                                        version: *mut libc::uint32_t)
 {
     unsafe {
         *version = tx.nfs_version as libc::uint32_t;
@@ -1657,14 +1657,14 @@ pub extern "C" fn rs_nfs_tx_get_version(tx: &mut NFSTransaction,
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_init(context: &'static mut SuricataFileContext)
+pub extern "C" fn rs_nfs_init(context: &'static mut SuricataFileContext)
 {
     unsafe {
-        SURICATA_NFS3_FILE_CONFIG = Some(context);
+        SURICATA_NFS_FILE_CONFIG = Some(context);
     }
 }
 
-pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
+pub fn nfs_probe(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_reply(i) {
             IResult::Done(_, ref rpc) => {
@@ -1721,7 +1721,7 @@ pub fn nfs3_probe(i: &[u8], direction: u8) -> i8 {
     }
 }
 
-pub fn nfs3_probe_udp(i: &[u8], direction: u8) -> i8 {
+pub fn nfs_probe_udp(i: &[u8], direction: u8) -> i8 {
     if direction == STREAM_TOCLIENT {
         match parse_rpc_udp_reply(i) {
             IResult::Done(_, ref rpc) => {
@@ -1769,8 +1769,9 @@ pub extern "C" fn rs_nfs_probe_ts(input: *const libc::uint8_t, len: libc::uint32
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    return nfs3_probe(slice, STREAM_TOSERVER);
+    return nfs_probe(slice, STREAM_TOSERVER);
 }
+
 /// TOCLIENT probe function
 #[no_mangle]
 pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32_t)
@@ -1779,7 +1780,7 @@ pub extern "C" fn rs_nfs_probe_tc(input: *const libc::uint8_t, len: libc::uint32
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    return nfs3_probe(slice, STREAM_TOCLIENT);
+    return nfs_probe(slice, STREAM_TOCLIENT);
 }
 
 /// TOSERVER probe function
@@ -1790,8 +1791,9 @@ pub extern "C" fn rs_nfs_probe_udp_ts(input: *const libc::uint8_t, len: libc::ui
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    return nfs3_probe_udp(slice, STREAM_TOSERVER);
+    return nfs_probe_udp(slice, STREAM_TOSERVER);
 }
+
 /// TOCLIENT probe function
 #[no_mangle]
 pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::uint32_t)
@@ -1800,17 +1802,17 @@ pub extern "C" fn rs_nfs_probe_udp_tc(input: *const libc::uint8_t, len: libc::ui
     let slice: &[u8] = unsafe {
         std::slice::from_raw_parts(input as *mut u8, len as usize)
     };
-    return nfs3_probe_udp(slice, STREAM_TOCLIENT);
+    return nfs_probe_udp(slice, STREAM_TOCLIENT);
 }
 
 #[no_mangle]
-pub extern "C" fn rs_nfs3_getfiles(direction: u8, ptr: *mut NFSState) -> * mut FileContainer {
+pub extern "C" fn rs_nfs_getfiles(direction: u8, ptr: *mut NFSState) -> * mut FileContainer {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *ptr };
     parser.getfiles(direction)
 }
 #[no_mangle]
-pub extern "C" fn rs_nfs3_setfileflags(direction: u8, ptr: *mut NFSState, flags: u16) {
+pub extern "C" fn rs_nfs_setfileflags(direction: u8, ptr: *mut NFSState, flags: u16) {
     if ptr.is_null() { panic!("NULL ptr"); };
     let parser = unsafe { &mut *ptr };
     SCLogDebug!("direction {} flags {}", direction, flags);
