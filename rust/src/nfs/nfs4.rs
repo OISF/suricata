@@ -198,6 +198,14 @@ impl NFSState {
                 &Nfs4RequestContent::Close(ref rd) => {
                     SCLogDebug!("CLOSEv4: {:?}", rd);
                 }
+                &Nfs4RequestContent::Create(ref rd) => {
+                    SCLogDebug!("CREATEv4: {:?}", rd);
+                    if let Some(fh) = last_putfh {
+                        xidmap.file_handle = fh.to_vec();
+                    }
+                    xidmap.file_name = rd.filename.to_vec();
+                    main_opcode = NFSPROC4_CREATE;
+                }
                 &Nfs4RequestContent::Remove(ref rd) => {
                     SCLogDebug!("REMOVEv4: {:?}", rd);
                     xidmap.file_name = rd.to_vec();
@@ -305,6 +313,11 @@ impl NFSState {
                 }
                 &Nfs4ResponseContent::Remove(s) => {
                     SCLogDebug!("REMOVE4: status {}", s);
+                    main_opcode_status = s;
+                    main_opcode_status_set = true;
+                },
+                &Nfs4ResponseContent::Create(s) => {
+                    SCLogDebug!("CREATE4: status {}", s);
                     main_opcode_status = s;
                     main_opcode_status_set = true;
                 },
