@@ -870,7 +870,7 @@ app-layer:
     smb:
       enabled: yes
       detection-ports:
-        dp: 139, 445
+        dp: 137, 138, 139, 445
     # Note: NFS parser depends on Rust support: pass --enable-rust
     # to configure.
     nfs:
