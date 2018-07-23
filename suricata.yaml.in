@@ -360,6 +360,7 @@ outputs:
       #certs-log-dir: certs # directory to store the certificates files
 
   # a line based log of DNS requests and/or replies (no alerts)
+  # Note: not available when Rust is enabled (--enable-rust).
   - dns-log:
       enabled: no
       filename: dns.log
