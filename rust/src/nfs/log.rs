@@ -24,12 +24,13 @@ use nfs::nfs::*;
 use crc::crc32;
 
 #[no_mangle]
-pub extern "C" fn rs_nfs_tx_logging_is_filtered(tx: &mut NFSTransaction)
-                                                 -> libc::uint8_t
+pub extern "C" fn rs_nfs_tx_logging_is_filtered(state: &mut NFSState,
+                                                tx: &mut NFSTransaction)
+                                                -> libc::uint8_t
 {
     // TODO probably best to make this configurable
 
-    if tx.procedure == NFSPROC3_GETATTR {
+    if state.nfs_version <= 3 && tx.procedure == NFSPROC3_GETATTR {
         return 1;
     }
 
@@ -68,13 +69,10 @@ fn nfs_file_object(tx: &NFSTransaction) -> Json
     js.set_boolean("first", tx.is_first);
     js.set_boolean("last", tx.is_last);
 
-    let ref tdf = match tx.type_data {
-        Some(NFSTransactionTypeData::FILE(ref x)) => x,
-        _ => { panic!("BUG") },
-    };
-
-    js.set_integer("last_xid", tdf.file_last_xid as u64);
-    js.set_integer("chunks", tdf.chunk_count as u64);
+    if let Some(NFSTransactionTypeData::FILE(ref tdf)) = tx.type_data {
+        js.set_integer("last_xid", tdf.file_last_xid as u64);
+        js.set_integer("chunks", tdf.chunk_count as u64);
+    }
     return js;
 }
 /*
@@ -130,15 +128,17 @@ pub extern "C" fn rs_nfs_log_json_response(state: &mut NFSState, tx: &mut NFSTra
 
     js.set_string("status", &nfs3_status_string(tx.nfs_response_status));
 
-    if tx.procedure == NFSPROC3_READ {
-        let read_js = nfs_file_object(tx);
-        js.set("read", read_js);
-    } else if tx.procedure == NFSPROC3_WRITE {
-        let write_js = nfs_file_object(tx);
-        js.set("write", write_js);
-    } else if tx.procedure == NFSPROC3_RENAME {
-        let rename_js = nfs_rename_object(tx);
-        js.set("rename", rename_js);
+    if state.nfs_version <= 3 {
+        if tx.procedure == NFSPROC3_READ {
+            let read_js = nfs_file_object(tx);
+            js.set("read", read_js);
+        } else if tx.procedure == NFSPROC3_WRITE {
+            let write_js = nfs_file_object(tx);
+            js.set("write", write_js);
+        } else if tx.procedure == NFSPROC3_RENAME {
+            let rename_js = nfs_rename_object(tx);
+            js.set("rename", rename_js);
+        }
     }
 
     return js.unwrap();
