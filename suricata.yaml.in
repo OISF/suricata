@@ -146,6 +146,7 @@ outputs:
             # rather than an event for each of it.
             # Without setting a version the version
             # will fallback to 1 for backwards compatibility.
+            # Note: version 1 is not available with rust enabled
             version: 2
 
             # Enable/disable this logger. Default: enabled.
