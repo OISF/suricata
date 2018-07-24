@@ -1,20 +1,22 @@
-# Suricata (4.0.5) in Docker
+# Suricata in Docker
 
 The open-source Intrusion Detection System, in Docker, built from source with **suricata-update**, **Hyperscan**, **GeoIP** and **Lua** support.
 
 ## Usage
 
+To build a fresh Suricata Docker Image, from the root directory of this repo execute:
+
 ```bash
-docker build suricata:latest .
+docker build -f docker/Dockerfile -t suricata:latest .
 ```
+
+Then to run a Suricata container, just execute:
 
 ```bash
 docker run -d \
     --name suricata \
     --privileged \
     --network host \
-    --cap-add NET_ADMIN \
-    --cap-add NET_RAW \
     suricata:latest \
         -i <INTERFACE>
   ```
