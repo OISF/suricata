@@ -999,10 +999,6 @@ static TmEcode ParseInterfacesList(int runmode, char *pcap_dev)
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for af-packet");
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            if (AFPRunModeIsIPS()) {
-                SCLogInfo("AF_PACKET: Setting IPS mode");
-                EngineModeSetIPS();
-            }
         }
 #endif
 #ifdef HAVE_NETMAP
@@ -1018,10 +1014,6 @@ static TmEcode ParseInterfacesList(int runmode, char *pcap_dev)
             if (ret == 0) {
                 SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for netmap");
                 SCReturnInt(TM_ECODE_FAILED);
-            }
-            if (NetmapRunModeIsIPS()) {
-                SCLogInfo("Netmap: Setting IPS mode");
-                EngineModeSetIPS();
             }
         }
 #endif
@@ -2806,6 +2798,30 @@ static int PostConfLoadedSetup(SCInstance *suri)
     SCReturnInt(TM_ECODE_OK);
 }
 
+static int PostDeviceFinalizedSetup(SCInstance *suri)
+{
+	SCEnter();
+
+#ifdef HAVE_AF_PACKET
+	if (suri->run_mode == RUNMODE_AFP_DEV) {
+        if (AFPRunModeIsIPS()) {
+            SCLogInfo("AF_PACKET: Setting IPS mode");
+            EngineModeSetIPS();
+        }
+    }
+#endif
+#ifdef HAVE_NETMAP
+    if (suri->run_mode == RUNMODE_NETMAP) {
+        if (NetmapRunModeIsIPS()) {
+            SCLogInfo("Netmap: Setting IPS mode");
+            EngineModeSetIPS();
+        }
+    }
+#endif
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
 static void SuricataMainLoop(SCInstance *suri)
 {
     while(1) {
@@ -2953,6 +2969,10 @@ int main(int argc, char **argv)
     }
 
     LiveDeviceFinalize();
+
+    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
 
     SCDropMainThreadCaps(suricata.userid, suricata.groupid);
     PreRunPostPrivsDropInit(suricata.run_mode);
