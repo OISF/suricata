@@ -1,7 +1,3 @@
-#
-#
-#
-
 FROM ubuntu:latest
 
 # APT packages to install.
