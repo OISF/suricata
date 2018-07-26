@@ -146,7 +146,7 @@ json_t *JsonBuildFileInfoRecord(const Packet *p, const File *ff,
     }
 
     char *s = BytesToString(ff->name, ff->name_len);
-    json_object_set_new(fjs, "filename", json_string(s));
+    json_object_set_new(fjs, "filename", SCJsonString(s));
     if (s != NULL)
         SCFree(s);
 #ifdef HAVE_MAGIC

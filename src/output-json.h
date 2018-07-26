@@ -72,6 +72,7 @@ typedef struct OutputJsonCtx_ {
 } OutputJsonCtx;
 
 json_t *SCJsonBool(int val);
+json_t *SCJsonString(const char *val);
 void SCJsonDecref(json_t *js);
 
 #endif /* HAVE_LIBJANSSON */
