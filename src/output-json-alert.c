@@ -328,9 +328,9 @@ void AlertJsonHeader(void *ctx, const Packet *p, const PacketAlert *pa, json_t *
     json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
     json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
     json_object_set_new(ajs, "signature",
-            json_string((pa->s->msg) ? pa->s->msg : ""));
+            SCJsonString((pa->s->msg) ? pa->s->msg : ""));
     json_object_set_new(ajs, "category",
-            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+            SCJsonString((pa->s->class_msg) ? pa->s->class_msg : ""));
     json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
     if (p->tenant_id > 0)

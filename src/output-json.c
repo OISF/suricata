@@ -87,6 +87,7 @@ void OutputJsonRegister (void)
 #define MODULE_NAME "OutputJSON"
 
 #define OUTPUT_BUFFER_SIZE 65536
+#define MAX_JSON_SIZE 2048 
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 
@@ -115,6 +116,28 @@ json_t *SCJsonBool(int val)
 void SCJsonDecref(json_t *json)
 {
     json_decref(json);
+}
+
+json_t *SCJsonString(const char *val)
+{
+    json_t * retval = json_string(val);
+    char retbuf[MAX_JSON_SIZE] = {0};
+    if (retval == NULL) {
+        uint32_t u = 0;
+        uint32_t offset = 0;
+        for (u = 0; u < strlen(val); u++) {
+            if (isprint(val[u])) {
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1, "%c",
+                        val[u]);
+            } else {
+                PrintBufferData(retbuf, &offset, MAX_JSON_SIZE-1,
+                        "\\x%02X", val[u]);
+            }
+        }
+        retbuf[offset] = '\0';
+        retval = json_string(retbuf);
+    }
+    return retval;
 }
 
 /* Default Sensor ID value */
