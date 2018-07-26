@@ -429,7 +429,7 @@ static json_t *OutputQuery(DNSTransaction *tx, uint64_t tx_id, DNSQueryEntry *en
     char *c;
     c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
     if (c != NULL) {
-        json_object_set_new(djs, "rrname", json_string(c));
+        json_object_set_new(djs, "rrname", SCJsonString(c));
         SCFree(c);
     }
 
@@ -766,7 +766,7 @@ static void OutputAnswerV1(LogDnsLogThread *aft, json_t *djs,
         c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)),
                 entry->fqdn_len);
         if (c != NULL) {
-            json_object_set_new(js, "rrname", json_string(c));
+            json_object_set_new(js, "rrname", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -799,7 +799,7 @@ static void OutputAnswerV1(LogDnsLogThread *aft, json_t *djs,
                 entry->data_len : sizeof(buffer) - 1;
             memcpy(buffer, ptr, copy_len);
             buffer[copy_len] = '\0';
-            json_object_set_new(js, "rdata", json_string(buffer));
+            json_object_set_new(js, "rdata", SCJsonString(buffer));
         } else {
             json_object_set_new(js, "rdata", json_string(""));
         }
@@ -959,7 +959,7 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
     char *c;
     c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
     if (c != NULL) {
-        json_object_set_new(js, "rrname", json_string(c));
+        json_object_set_new(js, "rrname", SCJsonString(c));
         SCFree(c);
     }
 

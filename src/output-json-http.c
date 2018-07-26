@@ -197,7 +197,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_hostname);
         if (c != NULL) {
-            json_object_set_new(js, "hostname", json_string(c));
+            json_object_set_new(js, "hostname", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -207,7 +207,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     {
         c = bstr_util_strdup_to_c(tx->request_uri);
         if (c != NULL) {
-            json_object_set_new(js, "url", json_string(c));
+            json_object_set_new(js, "url", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -220,7 +220,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
     if (h_user_agent != NULL) {
         c = bstr_util_strdup_to_c(h_user_agent->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_user_agent", json_string(c));
+            json_object_set_new(js, "http_user_agent", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -250,7 +250,7 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
             p = strchr(c, ';');
             if (p != NULL)
                 *p = '\0';
-            json_object_set_new(js, "http_content_type", json_string(c));
+            json_object_set_new(js, "http_content_type", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -289,7 +289,7 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
                     if (c != NULL) {
                         json_object_set_new(js,
                                 http_fields[f].config_field,
-                                json_string(c));
+                                SCJsonString(c));
                         SCFree(c);
                     }
                 }
@@ -310,7 +310,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (h_referer != NULL) {
         c = bstr_util_strdup_to_c(h_referer->value);
         if (c != NULL) {
-            json_object_set_new(js, "http_refer", json_string(c));
+            json_object_set_new(js, "http_refer", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -319,7 +319,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_method != NULL) {
         c = bstr_util_strdup_to_c(tx->request_method);
         if (c != NULL) {
-            json_object_set_new(js, "http_method", json_string(c));
+            json_object_set_new(js, "http_method", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -328,7 +328,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->request_protocol != NULL) {
         c = bstr_util_strdup_to_c(tx->request_protocol);
         if (c != NULL) {
-            json_object_set_new(js, "protocol", json_string(c));
+            json_object_set_new(js, "protocol", SCJsonString(c));
             SCFree(c);
         }
     }
@@ -346,7 +346,7 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
         if (h_location != NULL) {
             c = bstr_util_strdup_to_c(h_location->value);
             if (c != NULL) {
-                json_object_set_new(js, "redirect", json_string(c));
+                json_object_set_new(js, "redirect", SCJsonString(c));
                 SCFree(c);
             }
         }

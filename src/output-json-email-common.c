@@ -114,10 +114,10 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
                 return NULL;
             }
             sp = SkipWhiteSpaceTill(p, savep);
-            json_array_append_new(ajs, json_string(sp));
+            json_array_append_new(ajs, SCJsonString(sp));
             while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
                 sp = SkipWhiteSpaceTill(p, savep);
-                json_array_append_new(ajs, json_string(sp));
+                json_array_append_new(ajs, SCJsonString(sp));
             }
         } else {
             json_decref(ajs);
@@ -180,7 +180,7 @@ static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
     if (ajs == NULL)
         return 0;
     char *value = BytesToString((uint8_t *)val, len);
-    json_array_append_new(ajs, json_string(value));
+    json_array_append_new(ajs, SCJsonString(value));
     SCFree(value);
     return 1;
 }
@@ -223,7 +223,7 @@ static void JsonEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, json_t *js, SM
                     char *s = BytesToString((uint8_t *)field->value,
                             (size_t)field->value_len);
                     if (likely(s != NULL)) {
-                        json_object_set_new(js, email_fields[f].config_field, json_string(s));
+                        json_object_set_new(js, email_fields[f].config_field, SCJsonString(s));
                         SCFree(s);
                     }
                 }
@@ -285,7 +285,7 @@ static json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint6
             if (likely(s != NULL)) {
                 //printf("From: \"%s\"\n", s);
                 char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
-                json_object_set_new(sjs, "from", json_string(sp));
+                json_object_set_new(sjs, "from", SCJsonString(sp));
                 SCFree(s);
             }
         }
@@ -325,7 +325,7 @@ static json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint6
                                         (size_t)url->url_len);
                 if (s != NULL) {
                     json_array_append_new(js_url,
-                                      json_string(s));
+                                      SCJsonString(s));
                     SCFree(s);
                     url_cnt += 1;
                 }
@@ -337,7 +337,7 @@ static json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint6
                 char *s = BytesToString((uint8_t *)entity->filename,
                                         (size_t)entity->filename_len);
                 json_array_append_new(js_attch,
-                                      json_string(s));
+                                      SCJsonString(s));
                 SCFree(s);
                 attch_cnt += 1;
             }
@@ -348,7 +348,7 @@ static json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint6
                                             (size_t)url->url_len);
                     if (s != NULL) {
                         json_array_append_new(js_url,
-                                          json_string(s));
+                                          SCJsonString(s));
                         SCFree(s);
                         url_cnt += 1;
                     }

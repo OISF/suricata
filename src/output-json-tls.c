@@ -118,7 +118,7 @@ static void JsonTlsLogSubject(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_subject) {
         json_object_set_new(js, "subject",
-                            json_string(ssl_state->server_connp.cert0_subject));
+                            SCJsonString(ssl_state->server_connp.cert0_subject));
     }
 }
 
@@ -126,7 +126,7 @@ static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_issuerdn) {
         json_object_set_new(js, "issuerdn",
-                            json_string(ssl_state->server_connp.cert0_issuerdn));
+                            SCJsonString(ssl_state->server_connp.cert0_issuerdn));
     }
 }
 
@@ -141,7 +141,7 @@ static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_fingerprint) {
         json_object_set_new(js, "fingerprint",
-                json_string(ssl_state->server_connp.cert0_fingerprint));
+                SCJsonString(ssl_state->server_connp.cert0_fingerprint));
     }
 }
 
@@ -149,7 +149,7 @@ static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->client_connp.sni) {
         json_object_set_new(js, "sni",
-                            json_string(ssl_state->client_connp.sni));
+                            SCJsonString(ssl_state->client_connp.sni));
     }
 }
 
@@ -157,7 +157,7 @@ static void JsonTlsLogSerial(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->server_connp.cert0_serial) {
         json_object_set_new(js, "serial",
-                            json_string(ssl_state->server_connp.cert0_serial));
+                            SCJsonString(ssl_state->server_connp.cert0_serial));
     }
 }
 
