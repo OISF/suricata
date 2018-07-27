@@ -414,6 +414,28 @@ void PacketBypassCallback(Packet *p)
     }
 }
 
+/** \brief switch direction of a packet */
+void PacketSwap(Packet *p)
+{
+    if (PKT_IS_TOSERVER(p)) {
+        p->flowflags &= ~FLOW_PKT_TOSERVER;
+        p->flowflags |= FLOW_PKT_TOCLIENT;
+
+        if (p->flowflags & FLOW_PKT_TOSERVER_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOSERVER_FIRST;
+            p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+        }
+    } else {
+        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+        p->flowflags |= FLOW_PKT_TOSERVER;
+
+        if (p->flowflags & FLOW_PKT_TOCLIENT_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT_FIRST;
+            p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+        }
+    }
+}
+
 /* counter name store */
 static HashTable *g_counter_table = NULL;
 static SCMutex g_counter_table_mutex = SCMUTEX_INITIALIZER;

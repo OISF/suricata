@@ -176,24 +176,7 @@ static inline int StreamTcpCheckFlowDrops(Packet *p)
 static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
 {
     SCLogDebug("ssn %p: switching pkt direction", ssn);
-
-    if (PKT_IS_TOSERVER(p)) {
-        p->flowflags &= ~FLOW_PKT_TOSERVER;
-        p->flowflags |= FLOW_PKT_TOCLIENT;
-
-        if (p->flowflags & FLOW_PKT_TOSERVER_FIRST) {
-            p->flowflags &= ~FLOW_PKT_TOSERVER_FIRST;
-            p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
-        }
-    } else {
-        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-        p->flowflags |= FLOW_PKT_TOSERVER;
-
-        if (p->flowflags & FLOW_PKT_TOCLIENT_FIRST) {
-            p->flowflags &= ~FLOW_PKT_TOCLIENT_FIRST;
-            p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
-        }
-    }
+    PacketSwap(p);
 }
 
 enum {
