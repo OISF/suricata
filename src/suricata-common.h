@@ -376,6 +376,25 @@
 #define SCNtohl(x) (uint32_t)ntohl((x))
 #define SCNtohs(x) (uint16_t)ntohs((x))
 
+/* swap flags if one of them is set, otherwise do nothing. */
+#define SWAP_FLAGS(flags, a, b)                     \
+    do {                                            \
+        if (((flags) & ((a)|(b))) == (a)) {         \
+            (flags) &= ~(a);                        \
+            (flags) |= (b);                         \
+        } else if (((flags) & ((a)|(b))) == (b)) {  \
+            (flags) &= ~(b);                        \
+            (flags) |= (a);                         \
+        }                                           \
+    } while(0)
+
+#define SWAP_VARS(type, a, b)           \
+    do {                                \
+        type t = (a);                   \
+        (a) = (b);                      \
+        (b) = t;                        \
+    } while (0)
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_SETUP,
     PROF_DETECT_GETSGH,
