@@ -1314,11 +1314,10 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     SCEnter();
 
     AppProto alproto = ALPROTO_UNKNOWN;
-    AppProto pm_results[ALPROTO_MAX];
-    uint16_t pm_matches;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
-        pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
+        AppProto pm_results[ALPROTO_MAX];
+        uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                                                    buf, buflen,
                                                    direction,
                                                    ipproto,
