@@ -2322,13 +2322,15 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
 #endif
 
+    if (DetectEngineMultiTenantEnabled()) {
+        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
+            DetectEngineThreadCtxDeinit(tv, det_ctx);
+            return TM_ECODE_FAILED;
+        }
+    }
+
     /* pass thread data back to caller */
     *data = (void *)det_ctx;
-
-    if (DetectEngineMultiTenantEnabled()) {
-        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK)
-            return TM_ECODE_FAILED;
-    }
 
     return TM_ECODE_OK;
 }
