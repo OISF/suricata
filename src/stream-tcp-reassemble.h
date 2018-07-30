@@ -54,6 +54,7 @@ enum
 enum StreamUpdateDir {
     UPDATE_DIR_PACKET,
     UPDATE_DIR_OPPOSING,
+    UPDATE_DIR_BOTH,
 };
 
 typedef struct TcpReassemblyThreadCtx_ {
