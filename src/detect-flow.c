@@ -392,6 +392,11 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, const char *flowstr)
     }
     if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    } else if (fd->flags == DETECT_FLOW_FLAG_TOSERVER ||
+               fd->flags == DETECT_FLOW_FLAG_TOCLIENT)
+    {
+        // no direct flow is needed for just direction
+
     } else {
         s->init_data->init_flags |= SIG_FLAG_INIT_FLOW;
     }
