@@ -32,7 +32,7 @@ pub struct NbssRecord<'a> {
 }
 
 impl<'a> NbssRecord<'a> {
-    pub fn is_smb(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         let valid = match self.message_type {
             NBSS_MSGTYPE_SESSION_MESSAGE |
             NBSS_MSGTYPE_SESSION_REQUEST |
@@ -42,6 +42,10 @@ impl<'a> NbssRecord<'a> {
             NBSS_MSGTYPE_KEEP_ALIVE => true,
             _ => false,
         };
+        valid
+    }
+    pub fn is_smb(&self) -> bool {
+        let valid = self.is_valid();
         let smb = if self.data.len() >= 4 &&
             self.data[1] == 'S' as u8 && self.data[2] == 'M' as u8 && self.data[3] == 'B' as u8 &&
             (self.data[0] == b'\xFE' || self.data[0] == b'\xFF' || self.data[0] == b'\xFD')
