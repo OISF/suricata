@@ -78,7 +78,7 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
 }
 
 static uint16_t RustSMBTCPProbe(Flow *f,
-        uint8_t *input, uint32_t len, uint32_t *offset)
+        uint8_t *input, uint32_t len)
 {
     SCLogDebug("RustSMBTCPProbe");
 

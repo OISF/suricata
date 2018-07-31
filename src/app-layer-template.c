@@ -195,8 +195,7 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *state, uint64_t tx_id)
  * \retval ALPROTO_TEMPLATE if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto TemplateProbingParser(Flow *f, uint8_t *input, uint32_t input_len)
 {
     /* Very simple test - if there is input, this is echo. */
     if (input_len >= TEMPLATE_MIN_FRAME_LEN) {

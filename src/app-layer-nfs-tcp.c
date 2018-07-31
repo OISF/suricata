@@ -112,8 +112,7 @@ static AppLayerDecoderEvents *NFSTCPGetEvents(void *state, uint64_t id)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
 {
     if (input_len < NFSTCP_MIN_FRAME_LEN) {
         return ALPROTO_UNKNOWN;
@@ -130,8 +129,7 @@ static AppProto NFSTCPProbingParserTS(Flow *f, uint8_t *input, uint32_t input_le
     return ALPROTO_UNKNOWN;
 }
 
-static AppProto NFSTCPProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSTCPProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len)
 {
     if (input_len < NFSTCP_MIN_FRAME_LEN) {
         return ALPROTO_UNKNOWN;

@@ -610,7 +610,7 @@ pub extern "C" fn rs_ikev2_state_get_event_info(event_name: *const libc::c_char,
 static mut ALPROTO_IKEV2 : AppProto = ALPROTO_UNKNOWN;
 
 #[no_mangle]
-pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32, _offset: *const u32) -> AppProto {
+pub extern "C" fn rs_ikev2_probing_parser(_flow: *const Flow, input:*const libc::uint8_t, input_len: u32) -> AppProto {
     let slice = build_slice!(input,input_len as usize);
     let alproto = unsafe{ ALPROTO_IKEV2 };
     match parse_ikev2_header(slice) {

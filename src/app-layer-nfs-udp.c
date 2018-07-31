@@ -109,8 +109,7 @@ static AppLayerDecoderEvents *NFSGetEvents(void *state, uint64_t id)
  * \retval ALPROTO_NFS if it looks like echo, otherwise
  *     ALPROTO_UNKNOWN.
  */
-static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {
@@ -131,8 +130,7 @@ static AppProto NFSProbingParserTS(Flow *f, uint8_t *input, uint32_t input_len,
     return ALPROTO_UNKNOWN;
 }
 
-static AppProto NFSProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len,
-    uint32_t *offset)
+static AppProto NFSProbingParserTC(Flow *f, uint8_t *input, uint32_t input_len)
 {
     SCLogDebug("probing");
     if (input_len < NFS_MIN_FRAME_LEN) {

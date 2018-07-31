@@ -1510,8 +1510,7 @@ static int SMBGetAlstateProgress(void *tx, uint8_t direction)
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-                                 uint32_t *offset)
+static uint16_t SMBProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     int32_t len;
     int32_t input_len = ilen;

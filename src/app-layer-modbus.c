@@ -1428,8 +1428,7 @@ static void ModbusStateFree(void *state)
 
 static uint16_t ModbusProbingParser(Flow *f,
                                     uint8_t     *input,
-                                    uint32_t    input_len,
-                                    uint32_t    *offset)
+                                    uint32_t    input_len)
 {
     ModbusHeader *header = (ModbusHeader *) input;
 
