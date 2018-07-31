@@ -1835,8 +1835,10 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, const char *sigstr,
     }
 
     if (!(sig->init_data->init_flags & SIG_FLAG_INIT_FLOW)) {
-        sig->flags |= SIG_FLAG_TOSERVER;
-        sig->flags |= SIG_FLAG_TOCLIENT;
+        if ((sig->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) {
+            sig->flags |= SIG_FLAG_TOSERVER;
+            sig->flags |= SIG_FLAG_TOCLIENT;
+        }
     }
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
