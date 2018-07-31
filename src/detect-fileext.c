@@ -116,9 +116,7 @@ static int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             ret = 1;
             SCLogDebug("File ext found");
         }
-    }
-
-    if (ret == 0 && (fileext->flags & DETECT_CONTENT_NEGATED)) {
+    } else if (fileext->flags & DETECT_CONTENT_NEGATED) {
         SCLogDebug("negated match");
         ret = 1;
     }
