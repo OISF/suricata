@@ -310,7 +310,8 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (!dcerpc_state->dcerpc.dcerpcrequest.first_request_seen)
         goto end;
 
-    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST))
+    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST ||
+          dcerpc_state->dcerpc.dcerpchdr.type == RESPONSE))
         goto end;
 
     TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.accepted_uuid_list, next) {
