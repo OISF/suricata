@@ -427,11 +427,48 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
         SCLogDebug("packet has flow");
         (*mask) |= SIG_MASK_REQUIRE_FLOW;
     }
+
+    if (alproto == ALPROTO_SMB || alproto == ALPROTO_DCERPC) {
+        SCLogDebug("packet will be inspected for DCERPC");
+        (*mask) |= SIG_MASK_REQUIRE_DCERPC;
+    }
+}
+
+static int g_dce_generic_list_id = -1;
+static int g_dce_stub_data_buffer_id = -1;
+
+static bool SignatureNeedsDCERPCMask(const Signature *s)
+{
+    if (g_dce_generic_list_id == -1) {
+        g_dce_generic_list_id = DetectBufferTypeGetByName("dce_generic");
+        SCLogDebug("g_dce_generic_list_id %d", g_dce_generic_list_id);
+    }
+    if (g_dce_stub_data_buffer_id == -1) {
+        g_dce_stub_data_buffer_id = DetectBufferTypeGetByName("dce_stub_data");
+        SCLogDebug("g_dce_stub_data_buffer_id %d", g_dce_stub_data_buffer_id);
+    }
+
+    if (g_dce_generic_list_id >= 0 &&
+            s->init_data->smlists[g_dce_generic_list_id] != NULL)
+    {
+        return true;
+    }
+    if (g_dce_stub_data_buffer_id >= 0 &&
+            s->init_data->smlists[g_dce_stub_data_buffer_id] != NULL)
+    {
+        return true;
+    }
+    return false;
 }
 
 static int SignatureCreateMask(Signature *s)
 {
     SCEnter();
+
+    if (SignatureNeedsDCERPCMask(s)) {
+        s->mask |= SIG_MASK_REQUIRE_DCERPC;
+        SCLogDebug("sig requires DCERPC");
+    }
 
     if (s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;

@@ -266,7 +266,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   (1<<2)    /* SYN, FIN, RST */
 #define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      (1<<3)    /* URG, ECN, CWR */
 #define SIG_MASK_REQUIRE_NO_PAYLOAD         (1<<4)
-//
+#define SIG_MASK_REQUIRE_DCERPC             (1<<5)    /* require either SMB+DCE or raw DCE */
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       (1<<7)
 
 /* for now a uint8_t is enough */
