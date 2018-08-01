@@ -490,6 +490,32 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
     const char *alproto = AppProtoToString(s->alproto);
     json_object_set_new(js, "app_proto", json_string(alproto));
 
+    json_t *js_flags = json_array();
+    if (js_flags != NULL) {
+        if (s->mask & SIG_MASK_REQUIRE_PAYLOAD) {
+            json_array_append_new(js_flags, json_string("payload"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_NO_PAYLOAD) {
+            json_array_append_new(js_flags, json_string("no_payload"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_FLOW) {
+            json_array_append_new(js_flags, json_string("flow"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_FLAGS_INITDEINIT) {
+            json_array_append_new(js_flags, json_string("tcp_flags_init_deinit"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_FLAGS_UNUSUAL) {
+            json_array_append_new(js_flags, json_string("tcp_flags_unusual"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_DCERPC) {
+            json_array_append_new(js_flags, json_string("dcerpc"));
+        }
+        if (s->mask & SIG_MASK_REQUIRE_ENGINE_EVENT) {
+            json_array_append_new(js_flags, json_string("engine_event"));
+        }
+        json_object_set_new(js, "requirements", js_flags);
+    }
+
     if (s->flags & SIG_FLAG_STATE_MATCH) {
         json_t *js_array = json_array();
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
@@ -511,6 +537,8 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 const char *direction = app->dir == 0 ? "toserver" : "toclient";
                 json_object_set_new(js_engine, "direction", json_string(direction));
                 json_object_set_new(js_engine, "is_mpm", json_boolean(app->mpm));
+                json_object_set_new(js_engine, "app_proto", json_string(AppProtoToString(app->alproto)));
+                json_object_set_new(js_engine, "progress", json_integer(app->progress));
 
                 json_t *js_matches = json_array();
                 if (js_matches != NULL) {
