@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2017 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,17 +38,14 @@
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)
 {
-    Signature *s = NULL, *ns;
-
     if (de_ctx == NULL)
         return;
 
-    for (s = de_ctx->sig_list; s != NULL;) {
-        ns = s->next;
+    for (Signature *s = de_ctx->sig_list; s != NULL;) {
+        Signature *ns = s->next;
         SigFree(s);
         s = ns;
     }
-
     de_ctx->sig_list = NULL;
 
     DetectEngineResetMaxSigId(de_ctx);
@@ -65,12 +62,10 @@ void SigCleanSignatures(DetectEngineCtx *de_ctx)
  */
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint32_t gid)
 {
-    Signature *s = NULL;
-
     if (de_ctx == NULL)
         return NULL;
 
-    for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+    for (Signature *s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->id == sid && s->gid == gid)
             return s;
     }
@@ -398,9 +393,6 @@ deonly:
 #define MASK_TCP_UNUSUAL_FLAGS      (TH_URG|TH_ECN|TH_CWR)
 
 /* Create mask for this packet + it's flow if it has one
- *
- * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
- * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 void
 PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto,
