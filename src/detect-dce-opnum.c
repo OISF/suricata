@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -340,40 +340,30 @@ static int DetectDceOpnumMatchRust(ThreadVars *t,
 
 static int DetectDceOpnumSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectDceOpnumData *dod = NULL;
-    SigMatch *sm = NULL;
-
     if (arg == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature, option needs a value");
         return -1;
     }
 
-    //if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-    //    return -1;
-
-    dod = DetectDceOpnumArgParse(arg);
+    DetectDceOpnumData *dod = DetectDceOpnumArgParse(arg);
     if (dod == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dce_opnum option in "
                    "signature");
         return -1;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectDceOpnumFree(dod);
+        return -1;
+    }
 
     sm->type = DETECT_DCE_OPNUM;
     sm->ctx = (void *)dod;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
     return 0;
-
- error:
-    DetectDceOpnumFree(dod);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
 }
 
 static void DetectDceOpnumFree(void *ptr)

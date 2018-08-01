@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -278,8 +278,8 @@ DCERPCState *DetectDceGetState(AppProto alproto, void *alstate)
  * \param dce_data Pointer to the Signature's dce_iface keyword
  *                 state(DetectDceIfaceData *).
  */
-static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
-                                                  DetectDceIfaceData *dce_data)
+static inline int DetectDceIfaceMatchIfaceVersion(const uint16_t version,
+                                                  const DetectDceIfaceData *dce_data)
 {
     switch (dce_data->op) {
         case DETECT_DCE_IFACE_OP_LT:
@@ -316,11 +316,10 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int ret = 0;
-    DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
+    const DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m;
 
     DCERPCUuidEntry *item = NULL;
-    int i = 0;
-    DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
+    const DCERPCState *dcerpc_state = DetectDceGetState(f->alproto, f->alstate);
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
         SCReturnInt(0);
@@ -348,7 +347,7 @@ static int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             continue;
 
         /* check the interface uuid */
-        for (i = 0; i < 16; i++) {
+        for (int i = 0; i < 16; i++) {
             if (dce_data->uuid[i] != item->uuid[i]) {
                 ret = 0;
                 break;
@@ -414,34 +413,24 @@ static int DetectDceIfaceMatchRust(ThreadVars *t,
 
 static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, const char *arg)
 {
-    DetectDceIfaceData *did = NULL;
-    SigMatch *sm = NULL;
-
-//    if (DetectSignatureSetAppProto(s, ALPROTO_DCERPC) != 0)
-//        return -1;
-
-    did = DetectDceIfaceArgParse(arg);
+    DetectDceIfaceData *did = DetectDceIfaceArgParse(arg);
     if (did == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing dec_iface option in "
                    "signature");
         return -1;
     }
 
-    sm = SigMatchAlloc();
-    if (sm == NULL)
-        goto error;
+    SigMatch *sm = SigMatchAlloc();
+    if (sm == NULL) {
+        DetectDceIfaceFree(did);
+        return -1;
+    }
 
     sm->type = DETECT_DCE_IFACE;
     sm->ctx = (void *)did;
 
     SigMatchAppendSMToList(s, sm, g_dce_generic_list_id);
     return 0;
-
- error:
-    DetectDceIfaceFree(did);
-    if (sm != NULL)
-        SCFree(sm);
-    return -1;
 }
 
 static void DetectDceIfaceFree(void *ptr)
