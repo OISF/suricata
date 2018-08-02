@@ -427,7 +427,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
 {
     const uint8_t *input = (uint8_t *)initial_input;
 
-    Asn1Generic *cert;
+    Asn1Generic *cert = NULL;
 
     if (!(HAS_SPACE(3)))
         return 1;
@@ -484,6 +484,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
                 goto error;
 
             DerFree(cert);
+            cert = NULL;
         }
 
         rc = TlsDecodeHSCertificateAddCertToChain(ssl_state, input, cert_len);
