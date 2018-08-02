@@ -63,6 +63,8 @@
 /* content-inspect-window default value */
 #define FILEDATA_CONTENT_INSPECT_WINDOW 4096
 
+/* raw extraction default value */
+#define SMTP_RAW_EXTRACTION_DEFAULT_VALUE 0
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
@@ -231,7 +233,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -326,6 +328,18 @@ static void SMTPConfigure(void) {
     }
 
     smtp_config.sbcfg.buf_size = content_limit ? content_limit : 256;
+
+    if (ConfGetBool("app-layer.protocols.smtp.raw-extraction",
+            &smtp_config.raw_extraction) != 1) {
+        smtp_config.raw_extraction = SMTP_RAW_EXTRACTION_DEFAULT_VALUE;
+    }
+    if (smtp_config.raw_extraction && smtp_config.decode_mime) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR,
+                "\"decode-mime\" and \"raw-extraction\" "
+                "options can't be enabled at the same time, "
+                "disabling raw extraction");
+        smtp_config.raw_extraction = 0;
+    }
 
     SCReturn;
 }
@@ -856,8 +870,11 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
          * the command buffer to be used by the reply handler to match
          * the reply received */
         SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
-
-        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
+        if (smtp_config.raw_extraction) {
+            /* we use this as the signal that message data is complete. */
+            FileCloseFile(state->files_ts, NULL, 0, 0);
+        } else if (smtp_config.decode_mime &&
+                state->curr_tx->mime_state != NULL) {
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
@@ -870,6 +887,11 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
         }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
+    } else if (smtp_config.raw_extraction) {
+        // message not over, store the line. This is a substitution of
+        // ProcessDataChunk
+        FileAppendData(state->files_ts, state->current_line,
+                state->current_line_len+state->current_line_delimiter_len);
     }
 
     /* If DATA, then parse out a MIME message */
@@ -1167,7 +1189,29 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
-            if (smtp_config.decode_mime) {
+            if (smtp_config.raw_extraction) {
+                const char *msgname = "rawmsg"; /* XXX have a better name */
+                if (state->files_ts == NULL)
+                    state->files_ts = FileContainerAlloc();
+                if (state->files_ts == NULL) {
+                    return -1;
+                }
+                if (state->tx_cnt > 1 && !state->curr_tx->done) {
+                    // we did not close the previous tx, set error
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
+                    FileCloseFile(state->files_ts, NULL, 0, FILE_TRUNCATED);
+                    tx = SMTPTransactionCreate();
+                    if (tx == NULL)
+                        return -1;
+                    state->curr_tx = tx;
+                    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+                    tx->tx_id = state->tx_cnt++;
+                }
+                FileOpenFile(state->files_ts, &smtp_config.sbcfg,
+                        (uint8_t*) msgname, strlen(msgname), NULL, 0,
+                        FILE_NOMD5|FILE_NOMAGIC);
+                FlagDetectStateNewFile(state->curr_tx);
+            } else if (smtp_config.decode_mime) {
                 if (tx->mime_state) {
                     /* We have 2 chained mails and did not detect the end
                      * of first one. So we start a new transaction. */
