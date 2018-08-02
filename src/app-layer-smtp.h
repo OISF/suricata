@@ -100,6 +100,8 @@ typedef struct SMTPConfig {
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
 
+    int raw_extraction;
+
     StreamingBufferConfig sbcfg;
 } SMTPConfig;
 
