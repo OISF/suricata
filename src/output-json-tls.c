@@ -139,8 +139,10 @@ static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
 
 static void JsonTlsLogFingerprint(json_t *js, SSLState *ssl_state)
 {
-    json_object_set_new(js, "fingerprint",
-                        json_string(ssl_state->server_connp.cert0_fingerprint));
+    if (ssl_state->server_connp.cert0_fingerprint) {
+        json_object_set_new(js, "fingerprint",
+                json_string(ssl_state->server_connp.cert0_fingerprint));
+    }
 }
 
 static void JsonTlsLogSni(json_t *js, SSLState *ssl_state)
