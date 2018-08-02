@@ -139,7 +139,7 @@ impl Json {
 fn to_cstring(val: &[u8]) -> CString {
     let mut safe = Vec::with_capacity(val.len());
     for c in val {
-        if *c == 0 || *c > 0x7f {
+        if *c < 0x20 || *c > 0x7e {
             safe.extend(format!("\\x{:02x}", *c).as_bytes());
         } else {
             safe.push(*c);
