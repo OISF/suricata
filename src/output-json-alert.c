@@ -424,6 +424,13 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
+    if (p->flow && (p->flowflags & (FLOW_PKT_TOCLIENT|FLOW_PKT_TOSERVER))) {
+        if (p->flowflags & FLOW_PKT_TOCLIENT)
+            json_object_set_new(js, "direction", json_string("to_client"));
+        else
+            json_object_set_new(js, "direction", json_string("to_server"));
+    }
+
     if (json_output_ctx->include_metadata) {
         JsonAddMetadata(p, p->flow, js);
     }
