@@ -2172,6 +2172,25 @@ unlimited.
         # Stream reassembly size for modbus, default is 0
         stream-depth: 0
 
+SMTP
+~~~~~~
+
+SMTP parsers can extract files from attachments.
+It is also possible to extract raw conversations as files with the
+key ``raw-extraction``. Note that in this case the whole conversation
+will be stored as a file, including SMTP headers and body content. The filename
+will be set to "rawmsg". Usual file-related signatures will match on the raw
+content of the email.
+This configuration parameter has a ``false`` default value. It is
+incompatible with ``decode-mime``. If both are enabled,
+``raw-extraction`` will be automatically disabled.
+
+::
+
+      smtp:
+        # extract messages in raw format from SMTP
+        raw-extraction: true
+
 Decoder
 -------
 
