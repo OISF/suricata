@@ -77,11 +77,10 @@ json_t *JsonSMBAddMetadata(const Flow *f, uint64_t tx_id)
 static int JsonSMBLogger(ThreadVars *tv, void *thread_data,
     const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
-    //SMBTransaction *smbtx = tx;
     LogSMBLogThread *thread = thread_data;
     json_t *js, *smbjs;
 
-    js = CreateJSONHeader((Packet *)p, 0, "smb");
+    js = CreateJSONHeader(p, LOG_DIR_FLOW, "smb");
     if (unlikely(js == NULL)) {
         return TM_ECODE_FAILED;
     }
