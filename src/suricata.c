@@ -2599,6 +2599,30 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
     }
 }
 
+static int PostDeviceFinalizedSetup(SCInstance *suri)
+{
+    SCEnter();
+
+#ifdef HAVE_AF_PACKET
+    if (suri->run_mode == RUNMODE_AFP_DEV) {
+        if (AFPRunModeIsIPS()) {
+            SCLogInfo("AF_PACKET: Setting IPS mode");
+            EngineModeSetIPS();
+        }
+    }
+#endif
+#ifdef HAVE_NETMAP
+    if (suri->run_mode == RUNMODE_NETMAP) {
+        if (NetmapRunModeIsIPS()) {
+            SCLogInfo("Netmap: Setting IPS mode");
+            EngineModeSetIPS();
+        }
+    }
+#endif
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
 /**
  * This function is meant to contain code that needs
  * to be run once the configuration has been loaded.
@@ -2795,29 +2819,11 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     PreRunInit(suri->run_mode);
 
-    SCReturnInt(TM_ECODE_OK);
-}
+    LiveDeviceFinalize();
 
-static int PostDeviceFinalizedSetup(SCInstance *suri)
-{
-	SCEnter();
-
-#ifdef HAVE_AF_PACKET
-	if (suri->run_mode == RUNMODE_AFP_DEV) {
-        if (AFPRunModeIsIPS()) {
-            SCLogInfo("AF_PACKET: Setting IPS mode");
-            EngineModeSetIPS();
-        }
+    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
     }
-#endif
-#ifdef HAVE_NETMAP
-    if (suri->run_mode == RUNMODE_NETMAP) {
-        if (NetmapRunModeIsIPS()) {
-            SCLogInfo("Netmap: Setting IPS mode");
-            EngineModeSetIPS();
-        }
-    }
-#endif
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -2965,12 +2971,6 @@ int main(int argc, char **argv)
     }
 
     if (PostConfLoadedSetup(&suricata) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    LiveDeviceFinalize();
-
-    if (PostDeviceFinalizedSetup(&suricata) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
