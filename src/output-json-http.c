@@ -202,6 +202,18 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
         }
     }
 
+    /* port */
+    /* NOTE: that this field will be set ONLY if the port is present in the
+     * hostname. It may be present in the header "Hostname" or in the URL.
+     * There is no connection (from the suricata point of view) between this
+     * port and the TCP destination port of the flow.
+     */
+    if (tx->request_port_number >= 0)
+    {
+        json_object_set_new(js, "http_port",
+                json_integer(tx->request_port_number));
+    }
+
     /* uri */
     if (tx->request_uri != NULL)
     {
