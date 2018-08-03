@@ -66,7 +66,7 @@ typedef struct JsonFlowLogThread_ {
 static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 {
     char timebuf[64];
-    char srcip[46], dstip[46];
+    char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
 
     json_t *js = json_object();
@@ -79,18 +79,27 @@ static json_t *CreateJSONHeaderFromFlow(const Flow *f, const char *event_type)
 
     CreateIsoTimeString(&tv, timebuf, sizeof(timebuf));
 
-    srcip[0] = '\0';
-    dstip[0] = '\0';
-    if (FLOW_IS_IPV4(f)) {
-        PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
-    } else if (FLOW_IS_IPV6(f)) {
-        PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+    if ((f->flags & FLOW_DIR_REVERSED) == 0) {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->src.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), dstip, sizeof(dstip));
+        }
+        sp = f->sp;
+        dp = f->dp;
+    } else {
+        if (FLOW_IS_IPV4(f)) {
+            PrintInet(AF_INET, (const void *)&(f->dst.addr_data32[0]), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)&(f->src.addr_data32[0]), dstip, sizeof(dstip));
+        } else if (FLOW_IS_IPV6(f)) {
+            PrintInet(AF_INET6, (const void *)&(f->dst.address), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)&(f->src.address), dstip, sizeof(dstip));
+        }
+        sp = f->dp;
+        dp = f->sp;
     }
-
-    sp = f->sp;
-    dp = f->dp;
 
     char proto[16];
     if (SCProtoNameValid(f->proto) == TRUE) {

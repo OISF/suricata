@@ -430,7 +430,7 @@ void JsonTcpFlags(uint8_t flags, json_t *js)
  */
 void JsonFiveTuple(const Packet *p, enum OutputJsonLogDirection dir, json_t *js)
 {
-    char srcip[46] = "", dstip[46] = "";
+    char srcip[46] = {0}, dstip[46] = {0};
     Port sp, dp;
     char proto[16];
 
