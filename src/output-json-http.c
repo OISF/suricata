@@ -202,6 +202,13 @@ static void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
         }
     }
 
+    /* port */
+    if (tx->request_port_number >= 0)
+    {
+        json_object_set_new(js, "http_port",
+                json_integer(tx->request_port_number));
+    }
+
     /* uri */
     if (tx->request_uri != NULL)
     {
