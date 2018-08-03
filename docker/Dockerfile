@@ -55,9 +55,10 @@ WORKDIR /tmp/suricata
 RUN git clone https://github.com/OISF/libhtp
 
 # Compile and install Suricata from source.
-# TODO: "make install-conf" doesn't add suricata to PATH,
-# so we're using "install-full" for now.
-RUN chmod +x autogen.sh && ./autogen.sh && \
+# TODO: "make install-conf" doesn't add suricata to PATH
+# which suricata-update complains about, so we're using
+# "install-full" for now.
+RUN chmod +x /tmp/suricata/autogen.sh && ./autogen.sh && \
     ./configure --enable-geopip --enable-lua --enable-nfqueue --prefix=/usr --sysconfdir=/etc --localstatedir=/var && \
     make && \
     make install-full && \
