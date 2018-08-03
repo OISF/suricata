@@ -49,18 +49,18 @@ RUN apt-get -y update && \
     apt-get -y install ${APT_PACKAGES} && \
     mkdir /build
 
-# Copy in the Suricata source and enter the directory.
+# Copy in the Suricata source.
 COPY . /build/suricata
-WORKDIR /build/suricata
 
 # Drop in the LibHTP parser.
-RUN git clone https://github.com/OISF/libhtp
+RUN git clone https://github.com/OISF/libhtp /build/suricata/
 
 # Compile and install Suricata from source.
 # TODO: "make install-conf" doesn't add suricata to PATH
 # which suricata-update complains about, so we're using
 # "install-full" for now.
-RUN chmod +x autogen.sh && ./autogen.sh && \
+RUN cd /build/suricata && \
+    chmod +x autogen.sh && ./autogen.sh && \
     ./configure --enable-geopip --enable-lua --enable-nfqueue --prefix=/usr --sysconfdir=/etc --localstatedir=/var && \
     make && \
     make install-full && \
@@ -70,7 +70,6 @@ RUN chmod +x autogen.sh && ./autogen.sh && \
 RUN pip install --pre --upgrade ${PIP_PACKAGES}
 
 # Cleanup.
-WORKDIR /root
 RUN rm -rf /var/lib/apt/lists/* && \
     rm -rf /build
 
