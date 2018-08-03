@@ -201,8 +201,7 @@ impl DHCPState {
 #[no_mangle]
 pub extern "C" fn rs_dhcp_probing_parser(_flow: *const Flow,
                                          input: *const libc::uint8_t,
-                                         input_len: u32,
-                                         _offset: *const u32) -> AppProto {
+                                         input_len: u32) -> AppProto {
     if input_len < DHCP_MIN_FRAME_LEN {
         return ALPROTO_UNKNOWN;
     }

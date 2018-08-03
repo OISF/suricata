@@ -420,9 +420,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -441,9 +441,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         }
 
         if (direction & STREAM_TOSERVER && pe->ProbingParserTs != NULL) {
-            alproto = pe->ProbingParserTs(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTs(f, buf, buflen);
         } else if (pe->ProbingParserTc != NULL) {
-            alproto = pe->ProbingParserTc(f, buf, buflen, NULL);
+            alproto = pe->ProbingParserTc(f, buf, buflen);
         }
         if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             goto end;
@@ -1355,11 +1355,10 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     SCEnter();
 
     AppProto alproto = ALPROTO_UNKNOWN;
-    AppProto pm_results[ALPROTO_MAX];
-    uint16_t pm_matches;
 
     if (!FLOW_IS_PM_DONE(f, direction)) {
-        pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
+        AppProto pm_results[ALPROTO_MAX];
+        uint16_t pm_matches = AppLayerProtoDetectPMGetProto(tctx, f,
                                                    buf, buflen,
                                                    direction,
                                                    ipproto,
@@ -3106,8 +3105,7 @@ static int AppLayerProtoDetectPPTestData(AppLayerProtoDetectProbingParser *pp,
 
 static uint16_t ProbingParserDummyForTesting(Flow *f,
                                              uint8_t *input,
-                                             uint32_t input_len,
-                                             uint32_t *offset)
+                                             uint32_t input_len)
 {
     return 0;
 }

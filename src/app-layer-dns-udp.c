@@ -330,8 +330,7 @@ insufficient_data:
     SCReturnInt(-1);
 }
 
-static uint16_t DNSUdpProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-                                    uint32_t *offset)
+static uint16_t DNSUdpProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     if (ilen == 0 || ilen < sizeof(DNSHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSHeader));

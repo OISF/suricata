@@ -1857,22 +1857,36 @@ pub extern "C" fn rs_smb_parse_response_tcp_gap(
     return -1;
 }
 
+// probing parser
+// return 1 if found, 0 is not found
 #[no_mangle]
 pub extern "C" fn rs_smb_probe_tcp(input: *const libc::uint8_t, len: libc::uint32_t)
                                -> libc::int8_t
 {
-    let slice: &[u8] = unsafe {
-        std::slice::from_raw_parts(input as *mut u8, len as usize)
-    };
+    let slice = build_slice!(input, len as usize);
+    match search_smb_record(slice) {
+        IResult::Done(_, _) => {
+            SCLogDebug!("smb found");
+            return 1;
+        },
+        _ => {
+            SCLogDebug!("smb not found in {:?}", slice);
+        },
+    }
     match parse_nbss_record_partial(slice) {
         IResult::Done(_, ref hdr) => {
             if hdr.is_smb() {
+                SCLogDebug!("smb found");
+                return 1;
+            } else if hdr.is_valid() {
+                SCLogDebug!("nbss found, assume smb");
                 return 1;
             }
         },
         _ => { },
     }
-    return 1
+    SCLogDebug!("no smb");
+    return -1
 }
 
 #[no_mangle]

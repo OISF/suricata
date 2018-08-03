@@ -427,7 +427,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
 {
     const uint8_t *input = (uint8_t *)initial_input;
 
-    Asn1Generic *cert;
+    Asn1Generic *cert = NULL;
 
     if (!(HAS_SPACE(3)))
         return 1;
@@ -484,6 +484,7 @@ static int TlsDecodeHSCertificate(SSLState *ssl_state,
                 goto error;
 
             DerFree(cert);
+            cert = NULL;
         }
 
         rc = TlsDecodeHSCertificateAddCertToChain(ssl_state, input, cert_len);
@@ -2332,8 +2333,7 @@ static void SSLStateTransactionFree(void *state, uint64_t tx_id)
     /* do nothing */
 }
 
-static uint16_t SSLProbingParser(Flow *f, uint8_t *input, uint32_t ilen,
-                                 uint32_t *offset)
+static uint16_t SSLProbingParser(Flow *f, uint8_t *input, uint32_t ilen)
 {
     /* probably a rst/fin sending an eof */
     if (ilen == 0)

@@ -95,7 +95,7 @@ static int JsonNFSLogger(ThreadVars *tv, void *thread_data,
     NFSTransaction *nfstx = tx;
     LogNFSLogThread *thread = thread_data;
 
-    if (rs_nfs_tx_logging_is_filtered(nfstx))
+    if (rs_nfs_tx_logging_is_filtered(state, nfstx))
         return TM_ECODE_OK;
 
     json_t *js = CreateJSONHeader(p, LOG_DIR_PACKET, "nfs");

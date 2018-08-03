@@ -50,8 +50,7 @@ static int RustDNSUDPParseResponse(Flow *f, void *state,
             local_data);
 }
 
-static uint16_t DNSUDPProbe(Flow *f, uint8_t *input, uint32_t len,
-                            uint32_t *offset)
+static uint16_t DNSUDPProbe(Flow *f, uint8_t *input, uint32_t len)
 {
     if (len == 0 || len < sizeof(DNSHeader)) {
         return ALPROTO_UNKNOWN;

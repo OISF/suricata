@@ -78,7 +78,7 @@ static int RustSMBTCPParseResponse(Flow *f, void *state,
 }
 
 static uint16_t RustSMBTCPProbe(Flow *f,
-        uint8_t *input, uint32_t len, uint32_t *offset)
+        uint8_t *input, uint32_t len)
 {
     SCLogDebug("RustSMBTCPProbe");
 
@@ -86,12 +86,16 @@ static uint16_t RustSMBTCPProbe(Flow *f,
         return ALPROTO_UNKNOWN;
     }
 
-    // Validate and return ALPROTO_FAILED if needed.
-    if (!rs_smb_probe_tcp(input, len)) {
-        return ALPROTO_FAILED;
+    const int r = rs_smb_probe_tcp(input, len);
+    switch (r) {
+        case 1:
+            return ALPROTO_SMB;
+        case 0:
+            return ALPROTO_UNKNOWN;
+        case -1:
+        default:
+            return ALPROTO_FAILED;
     }
-
-    return ALPROTO_SMB;
 }
 
 static int RustSMBGetAlstateProgress(void *tx, uint8_t direction)
