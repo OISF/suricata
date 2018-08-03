@@ -53,7 +53,7 @@ RUN apt-get -y update && \
 COPY . /build/suricata
 
 # Drop in the LibHTP parser.
-RUN git clone https://github.com/OISF/libhtp /build/suricata/
+RUN git clone https://github.com/OISF/libhtp /build/suricata/libhtp
 
 # Compile and install Suricata from source.
 # TODO: "make install-conf" doesn't add suricata to PATH
