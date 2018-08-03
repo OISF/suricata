@@ -101,6 +101,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_CHANGE_PROTO               BIT_U32(24)
 
 #define FLOW_WRONG_THREAD               BIT_U32(25)
+/** Protocol detection told us flow is picked up in wrong direction (midstream) */
+#define FLOW_DIR_REVERSED               BIT_U32(26)
 
 /* File flags */
 
@@ -485,6 +487,7 @@ int FlowHasAlerts(const Flow *);
 void FlowSetChangeProtoFlag(Flow *);
 void FlowUnsetChangeProtoFlag(Flow *);
 int FlowChangeProto(Flow *);
+void FlowSwap(Flow *);
 
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);

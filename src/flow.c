@@ -246,6 +246,72 @@ int FlowChangeProto(Flow *f)
     return 0;
 }
 
+static inline void FlowSwapFlags(Flow *f)
+{
+    SWAP_FLAGS(f->flags, FLOW_TO_SRC_SEEN, FLOW_TO_DST_SEEN);
+    SWAP_FLAGS(f->flags, FLOW_TOSERVER_IPONLY_SET, FLOW_TOCLIENT_IPONLY_SET);
+    SWAP_FLAGS(f->flags, FLOW_SGH_TOSERVER, FLOW_SGH_TOCLIENT);
+
+    SWAP_FLAGS(f->flags, FLOW_TOSERVER_DROP_LOGGED, FLOW_TOCLIENT_DROP_LOGGED);
+    SWAP_FLAGS(f->flags, FLOW_TS_PM_ALPROTO_DETECT_DONE, FLOW_TC_PM_ALPROTO_DETECT_DONE);
+    SWAP_FLAGS(f->flags, FLOW_TS_PP_ALPROTO_DETECT_DONE, FLOW_TC_PP_ALPROTO_DETECT_DONE);
+    SWAP_FLAGS(f->flags, FLOW_TS_PE_ALPROTO_DETECT_DONE, FLOW_TC_PE_ALPROTO_DETECT_DONE);
+
+    SWAP_FLAGS(f->flags, FLOW_PROTO_DETECT_TS_DONE, FLOW_PROTO_DETECT_TC_DONE);
+}
+
+static inline void FlowSwapFileFlags(Flow *f)
+{
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
+    SWAP_FLAGS(f->file_flags, FLOWFILE_NO_MAGIC_TS, FLOWFILE_NO_MAGIC_TC);
+}
+
+static inline void TcpStreamFlowSwap(Flow *f)
+{
+    TcpSession *ssn = f->protoctx;
+    SWAP_VARS(TcpStream, ssn->server, ssn->client);
+    if (ssn->data_first_seen_dir & STREAM_TOSERVER) {
+        ssn->data_first_seen_dir = STREAM_TOCLIENT;
+    } else if (ssn->data_first_seen_dir & STREAM_TOCLIENT) {
+        ssn->data_first_seen_dir = STREAM_TOSERVER;
+    }
+}
+
+/** \brief swap the flow's direction
+ *  \note leaves the 'header' untouched. Interpret that based
+ *        on FLOW_DIR_REVERSED flag.
+ *  \warning: only valid before applayer parsing started. This
+ *            function doesn't swap anything in Flow::alparser,
+ *            Flow::alstate
+ */
+void FlowSwap(Flow *f)
+{
+    f->flags |= FLOW_DIR_REVERSED;
+
+    SWAP_VARS(uint32_t, f->probing_parser_toserver_alproto_masks,
+                   f->probing_parser_toclient_alproto_masks);
+
+    FlowSwapFlags(f);
+    FlowSwapFileFlags(f);
+
+    if (f->proto == IPPROTO_TCP) {
+        TcpStreamFlowSwap(f);
+    }
+
+    SWAP_VARS(AppProto, f->alproto_ts, f->alproto_tc);
+    SWAP_VARS(uint8_t, f->min_ttl_toserver, f->max_ttl_toserver);
+    SWAP_VARS(uint8_t, f->min_ttl_toclient, f->max_ttl_toclient);
+
+    /* not touching Flow::alparser and Flow::alstate */
+
+    SWAP_VARS(const void *, f->sgh_toclient, f->sgh_toserver);
+
+    SWAP_VARS(uint32_t, f->todstpktcnt, f->tosrcpktcnt);
+    SWAP_VARS(uint64_t, f->todstbytecnt, f->tosrcbytecnt);
+}
+
 /**
  *  \brief determine the direction of the packet compared to the flow
  *  \retval 0 to_server
@@ -253,26 +319,28 @@ int FlowChangeProto(Flow *f)
  */
 int FlowGetPacketDirection(const Flow *f, const Packet *p)
 {
+    const int reverse = (f->flags & FLOW_DIR_REVERSED) != 0;
+
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
             /* update flags and counters */
             if (CMP_PORT(f->sp,p->sp)) {
-                return TOSERVER;
+                return TOSERVER ^ reverse;
             } else {
-                return TOCLIENT;
+                return TOCLIENT ^ reverse;
             }
         } else {
             if (CMP_ADDR(&f->src,&p->src)) {
-                return TOSERVER;
+                return TOSERVER ^ reverse;
             } else {
-                return TOCLIENT;
+                return TOCLIENT ^ reverse;
             }
         }
     } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
         if (CMP_ADDR(&f->src,&p->src)) {
-            return TOSERVER;
+            return TOSERVER  ^ reverse;
         } else {
-            return TOCLIENT;
+            return TOCLIENT ^ reverse;
         }
     }
 
