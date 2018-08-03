@@ -43,13 +43,15 @@ ENV PIP_PACKAGES \
 # Tell systemd we're in Docker.
 ENV container docker
 
-# Install the APT packages.
+# Install the APT packages and create a temp
+# directory for build sources.
 RUN apt-get -y update && \
-    apt-get -y install ${APT_PACKAGES}
+    apt-get -y install ${APT_PACKAGES} && \
+    mkdir /build
 
 # Copy in the Suricata source and enter the directory.
-COPY . /tmp/suricata/
-WORKDIR /tmp/suricata
+COPY . /build/suricata
+WORKDIR /build/suricata
 
 # Drop in the LibHTP parser.
 RUN git clone https://github.com/OISF/libhtp
@@ -58,7 +60,7 @@ RUN git clone https://github.com/OISF/libhtp
 # TODO: "make install-conf" doesn't add suricata to PATH
 # which suricata-update complains about, so we're using
 # "install-full" for now.
-RUN chmod +x /tmp/suricata/autogen.sh && ./autogen.sh && \
+RUN chmod +x autogen.sh && ./autogen.sh && \
     ./configure --enable-geopip --enable-lua --enable-nfqueue --prefix=/usr --sysconfdir=/etc --localstatedir=/var && \
     make && \
     make install-full && \
@@ -68,13 +70,14 @@ RUN chmod +x /tmp/suricata/autogen.sh && ./autogen.sh && \
 RUN pip install --pre --upgrade ${PIP_PACKAGES}
 
 # Cleanup.
-WORKDIR /
+WORKDIR /root
 RUN rm -rf /var/lib/apt/lists/* && \
-    rm -rf /tmp/*
+    rm -rf /build
 
 # Inject an entrypoint script to run suricata-update then suricata
 # with suricata-update's rules applied.
-RUN echo "#!/bin/sh\nsuricata-update && suricata -S /var/lib/suricata/rules/suricata.rules \$@" > /usr/local/bin/entrypoint.sh && \
+RUN echo "#!/bin/sh\nsuricata-update && suricata -S /var/lib/suricata/rules/suricata.rules \$@" \
+    > /usr/local/bin/entrypoint.sh && \
     chmod +x /usr/local/bin/entrypoint.sh
 
 # Additional arguments are provided at the run command and passed
