@@ -1,0 +1,394 @@
+.\" Man page generated from reStructuredText.
+.
+.TH "SURICATA" "1" "August 03, 2018" "4.1.0-dev" "Suricata"
+.SH NAME
+suricata \- Suricata
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.SH SYNOPSIS
+.sp
+\fBsuricata\fP [OPTIONS] [BPF FILTER]
+.SH DESCRIPTION
+.sp
+Suricata is a high performance Network IDS, IPS and Network Security
+Monitoring engine. Open Source and owned by a community run non\-profit
+foundation, the Open Information Security Foundation (OISF).
+.SH OPTIONS
+.INDENT 0.0
+.TP
+.B \-h
+Display a brief usage overview.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-V
+Displays the version of Suricata.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-c <path>
+Path to configuration file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-T
+Test configuration.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-v
+The \-v option enables more verbosity of Suricata\(aqs output. Supply
+multiple times for more verbosity.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-r <path>
+Run in pcap offline mode (replay mode) reading files from pcap file. If
+<path> specifies a directory, all files in that directory will be processed
+in order of modified time maintaining flow state between files.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pcap\-file\-continuous
+Used with the \-r option to indicate that the mode should stay alive until
+interrupted. This is useful with directories to add new files and not reset
+flow state between files.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pcap\-file\-delete
+Used with the \-r option to indicate that the mode should delete pcap files
+after they have been processed. This is useful with pcap\-file\-continuous to
+continuously feed files to a directory and have them cleaned up when done. If
+this option is not set, pcap files will not be deleted after processing.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-i <interface>
+After the \-i option you can enter the interface card you would like
+to use to sniff packets from.  This option will try to use the best
+capture method available.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pcap[=<device>]
+Run in PCAP mode. If no device is provided the interfaces
+provided in the \fIpcap\fP section of the configuration file will be
+used.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-af\-packet[=<device>]
+Enable capture of packet using AF_PACKET on Linux. If no device is
+supplied, the list of devices from the af\-packet section in the
+yaml is used.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-q <queue id>
+Run inline of the NFQUEUE queue ID provided. May be provided
+multiple times.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-s <filename.rules>
+With the \-s option you can set a file with signatures, which will
+be loaded together with the rules set in the yaml.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-S <filename.rules>
+With the \-S option you can set a file with signatures, which will
+be loaded exclusively, regardless of the rules set in the yaml.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-l <directory>
+With the \-l option you can set the default log directory. If you
+already have the default\-log\-dir set in yaml, it will not be used
+by Suricata if you use the \-l option. It will use the log dir that
+is set with the \-l option. If you do not set a directory with
+the \-l option, Suricata will use the directory that is set in yaml.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-D
+Normally if you run Suricata on your console, it keeps your console
+occupied. You can not use it for other purposes, and when you close
+the window, Suricata stops running.  If you run Suricata as daemon
+(using the \-D option), it runs at the background and you will be
+able to use the console for other tasks without disturbing the
+engine running.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-runmode <runmode>
+With the \fI\-\-runmode\fP option you can set the runmode that you would
+like to use. This command line option can override the yaml runmode
+option.
+.sp
+Runmodes are: \fIworkers\fP, \fIautofp\fP and \fIsingle\fP\&.
+.sp
+For more information about runmodes see \fBRunmodes\fP in the user guide.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-F <bpf filter file>
+Use BPF filter from file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-k [all|none]
+Force (all) the checksum check or disable (none) all checksum
+checks.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-user=<user>
+Set the process user after initialization. Overrides the user
+provided in the \fIrun\-as\fP section of the configuration file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-group=<group>
+Set the process group to group after initialization. Overrides the
+group provided in the \fIrun\-as\fP section of the configuration file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pidfile <file>
+Write the process ID to file. Overrides the \fIpid\-file\fP option in
+the configuration file and forces the file to be written when not
+running as a daemon.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-init\-errors\-fatal
+Exit with a failure when errors are encountered loading signatures.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-disable\-detection
+Disable the detection engine.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-dump\-config
+Dump the configuration loaded from the configuration file to the
+terminal and exit.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-build\-info
+Display the build information the Suricata was built with.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-list\-app\-layer\-protos
+List all supported application layer protocols.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-list\-keywords=[all|csv|<kword>]
+List all supported rule keywords.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-list\-runmodes
+List all supported run modes.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-set <key>=<value>
+Set a configuration value. Useful for overriding basic
+configuration parameters in the configuration. For example, to
+change the default log directory:
+.INDENT 7.0
+.INDENT 3.5
+.sp
+.nf
+.ft C
+\-\-set default\-log\-dir=/var/tmp
+.ft P
+.fi
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-engine\-analysis
+Print reports on analysis of different sections in the engine and
+exit. Please have a look at the conf parameter engine\-analysis on
+what reports can be printed
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-unix\-socket=<file>
+Use file as the Suricata unix control socket. Overrides the
+\fIfilename\fP provided in the \fIunix\-command\fP section of the
+configuration file.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pcap\-buffer\-size=<size>
+Set the size of the PCAP buffer (0 \- 2147483647).
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-netmap[=<device>]
+Enable capture of packet using NETMAP on FreeBSD or Linux. If no
+device is supplied, the list of devices from the netmap section
+in the yaml is used.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pfring[=<device>]
+Enable PF_RING packet capture. If no device provided, the devices in
+the Suricata configuration will be used.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pfring\-cluster\-id <id>
+Set the PF_RING cluster ID.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-pfring\-cluster\-type <type>
+Set the PF_RING cluster type (cluster_round_robin, cluster_flow).
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-d <divert\-port>
+Run inline using IPFW divert mode.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-dag <device>
+Enable packet capture off a DAG card. If capturing off a specific
+stream the stream can be select using a device name like
+"dag0:4". This option may be provided multiple times read off
+multiple devices and/or streams.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-napatech
+Enable packet capture using the Napatech Streams API.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-mpipe
+Enable packet capture using the TileGX mpipe interface.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-erf\-in=<file>
+Run in offline mode reading the specific ERF file (Endace
+extensible record format).
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-simulate\-ips
+Simulate IPS mode when running in a non\-IPS mode.
+.UNINDENT
+.SH OPTIONS FOR DEVELOPERS
+.INDENT 0.0
+.TP
+.B \-u
+Run the unit tests and exit. Requires that Suricata be compiled
+with \fI\-\-enable\-unittests\fP\&.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-U, \-\-unittest\-filter=REGEX
+With the \-U option you can select which of the unit tests you want
+to run. This option uses REGEX. Example of use: suricata \-u \-U
+http
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-list\-unittests
+List all unit tests.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-fatal\-unittests
+Enables fatal failure on a unit test error. Suricata will exit
+instead of continuing more tests.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-\-unittests\-coverage
+Display unit test coverage report.
+.UNINDENT
+.SH SIGNALS
+.sp
+Suricata will respond to the following signals:
+.INDENT 0.0
+.TP
+.B SIGUSR2
+Causes Suricata to perform a live rule reload.
+.TP
+.B SIGHUP
+Causes Suricata to close and re\-open all log files. This can be
+used to re\-open log files after they may have been moved away by
+log rotation utilities.
+.UNINDENT
+.SH FILES AND DIRECTORIES
+.INDENT 0.0
+.TP
+.B /home/axelrod/lastline/suricata\-mabba\-github/build\-test/etc/suricata/suricata.yaml
+Default location of the Suricata configuration file.
+.TP
+.B /home/axelrod/lastline/suricata\-mabba\-github/build\-test/qa/log/suricata
+Default Suricata log directory.
+.UNINDENT
+.SH BUGS
+.sp
+Please visit Suricata\(aqs support page for information about submitting
+bugs or feature requests.
+.SH NOTES
+.INDENT 0.0
+.IP \(bu 2
+Suricata Home Page
+.INDENT 2.0
+.INDENT 3.5
+\fI\%https://suricata\-ids.org/\fP
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Suricata Support Page
+.INDENT 2.0
+.INDENT 3.5
+\fI\%https://suricata\-ids.org/support/\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2016, OISF
+.\" Generated by docutils manpage writer.
+.

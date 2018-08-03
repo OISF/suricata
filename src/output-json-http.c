@@ -72,11 +72,15 @@ typedef struct JsonHttpLogThread_ {
     MemBuffer *buffer;
 } JsonHttpLogThread;
 
+#define MAX_SIZE_HEADER_NAME 256
+#define MAX_SIZE_HEADER_VALUE 2048
 
 #define LOG_HTTP_DEFAULT 0
 #define LOG_HTTP_EXTENDED 1
 #define LOG_HTTP_REQUEST 2 /* request field */
 #define LOG_HTTP_ARRAY 4 /* require array handling */
+#define LOG_HTTP_REQ_HEADERS 8
+#define LOG_HTTP_RES_HEADERS 16
 
 typedef enum {
     HTTP_FIELD_ACCEPT = 0,
@@ -356,6 +360,37 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     json_object_set_new(js, "length", json_integer(tx->response_message_len));
 }
 
+static void JsonHttpLogJSONHeaders(json_t *js, uint32_t direction, htp_tx_t *tx)
+{
+   htp_table_t * headers = direction & LOG_HTTP_REQ_HEADERS ?
+       tx->request_headers : tx->response_headers;
+    size_t i = 0;
+    char name[MAX_SIZE_HEADER_NAME] = {0};
+    size_t size_name = 0;
+    char value[MAX_SIZE_HEADER_VALUE] = {0};
+    size_t size_value = 0;
+    size_t n = htp_table_size(headers);
+    htp_header_t *h = NULL;
+    json_t * arr = json_array();
+    for (i = 0; i < n; i++) {
+        h = htp_table_get_index(headers, i, NULL);
+        json_t * obj = json_object();
+        size_name = bstr_len(h->name) < MAX_SIZE_HEADER_NAME - 1 ?
+            bstr_len(h->name) : MAX_SIZE_HEADER_NAME - 1;
+        memcpy(name, bstr_ptr(h->name), size_name);
+        name[size_name] = '\0';
+        json_object_set_new(obj, "name", SCJsonString(name));
+        size_value = bstr_len(h->value) < MAX_SIZE_HEADER_VALUE - 1 ?
+            bstr_len(h->value) : MAX_SIZE_HEADER_VALUE - 1;
+        memcpy(value, bstr_ptr(h->value), size_value);
+        value[size_value] = '\0';
+        json_object_set_new(obj, "value", SCJsonString(value));
+        json_array_append_new(arr, obj);
+    }
+    json_object_set_new(js, direction & LOG_HTTP_REQ_HEADERS ?
+            "request_headers" : "response_headers", arr);
+}
+
 static void BodyPrintableBuffer(json_t *js, HtpBody *body, const char *key)
 {
     if (body->sb != NULL && body->sb->buf != NULL) {
@@ -444,6 +479,10 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
         JsonHttpLogJSONCustom(http_ctx, hjs, tx);
     if (http_ctx->flags & LOG_HTTP_EXTENDED)
         JsonHttpLogJSONExtended(hjs, tx);
+    if (http_ctx->flags & LOG_HTTP_REQ_HEADERS)
+        JsonHttpLogJSONHeaders(hjs, LOG_HTTP_REQ_HEADERS, tx);
+    if (http_ctx->flags & LOG_HTTP_RES_HEADERS)
+        JsonHttpLogJSONHeaders(hjs, LOG_HTTP_RES_HEADERS, tx);
 
     json_object_set_new(js, "http", hjs);
 }
@@ -573,6 +612,18 @@ static OutputInitResult OutputHttpLogInit(ConfNode *conf)
                 http_ctx->flags = LOG_HTTP_EXTENDED;
             }
         }
+        const char *all_headers = ConfNodeLookupChildValue(
+                conf, "dump-all-headers");
+        if (all_headers != NULL) {
+            if (strncmp(all_headers, "both", 4) == 0) {
+                http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
+                http_ctx->flags |= LOG_HTTP_RES_HEADERS;
+            } else if (strncmp(all_headers, "request", 7) == 0) {
+                http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
+            } else if (strncmp(all_headers, "response", 8) == 0) {
+                http_ctx->flags |= LOG_HTTP_RES_HEADERS;
+            }
+        }
     }
     http_ctx->xff_cfg = SCCalloc(1, sizeof(HttpXFFCfg));
     if (http_ctx->xff_cfg != NULL) {
@@ -649,6 +700,18 @@ static OutputInitResult OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_c
                         }
                     }
                 }
+            }
+        }
+        const char *all_headers = ConfNodeLookupChildValue(
+                conf, "dump-all-headers");
+        if (all_headers != NULL) {
+            if (strncmp(all_headers, "both", 4) == 0) {
+                http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
+                http_ctx->flags |= LOG_HTTP_RES_HEADERS;
+            } else if (strncmp(all_headers, "request", 7) == 0) {
+                http_ctx->flags |= LOG_HTTP_REQ_HEADERS;
+            } else if (strncmp(all_headers, "response", 8) == 0) {
+                http_ctx->flags |= LOG_HTTP_RES_HEADERS;
             }
         }
     }

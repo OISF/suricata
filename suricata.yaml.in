@@ -137,6 +137,7 @@ outputs:
             # custom allows additional http fields to be included in eve-log
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
+            # dump-all-headers: set this value to {both, request, response} to dump all http headers for every http request and/or response
         - dns:
             # This configuration uses the new DNS logging format,
             # the old configuration is still available:
