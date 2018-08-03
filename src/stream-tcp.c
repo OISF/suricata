@@ -927,6 +927,12 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             StatsIncr(tv, stt->counter_tcp_sessions);
             StatsIncr(tv, stt->counter_tcp_midstream_pickups);
         }
+
+        /* reverse packet and flow */
+        SCLogDebug("reversing flow and packet");
+        PacketSwap(p);
+        FlowSwap(p->flow);
+
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
         SCLogDebug("ssn %p: =~ midstream picked ssn state is now "
@@ -1001,9 +1007,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             SCLogDebug("ssn %p: SYN/ACK with SACK permitted, assuming "
                     "SACK permitted for both sides", ssn);
         }
-
-        /* packet thinks it is in the wrong direction, flip it */
-        StreamTcpPacketSwitchDir(ssn, p);
+        return 0;
 
     } else if (p->tcph->th_flags & TH_SYN) {
         if (ssn == NULL) {
@@ -4773,11 +4777,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
              * from being set. */
             p->flags |= PKT_STREAM_NO_EVENTS;
         }
-
-        /* check if the packet is in right direction, when we missed the
-           SYN packet and picked up midstream session. */
-        if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)
-            StreamTcpPacketSwitchDir(ssn, p);
 
         if (StreamTcpPacketIsKeepAlive(ssn, p) == 1) {
             goto skip;

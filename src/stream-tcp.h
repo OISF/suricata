@@ -164,21 +164,6 @@ static inline int StreamTcpCheckFlowDrops(Packet *p)
     return 0;
 }
 
-/**
- *  \brief  Function to flip the direction When we missed the SYN packet,
- *          SYN/ACK is considered as sent by server, but our engine flagged the
- *          packet as from client for the host whose packet is received first in
- *          the session.
- *
- *  \param  ssn TcpSession to whom this packet belongs
- *  \param  p   Packet whose flag has to be changed
- */
-static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
-{
-    SCLogDebug("ssn %p: switching pkt direction", ssn);
-    PacketSwap(p);
-}
-
 enum {
     /* stream has no segments for forced reassembly, nor for detection */
     STREAM_HAS_UNPROCESSED_SEGMENTS_NONE = 0,
