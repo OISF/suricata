@@ -48,7 +48,7 @@ RUN apt-get -y update && \
     apt-get -y install ${APT_PACKAGES}
 
 # Copy in the Suricata source and enter the directory.
-COPY . /tmp/suricata
+COPY . /tmp/suricata/
 WORKDIR /tmp/suricata
 
 # Drop in the LibHTP parser.
