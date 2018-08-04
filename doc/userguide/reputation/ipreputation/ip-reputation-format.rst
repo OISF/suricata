@@ -33,7 +33,7 @@ The reputation file lists a reputation score for hosts in the categories. It's a
 
   <ip>,<category>,<reputation score>
 
-The IP is an IPv4 address in the quad-dotted notation. The category is the number as defined in the categories file. The reputation score is the confidence that this IP is in the specified category, represented by a number between 1 and 127 (0 means no data).
+The IP is an IPv4 address in the quad-dotted notation or an IPv6 address. Both IP types support networks in CIDR notation. The category is the number as defined in the categories file. The reputation score is the confidence that this IP is in the specified category, represented by a number between 1 and 127 (0 means no data).
 
 Example:
 
@@ -41,7 +41,7 @@ Example:
 
 
   1.2.3.4,1,101
-  1.1.1.1,6,88
+  1.1.1.0/24,6,88
 
 If an IP address has a score in multiple categories it should be listed in the file multiple times.
 
