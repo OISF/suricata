@@ -1793,6 +1793,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
+        SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
+
         sgh->id = idx;
         cnt++;
     }
