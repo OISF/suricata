@@ -352,7 +352,7 @@ Packet *UTHBuildPacketSrcDst(uint8_t *payload, uint16_t payload_len,
  * \brief UTHBuildPacketSrcDst is a wrapper that build packets specifying IPs
  * and defaulting ports (IPV6)
  *
- * \param payload pointer to the payloadd buffer
+ * \param payload pointer to the payload buffer
  * \param payload_len pointer to the length of the payload
  * \param ipproto Protocols allowed atm are IPPROTO_TCP and IPPROTO_UDP
  *
