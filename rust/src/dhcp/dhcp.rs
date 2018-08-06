@@ -18,6 +18,7 @@
 use applayer;
 use core;
 use core::{ALPROTO_UNKNOWN, AppProto, Flow};
+use core::{sc_detect_engine_state_free, sc_app_layer_decoder_events_free_events};
 use dhcp::parser::*;
 use libc;
 use log::*;
@@ -97,6 +98,25 @@ impl DHCPTransaction {
             de_state: None,
             events: std::ptr::null_mut(),
         }
+    }
+
+    pub fn free(&mut self) {
+        if self.events != std::ptr::null_mut() {
+            sc_app_layer_decoder_events_free_events(&mut self.events);
+        }
+        match self.de_state {
+            Some(state) => {
+                sc_detect_engine_state_free(state);
+            }
+            _ => {}
+        }
+    }
+
+}
+
+impl Drop for DHCPTransaction {
+    fn drop(&mut self) {
+        self.free();
     }
 }
 
