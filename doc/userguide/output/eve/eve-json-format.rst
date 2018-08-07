@@ -180,6 +180,21 @@ Event with non-extended logging:
       "http_content_type": "application\/x-gzip"
   }
 
+In case the hostname shows a port number (such as in case the header "Hostname: www.digip.org:1337") is present:
+
+::
+
+
+  "http": {
+      "http_port": 1337,
+      "hostname": "www.digip.org",
+      "url" :"\/jansson\/releases\/jansson-2.6.tar.gz",
+      "http_user_agent": "<User-Agent>",
+      "http_content_type": "application\/x-gzip"
+  }
+
+
+
 Event with extended logging:
 
 ::
