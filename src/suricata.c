@@ -1861,7 +1861,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
 #else
                 SCLogError(SC_ERR_WINDIVERT_NOSUPPORT,"WinDivert not enabled. Make sure to pass --enable-windivert to configure when building.");
-                return TM_ECODE_FAILED;            
+                return TM_ECODE_FAILED;
 #endif /* WINDIVERT */
             }
             else if (strcmp((long_opts[option_index]).name, "set") == 0) {
