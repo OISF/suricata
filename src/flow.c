@@ -326,7 +326,12 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         }
     }
 
-    if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
+    if (SC_ATOMIC_GET(f->flow_state) == FLOW_STATE_ESTABLISHED) {
+        SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    } else if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) ==
+            (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
