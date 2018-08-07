@@ -817,6 +817,10 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 139, 445
+
+      # Stream reassembly size for SMB streams. By default track it completely.
+      #stream-depth: 0
+
     # Note: NFS parser depends on Rust support: pass --enable-rust
     # to configure.
     nfs:
