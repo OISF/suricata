@@ -1246,7 +1246,7 @@ static void AFPSwitchState(AFPThreadVars *ptv, int state)
         if (ptv->socket != -1) {
             /* we need to wait for all packets to return data */
             if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 0) {
-                SCLogInfo("Cleaning socket connected to '%s'", ptv->iface);
+                SCLogDebug("Cleaning socket connected to '%s'", ptv->iface);
                 munmap(ptv->ring_buf, ptv->ring_buflen);
                 close(ptv->socket);
                 ptv->socket = -1;
