@@ -27,6 +27,7 @@ vars:
     DNS_SERVERS: "$HOME_NET"
     TELNET_SERVERS: "$HOME_NET"
     AIM_SERVERS: "$EXTERNAL_NET"
+    DC_SERVERS: "$HOME_NET"
     DNP3_SERVER: "$HOME_NET"
     DNP3_CLIENT: "$HOME_NET"
     MODBUS_CLIENT: "$HOME_NET"
@@ -146,6 +147,7 @@ outputs:
             # rather than an event for each of it.
             # Without setting a version the version
             # will fallback to 1 for backwards compatibility.
+            # Note: version 1 is not available with rust enabled
             version: 2
 
             # Enable/disable this logger. Default: enabled.
@@ -297,6 +299,7 @@ outputs:
       #certs-log-dir: certs # directory to store the certificates files
 
   # a line based log of DNS requests and/or replies (no alerts)
+  # Note: not available when Rust is enabled (--enable-rust).
   - dns-log:
       enabled: no
       filename: dns.log
@@ -816,7 +819,7 @@ app-layer:
     smb:
       enabled: yes
       detection-ports:
-        dp: 139, 445
+        dp: 137, 138, 139, 445
     # Note: NFS parser depends on Rust support: pass --enable-rust
     # to configure.
     nfs:
