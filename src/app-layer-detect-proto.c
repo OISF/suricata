@@ -1353,6 +1353,8 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
                                      uint8_t ipproto, uint8_t direction)
 {
     SCEnter();
+    SCLogDebug("buflen %u for %s direction", buflen,
+            (direction & STREAM_TOSERVER) ? "toserver" : "toclient");
 
     AppProto alproto = ALPROTO_UNKNOWN;
 
