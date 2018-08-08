@@ -759,6 +759,8 @@ app-layer:
   protocols:
     krb5:
       enabled: yes
+    snmp:
+      enabled: yes
     ikev2:
       enabled: yes
     tls:

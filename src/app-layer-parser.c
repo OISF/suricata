@@ -66,6 +66,7 @@
 #include "app-layer-ikev2.h"
 #include "app-layer-krb5.h"
 #include "app-layer-dhcp.h"
+#include "app-layer-snmp.h"
 #include "app-layer-template.h"
 #include "app-layer-template-rust.h"
 
@@ -1499,6 +1500,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterIKEV2Parsers();
     RegisterKRB5Parsers();
     RegisterDHCPParsers();
+    RegisterSNMPParsers();
     RegisterTemplateRustParsers();
     RegisterTemplateParsers();
 
