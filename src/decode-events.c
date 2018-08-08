@@ -142,6 +142,9 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.vlan.too_many_layers", VLAN_HEADER_TOO_MANY_LAYERS, },
     { "decoder.ieee8021ah.header_too_small", IEEE8021AH_HEADER_TOO_SMALL, },
 
+    /* TRILL EVENTS */
+    { "decoder.trill.header_too_small",TRILL_HEADER_TOO_SMALL, },
+
     /* RAW EVENTS */
     { "decoder.ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
 

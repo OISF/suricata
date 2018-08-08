@@ -257,6 +257,9 @@ enum {
 
     STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
 
+    /* TRILL EVENTS */
+    TRILL_HEADER_TOO_SMALL,
+    
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

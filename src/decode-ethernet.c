@@ -93,6 +93,10 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                     len - ETHERNET_DCE_HEADER_LEN, pq);
             }
             break;
+        case ETHERNET_TYPE_TRILL:
+            DecodeTrill(tv, dtv, p, pkt + VLAN_HEADER_LEN,
+                    len - VLAN_HEADER_LEN, pq);
+            break;
         default:
             SCLogDebug("p %p pkt %p ether type %04x not supported", p,
                        pkt, SCNtohs(p->ethh->eth_type));
