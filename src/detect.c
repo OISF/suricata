@@ -984,6 +984,7 @@ static DetectRunScratchpad DetectRunSetup(
             if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                 p->flags |= PKT_DETECT_HAS_STREAMDATA;
+                flow_flags |= STREAM_FLUSH;
             }
             SCLogDebug("alproto %u", alproto);
         } else {

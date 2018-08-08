@@ -118,7 +118,7 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
 
-    if (!htp_state->cfg->http_body_inline) {
+    if (!htp_state->cfg->http_body_inline && !(flags & STREAM_FLUSH)) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->response.body_limit == 0 ||
@@ -178,10 +178,14 @@ InspectionBuffer *HttpServerBodyGetDataCallback(DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-    body->body_inspected = body->content_len_so_far;
-    SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
+    if (body->content_len_so_far < htp_state->cfg->response.inspect_min_size) {
+        SCLogDebug("not updating tracker as we're still below inspect_min_size");
+    } else {
+        /* move inspected tracker to end of the data. HtpBodyPrune will consider
+         * the window sizes when freeing data */
+        body->body_inspected = body->content_len_so_far;
+        SCLogDebug("body->body_inspected now: %"PRIu64, body->body_inspected);
+    }
 
     SCReturnPtr(buffer, "InspectionBuffer");
 }
