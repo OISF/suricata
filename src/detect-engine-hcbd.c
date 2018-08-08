@@ -106,7 +106,7 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
-                                               uint8_t flags,
+                                               const uint8_t flags,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {
@@ -162,7 +162,7 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         goto end;
     }
 
-    if (!htp_state->cfg->http_body_inline) {
+    if (!htp_state->cfg->http_body_inline && !(flags & STREAM_FLUSH)) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->request.body_limit == 0 ||
@@ -204,10 +204,13 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
             offset);
     det_ctx->hcbd[index].offset = offset;
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-    htud->request_body.body_inspected = htud->request_body.content_len_so_far;
-
+    if (htud->request_body.content_len_so_far < htp_state->cfg->request.inspect_min_size) {
+        SCLogDebug("not updating tracker as we're still below inspect_min_size");
+    } else {
+        /* move inspected tracker to end of the data. HtpBodyPrune will consider
+         * the window sizes when freeing data */
+        htud->request_body.body_inspected = htud->request_body.content_len_so_far;
+    }
     buffer = det_ctx->hcbd[index].buffer;
     *buffer_len = det_ctx->hcbd[index].buffer_len;
     *stream_start_offset = det_ctx->hcbd[index].offset;

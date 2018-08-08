@@ -32,6 +32,7 @@
 #define STREAM_TOCLIENT         0x08
 #define STREAM_GAP              0x10    /**< data gap encountered */
 #define STREAM_DEPTH            0x20    /**< depth reached */
+#define STREAM_FLUSH            0x80
 
 typedef int (*StreamSegmentCallback)(const Packet *, void *, const uint8_t *, uint32_t);
 int StreamSegmentForEach(const Packet *p, uint8_t flag,

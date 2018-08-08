@@ -167,7 +167,7 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
 
-    if (!htp_state->cfg->http_body_inline) {
+    if (!htp_state->cfg->http_body_inline && !(flags & STREAM_FLUSH)) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
         if ((htp_state->cfg->response.body_limit == 0 ||
@@ -209,11 +209,14 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
             offset);
     det_ctx->hsbd[index].offset = offset;
 
-    /* move inspected tracker to end of the data. HtpBodyPrune will consider
-     * the window sizes when freeing data */
-    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
-    SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
-
+    if (htud->response_body.content_len_so_far < htp_state->cfg->response.inspect_min_size) {
+        SCLogDebug("not updating tracker as we're still below inspect_min_size");
+    } else {
+        /* move inspected tracker to end of the data. HtpBodyPrune will consider
+         * the window sizes when freeing data */
+        htud->response_body.body_inspected = htud->response_body.content_len_so_far;
+        SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
+    }
     buffer = det_ctx->hsbd[index].buffer;
     *buffer_len = det_ctx->hsbd[index].buffer_len;
     *stream_start_offset = det_ctx->hsbd[index].offset;

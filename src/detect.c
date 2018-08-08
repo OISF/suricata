@@ -1016,6 +1016,7 @@ void SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineT
                 if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                     p->flags |= PKT_DETECT_HAS_STREAMDATA;
+                    flow_flags |= STREAM_FLUSH;
                 }
                 SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
             } else {
