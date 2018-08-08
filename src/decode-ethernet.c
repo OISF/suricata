@@ -94,7 +94,7 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
             break;
         case ETHERNET_TYPE_TRILL:
-            DecodeTrill(tv, dtv, p, pkt + VLAN_HEADER_LEN,
+            DecodeTRILL(tv, dtv, p, pkt + VLAN_HEADER_LEN,
                     len - VLAN_HEADER_LEN, pq);
             break;
         default:
