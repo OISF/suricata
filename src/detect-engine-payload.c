@@ -77,11 +77,13 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
 
     /* for established packets inspect any stream we may have queued up */
     if (p->flags & PKT_DETECT_HAS_STREAMDATA) {
+        SCLogDebug("PRE det_ctx->raw_stream_progress %"PRIu64,
+                det_ctx->raw_stream_progress);
         struct StreamMpmData stream_mpm_data = { det_ctx, mpm_ctx };
         StreamReassembleRaw(p->flow->protoctx, p,
                 StreamMpmFunc, &stream_mpm_data,
                 &det_ctx->raw_stream_progress);
-        SCLogDebug("det_ctx->raw_stream_progress %"PRIu64,
+        SCLogDebug("POST det_ctx->raw_stream_progress %"PRIu64,
                 det_ctx->raw_stream_progress);
     } else {
         SCLogDebug("NOT p->flags & PKT_DETECT_HAS_STREAMDATA");
@@ -330,6 +332,8 @@ int DetectEngineInspectStream(ThreadVars *tv,
     if (ssn == NULL)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
 
+    SCLogDebug("pre-inspect det_ctx->raw_stream_progress %"PRIu64,
+            det_ctx->raw_stream_progress);
     uint64_t unused;
     struct StreamContentInspectEngineData inspect_data = { de_ctx, det_ctx, s, smd, f };
     int match = StreamReassembleRaw(f->protoctx, p,
