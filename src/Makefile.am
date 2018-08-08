@@ -42,6 +42,7 @@ app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smb-tcp-rust.c app-layer-smb-tcp-rust.h \
 app-layer-smtp.c app-layer-smtp.h \
+app-layer-snmp.c app-layer-snmp.h \
 app-layer-nfs-tcp.c app-layer-nfs-tcp.h \
 app-layer-nfs-udp.c app-layer-nfs-udp.h \
 app-layer-ntp.c app-layer-ntp.h \

@@ -86,6 +86,8 @@ type_map = {
     "TFTPState": "TFTPState",
     "SMBState": "SMBState",
     "SMBTransaction": "SMBTransaction",
+    "SNMPState": "SNMPState",
+    "SNMPTransaction": "SNMPTransaction",
     "IKEV2State": "IKEV2State",
     "IKEV2Transaction": "IKEV2Transaction",
     "KRB5State": "KRB5State",
