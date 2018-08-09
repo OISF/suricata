@@ -1849,6 +1849,9 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
         /* built-ins */
         int type;
         for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+            /* skip PMATCH if it is used in a stream 'app engine' instead */
+            if (type == DETECT_SM_LIST_PMATCH && (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH))
+                continue;
             SigMatch *sm = s->init_data->smlists[type];
             s->sm_arrays[type] = SigMatchList2DataArray(sm);
         }
