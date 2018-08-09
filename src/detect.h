@@ -892,6 +892,11 @@ typedef struct DetectEngineCtx_ {
     /** signatures stats */
     SigFileLoaderStat sig_stat;
 
+    /** per keyword flag indicating if a prefilter has been
+     *  set for it. If true, the setup function will have to
+     *  run. */
+    bool sm_types_prefilter[DETECT_TBLSIZE];
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

@@ -348,11 +348,16 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
 
-    /* set up engines if needed - independent of 'detect.prefilter.default'
-     * setting as the prefilter keyword may have enabled individual sigs */
+    /* set up engines if needed - when prefilter is set to auto we run
+     * all engines, otherwise only those that have been forced by the
+     * prefilter keyword. */
+    const enum DetectEnginePrefilterSetting setting = de_ctx->prefilter_setting;
     for (int i = 0; i < DETECT_TBLSIZE; i++)
     {
-        if (sigmatch_table[i].SetupPrefilter != NULL) {
+        if (sigmatch_table[i].SetupPrefilter != NULL &&
+                (setting == DETECT_PREFILTER_AUTO ||
+                 de_ctx->sm_types_prefilter[i]))
+        {
             sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
         }
     }
