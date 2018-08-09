@@ -516,6 +516,74 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         json_object_set_new(js, "requirements", js_flags);
     }
 
+    js_flags = json_array();
+    if (js_flags != NULL) {
+        if (s->flags & SIG_FLAG_SRC_ANY) {
+            json_array_append_new(js_flags, json_string("src_any"));
+        }
+        if (s->flags & SIG_FLAG_DST_ANY) {
+            json_array_append_new(js_flags, json_string("dst_any"));
+        }
+        if (s->flags & SIG_FLAG_SP_ANY) {
+            json_array_append_new(js_flags, json_string("sp_any"));
+        }
+        if (s->flags & SIG_FLAG_DP_ANY) {
+            json_array_append_new(js_flags, json_string("dp_any"));
+        }
+        if (s->flags & SIG_FLAG_NOALERT) {
+            json_array_append_new(js_flags, json_string("noalert"));
+        }
+        if (s->flags & SIG_FLAG_DSIZE) {
+            json_array_append_new(js_flags, json_string("dsize"));
+        }
+        if (s->flags & SIG_FLAG_APPLAYER) {
+            json_array_append_new(js_flags, json_string("applayer"));
+        }
+        if (s->flags & SIG_FLAG_IPONLY) {
+            json_array_append_new(js_flags, json_string("ip_only"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+            json_array_append_new(js_flags, json_string("need_packet"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
+            json_array_append_new(js_flags, json_string("need_stream"));
+        }
+        if (s->flags & SIG_FLAG_MPM_NEG) {
+            json_array_append_new(js_flags, json_string("negated_mpm"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
+            json_array_append_new(js_flags, json_string("need_flowvar"));
+        }
+        if (s->flags & SIG_FLAG_FILESTORE) {
+            json_array_append_new(js_flags, json_string("filestore"));
+        }
+        if (s->flags & SIG_FLAG_TOSERVER) {
+            json_array_append_new(js_flags, json_string("toserver"));
+        }
+        if (s->flags & SIG_FLAG_TOCLIENT) {
+            json_array_append_new(js_flags, json_string("toclient"));
+        }
+        if (s->flags & SIG_FLAG_TLSSTORE) {
+            json_array_append_new(js_flags, json_string("tlsstore"));
+        }
+        if (s->flags & SIG_FLAG_BYPASS) {
+            json_array_append_new(js_flags, json_string("bypass"));
+        }
+        if (s->flags & SIG_FLAG_PREFILTER) {
+            json_array_append_new(js_flags, json_string("prefilter"));
+        }
+        if (s->flags & SIG_FLAG_PDONLY) {
+            json_array_append_new(js_flags, json_string("proto_detect_only"));
+        }
+        if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
+            json_array_append_new(js_flags, json_string("src_is_target"));
+        }
+        if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
+            json_array_append_new(js_flags, json_string("dst_is_target"));
+        }
+        json_object_set_new(js, "flags", js_flags);
+    }
+
     if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         json_t *js_array = json_array();
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
