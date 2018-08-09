@@ -1141,7 +1141,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
         Packet *p,
         Flow *f,
-        const uint8_t flow_flags,   // direction, EOF, etc
+        const uint8_t in_flow_flags,   // direction, EOF, etc
         void *alstate,
         DetectTransaction *tx,
         const Signature *s,
@@ -1149,6 +1149,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         RuleMatchCandidateTx *can,
         DetectRunScratchpad *scratch)
 {
+    uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
@@ -1156,6 +1157,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+
+    /* see if we want to pass on the FLUSH flag */
+    if ((s->flags & SIG_FLAG_FLUSH) == 0)
+        flow_flags &=~ STREAM_FLUSH;
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
