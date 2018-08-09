@@ -352,7 +352,10 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
      * setting as the prefilter keyword may have enabled individual sigs */
     for (int i = 0; i < DETECT_TBLSIZE; i++)
     {
-        if (sigmatch_table[i].SetupPrefilter != NULL) {
+        if (sigmatch_table[i].SetupPrefilter != NULL &&
+                (de_ctx->sm_types_prefilter[i] ||
+                 de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO))
+        {
             sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
         }
     }

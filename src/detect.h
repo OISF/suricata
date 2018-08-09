@@ -892,6 +892,8 @@ typedef struct DetectEngineCtx_ {
     /** signatures stats */
     SigFileLoaderStat sig_stat;
 
+    bool sm_types_prefilter[DETECT_TBLSIZE];
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

@@ -94,6 +94,7 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
     } else {
         s->flags |= SIG_FLAG_PREFILTER;
+        de_ctx->sm_types_prefilter[sm->type] = true;
     }
 
     SCReturnInt(0);
