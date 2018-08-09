@@ -504,6 +504,7 @@ static void DumpMatches(json_t *js, const SigMatchData *smd)
                         json_object_set_new(js_match_content, "negated", json_boolean(cd->flags & DETECT_CONTENT_NEGATED));
                         json_object_set_new(js_match_content, "starts_with", json_boolean(cd->flags & DETECT_CONTENT_STARTS_WITH));
                         json_object_set_new(js_match_content, "ends_with", json_boolean(cd->flags & DETECT_CONTENT_ENDS_WITH));
+                        json_object_set_new(js_match_content, "is_mpm", json_boolean(cd->flags & DETECT_CONTENT_MPM));
                         if (cd->flags & DETECT_CONTENT_OFFSET) {
                             json_object_set_new(js_match_content, "offset", json_integer(cd->offset));
                         }
