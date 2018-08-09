@@ -238,7 +238,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
-#define SIG_FLAG_BYPASS                (1<<22)
+#define SIG_FLAG_BYPASS                 (1<<22)
 
 #define SIG_FLAG_PREFILTER              (1<<23) /**< sig is part of a prefilter engine */
 
@@ -253,12 +253,12 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_HAS_TARGET     (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
-#define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
-#define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
-#define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
-#define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
-#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 4) /** < signature has seen the first ip_proto keyword */
-#define SIG_FLAG_INIT_HAS_TRANSFORM (1<<5)
+#define SIG_FLAG_INIT_DEONLY                (1<<0)  /**< decode event only signature */
+#define SIG_FLAG_INIT_PACKET                (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_INIT_FLOW                  (1<<2)  /**< signature has a flow setting */
+#define SIG_FLAG_INIT_BIDIREC               (1<<3)  /**< signature has bidirectional operator */
+#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN    (1<<4)  /** < signature has seen the first ip_proto keyword */
+#define SIG_FLAG_INIT_HAS_TRANSFORM         (1<<5)
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
