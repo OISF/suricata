@@ -610,6 +610,9 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         if (s->flags & SIG_FLAG_MPM_NEG) {
             json_array_append_new(js_flags, json_string("negated_mpm"));
         }
+        if (s->flags & SIG_FLAG_FLUSH) {
+            json_array_append_new(js_flags, json_string("flush"));
+        }
         if (s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
             json_array_append_new(js_flags, json_string("need_flowvar"));
         }
