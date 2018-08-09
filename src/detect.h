@@ -31,6 +31,7 @@
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 #include "detect-metadata.h"
+#include "detect-engine-register.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -1371,6 +1372,9 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 } DetectEngineMasterCtx;
+
+/* Table with all SigMatch registrations */
+SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 

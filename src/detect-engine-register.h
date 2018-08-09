@@ -219,9 +219,6 @@ enum {
     DETECT_TBLSIZE,
 };
 
-/* Table with all SigMatch registrations */
-SigTableElmt sigmatch_table[DETECT_TBLSIZE];
-
 void SigTableList(const char *keyword);
 void SigTableSetup(void);
 void SigTableRegisterTests(void);
