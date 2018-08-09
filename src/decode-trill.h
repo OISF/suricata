@@ -8,6 +8,6 @@ typedef struct TRILLHdr_ {
 	uint16_t trill_info;
 	uint16_t egress_nick;
 	uint16_t ingress_nick;
-} __attribute__((__packet__)) TRILLHdr;
+} __attribute__((__packed__)) TRILLHdr;
 
 #endif /* __DECODE_TRILL_H__ */

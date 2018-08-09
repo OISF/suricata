@@ -20,4 +20,6 @@ int DecodeTRILL(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     DecodeEthernet(tv, dtv, p, pkt + TRILL_HEADER_LEN,
                     len - TRILL_HEADER_LEN, pq);
+    
+    return TM_ECODE_OK;
 }
