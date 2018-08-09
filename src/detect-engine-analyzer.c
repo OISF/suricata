@@ -516,7 +516,7 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         json_object_set_new(js, "requirements", js_flags);
     }
 
-    if (s->flags & SIG_FLAG_STATE_MATCH) {
+    if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         json_t *js_array = json_array();
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {

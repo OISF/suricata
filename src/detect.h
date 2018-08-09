@@ -222,7 +222,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_APPLAYER               (1<<6)  /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_IPONLY                 (1<<7) /**< ip only signature */
 
-#define SIG_FLAG_STATE_MATCH            (1<<8) /**< signature has matches that require stateful inspection */
+// vacancy
 
 #define SIG_FLAG_REQUIRE_PACKET         (1<<9) /**< signature is requiring packet match */
 #define SIG_FLAG_REQUIRE_STREAM         (1<<10) /**< signature is requiring stream match */
@@ -259,6 +259,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_INIT_BIDIREC               (1<<3)  /**< signature has bidirectional operator */
 #define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN    (1<<4)  /** < signature has seen the first ip_proto keyword */
 #define SIG_FLAG_INIT_HAS_TRANSFORM         (1<<5)
+#define SIG_FLAG_INIT_STATE_MATCH           (1<<6)  /**< signature has matches that require stateful inspection */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)

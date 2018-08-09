@@ -469,12 +469,14 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
-        s->flags |= SIG_FLAG_STATE_MATCH;
+        s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 next:
         t = t->next;
     }
 
-    if ((s->flags & SIG_FLAG_STATE_MATCH) && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) &&
+            s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
+    {
         /* if engine is added multiple times, we pass it the same list */
         SigMatchData *stream = SigMatchList2DataArray(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
         BUG_ON(stream == NULL);

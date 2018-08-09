@@ -802,8 +802,8 @@ static inline void DetectRulePacketRules(
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if (sflags & SIG_FLAG_STATE_MATCH) {
-            goto next; // TODO skip and handle in DetectRunTx
+        if (s->app_inspect != NULL) {
+            goto next; // handle sig in DetectRunTx
         }
 
         /* don't run mask check for stateful rules.
@@ -1420,7 +1420,7 @@ static void DetectRunTx(ThreadVars *tv,
         uint32_t x = array_idx;
         for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
             const Signature *s = det_ctx->match_array[i];
-            if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (s->app_inspect != NULL) {
                 const SigIntId id = s->num;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;
