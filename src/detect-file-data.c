@@ -138,6 +138,10 @@ static void DetectFiledataSetupCallback(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
     }
 
+
+    /* server body needs to be inspected in sync with stream if possible */
+    s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
+
     SCLogDebug("callback invoked by %u", s->id);
 }
 

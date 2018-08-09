@@ -100,6 +100,9 @@ static void DetectHttpClientBodySetupCallback(Signature *s)
     SCLogDebug("callback invoked by %u", s->id);
     AppLayerHtpEnableRequestBodyCallback();
     s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+
+    /* client body needs to be inspected in sync with stream if possible */
+    s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
 }
 
 /**

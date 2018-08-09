@@ -294,6 +294,10 @@ next:
             AppendStreamInspectEngine(s, stream, 0, last_id + 1);
             AppendStreamInspectEngine(s, stream, 1, last_id + 1);
         }
+
+        if (s->init_data->init_flags & SIG_FLAG_INIT_NEED_FLUSH) {
+            s->flags |= SIG_FLAG_FLUSH;
+        }
     }
 
 #ifdef DEBUG

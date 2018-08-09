@@ -373,6 +373,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     int check_before_add = 0;
 
+    /* see if we want to pass on the FLUSH flag */
+    if ((s->flags & SIG_FLAG_FLUSH) == 0)
+        flags &=~ STREAM_FLUSH;
+
     /* if continue detection already inspected this rule for this tx,
      * continue with the first not-inspected tx */
     uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0x7f;
@@ -521,6 +525,10 @@ static int DoInspectItem(ThreadVars *tv,
 {
     Signature *s = de_ctx->sig_array[item->sid];
     det_ctx->stream_already_inspected = false;
+
+    /* see if we want to pass on the FLUSH flag */
+    if ((s->flags & SIG_FLAG_FLUSH) == 0)
+        flags &=~ STREAM_FLUSH;
 
     SCLogDebug("file_no_match %u, sid %u", *file_no_match, s->id);
 
