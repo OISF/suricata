@@ -215,7 +215,6 @@ static int DetectFtpdataSetup(DetectEngineCtx *de_ctx, Signature *s, const char 
     sm->type = DETECT_FTPDATA;
     sm->ctx = (void *)ftpcommandd;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SigMatchAppendSMToList(s, sm, g_ftpdata_buffer_id);
 
     return 0;

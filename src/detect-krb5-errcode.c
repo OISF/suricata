@@ -202,7 +202,6 @@ static int DetectKrb5ErrCodeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     sm->type = DETECT_AL_KRB5_ERRCODE;
     sm->ctx = (void *)krb5d;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SigMatchAppendSMToList(s, sm, g_krb5_err_code_list_id);
 
     return 0;

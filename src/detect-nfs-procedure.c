@@ -364,7 +364,6 @@ static int DetectNfsProcedureSetup (DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_AL_NFS_PROCEDURE;
     sm->ctx = (void *)dd;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SCLogDebug("low %u hi %u", dd->lo, dd->hi);
     SigMatchAppendSMToList(s, sm, g_nfs_request_buffer_id);
     return 0;
