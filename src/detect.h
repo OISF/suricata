@@ -738,6 +738,12 @@ typedef struct DetectEngineCtx_ {
      *  \todo we only need this at init, so perhaps this
      *        can move to a DetectEngineCtx 'init' struct */
     DetectMpmAppLayerKeyword *app_mpms;
+
+    /** per keyword flag indicating if a prefilter has been
+     *  set for it. If true, the setup function will have to
+     *  run. Will be alloc'd to DETECT_TBLSIZE if used. */
+    bool *sm_types_prefilter;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
