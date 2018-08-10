@@ -474,6 +474,66 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
 #include "util-buffer.h"
 #include "output-json.h"
 
+static void DumpMatches(json_t *js, const SigMatchData *smd)
+{
+    json_t *js_matches = json_array();
+    if (js_matches == NULL) {
+        return;
+    }
+    do {
+        json_t *js_match = json_object();
+        if (js_match != NULL) {
+            const char *mname = sigmatch_table[smd->type].name;
+            json_object_set_new(js_match, "name", json_string(mname));
+
+            switch (smd->type) {
+                case DETECT_CONTENT: {
+                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
+                    uint8_t *pat = SCMalloc(cd->content_len + 1);
+                    if (unlikely(pat == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        exit(EXIT_FAILURE);
+                    }
+                    memcpy(pat, cd->content, cd->content_len);
+                    pat[cd->content_len] = '\0';
+
+                    json_t *js_match_content = json_object();
+                    if (js_match_content != NULL) {
+                        json_object_set_new(js_match_content, "pattern", SCJsonString((const char *)pat));
+                        json_object_set_new(js_match_content, "nocase", json_boolean(cd->flags & DETECT_CONTENT_NOCASE));
+                        json_object_set_new(js_match_content, "negated", json_boolean(cd->flags & DETECT_CONTENT_NEGATED));
+                        json_object_set_new(js_match_content, "starts_with", json_boolean(cd->flags & DETECT_CONTENT_STARTS_WITH));
+                        json_object_set_new(js_match_content, "ends_with", json_boolean(cd->flags & DETECT_CONTENT_ENDS_WITH));
+                        json_object_set_new(js_match_content, "is_mpm", json_boolean(cd->flags & DETECT_CONTENT_MPM));
+                        if (cd->flags & DETECT_CONTENT_OFFSET) {
+                            json_object_set_new(js_match_content, "offset", json_integer(cd->offset));
+                        }
+                        if (cd->flags & DETECT_CONTENT_DEPTH) {
+                            json_object_set_new(js_match_content, "depth", json_integer(cd->depth));
+                        }
+                        if (cd->flags & DETECT_CONTENT_DISTANCE) {
+                            json_object_set_new(js_match_content, "distance", json_integer(cd->distance));
+                        }
+                        if (cd->flags & DETECT_CONTENT_WITHIN) {
+                            json_object_set_new(js_match_content, "within", json_integer(cd->within));
+                        }
+
+                        json_object_set_new(js_match, "content", js_match_content);
+                    }
+                    SCFree(pat);
+                    break;
+                }
+            }
+        }
+        json_array_append_new(js_matches, js_match);
+
+        if (smd->is_last)
+            break;
+        smd++;
+    } while (1);
+    json_object_set_new(js, "matches", js_matches);
+}
+
 SCMutex g_rules_analyzer_write_m = SCMUTEX_INITIALIZER;
 void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
 {
@@ -516,7 +576,78 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
         json_object_set_new(js, "requirements", js_flags);
     }
 
-    if (s->flags & SIG_FLAG_STATE_MATCH) {
+    js_flags = json_array();
+    if (js_flags != NULL) {
+        if (s->flags & SIG_FLAG_SRC_ANY) {
+            json_array_append_new(js_flags, json_string("src_any"));
+        }
+        if (s->flags & SIG_FLAG_DST_ANY) {
+            json_array_append_new(js_flags, json_string("dst_any"));
+        }
+        if (s->flags & SIG_FLAG_SP_ANY) {
+            json_array_append_new(js_flags, json_string("sp_any"));
+        }
+        if (s->flags & SIG_FLAG_DP_ANY) {
+            json_array_append_new(js_flags, json_string("dp_any"));
+        }
+        if (s->flags & SIG_FLAG_NOALERT) {
+            json_array_append_new(js_flags, json_string("noalert"));
+        }
+        if (s->flags & SIG_FLAG_DSIZE) {
+            json_array_append_new(js_flags, json_string("dsize"));
+        }
+        if (s->flags & SIG_FLAG_APPLAYER) {
+            json_array_append_new(js_flags, json_string("applayer"));
+        }
+        if (s->flags & SIG_FLAG_IPONLY) {
+            json_array_append_new(js_flags, json_string("ip_only"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+            json_array_append_new(js_flags, json_string("need_packet"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
+            json_array_append_new(js_flags, json_string("need_stream"));
+        }
+        if (s->flags & SIG_FLAG_MPM_NEG) {
+            json_array_append_new(js_flags, json_string("negated_mpm"));
+        }
+        if (s->flags & SIG_FLAG_FLUSH) {
+            json_array_append_new(js_flags, json_string("flush"));
+        }
+        if (s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
+            json_array_append_new(js_flags, json_string("need_flowvar"));
+        }
+        if (s->flags & SIG_FLAG_FILESTORE) {
+            json_array_append_new(js_flags, json_string("filestore"));
+        }
+        if (s->flags & SIG_FLAG_TOSERVER) {
+            json_array_append_new(js_flags, json_string("toserver"));
+        }
+        if (s->flags & SIG_FLAG_TOCLIENT) {
+            json_array_append_new(js_flags, json_string("toclient"));
+        }
+        if (s->flags & SIG_FLAG_TLSSTORE) {
+            json_array_append_new(js_flags, json_string("tlsstore"));
+        }
+        if (s->flags & SIG_FLAG_BYPASS) {
+            json_array_append_new(js_flags, json_string("bypass"));
+        }
+        if (s->flags & SIG_FLAG_PREFILTER) {
+            json_array_append_new(js_flags, json_string("prefilter"));
+        }
+        if (s->flags & SIG_FLAG_PDONLY) {
+            json_array_append_new(js_flags, json_string("proto_detect_only"));
+        }
+        if (s->flags & SIG_FLAG_SRC_IS_TARGET) {
+            json_array_append_new(js_flags, json_string("src_is_target"));
+        }
+        if (s->flags & SIG_FLAG_DEST_IS_TARGET) {
+            json_array_append_new(js_flags, json_string("dst_is_target"));
+        }
+        json_object_set_new(js, "flags", js_flags);
+    }
+
+    if (s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) {
         json_t *js_array = json_array();
         const DetectEngineAppInspectionEngine *app = s->app_inspect;
         for ( ; app != NULL; app = app->next) {
@@ -540,67 +671,25 @@ void EngineAnalysisRules2(const DetectEngineCtx *de_ctx, const Signature *s)
                 json_object_set_new(js_engine, "app_proto", json_string(AppProtoToString(app->alproto)));
                 json_object_set_new(js_engine, "progress", json_integer(app->progress));
 
-                json_t *js_matches = json_array();
-                if (js_matches != NULL) {
-                    const SigMatchData *smd = app->smd;
-                    do {
-                        json_t *js_match = json_object();
-                        if (js_match != NULL) {
-                            const char *mname = sigmatch_table[smd->type].name;
-                            json_object_set_new(js_match, "name", json_string(mname));
-
-                            switch (smd->type) {
-                                case DETECT_CONTENT: {
-                                    const DetectContentData *cd = (const DetectContentData *)smd->ctx;
-                                    uint8_t *pat = SCMalloc(cd->content_len + 1);
-                                    if (unlikely(pat == NULL)) {
-                                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                                        exit(EXIT_FAILURE);
-                                    }
-                                    memcpy(pat, cd->content, cd->content_len);
-                                    pat[cd->content_len] = '\0';
-
-                                    json_t *js_match_content = json_object();
-                                    if (js_match_content != NULL) {
-                                        json_object_set_new(js_match_content, "pattern", json_string((const char *)pat));
-                                        json_object_set_new(js_match_content, "nocase", json_boolean(cd->flags & DETECT_CONTENT_NOCASE));
-                                        json_object_set_new(js_match_content, "negated", json_boolean(cd->flags & DETECT_CONTENT_NEGATED));
-                                        json_object_set_new(js_match_content, "starts_with", json_boolean(cd->flags & DETECT_CONTENT_STARTS_WITH));
-                                        json_object_set_new(js_match_content, "ends_with", json_boolean(cd->flags & DETECT_CONTENT_ENDS_WITH));
-                                        if (cd->flags & DETECT_CONTENT_OFFSET) {
-                                            json_object_set_new(js_match_content, "offset", json_integer(cd->offset));
-                                        }
-                                        if (cd->flags & DETECT_CONTENT_DEPTH) {
-                                            json_object_set_new(js_match_content, "depth", json_integer(cd->depth));
-                                        }
-                                        if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                                            json_object_set_new(js_match_content, "distance", json_integer(cd->distance));
-                                        }
-                                        if (cd->flags & DETECT_CONTENT_WITHIN) {
-                                            json_object_set_new(js_match_content, "within", json_integer(cd->within));
-                                        }
-
-                                        json_object_set_new(js_match, "content", js_match_content);
-                                    }
-                                    SCFree(pat);
-                                    break;
-                                }
-                            }
-                        }
-                        json_array_append_new(js_matches, js_match);
-
-                        if (smd->is_last)
-                            break;
-                        smd++;
-                    } while (1);
-                    json_object_set_new(js_engine, "matches", js_matches);
-                }
+                DumpMatches(js_engine, app->smd);
 
                 json_array_append_new(js_array, js_engine);
             }
         }
         json_object_set_new(js, "engines", js_array);
     }
+
+    json_t *js_lists = json_object();
+    for (int i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        if (s->sm_arrays[i] != NULL) {
+            json_t *js_list = json_object();
+            if (js_list != NULL) {
+                DumpMatches(js_list, s->sm_arrays[i]);
+                json_object_set_new(js_lists, DetectSigmatchListEnumToString(i), js_list);
+            }
+        }
+    }
+    json_object_set_new(js, "lists", js_lists);
 
     const char *filename = "rules.json";
     const char *log_dir = ConfigGetLogDirectory();

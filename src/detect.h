@@ -31,6 +31,7 @@
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 #include "detect-metadata.h"
+#include "detect-engine-register.h"
 #include "packet-queue.h"
 
 #include "util-prefilter.h"
@@ -222,12 +223,14 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_APPLAYER               (1<<6)  /**< signature applies to app layer instead of packets */
 #define SIG_FLAG_IPONLY                 (1<<7) /**< ip only signature */
 
-#define SIG_FLAG_STATE_MATCH            (1<<8) /**< signature has matches that require stateful inspection */
+// vacancy
 
 #define SIG_FLAG_REQUIRE_PACKET         (1<<9) /**< signature is requiring packet match */
 #define SIG_FLAG_REQUIRE_STREAM         (1<<10) /**< signature is requiring stream match */
 
 #define SIG_FLAG_MPM_NEG                (1<<11)
+
+#define SIG_FLAG_FLUSH                  (1<<12) /**< detection logic needs stream flush notification */
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
@@ -238,7 +241,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
-#define SIG_FLAG_BYPASS                (1<<22)
+#define SIG_FLAG_BYPASS                 (1<<22)
 
 #define SIG_FLAG_PREFILTER              (1<<23) /**< sig is part of a prefilter engine */
 
@@ -253,12 +256,14 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_HAS_TARGET     (SIG_FLAG_DEST_IS_TARGET|SIG_FLAG_SRC_IS_TARGET)
 
 /* signature init flags */
-#define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
-#define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
-#define SIG_FLAG_INIT_FLOW           (1<<2)  /**< signature has a flow setting */
-#define SIG_FLAG_INIT_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
-#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN (1 << 4) /** < signature has seen the first ip_proto keyword */
-#define SIG_FLAG_INIT_HAS_TRANSFORM (1<<5)
+#define SIG_FLAG_INIT_DEONLY                (1<<0)  /**< decode event only signature */
+#define SIG_FLAG_INIT_PACKET                (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_INIT_FLOW                  (1<<2)  /**< signature has a flow setting */
+#define SIG_FLAG_INIT_BIDIREC               (1<<3)  /**< signature has bidirectional operator */
+#define SIG_FLAG_INIT_FIRST_IPPROTO_SEEN    (1<<4)  /** < signature has seen the first ip_proto keyword */
+#define SIG_FLAG_INIT_HAS_TRANSFORM         (1<<5)
+#define SIG_FLAG_INIT_STATE_MATCH           (1<<6)  /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_INIT_NEED_FLUSH            (1<<7)
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            (1<<0)
@@ -887,6 +892,8 @@ typedef struct DetectEngineCtx_ {
     /** signatures stats */
     SigFileLoaderStat sig_stat;
 
+    bool sm_types_prefilter[DETECT_TBLSIZE];
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1325,6 +1332,7 @@ enum DetectEngineTenantSelectors
     TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
     TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
     TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
+    TENANT_SELECTOR_LIVEDEV,        /**< map livedev to tenant id */
 };
 
 typedef struct DetectEngineTenantMapping_ {
@@ -1366,6 +1374,9 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
 } DetectEngineMasterCtx;
+
+/* Table with all SigMatch registrations */
+SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 

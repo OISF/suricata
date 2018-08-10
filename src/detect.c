@@ -802,8 +802,8 @@ static inline void DetectRulePacketRules(
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if (sflags & SIG_FLAG_STATE_MATCH) {
-            goto next; // TODO skip and handle in DetectRunTx
+        if (s->app_inspect != NULL) {
+            goto next; // handle sig in DetectRunTx
         }
 
         /* don't run mask check for stateful rules.
@@ -842,7 +842,7 @@ static inline void DetectRulePacketRules(
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (!(sflags & SIG_FLAG_STATE_MATCH) && s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
@@ -984,6 +984,7 @@ static DetectRunScratchpad DetectRunSetup(
             if (p->proto == IPPROTO_TCP && pflow->protoctx &&
                     StreamReassembleRawHasDataReady(pflow->protoctx, p)) {
                 p->flags |= PKT_DETECT_HAS_STREAMDATA;
+                flow_flags |= STREAM_FLUSH;
             }
             SCLogDebug("alproto %u", alproto);
         } else {
@@ -1140,7 +1141,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         DetectEngineThreadCtx *det_ctx,
         Packet *p,
         Flow *f,
-        const uint8_t flow_flags,   // direction, EOF, etc
+        const uint8_t in_flow_flags,   // direction, EOF, etc
         void *alstate,
         DetectTransaction *tx,
         const Signature *s,
@@ -1148,6 +1149,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         RuleMatchCandidateTx *can,
         DetectRunScratchpad *scratch)
 {
+    uint8_t flow_flags = in_flow_flags;
     const int direction = (flow_flags & STREAM_TOSERVER) ? 0 : 1;
     uint32_t inspect_flags = stored_flags ? *stored_flags : 0;
     int total_matches = 0;
@@ -1155,6 +1157,10 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
     bool retval = false;
     bool mpm_before_progress = false;   // is mpm engine before progress?
     bool mpm_in_progress = false;       // is mpm engine in a buffer we will revisit?
+
+    /* see if we want to pass on the FLUSH flag */
+    if ((s->flags & SIG_FLAG_FLUSH) == 0)
+        flow_flags &=~ STREAM_FLUSH;
 
     TRACE_SID_TXS(s->id, tx, "starting %s", direction ? "toclient" : "toserver");
 
@@ -1419,7 +1425,7 @@ static void DetectRunTx(ThreadVars *tv,
         uint32_t x = array_idx;
         for (uint32_t i = 0; i < det_ctx->match_array_cnt; i++) {
             const Signature *s = det_ctx->match_array[i];
-            if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (s->app_inspect != NULL) {
                 const SigIntId id = s->num;
                 det_ctx->tx_candidates[array_idx].s = s;
                 det_ctx->tx_candidates[array_idx].id = id;

@@ -182,6 +182,10 @@ static void DetectFiledataSetupCallback(const DetectEngineCtx *de_ctx,
         AppLayerHtpEnableRequestBodyCallback();
     }
 
+
+    /* server body needs to be inspected in sync with stream if possible */
+    s->init_data->init_flags |= SIG_FLAG_INIT_NEED_FLUSH;
+
     SCLogDebug("callback invoked by %u", s->id);
 }
 

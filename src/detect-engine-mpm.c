@@ -666,6 +666,7 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
             cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
         }
     }
+    cd->flags |= DETECT_CONTENT_MPM;
     s->init_data->mpm_sm = mpm_sm;
     return;
 }

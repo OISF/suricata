@@ -38,7 +38,9 @@
 #define APP_LAYER_PARSER_BYPASS_READY           BIT_U8(4)
 
 /* Flags for AppLayerParserProtoCtx. */
-#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U64(0)
+#define APP_LAYER_PARSER_OPT_ACCEPT_GAPS        BIT_U32(0)
+
+#define APP_LAYER_PARSER_INT_STREAM_DEPTH_SET   BIT_U32(0)
 
 /* applies to DetectFlags uint64_t field */
 
@@ -126,7 +128,7 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto,
                                               AppProto alproto,
                                               uint8_t direction);
 void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
-        uint64_t flags);
+        uint32_t flags);
 void AppLayerParserRegisterStateFuncs(uint8_t ipproto, AppProto alproto,
                            void *(*StateAlloc)(void),
                            void (*StateFree)(void *));

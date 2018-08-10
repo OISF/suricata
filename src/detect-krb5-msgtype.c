@@ -199,7 +199,6 @@ static int DetectKrb5MsgTypeSetup (DetectEngineCtx *de_ctx, Signature *s, const 
     sm->type = DETECT_AL_KRB5_MSGTYPE;
     sm->ctx = (void *)krb5d;
 
-    s->flags |= SIG_FLAG_STATE_MATCH;
     SigMatchAppendSMToList(s, sm, g_krb5_msg_type_list_id);
 
     return 0;

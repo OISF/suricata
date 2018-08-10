@@ -29,6 +29,7 @@
 #include "app-layer-smb-tcp-rust.h"
 #include "rust-smb-smb-gen.h"
 #include "rust-smb-files-gen.h"
+#include "util-misc.h"
 
 #define MIN_REC_SIZE 32+4 // SMB hdr + nbss hdr
 
@@ -205,6 +206,10 @@ static int RustSMBRegisterPatternsForProtocolDetection(void)
 static StreamingBufferConfig sbcfg = STREAMING_BUFFER_CONFIG_INITIALIZER;
 static SuricataFileContext sfc = { &sbcfg };
 
+#define SMB_CONFIG_DEFAULT_STREAM_DEPTH 0
+
+static uint32_t stream_depth = SMB_CONFIG_DEFAULT_STREAM_DEPTH;
+
 void RegisterRustSMBTCPParsers(void)
 {
     const char *proto_name = "smb";
@@ -278,6 +283,18 @@ void RegisterRustSMBTCPParsers(void)
         AppLayerParserRegisterOptionFlags(IPPROTO_TCP, ALPROTO_SMB,
                 APP_LAYER_PARSER_OPT_ACCEPT_GAPS);
 
+        ConfNode *p = ConfGetNode("app-layer.protocols.smb.stream-depth");
+        if (p != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(p->val, &value) < 0) {
+                SCLogError(SC_ERR_SMB_CONFIG, "invalid value for stream-depth %s", p->val);
+            } else {
+                stream_depth = value;
+            }
+        }
+        SCLogConfig("SMB stream depth: %u", stream_depth);
+
+        AppLayerParserSetStreamDepth(IPPROTO_TCP, ALPROTO_SMB, stream_depth);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

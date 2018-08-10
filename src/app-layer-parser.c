@@ -130,7 +130,9 @@ typedef struct AppLayerParserProtoCtx_
     uint8_t first_data_dir;
 
     /* Option flags such as supporting gaps or not. */
-    uint64_t flags;
+    uint32_t option_flags;
+
+    uint32_t internal_flags;
 
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
@@ -209,8 +211,11 @@ void AppLayerParserPostStreamSetup(void)
     /* lets set a default value for stream_depth */
     for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
         for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
-            alp_ctx.ctxs[flow_proto][alproto].stream_depth =
-                stream_config.reassembly_depth;
+            if (!(alp_ctx.ctxs[flow_proto][alproto].internal_flags &
+                        APP_LAYER_PARSER_INT_STREAM_DEPTH_SET)) {
+                alp_ctx.ctxs[flow_proto][alproto].stream_depth =
+                    stream_config.reassembly_depth;
+            }
         }
     }
 }
@@ -363,11 +368,11 @@ void AppLayerParserRegisterParserAcceptableDataDirection(uint8_t ipproto, AppPro
 }
 
 void AppLayerParserRegisterOptionFlags(uint8_t ipproto, AppProto alproto,
-        uint64_t flags)
+        uint32_t flags)
 {
     SCEnter();
 
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].flags |= flags;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].option_flags |= flags;
 
     SCReturn;
 }
@@ -1102,7 +1107,7 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         goto end;
 
     if (flags & STREAM_GAP) {
-        if (!(p->flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
+        if (!(p->option_flags & APP_LAYER_PARSER_OPT_ACCEPT_GAPS)) {
             SCLogDebug("app-layer parser does not accept gaps");
             if (f->alstate != NULL) {
                 AppLayerParserStreamTruncated(f->proto, alproto, f->alstate,
@@ -1315,6 +1320,8 @@ void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t st
     SCEnter();
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].stream_depth = stream_depth;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].internal_flags |=
+        APP_LAYER_PARSER_INT_STREAM_DEPTH_SET;
 
     SCReturn;
 }
@@ -1350,7 +1357,7 @@ static void ValidateParserProtoDump(AppProto alproto, uint8_t ipproto)
     const AppLayerParserProtoCtx *ctx_def = &alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto];
     printf("ERROR: incomplete app-layer registration\n");
     printf("AppLayer protocol %s ipproto %u\n", AppProtoToString(alproto), ipproto);
-    printf("- flags %"PRIx64"\n", ctx->flags);
+    printf("- option flags %"PRIx32"\n", ctx->option_flags);
     printf("- first_data_dir %"PRIx8"\n", ctx->first_data_dir);
     printf("Mandatory:\n");
     printf("- Parser[0] %p Parser[1] %p\n", ctx->Parser[0], ctx->Parser[1]);

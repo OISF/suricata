@@ -59,27 +59,23 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
 {
     SCEnter();
 
-    SigMatch *sm = NULL;
-    int ret = -1;
-
     if (nullstr != NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "prefilter has value");
-        goto end;
+        SCReturnInt(-1);
     }
 
     if (s->flags & SIG_FLAG_PREFILTER) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter already set");
-        goto end;
+        SCReturnInt(-1);
     }
 
-    sm = DetectGetLastSM(s);
+    SigMatch *sm = DetectGetLastSM(s);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter needs preceding match");
-        goto end;
+        SCReturnInt(-1);
     }
 
     s->init_data->prefilter_sm = sm;
-    s->flags |= SIG_FLAG_PREFILTER;
 
     /* if the sig match is content, prefilter should act like
      * 'fast_pattern' w/o options. */
@@ -93,12 +89,13 @@ static int DetectPrefilterSetup (DetectEngineCtx *de_ctx, Signature *s, const ch
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "prefilter; cannot be "
                     "used with negated content, along with relative modifiers");
-            goto end;
+            SCReturnInt(-1);
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
+    } else {
+        s->flags |= SIG_FLAG_PREFILTER;
+        de_ctx->sm_types_prefilter[sm->type] = true;
     }
 
-    ret = 0;
- end:
-    SCReturnInt(ret);
+    SCReturnInt(0);
 }

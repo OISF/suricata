@@ -1722,10 +1722,12 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         dir = UPDATE_DIR_PACKET;
     } else if (p->tcph && (p->tcph->th_flags & TH_FIN) && ssn->state > TCP_TIME_WAIT) {
         dir = UPDATE_DIR_PACKET;
+    } else if (ssn->state == TCP_CLOSED) {
+        dir = UPDATE_DIR_BOTH;
     }
 
     /* handle ack received */
-    if (dir == UPDATE_DIR_OPPOSING &&
+    if ((dir == UPDATE_DIR_OPPOSING || dir == UPDATE_DIR_BOTH) &&
         StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
     {
         SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
@@ -1770,7 +1772,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* in stream inline mode even if we have no data we call the reassembly
      * functions to handle EOF */
-    if (dir == UPDATE_DIR_PACKET) {
+    if (dir == UPDATE_DIR_PACKET || dir == UPDATE_DIR_BOTH) {
         SCLogDebug("inline (%s) or PKT_PSEUDO_STREAM_END (%s)",
                 StreamTcpInlineMode()?"true":"false",
                 (p->flags & PKT_PSEUDO_STREAM_END) ?"true":"false");

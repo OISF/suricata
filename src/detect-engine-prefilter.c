@@ -348,13 +348,15 @@ void PrefilterSetupRuleGroup(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
 
-    if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO) {
-        int i = 0;
-        for (i = 0; i < DETECT_TBLSIZE; i++)
+    /* set up engines if needed - independent of 'detect.prefilter.default'
+     * setting as the prefilter keyword may have enabled individual sigs */
+    for (int i = 0; i < DETECT_TBLSIZE; i++)
+    {
+        if (sigmatch_table[i].SetupPrefilter != NULL &&
+                (de_ctx->sm_types_prefilter[i] ||
+                 de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO))
         {
-            if (sigmatch_table[i].SetupPrefilter != NULL) {
-                sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
-            }
+            sigmatch_table[i].SetupPrefilter(de_ctx, sgh);
         }
     }
 

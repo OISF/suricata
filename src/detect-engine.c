@@ -73,7 +73,7 @@
 #include "util-magic.h"
 #include "util-signal.h"
 #include "util-spm.h"
-
+#include "util-device.h"
 #include "util-var-name.h"
 
 #include "tm-threads.h"
@@ -98,6 +98,7 @@ static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER,
 static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
 static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
 static void TenantIdFree(void *d);
+static uint32_t DetectEngineTentantGetIdFromLivedev(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p);
 
@@ -468,12 +469,14 @@ int DetectEngineAppInspectionEngine2Signature(DetectEngineCtx *de_ctx, Signature
 
         SCLogDebug("sid %u: engine %p/%u added", s->id, new_engine, new_engine->id);
 
-        s->flags |= SIG_FLAG_STATE_MATCH;
+        s->init_data->init_flags |= SIG_FLAG_INIT_STATE_MATCH;
 next:
         t = t->next;
     }
 
-    if ((s->flags & SIG_FLAG_STATE_MATCH) && s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL) {
+    if ((s->init_data->init_flags & SIG_FLAG_INIT_STATE_MATCH) &&
+            s->init_data->smlists[DETECT_SM_LIST_PMATCH] != NULL)
+    {
         /* if engine is added multiple times, we pass it the same list */
         SigMatchData *stream = SigMatchList2DataArray(s->init_data->smlists[DETECT_SM_LIST_PMATCH]);
         BUG_ON(stream == NULL);
@@ -484,6 +487,10 @@ next:
         } else {
             AppendStreamInspectEngine(s, stream, 0, last_id + 1);
             AppendStreamInspectEngine(s, stream, 1, last_id + 1);
+        }
+
+        if (s->init_data->init_flags & SIG_FLAG_INIT_NEED_FLUSH) {
+            s->flags |= SIG_FLAG_FLUSH;
         }
     }
 
@@ -2168,6 +2175,10 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
             SCLogDebug("TENANT_SELECTOR_VLAN");
             break;
+        case TENANT_SELECTOR_LIVEDEV:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromLivedev;
+            SCLogDebug("TENANT_SELECTOR_LIVEDEV");
+            break;
         case TENANT_SELECTOR_DIRECT:
             det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
             SCLogDebug("TENANT_SELECTOR_DIRECT");
@@ -2932,6 +2943,122 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
     return 0;
 }
 
+static int DetectEngineMultiTenantSetupLoadLivedevMappings(const ConfNode *mappings_root_node,
+        bool failure_fatal)
+{
+    ConfNode *mapping_node = NULL;
+
+    int mapping_cnt = 0;
+    if (mappings_root_node != NULL) {
+        TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+            ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+            if (tenant_id_node == NULL)
+                goto bad_mapping;
+            ConfNode *device_node = ConfNodeLookupChild(mapping_node, "device");
+            if (device_node == NULL)
+                goto bad_mapping;
+
+            uint32_t tenant_id = 0;
+            if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                        tenant_id_node->val) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                        "of %s is invalid", tenant_id_node->val);
+                goto bad_mapping;
+            }
+
+            const char *dev = device_node->val;
+            LiveDevice *ld = LiveGetDevice(dev);
+            if (ld == NULL) {
+                SCLogWarning(SC_ERR_MT_NO_MAPPING, "device %s not found", dev);
+                goto bad_mapping;
+            }
+
+            if (ld->tenant_id_set) {
+                SCLogWarning(SC_ERR_MT_NO_MAPPING, "device %s already mapped to tenant-id %u",
+                        dev, ld->tenant_id);
+                goto bad_mapping;
+            }
+
+            ld->tenant_id = tenant_id;
+            ld->tenant_id_set = true;
+
+            if (DetectEngineTentantRegisterLivedev(tenant_id, ld->id) != 0) {
+                goto error;
+            }
+
+            SCLogConfig("device %s connected to tenant-id %u", dev, tenant_id);
+            mapping_cnt++;
+            continue;
+
+        bad_mapping:
+            if (failure_fatal)
+                goto error;
+        }
+    }
+    SCLogConfig("%d device - tenant-id mappings defined", mapping_cnt);
+    return mapping_cnt;
+
+error:
+    return 0;
+}
+
+static int DetectEngineMultiTenantSetupLoadVlanMappings(const ConfNode *mappings_root_node,
+        bool failure_fatal)
+{
+    ConfNode *mapping_node = NULL;
+
+    int mapping_cnt = 0;
+    if (mappings_root_node != NULL) {
+        TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+            ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+            if (tenant_id_node == NULL)
+                goto bad_mapping;
+            ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+            if (vlan_id_node == NULL)
+                goto bad_mapping;
+
+            uint32_t tenant_id = 0;
+            if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                        tenant_id_node->val) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                        "of %s is invalid", tenant_id_node->val);
+                goto bad_mapping;
+            }
+
+            uint16_t vlan_id = 0;
+            if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+                        vlan_id_node->val) == -1)
+            {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                        "of %s is invalid", vlan_id_node->val);
+                goto bad_mapping;
+            }
+            if (vlan_id == 0 || vlan_id >= 4095) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                        "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
+                goto bad_mapping;
+            }
+
+            if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+                goto error;
+            }
+            SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
+            mapping_cnt++;
+            continue;
+
+        bad_mapping:
+            if (failure_fatal)
+                goto error;
+        }
+    }
+    return mapping_cnt;
+
+error:
+    return 0;
+}
+
 /**
  *  \brief setup multi-detect / multi-tenancy
  *
@@ -2977,6 +3104,15 @@ int DetectEngineMultiTenantSetup(void)
 
             } else if (strcmp(handler, "direct") == 0) {
                 tenant_selector = master->tenant_selector = TENANT_SELECTOR_DIRECT;
+            } else if (strcmp(handler, "device") == 0) {
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_LIVEDEV;
+                if (EngineModeIsIPS()) {
+                    SCLogWarning(SC_ERR_MT_NO_MAPPING,
+                            "multi-tenant 'device' mode not supported for IPS");
+                    SCMutexUnlock(&master->lock);
+                    goto error;
+                }
+
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
                                                  "multi-detect.selector", handler);
@@ -2989,63 +3125,31 @@ int DetectEngineMultiTenantSetup(void)
 
         /* traffic -- tenant mappings */
         ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
-        ConfNode *mapping_node = NULL;
 
-        int mapping_cnt = 0;
-        if (mappings_root_node != NULL) {
-            TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
-                ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
-                if (tenant_id_node == NULL)
-                    goto bad_mapping;
-                ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
-                if (vlan_id_node == NULL)
-                    goto bad_mapping;
+        if (tenant_selector == TENANT_SELECTOR_VLAN) {
+            int mapping_cnt = DetectEngineMultiTenantSetupLoadVlanMappings(mappings_root_node,
+                    failure_fatal);
+            if (mapping_cnt == 0) {
+                /* no mappings are valid when we're in unix socket mode,
+                 * they can be added on the fly. Otherwise warn/error
+                 * depending on failure_fatal */
 
-                uint32_t tenant_id = 0;
-                if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
-                            tenant_id_node->val) == -1)
-                {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
-                            "of %s is invalid", tenant_id_node->val);
-                    goto bad_mapping;
+                if (unix_socket) {
+                    SCLogNotice("no tenant traffic mappings defined, "
+                            "tenants won't be used until mappings are added");
+                } else {
+                    if (failure_fatal) {
+                        SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                        goto error;
+                    } else {
+                        SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                    }
                 }
-
-                uint16_t vlan_id = 0;
-                if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
-                            vlan_id_node->val) == -1)
-                {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                            "of %s is invalid", vlan_id_node->val);
-                    goto bad_mapping;
-                }
-                if (vlan_id == 0 || vlan_id >= 4095) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                            "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
-                    goto bad_mapping;
-                }
-
-                if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
-                    goto error;
-                }
-                SCLogConfig("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
-                mapping_cnt++;
-                continue;
-
-            bad_mapping:
-                if (failure_fatal)
-                    goto error;
             }
-        }
-
-        if (tenant_selector == TENANT_SELECTOR_VLAN && mapping_cnt == 0) {
-            /* no mappings are valid when we're in unix socket mode,
-             * they can be added on the fly. Otherwise warn/error
-             * depending on failure_fatal */
-
-            if (unix_socket) {
-                SCLogNotice("no tenant traffic mappings defined, "
-                        "tenants won't be used until mappings are added");
-            } else {
+        } else if (tenant_selector == TENANT_SELECTOR_LIVEDEV) {
+            int mapping_cnt = DetectEngineMultiTenantSetupLoadLivedevMappings(mappings_root_node,
+                    failure_fatal);
+            if (mapping_cnt == 0) {
                 if (failure_fatal) {
                     SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
                     goto error;
@@ -3141,6 +3245,18 @@ static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet
     return 0;
 }
 
+static uint32_t DetectEngineTentantGetIdFromLivedev(const void *ctx, const Packet *p)
+{
+    const DetectEngineThreadCtx *det_ctx = ctx;
+    const LiveDevice *ld = p->livedev;
+
+    if (ld == NULL || det_ctx == NULL)
+        return 0;
+
+    SCLogDebug("using tenant-id %u for packet on device %s", ld->tenant_id, ld->dev);
+    return ld->tenant_id;
+}
+
 static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors selector,
                                            uint32_t tenant_id, uint32_t traffic_id)
 {
@@ -3216,6 +3332,11 @@ static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelector
 
     SCMutexUnlock(&master->lock);
     return -1;
+}
+
+int DetectEngineTentantRegisterLivedev(uint32_t tenant_id, int device_id)
+{
+    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_LIVEDEV, tenant_id, (uint32_t)device_id);
 }
 
 int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
