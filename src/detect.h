@@ -488,8 +488,8 @@ typedef struct SignatureInitData_ {
 
 /** \brief Signature container */
 typedef struct Signature_ {
-    /* coccinelle: Signature:flags:SIG_FLAG */
     uint32_t flags;
+    /* coccinelle: Signature:flags:SIG_FLAG_ */
 
     AppProto alproto;
 

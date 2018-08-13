@@ -131,8 +131,10 @@ typedef struct AppLayerParserProtoCtx_
 
     /* Option flags such as supporting gaps or not. */
     uint32_t option_flags;
+    /* coccinelle: AppLayerParserProtoCtx:option_flags:APP_LAYER_PARSER_OPT_ */
 
     uint32_t internal_flags;
+    /* coccinelle: AppLayerParserProtoCtx:internal_flags:APP_LAYER_PARSER_INT_ */
 
 #ifdef UNITTESTS
     void (*RegisterUnittests)(void);
