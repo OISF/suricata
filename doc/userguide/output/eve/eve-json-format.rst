@@ -180,6 +180,21 @@ Event with non-extended logging:
       "http_content_type": "application\/x-gzip"
   }
 
+In case the hostname shows a port number (such as in case the header "Hostname: www.test.org:1337") is present:
+
+::
+
+
+  "http": {
+      "http_port": 1337,
+      "hostname": "www.test.org",
+      "url" :"\/this\/is\/test.tar.gz",
+      "http_user_agent": "<User-Agent>",
+      "http_content_type": "application\/x-gzip"
+  }
+
+
+
 Event with extended logging:
 
 ::
