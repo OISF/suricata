@@ -116,12 +116,14 @@ pub fn smb2_read_response_record<'b>(state: &mut SMBState, r: &Smb2Record<'b>)
 {
     smb2_read_response_record_generic(state, r);
 
-    if r.nt_status != SMB_NTSTATUS_SUCCESS {
-        return;
-    }
-
     match parse_smb2_response_read(r.data) {
         IResult::Done(_, rd) => {
+            if r.nt_status != SMB_NTSTATUS_SUCCESS {
+                SCLogDebug!("SMBv2: read response error code received: skip record");
+                state.set_skip(STREAM_TOCLIENT, rd.len, rd.data.len() as u32);
+                return;
+            }
+
             SCLogDebug!("SMBv2: read response => {:?}", rd);
 
             // get the request info. If we don't have it, there is nothing
