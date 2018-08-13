@@ -781,6 +781,7 @@ app-layer:
       enabled: yes
     smtp:
       enabled: yes
+      raw-extraction: no
       # Configure SMTP-MIME Decoder
       mime:
         # Decode MIME messages from SMTP transactions
