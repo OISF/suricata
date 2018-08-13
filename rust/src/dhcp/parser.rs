@@ -212,7 +212,6 @@ pub fn dhcp_parse(input: &[u8]) -> IResult<&[u8], DHCPMessage> {
                         }
                     }
                     IResult::Incomplete(_) => {
-                        println!("incomplete parsing options");
                         truncated_options = true;
                         break;
                     }
