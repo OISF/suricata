@@ -190,18 +190,20 @@ impl DHCPLogger {
     }
 
     fn log_opt_type(&self, js: &Json, option: &DHCPOptGeneric) {
-        let dhcp_type = match option.data[0] {
-            DHCP_TYPE_DISCOVER => "discover",
-            DHCP_TYPE_OFFER => "offer",
-            DHCP_TYPE_REQUEST => "request",
-            DHCP_TYPE_DECLINE => "decline",
-            DHCP_TYPE_ACK => "ack",
-            DHCP_TYPE_NAK => "nak",
-            DHCP_TYPE_RELEASE => "release",
-            DHCP_TYPE_INFORM => "inform",
-            _ => "unknown"
-        };
-        js.set_string("dhcp_type", dhcp_type);
+        if option.data.len() > 0 {
+            let dhcp_type = match option.data[0] {
+                DHCP_TYPE_DISCOVER => "discover",
+                DHCP_TYPE_OFFER => "offer",
+                DHCP_TYPE_REQUEST => "request",
+                DHCP_TYPE_DECLINE => "decline",
+                DHCP_TYPE_ACK => "ack",
+                DHCP_TYPE_NAK => "nak",
+                DHCP_TYPE_RELEASE => "release",
+                DHCP_TYPE_INFORM => "inform",
+                _ => "unknown"
+            };
+            js.set_string("dhcp_type", dhcp_type);
+        }
     }
 
     fn log_opt_parameters(&self, js: &Json, option: &DHCPOptGeneric) {
