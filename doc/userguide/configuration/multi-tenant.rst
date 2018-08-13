@@ -5,7 +5,8 @@ Introduction
 ------------
 
 Multi tenancy support allows for different rule sets with different
-rule vars.
+rule vars. These tenants can then be assigned to VLANs or interfaces
+(devices).
 
 YAML
 ----
@@ -131,6 +132,19 @@ Note: Not currently supported for IPS.
 
 Note: support depends on a capture method using the 'livedev' API. Currently
 these are: pcap, AF_PACKET, PF_RING and Netmap.
+
+Per tenant settings
+-------------------
+
+The following settings are per tenant:
+
+* default-rule-path
+* rule-files
+* classification-file
+* reference-config-file
+* threshold-file
+* address-vars
+* port-vars
 
 Unix Socket
 -----------
