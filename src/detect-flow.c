@@ -323,8 +323,8 @@ int DetectFlowSetupImplicit(Signature *s, uint32_t flags)
     BUG_ON(flags & ~SIG_FLAG_BOTH);
     BUG_ON((flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH);
 
-    SCLogDebug("want %08x", flags & SIG_FLAG_BOTH);
-    SCLogDebug("have %08x", s->flags & SIG_FLAG_BOTH);
+    SCLogDebug("want %08lx", flags & SIG_FLAG_BOTH);
+    SCLogDebug("have %08lx", s->flags & SIG_FLAG_BOTH);
 
     if (flags & SIG_FLAG_TOSERVER) {
         if ((s->flags & SIG_FLAG_BOTH) == SIG_FLAG_BOTH) {
