@@ -176,7 +176,14 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
             }
         }
 
-        FilePrune(ffc);
+        /* only prune for accepted packets, as detection might skip
+         * inspection. */
+        if ((p->proto == IPPROTO_TCP && (p->flags & PKT_STREAM_EST)) ||
+                (p->proto == IPPROTO_UDP) ||
+                (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
+        {
+            FilePrune(ffc);
+        }
     }
 
     return TM_ECODE_OK;
