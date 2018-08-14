@@ -1211,9 +1211,7 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             /* special case: file_data on 'alert tcp' will have engines
              * in the list that are not for us. Bypass with assume match */
             } else if (unlikely(engine->alproto != 0 && engine->alproto != f->alproto)) {
-                inspect_flags |= BIT_U32(engine->id);
                 engine = engine->next;
-                total_matches++;
                 continue;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
