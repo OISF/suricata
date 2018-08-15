@@ -1188,6 +1188,14 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
         if (!(inspect_flags & BIT_U32(engine->id)) &&
                 direction == engine->dir)
         {
+            const bool skip_engine = (engine->alproto != 0 && engine->alproto != f->alproto);
+            /* special case: file_data on 'alert tcp' will have engines
+             * in the list that are not for us. */
+            if (unlikely(skip_engine)) {
+                engine = engine->next;
+                continue;
+            }
+
             /* engines are sorted per progress, except that the one with
              * mpm/prefilter enabled is first */
             if (tx->tx_progress < engine->progress) {
@@ -1208,11 +1216,6 @@ static bool DetectRunTxInspectRule(ThreadVars *tv,
             if (unlikely(engine->stream && can->stream_stored)) {
                 match = can->stream_result;
                 TRACE_SID_TXS(s->id, tx, "stream skipped, stored result %d used instead", match);
-            /* special case: file_data on 'alert tcp' will have engines
-             * in the list that are not for us. Bypass with assume match */
-            } else if (unlikely(engine->alproto != 0 && engine->alproto != f->alproto)) {
-                engine = engine->next;
-                continue;
             } else {
                 KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                 if (engine->Callback) {
