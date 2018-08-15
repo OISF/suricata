@@ -1564,7 +1564,7 @@ static int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->init_data->smlists[x]) {
             const DetectEngineAppInspectionEngine *app = de_ctx->app_inspect_engines;
             for ( ; app != NULL; app = app->next) {
-                if (app->sm_list == x && s->alproto == app->alproto) {
+                if (app->sm_list == x && ((s->alproto == app->alproto) || s->alproto == 0)) {
                     SCLogDebug("engine %s dir %d alproto %d",
                             DetectBufferTypeGetNameById(de_ctx, app->sm_list),
                             app->dir, app->alproto);
