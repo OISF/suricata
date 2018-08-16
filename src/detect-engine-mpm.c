@@ -684,11 +684,10 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     memset(n_sm_list, 0, nlists * sizeof(int));
     int count_nn_sm_list = 0;
     int count_n_sm_list = 0;
-    int list_id;
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (list_id = 0; list_id < nlists; list_id++) {
+    for (int list_id = 0; list_id < nlists; list_id++) {
         if (s->init_data->smlists[list_id] == NULL)
             continue;
 
@@ -699,8 +698,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* fast_pattern set in rule, so using this pattern */
             if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
                 SetMpm(s, sm);
@@ -735,7 +733,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
     int count_final_sm_list = 0;
     int priority;
 
-    SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
+    const SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
     while (tmp != NULL) {
         for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
@@ -753,9 +751,8 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
 
     BUG_ON(count_final_sm_list == 0);
 
-    int max_len = 0;
-    int i;
-    for (i = 0; i < count_final_sm_list; i++) {
+    uint16_t max_len = 0;
+    for (int i = 0; i < count_final_sm_list; i++) {
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
@@ -763,7 +760,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* skip_negated_content is only set if there's absolutely no
              * non-negated content present in the sig */
             if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
@@ -773,7 +770,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    for (i = 0; i < count_final_sm_list; i++) {
+    for (int i = 0; i < count_final_sm_list; i++) {
         if (final_sm_list[i] >= (int)s->init_data->smlists_array_size)
             continue;
 
@@ -781,7 +778,7 @@ void RetrieveFPForSig(const DetectEngineCtx *de_ctx, Signature *s)
             if (sm->type != DETECT_CONTENT)
                 continue;
 
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            const DetectContentData *cd = (DetectContentData *)sm->ctx;
             /* skip_negated_content is only set if there's absolutely no
              * non-negated content present in the sig */
             if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
