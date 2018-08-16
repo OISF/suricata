@@ -617,24 +617,22 @@ static inline bool StreamTcpReturnSegmentCheck(const TcpStream *stream, const Tc
 
 static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
 {
-    int use_app = 1;
-    int use_raw = 1;
-    int use_log = 1;
+    bool use_app = true;
+    bool use_raw = true;
+    bool use_log = true;
 
     uint64_t left_edge = 0;
     if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
           (stream->flags & STREAMTCP_STREAM_FLAG_GAP))
     {
-        // app is dead
-        use_app = 0;
+        use_app = false; // app is dead
     }
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DISABLE_RAW) {
-        // raw is dead
-        use_raw = 0;
+        use_raw = false; // raw is dead
     }
     if (!stream_config.streaming_log_api) {
-        use_log = 0;
+        use_log = false;
     }
 
     if (use_raw) {
@@ -681,7 +679,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         uint64_t last_ack_abs = STREAM_BASE_OFFSET(stream);
         if (STREAM_LASTACK_GT_BASESEQ(stream)) {
             /* get window of data that is acked */
-            uint32_t delta = stream->last_ack - stream->base_seq;
+            const uint32_t delta = stream->last_ack - stream->base_seq;
             DEBUG_VALIDATE_BUG_ON(delta > 10000000ULL && delta > stream->window);
             /* get max absolute offset */
             last_ack_abs += delta;
@@ -692,7 +690,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
      * consider data that is ack'd as well. Injected packets may have
      * been ack'd or injected packet may be too late. */
     } else if (check_overlap_different_data) {
-        uint32_t window = stream->window ? stream->window : 4096;
+        const uint32_t window = stream->window ? stream->window : 4096;
         if (window < left_edge)
             left_edge -= window;
         else
@@ -705,7 +703,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         /* we know left edge based on the progress values now,
          * lets adjust it to make sure in-use segments still have
          * data */
-        TcpSegment *seg;
+        const TcpSegment *seg;
         for (seg = stream->seg_list; seg != NULL; seg = seg->next)
         {
             if (TCP_SEG_OFFSET(seg) > left_edge) {
@@ -792,7 +790,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         return;
     }
 
-    uint64_t left_edge = GetLeftEdge(ssn, stream);
+    const uint64_t left_edge = GetLeftEdge(ssn, stream);
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
