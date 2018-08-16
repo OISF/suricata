@@ -1176,14 +1176,14 @@ enum {
     FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
 };
 
-#define SIG_GROUP_HEAD_HAVERAWSTREAM    (1 << 0)
+#define SIG_GROUP_HEAD_HAVERAWSTREAM    BIT_U32(0)
 #ifdef HAVE_MAGIC
-#define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
+#define SIG_GROUP_HEAD_HAVEFILEMAGIC    BIT_U32(20)
 #endif
-#define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
-#define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
-#define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 23)
-#define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 24)
+#define SIG_GROUP_HEAD_HAVEFILEMD5      BIT_U32(21)
+#define SIG_GROUP_HEAD_HAVEFILESIZE     BIT_U32(22)
+#define SIG_GROUP_HEAD_HAVEFILESHA1     BIT_U32(23)
+#define SIG_GROUP_HEAD_HAVEFILESHA256   BIT_U32(24)
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
@@ -1285,6 +1285,8 @@ typedef struct SigGroupHeadInitData_ {
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
     uint32_t flags;
+    /* coccinelle: SigGroupHead:flags:SIG_GROUP_HEAD_ */
+
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
