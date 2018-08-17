@@ -733,6 +733,11 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         hstate->cfg = htp_cfg_rec;
 
         SCLogDebug("New hstate->connp %p", hstate->connp);
+
+        StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
+                htp_cfg_rec->request.inspect_min_size);
+        StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOCLIENT,
+                htp_cfg_rec->response.inspect_min_size);
     }
 
     /* the code block above should make sure connp is never NULL here */

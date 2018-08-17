@@ -650,6 +650,19 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
                 raw_progress -= (uint64_t)chunk_size;
             }
         }
+
+        /* apply min inspect depth: if it is set we need to keep data
+         * before the raw progress. */
+        if (use_app && stream->min_inspect_depth) {
+            if (raw_progress < stream->min_inspect_depth)
+                raw_progress = 0;
+            else
+                raw_progress -= stream->min_inspect_depth;
+
+            SCLogDebug("stream->min_inspect_depth %u, raw_progress %"PRIu64,
+                    stream->min_inspect_depth, raw_progress);
+        }
+
         if (use_app) {
             left_edge = MIN(STREAM_APP_PROGRESS(stream), raw_progress);
             SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
