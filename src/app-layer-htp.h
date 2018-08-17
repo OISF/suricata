@@ -234,6 +234,8 @@ typedef struct HtpState_ {
     uint16_t flags;
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
+    uint64_t last_request_data_stamp;
+    uint64_t last_response_data_stamp;
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
