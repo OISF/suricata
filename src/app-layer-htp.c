@@ -695,6 +695,10 @@ static int Setup(Flow *f, HtpState *hstate)
 
     htp_connp_open(hstate->connp, NULL, f->sp, NULL, f->dp, &f->startts);
 
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOSERVER,
+            htp_cfg_rec->request.inspect_min_size);
+    StreamTcpReassemblySetMinInspectDepth(f->protoctx, STREAM_TOCLIENT,
+            htp_cfg_rec->response.inspect_min_size);
     return 0;
 error:
     return -1;

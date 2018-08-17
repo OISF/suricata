@@ -132,7 +132,8 @@ int StreamReassembleLog(TcpSession *ssn, TcpStream *stream,
         uint64_t progress_in,
         uint64_t *progress_out, bool eof);
 int StreamReassembleRaw(TcpSession *ssn, const Packet *p,
-        StreamReassembleRawFunc Callback, void *cb_data, uint64_t *progress_out);
+        StreamReassembleRawFunc Callback, void *cb_data,
+        uint64_t *progress_out, bool respect_inspect_depth);
 void StreamReassembleRawUpdateProgress(TcpSession *ssn, Packet *p, uint64_t progress);
 
 void StreamTcpDetectLogFlush(ThreadVars *tv, StreamTcpThread *stt, Flow *f, Packet *p, PacketQueue *pq);
