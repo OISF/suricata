@@ -635,50 +635,54 @@ static inline int TLSDecodeHSHelloCipherSuites(SSLState *ssl_state,
     if (!(HAS_SPACE(2)))
         goto invalid_length;
 
-    uint16_t cipher_suites_length = *input << 8 | *(input + 1);
-    input += 2;
-
-    if (!(HAS_SPACE(cipher_suites_length)))
-        goto invalid_length;
-
-    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            ssl_config.enable_ja3) {
-        int rc;
-
-        JA3Buffer *ja3_cipher_suites = Ja3BufferInit();
-        if (ja3_cipher_suites == NULL)
-            return -1;
-
-        uint16_t processed_len = 0;
-        /* coverity[tainted_data] */
-        while (processed_len < cipher_suites_length)
-        {
-            if (!(HAS_SPACE(2))) {
-                Ja3BufferFree(&ja3_cipher_suites);
-                goto invalid_length;
-            }
-
-            uint16_t cipher_suite = *input << 8 | *(input + 1);
-            input += 2;
-
-            if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
-                rc = Ja3BufferAddValue(&ja3_cipher_suites, cipher_suite);
-                if (rc != 0) {
-                    return -1;
-                }
-            }
-
-            processed_len += 2;
-        }
-
-        rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str, &ja3_cipher_suites);
-        if (rc == -1) {
-            return -1;
-        }
-
+    if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+        /* Skip cipher suite */
+        input += 2;
     } else {
-        /* Skip cipher suites */
-        input += cipher_suites_length;
+        uint16_t cipher_suites_length = *input << 8 | *(input + 1);
+        input += 2;
+
+        if (!(HAS_SPACE(cipher_suites_length)))
+            goto invalid_length;
+
+        if (ssl_config.enable_ja3) {
+            int rc;
+
+            JA3Buffer *ja3_cipher_suites = Ja3BufferInit();
+            if (ja3_cipher_suites == NULL)
+                return -1;
+
+            uint16_t processed_len = 0;
+            /* coverity[tainted_data] */
+            while (processed_len < cipher_suites_length)
+            {
+                if (!(HAS_SPACE(2))) {
+                    Ja3BufferFree(&ja3_cipher_suites);
+                    goto invalid_length;
+                }
+
+                uint16_t cipher_suite = *input << 8 | *(input + 1);
+                input += 2;
+
+                if (TLSDecodeValueIsGREASE(cipher_suite) != 1) {
+                    rc = Ja3BufferAddValue(&ja3_cipher_suites, cipher_suite);
+                    if (rc != 0) {
+                        return -1;
+                    }
+                }
+
+                processed_len += 2;
+            }
+
+            rc = Ja3BufferAppendBuffer(&ssl_state->ja3_str, &ja3_cipher_suites);
+            if (rc == -1) {
+                return -1;
+            }
+
+        } else {
+            /* Skip cipher suites */
+            input += cipher_suites_length;
+        }
     }
 
     return (input - initial_input);
@@ -700,13 +704,17 @@ static inline int TLSDecodeHSHelloCompressionMethods(SSLState *ssl_state,
         goto invalid_length;
 
     /* Skip compression methods */
-    uint8_t compression_methods_length = *input;
-    input += 1;
+    if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+        input += 1;
+    } else {
+        uint8_t compression_methods_length = *input;
+        input += 1;
 
-    if (!(HAS_SPACE(compression_methods_length)))
-        goto invalid_length;
+        if (!(HAS_SPACE(compression_methods_length)))
+            goto invalid_length;
 
-    input += compression_methods_length;
+        input += compression_methods_length;
+    }
 
     return (input - initial_input);
 
@@ -1053,10 +1061,6 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     int ret;
     uint32_t parsed = 0;
 
-    /* Only parse the message if it is complete */
-    if (input_len < ssl_state->curr_connp->message_length || input_len < 40)
-        goto end;
-
     ret = TLSDecodeHSHelloVersion(ssl_state, input, input_len);
     if (ret < 0)
         goto end;
@@ -1120,15 +1124,30 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
-            rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
+            /* Only parse the message if it is complete */
+            if (input_len >= ssl_state->curr_connp->message_length &&
+                      input_len >= 40) {
+                rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
 
-            if (rc < 0)
-                return rc;
+                if (rc < 0)
+                    return rc;
+            }
 
             break;
 
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_SERVER_HELLO;
+
+            /* Only parse the message if it is complete */
+            if (input_len >= ssl_state->curr_connp->message_length &&
+                    input_len >= 40) {
+                rc = TLSDecodeHandshakeHello(ssl_state, input,
+                                             ssl_state->curr_connp->message_length);
+
+                if (rc < 0)
+                    return rc;
+            }
+
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
