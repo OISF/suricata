@@ -490,7 +490,12 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
                                  ssl_state->server_connp.cert0_issuerdn);
         }
         if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-            MemBufferWriteString(aft->buffer, " Session='resumed'");
+            /* Only log a session as 'resumed' if a certificate has not
+               been seen. */
+            if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
+                    (ssl_state->server_connp.cert0_subject == NULL)) {
+                MemBufferWriteString(aft->buffer, " Session='resumed'");
+            }
         }
 
         if (hlog->flags & LOG_TLS_EXTENDED) {
