@@ -166,6 +166,9 @@ typedef struct SSLStateConnp_ {
     /* ssl server name indication extension */
     char *sni;
 
+    char *session_id;
+    uint8_t ssl3_session_id_length;
+
     TAILQ_HEAD(, SSLCertsChain_) certs;
 
     uint32_t cert_log_flag;

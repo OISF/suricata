@@ -608,12 +608,27 @@ static inline int TLSDecodeHSHelloSessionID(SSLState *ssl_state,
     uint8_t session_id_length = *input;
     input += 1;
 
-    if (session_id_length != 0) {
-        ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SESSION_ID;
-    }
-
     if (!(HAS_SPACE(session_id_length)))
         goto invalid_length;
+
+    if (session_id_length != 0 && ssl_state->curr_connp->session_id == NULL) {
+        ssl_state->curr_connp->session_id = SCMalloc(session_id_length);
+
+        if (unlikely(ssl_state->curr_connp->session_id == NULL)) {
+            return -1;
+        }
+
+        memcpy(ssl_state->curr_connp->session_id, input, session_id_length);
+        ssl_state->curr_connp->ssl3_session_id_length = session_id_length;
+
+        if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+            if ((ssl_state->client_connp.ssl3_session_id_length == session_id_length) &&
+                    (memcmp(ssl_state->curr_connp->session_id,
+                    ssl_state->client_connp.session_id, session_id_length) == 0)) {
+                ssl_state->flags |= SSL_AL_FLAG_SESSION_RESUMED;
+            }
+        }
+    }
 
     input += session_id_length;
 
@@ -1955,13 +1970,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
             if (direction) {
                 ssl_state->flags |= SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC;
-
-                int server_cert_seen = (ssl_state->server_connp.cert0_issuerdn != NULL &&
-                                        ssl_state->server_connp.cert0_subject != NULL);
-                if (!server_cert_seen && (ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SESSION_ID) != 0) {
-                    ssl_state->flags |= SSL_AL_FLAG_SESSION_RESUMED;
-                }
-
             } else {
                 ssl_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
             }
@@ -2312,6 +2320,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
     if (ssl_state->client_connp.sni)
         SCFree(ssl_state->client_connp.sni);
+    if (ssl_state->client_connp.session_id)
+        SCFree(ssl_state->client_connp.session_id);
 
     if (ssl_state->server_connp.trec)
         SCFree(ssl_state->server_connp.trec);
@@ -2323,6 +2333,8 @@ static void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
     if (ssl_state->server_connp.sni)
         SCFree(ssl_state->server_connp.sni);
+    if (ssl_state->server_connp.session_id)
+        SCFree(ssl_state->server_connp.session_id);
 
     if (ssl_state->ja3_str)
         Ja3BufferFree(&ssl_state->ja3_str);
@@ -5055,7 +5067,7 @@ static int SSLParserTest26(void)
     FAIL_IF_NULL(ssl_state);
 
     FAIL_IF((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0);
-    FAIL_IF((ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SESSION_ID) == 0);
+    FAIL_IF_NULL(ssl_state->client_connp.session_id);
 
     FLOWLOCK_WRLOCK(&f);
     r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
