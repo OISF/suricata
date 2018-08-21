@@ -1018,6 +1018,20 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 break;
             }
 
+            case SSL_EXTENSION_SESSION_TICKET:
+            {
+                if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                        ext_len != 0) {
+                    /* This has to be verified later on by checking if a
+                       certificate record has been sent by the server. */
+                    ssl_state->flags |= SSL_AL_FLAG_SESSION_RESUMED;
+                }
+
+                input += ext_len;
+
+                break;
+            }
+
             default:
             {
                 input += ext_len;

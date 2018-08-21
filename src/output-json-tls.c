@@ -133,7 +133,12 @@ static void JsonTlsLogIssuer(json_t *js, SSLState *ssl_state)
 static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
-        json_object_set_new(js, "session_resumed", json_boolean(true));
+        /* Only log a session as 'resumed' if a certificate has not
+           been seen. */
+        if (ssl_state->server_connp.cert0_issuerdn == NULL &&
+               ssl_state->server_connp.cert0_subject == NULL) {
+            json_object_set_new(js, "session_resumed", json_boolean(true));
+        }
     }
 }
 
