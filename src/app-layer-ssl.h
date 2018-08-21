@@ -153,7 +153,6 @@ typedef struct SSLStateConnp_ {
     /* the no of bytes processed in the currently parsed handshake */
     uint16_t hs_bytes_processed;
 
-    /* sslv2 client hello session id length */
     uint16_t session_id_length;
 
     char *cert0_subject;
@@ -165,6 +164,8 @@ typedef struct SSLStateConnp_ {
 
     /* ssl server name indication extension */
     char *sni;
+
+    char *session_id;
 
     TAILQ_HEAD(, SSLCertsChain_) certs;
 
