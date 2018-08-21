@@ -165,6 +165,10 @@ In addition to the extended logging fields one can also choose to enable/add fro
 
 The benefits here of using the extended logging is to see if this action for example was a POST or perhaps if a download of an executable actually returned any bytes.
 
+It is also possible to dump every header for HTTP requests/response or both via the keyword dump-all-headers.
+
+
+
 Examples
 ~~~~~~~~
 
@@ -211,6 +215,39 @@ Event with extended logging:
       "status":"200",
       "length":310
   }
+
+Event with dump-all-headers set to "both":
+
+::
+
+  "http": {
+      "hostname": "direkte.vg.no",
+      "url":".....",
+      "http_user_agent": "<User-Agent>",
+      "http_content_type": "application\/json",
+      "http_refer": "http:\/\/www.vg.no\/",
+      "http_method": "GET",
+      "protocol": "HTTP\/1.1",
+      "status":"200",
+      "length":310,
+      "request_headers": [
+          {
+              "name": "User-Agent",
+              "value": "Wget/1.13.4 (linux-gnu)"
+          },
+          {
+              "name": "Accept",
+              "value": "*/*"
+          },
+      ],
+      "response_headers": [
+          {
+              "name": "Date",
+              "value": "Wed, 25 Mar 2015 15:40:41 GMT"
+          },
+      ]
+  }
+
 
 Event type: DNS
 ---------------
