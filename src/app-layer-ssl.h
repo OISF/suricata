@@ -110,6 +110,7 @@ enum {
 #define SSL_EXTENSION_SNI                       0x0000
 #define SSL_EXTENSION_ELLIPTIC_CURVES           0x000a
 #define SSL_EXTENSION_EC_POINT_FORMATS          0x000b
+#define SSL_EXTENSION_SESSION_TICKET            0x0023
 
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
