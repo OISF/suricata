@@ -160,6 +160,7 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
 
     /* tls.version */
     char ssl_version[32] = "";
+
     switch (ssl_state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
             snprintf(ssl_version, sizeof(ssl_version), "UNDETERMINED");
@@ -178,6 +179,51 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
             break;
         case TLS_VERSION_12:
             snprintf(ssl_version, sizeof(ssl_version), "TLS 1.2");
+            break;
+        case TLS_VERSION_13:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3");
+            break;
+        case TLS_VERSION_13_DRAFT28:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 28)");
+            break;
+       case TLS_VERSION_13_DRAFT27:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 27)");
+            break;
+       case TLS_VERSION_13_DRAFT26:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 26)");
+            break;
+       case TLS_VERSION_13_DRAFT25:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 25)");
+            break;
+       case TLS_VERSION_13_DRAFT24:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 24)");
+            break;
+       case TLS_VERSION_13_DRAFT23:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 23)");
+            break;
+       case TLS_VERSION_13_DRAFT22:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 22)");
+            break;
+       case TLS_VERSION_13_DRAFT21:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 21)");
+            break;
+       case TLS_VERSION_13_DRAFT20:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 20)");
+            break;
+       case TLS_VERSION_13_DRAFT19:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 19)");
+            break;
+       case TLS_VERSION_13_DRAFT18:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 18)");
+            break;
+       case TLS_VERSION_13_DRAFT17:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 17)");
+            break;
+       case TLS_VERSION_13_DRAFT16:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft 16)");
+            break;
+       case TLS_VERSION_13_PRE_DRAFT16:
+            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.3 (draft <16)");
             break;
         default:
             snprintf(ssl_version, sizeof(ssl_version), "0x%04x",
