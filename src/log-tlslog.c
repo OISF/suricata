@@ -113,6 +113,51 @@ static void LogTlsLogVersion(MemBuffer *buffer, uint16_t version)
         case TLS_VERSION_12:
             MemBufferWriteString(buffer, "VERSION='TLS 1.2'");
             break;
+        case TLS_VERSION_13:
+            MemBufferWriteString(buffer, "VERSION='TLS 1.3'");
+            break;
+        case TLS_VERSION_13_DRAFT28:
+            MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 28)'");
+            break;
+        case TLS_VERSION_13_DRAFT27:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 27)'");
+              break;
+        case TLS_VERSION_13_DRAFT26:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 26)'");
+              break;
+        case TLS_VERSION_13_DRAFT25:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 25)'");
+              break;
+        case TLS_VERSION_13_DRAFT24:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 24)'");
+              break;
+        case TLS_VERSION_13_DRAFT23:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 23)'");
+              break;
+        case TLS_VERSION_13_DRAFT22:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 22)'");
+              break;
+        case TLS_VERSION_13_DRAFT21:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 21)'");
+              break;
+        case TLS_VERSION_13_DRAFT20:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 20)'");
+              break;
+        case TLS_VERSION_13_DRAFT19:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 19)'");
+              break;
+        case TLS_VERSION_13_DRAFT18:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 18)'");
+              break;
+        case TLS_VERSION_13_DRAFT17:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 17)'");
+              break;
+        case TLS_VERSION_13_DRAFT16:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft 16)'");
+              break;
+        case TLS_VERSION_13_PRE_DRAFT16:
+              MemBufferWriteString(buffer, "VERSION='TLS 1.3 (draft <16)'");
+              break;
         default:
             MemBufferWriteString(buffer, "VERSION='0x%04x'", version);
             break;
@@ -458,7 +503,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if (((hlog->flags & LOG_TLS_SESSION_RESUMPTION) == 0 ||
             (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0) &&
             (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)) {
+            ssl_state->server_connp.cert0_subject == NULL) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
 
@@ -493,7 +539,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
             /* Only log a session as 'resumed' if a certificate has not
                been seen. */
             if ((ssl_state->server_connp.cert0_issuerdn == NULL) &&
-                    (ssl_state->server_connp.cert0_subject == NULL)) {
+                    (ssl_state->server_connp.cert0_subject == NULL) &&
+                    ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
                 MemBufferWriteString(aft->buffer, " Session='resumed'");
             }
         }
