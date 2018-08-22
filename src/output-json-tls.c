@@ -60,7 +60,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-#define SSL_VERSION_LENGTH 13
+#define SSL_VERSION_LENGTH 20
 
 #define LOG_TLS_DEFAULT                 0
 #define LOG_TLS_EXTENDED                (1 << 0)
@@ -134,9 +134,10 @@ static void JsonTlsLogSessionResumed(json_t *js, SSLState *ssl_state)
 {
     if (ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) {
         /* Only log a session as 'resumed' if a certificate has not
-           been seen. */
-        if (ssl_state->server_connp.cert0_issuerdn == NULL &&
-               ssl_state->server_connp.cert0_subject == NULL) {
+           been seen, and the session is not TLSv1.3 or later. */
+        if ((ssl_state->server_connp.cert0_issuerdn == NULL &&
+               ssl_state->server_connp.cert0_subject == NULL) &&
+               ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
             json_object_set_new(js, "session_resumed", json_boolean(true));
         }
     }
@@ -189,11 +190,57 @@ static void JsonTlsLogVersion(json_t *js, SSLState *ssl_state)
         case TLS_VERSION_12:
             snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.2");
             break;
+        case TLS_VERSION_13:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3");
+            break;
+        case TLS_VERSION_13_DRAFT28:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 28)");
+            break;
+        case TLS_VERSION_13_DRAFT27:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 27)");
+            break;
+        case TLS_VERSION_13_DRAFT26:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 26)");
+            break;
+        case TLS_VERSION_13_DRAFT25:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 25)");
+            break;
+        case TLS_VERSION_13_DRAFT24:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 24)");
+            break;
+        case TLS_VERSION_13_DRAFT23:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 23)");
+            break;
+        case TLS_VERSION_13_DRAFT22:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 22)");
+            break;
+        case TLS_VERSION_13_DRAFT21:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 21)");
+            break;
+        case TLS_VERSION_13_DRAFT20:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 20)");
+            break;
+        case TLS_VERSION_13_DRAFT19:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 19)");
+            break;
+        case TLS_VERSION_13_DRAFT18:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 18)");
+            break;
+        case TLS_VERSION_13_DRAFT17:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 17)");
+            break;
+        case TLS_VERSION_13_DRAFT16:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft 16)");
+            break;
+        case TLS_VERSION_13_PRE_DRAFT16:
+            snprintf(ssl_version, SSL_VERSION_LENGTH, "TLS 1.3 (draft <16)");
+            break;
         default:
             snprintf(ssl_version, SSL_VERSION_LENGTH, "0x%04x",
                      ssl_state->server_connp.version);
             break;
     }
+
     json_object_set_new(js, "version", json_string(ssl_version));
 }
 
@@ -396,7 +443,8 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     if ((ssl_state->server_connp.cert0_issuerdn == NULL ||
             ssl_state->server_connp.cert0_subject == NULL) &&
             ((ssl_state->flags & SSL_AL_FLAG_SESSION_RESUMED) == 0 ||
-            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0)) {
+            (tls_ctx->flags & LOG_TLS_SESSION_RESUMPTION) == 0) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0)) {
         return 0;
     }
 
