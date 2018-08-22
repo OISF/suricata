@@ -559,15 +559,16 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
         return -1;
     }
 
+    ssl_state->curr_connp->version = *input << 8 | *(input + 1);
+
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
             ssl_config.enable_ja3) {
-        uint16_t version = *input << 8 | *(input + 1);
-
         ssl_state->ja3_str = Ja3BufferInit();
         if (ssl_state->ja3_str == NULL)
             return -1;
 
-        int rc = Ja3BufferAddValue(&ssl_state->ja3_str, version);
+        int rc = Ja3BufferAddValue(&ssl_state->ja3_str,
+                                   ssl_state->curr_connp->version);
         if (rc != 0)
             return -1;
     }
@@ -819,6 +820,56 @@ invalid_length:
     return -1;
 }
 
+static inline int TLSDecodeHSHelloExtensionSupportedVersions(SSLState *ssl_state,
+                                             const uint8_t * const initial_input,
+                                             const uint32_t input_len)
+{
+    uint8_t *input = (uint8_t *)initial_input;
+
+    if (ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) {
+        if (!(HAS_SPACE(1)))
+            goto invalid_length;
+
+        uint8_t supported_ver_len = *input;
+        input += 1;
+
+        if (!(HAS_SPACE(supported_ver_len)))
+            goto invalid_length;
+
+        /* Use the first (and prefered) version as client version */
+        ssl_state->curr_connp->version = *input << 8 | *(input + 1);
+
+        /* Set a flag to indicate that we have seen this extension */
+        ssl_state->flags |= SSL_AL_FLAG_CH_VERSION_EXTENSION;
+
+        input += supported_ver_len;
+    }
+
+    else if (ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) {
+        if (!(HAS_SPACE(2)))
+            goto invalid_length;
+
+        uint16_t ver = *input << 8 | *(input + 1);
+
+        if ((ssl_state->flags & SSL_AL_FLAG_CH_VERSION_EXTENSION) &&
+            ((ver == TLS_VERSION_13) || (((ver >> 8) & 0xff) == 0x7f))) {
+            ssl_state->flags |= SSL_AL_FLAG_LOG_WITHOUT_CERT;
+        }
+
+        ssl_state->curr_connp->version = ver;
+        input += 2;
+    }
+
+    return (input - initial_input);
+
+invalid_length:
+    SCLogDebug("TLS handshake invalid length");
+    SSLSetEvent(ssl_state,
+                TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
+
+    return -1;
+}
+
 static inline int TLSDecodeHSHelloExtensionEllipticCurves(SSLState *ssl_state,
                                           const uint8_t * const initial_input,
                                           const uint32_t input_len,
@@ -1008,6 +1059,18 @@ static inline int TLSDecodeHSHelloExtensions(SSLState *ssl_state,
                 ret = TLSDecodeHSHelloExtensionEllipticCurvePF(ssl_state, input,
                                                                input_len - parsed,
                                                                ja3_elliptic_curves_pf);
+                if (ret < 0)
+                    goto end;
+
+                input += ret;
+
+                break;
+            }
+
+            case SSL_EXTENSION_SUPPORTED_VERSIONS:
+            {
+                ret = TLSDecodeHSHelloExtensionSupportedVersions(ssl_state, input,
+                                                                 input_len - parsed);
                 if (ret < 0)
                     goto end;
 
@@ -1533,12 +1596,30 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
         return 0;
     }
 
+    uint8_t skip_version = 0;
+
+    /* Only set SSL/TLS version here if it has not already been set in
+       client/server hello. */
+    if (direction == 0) {
+        if ((ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
+                (ssl_state->client_connp.version != TLS_VERSION_UNKNOWN)) {
+            skip_version = 1;
+        }
+    } else {
+        if ((ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+                (ssl_state->server_connp.version != TLS_VERSION_UNKNOWN)) {
+            skip_version = 1;
+        }
+    }
+
     switch (ssl_state->curr_connp->bytes_processed) {
         case 0:
             if (input_len >= 5) {
                 ssl_state->curr_connp->content_type = input[0];
-                ssl_state->curr_connp->version = input[1] << 8;
-                ssl_state->curr_connp->version |= input[2];
+                if (!skip_version) {
+                    ssl_state->curr_connp->version = input[1] << 8;
+                    ssl_state->curr_connp->version |= input[2];
+                }
                 ssl_state->curr_connp->record_length = input[3] << 8;
                 ssl_state->curr_connp->record_length |= input[4];
                 ssl_state->curr_connp->bytes_processed += SSLV3_RECORD_HDR_LEN;
@@ -1551,13 +1632,23 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
 
             /* fall through */
         case 1:
-            ssl_state->curr_connp->version = *(input++) << 8;
+            if (!skip_version) {
+                ssl_state->curr_connp->version = *(input++) << 8;
+                printf("%d\n", ssl_state->curr_connp->version);
+            } else {
+                input++;
+            }
             if (--input_len == 0)
                 break;
 
             /* fall through */
         case 2:
-            ssl_state->curr_connp->version |= *(input++);
+            if (!skip_version) {
+                ssl_state->curr_connp->version |= *(input++);
+                printf("%d\n", ssl_state->curr_connp->version);
+            } else {
+                input++;
+            }
             if (--input_len == 0)
                 break;
 
@@ -1962,14 +2053,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         return parsed;
     }
 
-    /* check record version */
-    if (ssl_state->curr_connp->version < SSL_VERSION_3 ||
-            ssl_state->curr_connp->version > TLS_VERSION_12) {
-
-        SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_RECORD_VERSION);
-        return -1;
-    }
-
     /* record_length should never be zero */
     if (ssl_state->curr_connp->record_length == 0) {
         SCLogDebug("SSLv3 Record length is 0");
@@ -2197,9 +2280,6 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                     }
                 } else {
                     SCLogDebug("SSLv3.x detected");
-                    /* we will keep it this way till our record parser tells
-                       us what exact version this is */
-                    ssl_state->curr_connp->version = TLS_VERSION_UNKNOWN;
                     retval = SSLv3Decode(direction, ssl_state, pstate, input,
                                          input_len);
                     if (retval < 0) {
@@ -4456,8 +4536,6 @@ static int SSLParserTest23(void)
      * record */
     FAIL_IF(app_state->client_connp.content_type != SSLV3_HANDSHAKE_PROTOCOL);
 
-    FAIL_IF(app_state->client_connp.version != SSL_VERSION_3);
-
     FAIL_IF((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0);
@@ -4495,8 +4573,6 @@ static int SSLParserTest23(void)
     FAIL_IF(r != 0);
 
     FAIL_IF(app_state->client_connp.content_type != SSLV3_APPLICATION_PROTOCOL);
-
-    FAIL_IF(app_state->client_connp.version != SSL_VERSION_3);
 
     FAIL_IF((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0);
     FAIL_IF((app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0);
