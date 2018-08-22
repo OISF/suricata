@@ -159,31 +159,8 @@ static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
         return LuaCallbackError(luastate, "error: no cert");
 
     /* tls.version */
-    char ssl_version[32] = "";
-    switch (ssl_state->server_connp.version) {
-        case TLS_VERSION_UNKNOWN:
-            snprintf(ssl_version, sizeof(ssl_version), "UNDETERMINED");
-            break;
-        case SSL_VERSION_2:
-            snprintf(ssl_version, sizeof(ssl_version), "SSLv2");
-            break;
-        case SSL_VERSION_3:
-            snprintf(ssl_version, sizeof(ssl_version), "SSLv3");
-            break;
-        case TLS_VERSION_10:
-            snprintf(ssl_version, sizeof(ssl_version), "TLSv1");
-            break;
-        case TLS_VERSION_11:
-            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.1");
-            break;
-        case TLS_VERSION_12:
-            snprintf(ssl_version, sizeof(ssl_version), "TLS 1.2");
-            break;
-        default:
-            snprintf(ssl_version, sizeof(ssl_version), "0x%04x",
-                     ssl_state->server_connp.version);
-            break;
-    }
+    char ssl_version[SSL_VERSION_MAX_STRLEN];
+    SSLVersionToString(ssl_state->server_connp.version, ssl_version);
 
     int r = LuaPushStringBuffer(luastate, (uint8_t *)ssl_version, strlen(ssl_version));
     r += LuaPushStringBuffer(luastate, (uint8_t *)connp->cert0_subject, strlen(connp->cert0_subject));
