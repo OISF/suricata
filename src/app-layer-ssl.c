@@ -561,6 +561,28 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
 
     ssl_state->curr_connp->version = *input << 8 | *(input + 1);
 
+    /* TLSv1.3 draft1 to draft21 use the version field as earlier TLS
+       versions, instead of using the supported versions extension. */
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+            ((ssl_state->curr_connp->version == TLS_VERSION_13) ||
+            (((ssl_state->curr_connp->version >> 8) & 0xff) == 0x7f))) {
+        ssl_state->flags |= SSL_AL_FLAG_LOG_WITHOUT_CERT;
+    }
+
+    /* Catch some early TLSv1.3 draft implementations that does not conform
+       to the draft version. */
+    if ((ssl_state->curr_connp->version >= 0x7f01) &&
+            (ssl_state->curr_connp->version < 0x7f10)) {
+        ssl_state->curr_connp->version = TLS_VERSION_13_PRE_DRAFT16;
+    }
+
+    /* TLSv1.3 drafts from draft1 to draft15 use 0x0304 (TLSv1.3) as the
+       version number, which makes it hard to accurately pinpoint the
+       exact draft version. */
+    else if (ssl_state->curr_connp->version == TLS_VERSION_13) {
+        ssl_state->curr_connp->version = TLS_VERSION_13_PRE_DRAFT16;
+    }
+
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
             ssl_config.enable_ja3 && ssl_state->ja3_str == NULL) {
         ssl_state->ja3_str = Ja3BufferInit();
@@ -1166,12 +1188,18 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
 
     parsed += ret;
 
-    ret = TLSDecodeHSHelloSessionID(ssl_state, input + parsed,
-                                    input_len - parsed);
-    if (ret < 0)
-        goto end;
+    /* The session id field in the server hello record was removed in
+       TLSv1.3 draft1, but was readded in draft22. */
+    if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) ||
+            ((ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+            ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0))) {
+        ret = TLSDecodeHSHelloSessionID(ssl_state, input + parsed,
+                                        input_len - parsed);
+        if (ret < 0)
+            goto end;
 
-    parsed += ret;
+        parsed += ret;
+    }
 
     ret = TLSDecodeHSHelloCipherSuites(ssl_state, input + parsed,
                                        input_len - parsed);
@@ -1180,12 +1208,18 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
 
     parsed += ret;
 
-    ret = TLSDecodeHSHelloCompressionMethods(ssl_state, input + parsed,
-                                             input_len - parsed);
-    if (ret < 0)
-        goto end;
+   /* The compression methods field in the server hello record was
+      removed in TLSv1.3 draft1, but was readded in draft22. */
+   if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) ||
+              ((ssl_state->current_flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
+              ((ssl_state->flags & SSL_AL_FLAG_LOG_WITHOUT_CERT) == 0))) {
+        ret = TLSDecodeHSHelloCompressionMethods(ssl_state, input + parsed,
+                                                 input_len - parsed);
+        if (ret < 0)
+            goto end;
 
-    parsed += ret;
+        parsed += ret;
+    }
 
     ret = TLSDecodeHSHelloExtensions(ssl_state, input + parsed,
                                      input_len - parsed);
