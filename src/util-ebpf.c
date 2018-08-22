@@ -391,7 +391,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
                                   struct timespec *ctime)
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
-    struct flowv4_keys key = {}, next_key;
+    struct flowv4_keys prev_key = {}, key;
     int found = 0;
     unsigned int i;
     unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
@@ -401,7 +401,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
     }
 
     uint64_t hash_cnt = 0;
-    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+    while (bpf_map_get_next_key(mapfd, &prev_key, &key) == 0) {
         bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
@@ -412,7 +412,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
         if (res < 0) {
             SCLogDebug("no entry in v4 table for %d -> %d", key.port16[0], key.port16[1]);
-            key = next_key;
+            prev_key = key;
             continue;
         }
         for (i = 0; i < nr_cpus; i++) {
@@ -441,7 +441,7 @@ static int EBPFForEachFlowV4Table(LiveDevice *dev, const char *name,
             found = 1;
             EBPFDeleteKey(mapfd, &key);
         }
-        key = next_key;
+        prev_key = key;
     }
 
     struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
@@ -463,7 +463,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
                                   struct timespec *ctime)
 {
     int mapfd = EBPFGetMapFDByName(dev->dev, name);
-    struct flowv6_keys key = {}, next_key;
+    struct flowv6_keys prev_key = {}, key;
     int found = 0;
     unsigned int i;
     unsigned int nr_cpus = UtilCpuGetNumProcessorsConfigured();
@@ -473,7 +473,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
     }
 
     uint64_t hash_cnt = 0;
-    while (bpf_map_get_next_key(mapfd, &key, &next_key) == 0) {
+    while (bpf_map_get_next_key(mapfd, &prev_key, &key) == 0) {
         bool purge = true;
         uint64_t pkts_cnt = 0;
         uint64_t bytes_cnt = 0;
@@ -483,7 +483,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
         int res = bpf_map_lookup_elem(mapfd, &key, values_array);
         if (res < 0) {
             SCLogDebug("no entry in v6 table for %d -> %d", key.port16[0], key.port16[1]);
-            key = next_key;
+            prev_key = key;
             continue;
         }
         for (i = 0; i < nr_cpus; i++) {
@@ -504,7 +504,7 @@ static int EBPFForEachFlowV6Table(LiveDevice *dev, const char *name,
             found = 1;
             EBPFDeleteKey(mapfd, &key);
         }
-        key = next_key;
+        prev_key = key;
     }
 
     struct bpf_maps_info *bpfdata = LiveDevGetStorageById(dev, g_livedev_storage_id);
