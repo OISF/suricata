@@ -148,6 +148,28 @@ static int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 ret = 1;
             sig_ver = TLS12;
             break;
+        case TLS_VERSION_13_DRAFT28:
+        case TLS_VERSION_13_DRAFT27:
+        case TLS_VERSION_13_DRAFT26:
+        case TLS_VERSION_13_DRAFT25:
+        case TLS_VERSION_13_DRAFT24:
+        case TLS_VERSION_13_DRAFT23:
+        case TLS_VERSION_13_DRAFT22:
+        case TLS_VERSION_13_DRAFT21:
+        case TLS_VERSION_13_DRAFT20:
+        case TLS_VERSION_13_DRAFT19:
+        case TLS_VERSION_13_DRAFT18:
+        case TLS_VERSION_13_DRAFT17:
+        case TLS_VERSION_13_DRAFT16:
+        case TLS_VERSION_13_PRE_DRAFT16:
+            if (((ver >> 8) & 0xff) == 0x7f)
+                ver = TLS_VERSION_13;
+            /* fall through */
+        case TLS_VERSION_13:
+            if (ver == ssl->data[TLS13].ver)
+                ret = 1;
+            sig_ver = TLS13;
+            break;
     }
 
     if (sig_ver == TLS_UNKNOWN)
@@ -239,6 +261,10 @@ static DetectSslVersionData *DetectSslVersionParse(const char *str)
                 ssl->data[TLS12].ver = TLS_VERSION_12;
                 if (neg == 1)
                     ssl->data[TLS12].flags |= DETECT_SSL_VERSION_NEGATED;
+            } else if (strncasecmp("tls1.3", tmp_str, 6) == 0) {
+                ssl->data[TLS13].ver = TLS_VERSION_13;
+                if (neg == 1)
+                    ssl->data[TLS13].flags |= DETECT_SSL_VERSION_NEGATED;
             }  else if (strcmp(tmp_str, "") == 0) {
                 SCFree(orig);
                 if (found == 0)
