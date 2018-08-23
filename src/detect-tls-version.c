@@ -110,16 +110,24 @@ static int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
+    uint16_t version = 0;
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
-        SCLogDebug("server (toclient) version is 0x%02X", ssl_state->server_connp.version);
-        if (tls_data->ver == ssl_state->server_connp.version)
-            ret = 1;
+        version = ssl_state->server_connp.version;
+        SCLogDebug("server (toclient) version is 0x%02X", version);
     } else if (flags & STREAM_TOSERVER) {
-        SCLogDebug("client (toserver) version is 0x%02X", ssl_state->client_connp.version);
-        if (tls_data->ver == ssl_state->client_connp.version)
-            ret = 1;
+        version =  ssl_state->client_connp.version;
+        SCLogDebug("client (toserver) version is 0x%02X", version);
+    }
+
+    /* Match all TLSv1.3 drafts as TLSv1.3 */
+    if (((version >> 8) & 0xff) == 0x7f) {
+        version = TLS_VERSION_13;
+    }
+
+    if (tls_data->ver == version) {
+        ret = 1;
     }
 
     SCReturnInt(ret);
@@ -183,6 +191,8 @@ static DetectTlsVersionData *DetectTlsVersionParse (const char *str)
             temp = TLS_VERSION_11;
         } else if (strcmp("1.2", tmp_str) == 0) {
             temp = TLS_VERSION_12;
+        } else if (strcmp("1.3", tmp_str) == 0) {
+            temp = TLS_VERSION_13;
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
             SCFree(orig);
