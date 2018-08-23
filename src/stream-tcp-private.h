@@ -24,6 +24,7 @@
 #ifndef __STREAM_TCP_PRIVATE_H__
 #define __STREAM_TCP_PRIVATE_H__
 
+#include "tree.h"
 #include "decode.h"
 #include "util-pool.h"
 #include "util-pool-thread.h"
@@ -51,14 +52,26 @@ typedef struct StreamTcpSackRecord_ {
     struct StreamTcpSackRecord_ *next;
 } StreamTcpSackRecord;
 
-typedef struct TcpSegment_ {
+typedef struct TcpSegment {
     PoolThreadReserved res;
     uint16_t payload_len;       /**< actual size of the payload */
     uint32_t seq;
     StreamingBufferSegment sbseg;
-    struct TcpSegment_ *next;
-    struct TcpSegment_ *prev;
+    RB_ENTRY(TcpSegment) rb;
 } TcpSegment;
+
+/** \brief compare function for the Segment tree
+ *
+ *  Main sort point is the sequence number. When sequence numbers
+ *  are equal compare payload_len as well. This way the tree is
+ *  sorted by seq, and in case of duplicate seqs we are sorted
+ *  small to large.
+ */
+int TcpSegmentCompare(struct TcpSegment *a, struct TcpSegment *b);
+
+/* red-black tree prototype for TcpSegment */
+RB_HEAD(TCPSEG, TcpSegment);
+RB_PROTOTYPE(TCPSEG, TcpSegment, rb, TcpSegmentCompare);
 
 #define TCP_SEG_LEN(seg)        (seg)->payload_len
 #define TCP_SEG_OFFSET(seg)     (seg)->sbseg.stream_offset
@@ -90,9 +103,7 @@ typedef struct TcpStream_ {
     uint32_t log_progress_rel;      /**< streaming logger progress relative to STREAM_BASE_OFFSET */
 
     StreamingBuffer sb;
-
-    TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
-    TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/
+    struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
 
     StreamTcpSackRecord *sack_head; /**< head of list of SACK records */
     StreamTcpSackRecord *sack_tail; /**< tail of list of SACK records */
