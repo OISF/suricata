@@ -44,7 +44,8 @@
  *  \retval 0 shared data is the same (or no data is shared)
  *  \retval 1 shared data is different
  */
-int StreamTcpInlineSegmentCompare(TcpStream *stream, Packet *p, TcpSegment *seg)
+int StreamTcpInlineSegmentCompare(const TcpStream *stream,
+        const Packet *p, const TcpSegment *seg)
 {
     SCEnter();
 
@@ -108,7 +109,8 @@ int StreamTcpInlineSegmentCompare(TcpStream *stream, Packet *p, TcpSegment *seg)
  *  \todo What about reassembled fragments?
  *  \todo What about unwrapped tunnel packets?
  */
-void StreamTcpInlineSegmentReplacePacket(TcpStream *stream, Packet *p, TcpSegment *seg)
+void StreamTcpInlineSegmentReplacePacket(const TcpStream *stream,
+        Packet *p, const TcpSegment *seg)
 {
     SCEnter();
 
