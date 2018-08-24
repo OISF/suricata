@@ -133,6 +133,10 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             break;
         case ETHERNET_TYPE_ARP:
             break;
+        case ETHERNET_TYPE_TRILL:
+            DecodeTRILL(tv, dtv, p, pkt + VLAN_HEADER_LEN,
+                    len - VLAN_HEADER_LEN, pq);
+            break;
         default:
             SCLogDebug("unknown VLAN type: %" PRIx32 "", proto);
             ENGINE_SET_INVALID_EVENT(p, VLAN_UNKNOWN_TYPE);

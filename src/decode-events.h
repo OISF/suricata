@@ -147,6 +147,9 @@ enum {
 
     IEEE8021AH_HEADER_TOO_SMALL,
 
+    /* TRILL EVENTS */
+    TRILL_HEADER_TOO_SMALL,
+
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
 
@@ -256,7 +259,7 @@ enum {
     STREAM_REASSEMBLY_SEQ_GAP,
 
     STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
-
+    
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

@@ -87,6 +87,7 @@ enum PktSrcEnum {
 #include "decode-raw.h"
 #include "decode-null.h"
 #include "decode-vlan.h"
+#include "decode-trill.h"
 #include "decode-mpls.h"
 
 #include "detect-reference.h"
@@ -540,6 +541,8 @@ typedef struct Packet_
 
     VLANHdr *vlanh[2];
 
+    TRILLHdr *trillh;
+
     /* ptr to the payload of the packet
      * with it's length. */
     uint8_t *payload;
@@ -670,6 +673,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_gre;
     uint16_t counter_vlan;
     uint16_t counter_vlan_qinq;
+    uint16_t counter_trill;
     uint16_t counter_ieee8021ah;
     uint16_t counter_pppoe;
     uint16_t counter_teredo;
@@ -939,6 +943,7 @@ int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t
 int DecodeNull(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+int DecodeTRILL(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeIPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeICMPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);
 int DecodeICMPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint32_t, PacketQueue *);

@@ -74,6 +74,7 @@ decode-sctp.c decode-sctp.h \
 decode-sll.c decode-sll.h \
 decode-tcp.c decode-tcp.h \
 decode-teredo.c decode-teredo.h \
+decode-trill.c decode-trill.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-mpls.c decode-mpls.h \
