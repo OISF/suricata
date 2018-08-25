@@ -560,7 +560,7 @@ static inline int TLSDecodeHSHelloVersion(SSLState *ssl_state,
     }
 
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            ssl_config.enable_ja3) {
+            ssl_config.enable_ja3 && ssl_state->ja3_str == NULL) {
         uint16_t version = *input << 8 | *(input + 1);
 
         ssl_state->ja3_str = Ja3BufferInit();
@@ -1096,7 +1096,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
         goto end;
 
     if ((ssl_state->current_flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-            ssl_config.enable_ja3) {
+            ssl_config.enable_ja3 && ssl_state->ja3_hash == NULL) {
         ssl_state->ja3_hash = Ja3GenerateHash(ssl_state->ja3_str);
     }
 
