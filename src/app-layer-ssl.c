@@ -1101,6 +1101,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state,
     }
 
 end:
+    ssl_state->curr_connp->hs_bytes_processed = 0;
     return 0;
 }
 
