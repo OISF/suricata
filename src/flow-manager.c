@@ -1208,7 +1208,7 @@ static int FlowMgrTest02 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
@@ -1314,7 +1314,7 @@ static int FlowMgrTest04 (void)
     memset(&fb, 0, sizeof(FlowBucket));
     memset(&ts, 0, sizeof(ts));
     memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpStream));
 
     FBLOCK_INIT(&fb);
     FLOW_INITIALIZE(&f);
