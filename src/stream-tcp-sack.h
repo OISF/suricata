@@ -40,14 +40,13 @@
  */
 static inline uint32_t StreamTcpSackedSize(TcpStream *stream)
 {
-    if (likely(stream->sack_head == NULL)) {
+    if (likely(RB_EMPTY(&stream->sack_tree))) {
         SCReturnUInt(0U);
     } else {
         uint32_t size = 0;
 
         StreamTcpSackRecord *rec = NULL;
-
-        for (rec = stream->sack_head; rec != NULL; rec = rec->next) {
+        RB_FOREACH(rec, TCPSACK, &stream->sack_tree) {
             size += (rec->re - rec->le);
         }
 

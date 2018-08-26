@@ -46,11 +46,17 @@ typedef struct TcpStateQueue_ {
     struct TcpStateQueue_ *next;
 } TcpStateQueue;
 
-typedef struct StreamTcpSackRecord_ {
+typedef struct StreamTcpSackRecord {
     uint32_t le;    /**< left edge, host order */
     uint32_t re;    /**< right edge, host order */
-    struct StreamTcpSackRecord_ *next;
+    RB_ENTRY(StreamTcpSackRecord) rb;
 } StreamTcpSackRecord;
+
+int TcpSackCompare(struct StreamTcpSackRecord *a, struct StreamTcpSackRecord *b);
+
+/* red-black tree prototype for SACK records */
+RB_HEAD(TCPSACK, StreamTcpSackRecord);
+RB_PROTOTYPE(TCPSACK, StreamTcpSackRecord, rb, TcpSackCompare);
 
 typedef struct TcpSegment {
     PoolThreadReserved res;
@@ -105,8 +111,7 @@ typedef struct TcpStream_ {
     StreamingBuffer sb;
     struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
 
-    StreamTcpSackRecord *sack_head; /**< head of list of SACK records */
-    StreamTcpSackRecord *sack_tail; /**< tail of list of SACK records */
+    struct TCPSACK sack_tree;       /**< red back tree of TCP SACK records. */
 } TcpStream;
 
 #define STREAM_BASE_OFFSET(stream)  ((stream)->sb.stream_offset)
