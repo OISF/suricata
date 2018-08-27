@@ -119,6 +119,8 @@ typedef struct TcpStream_ {
     struct TCPSEG seg_tree;         /**< red black tree of TCP segments. Data is stored in TcpStream::sb */
     uint32_t segs_right_edge;
 
+    uint32_t sack_size;             /**< combined size of the SACK ranges currently in our tree. Updated
+                                     *   at INSERT/REMOVE time. */
     struct TCPSACK sack_tree;       /**< red back tree of TCP SACK records. */
 } TcpStream;
 

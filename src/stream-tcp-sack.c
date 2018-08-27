@@ -49,9 +49,10 @@ int TcpSackCompare(struct StreamTcpSackRecord *a, struct StreamTcpSackRecord *b)
 #ifdef DEBUG
 static void StreamTcpSackPrintList(TcpStream *stream)
 {
+    SCLogDebug("size %u", stream->sack_size);
     StreamTcpSackRecord *rec = NULL;
     RB_FOREACH(rec, TCPSACK, &stream->sack_tree) {
-        SCLogDebug("record %8u - %8u", rec->le, rec->re);
+        SCLogDebug("- record %8u - %8u", rec->le, rec->re);
     }
 }
 #endif /* DEBUG */
@@ -75,7 +76,7 @@ static inline void StreamTcpSackRecordFree(StreamTcpSackRecord *rec)
     StreamTcpDecrMemuse((uint64_t)sizeof(*rec));
 }
 
-static inline void ConsolidateFwd(struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+static inline void ConsolidateFwd(TcpStream *stream, struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
 {
     struct StreamTcpSackRecord *tr, *s = sa;
     RB_FOREACH_FROM(tr, TCPSACK, s) {
@@ -87,8 +88,11 @@ static inline void ConsolidateFwd(struct TCPSACK *tree, struct StreamTcpSackReco
             break; // entirely before
 
         if (SEQ_GEQ(sa->le, tr->le) && SEQ_LEQ(sa->re, tr->re)) {
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
             sa->re = tr->re;
             sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
             SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
@@ -102,6 +106,7 @@ static inline void ConsolidateFwd(struct TCPSACK *tree, struct StreamTcpSackReco
         */
         } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
             SCLogDebug("-> (fwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
+            stream->sack_size -= (tr->re - tr->le);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
         /*
@@ -114,7 +119,10 @@ static inline void ConsolidateFwd(struct TCPSACK *tree, struct StreamTcpSackReco
                    SEQ_GEQ(sa->re, tr->le) && SEQ_LT(sa->re, tr->re) // ends inside
             ) {
             // merge
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
             sa->re = tr->re;
+            stream->sack_size += (sa->re - sa->le);
             SCLogDebug("-> (fwd) tr %p %u/%u REMOVED MERGED", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
@@ -122,7 +130,8 @@ static inline void ConsolidateFwd(struct TCPSACK *tree, struct StreamTcpSackReco
     }
 }
 
-static inline void ConsolidateBackward(struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
+static inline void ConsolidateBackward(TcpStream *stream,
+        struct TCPSACK *tree, struct StreamTcpSackRecord *sa)
 {
     struct StreamTcpSackRecord *tr, *s = sa;
     RB_FOREACH_REVERSE_FROM(tr, TCPSACK, s) {
@@ -133,8 +142,11 @@ static inline void ConsolidateBackward(struct TCPSACK *tree, struct StreamTcpSac
         if (SEQ_GT(sa->le, tr->re))
             break; // entirely after
         if (SEQ_GEQ(sa->le, tr->le) && SEQ_LEQ(sa->re, tr->re)) {
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
             sa->re = tr->re;
             sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
             SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED2", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
@@ -148,6 +160,7 @@ static inline void ConsolidateBackward(struct TCPSACK *tree, struct StreamTcpSac
         */
         } else if (SEQ_LEQ(sa->le, tr->le) && SEQ_GEQ(sa->re, tr->re)) {
             SCLogDebug("-> (bwd) tr %p %u/%u REMOVED ECLIPSED", tr, tr->le, tr->re);
+            stream->sack_size -= (tr->re - tr->le);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
         /*
@@ -158,7 +171,10 @@ static inline void ConsolidateBackward(struct TCPSACK *tree, struct StreamTcpSac
         */
         } else if (SEQ_GT(sa->le, tr->le) && SEQ_GT(sa->re, tr->re) && SEQ_LEQ(sa->le,tr->re)) {
             // merge
+            stream->sack_size -= (tr->re - tr->le);
+            stream->sack_size -= (sa->re - sa->le);
             sa->le = tr->le;
+            stream->sack_size += (sa->re - sa->le);
             SCLogDebug("-> (bwd) tr %p %u/%u REMOVED MERGED", tr, tr->le, tr->re);
             TCPSACK_RB_REMOVE(tree, tr);
             StreamTcpSackRecordFree(tr);
@@ -166,7 +182,7 @@ static inline void ConsolidateBackward(struct TCPSACK *tree, struct StreamTcpSac
     }
 }
 
-static int Insert(struct TCPSACK *tree, uint32_t le, uint32_t re)
+static int Insert(TcpStream *stream, struct TCPSACK *tree, uint32_t le, uint32_t re)
 {
     SCLogDebug("* inserting: %u/%u\n", le, re);
 
@@ -182,8 +198,9 @@ static int Insert(struct TCPSACK *tree, uint32_t le, uint32_t re)
         StreamTcpSackRecordFree(sa);
         return 0;
     }
-    ConsolidateBackward(tree, sa);
-    ConsolidateFwd(tree, sa);
+    stream->sack_size += (re - le);
+    ConsolidateBackward(stream, tree, sa);
+    ConsolidateFwd(stream, tree, sa);
     return 0;
 }
 
@@ -214,7 +231,7 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
         SCReturnInt(0);
     }
 
-    if (Insert(&stream->sack_tree, le, re) < 0)
+    if (Insert(stream, &stream->sack_tree, le, re) < 0)
         SCReturnInt(-1);
 
     SCReturnInt(0);
@@ -285,13 +302,16 @@ void StreamTcpSackPruneList(TcpStream *stream)
     RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
         if (SEQ_LT(rec->re, stream->last_ack)) {
             SCLogDebug("removing le %u re %u", rec->le, rec->re);
+            stream->sack_size -= (rec->re - rec->le);
             TCPSACK_RB_REMOVE(&stream->sack_tree, rec);
             StreamTcpSackRecordFree(rec);
 
         } else if (SEQ_LT(rec->le, stream->last_ack)) {
             SCLogDebug("adjusting record to le %u re %u", rec->le, rec->re);
             /* last ack inside this record, update */
+            stream->sack_size -= (rec->re - rec->le);
             rec->le = stream->last_ack;
+            stream->sack_size += (rec->re - rec->le);
             break;
         } else {
             SCLogDebug("record beyond last_ack, nothing to do. Bailing out.");
@@ -315,6 +335,7 @@ void StreamTcpSackFreeList(TcpStream *stream)
 
     StreamTcpSackRecord *rec = NULL, *safe = NULL;
     RB_FOREACH_SAFE(rec, TCPSACK, &stream->sack_tree, safe) {
+        stream->sack_size -= (rec->re - rec->le);
         TCPSACK_RB_REMOVE(&stream->sack_tree, rec);
         StreamTcpSackRecordFree(rec);
     }
@@ -338,9 +359,13 @@ static int StreamTcpSackTest01 (void)
     stream.window = 100;
 
     StreamTcpSackInsertRange(&stream, 1, 10);
+    FAIL_IF_NOT(stream.sack_size == 9);
     StreamTcpSackInsertRange(&stream, 10, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
     StreamTcpSackInsertRange(&stream, 10, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
     StreamTcpSackInsertRange(&stream, 1, 20);
+    FAIL_IF_NOT(stream.sack_size == 19);
 #ifdef DEBUG
     StreamTcpSackPrintList(&stream);
 #endif /* DEBUG */
