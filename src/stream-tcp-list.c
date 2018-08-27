@@ -178,16 +178,6 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, TcpSegment **dup
         return 0;
     }
 
-    /* insert the segment in the stream tree using this fast track, if seg->seq
-       is equal or higher than last segments tail. */
-    TcpSegment *last = RB_MAX(TCPSEG, &stream->seg_tree);
-    if (last && SEQ_GEQ(seg->seq, (uint32_t)SEG_SEQ_RIGHT_EDGE(last)))
-    {
-        SCLogDebug("seg beyond tree tail, append");
-        TCPSEG_RB_INSERT(&stream->seg_tree, seg);
-        return 0;
-    }
-
     /* insert and then check if there was any overlap with other segments */
     TcpSegment *res = TCPSEG_RB_INSERT(&stream->seg_tree, seg);
     if (res) {
