@@ -121,7 +121,17 @@ tls.version
 
 Match on negotiated TLS/SSL version.
 
-Example values: "1.0", "1.1", "1.2"
+Supported values: "1.0", "1.1", "1.2", "1.3"
+
+It is also possible to match versions using a hex string.
+
+Examples::
+
+  tls.version:1.2;
+  tls.version:0x7f12;
+
+The first example matches TLSv1.2, whilst the last example matches TLSv1.3
+draft 16.
 
 tls.subject
 -----------
