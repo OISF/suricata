@@ -414,8 +414,6 @@ static int DoHandleDataOverlap(TcpStream *stream, const TcpSegment *list,
     return (check_overlap_different_data && data_is_different);
 }
 
-#define MAX_IP_DATA (uint32_t)(65536 - 40) // min ip header and min tcp header
-
 /** \internal
  *  \brief walk segment tree backwards to see if there are overlaps
  *
@@ -440,7 +438,7 @@ static int DoHandleDataCheckBackwards(TcpStream *stream,
         if (SEQ_LEQ(SEG_SEQ_RIGHT_EDGE(tree_seg), stream->base_seq)) {
             // segment entirely before base_seq
             ;
-        } else if (SEQ_LEQ(tree_seg->seq + MAX_IP_DATA, seg->seq)) {
+        } else if (SEQ_LEQ(tree_seg->seq + tree_seg->payload_len, seg->seq)) {
             SCLogDebug("list segment too far to the left, no more overlap will be found");
             break;
         } else if (SEQ_GT(SEG_SEQ_RIGHT_EDGE(tree_seg), seg->seq)) {
