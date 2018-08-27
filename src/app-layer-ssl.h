@@ -103,6 +103,13 @@ enum {
 /* Session resumed without a full handshake */
 #define SSL_AL_FLAG_SESSION_RESUMED             BIT_U32(20)
 
+/* Encountered a supported_versions extension in client hello */
+#define SSL_AL_FLAG_CH_VERSION_EXTENSION        BIT_U32(21)
+
+/* Log the session even without ever seeing a certificate. This is used
+   to log TLSv1.3 sessions. */
+#define SSL_AL_FLAG_LOG_WITHOUT_CERT            BIT_U32(22)
+
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
@@ -110,6 +117,8 @@ enum {
 #define SSL_EXTENSION_SNI                       0x0000
 #define SSL_EXTENSION_ELLIPTIC_CURVES           0x000a
 #define SSL_EXTENSION_EC_POINT_FORMATS          0x000b
+#define SSL_EXTENSION_SESSION_TICKET            0x0023
+#define SSL_EXTENSION_SUPPORTED_VERSIONS        0x002b
 
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
@@ -123,6 +132,21 @@ enum {
     TLS_VERSION_10 = 0x0301,
     TLS_VERSION_11 = 0x0302,
     TLS_VERSION_12 = 0x0303,
+    TLS_VERSION_13 = 0x0304,
+    TLS_VERSION_13_DRAFT28 = 0x7f1c,
+    TLS_VERSION_13_DRAFT27 = 0x7f1b,
+    TLS_VERSION_13_DRAFT26 = 0x7f1a,
+    TLS_VERSION_13_DRAFT25 = 0x7f19,
+    TLS_VERSION_13_DRAFT24 = 0x7f18,
+    TLS_VERSION_13_DRAFT23 = 0x7f17,
+    TLS_VERSION_13_DRAFT22 = 0x7f16,
+    TLS_VERSION_13_DRAFT21 = 0x7f15,
+    TLS_VERSION_13_DRAFT20 = 0x7f14,
+    TLS_VERSION_13_DRAFT19 = 0x7f13,
+    TLS_VERSION_13_DRAFT18 = 0x7f12,
+    TLS_VERSION_13_DRAFT17 = 0x7f11,
+    TLS_VERSION_13_DRAFT16 = 0x7f10,
+    TLS_VERSION_13_PRE_DRAFT16 = 0x7f01,
 };
 
 typedef struct SSLCertsChain_ {
@@ -165,6 +189,9 @@ typedef struct SSLStateConnp_ {
 
     /* ssl server name indication extension */
     char *sni;
+
+    char *session_id;
+    uint8_t ssl3_session_id_length;
 
     TAILQ_HEAD(, SSLCertsChain_) certs;
 
