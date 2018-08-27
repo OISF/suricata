@@ -888,7 +888,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
     const uint8_t *mydata;
     uint32_t mydata_len;
 
-    if (stream->sb.block_list == NULL) {
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
         SCLogDebug("getting one blob");
 
         StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
@@ -896,7 +896,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         *data = mydata;
         *data_len = mydata_len;
     } else {
-        StreamingBufferBlock *blk = stream->sb.block_list;
+        StreamingBufferBlock *blk = RB_MIN(SBB, &stream->sb.sbb_tree);
 
         if (blk->offset > offset) {
             SCLogDebug("gap, want data at offset %"PRIu64", "
@@ -908,7 +908,7 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         } else if (offset >= (blk->offset + blk->len)) {
 
             *data = NULL;
-            StreamingBufferBlock *nblk = blk->next;
+            StreamingBufferBlock *nblk = SBB_RB_NEXT(blk);
             *data_len = nblk ? nblk->offset - offset : 0;
             if (nblk) {
                 SCLogDebug("gap, want data at offset %"PRIu64", "
@@ -957,14 +957,14 @@ static inline bool CheckGap(TcpSession *ssn, TcpStream *stream, Packet *p)
              * is beyond next_seq, we only consider it a gap now if we do
              * already have data beyond the gap. */
             if (SEQ_GT(stream->last_ack, stream->next_seq)) {
-                if (stream->sb.block_list == NULL) {
+                if (RB_EMPTY(&stream->sb.sbb_tree)) {
                     SCLogDebug("packet %"PRIu64": no GAP. "
                             "next_seq %u < last_ack %u, but no data in list",
                             p->pcap_cnt, stream->next_seq, stream->last_ack);
                     return false;
                 } else {
                     const uint64_t next_seq_abs = STREAM_BASE_OFFSET(stream) + (stream->next_seq - stream->base_seq);
-                    StreamingBufferBlock *blk = stream->sb.block_list;
+                    StreamingBufferBlock *blk = RB_MIN(SBB, &stream->sb.sbb_tree);
                     if (blk->offset > next_seq_abs && blk->offset < last_ack_abs) {
                         /* ack'd data after the gap */
                         SCLogDebug("packet %"PRIu64": GAP. "
@@ -1146,8 +1146,8 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
 {
     const uint8_t *mydata;
     uint32_t mydata_len;
-    if (stream->sb.block_list == NULL) {
-        SCLogDebug("getting one blob");
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
+        SCLogDebug("getting one blob for offset %"PRIu64, offset);
 
         uint64_t roffset = offset;
         if (offset)
@@ -1160,29 +1160,24 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
         *data_len = mydata_len;
         *data_offset = roffset;
     } else {
-        if (*iter == NULL)
-            *iter = stream->sb.block_list;
+        SCLogDebug("multiblob %s. Want offset %"PRIu64,
+                *iter == NULL ? "starting" : "continuing", offset);
         if (*iter == NULL) {
+            StreamingBufferBlock key = { .offset = offset, .len = 0 };
+            *iter = SBB_RB_FIND_INCLUSIVE(&stream->sb.sbb_tree, &key);
+            SCLogDebug("*iter %p", *iter);
+        }
+        if (*iter == NULL) {
+            SCLogDebug("no data");
             *data = NULL;
             *data_len = 0;
             *data_offset = 0;
             return 0;
         }
-
-        if (offset) {
-            while (*iter && ((*iter)->offset + (*iter)->len < offset))
-                *iter = (*iter)->next;
-            if (*iter == NULL) {
-                *data = NULL;
-                *data_len = 0;
-                *data_offset = 0;
-                return 0;
-            }
-        }
-
-        SCLogDebug("getting multiple blobs. Iter %p, %"PRIu64"/%u (next? %s)", *iter, (*iter)->offset, (*iter)->len, (*iter)->next ? "yes":"no");
+        SCLogDebug("getting multiple blobs. Iter %p, %"PRIu64"/%u", *iter, (*iter)->offset, (*iter)->len);
 
         StreamingBufferSBBGetData(&stream->sb, (*iter), &mydata, &mydata_len);
+        SCLogDebug("mydata %p", mydata);
 
         if ((*iter)->offset < offset) {
             uint64_t delta = offset - (*iter)->offset;
@@ -1191,6 +1186,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
                 *data_len = mydata_len - delta;
                 *data_offset = offset;
             } else {
+                SCLogDebug("no data (yet)");
                 *data = NULL;
                 *data_len = 0;
                 *data_offset = 0;
@@ -1202,7 +1198,8 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
             *data_offset = (*iter)->offset;
         }
 
-        *iter = (*iter)->next;
+        *iter = SBB_RB_NEXT(*iter);
+        SCLogDebug("*iter %p", *iter);
     }
     return 0;
 }
@@ -1385,25 +1382,20 @@ static int StreamReassembleRawInline(TcpSession *ssn, const Packet *p,
     /* simply return progress from the block we inspected. */
     bool return_progress = false;
 
-    if (stream->sb.block_list == NULL) {
+    if (RB_EMPTY(&stream->sb.sbb_tree)) {
         /* continues block */
         StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &mydata_offset);
         return_progress = true;
 
     } else {
+        SCLogDebug("finding our SBB from offset %"PRIu64, packet_leftedge_abs);
         /* find our block */
-        StreamingBufferBlock *iter = stream->sb.block_list;
-        for ( ; iter != NULL; iter = iter->next) {
-            uint64_t iter_re_abs = iter->offset + iter->len;
-            DEBUG_VALIDATE_BUG_ON(packet_leftedge_abs < iter->offset &&
-                    packet_rightedge_abs > iter->offset &&
-                    packet_rightedge_abs < iter_re_abs);
-
-            if (iter->offset <= packet_leftedge_abs && iter_re_abs >= packet_rightedge_abs) {
-                StreamingBufferSBBGetData(&stream->sb, iter, &mydata, &mydata_len);
-                mydata_offset = iter->offset;
-                break;
-            }
+        StreamingBufferBlock key = { .offset = packet_leftedge_abs, .len = p->payload_len };
+        StreamingBufferBlock *sbb = SBB_RB_FIND_INCLUSIVE(&stream->sb.sbb_tree, &key);
+        if (sbb) {
+            SCLogDebug("found %p offset %"PRIu64" len %u", sbb, sbb->offset, sbb->len);
+            StreamingBufferSBBGetData(&stream->sb, sbb, &mydata, &mydata_len);
+            mydata_offset = sbb->offset;
         }
     }
 
