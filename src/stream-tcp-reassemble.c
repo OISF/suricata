@@ -322,6 +322,7 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     }
 }
 
+#ifdef UNITTESTS
 /** \internal
  *  \brief check if segments falls before stream 'offset' */
 static inline int SEGMENT_BEFORE_OFFSET(TcpStream *stream, TcpSegment *seg, uint64_t offset)
@@ -330,6 +331,7 @@ static inline int SEGMENT_BEFORE_OFFSET(TcpStream *stream, TcpSegment *seg, uint
         return 1;
     return 0;
 }
+#endif
 
 /** \param f locked flow */
 void StreamTcpDisableAppLayer(Flow *f)
@@ -1105,9 +1107,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 #endif
     /* if no segments are in the list or all are already processed,
      * and state is beyond established, we send an empty msg */
-    TcpSegment *seg_tail = RB_MAX(TCPSEG, &stream->seg_tree);
-    if (seg_tail == NULL ||
-            SEGMENT_BEFORE_OFFSET(stream, seg_tail, STREAM_APP_PROGRESS(stream)))
+    if (STREAM_HAS_SEEN_DATA(stream) && STREAM_RIGHT_EDGE(stream) <= STREAM_APP_PROGRESS(stream))
     {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
