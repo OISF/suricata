@@ -123,6 +123,9 @@ enum {
 /* SNI types */
 #define SSL_SNI_TYPE_HOST_NAME                  0
 
+/* Max string length of the TLS version string */
+#define SSL_VERSION_MAX_STRLEN 20
+
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
 enum {
@@ -242,5 +245,6 @@ typedef struct SSLState_ {
 void RegisterSSLParsers(void);
 void SSLParserRegisterTests(void);
 void SSLSetEvent(SSLState *ssl_state, uint8_t event);
+void SSLVersionToString(uint16_t, char *);
 
 #endif /* __APP_LAYER_SSL_H__ */
