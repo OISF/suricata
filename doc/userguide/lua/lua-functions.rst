@@ -393,6 +393,22 @@ Initialize with:
       return needs
   end
 
+TlsGetVersion
+~~~~~~~~~~~~~
+
+Get the negotiated version in a TLS session as a string through TlsGetVersion.
+
+Example:
+
+::
+
+  function log (args)
+      version = TlsGetVersion()
+      if version then
+          -- do something
+      end
+  end
+
 TlsGetCertInfo
 ~~~~~~~~~~~~~~
 
