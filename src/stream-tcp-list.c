@@ -521,16 +521,19 @@ static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         handle = tree_seg;
     }
 
+    const bool is_head = !(TCPSEG_RB_PREV(handle));
+    const bool is_tail = !(TCPSEG_RB_NEXT(handle));
+
     /* new list head  */
-    if (handle == RB_MIN(TCPSEG, &stream->seg_tree) && TCPSEG_RB_NEXT(handle)) {
+    if (is_head && !is_tail) {
         result = DoHandleDataCheckForward(stream, handle, buf, p);
 
     /* new list tail */
-    } else if (handle == RB_MAX(TCPSEG, &stream->seg_tree) && TCPSEG_RB_PREV(handle)) {
+    } else if (!is_head && is_tail) {
         result = DoHandleDataCheckBackwards(stream, handle, buf, p);
 
     /* middle of the list */
-    } else if (TCPSEG_RB_NEXT(handle) && TCPSEG_RB_PREV(handle)) {
+    } else if (!is_head && !is_tail) {
         result = DoHandleDataCheckBackwards(stream, handle, buf, p);
         result |= DoHandleDataCheckForward(stream, handle, buf, p);
     }
