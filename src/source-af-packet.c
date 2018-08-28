@@ -1930,7 +1930,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if_idx = AFPGetIfnumByDev(ptv->socket, devname, verbose);
 
     if (if_idx == -1) {
-        goto error;
+        goto socket_err;
     }
 
     /* bind socket */
